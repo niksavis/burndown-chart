@@ -632,16 +632,30 @@ def load_query_cached_data(n_clicks, selected_query_id):
 
         # Extract scope
         scope = unified_data.get("project_scope", {})
-        total_items = scope.get("total_items", 0)
         estimated_items = scope.get("estimated_items", 0)
-        total_points = scope.get("total_points", 0)
         estimated_points = scope.get("estimated_points", 0)
+
+        # Get actual remaining values from project scope
+        total_items = scope.get("remaining_items", 0)
+        total_points = scope.get("remaining_total_points", 0)
 
         # Format total_points for display field
         total_points_display = f"{total_points:.0f}"
 
         # Load settings
         settings = load_app_settings()
+
+        # BUGFIX: Update settings with actual values from project_scope
+        # so that visualization callbacks use the correct data
+        settings = {**settings}
+        settings.update(
+            {
+                "total_items": total_items,
+                "total_points": total_points,
+                "estimated_items": estimated_items,
+                "estimated_points": estimated_points,
+            }
+        )
 
         # Create success message
         data_points_count = len(statistics)

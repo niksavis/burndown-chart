@@ -196,26 +196,36 @@ class TaskProgress:
             "task_id": task_id,
             "task_name": task_name,
             "status": "in_progress",
-            "phase": "fetch",
             "start_time": datetime.now().isoformat(),
             "cancelled": False,
             "metadata": metadata,
-            "fetch_progress": {
-                "current": 0,
-                "total": 0,
-                "percent": 0,
-                "message": "Preparing...",
-            },
-            "calculate_progress": {
-                "current": 0,
-                "total": 0,
-                "percent": 0,
-                "message": "Waiting...",
-            },
             "ui_state": {
                 "operation_in_progress": True,
             },
         }
+
+        # Add task-specific progress structures
+        if task_id == "generate_report":
+            # Report generation uses simple report_progress object
+            state["report_progress"] = {
+                "percent": 0,
+                "message": "Preparing...",
+            }
+        else:
+            # Update data uses fetch/calculate phases
+            state["phase"] = "fetch"
+            state["fetch_progress"] = {
+                "current": 0,
+                "total": 0,
+                "percent": 0,
+                "message": "Preparing...",
+            }
+            state["calculate_progress"] = {
+                "current": 0,
+                "total": 0,
+                "percent": 0,
+                "message": "Waiting...",
+            }
 
         try:
             with open(TASK_STATE_FILE, "w") as f:
@@ -231,12 +241,15 @@ class TaskProgress:
             return False
 
     @staticmethod
-    def complete_task(task_id: str, message: str = "Task completed") -> None:
+    def complete_task(
+        task_id: str, message: str = "Task completed", **metadata
+    ) -> None:
         """Mark a task as completed with success message.
 
         Args:
             task_id: Task identifier
             message: Success message to display
+            **metadata: Additional data to store (e.g., report_file for report generation)
         """
         try:
             if not TASK_STATE_FILE.exists():
@@ -248,7 +261,8 @@ class TaskProgress:
 
             # CRITICAL: Only mark complete if actually done
             # Do NOT complete if still in fetch phase with incomplete progress
-            phase = state.get("phase", "fetch")
+            # This validation only applies to tasks with fetch/calculate phases (e.g., update_data)
+            phase = state.get("phase")
             fetch_progress = state.get("fetch_progress", {})
             fetch_percent = fetch_progress.get("percent", 0)
 
@@ -260,9 +274,30 @@ class TaskProgress:
                 return
 
             # Update to complete status
-            state["status"] = "complete"
-            state["complete_time"] = datetime.now().isoformat()
-            state["message"] = message
+            state["status"] = "complete"  # Must match progress_bar.py check
+            complete_time = datetime.now().isoformat()
+
+            # Encapsulate completion data based on task type
+            if state.get("task_id") == "generate_report":
+                # For report tasks, keep everything in report_progress object
+                if "report_progress" not in state:
+                    state["report_progress"] = {}
+                state["report_progress"]["percent"] = 100
+                state["report_progress"]["message"] = message
+                state["report_progress"]["complete_time"] = complete_time
+                # Add metadata (e.g., report_file) to report_progress
+                state["report_progress"].update(metadata)
+                logger.info(
+                    f"Task {task_id} completing with report_progress: {state['report_progress']}"
+                )
+            else:
+                # For other tasks (update_data), use root level fields
+                state["complete_time"] = complete_time
+                state["message"] = message
+                state["percent"] = 100
+                state.update(metadata)
+                logger.info(f"Task {task_id} completing with metadata: {metadata}")
+
             # Update UI state to show Update Data button (operation complete)
             state["ui_state"] = {  # type: ignore[assignment]
                 "operation_in_progress": False,
@@ -275,7 +310,9 @@ class TaskProgress:
 
                 os.fsync(f.fileno())  # Force immediate write to disk
 
-            logger.info(f"Task completed: {task_id} (phase={phase})")
+            logger.info(
+                f"Task completed: {task_id} (phase={phase}, report_file={state.get('report_file')})"
+            )
         except Exception as e:
             logger.error(f"Failed to mark task complete: {e}")
 

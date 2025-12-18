@@ -79,8 +79,12 @@ def calculate_total_points(
     # Calculate average points per item based on estimates
     avg_points_per_item = estimated_points / estimated_items
 
-    # Calculate total points using the average
-    estimated_total_points = total_items * avg_points_per_item
+    # Calculate total points using JIRA scope calculator formula:
+    # remaining_total_points = estimated_points + (avg × unestimated_items)
+    unestimated_items = max(0, total_items - estimated_items)
+    estimated_total_points = estimated_points + (
+        avg_points_per_item * unestimated_items
+    )
 
     return estimated_total_points, avg_points_per_item
 
@@ -135,15 +139,14 @@ def compute_cumulative_values(
         df["completed_points"], errors="coerce"
     ).fillna(0)
 
-    # Calculate cumulative sums from the end to the beginning
-    # This gives us the remaining items/points at each data point
-    # We reverse the dataframe, calculate cumulative sum, then reverse back
-    reversed_items = df["completed_items"][::-1].cumsum()[::-1]
-    reversed_points = df["completed_points"][::-1].cumsum()[::-1]
+    # Calculate cumulative completed from beginning to each point
+    df["cumulative_completed_items"] = df["completed_items"].cumsum()
+    df["cumulative_completed_points"] = df["completed_points"].cumsum()
 
-    # Calculate remaining items and points by adding the total to the reverse cumsum
-    df["cum_items"] = reversed_items + total_items
-    df["cum_points"] = reversed_points + total_points
+    # Calculate remaining at each point = Current remaining + Work completed in time window
+    # This gives us the burndown: starting scope minus progress
+    df["cum_items"] = total_items + df["cumulative_completed_items"]
+    df["cum_points"] = total_points + df["cumulative_completed_points"]
 
     return df
 
@@ -786,18 +789,29 @@ def calculate_weekly_averages(
     # When data_points_count is specified, we already filtered the input data,
     # so use all the filtered weekly data
     if data_points_count is not None:
-        recent_data = weekly_df  # Use all weeks from the filtered input
+        recent_data = weekly_df  # Use all weeks from the filtered input (respects user's data window)
     else:
         # Legacy behavior: limit to last 10 weeks when no filtering specified
         recent_data = weekly_df.tail(10)
 
     # Calculate averages and medians
+    import logging
+
+    logger = logging.getLogger(__name__)
+    logger.error(
+        f"[APP VELOCITY] weeks in recent_data: {len(recent_data)}, items per week: {recent_data['items'].tolist()}, points per week: {recent_data['points'].tolist()}"
+    )
+
     avg_weekly_items = recent_data["items"].mean()
     avg_weekly_points = recent_data["points"].mean()
     med_weekly_items = recent_data["items"].median()
     med_weekly_points = recent_data[
         "points"
     ].median()  # Always round up to 2 decimal places (as float, not int)
+
+    logger.error(
+        f"[APP VELOCITY] median items={med_weekly_items}, median points={med_weekly_points}"
+    )
 
     def round_up_2(x):
         # Ensure we're working with a float and preserve 2 decimal places

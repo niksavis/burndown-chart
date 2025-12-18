@@ -314,6 +314,10 @@ def save_app_settings(
                     "deadline",
                     existing_profile.get("forecast_settings", {}).get("deadline"),
                 ),
+                "milestone": settings.get(
+                    "milestone",
+                    existing_profile.get("forecast_settings", {}).get("milestone"),
+                ),
                 "data_points_count": settings.get(
                     "data_points_count",
                     existing_profile.get("forecast_settings", {}).get(
@@ -450,11 +454,11 @@ def load_app_settings() -> Dict[str, Any]:
                 "deadline": profile_data.get("forecast_settings", {}).get(
                     "deadline", DEFAULT_DEADLINE
                 ),
+                "milestone": profile_data.get("forecast_settings", {}).get("milestone"),
                 "data_points_count": profile_data.get("forecast_settings", {}).get(
                     "data_points_count", DEFAULT_DATA_POINTS_COUNT
                 ),
                 "show_milestone": profile_data.get("show_milestone", False),
-                "milestone": None,  # Milestone is separate from deadline
                 "show_points": profile_data.get("show_points", False),
                 "jql_query": "project = JRASERVER",  # Placeholder, actual JQL is in query.json
                 "last_used_data_source": "JIRA",

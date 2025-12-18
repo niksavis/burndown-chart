@@ -20,7 +20,7 @@ def BugTrendChart(
     Create bug trend chart component wrapper.
 
     Implements T038 - BugTrendChart component wrapper.
-    Wraps visualization.mobile_charts.create_bug_trend_chart() with error handling.
+    Wraps visualization.bug_charts.create_bug_trend_chart() with error handling.
 
     Args:
         weekly_stats: List of weekly bug statistics from calculate_bug_statistics()
@@ -31,7 +31,7 @@ def BugTrendChart(
         Dash Bootstrap Components Card with bug trend chart
     """
     try:
-        from visualization.mobile_charts import create_bug_trend_chart
+        from visualization.bug_charts import create_bug_trend_chart
         from configuration.chart_config import get_bug_analysis_chart_config
 
         # Create the chart figure
@@ -97,7 +97,7 @@ def BugInvestmentChart(
     Create bug investment chart component wrapper.
 
     Implements T053 - BugInvestmentChart component wrapper.
-    Wraps visualization.mobile_charts.create_bug_investment_chart() with error handling.
+    Wraps visualization.bug_charts.create_bug_investment_chart() with error handling.
 
     Args:
         weekly_stats: List of weekly bug statistics from calculate_bug_statistics()
@@ -108,7 +108,7 @@ def BugInvestmentChart(
         Dash Bootstrap Components Div with bug investment chart
     """
     try:
-        from visualization.mobile_charts import create_bug_investment_chart
+        from visualization.bug_charts import create_bug_investment_chart
         from configuration.chart_config import get_bug_analysis_chart_config
 
         # Create the chart figure
@@ -123,7 +123,7 @@ def BugInvestmentChart(
                 html.Div(
                     [
                         html.I(className="fas fa-coins me-2"),
-                        "Bug Investment: Items vs Story Points",
+                        "Bug Investment: Items vs Points",
                     ],
                     className="mb-3 border-bottom pb-2 d-flex align-items-center fw-bold",
                 ),
@@ -136,7 +136,7 @@ def BugInvestmentChart(
                 html.Small(
                     [
                         html.I(className="fas fa-info-circle me-1"),
-                        "Bar chart shows bug item counts (left axis), line chart shows story points (right axis).",
+                        "Bars show bug item counts (left axis), lines show complexity in points (right axis). Compare created vs resolved to track bug investment trends.",
                     ],
                     className="text-muted d-block mt-2",
                 ),
@@ -171,7 +171,7 @@ def BugForecastChart(
     Create bug forecast chart component wrapper.
 
     Implements T099 - BugForecastChart component wrapper.
-    Wraps visualization.mobile_charts.create_bug_forecast_chart() with error handling.
+    Wraps visualization.bug_charts.create_bug_forecast_chart() with error handling.
 
     Args:
         forecast: Bug forecast dictionary from forecast_bug_resolution()
@@ -182,13 +182,13 @@ def BugForecastChart(
         Dash Bootstrap Components Div with bug forecast chart
     """
     try:
-        from visualization.mobile_charts import create_bug_forecast_chart
+        from visualization.bug_charts import create_bug_forecast_chart
 
         # Create the chart figure
         fig = create_bug_forecast_chart(forecast, viewport_size)
 
         # Get mobile-optimized config
-        from visualization.mobile_charts import get_mobile_chart_config
+        from visualization.bug_charts import get_mobile_chart_config
 
         chart_config = get_mobile_chart_config(viewport_size)
 

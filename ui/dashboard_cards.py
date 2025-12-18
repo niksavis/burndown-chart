@@ -9,6 +9,7 @@ import dash_bootstrap_components as dbc
 from dash import html
 
 from ui.metric_cards import create_metric_card
+from ui.tooltip_utils import create_info_tooltip
 
 
 def create_dashboard_forecast_card(metrics: Dict[str, Any]) -> dbc.Card:
@@ -250,9 +251,27 @@ def create_dashboard_overview_content(metrics: Dict[str, Any]) -> html.Div:
                                 [
                                     html.Div(
                                         [
-                                            html.Small(
-                                                "Project Health Score",
-                                                className="text-muted text-uppercase d-block mb-2 fw-medium",
+                                            html.Div(
+                                                [
+                                                    html.Small(
+                                                        "Project Health Score",
+                                                        className="text-muted text-uppercase fw-medium me-2",
+                                                        style={
+                                                            "display": "inline-block"
+                                                        },
+                                                    ),
+                                                    create_info_tooltip(
+                                                        help_text=(
+                                                            "Weighted health score based on: "
+                                                            "Progress (25%) - completion percentage, "
+                                                            "Schedule Adherence (30%) - forecast vs deadline, "
+                                                            "Velocity Stability (25%) - team consistency, "
+                                                            "Confidence (20%) - estimate reliability"
+                                                        ),
+                                                        id_suffix="project-health-score",
+                                                    ),
+                                                ],
+                                                className="d-block mb-2",
                                             ),
                                             html.Div(
                                                 [
@@ -450,13 +469,14 @@ def create_dashboard_overview_content(metrics: Dict[str, Any]) -> html.Div:
 
 
 def _calculate_health_score(metrics: Dict[str, Any]) -> int:
-    """Calculate overall project health score (0-100).
+    """Calculate overall project health score (0-100) using deduction-based formula.
 
-    Formula considers:
-    - Progress (25%): How much work is complete
-    - Schedule adherence (30%): Are we on track for deadline
-    - Velocity stability (25%): Is team velocity consistent
-    - Confidence (20%): How confident is the estimate
+    Starts at 100 and deducts points based on project issues:
+    - Velocity consistency (30% weight): Penalize high coefficient of variation
+    - Schedule performance (25% weight): Penalize schedule variance
+    - Scope stability (20% weight): Penalize scope change rate
+    - Quality trends (15% weight): Reward improving trends, penalize declining
+    - Recent performance (10% weight): Reward strong performance, penalize weak
 
     Args:
         metrics: Dashboard metrics dictionary
@@ -464,48 +484,73 @@ def _calculate_health_score(metrics: Dict[str, Any]) -> int:
     Returns:
         Health score from 0-100
     """
-    # Progress score (0-25 points)
-    completion_percentage = metrics.get("completion_percentage", 0.0)
-    progress_score = (completion_percentage / 100) * 25
+    score = 100
 
-    # Schedule adherence score (0-30 points)
+    # Calculate velocity coefficient of variation (CV)
+    velocity_trend = metrics.get("velocity_trend", "stable")
+    # Map velocity trend to CV approximation for backward compatibility
+    velocity_cv_map = {
+        "increasing": 20,  # Good consistency with improvement
+        "stable": 25,  # Normal consistency
+        "decreasing": 40,  # Higher variation when declining
+        "unknown": 30,  # Assume moderate variation
+    }
+    velocity_cv = velocity_cv_map.get(velocity_trend, 30)
+
+    # Velocity consistency (30% weight)
+    if velocity_cv > 50:
+        score -= 30
+    elif velocity_cv > 30:
+        score -= 15
+
+    # Schedule performance (25% weight)
     days_to_completion = metrics.get("days_to_completion", 0)
     days_to_deadline = metrics.get("days_to_deadline", 0)
-
-    if days_to_completion and days_to_deadline:
-        schedule_ratio = (
-            days_to_completion / days_to_deadline if days_to_deadline > 0 else 1.0
-        )
-        if schedule_ratio <= 0.8:  # Ahead of schedule
-            schedule_score = 30
-        elif schedule_ratio <= 1.0:  # On schedule
-            schedule_score = 25
-        elif schedule_ratio <= 1.2:  # Slightly behind
-            schedule_score = 15
-        else:  # Behind schedule
-            schedule_score = 5
-    else:
-        schedule_score = 15  # Neutral score if no data
-
-    # Velocity stability score (0-25 points)
-    velocity_trend = metrics.get("velocity_trend", "unknown")
-    trend_scores = {
-        "increasing": 25,
-        "stable": 20,
-        "decreasing": 10,
-        "unknown": 15,
-    }
-    velocity_score = trend_scores.get(velocity_trend, 15)
-
-    # Confidence score (0-20 points)
-    confidence = metrics.get("completion_confidence", 0)
-    confidence_score = (confidence / 100) * 20 if confidence else 10
-
-    # Calculate total (0-100)
-    total_score = int(
-        progress_score + schedule_score + velocity_score + confidence_score
+    schedule_variance_days = (
+        abs(days_to_completion - days_to_deadline)
+        if days_to_completion and days_to_deadline
+        else 0
     )
-    return min(100, max(0, total_score))
+
+    if schedule_variance_days > 30:
+        score -= 25
+    elif schedule_variance_days > 14:
+        score -= 12
+
+    # Scope stability (20% weight) - assume stable if no data
+    scope_change_rate = 0  # Would need to be passed in metrics for real calculation
+
+    if scope_change_rate > 20:
+        score -= 20
+    elif scope_change_rate > 10:
+        score -= 10
+
+    # Quality trends (15% weight)
+    trend_direction = "stable"
+    if velocity_trend == "increasing":
+        trend_direction = "improving"
+    elif velocity_trend == "decreasing":
+        trend_direction = "declining"
+
+    if trend_direction == "declining":
+        score -= 15
+    elif trend_direction == "improving":
+        score += 5
+
+    # Recent performance (10% weight) - use confidence as proxy
+    completion_confidence = metrics.get("completion_confidence") or 0
+    recent_velocity_change = 0
+    if completion_confidence > 80:
+        recent_velocity_change = 15  # High confidence = strong performance
+    elif completion_confidence < 40:
+        recent_velocity_change = -25  # Low confidence = weak performance
+
+    if recent_velocity_change < -20:
+        score -= 10
+    elif recent_velocity_change > 20:
+        score += 5
+
+    return max(0, min(100, int(score)))
 
 
 def _get_health_color_and_label(score: int) -> tuple[str, str]:

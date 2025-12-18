@@ -1,8 +1,9 @@
 """
-Mobile Chart Configuration Module
+Bug Analysis Chart Module
 
-This module provides mobile-optimized chart configurations and utilities
-for responsive data visualization on mobile devices.
+This module provides bug analysis charts with responsive configurations
+for mobile, tablet, and desktop viewports. Includes utility functions
+for mobile-optimized chart configurations.
 """
 
 #######################################################################
@@ -435,7 +436,7 @@ def create_bug_trend_chart(
                         x1=weeks[idx - 1],
                         y0=0,
                         y1=1,
-                        fillcolor="rgba(220, 53, 69, 0.15)",  # Light red
+                        fillcolor="rgba(255, 100, 0, 0.2)",  # Transparent red-orange for concern
                         layer="below",
                         line_width=0,
                     )
@@ -454,7 +455,7 @@ def create_bug_trend_chart(
                 x1=weeks[-1],
                 y0=0,
                 y1=1,
-                fillcolor="rgba(220, 53, 69, 0.15)",  # Light red
+                fillcolor="rgba(255, 100, 0, 0.2)",  # Transparent red-orange for concern
                 layer="below",
                 line_width=0,
             )
@@ -487,6 +488,7 @@ def create_bug_trend_chart(
         ),
         shapes=warning_shapes,  # Add warning highlights
         hovermode="x unified",
+        template="plotly_white",
         **layout_config_clean,
     )
 
@@ -516,9 +518,9 @@ def create_bug_investment_chart(
     include_forecast: bool = True,
 ) -> go.Figure:
     """
-    Create bug investment chart showing bug items and story points per week with next week forecast.
+    Create bug investment chart showing bug items and points per week with next week forecast.
 
-    Implements T052 - Bug investment visualization with dual-axis (items + story points).
+    Implements T052 - Bug investment visualization with dual-axis (items + points).
 
     Args:
         weekly_stats: List of weekly bug statistics from calculate_bug_statistics()
@@ -544,7 +546,7 @@ def create_bug_investment_chart(
             font=dict(size=14, color="gray"),
         )
         fig.update_layout(
-            title="Bug Investment: Items vs Story Points",
+            title="Bug Investment: Items vs Points",
             xaxis=dict(visible=False),
             yaxis=dict(visible=False),
         )
@@ -557,61 +559,85 @@ def create_bug_investment_chart(
     points_created = [stat["bugs_points_created"] for stat in weekly_stats]
     points_resolved = [stat["bugs_points_resolved"] for stat in weekly_stats]
 
-    # Create figure with secondary y-axis
-    fig = make_subplots(specs=[[{"secondary_y": True}]])
+    # Create figure (no secondary y-axis needed - we'll use text annotations for point values)
+    fig = go.Figure()
 
-    # Bug items traces (primary y-axis)
+    # Convert resolved to negative values to show below x-axis (like Weekly Scope Growth)
+    bugs_resolved_negative = [-x for x in bugs_resolved]
+    points_resolved_negative = [-x for x in points_resolved]
+
+    # Normalize points to bug scale for visual comparison
+    # Calculate ratio to scale points to similar magnitude as bugs
+    bugs_max = max(
+        max(bugs_created) if bugs_created else 1,
+        max(bugs_resolved) if bugs_resolved else 1,
+    )
+    points_max = max(
+        max(points_created) if points_created else 1,
+        max(points_resolved) if points_resolved else 1,
+    )
+    scale_factor = bugs_max / points_max if points_max > 0 else 1
+
+    points_created_scaled = [p * scale_factor for p in points_created]
+    points_resolved_negative_scaled = [
+        p * scale_factor for p in points_resolved_negative
+    ]
+
+    # Bug count traces - use blue color scheme
+    # Created above x-axis (lighter blue)
     fig.add_trace(
         go.Bar(
             x=weeks,
             y=bugs_created,
-            name="Items Created",
-            marker=dict(color="#dc3545", opacity=0.7),  # Red
-            hovertemplate="<b>%{x}</b><br>Items Created: %{y}<extra></extra>",
-            yaxis="y",
+            name="Bugs Created",
+            marker=dict(color="rgb(100, 149, 237)", opacity=0.7),
+            hovertemplate="<b>%{x}</b><br>Bugs Created: %{y}<extra></extra>",
+            width=0.35,
+            offset=-0.2,
         ),
-        secondary_y=False,
     )
 
+    # Resolved below x-axis (darker blue) - displayed as negative to show below zero
     fig.add_trace(
         go.Bar(
             x=weeks,
-            y=bugs_resolved,
-            name="Items Resolved",
-            marker=dict(color="#28a745", opacity=0.7),  # Green
-            hovertemplate="<b>%{x}</b><br>Items Resolved: %{y}<extra></extra>",
-            yaxis="y",
+            y=bugs_resolved_negative,
+            name="Bugs Resolved",
+            marker=dict(color="rgb(0, 99, 178)", opacity=0.9),
+            hovertemplate="<b>%{x}</b><br>Bugs Resolved: %{customdata}<extra></extra>",
+            customdata=bugs_resolved,  # Show actual positive values in hover
+            width=0.35,
+            offset=-0.2,
         ),
-        secondary_y=False,
     )
 
-    # Story points traces (secondary y-axis)
+    # Points traces - use orange color scheme (scaled to bug magnitude)
+    # Created above x-axis (lighter orange)
     fig.add_trace(
-        go.Scatter(
+        go.Bar(
             x=weeks,
-            y=points_created,
+            y=points_created_scaled,
             name="Points Created",
-            mode="lines+markers",
-            line=dict(color="#ff8c00", width=2, dash="dot"),  # Dark orange
-            marker=dict(size=6, symbol="diamond"),
-            hovertemplate="<b>%{x}</b><br>Points Created: %{y}<extra></extra>",
-            yaxis="y2",
+            marker=dict(color="rgb(255, 179, 102)", opacity=0.7),
+            hovertemplate="<b>%{x}</b><br>Points Created: %{customdata}<extra></extra>",
+            customdata=points_created,  # Show actual point values
+            width=0.35,
+            offset=0.2,
         ),
-        secondary_y=True,
     )
 
+    # Resolved below x-axis (darker orange) - displayed as negative
     fig.add_trace(
-        go.Scatter(
+        go.Bar(
             x=weeks,
-            y=points_resolved,
+            y=points_resolved_negative_scaled,
             name="Points Resolved",
-            mode="lines+markers",
-            line=dict(color="#20c997", width=2, dash="dot"),  # Teal/green
-            marker=dict(size=6, symbol="diamond"),
-            hovertemplate="<b>%{x}</b><br>Points Resolved: %{y}<extra></extra>",
-            yaxis="y2",
+            marker=dict(color="rgb(255, 127, 14)", opacity=0.9),
+            hovertemplate="<b>%{x}</b><br>Points Resolved: %{customdata}<extra></extra>",
+            customdata=points_resolved,  # Show actual positive values in hover
+            width=0.35,
+            offset=0.2,
         ),
-        secondary_y=True,
     )
 
     # Add next week forecast if requested and have enough data
@@ -626,78 +652,85 @@ def create_bug_investment_chart(
             # Forecast for items created/resolved (bars with pattern)
             created_ml = forecast["created"]["most_likely"]
             resolved_ml = forecast["resolved"]["most_likely"]
+            resolved_ml_negative = -resolved_ml  # Show below x-axis
 
             fig.add_trace(
                 go.Bar(
                     x=[next_week],
                     y=[created_ml],
-                    name="Items Forecast (Created)",
+                    name="Bugs Forecast (Created)",
                     marker=dict(
-                        color="#dc3545",
-                        opacity=0.5,
+                        color="rgb(100, 149, 237)",
+                        opacity=0.4,
                         pattern_shape="x",  # Pattern to distinguish forecast
                     ),
-                    hovertemplate="<b>%{x}</b><br>Forecast Created: %{y:.1f}<extra></extra>",
-                    yaxis="y",
+                    hovertemplate="<b>%{x}</b><br>Forecast Bugs Created: %{y:.1f}<extra></extra>",
+                    width=0.35,
+                    offset=-0.2,
                 ),
-                secondary_y=False,
             )
 
             fig.add_trace(
                 go.Bar(
                     x=[next_week],
-                    y=[resolved_ml],
-                    name="Items Forecast (Resolved)",
+                    y=[resolved_ml_negative],
+                    name="Bugs Forecast (Resolved)",
                     marker=dict(
-                        color="#28a745",
-                        opacity=0.5,
+                        color="rgb(0, 99, 178)",
+                        opacity=0.4,
                         pattern_shape="x",
                     ),
-                    hovertemplate="<b>%{x}</b><br>Forecast Resolved: %{y:.1f}<extra></extra>",
-                    yaxis="y",
+                    hovertemplate="<b>%{x}</b><br>Forecast Bugs Resolved: %{customdata:.1f}<extra></extra>",
+                    customdata=[resolved_ml],  # Show actual positive value
+                    width=0.35,
+                    offset=-0.2,
                 ),
-                secondary_y=False,
             )
 
             # Forecast for points if available
             if "created_points" in forecast:
                 created_points_ml = forecast["created_points"]["most_likely"]
                 resolved_points_ml = forecast["resolved_points"]["most_likely"]
+                resolved_points_ml_negative = -resolved_points_ml  # Show below x-axis
 
-                fig.add_trace(
-                    go.Scatter(
-                        x=[next_week],
-                        y=[created_points_ml],
-                        name="Points Forecast (Created)",
-                        mode="markers",
-                        marker=dict(
-                            size=10,
-                            color="#ff8c00",
-                            symbol="diamond-x",
-                            line=dict(width=2, color="white"),
-                        ),
-                        hovertemplate="<b>%{x}</b><br>Forecast Points Created: %{y:.1f}<extra></extra>",
-                        yaxis="y2",
-                    ),
-                    secondary_y=True,
+                # Scale points to match bug magnitude
+                created_points_ml_scaled = created_points_ml * scale_factor
+                resolved_points_ml_negative_scaled = (
+                    resolved_points_ml_negative * scale_factor
                 )
 
                 fig.add_trace(
-                    go.Scatter(
+                    go.Bar(
                         x=[next_week],
-                        y=[resolved_points_ml],
-                        name="Points Forecast (Resolved)",
-                        mode="markers",
+                        y=[created_points_ml_scaled],
+                        name="Points Forecast (Created)",
                         marker=dict(
-                            size=10,
-                            color="#20c997",
-                            symbol="diamond-x",
-                            line=dict(width=2, color="white"),
+                            color="rgb(255, 179, 102)",
+                            opacity=0.4,
+                            pattern_shape="x",
                         ),
-                        hovertemplate="<b>%{x}</b><br>Forecast Points Resolved: %{y:.1f}<extra></extra>",
-                        yaxis="y2",
+                        hovertemplate="<b>%{x}</b><br>Forecast Points Created: %{customdata:.1f}<extra></extra>",
+                        customdata=[created_points_ml],
+                        width=0.35,
+                        offset=0.2,
                     ),
-                    secondary_y=True,
+                )
+
+                fig.add_trace(
+                    go.Bar(
+                        x=[next_week],
+                        y=[resolved_points_ml_negative_scaled],
+                        name="Points Forecast (Resolved)",
+                        marker=dict(
+                            color="rgb(255, 127, 14)",
+                            opacity=0.4,
+                            pattern_shape="x",
+                        ),
+                        hovertemplate="<b>%{x}</b><br>Forecast Points Resolved: %{customdata:.1f}<extra></extra>",
+                        customdata=[resolved_points_ml],  # Show actual positive value
+                        width=0.35,
+                        offset=0.2,
+                    ),
                 )
 
             # Add vertical line between historical and forecast
@@ -741,41 +774,51 @@ def create_bug_investment_chart(
             layout_config_clean["margin"].get("t", 50), 50
         )
 
-    # Set titles for both y-axes
-    fig.update_yaxes(
-        title_text="Bug Items Count",
-        secondary_y=False,
-        tickfont=dict(size=10 if viewport_size == "mobile" else 12),
+    # Calculate symmetric range to align zero line
+    all_values = (
+        bugs_created
+        + [abs(x) for x in bugs_resolved_negative]
+        + points_created_scaled
+        + [abs(x) for x in points_resolved_negative_scaled]
     )
+    max_value = max(all_values) if all_values else 1
+    max_padded = max_value * 1.15  # 15% padding
+
+    # Set y-axis with symmetric range
     fig.update_yaxes(
-        title_text="Story Points",
-        secondary_y=True,
+        title_text=f"Bug Count (Points scaled {scale_factor:.1f}x)",
         tickfont=dict(size=10 if viewport_size == "mobile" else 12),
+        range=[-max_padded, max_padded],  # Symmetric range around zero
+        zeroline=True,
+        zerolinewidth=2,
+        zerolinecolor="rgba(0,0,0,0.3)",
     )
 
+    # Increase bottom margin for legend
+    if "margin" in layout_config_clean:
+        layout_config_clean["margin"]["b"] = 120  # Space for legend below
+
     fig.update_layout(
-        title="Bug Investment: Items vs Story Points",
+        title="Bug Investment: Count vs Points (+ Created, - Resolved)",
         xaxis=dict(
             title="Week",
             tickangle=-45 if viewport_size == "mobile" else 0,
             tickfont=dict(size=10 if viewport_size == "mobile" else 12),
         ),
-        barmode="group",
         hovermode="x unified",
+        template="plotly_white",
         **layout_config_clean,
     )
 
-    # Add legend configuration - optimized positioning to minimize empty space
+    # Add legend configuration - positioned below chart
     fig.update_layout(
         showlegend=True,
         legend=dict(
-            orientation="h" if viewport_size == "mobile" else "v",
-            yanchor="bottom",
-            y=-0.25
-            if viewport_size == "mobile"
-            else 0.5,  # Center vertically for desktop/tablet
-            xanchor="left" if viewport_size == "mobile" else "left",
-            x=0 if viewport_size == "mobile" else 1.02,
+            orientation="h",
+            yanchor="top",
+            y=-0.2,  # Below chart
+            xanchor="center",
+            x=0.5,
             bgcolor="rgba(255,255,255,0.8)",
             bordercolor="rgba(0,0,0,0.1)",
             borderwidth=1,
@@ -903,8 +946,6 @@ def create_bug_forecast_chart(
             b=50 if viewport_size == "mobile" else 70,
         ),
         showlegend=False,
-        plot_bgcolor="white",
-        paper_bgcolor="white",
         hovermode="x unified",
     )
 

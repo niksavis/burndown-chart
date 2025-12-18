@@ -87,6 +87,7 @@ def register(app):
         [
             State("current-statistics", "data"),
             State("calculation-results", "data"),
+            State("total-points-display", "value"),  # Check if already set by slider
         ],
     )
     def update_total_points_calculation(
@@ -96,15 +97,23 @@ def register(app):
         stats_ts,
         statistics,
         calc_results,
+        current_total_points_display,
     ):
         """
         Update the total points calculation based on estimated items and points or historical data.
+
+        Uses the same extrapolation formula as JIRA scope calculator:
+        remaining_total_points = estimated_points + (avg_points_per_item × unestimated_items)
+
+        This ensures consistency between JIRA and manual data entry workflows.
+        Manual changes to inputs will always trigger recalculation, allowing users to
+        adjust forecasts even when working with JIRA data.
         """
         # Input validation
         if None in [total_items, estimated_items, estimated_points]:
             # Use .get() method for dictionary lookups - this is the Python idiomatic way
             return (
-                f"{calc_results.get('total_points', DEFAULT_TOTAL_POINTS):.0f}",
+                f"{calc_results.get('total_points', DEFAULT_TOTAL_POINTS):.1f}",
                 calc_results
                 or {"total_points": DEFAULT_TOTAL_POINTS, "avg_points_per_item": 0},
             )
@@ -117,12 +126,13 @@ def register(app):
         except (ValueError, TypeError):
             # Return previous values if conversion fails
             return (
-                f"{calc_results.get('total_points', DEFAULT_TOTAL_POINTS):.0f}",
+                f"{calc_results.get('total_points', DEFAULT_TOTAL_POINTS):.1f}",
                 calc_results
                 or {"total_points": DEFAULT_TOTAL_POINTS, "avg_points_per_item": 0},
             )
 
         # Calculate total points and average - use_fallback=False to respect user's explicit input
+        # This is for MANUAL data entry workflow only
         estimated_total_points, avg_points_per_item = calculate_total_points(
             total_items,
             estimated_items,
@@ -139,9 +149,24 @@ def register(app):
 
         # Return updated values
         return (
-            f"{estimated_total_points:.0f}",
+            f"{estimated_total_points:.1f}",
             updated_calc_results,
         )
+
+    @app.callback(
+        Output("remaining-points-formula", "children"),
+        Input("calculation-results", "data"),
+    )
+    def update_remaining_points_formula(calc_results):
+        """Update the formula display to show the actual avg coefficient being used."""
+        if not calc_results:
+            return "= Est. Points + (avg × unestimated)."
+
+        avg = calc_results.get("avg_points_per_item", 0)
+        if avg > 0:
+            return f"= Est. Points + ({avg:.2f} × unestimated)."
+        else:
+            return "= Est. Points + (avg × unestimated)."
 
     # REMOVED: The Python callback for data-points-info that was causing the duplicate output error
     # This functionality is now handled by the clientside callback below
@@ -359,6 +384,9 @@ def register(app):
             Output(
                 "trigger-auto-metrics-calc", "data", allow_duplicate=True
             ),  # Trigger separate metrics calc
+            Output(
+                "progress-poll-interval", "disabled", allow_duplicate=True
+            ),  # Enable polling for banner icons
         ],
         [
             Input("update-data-unified", "n_clicks"),
@@ -424,6 +452,7 @@ def register(app):
                 "",  # update-data-status (empty)
                 "",  # toast notification (empty)
                 None,  # metrics trigger
+                True,  # progress-poll-interval disabled (no task)
             )
 
         try:
@@ -464,6 +493,7 @@ def register(app):
                     ),  # update-data-status
                     "",  # app-notifications (no toast)
                     None,  # trigger-auto-metrics-calc
+                    True,  # progress-poll-interval disabled (already running)
                 )
 
             # Start the task - returns False if can't start
@@ -497,6 +527,7 @@ def register(app):
                     ),  # update-data-status
                     "",  # app-notifications (no toast)
                     None,  # trigger-auto-metrics-calc
+                    True,  # progress-poll-interval disabled (failed to start)
                 )
 
             # Handle JIRA data import (settings panel only uses JIRA)
@@ -562,6 +593,7 @@ def register(app):
                     cache_status_message,  # Show error in status area
                     "",  # Toast notification (empty)
                     None,  # metrics trigger
+                    False,  # progress-poll-interval enabled (task completed with error)
                 )
 
             # Use JQL query from input or fall back to active query's JQL
@@ -720,6 +752,7 @@ def register(app):
                     cache_status_message,  # Show error in status area
                     "",  # Toast notification
                     None,  # metrics trigger
+                    False,  # progress-poll-interval enabled (task completed with error)
                 )
 
             # Use sync_jira_scope_and_data to get both scope data and message
@@ -900,48 +933,13 @@ def register(app):
                     scope_data.get("estimated_points", 0) if scope_data else 0
                 )
 
-                # After getting CURRENT remaining work from JIRA, calculate window-based scope
-                # This ensures consistency with serve_layout() and slider callback
-                # Use the updated_statistics we just loaded above (line 488), not load_statistics() again
-                from data.persistence import load_app_settings
-
-                app_settings = load_app_settings()
-                data_points_count = app_settings.get("data_points_count", 16)
-
-                if updated_statistics and len(updated_statistics) >= data_points_count:
-                    import pandas as pd
-
-                    # Calculate remaining work at START of selected data window
-                    df = pd.DataFrame(updated_statistics)
-                    df["date"] = pd.to_datetime(df["date"])
-                    df = df.sort_values("date", ascending=False)
-                    selected_data = df.head(data_points_count)
-
-                    # Calculate completed work in the window
-                    completed_in_window_items = selected_data["completed_items"].sum()
-                    completed_in_window_points = selected_data["completed_points"].sum()
-
-                    # Remaining at START = Current remaining + Completed in window
-                    total_items_window_based = int(
-                        total_items + completed_in_window_items
-                    )
-                    total_points_window_based = (
-                        total_points + completed_in_window_points
-                    )
-
-                    logger.info(
-                        f"[Settings] Scope from JIRA (current): {total_items} items, {total_points:.1f} points"
-                    )
-                    logger.info(
-                        f"[Settings] Adjusted for {data_points_count}-week window: {total_items_window_based} items, {total_points_window_based:.1f} points"
-                    )
-
-                    # Use window-based values for UI
-                    total_items = total_items_window_based
-                    total_points = total_points_window_based
+                # Use actual remaining values from JIRA scope (no window adjustments)
+                logger.info(
+                    f"[Settings] Using JIRA scope values: {total_items} items, {total_points:.1f} points"
+                )
 
                 # Format total_points as string since it's a text display field
-                total_points_display = f"{total_points:.0f}"
+                total_points_display = f"{total_points:.1f}"
 
                 logger.info(
                     f"[Settings] Final scope for UI: total_items={total_items}, estimated_items={estimated_items}, total_points={total_points:.1f}, estimated_points={estimated_points}"
@@ -1043,6 +1041,7 @@ def register(app):
                     "",  # Clear status area (toast shows message now)
                     success_toast,  # Toast notification
                     metrics_trigger,  # Trigger separate metrics calculation
+                    False,  # progress-poll-interval enabled (metrics will run)
                 )
             else:
                 # Create detailed error message
@@ -1086,6 +1085,7 @@ def register(app):
                     error_status_message,  # Show error in status area
                     "",  # Toast notification (empty)
                     None,  # trigger-auto-metrics-calc
+                    False,  # progress-poll-interval enabled (task completed with error)
                 )
 
         except ImportError:
@@ -1164,6 +1164,7 @@ def register(app):
                 cache_status_message,  # Show error in status area
                 "",  # Toast notification (empty)
                 None,  # metrics trigger
+                False,  # progress-poll-interval enabled (task completed with error)
             )
 
     #######################################################################
@@ -1451,34 +1452,10 @@ def register(app):
                     f"Last updated: {current_time}", className="text-muted"
                 )
 
-                # After getting CURRENT remaining work from JIRA, calculate window-based scope
-                # This ensures consistency with serve_layout() and slider callback
-                from data.persistence import load_app_settings, load_statistics
-
-                app_settings = load_app_settings()
-                data_points_count = app_settings.get("data_points_count", 16)
-                statistics = load_statistics()
-
-                if statistics and len(statistics) >= data_points_count:
-                    import pandas as pd
-
-                    # Calculate remaining work at START of selected data window
-                    df = pd.DataFrame(statistics)
-                    df["date"] = pd.to_datetime(df["date"])
-                    df = df.sort_values("date", ascending=False)
-                    selected_data = df.head(data_points_count)
-
-                    # Calculate completed work in the window
-                    completed_in_window_items = selected_data["completed_items"].sum()  # type: ignore[attr-defined]
-                    completed_in_window_points = selected_data["completed_points"].sum()  # type: ignore[attr-defined]
-
-                    # Remaining at START = Current remaining + Completed in window
-                    total_items = int(total_items + completed_in_window_items)
-                    estimated_points = estimated_points + completed_in_window_points
-
-                    logger.info(
-                        f"[Settings] Adjusted scope for {data_points_count}-week window: {total_items} items, {estimated_points:.1f} points"
-                    )
+                # Use actual remaining values from JIRA scope (no window adjustments)
+                logger.info(
+                    f"[Settings] Using JIRA scope values: {total_items} items, {estimated_points:.1f} points"
+                )
 
                 return (
                     status_content,
@@ -2667,11 +2644,11 @@ def register(app):
             pert_factor=pert_factor,
             deadline=deadline,
             scope_items=scope_items,
-            scope_points=int(scope_points),  # Convert to int
-            remaining_items=remaining_items,
-            remaining_points=int(remaining_points)
-            if remaining_points is not None
-            else None,  # Convert to int
+            scope_points=round(scope_points, 1),  # type: ignore[arg-type]
+            remaining_items=scope_items,  # Display as Remaining
+            remaining_points=round(scope_points, 1),  # type: ignore[arg-type]
+            total_items=scope_items,  # Remaining Items
+            total_points=round(scope_points, 1),  # type: ignore[arg-type]
             show_points=show_points,
             data_points=data_points,
             profile_name=profile_name,
@@ -2766,11 +2743,23 @@ def register(app):
                 remaining_items = project_scope.get("remaining_items", 0)
                 estimated_points = project_scope.get("estimated_points", 0)
                 remaining_points = project_scope.get("remaining_total_points", 0)
+
+                # Calculate avg points per item for calc_results
+                avg_points_per_item = 0
+                if remaining_items > 0:
+                    avg_points_per_item = remaining_points / remaining_items
+
+                calc_results = {
+                    "total_points": remaining_points,
+                    "avg_points_per_item": avg_points_per_item,
+                }
+
                 return (
                     estimated_items,
                     remaining_items,
                     estimated_points,
                     f"{remaining_points:.0f}",
+                    calc_results,
                 )
 
             # Convert statistics to DataFrame for easier manipulation
@@ -2778,63 +2767,28 @@ def register(app):
             df["date"] = pd.to_datetime(df["date"])
             df = df.sort_values("date", ascending=False)  # Most recent first
 
-            # Get the most recent N data points (based on slider value)
-            selected_data = df.head(data_points_count)
+            # Use actual remaining values from project scope (no window calculations)
+            remaining_items = project_scope.get("remaining_items", 0)
+            remaining_points = project_scope.get("remaining_total_points", 0)
+            estimated_items = project_scope.get("estimated_items", 0)
+            estimated_points = project_scope.get("estimated_points", 0)
 
-            # Calculate cumulative completed items/points in the selected time window
-            completed_in_window_items = selected_data["completed_items"].sum()  # type: ignore[attr-defined]
-            completed_in_window_points = selected_data["completed_points"].sum()  # type: ignore[attr-defined]
+            # Calculate avg points per item for calculation_results
+            avg_points_per_item = 0
+            if remaining_items > 0:
+                avg_points_per_item = remaining_points / remaining_items
 
-            # Get current remaining work from project scope
-            current_remaining_items = project_scope.get("remaining_items", 0)
-            current_remaining_points = project_scope.get("remaining_total_points", 0)
-
-            # Calculate remaining work at the START of the selected time window
-            remaining_items_at_start = (
-                current_remaining_items + completed_in_window_items
-            )
-            remaining_points_at_start = (
-                current_remaining_points + completed_in_window_points
-            )
-
-            # Calculate estimated items/points based on the data window
-            estimated_items_in_window = selected_data[
-                selected_data["completed_points"] > 0
-            ]["completed_items"].sum()  # type: ignore[attr-defined]
-            estimated_points_in_window = selected_data["completed_points"].sum()  # type: ignore[attr-defined]
-
-            # Calculate ratio of estimated to total items
-            current_total_items = project_scope.get("total_items", 1)
-            current_estimated_items = project_scope.get("estimated_items", 0)
-
-            if current_total_items > 0:
-                estimate_ratio = current_estimated_items / current_total_items
-                estimated_items_at_start = int(
-                    remaining_items_at_start * estimate_ratio
-                )
-            else:
-                estimated_items_at_start = current_estimated_items
-
-            # Calculate estimated points
-            if estimated_items_at_start > 0 and estimated_points_in_window > 0:
-                avg_points = estimated_points_in_window / max(
-                    estimated_items_in_window, 1
-                )
-                estimated_points_at_start = int(estimated_items_at_start * avg_points)
-            else:
-                estimated_points_at_start = project_scope.get("estimated_points", 0)
-
-            logger.info(
-                f"Calculated remaining work for {data_points_count} week window: "
-                f"Remaining Items: {current_remaining_items} → {remaining_items_at_start}, "
-                f"Remaining Points: {current_remaining_points:.0f} → {remaining_points_at_start:.0f}"
-            )
+            calc_results = {
+                "total_points": remaining_points,
+                "avg_points_per_item": avg_points_per_item,
+            }
 
             return (
-                estimated_items_at_start,
-                int(remaining_items_at_start),
-                estimated_points_at_start,
-                f"{remaining_points_at_start:.0f}",
+                estimated_items,
+                int(remaining_items),
+                estimated_points,
+                f"{remaining_points:.0f}",
+                calc_results,
             )
 
         except Exception as e:
@@ -2852,6 +2806,7 @@ def register(app):
             Output("total-items-input", "value", allow_duplicate=True),
             Output("estimated-points-input", "value", allow_duplicate=True),
             Output("total-points-display", "value", allow_duplicate=True),
+            Output("calculation-results", "data", allow_duplicate=True),
         ],
         [Input("data-points-input", "value")],
         [

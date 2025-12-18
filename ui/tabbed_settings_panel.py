@@ -281,32 +281,24 @@ def create_queries_and_data_tab_content() -> html.Div:
                     # Update Data button (activates query)
                     dbc.Button(
                         [
-                            html.I(
-                                className="fas fa-sync-alt",
-                                style={"marginRight": "0.5rem"},
-                            ),
-                            "Update Data",
+                            html.I(className="fas fa-sync-alt"),
+                            html.Span("Update Data"),
                         ],
                         id="update-data-unified",
                         color="primary",
-                        size="lg",
                         disabled=True,  # Enabled when query is saved
-                        className="long-press-button w-100",
+                        className="long-press-button action-button",
                         style={},  # Visible by default, controlled by progress_bar callback
                     ),
                     # Cancel button (shown during operation, replaces Update Data button)
                     dbc.Button(
                         [
-                            html.I(
-                                className="fas fa-times-circle",
-                                style={"marginRight": "0.5rem"},
-                            ),
-                            "Cancel Operation",
+                            html.I(className="fas fa-times-circle"),
+                            html.Span("Cancel Operation"),
                         ],
                         id="cancel-operation-btn",
                         color="danger",
-                        size="lg",
-                        className="w-100",
+                        className="action-button",
                         style={
                             "display": "none",
                             "position": "absolute",

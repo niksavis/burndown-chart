@@ -65,45 +65,78 @@ def _format_date_relative(date_str, reference_date=None):
 
 
 def _calculate_project_health_score(metrics):
-    """Calculate overall project health score (0-100)."""
-    score = 100
+    """Calculate overall project health score (0-100) using continuous/proportional scoring.
 
-    # Velocity consistency (30% weight)
+    Weights:
+    - Velocity consistency: 30% (lower CV = better)
+    - Schedule performance: 25% (on-time or early = better)
+    - Scope stability: 20% (low growth rate = better)
+    - Quality trends: 15% (improving = better)
+    - Recent performance: 10% (positive change = better)
+    """
+    import logging
+
+    logger = logging.getLogger(__name__)
+
+    # Velocity consistency (30 points max)
+    # CV of 0% = full points, CV of 50%+ = 0 points, linear in between
     velocity_cv = metrics.get("velocity_cv", 0)
-    if velocity_cv > 50:
-        score -= 30
-    elif velocity_cv > 30:
-        score -= 15
+    velocity_score = max(0, 30 * (1 - min(velocity_cv / 50, 1)))
+    logger.error(
+        f"[APP HEALTH] velocity_cv={velocity_cv}, velocity_score={velocity_score:.2f}"
+    )
 
-    # Schedule performance (25% weight)
+    # Schedule performance (25 points max)
+    # On-time or early = full points, 60+ days late = 0 points, linear penalty
     schedule_variance = metrics.get("schedule_variance_days", 0)
-    if schedule_variance > 30:
-        score -= 25
-    elif schedule_variance > 14:
-        score -= 12
+    schedule_score = max(0, 25 * (1 - min(schedule_variance / 60, 1)))
+    logger.error(
+        f"[APP HEALTH] schedule_variance_days={schedule_variance}, schedule_score={schedule_score:.2f}"
+    )
 
-    # Scope stability (20% weight)
+    # Scope stability (20 points max)
+    # 0% growth = full points, 40%+ growth = 0 points, linear penalty
     scope_change_rate = metrics.get("scope_change_rate", 0)
-    if scope_change_rate > 20:
-        score -= 20
-    elif scope_change_rate > 10:
-        score -= 10
+    scope_score = max(0, 20 * (1 - min(scope_change_rate / 40, 1)))
+    logger.error(
+        f"[APP HEALTH] scope_change_rate={scope_change_rate}, scope_score={scope_score:.2f}"
+    )
 
-    # Quality trends (15% weight)
+    # Quality trends (15 points max)
+    # Improving = 15, stable = 10, declining = 0
     trend_direction = metrics.get("trend_direction", "stable")
-    if trend_direction == "declining":
-        score -= 15
-    elif trend_direction == "improving":
-        score += 5
+    if trend_direction == "improving":
+        trend_score = 15
+    elif trend_direction == "stable":
+        trend_score = 10
+    else:  # declining
+        trend_score = 0
+    logger.error(
+        f"[APP HEALTH] trend_direction={trend_direction}, trend_score={trend_score}"
+    )
 
-    # Recent performance (10% weight)
+    # Recent performance (10 points max)
+    # +20% change = 10 points, 0% = 5 points, -20% = 0 points, linear
     recent_change = metrics.get("recent_velocity_change", 0)
-    if recent_change < -20:
-        score -= 10
-    elif recent_change > 20:
-        score += 5
+    if recent_change >= 0:
+        # Positive change: 5 base + up to 5 bonus for improvement
+        recent_score = 5 + min(5, 5 * (recent_change / 20))
+    else:
+        # Negative change: linear penalty from 5 down to 0
+        recent_score = max(0, 5 * (1 + recent_change / 20))
+    logger.error(
+        f"[APP HEALTH] recent_velocity_change={recent_change}, recent_score={recent_score:.2f}"
+    )
 
-    return max(0, min(100, int(score)))
+    # Calculate total score (sum of all components)
+    total_score = (
+        velocity_score + schedule_score + scope_score + trend_score + recent_score
+    )
+
+    final_score = max(0, min(100, int(total_score)))
+    logger.error(f"[APP HEALTH] FINAL health_score={final_score}")
+
+    return final_score
 
 
 def _get_health_status(score):
@@ -274,11 +307,13 @@ def _create_mini_sparkline(data, color, height=20):
     )
 
 
-def _create_progress_ring(percentage, color, size=60):
-    """Create a circular progress indicator using Bootstrap progress bar styled as circle."""
+def _create_progress_ring(percentage, color, size=80):
+    """Create accurate circular progress indicator using conic-gradient."""
+    # Inner white circle to create ring effect
+    inner_size = size - 16
+
     return html.Div(
         [
-            # Circular progress using CSS transforms and border
             html.Div(
                 [
                     html.Div(
@@ -288,37 +323,34 @@ def _create_progress_ring(percentage, color, size=60):
                             "top": "50%",
                             "left": "50%",
                             "transform": "translate(-50%, -50%)",
-                            "fontSize": "0.85rem",
+                            "fontSize": "1.1rem",
                             "fontWeight": "bold",
-                            "color": color,
+                            "color": "#333",
                             "textAlign": "center",
+                            "zIndex": "2",
                         },
                     )
                 ],
                 style={
-                    "width": f"{size}px",
-                    "height": f"{size}px",
+                    "width": f"{inner_size}px",
+                    "height": f"{inner_size}px",
                     "borderRadius": "50%",
-                    "border": "4px solid #e9ecef",
-                    "borderTop": f"4px solid {color}",
-                    "borderRight": f"4px solid {color}"
-                    if percentage > 25
-                    else "4px solid #e9ecef",
-                    "borderBottom": f"4px solid {color}"
-                    if percentage > 50
-                    else "4px solid #e9ecef",
-                    "borderLeft": f"4px solid {color}"
-                    if percentage > 75
-                    else "4px solid #e9ecef",
-                    "position": "relative",
-                    "transform": "rotate(-90deg)",
-                    "transition": "all 0.3s ease",
+                    "background": "white",
+                    "position": "absolute",
+                    "top": "8px",
+                    "left": "8px",
+                    "zIndex": "1",
                 },
             )
         ],
         style={
+            "width": f"{size}px",
+            "height": f"{size}px",
+            "borderRadius": "50%",
+            "background": f"conic-gradient(from -90deg, {color} 0deg {percentage * 3.6}deg, #e9ecef {percentage * 3.6}deg 360deg)",
+            "position": "relative",
+            "transition": "all 0.3s ease",
             "display": "inline-block",
-            "transform": "rotate(90deg)",  # Counter-rotate the container to fix text orientation
         },
     )
 
@@ -330,22 +362,27 @@ def _create_progress_ring(percentage, color, size=60):
 
 def _create_executive_summary(statistics_df, settings, forecast_data):
     """Create executive summary section with key project health indicators."""
-    # Calculate key metrics
-    # NOTE: settings["total_items"] and settings["total_points"] NOW represent the total scope
-    # at the START of the selected data window (e.g., 317 items 16 weeks ago)
-    # This matches the calculation in ui/layout.py serve_layout() and callbacks/settings.py slider callback
-    total_items = settings.get("total_items", 0)
-    total_points = settings.get("total_points", 0)
-    deadline = settings.get("deadline")
-
     # Calculate completed items from the FILTERED statistics DataFrame
-    # This represents work completed WITHIN the selected time window
     completed_items = (
         statistics_df["completed_items"].sum() if not statistics_df.empty else 0
     )
     completed_points = (
         statistics_df["completed_points"].sum() if not statistics_df.empty else 0
     )
+
+    # Get current remaining from project_data.json
+    from data.persistence import load_unified_project_data
+
+    unified_data = load_unified_project_data()
+    project_scope = unified_data.get("project_scope", {})
+    current_remaining_items = project_scope.get("remaining_items", 0)
+    current_remaining_points = project_scope.get("remaining_total_points", 0)
+
+    # Calculate scope at START of time window = current remaining + completed in window
+    total_items = current_remaining_items + completed_items
+    total_points = current_remaining_points + completed_points
+
+    deadline = settings.get("deadline")
 
     completion_percentage = _safe_divide(completed_items, total_items) * 100
     points_percentage = (
@@ -415,86 +452,280 @@ def _create_executive_summary(statistics_df, settings, forecast_data):
                             ),
                             "Project Health Overview",
                         ],
-                        className="mb-3",
+                        className="mb-4",
                     ),
+                    # Redesigned metrics row with consistent sizing and alignment
                     dbc.Row(
                         [
                             # Health Score
                             dbc.Col(
-                                [
-                                    html.Div(
-                                        [
-                                            _create_progress_ring(
-                                                health_score, health_status["color"], 80
-                                            ),
-                                            html.H5(
-                                                health_status["label"],
-                                                className="mt-2 mb-0",
-                                                style={"color": health_status["color"]},
-                                            ),
-                                            html.Small(
-                                                "Overall Health", className="text-muted"
-                                            ),
-                                        ],
-                                        className="text-center",
-                                    )
-                                ],
-                                width=12,
-                                md=3,
+                                html.Div(
+                                    [
+                                        html.H6(
+                                            [
+                                                html.I(
+                                                    className="fas fa-heartbeat me-2",
+                                                    style={"color": "#495057"},
+                                                ),
+                                                "Health",
+                                            ],
+                                            className="mb-3 text-center",
+                                            style={
+                                                "fontSize": "0.95rem",
+                                                "fontWeight": "600",
+                                                "color": "#495057",
+                                            },
+                                        ),
+                                        _create_progress_ring(
+                                            health_score, health_status["color"], 80
+                                        ),
+                                        html.Div(
+                                            health_status["label"],
+                                            className="mt-3 mb-2",
+                                            style={
+                                                "fontSize": "1rem",
+                                                "fontWeight": "bold",
+                                                "color": health_status["color"],
+                                            },
+                                        ),
+                                        html.Div(
+                                            [
+                                                html.Div(
+                                                    [
+                                                        html.I(
+                                                            className="fas fa-calendar-alt me-1",
+                                                            style={
+                                                                "fontSize": "0.8rem"
+                                                            },
+                                                        ),
+                                                        html.Span(
+                                                            "Deadline: ",
+                                                            style={"fontWeight": "600"},
+                                                        ),
+                                                        html.Span(
+                                                            deadline
+                                                            if deadline
+                                                            else "Not set"
+                                                        ),
+                                                    ],
+                                                    style={
+                                                        "fontSize": "0.8rem",
+                                                        "color": "#495057",
+                                                    },
+                                                ),
+                                                html.Div(
+                                                    [
+                                                        html.I(
+                                                            className="fas fa-chart-line me-1",
+                                                            style={
+                                                                "fontSize": "0.8rem"
+                                                            },
+                                                        ),
+                                                        html.Span(
+                                                            "Forecast: ",
+                                                            style={"fontWeight": "600"},
+                                                            title=f"PERT-weighted forecast based on {'story points' if settings.get('show_points', True) else 'items'} velocity (matches Burndown Chart and Report)",
+                                                        ),
+                                                        html.Span(
+                                                            forecast_data.get(
+                                                                "completion_date"
+                                                            )
+                                                            or "Not calculated"
+                                                        ),
+                                                    ],
+                                                    style={
+                                                        "fontSize": "0.8rem",
+                                                        "color": "#495057",
+                                                    },
+                                                ),
+                                            ],
+                                        ),
+                                    ],
+                                    className="text-center",
+                                    style={
+                                        "padding": "15px 10px",
+                                        "borderRight": "2px solid #dee2e6",
+                                    },
+                                ),
+                                xs=12,
+                                md=2,
+                                className="mb-4 mb-md-0",
                             ),
-                            # Key Metrics
+                            # Items Group
                             dbc.Col(
-                                [
-                                    dbc.Row(
-                                        [
-                                            dbc.Col(
-                                                [
+                                html.Div(
+                                    [
+                                        html.H6(
+                                            [
+                                                html.I(
+                                                    className="fas fa-tasks me-2",
+                                                    style={
+                                                        "color": COLOR_PALETTE["items"]
+                                                    },
+                                                ),
+                                                "Items",
+                                            ],
+                                            className="mb-3 text-center",
+                                            style={
+                                                "fontSize": "0.95rem",
+                                                "fontWeight": "600",
+                                                "color": COLOR_PALETTE["items"],
+                                            },
+                                        ),
+                                        dbc.Row(
+                                            [
+                                                dbc.Col(
                                                     html.Div(
                                                         [
-                                                            html.H5(
-                                                                f"{completion_percentage:.0f}%",
-                                                                className="mb-0",
-                                                            ),
-                                                            html.Small(
-                                                                "Items Complete",
-                                                                className="text-muted",
+                                                            _create_progress_ring(
+                                                                completion_percentage,
+                                                                COLOR_PALETTE["items"],
+                                                                80,
                                                             ),
                                                             html.Div(
-                                                                f"{completed_items:,} / {total_items:,}",
+                                                                f"{completed_items:,}",
+                                                                className="mt-3 mb-1",
                                                                 style={
-                                                                    "fontSize": "0.8rem",
+                                                                    "fontSize": "1.1rem",
+                                                                    "fontWeight": "bold",
                                                                     "color": COLOR_PALETTE[
                                                                         "items"
                                                                     ],
                                                                 },
                                                             ),
-                                                        ]
-                                                    )
-                                                ],
-                                                width=6,
-                                            ),
-                                            dbc.Col(
-                                                [
+                                                            html.Div(
+                                                                "Completed",
+                                                                className="text-muted",
+                                                                style={
+                                                                    "fontSize": "0.85rem"
+                                                                },
+                                                            ),
+                                                        ],
+                                                        className="text-center",
+                                                    ),
+                                                    width=6,
+                                                ),
+                                                dbc.Col(
                                                     html.Div(
                                                         [
-                                                            html.H5(
-                                                                f"{points_percentage:.0f}%",
-                                                                className="mb-0",
-                                                            ),
-                                                            html.Small(
-                                                                "Points Complete",
-                                                                className="text-muted",
+                                                            _create_progress_ring(
+                                                                100
+                                                                - completion_percentage,
+                                                                COLOR_PALETTE["items"],
+                                                                80,
                                                             ),
                                                             html.Div(
-                                                                f"{completed_points:,.0f} / {total_points:,.0f}",
+                                                                f"{total_items - completed_items:,}",
+                                                                className="mt-3 mb-1",
                                                                 style={
-                                                                    "fontSize": "0.8rem",
+                                                                    "fontSize": "1.1rem",
+                                                                    "fontWeight": "bold",
+                                                                    "color": COLOR_PALETTE[
+                                                                        "items"
+                                                                    ],
+                                                                },
+                                                            ),
+                                                            html.Div(
+                                                                "Remaining",
+                                                                className="text-muted",
+                                                                style={
+                                                                    "fontSize": "0.85rem"
+                                                                },
+                                                            ),
+                                                        ],
+                                                        className="text-center",
+                                                    ),
+                                                    width=6,
+                                                ),
+                                            ],
+                                        ),
+                                        html.Hr(
+                                            className="my-2",
+                                            style={
+                                                "width": "80%",
+                                                "margin": "10px auto",
+                                            },
+                                        ),
+                                        html.Div(
+                                            [
+                                                html.I(
+                                                    className="fas fa-tasks me-1",
+                                                    style={
+                                                        "color": COLOR_PALETTE["items"]
+                                                    },
+                                                ),
+                                                html.Span(
+                                                    f"{total_items:,} items",
+                                                    style={"fontWeight": "600"},
+                                                ),
+                                            ],
+                                            className="mt-2 text-center",
+                                            style={
+                                                "fontSize": "0.8rem",
+                                                "color": "#495057",
+                                            },
+                                        ),
+                                    ],
+                                    style={
+                                        "padding": "15px 10px",
+                                        "borderRight": "2px solid #dee2e6",
+                                    },
+                                ),
+                                xs=12,
+                                md=5,
+                                className="mb-4 mb-md-0",
+                            ),
+                            # Points Group
+                            dbc.Col(
+                                html.Div(
+                                    [
+                                        html.H6(
+                                            [
+                                                html.I(
+                                                    className="fas fa-chart-bar me-2",
+                                                    style={
+                                                        "color": COLOR_PALETTE["points"]
+                                                    },
+                                                ),
+                                                "Points",
+                                            ],
+                                            className="mb-3 text-center",
+                                            style={
+                                                "fontSize": "0.95rem",
+                                                "fontWeight": "600",
+                                                "color": COLOR_PALETTE["points"],
+                                            },
+                                        ),
+                                        dbc.Row(
+                                            [
+                                                dbc.Col(
+                                                    html.Div(
+                                                        [
+                                                            _create_progress_ring(
+                                                                points_percentage,
+                                                                COLOR_PALETTE["points"],
+                                                                80,
+                                                            ),
+                                                            html.Div(
+                                                                f"{completed_points:,.1f}",
+                                                                className="mt-3 mb-1",
+                                                                style={
+                                                                    "fontSize": "1.1rem",
+                                                                    "fontWeight": "bold",
                                                                     "color": COLOR_PALETTE[
                                                                         "points"
                                                                     ],
                                                                 },
                                                             ),
-                                                        ]
+                                                            html.Div(
+                                                                "Completed",
+                                                                className="text-muted",
+                                                                style={
+                                                                    "fontSize": "0.85rem"
+                                                                },
+                                                            ),
+                                                        ],
+                                                        className="text-center",
                                                     )
                                                     if (
                                                         total_points > 0
@@ -504,59 +735,128 @@ def _create_executive_summary(statistics_df, settings, forecast_data):
                                                     )
                                                     else html.Div(
                                                         [
-                                                            html.H5(
+                                                            html.Div(
                                                                 "--",
-                                                                className="mb-0 text-muted",
+                                                                style={
+                                                                    "fontSize": "2rem",
+                                                                    "color": "#adb5bd",
+                                                                    "marginTop": "20px",
+                                                                    "marginBottom": "20px",
+                                                                },
                                                             ),
-                                                            html.Small(
-                                                                "Points Disabled",
+                                                            html.Div(
+                                                                "Disabled",
                                                                 className="text-muted",
+                                                                style={
+                                                                    "fontSize": "0.85rem"
+                                                                },
                                                             ),
-                                                        ]
+                                                        ],
+                                                        className="text-center",
+                                                    ),
+                                                    width=6,
+                                                ),
+                                                dbc.Col(
+                                                    html.Div(
+                                                        [
+                                                            _create_progress_ring(
+                                                                100 - points_percentage,
+                                                                COLOR_PALETTE["points"],
+                                                                80,
+                                                            ),
+                                                            html.Div(
+                                                                f"{total_points - completed_points:,.1f}",
+                                                                className="mt-3 mb-1",
+                                                                style={
+                                                                    "fontSize": "1.1rem",
+                                                                    "fontWeight": "bold",
+                                                                    "color": COLOR_PALETTE[
+                                                                        "points"
+                                                                    ],
+                                                                },
+                                                            ),
+                                                            html.Div(
+                                                                "Remaining",
+                                                                style={
+                                                                    "fontSize": "0.85rem",
+                                                                    "color": "#6c757d",
+                                                                },
+                                                            ),
+                                                        ],
+                                                        className="text-center",
                                                     )
-                                                ],
-                                                width=6,
-                                            ),
-                                        ],
-                                        className="mb-3",
-                                    ),
-                                    # Timeline info
-                                    html.Div(
-                                        [
-                                            html.I(
-                                                className="fas fa-calendar-alt me-2",
-                                                style={"color": "#6c757d"},
-                                            ),
-                                            html.Strong("Deadline: "),
-                                            html.Span(
-                                                _format_date_relative(deadline)
-                                                if deadline
-                                                else "Not set"
-                                            ),
-                                        ],
-                                        className="mb-2",
-                                    ),
-                                    html.Div(
-                                        [
-                                            html.I(
-                                                className="fas fa-chart-line me-2",
-                                                style={"color": "#6c757d"},
-                                            ),
-                                            html.Strong("Forecast: "),
-                                            html.Span(
-                                                _format_date_relative(
-                                                    forecast_data.get("completion_date")
-                                                )
-                                                if forecast_data.get("completion_date")
-                                                else "Calculating..."
-                                            ),
-                                        ]
-                                    ),
-                                ],
-                                width=12,
-                                md=9,
+                                                    if (
+                                                        total_points > 0
+                                                        and settings.get(
+                                                            "show_points", True
+                                                        )
+                                                    )
+                                                    else html.Div(
+                                                        [
+                                                            html.Div(
+                                                                "--",
+                                                                style={
+                                                                    "fontSize": "1.5rem",
+                                                                    "color": "#adb5bd",
+                                                                    "marginTop": "15px",
+                                                                    "marginBottom": "15px",
+                                                                },
+                                                            ),
+                                                            html.Div(
+                                                                "Disabled",
+                                                                style={
+                                                                    "fontSize": "0.85rem",
+                                                                    "color": "#6c757d",
+                                                                },
+                                                            ),
+                                                        ],
+                                                        className="text-center",
+                                                    ),
+                                                    width=6,
+                                                ),
+                                            ],
+                                        ),
+                                        html.Hr(
+                                            className="my-2",
+                                            style={
+                                                "width": "80%",
+                                                "margin": "10px auto",
+                                            },
+                                        )
+                                        if total_points > 0
+                                        and settings.get("show_points", True)
+                                        else None,
+                                        html.Div(
+                                            [
+                                                html.I(
+                                                    className="fas fa-chart-bar me-1",
+                                                    style={
+                                                        "color": COLOR_PALETTE["points"]
+                                                    },
+                                                ),
+                                                html.Span(
+                                                    f"{total_points:,.1f} points",
+                                                    style={"fontWeight": "600"},
+                                                ),
+                                            ],
+                                            className="mt-2 text-center",
+                                            style={
+                                                "fontSize": "0.8rem",
+                                                "color": "#495057",
+                                            },
+                                        )
+                                        if total_points > 0
+                                        and settings.get("show_points", True)
+                                        else None,
+                                    ],
+                                    style={"padding": "15px 10px"},
+                                ),
+                                xs=12,
+                                md=5,
+                                className="mb-4 mb-md-0",
                             ),
-                        ]
+                        ],
+                        className="mb-3",
                     ),
                 ]
             )
@@ -674,7 +974,7 @@ def _create_throughput_section(statistics_df, forecast_data, settings):
                                 else None,
                                 tooltip_text="Average story points completed per week. Story points represent work complexity and effort. Higher values indicate faster delivery of larger work items."
                                 if show_points
-                                else "Enable Points Tracking in the parameter panel to view this metric.",
+                                else "Enable Story Points Tracking in Settings to view this metric. When disabled, forecasts use item counts instead.",
                                 tooltip_id="throughput-points-per-week",
                             )
                         ],
@@ -698,7 +998,7 @@ def _create_throughput_section(statistics_df, forecast_data, settings):
                                 sparkline_data=None,
                                 tooltip_text="Average story points per completed work item. Shows typical item complexity. Higher values mean larger items taking longer to complete. Use this to understand capacity: fewer large items or more small items per sprint."
                                 if show_points
-                                else "Enable Points Tracking in the parameter panel to view this metric.",
+                                else "Enable Story Points Tracking in Settings to view this metric. When disabled, forecasts use item counts instead.",
                                 tooltip_id="throughput-item-size",
                             )
                         ],
@@ -714,14 +1014,27 @@ def _create_throughput_section(statistics_df, forecast_data, settings):
     )
 
 
-def _create_forecast_section(pert_data, confidence_data):
-    """Create forecasting section with multiple prediction methods."""
+def _create_forecast_section(pert_data, confidence_data, show_points=True):
+    """Create forecasting section with multiple prediction methods.
+
+    Args:
+        pert_data: Dictionary with pert_time_items and pert_time_points
+        confidence_data: Dictionary with ci_50, ci_95, deadline_probability
+        show_points: Whether to use points-based (True) or items-based (False) forecast
+    """
     current_date = datetime.now()
 
+    # Use points-based forecast when available and enabled (matches report and burndown chart)
+    # Use items-based forecast as fallback
+    forecast_days = (
+        pert_data.get("pert_time_points", 0)
+        if show_points
+        else pert_data.get("pert_time_items", 0)
+    )
+    forecast_metric = "story points" if show_points else "items"
+
     # Format forecast dates
-    pert_date = (
-        current_date + timedelta(days=pert_data.get("pert_time_items", 0))
-    ).strftime("%b %d, %Y")
+    pert_date = (current_date + timedelta(days=forecast_days)).strftime("%b %d, %Y")
     optimistic_date = (
         current_date + timedelta(days=confidence_data.get("ci_50", 0))
     ).strftime("%b %d, %Y")
@@ -766,8 +1079,10 @@ def _create_forecast_section(pert_data, confidence_data):
                                                     ),
                                                     create_info_tooltip(
                                                         "expected-completion-info",
-                                                        "Calculated using PERT three-point estimation: (Optimistic + 4×Most_Likely + Pessimistic) ÷ 6. "
-                                                        "This weighted average emphasizes the most likely scenario (4x weight) while accounting for best/worst cases from your historical velocity data.",
+                                                        f"Calculated using PERT three-point estimation: (Optimistic + 4×Most_Likely + Pessimistic) ÷ 6. "
+                                                        f"Based on {forecast_metric} velocity. "
+                                                        f"This weighted average emphasizes the most likely scenario (4x weight) while accounting for best/worst cases from your historical velocity data. "
+                                                        f"Same method used in Burndown Chart and Report.",
                                                     ),
                                                 ],
                                                 className="mb-1 mt-2 d-flex align-items-center gap-1",
@@ -781,7 +1096,7 @@ def _create_forecast_section(pert_data, confidence_data):
                                                 },
                                             ),
                                             html.Small(
-                                                "Weighted estimate based on historical velocity",
+                                                f"PERT forecast based on {forecast_metric} velocity",
                                                 className="text-muted",
                                             ),
                                         ],
@@ -819,10 +1134,10 @@ def _create_forecast_section(pert_data, confidence_data):
                                                     ),
                                                     create_info_tooltip(
                                                         "confidence-intervals-info",
-                                                        "Statistical probability ranges based on velocity variability. "
-                                                        "50%: 50th percentile (median) - the PERT forecast itself. "
-                                                        "95%: 95th percentile - conservative estimate with 1.65σ buffer. "
-                                                        "Wider spread indicates higher velocity uncertainty.",
+                                                        f"Statistical probability ranges based on {forecast_metric} velocity variability. "
+                                                        f"50%: 50th percentile (median) - the PERT forecast itself. "
+                                                        f"95%: 95th percentile - conservative estimate with 1.65σ buffer (adds uncertainty for remaining work). "
+                                                        f"Wider spread indicates higher velocity uncertainty. Calculated from your historical data variance.",
                                                     ),
                                                 ],
                                                 className="mb-1 mt-2 d-flex align-items-center gap-1",
@@ -1517,19 +1832,17 @@ def _create_insights_section(statistics_df, settings):
         if recent_velocity > historical_velocity * 1.1:
             insights.append(
                 {
-                    "type": "positive",
-                    "title": "[Trend] Accelerating Delivery",
-                    "message": f"Team velocity increased {((recent_velocity / historical_velocity - 1) * 100):.0f}% in recent weeks",
-                    "action": "Consider taking on additional scope or bringing forward deliverables",
+                    "severity": "success",
+                    "message": f"Accelerating Delivery - Team velocity increased {((recent_velocity / historical_velocity - 1) * 100):.0f}% in recent weeks",
+                    "recommendation": "Consider taking on additional scope or bringing forward deliverables to capitalize on this momentum.",
                 }
             )
         elif recent_velocity < historical_velocity * 0.9:
             insights.append(
                 {
-                    "type": "warning",
-                    "title": "[!] Velocity Decline",
-                    "message": f"Team velocity decreased {((1 - recent_velocity / historical_velocity) * 100):.0f}% recently",
-                    "action": "Review team capacity, blockers, and scope complexity",
+                    "severity": "warning",
+                    "message": f"Velocity Decline - Team velocity decreased {((1 - recent_velocity / historical_velocity) * 100):.0f}% recently",
+                    "recommendation": "Review team capacity, identify blockers, and assess scope complexity. Consider retrospectives to understand root causes.",
                 }
             )
 
@@ -1541,19 +1854,17 @@ def _create_insights_section(statistics_df, settings):
             if scope_growth > scope_completion * 0.2:
                 insights.append(
                     {
-                        "type": "warning",
-                        "title": "[Trend] High Scope Growth",
-                        "message": f"New items ({scope_growth}) represent {(scope_growth / scope_completion * 100):.0f}% of completed work",
-                        "action": "Consider scope prioritization and change management processes",
+                        "severity": "warning",
+                        "message": f"High Scope Growth - New items ({scope_growth}) represent {(scope_growth / scope_completion * 100):.0f}% of completed work",
+                        "recommendation": "Consider scope prioritization and implement change management processes. Assess if continuous scope growth impacts delivery predictability.",
                     }
                 )
             elif scope_growth > 0:
                 insights.append(
                     {
-                        "type": "info",
-                        "title": "[Stats] Active Scope Management",
-                        "message": f"Moderate scope growth ({scope_growth} new items) indicates healthy project evolution",
-                        "action": "Continue monitoring scope changes and stakeholder feedback",
+                        "severity": "info",
+                        "message": f"Active Scope Management - Moderate scope growth ({scope_growth} new items) indicates healthy project evolution",
+                        "recommendation": "Continue monitoring scope changes and maintaining stakeholder feedback loops to ensure alignment.",
                     }
                 )
 
@@ -1571,19 +1882,17 @@ def _create_insights_section(statistics_df, settings):
         if velocity_cv < 20:
             insights.append(
                 {
-                    "type": "positive",
-                    "title": "[Tip] Predictable Delivery",
-                    "message": f"Low velocity variation ({velocity_cv:.0f}%) indicates predictable delivery rhythm",
-                    "action": "Maintain current practices and use predictability for better planning",
+                    "severity": "success",
+                    "message": f"Predictable Delivery - Low velocity variation ({velocity_cv:.0f}%) indicates predictable delivery rhythm",
+                    "recommendation": "Maintain current practices and leverage this predictability for better sprint planning and stakeholder commitments.",
                 }
             )
         elif velocity_cv > 50:
             insights.append(
                 {
-                    "type": "warning",
-                    "title": "[Stats] Inconsistent Velocity",
-                    "message": f"High velocity variation ({velocity_cv:.0f}%) suggests unpredictable delivery",
-                    "action": "Investigate causes: story sizing, blockers, team availability, or external dependencies",
+                    "severity": "warning",
+                    "message": f"Inconsistent Velocity - High velocity variation ({velocity_cv:.0f}%) suggests unpredictable delivery",
+                    "recommendation": "Investigate root causes: story sizing accuracy, blockers, team availability, or external dependencies. Consider establishing sprint commitments discipline.",
                 }
             )
 
@@ -1596,72 +1905,124 @@ def _create_insights_section(statistics_df, settings):
             if recent_items > prev_items * 1.2:
                 insights.append(
                     {
-                        "type": "positive",
-                        "title": "[Trend] Increasing Throughput",
-                        "message": f"Recent 4-week throughput ({recent_items} items) exceeded previous period by {((recent_items / prev_items - 1) * 100):.0f}%",
-                        "action": "Analyze what's working well and consider scaling successful practices",
+                        "severity": "success",
+                        "message": f"Increasing Throughput - Recent 4-week throughput ({recent_items} items) exceeded previous period by {((recent_items / prev_items - 1) * 100):.0f}%",
+                        "recommendation": "Analyze what's working well and consider scaling successful practices across the team or to other projects.",
                     }
                 )
 
     if not insights:
         insights.append(
             {
-                "type": "info",
-                "title": "[OK] Stable Performance",
-                "message": "Project metrics are within normal ranges - no immediate concerns detected",
-                "action": "Continue current practices and monitor for changes in upcoming weeks",
+                "severity": "success",
+                "message": "Stable Performance - Project metrics are within normal ranges, no immediate concerns detected",
+                "recommendation": "Continue current practices and monitor for changes in upcoming weeks. Consider documenting what's working well.",
             }
         )
 
-    insight_cards = []
-    for insight in insights:
-        icon_map = {
-            "positive": "fa-thumbs-up",
-            "warning": "fa-exclamation-triangle",
-            "info": "fa-info-circle",
+    # Map severity to configuration (matching Quality Insights style)
+    def get_severity_config(severity: str):
+        severity_configs = {
+            "danger": {
+                "icon": "fa-exclamation-triangle",
+                "color": "danger",
+                "badge_text": "Critical",
+            },
+            "warning": {
+                "icon": "fa-exclamation-circle",
+                "color": "warning",
+                "badge_text": "High",
+            },
+            "info": {
+                "icon": "fa-info-circle",
+                "color": "info",
+                "badge_text": "Medium",
+            },
+            "success": {
+                "icon": "fa-check-circle",
+                "color": "success",
+                "badge_text": "Low",
+            },
         }
-        color_map = {"positive": "#28a745", "warning": "#ffc107", "info": "#17a2b8"}
+        return severity_configs.get(severity, severity_configs["info"])
 
-        insight_cards.append(
-            dbc.Card(
-                [
-                    dbc.CardBody(
+    # Create insight items with expandable details (matching Quality Insights structure)
+    insight_items = []
+    for idx, insight in enumerate(insights):
+        severity_config = get_severity_config(insight["severity"])
+        collapse_id = f"actionable-insight-collapse-{idx}"
+
+        insight_item = dbc.Card(
+            [
+                dbc.CardHeader(
+                    dbc.Row(
                         [
-                            html.Div(
+                            dbc.Col(
                                 [
                                     html.I(
-                                        className=f"fas {icon_map[insight['type']]} me-2",
-                                        style={"color": color_map[insight["type"]]},
+                                        className=f"fas {severity_config['icon']} me-2"
                                     ),
-                                    html.Strong(insight["title"]),
+                                    html.Span(insight["message"]),
                                 ],
-                                className="mb-2",
+                                width=10,
                             ),
-                            html.P(insight["message"], className="mb-2"),
-                            html.Small(
-                                insight["action"], className="text-muted fst-italic"
+                            dbc.Col(
+                                [
+                                    dbc.Badge(
+                                        severity_config["badge_text"],
+                                        color=severity_config["color"],
+                                        className="me-2",
+                                    ),
+                                    dbc.Button(
+                                        html.I(className="fas fa-chevron-down"),
+                                        id=f"actionable-insight-toggle-{idx}",
+                                        color="link",
+                                        size="sm",
+                                        className="p-0",
+                                    ),
+                                ],
+                                width=2,
+                                className="text-end",
+                            ),
+                        ],
+                        align="center",
+                    ),
+                    className=f"bg-{severity_config['color']} bg-opacity-10 border-{severity_config['color']}",
+                    style={"cursor": "pointer"},
+                    id=f"actionable-insight-header-{idx}",
+                ),
+                dbc.Collapse(
+                    dbc.CardBody(
+                        [
+                            html.H6("Recommendation:", className="fw-bold mb-2"),
+                            html.P(
+                                insight["recommendation"],
+                                className="mb-0",
                             ),
                         ]
-                    )
-                ],
-                className="mb-2 shadow-sm border-0",
-            )
-        )
-
-    return html.Div(
-        [
-            html.H5(
-                [
-                    html.I(
-                        className="fas fa-lightbulb me-2", style={"color": "#fd7e14"}
                     ),
-                    "Actionable Insights",
-                ],
-                className="mb-3",
-            ),
-            html.Div(insight_cards),
-        ],
-        className="mb-4",
+                    id=collapse_id,
+                    is_open=False,
+                ),
+            ],
+            className="mb-2",
+        )
+        insight_items.append(insight_item)
+
+    return dbc.Card(
+        dbc.CardBody(
+            [
+                html.H4(
+                    [
+                        html.I(className="fas fa-lightbulb me-2"),
+                        "Actionable Insights",
+                    ],
+                    className="card-title mb-3",
+                ),
+                html.Div(insight_items),
+            ]
+        ),
+        className="mb-3",
     )
 
 
@@ -1715,17 +2076,33 @@ def create_comprehensive_dashboard(
         html.Div: Complete dashboard layout
     """
     # Prepare forecast data
+    # Use points-based forecast when available, otherwise use items-based
+    forecast_days = (
+        pert_time_points if (show_points and pert_time_points) else pert_time_items
+    )
+
+    import logging
+
+    logger = logging.getLogger(__name__)
+
+    schedule_variance_calc = (
+        abs(forecast_days - days_to_deadline)
+        if (forecast_days and days_to_deadline)
+        else 0
+    )
+    logger.error(
+        f"[APP SCHEDULE] forecast_days={forecast_days}, days_to_deadline={days_to_deadline}, schedule_variance={schedule_variance_calc}"
+    )
+
     forecast_data = {
         "pert_time_items": pert_time_items,
         "pert_time_points": pert_time_points,
         "velocity_cv": 25,  # Default coefficient of variation
-        "schedule_variance_days": max(0, pert_time_items - days_to_deadline)
-        if pert_time_items
-        else 0,
-        "completion_date": (datetime.now() + timedelta(days=pert_time_items)).strftime(
+        "schedule_variance_days": schedule_variance_calc,
+        "completion_date": (datetime.now() + timedelta(days=forecast_days)).strftime(
             "%Y-%m-%d"
         )
-        if pert_time_items
+        if forecast_days
         else None,
     }
 
@@ -1735,49 +2112,53 @@ def create_comprehensive_dashboard(
     remaining_items = total_items  # Items still to complete
 
     if not statistics_df.empty and len(statistics_df) >= 4:
-        velocity_std = statistics_df["completed_items"].std()
+        # Use population std (ddof=0) to match report calculation
+        velocity_std = statistics_df["completed_items"].std(ddof=0)
         velocity_mean = statistics_df["completed_items"].mean()
         if velocity_mean > 0:
             forecast_data["velocity_cv"] = (velocity_std / velocity_mean) * 100
 
     # Calculate statistically-based confidence intervals
     # Using Monte Carlo-inspired approach: forecast uncertainty grows with remaining work
-    # Standard error of completion time ≈ (remaining_items / velocity) * (velocity_std / velocity_mean)
+    # Standard error of completion time ≈ (remaining / velocity) * (velocity_std / velocity_mean)
     # This accounts for: more remaining work = more uncertainty, higher velocity variance = more uncertainty
 
-    if pert_time_items and velocity_mean > 0 and velocity_std > 0:
+    # Use points-based forecast when available (matches report and burndown chart)
+    forecast_days = pert_time_points if pert_time_points else pert_time_items
+
+    if forecast_days and velocity_mean > 0 and velocity_std > 0:
         # Coefficient of variation as a ratio (not percentage)
         cv_ratio = velocity_std / velocity_mean
 
         # Forecast standard deviation: uncertainty scales with forecast duration and velocity variability
-        # Using: σ_forecast ≈ pert_time * CV * sqrt(weeks_remaining / weeks_observed)
+        # Using: σ_forecast ≈ forecast_days * CV * sqrt(weeks_remaining / weeks_observed)
         weeks_observed = len(statistics_df) if not statistics_df.empty else 1
-        weeks_remaining = max(1, pert_time_items / 7)  # Convert days to weeks
+        weeks_remaining = max(1, forecast_days / 7)  # Convert days to weeks
         uncertainty_factor = (weeks_remaining / weeks_observed) ** 0.5
 
-        forecast_std_days = pert_time_items * cv_ratio * uncertainty_factor
+        forecast_std_days = forecast_days * cv_ratio * uncertainty_factor
 
         # Confidence intervals using z-scores:
         # 50% CI: ±0.67σ (but we show median which equals PERT estimate)
         # 95% CI: +1.65σ (one-tailed, conservative estimate)
-        ci_50_days = pert_time_items  # Median = PERT estimate (50th percentile)
-        ci_95_days = pert_time_items + (1.65 * forecast_std_days)  # 95th percentile
+        ci_50_days = forecast_days  # Median = PERT estimate (50th percentile)
+        ci_95_days = forecast_days + (1.65 * forecast_std_days)  # 95th percentile
 
         # Calculate deadline probability using z-score
         # Z = (deadline - forecast) / forecast_std
         if days_to_deadline > 0 and forecast_std_days > 0:
-            z_score = (days_to_deadline - pert_time_items) / forecast_std_days
+            z_score = (days_to_deadline - forecast_days) / forecast_std_days
             # Approximate normal CDF using logistic approximation: Φ(z) ≈ 1 / (1 + e^(-1.7 * z))
             deadline_probability = 100 / (1 + 2.718 ** (-1.7 * z_score))
         else:
             # Fallback: simple linear estimate
-            deadline_probability = 75 if pert_time_items <= days_to_deadline else 25
+            deadline_probability = 75 if forecast_days <= days_to_deadline else 25
     else:
         # Fallback for insufficient data: use conservative fixed offsets
-        ci_50_days = pert_time_items if pert_time_items else 0
-        ci_95_days = (pert_time_items + 14) if pert_time_items else 0
+        ci_50_days = forecast_days if forecast_days else 0
+        ci_95_days = (forecast_days + 14) if forecast_days else 0
         deadline_probability = (
-            75 if (pert_time_items or 0) <= (days_to_deadline or 0) else 25
+            75 if (forecast_days or 0) <= (days_to_deadline or 0) else 25
         )
 
     confidence_data = {
@@ -1803,7 +2184,9 @@ def create_comprehensive_dashboard(
             # Throughput Analytics
             _create_throughput_section(statistics_df, forecast_data, settings),
             # Forecast Section
-            _create_forecast_section(forecast_data, confidence_data),
+            _create_forecast_section(
+                forecast_data, confidence_data, show_points=show_points
+            ),
             # Recent Activity Section - uses unfiltered data for consistent 4-week view
             _create_recent_activity_section(statistics_df_unfiltered, show_points),
             # Quality & Scope Section

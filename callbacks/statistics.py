@@ -314,7 +314,74 @@ def register(app):
                 # Parse uploaded file
                 content_type, content_string = contents.split(",")
                 decoded = base64.b64decode(content_string)
-                if "csv" in filename.lower():
+
+                # Handle ZIP file imports (full profile backup)
+                if filename.lower().endswith(".zip"):
+                    try:
+                        import tempfile
+                        from data.import_export import import_profile_enhanced
+                        from data.query_manager import get_active_profile_id
+
+                        # Write ZIP to temporary file
+                        with tempfile.NamedTemporaryFile(
+                            delete=False, suffix=".zip"
+                        ) as tmp_file:
+                            tmp_file.write(decoded)
+                            tmp_zip_path = tmp_file.name
+
+                        try:
+                            # Import the profile
+                            profile_id = get_active_profile_id()
+                            logger.info(
+                                f"Importing profile from ZIP: {filename} into {profile_id}"
+                            )
+
+                            success, message, new_profile_id = import_profile_enhanced(
+                                import_path=tmp_zip_path, target_profile_id=profile_id
+                            )
+
+                            result = {
+                                "success": success,
+                                "message": message,
+                                "error": message if not success else None,
+                            }
+
+                            if result["success"]:
+                                logger.info(
+                                    f"Profile imported successfully: {result['message']}"
+                                )
+
+                                # Load imported statistics for table display
+                                from data.persistence import load_unified_project_data
+
+                                project_data = load_unified_project_data()
+                                statistics_data = project_data.get("statistics", [])
+
+                                if statistics_data:
+                                    return statistics_data, False, None
+                                else:
+                                    logger.warning(
+                                        "No statistics found in imported profile"
+                                    )
+                                    return rows, is_sample_data, no_update
+                            else:
+                                logger.error(
+                                    f"Profile import failed: {result.get('error', 'Unknown error')}"
+                                )
+                                return rows, is_sample_data, no_update
+
+                        finally:
+                            # Clean up temp file
+                            import os
+
+                            if os.path.exists(tmp_zip_path):
+                                os.unlink(tmp_zip_path)
+
+                    except Exception as e:
+                        logger.error(f"Error importing ZIP file: {e}", exc_info=True)
+                        return rows, is_sample_data, no_update
+
+                elif "csv" in filename.lower():
                     try:
                         # Try semicolon separator first
                         df = pd.read_csv(io.StringIO(decoded.decode("utf-8")), sep=";")
@@ -351,7 +418,8 @@ def register(app):
                                 )
 
                         # Save CSV data directly with correct metadata
-                        save_statistics_from_csv_import(df.to_dict("records"))
+                        records = df.to_dict("records")
+                        save_statistics_from_csv_import(records)  # type: ignore[arg-type]
 
                         # When uploading data, we're no longer using sample data
                         # Clear the upload contents to allow consecutive uploads of the same file

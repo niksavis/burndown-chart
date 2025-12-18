@@ -4,7 +4,7 @@ Tests that verify the bug trend chart has proper spacing and no overlapping elem
 between the forecast annotation and plotly modebar.
 """
 
-from visualization.mobile_charts import create_bug_trend_chart
+from visualization.bug_charts import create_bug_trend_chart
 
 
 class TestBugChartLayout:

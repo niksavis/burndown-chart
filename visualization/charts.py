@@ -463,7 +463,7 @@ def add_metrics_annotations(fig, metrics_data, data_points_count=None):
             "value": metrics_data["days_to_deadline"],
             "format": "{:,} days",
         },
-        # Row 3 - Remaining and estimates
+        # Row 3 - Remaining items and points
         {
             "label": "Remaining Items",
             "value": metrics_data["total_items"],
@@ -743,6 +743,14 @@ def create_forecast_plot(
                 # If even this fails, just continue without metrics
                 pass
 
+        # Calculate velocity_cv and schedule_variance_days for health score
+        velocity_cv = forecast_data.get("velocity_cv", 0)
+        schedule_variance_days = (
+            abs(pert_time_items - days_to_deadline)
+            if pert_time_items > 0 and days_to_deadline > 0
+            else 0
+        )
+
         # Create a complete PERT data dictionary with explicit type conversion
         pert_data = {
             "pert_time_items": float(pert_time_items),
@@ -759,6 +767,8 @@ def create_forecast_plot(
             "med_weekly_items": float(med_weekly_items),  # Also keep this as float
             "med_weekly_points": float(med_weekly_points),  # Also keep this as float
             "forecast_timestamp": datetime.now().isoformat(),
+            "velocity_cv": float(velocity_cv),
+            "schedule_variance_days": float(schedule_variance_days),
         }
 
         return fig, pert_data

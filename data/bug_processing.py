@@ -193,6 +193,7 @@ def calculate_bug_metrics_summary(
     weekly_stats: List[Dict],
     date_from=None,
     date_to=None,
+    all_project_issues: List[Dict] = None,
 ) -> Dict:
     """Calculate overall bug metrics summary.
 
@@ -202,6 +203,7 @@ def calculate_bug_metrics_summary(
         weekly_stats: List of weekly bug statistics
         date_from: Start date for timeline filter (for display purposes)
         date_to: End date for timeline filter (for display purposes)
+        all_project_issues: List of ALL project issues (bugs + non-bugs) for capacity calculation
 
     Returns:
         Bug metrics summary dictionary with resolution rate, trends, etc.
@@ -295,6 +297,20 @@ def calculate_bug_metrics_summary(
         elif bugs_created_last_4_weeks > bugs_resolved_last_4_weeks * 1.1:
             trend_direction = "degrading"
 
+    # Calculate capacity consumed by bugs (open bug points / total project points)
+    capacity_consumed_by_bugs = 0.0
+    if all_project_issues:
+        # Calculate total project points from ALL issues (bugs and non-bugs)
+        total_project_points = 0
+        for issue in all_project_issues:
+            fields = issue.get("fields", {})
+            points = fields.get("customfield_10016") or 0
+            total_project_points += points
+
+        # Calculate capacity: open bug points / total points
+        if total_project_points > 0:
+            capacity_consumed_by_bugs = open_bug_points / total_project_points
+
     return {
         "total_bugs": total_bugs,
         "open_bugs": open_bugs,
@@ -306,7 +322,7 @@ def calculate_bug_metrics_summary(
         "trend_direction": trend_direction,
         "total_bug_points": total_bug_points,
         "open_bug_points": open_bug_points,
-        "capacity_consumed_by_bugs": 0.0,  # Will be calculated when total capacity is known
+        "capacity_consumed_by_bugs": capacity_consumed_by_bugs,
         "date_from": date_from,  # Timeline filter start date
         "date_to": date_to,  # Timeline filter end date
     }

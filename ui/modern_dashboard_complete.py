@@ -421,7 +421,7 @@ def create_modern_dashboard_content(
                                     "Points tracking disabled", className="text-muted"
                                 ),
                                 html.Small(
-                                    f"{completed_points:,.0f} of {actual_total_points:,.0f} points ({remaining_points:,.0f} remaining)",
+                                    f"{completed_points:,.1f} of {actual_total_points:,.1f} points ({remaining_points:,.1f} remaining)",
                                     className="text-muted d-block mt-1",
                                 )
                                 if show_points

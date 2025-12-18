@@ -262,40 +262,51 @@ def create_scope_growth_chart(weekly_growth_data, show_points=True):
     items_range_final = [-items_abs_max, items_abs_max]
     points_range_final = [-points_abs_max, points_abs_max]
 
-    # Create trace for items - side by side bars with primary y-axis
+    # Create trace for items - keep blue color, vary intensity for positive/negative
+    items_colors = [
+        "rgba(0, 123, 255, 0.9)" if val < 0 else "rgba(0, 123, 255, 0.4)"
+        for val in weekly_growth_data["items_growth"]
+    ]
+
     items_trace = go.Bar(
         x=weekly_growth_data["week_label"],
         y=weekly_growth_data["items_growth"],
-        name="Items Growth",
-        marker_color="rgba(0, 123, 255, 0.7)",  # Blue for items
+        name="Items (darker=completing faster)",
+        marker_color=items_colors,  # Darker blue = net reduction (good), lighter = additions
         width=0.4,  # Make bars narrower to fit side by side
         offset=-0.25,  # Shift to the left for side by side
         yaxis="y",  # Use primary y-axis
         # Add hover text to clarify meaning of values
         hovertemplate=(
-            "<b>Items</b><br>"
+            "<b>Items Net Change</b><br>"
             + "Week: %{x}<br>"
-            + "Growth: %{y}<br>"
-            + "<i>Positive = Scope Increase<br>"
-            + "Negative = Backlog Reduction</i>"
+            + "Net: %{y}<br>"
+            + "<i>Negative = Completing faster (✓)<br>"
+            + "Positive = Scope additions</i>"
         ),
     )
+
+    # Create points trace - keep orange color, vary intensity for positive/negative
+    points_colors = [
+        "rgba(253, 126, 20, 0.9)" if val < 0 else "rgba(253, 126, 20, 0.4)"
+        for val in weekly_growth_data["points_growth"]
+    ]
 
     points_trace = go.Bar(
         x=weekly_growth_data["week_label"],
         y=weekly_growth_data["points_growth"],
-        name="Points Growth",
-        marker_color="rgba(253, 126, 20, 0.7)",  # Orange for points
+        name="Points (darker=completing faster)",
+        marker_color=points_colors,  # Darker orange = net reduction (good), lighter = additions
         width=0.4,  # Make bars narrower to fit side by side
         offset=0.25,  # Shift to the right for side by side
         yaxis="y2",  # Use secondary y-axis
         # Add hover text to clarify meaning of values
         hovertemplate=(
-            "<b>Points</b><br>"
+            "<b>Points Net Change</b><br>"
             + "Week: %{x}<br>"
-            + "Growth: %{y}<br>"
-            + "<i>Positive = Scope Increase<br>"
-            + "Negative = Backlog Reduction</i>"
+            + "Net: %{y}<br>"
+            + "<i>Negative = Completing faster (✓)<br>"
+            + "Positive = Scope additions</i>"
         ),
     )
 
@@ -557,25 +568,25 @@ def create_cumulative_scope_chart(
     weekly_growth_data, baseline_items, baseline_points, show_points=True
 ):
     """
-    Create a line chart showing cumulative scope growth over time with separate y-axes for items and points.
+    Create a line chart showing backlog evolution over time with separate y-axes for items and points.
 
     Args:
         weekly_growth_data (DataFrame): DataFrame with weekly growth data
-        baseline_items (int): Initial baseline for items
-        baseline_points (int): Initial baseline for points
+        baseline_items (int): Initial baseline for items (remaining at start)
+        baseline_points (int): Initial baseline for points (remaining at start)
         show_points (bool): Whether to show points traces
 
     Returns:
-        dcc.Graph: A graph component with cumulative scope growth
+        dcc.Graph: A graph component with backlog size evolution
     """
     if weekly_growth_data.empty:
         return dcc.Graph(
             figure={
                 "data": [],
                 "layout": go.Layout(
-                    title="Cumulative Scope Growth",
+                    title="Backlog Size Over Time",
                     xaxis={"title": "Week"},
-                    yaxis={"title": "Items"},
+                    yaxis={"title": "Items Remaining"},
                     height=350,
                 ),
             },
@@ -585,78 +596,76 @@ def create_cumulative_scope_chart(
     # Sort data by week to ensure proper accumulation
     weekly_data = weekly_growth_data.sort_values("start_date")
 
-    # Create cumulative series for items and points
+    # Create cumulative series for items and points (NET change from baseline)
     weekly_data["cum_items_growth"] = weekly_data["items_growth"].cumsum()
     weekly_data["cum_points_growth"] = weekly_data["points_growth"].cumsum()
 
-    # Calculate total scope at each point (baseline + cumulative growth)
-    weekly_data["total_items_scope"] = baseline_items + weekly_data["cum_items_growth"]
-    weekly_data["total_points_scope"] = (
-        baseline_points + weekly_data["cum_points_growth"]
-    )
+    # Show NET scope change from zero (positive = scope grew, negative = scope reduced)
+    # This makes it clear: line going UP = scope creep, line going DOWN = backlog reduction
+    weekly_data["net_scope_items"] = weekly_data["cum_items_growth"]
+    weekly_data["net_scope_points"] = weekly_data["cum_points_growth"]
 
-    # Create traces for items (yaxis1)
+    # Create traces for items (yaxis1) - showing NET change from zero
     items_baseline_trace = go.Scatter(
         x=weekly_data["week_label"],
-        y=[baseline_items] * len(weekly_data),
+        y=[0] * len(weekly_data),
         mode="lines",
-        name="Items Baseline",
-        line=dict(color="rgba(0, 123, 255, 0.5)", width=2, dash="dash"),
-        hovertemplate="<b>Items Baseline</b><br>Week: %{x}<br>Value: %{y}<extra></extra>",
+        name="Zero Line (Baseline)",
+        line=dict(color="rgba(128, 128, 128, 0.5)", width=2, dash="dash"),
+        hovertemplate="<b>Baseline</b><br>Week: %{x}<br>No net change<extra></extra>",
         yaxis="y",
+        showlegend=True,
     )
 
     items_scope_trace = go.Scatter(
         x=weekly_data["week_label"],
-        y=weekly_data["total_items_scope"],
+        y=weekly_data["net_scope_items"],
         mode="lines+markers",
-        name="Items Total Scope",
+        name="Items Net Scope Change",
         line=dict(color="rgba(0, 123, 255, 1)", width=3),
         marker=dict(size=7),
-        hovertemplate="<b>Items Total Scope</b><br>Week: %{x}<br>Value: %{y}<extra></extra>",
+        fill="tozeroy",
+        fillcolor="rgba(0, 123, 255, 0.1)",
+        hovertemplate="<b>Items Net Change</b><br>Week: %{x}<br>Net: %{y}<br><i>+Positive = Scope grew<br>-Negative = Scope reduced</i><extra></extra>",
         yaxis="y",
     )
 
     # Create traces for points with different color (yaxis2)
-    points_baseline_trace = go.Scatter(
-        x=weekly_data["week_label"],
-        y=[baseline_points] * len(weekly_data),
-        mode="lines",
-        name="Points Baseline",
-        line=dict(color="rgba(253, 126, 20, 0.5)", width=2, dash="dash"),
-        hovertemplate="<b>Points Baseline</b><br>Week: %{x}<br>Value: %{y}<extra></extra>",
-        yaxis="y2",
-    )
-
     points_scope_trace = go.Scatter(
         x=weekly_data["week_label"],
-        y=weekly_data["total_points_scope"],
+        y=weekly_data["net_scope_points"],
         mode="lines+markers",
-        name="Points Total Scope",
+        name="Points Net Scope Change",
         line=dict(color="rgba(253, 126, 20, 1)", width=3),
         marker=dict(size=7),
-        hovertemplate="<b>Points Total Scope</b><br>Week: %{x}<br>Value: %{y}<extra></extra>",
+        fill="tozeroy",
+        fillcolor="rgba(253, 126, 20, 0.1)",
+        hovertemplate="<b>Points Net Change</b><br>Week: %{x}<br>Net: %{y}<br><i>+Positive = Scope grew<br>-Negative = Scope reduced</i><extra></extra>",
         yaxis="y2",
     )
 
     # Create data list - include points traces only if points tracking is enabled
+    # Zero line is shared between both axes
     data_traces = [
         items_baseline_trace,
         items_scope_trace,
     ]
     if show_points:
-        data_traces.extend([points_baseline_trace, points_scope_trace])
+        data_traces.append(points_scope_trace)
 
     # Create layout with dual y-axes
     layout = go.Layout(
-        title="Cumulative Scope Growth (Baseline + Change)",
+        title="Backlog Size Over Time (Remaining Work)",
         xaxis={
             "title": "Week",
             "tickangle": -45,
             "gridcolor": "rgba(200, 200, 200, 0.2)",
         },
         yaxis={
-            "title": {"text": "Items", "font": {"color": "rgba(0, 123, 255, 1)"}},
+            "title": {
+                "text": "Items Remaining",
+                "font": {"color": "rgba(0, 123, 255, 1)"},
+            },
             "tickfont": {"color": "rgba(0, 123, 255, 1)"},
             "gridcolor": "rgba(0, 123, 255, 0.1)",
             "zeroline": True,
@@ -822,20 +831,25 @@ def create_scope_metrics_dashboard(
         total_created_items = 0
         total_created_points = 0
 
-    # Calculate baselines (initial scope at project start)
+    # Calculate baselines (initial scope at start of data period)
     # If total_items_scope is provided, use it as the baseline
-    # Otherwise, calculate baseline as: remaining + completed (at current point)
+    # Otherwise, calculate baseline as: current remaining + completed - created (during period)
+    # This gives us the initial remaining work at the START of the data range
     if total_items_scope is not None:
         baseline_items = total_items_scope  # Use provided initial scope
     else:
-        # Calculate initial scope from current state (remaining + completed so far)
-        baseline_items = remaining_items + total_completed_items
+        # Calculate initial scope at start of period
+        # Initial = Current + Completed - Created
+        baseline_items = remaining_items + total_completed_items - total_created_items
 
     if total_points_scope is not None:
         baseline_points = total_points_scope  # Use provided initial scope
     else:
-        # Calculate initial scope from current state (remaining + completed so far)
-        baseline_points = remaining_points + total_completed_points
+        # Calculate initial scope at start of period
+        # Initial = Current + Completed - Created
+        baseline_points = (
+            remaining_points + total_completed_points - total_created_points
+        )
 
     # Calculate threshold in absolute values - how many items/points can be added
     # before exceeding the threshold percentage
@@ -1028,7 +1042,7 @@ def create_scope_metrics_dashboard(
                                     ),
                                     create_info_tooltip(
                                         "items-scope-breakdown",
-                                        "Breakdown of scope metrics: Created items show new work added, Completed items show work finished, Threshold shows the alert level, and Baseline shows the original scope when tracking began.",
+                                        "Breakdown of scope metrics: Created items show new work added, Completed items show work finished, Threshold shows the alert level, and Baseline shows the initial backlog remaining at the start of this tracking period (calculated as current remaining + total completed).",
                                     ),
                                 ],
                                 style={"display": "none"},
@@ -1151,7 +1165,7 @@ def create_scope_metrics_dashboard(
                                         ),
                                         create_info_tooltip(
                                             "points-scope-breakdown",
-                                            "Breakdown of scope metrics based on story points: Created points show complexity of new work added, Completed points show effort delivered, Threshold shows the alert level for complexity growth, and Baseline shows the original planned effort.",
+                                            "Breakdown of scope metrics based on story points: Created points show complexity of new work added, Completed points show effort delivered, Threshold shows the alert level for complexity growth, and Baseline shows the initial backlog remaining at the start of this tracking period (calculated as current remaining + total completed).",
                                         ),
                                     ],
                                     style={"display": "none"},
@@ -1179,7 +1193,7 @@ def create_scope_metrics_dashboard(
                                         className="fas fa-chart-area me-2",
                                         style={"color": "#6610f2"},
                                     ),
-                                    "Cumulative Scope Changes Over Time ",
+                                    "Net Scope Change Over Time ",
                                     create_info_tooltip(
                                         "cumulative_scope_chart",
                                         SCOPE_HELP_TEXTS["cumulative_chart"],
@@ -1399,7 +1413,7 @@ def create_scope_metrics_dashboard(
                     ),
                     html.Strong("Agile Context: ", style={"fontWeight": "600"}),
                     "In agile projects, scope changes are normal and healthy—these metrics help you understand patterns, not problems. ",
-                    "Lower adaptability values (0.3-0.6) are typical for responsive agile teams. Higher values (0.7+) indicate more predictable scope.",
+                    "Lower stability values (0.3-0.6) indicate dynamic, evolving scope (typical for responsive agile teams). Higher values (0.7+) indicate more predictable, stable scope.",
                 ],
             ),
         ]

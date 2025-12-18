@@ -1,7 +1,7 @@
 # Burndown Chart Generator
 
 [![python](https://img.shields.io/badge/Python-3.13-3776AB.svg?style=flat&logo=python&logoColor=white)](https://www.python.org)
-[![version](https://img.shields.io/badge/version-2.0.0-blue.svg)](https://github.com/niksavis/burndown-chart/releases)
+[![version](https://img.shields.io/badge/version-2.1.0-blue.svg)](https://github.com/niksavis/burndown-chart/releases)
 [![License](https://img.shields.io/badge/License-MIT-green)](LICENSE)
 
 Interactive web app for agile project forecasting with JIRA integration and comprehensive DORA & Flow metrics.
@@ -29,9 +29,10 @@ Interactive web app for agile project forecasting with JIRA integration and comp
 - **🔮 PERT Forecasting**: Optimistic, most likely, and pessimistic completion predictions
 - **📈 DORA Metrics**: Deployment Frequency, Lead Time, Change Failure Rate, MTTR
 - **🌊 Flow Metrics**: Velocity, Time, Efficiency, Load (WIP), Distribution
+- **� HTML Reports**: Generate comprehensive project snapshots with charts and metrics
 - **🔌 JIRA Integration**: Direct API sync with JQL queries and smart caching
 - **📁 File Import**: CSV/JSON upload support
-- **💾 Export**: Download charts and metrics data
+- **💾 Export**: Download reports, charts, and metrics data
 
 ## Configuration
 
@@ -107,7 +108,28 @@ Track project health, delivery performance, and process efficiency.
 
 **Auto-Configuration**: System detects JIRA fields by name patterns and suggests mappings. Review in Settings → Configure JIRA Mappings.
 
-**Export**: Download metrics as CSV or JSON for external reporting.
+## Report Generation
+
+Create standalone HTML reports with project metrics snapshots:
+
+1. **Generate Report**: Settings → Import/Export → Generate Report
+2. **Select Sections**: Choose metrics to include:
+   - **Dashboard**: Health overview, forecast, velocity summary
+   - **Burndown Analysis**: Charts, bug metrics, scope changes
+   - **Flow Metrics**: Velocity, time, efficiency, work distribution
+   - **DORA Metrics**: Deployment frequency, lead time, CFR, MTTR
+3. **Choose Time Period**: 4, 12, 26, or 52 weeks of historical data
+4. **Download**: Self-contained HTML file with embedded charts
+
+Reports include all visualizations, metrics calculations, and data tables in a single shareable file. No external dependencies required - works offline in any browser.
+
+**💡 Tip**: Generate weekly/monthly reports for stakeholder updates or milestone documentation.
+
+## Export Options
+
+- **HTML Reports**: Comprehensive project snapshots (Settings → Import/Export → Generate Report)
+- **Profile Export**: Full profile backup with config and data (Settings → Import/Export → Export Profile)
+- **Metrics Data**: CSV or JSON downloads from individual metric views
 
 ## Troubleshooting
 

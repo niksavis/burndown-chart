@@ -88,6 +88,220 @@ def create_import_export_panel():
     )
 
 
+def _create_import_export_tab():
+    """Create simplified Import/Export tab - just JSON data with project_data and metrics."""
+    return html.Div(
+        [
+            # Import Section
+            html.Div(
+                [
+                    html.I(className="fas fa-file-import me-2 text-primary"),
+                    html.Span("Import Project Data", className="fw-bold"),
+                ],
+                className="d-flex align-items-center mb-2",
+            ),
+            html.P(
+                "Upload project data JSON containing statistics and metrics",
+                className="text-muted small mb-2",
+                style={"fontSize": "0.8rem"},
+            ),
+            dcc.Upload(
+                id="upload-data",
+                children=html.Div(
+                    [
+                        html.I(
+                            className="fas fa-cloud-upload-alt fa-lg mb-1 text-primary"
+                        ),
+                        html.P(
+                            "Drop JSON file or click to browse",
+                            className="mb-1 fw-medium",
+                            style={"fontSize": "0.85rem"},
+                        ),
+                        html.Small(
+                            html.Span(".json", className="badge bg-primary"),
+                            className="text-muted",
+                        ),
+                    ],
+                    className="text-center py-2",
+                ),
+                style={
+                    "width": "100%",
+                    "borderWidth": "2px",
+                    "borderStyle": "dashed",
+                    "borderRadius": "8px",
+                    "borderColor": "#dee2e6",
+                    "backgroundColor": "#f8f9fa",
+                    "cursor": "pointer",
+                    "transition": "all 0.2s ease",
+                },
+                multiple=False,
+                accept=".json,application/json",
+            ),
+            # Divider
+            html.Hr(className="my-3"),
+            # Export Section
+            html.Div(
+                [
+                    html.I(className="fas fa-file-export me-2 text-primary"),
+                    html.Span("Export Project Data", className="fw-bold"),
+                ],
+                className="d-flex align-items-center mb-2",
+            ),
+            html.P(
+                "Download project statistics and calculated metrics as JSON",
+                className="text-muted small mb-2",
+                style={"fontSize": "0.8rem"},
+            ),
+            html.Div(
+                [
+                    dbc.Button(
+                        [
+                            html.I(className="fas fa-download"),
+                            html.Span("Export Data"),
+                        ],
+                        id="export-project-data-button",
+                        color="primary",
+                        className="action-button",
+                    ),
+                ],
+                style={"marginBottom": "1rem"},
+            ),
+            dcc.Download(id="export-project-data-download"),
+            # Hidden elements (kept for backward compatibility with callbacks)
+            html.Div(
+                [
+                    dbc.RadioItems(
+                        id="export-type-radio",
+                        options=[],
+                        value="quick",
+                        style={"display": "none"},
+                    ),
+                    dbc.Collapse(
+                        id="export-options-collapse",
+                        is_open=False,
+                        children=[
+                            dbc.Checklist(
+                                id="export-options-checklist",
+                                options=[],
+                                value=[],
+                                style={"display": "none"},
+                            ),
+                            html.Div(
+                                id="export-size-estimate", style={"display": "none"}
+                            ),
+                        ],
+                    ),
+                    dbc.Button(id="export-profile-button", style={"display": "none"}),
+                    dcc.Download(id="export-profile-download"),
+                ],
+                style={"display": "none"},
+            ),
+        ],
+        className="settings-tab-content",
+    )
+
+
+def _create_reports_tab():
+    """Create simplified Reports tab - uses Data Points slider value from Parameters panel."""
+    return html.Div(
+        [
+            # Report Section Header
+            html.Div(
+                [
+                    html.I(className="fas fa-file-alt me-2 text-success"),
+                    html.Span("Generate HTML Report", className="fw-bold"),
+                ],
+                className="d-flex align-items-center mb-2",
+            ),
+            html.P(
+                "Create a self-contained HTML file with all metrics for sharing",
+                className="text-muted small mb-2",
+                style={"fontSize": "0.8rem"},
+            ),
+            # Info about time period
+            html.Div(
+                [
+                    html.I(className="fas fa-info-circle me-2"),
+                    html.Span(
+                        [
+                            "Report will include data from the ",
+                            html.Strong(id="report-weeks-display", children="12"),
+                            " weeks shown in your current Data Points view",
+                        ],
+                        style={"fontSize": "0.85rem"},
+                    ),
+                ],
+                className="alert alert-info py-2 mb-3",
+                style={"fontSize": "0.8rem"},
+            ),
+            # Generate button
+            html.Div(
+                [
+                    dbc.Button(
+                        [
+                            html.I(className="fas fa-download"),
+                            html.Span("Generate Report"),
+                        ],
+                        id="generate-report-button",
+                        color="primary",
+                        className="action-button",
+                    ),
+                ],
+                id="generate-report-button-container",
+                style={"marginBottom": "1rem"},
+            ),
+            # Progress bar for report generation (styled to match Update Data)
+            html.Div(
+                id="report-progress-container",
+                className="mb-2",
+                style={"display": "none", "minHeight": "60px"},
+                children=[
+                    html.Div(
+                        id="report-progress-label",
+                        className="small text-muted mb-1",
+                        children="Generating report: 0%",
+                    ),
+                    dbc.Progress(
+                        id="report-progress-bar",
+                        value=0,
+                        striped=True,
+                        animated=True,
+                        color="primary",
+                        style={"height": "24px"},
+                    ),
+                ],
+            ),
+            dcc.Download(id="report-download"),
+            # Interval for polling report generation progress
+            dcc.Interval(
+                id="report-progress-poll-interval",
+                interval=500,  # Poll every 500ms
+                disabled=True,  # Start disabled
+            ),
+            # Hidden elements (kept for backward compatibility with callbacks)
+            html.Div(
+                [
+                    dbc.Checklist(
+                        id="report-sections-checklist",
+                        options=[],
+                        value=["burndown", "dora", "flow"],
+                        style={"display": "none"},
+                    ),
+                    dbc.RadioItems(
+                        id="report-time-period-radio",
+                        options=[],
+                        value=12,
+                        style={"display": "none"},
+                    ),
+                    html.Div(id="report-size-estimate", style={"display": "none"}),
+                ],
+                style={"display": "none"},
+            ),
+        ],
+        className="settings-tab-content",
+    )
+
+
 def create_import_export_flyout(is_open: bool = False):
     """
     Create a flyout panel for import/export functionality.
@@ -111,92 +325,18 @@ def create_import_export_flyout(is_open: bool = False):
                         dbc.Tabs(
                             [
                                 dbc.Tab(
-                                    label="Data",
-                                    tab_id="data-tab",
-                                    label_style={"width": "100%"},
-                                    children=[
-                                        html.Div(
-                                            [
-                                                # No header - tab label serves as title
-                                                # Import section - compact
-                                                html.Div(
-                                                    [
-                                                        dcc.Upload(
-                                                            id="upload-data",
-                                                            children=html.Div(
-                                                                [
-                                                                    html.I(
-                                                                        className="fas fa-cloud-upload-alt fa-2x mb-2 text-primary"
-                                                                    ),
-                                                                    html.P(
-                                                                        "Drop files here or click to browse",
-                                                                        className="mb-1 fw-medium",
-                                                                        style={
-                                                                            "fontSize": "0.9rem"
-                                                                        },
-                                                                    ),
-                                                                    html.Small(
-                                                                        "Supports JSON and CSV files",
-                                                                        className="text-muted",
-                                                                        style={
-                                                                            "fontSize": "0.75rem"
-                                                                        },
-                                                                    ),
-                                                                ],
-                                                                className="text-center py-4",
-                                                            ),
-                                                            style={
-                                                                "width": "100%",
-                                                                "borderWidth": "2px",
-                                                                "borderStyle": "dashed",
-                                                                "borderRadius": "8px",
-                                                                "borderColor": "#dee2e6",
-                                                                "backgroundColor": "#f8f9fa",
-                                                                "cursor": "pointer",
-                                                                "transition": "all 0.2s ease",
-                                                            },
-                                                            multiple=False,
-                                                            accept="application/json,.json,.csv",
-                                                        ),
-                                                    ],
-                                                    className="mb-4 pb-3 border-bottom",
-                                                ),
-                                                # Export section - compact, no redundant heading
-                                                html.Div(
-                                                    [
-                                                        dbc.Button(
-                                                            [
-                                                                html.I(
-                                                                    className="fas fa-file-export me-2"
-                                                                ),
-                                                                "Export Project Data",
-                                                            ],
-                                                            id="export-project-data-button",
-                                                            color="secondary",
-                                                            className="w-100 mb-2",
-                                                            size="md",
-                                                        ),
-                                                        html.Small(
-                                                            "Downloads complete project data as JSON file",
-                                                            className="text-muted d-block text-center",
-                                                            style={
-                                                                "fontSize": "0.75rem"
-                                                            },
-                                                        ),
-                                                        dcc.Download(
-                                                            id="download-data"
-                                                        ),
-                                                    ],
-                                                    className="mb-3",
-                                                ),
-                                            ],
-                                            className="settings-tab-content",
-                                        )
-                                    ],
+                                    label="Reports",
+                                    tab_id="reports-tab",
+                                    children=_create_reports_tab(),
+                                ),
+                                dbc.Tab(
+                                    label="Import/Export",
+                                    tab_id="import-export-tab",
+                                    children=_create_import_export_tab(),
                                 ),
                             ],
                             id="data-tabs",
-                            active_tab="data-tab",
+                            active_tab="reports-tab",
                             className="settings-tabs",
                         ),
                     ],
