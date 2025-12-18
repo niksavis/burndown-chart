@@ -2806,8 +2806,7 @@ div[class*="__menu"] {
   min-height: 120px;
   padding: 1rem; /* Comfortable padding */
   padding-bottom: 0.25rem; /* Minimal bottom padding */
-  overflow-x: hidden !important;
-  overflow-y: visible !important;
+  overflow: visible !important; /* Allow dropdowns to overflow */
   border: none !important;
   border-radius: 0 0 6px 6px; /* Rounded bottom corners */
   background: #ffffff; /* White content area for contrast */
