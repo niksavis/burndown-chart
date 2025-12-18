@@ -296,6 +296,15 @@ def _calculate_dashboard_metrics(
 
     # Calculate completed items from WINDOWED statistics (same as app)
     df_windowed = pd.DataFrame(windowed_statistics)
+    # Convert date column to datetime for proper date arithmetic
+    if not df_windowed.empty and "date" in df_windowed.columns:
+        df_windowed["date"] = pd.to_datetime(df_windowed["date"])
+
+    # Create dataframe from ALL statistics for last date (same as app in processing.py)
+    df_all = pd.DataFrame(all_statistics)
+    if not df_all.empty and "date" in df_all.columns:
+        df_all["date"] = pd.to_datetime(df_all["date"])
+
     completed_items = (
         int(df_windowed["completed_items"].sum()) if not df_windowed.empty else 0
     )
@@ -493,11 +502,18 @@ def _calculate_dashboard_metrics(
     )
 
     if pert_days and pert_days > 0:
-        forecast_date_obj = datetime.now() + timedelta(days=pert_days)
+        # Use last statistics date from ALL data as starting point (same as app in processing.py line 1379)
+        # App uses df["date"].max() where df contains ALL statistics, not windowed
+        # This ensures forecast matches app exactly, avoiding timezone/midnight issues
+        if not df_all.empty:
+            last_date = df_all["date"].max()
+        else:
+            last_date = datetime.now()
+        forecast_date_obj = last_date + timedelta(days=pert_days)
         forecast_date = forecast_date_obj.strftime("%Y-%m-%d")
 
-        # Calculate months to forecast
-        days_to_forecast = (forecast_date_obj - datetime.now()).days
+        # Calculate months to forecast from last_date
+        days_to_forecast = (forecast_date_obj - last_date).days
         forecast_months = round(days_to_forecast / 30.44)  # Average days per month
 
     # Calculate months to deadline
@@ -1933,3 +1949,137 @@ def _parse_week_label(week_label: str) -> datetime:
         # Fallback to current date if parsing fails
         logger.warning(f"Could not parse week label: {week_label}")
         return datetime.now()
+
+
+def _update_report_progress(percent: int, message: str) -> None:
+    """Helper to update report generation progress.
+
+    Args:
+        percent: Progress percentage (0-100)
+        message: Progress message
+    """
+    import json
+    from pathlib import Path
+
+    progress_file = Path("task_progress.json")
+    if not progress_file.exists():
+        return
+
+    try:
+        with open(progress_file, "r", encoding="utf-8") as f:
+            state = json.load(f)
+
+        if state.get("task_id") != "generate_report":
+            return
+
+        # Update report_progress object (consistent with fetch_progress/calculate_progress)
+        state["report_progress"] = {"percent": percent, "message": message}
+
+        with open(progress_file, "w", encoding="utf-8") as f:
+            json.dump(state, f, indent=2)
+    except Exception as e:
+        logger.warning(f"Failed to update report progress: {e}")
+
+
+def generate_html_report_with_progress(
+    sections: List[str],
+    time_period_weeks: int = 12,
+    profile_id: Optional[str] = None,
+) -> None:
+    """
+    Generate HTML report with progress tracking for background task.
+
+    This function wraps generate_html_report() and adds progress updates
+    via TaskProgress. The generated report is saved to a temporary file
+    and the path is stored in progress data for download retrieval.
+
+    Args:
+        sections: List of section identifiers to include in report
+        time_period_weeks: Number of weeks to analyze
+        profile_id: Profile ID to generate report for
+
+    Side effects:
+        - Updates task_progress.json with progress updates
+        - Creates temporary HTML file with report content
+        - Updates progress data with report_file path on completion
+    """
+    from data.task_progress import TaskProgress
+    from data.query_manager import get_active_profile_id
+
+    try:
+        # Ensure we have a profile_id
+        if not profile_id:
+            profile_id = get_active_profile_id()
+
+        if not profile_id:
+            raise ValueError("No active profile for report generation")
+
+        # Update progress: Loading data
+        _update_report_progress(10, "Loading project data")
+
+        # Load and filter data
+        report_data = _load_report_data(profile_id, time_period_weeks)
+        report_data["profile_id"] = profile_id
+
+        # Get display names for metadata
+        from data.profile_manager import get_active_profile_and_query_display_names
+
+        context = get_active_profile_and_query_display_names()
+        profile_name = context.get("profile_name") or profile_id
+        query_name = context.get("query_name") or "Unknown Query"
+
+        # Update progress: Calculating metrics
+        _update_report_progress(30, "Calculating metrics")
+
+        # Calculate all metrics
+        metrics = _calculate_all_metrics(report_data, sections, time_period_weeks)
+        metrics["statistics"] = report_data["statistics"]
+
+        # Update progress: Generating charts
+        _update_report_progress(60, "Generating charts")
+
+        # Generate Chart.js scripts
+        chart_scripts = _generate_chart_scripts(metrics, sections)
+
+        # Update progress: Rendering HTML
+        _update_report_progress(80, "Rendering HTML")
+
+        # Render template
+        html = _render_template(
+            profile_name=profile_name,
+            query_name=query_name,
+            time_period_weeks=time_period_weeks,
+            sections=sections,
+            metrics=metrics,
+            chart_script="\n".join(chart_scripts),
+        )
+
+        # Update progress: Saving report
+        _update_report_progress(95, "Preparing download")
+
+        # Save to temporary file
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        safe_profile = profile_name.replace(" ", "_").replace("/", "_")
+        safe_query = query_name.replace(" ", "_").replace("/", "_")
+        filename = f"{timestamp}_{safe_profile}_{safe_query}_{time_period_weeks}w.html"
+
+        # Create temp file in app directory for easy cleanup
+        temp_file = Path("temp_reports") / filename
+        temp_file.parent.mkdir(exist_ok=True)
+
+        with open(temp_file, "w", encoding="utf-8") as f:
+            f.write(html)
+
+        logger.info(
+            f"Report saved to temporary file: {temp_file} ({len(html):,} bytes)"
+        )
+
+        # Complete task with report file path
+        TaskProgress.complete_task(
+            "generate_report", "Report ready", report_file=str(temp_file)
+        )
+
+    except Exception as e:
+        logger.error(f"Report generation failed: {e}", exc_info=True)
+        TaskProgress.fail_task("generate_report", str(e))
+        raise

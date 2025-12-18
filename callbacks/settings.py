@@ -384,6 +384,9 @@ def register(app):
             Output(
                 "trigger-auto-metrics-calc", "data", allow_duplicate=True
             ),  # Trigger separate metrics calc
+            Output(
+                "progress-poll-interval", "disabled", allow_duplicate=True
+            ),  # Enable polling for banner icons
         ],
         [
             Input("update-data-unified", "n_clicks"),
@@ -449,6 +452,7 @@ def register(app):
                 "",  # update-data-status (empty)
                 "",  # toast notification (empty)
                 None,  # metrics trigger
+                True,  # progress-poll-interval disabled (no task)
             )
 
         try:
@@ -489,6 +493,7 @@ def register(app):
                     ),  # update-data-status
                     "",  # app-notifications (no toast)
                     None,  # trigger-auto-metrics-calc
+                    True,  # progress-poll-interval disabled (already running)
                 )
 
             # Start the task - returns False if can't start
@@ -522,6 +527,7 @@ def register(app):
                     ),  # update-data-status
                     "",  # app-notifications (no toast)
                     None,  # trigger-auto-metrics-calc
+                    True,  # progress-poll-interval disabled (failed to start)
                 )
 
             # Handle JIRA data import (settings panel only uses JIRA)
@@ -587,6 +593,7 @@ def register(app):
                     cache_status_message,  # Show error in status area
                     "",  # Toast notification (empty)
                     None,  # metrics trigger
+                    False,  # progress-poll-interval enabled (task completed with error)
                 )
 
             # Use JQL query from input or fall back to active query's JQL
@@ -745,6 +752,7 @@ def register(app):
                     cache_status_message,  # Show error in status area
                     "",  # Toast notification
                     None,  # metrics trigger
+                    False,  # progress-poll-interval enabled (task completed with error)
                 )
 
             # Use sync_jira_scope_and_data to get both scope data and message
@@ -1033,6 +1041,7 @@ def register(app):
                     "",  # Clear status area (toast shows message now)
                     success_toast,  # Toast notification
                     metrics_trigger,  # Trigger separate metrics calculation
+                    False,  # progress-poll-interval enabled (metrics will run)
                 )
             else:
                 # Create detailed error message
@@ -1076,6 +1085,7 @@ def register(app):
                     error_status_message,  # Show error in status area
                     "",  # Toast notification (empty)
                     None,  # trigger-auto-metrics-calc
+                    False,  # progress-poll-interval enabled (task completed with error)
                 )
 
         except ImportError:
@@ -1154,6 +1164,7 @@ def register(app):
                 cache_status_message,  # Show error in status area
                 "",  # Toast notification (empty)
                 None,  # metrics trigger
+                False,  # progress-poll-interval enabled (task completed with error)
             )
 
     #######################################################################

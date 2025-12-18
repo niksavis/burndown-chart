@@ -247,9 +247,37 @@ def _create_reports_tab():
                         className="action-button",
                     ),
                 ],
+                id="generate-report-button-container",
                 style={"marginBottom": "1rem"},
             ),
+            # Progress bar for report generation (styled to match Update Data)
+            html.Div(
+                id="report-progress-container",
+                className="mb-2",
+                style={"display": "none", "minHeight": "60px"},
+                children=[
+                    html.Div(
+                        id="report-progress-label",
+                        className="small text-muted mb-1",
+                        children="Generating report: 0%",
+                    ),
+                    dbc.Progress(
+                        id="report-progress-bar",
+                        value=0,
+                        striped=True,
+                        animated=True,
+                        color="primary",
+                        style={"height": "24px"},
+                    ),
+                ],
+            ),
             dcc.Download(id="report-download"),
+            # Interval for polling report generation progress
+            dcc.Interval(
+                id="report-progress-poll-interval",
+                interval=500,  # Poll every 500ms
+                disabled=True,  # Start disabled
+            ),
             # Hidden elements (kept for backward compatibility with callbacks)
             html.Div(
                 [

@@ -245,6 +245,9 @@ mobile_nav_error.png
 # Background callback cache directory
 cache/
 
+# Temporary report files (generated HTML reports)
+temp_reports/
+
 # Task progress tracking (runtime state file)
 task_progress.json
 

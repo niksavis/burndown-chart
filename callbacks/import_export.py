@@ -142,7 +142,11 @@ def update_report_weeks_display(data_points):
 
 
 @callback(
-    Output("report-download", "data"),
+    [
+        Output("report-progress-poll-interval", "disabled"),
+        Output("generate-report-button-container", "style"),
+        Output("report-progress-container", "style", allow_duplicate=True),
+    ],
     Input("generate-report-button", "n_clicks"),
     [
         State("report-sections-checklist", "value"),
@@ -150,9 +154,9 @@ def update_report_weeks_display(data_points):
     ],
     prevent_initial_call=True,
 )
-def generate_report(n_clicks, sections, data_points):
+def start_report_generation(n_clicks, sections, data_points):
     """
-    Generate HTML report with selected sections using Data Points slider value.
+    Start background report generation with progress tracking.
 
     Args:
         n_clicks: Button clicks
@@ -160,53 +164,206 @@ def generate_report(n_clicks, sections, data_points):
         data_points: Number of weeks from Data Points slider
 
     Returns:
-        dcc.send_file object for HTML download
+        Tuple of (interval_disabled, button_style, progress_style)
     """
     if not n_clicks:
-        return no_update
+        return no_update, no_update, no_update
 
     try:
-        from data.report_generator import generate_html_report
         from data.query_manager import get_active_profile_id
+        from data.task_progress import TaskProgress
+        import threading
 
         profile_id = get_active_profile_id()
         if not profile_id:
             logger.error("No active profile for report generation")
-            return no_update
+            return no_update, no_update, no_update
 
         sections = sections or ["burndown"]
         time_period = data_points or 12
 
         logger.info(
-            f"Generating report: sections={sections}, period={time_period} weeks"
+            f"Starting background report generation: sections={sections}, period={time_period} weeks"
         )
 
-        # Generate report HTML (returns HTML content and metadata with display names)
-        html_content, metadata = generate_html_report(
-            sections=sections,
-            time_period_weeks=time_period,
-            profile_id=profile_id,
+        # Initialize task progress
+        TaskProgress.start_task("generate_report", "Preparing report...")
+
+        # Start report generation in background thread
+        def generate_in_background():
+            try:
+                from data.report_generator import generate_html_report_with_progress
+
+                generate_html_report_with_progress(
+                    sections=sections,
+                    time_period_weeks=time_period,
+                    profile_id=profile_id,
+                )
+            except Exception as e:
+                logger.error(f"Background report generation failed: {e}", exc_info=True)
+                TaskProgress.fail_task("generate_report", str(e))
+
+        thread = threading.Thread(target=generate_in_background, daemon=True)
+        thread.start()
+
+        # Enable progress polling, hide button, show progress bar
+        return (
+            False,  # Enable interval
+            {"display": "none"},  # Hide button
+            {},  # Show progress bar
         )
-
-        # Generate filename: YYYYMMDD_HHMMSS_ProfileName_QueryName_Xw.html
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        profile_name = metadata["profile_name"].replace(" ", "_").replace("/", "_")
-        query_name = metadata["query_name"].replace(" ", "_").replace("/", "_")
-        weeks = metadata["time_period_weeks"]
-        filename = f"{timestamp}_{profile_name}_{query_name}_{weeks}w.html"
-
-        logger.info(f"Report generated: {len(html_content)} bytes, {filename}")
-
-        # Return HTML download
-        return {
-            "content": html_content,
-            "filename": filename,
-            "type": "text/html",
-        }
 
     except Exception as e:
-        logger.error(f"Report generation failed: {e}", exc_info=True)
-        return no_update
+        logger.error(f"Failed to start report generation: {e}", exc_info=True)
+        return no_update, no_update, no_update
+
+
+@callback(
+    [
+        Output("report-progress-label", "children"),
+        Output("report-progress-bar", "value"),
+        Output("report-progress-bar", "color"),
+        Output("report-progress-poll-interval", "disabled", allow_duplicate=True),
+        Output("report-progress-container", "style", allow_duplicate=True),
+        Output("generate-report-button-container", "style", allow_duplicate=True),
+        Output("report-download", "data"),
+    ],
+    Input("report-progress-poll-interval", "n_intervals"),
+    prevent_initial_call=True,
+)
+def poll_report_progress(n_intervals):
+    """
+    Poll report generation progress and trigger download when complete.
+
+    Args:
+        n_intervals: Number of intervals elapsed
+
+    Returns:
+        Tuple of (label, value, color, interval_disabled, progress_style, button_style, download_data)
+    """
+    from data.task_progress import TaskProgress
+    from pathlib import Path
+    import json
+
+    progress_file = Path("task_progress.json")
+
+    if not progress_file.exists():
+        # No progress - hide progress bar, show button
+        return (
+            "Generating report: 0%",
+            0,
+            "primary",
+            True,  # Disable polling
+            {"display": "none"},  # Hide progress
+            {},  # Show button
+            no_update,
+        )
+
+    try:
+        with open(progress_file, "r", encoding="utf-8") as f:
+            progress_data = json.load(f)
+
+        task_id = progress_data.get("task_id")
+        if task_id != "generate_report":
+            # Different task running - don't interfere
+            return (
+                no_update,
+                no_update,
+                no_update,
+                no_update,
+                no_update,
+                no_update,
+                no_update,
+            )
+
+        status = progress_data.get("status")
+        report_progress = progress_data.get("report_progress", {})
+        message = report_progress.get("message", "Processing...")
+        percent = report_progress.get("percent", 0)
+        report_file = report_progress.get(
+            "report_file"
+        )  # Read from report_progress object
+
+        logger.info(
+            f"[Report Progress] status={status}, percent={percent}, message={message}, report_file={report_file}"
+        )
+
+        if status == "complete":
+            # Report generation complete - trigger download
+            logger.info(
+                f"[Report Progress] Complete status detected, checking report_file: {report_file}"
+            )
+            if report_file and Path(report_file).exists():
+                logger.info(f"Report generation complete: {report_file}")
+
+                # Read report content
+                with open(report_file, "r", encoding="utf-8") as f:
+                    html_content = f.read()
+
+                # Get filename from path
+                filename = Path(report_file).name
+
+                # Cleanup
+                TaskProgress.complete_task("generate_report")
+                Path(report_file).unlink(missing_ok=True)  # Delete temp file
+
+                # Trigger download and reset UI
+                return (
+                    "Report ready!",
+                    100,
+                    "success",
+                    True,  # Disable polling
+                    {"display": "none"},  # Hide progress
+                    {},  # Show button
+                    {
+                        "content": html_content,
+                        "filename": filename,
+                        "type": "text/html",
+                    },
+                )
+            else:
+                # No report file - error
+                logger.error("Report generation completed but no file found")
+                TaskProgress.fail_task("generate_report", "Report file not found")
+                return (
+                    "Error: Report file not found",
+                    100,
+                    "danger",
+                    True,
+                    {"display": "none"},
+                    {},
+                    no_update,
+                )
+
+        elif status == "error":
+            # Error occurred
+            error_msg = progress_data.get("error", "Unknown error")
+            logger.error(f"Report generation error: {error_msg}")
+            return (
+                f"Error: {error_msg}",
+                100,
+                "danger",
+                True,  # Disable polling
+                {},  # Keep showing progress (with error)
+                {},  # Show button
+                no_update,
+            )
+
+        else:
+            # In progress - update progress bar
+            return (
+                f"{message}: {percent:.0f}%",
+                percent,
+                "primary",
+                False,  # Keep polling
+                {},  # Keep showing progress
+                {"display": "none"},  # Keep button hidden
+                no_update,
+            )
+
+    except Exception as e:
+        logger.error(f"Error polling report progress: {e}", exc_info=True)
+        return no_update, no_update, no_update, True, {"display": "none"}, {}, no_update
 
 
 @callback(
