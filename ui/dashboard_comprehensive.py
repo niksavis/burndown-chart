@@ -2109,7 +2109,6 @@ def create_comprehensive_dashboard(
     # Calculate velocity statistics for confidence intervals
     velocity_std = 0
     velocity_mean = 0
-    remaining_items = total_items  # Items still to complete
 
     if not statistics_df.empty and len(statistics_df) >= 4:
         # Use population std (ddof=0) to match report calculation

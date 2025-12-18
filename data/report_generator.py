@@ -1888,7 +1888,8 @@ def _render_template(
     from jinja2 import Environment, FileSystemLoader
 
     # Setup Jinja2 environment with custom filters
-    env = Environment(loader=FileSystemLoader(Path(__file__).parent))
+    template_dir = Path(__file__).parent.parent / "report_assets"
+    env = Environment(loader=FileSystemLoader(template_dir))
 
     # Add number formatting filters
     def format_int(value):
@@ -1921,6 +1922,11 @@ def _render_template(
     # Get weeks count from metrics (actual weeks with data)
     weeks_count = metrics.get("dashboard", {}).get("weeks_count", time_period_weeks)
 
+    # Load and embed external dependencies for offline reports
+    from data.report_assets_embedder import embed_report_dependencies
+
+    embedded_deps = embed_report_dependencies()
+
     html = template.render(
         profile_name=profile_name,
         query_name=query_name,
@@ -1930,6 +1936,11 @@ def _render_template(
         sections=sections,
         metrics=metrics,
         chart_script=chart_script,
+        # Embedded dependencies for offline use
+        bootstrap_css=embedded_deps["bootstrap_css"],
+        fontawesome_css=embedded_deps["fontawesome_css"],
+        chartjs=embedded_deps["chartjs"],
+        chartjs_annotation=embedded_deps["chartjs_annotation"],
     )
 
     return html

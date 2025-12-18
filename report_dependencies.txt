@@ -1,0 +1,14 @@
+# Report Dependencies for Offline HTML Reports
+# Update versions here, then run: python download_report_dependencies.py
+
+# Bootstrap CSS Framework
+bootstrap==5.3.0
+
+# Font Awesome Icon Library
+font-awesome==6.4.0
+
+# Chart.js Charting Library
+chart.js==4.4.0
+
+# Chart.js Annotation Plugin
+chartjs-plugin-annotation==3.0.1

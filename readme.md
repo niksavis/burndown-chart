@@ -125,6 +125,11 @@ Reports include all visualizations, metrics calculations, and data tables in a s
 
 **💡 Tip**: Generate weekly/monthly reports for stakeholder updates or milestone documentation.
 
+**Updating Report Dependencies:** Report assets (Bootstrap, Font Awesome, Chart.js) are embedded for offline use. To update versions, edit [`report_dependencies.txt`](report_dependencies.txt) and run:
+```bash
+python download_report_dependencies.py
+```
+
 ## Export Options
 
 - **HTML Reports**: Comprehensive project snapshots (Settings → Import/Export → Generate Report)

@@ -2,6 +2,7 @@
 
 from datetime import datetime
 import logging
+import time
 from dash import callback, Output, Input, State, no_update
 from data.import_export import export_profile_enhanced
 from data.query_manager import get_active_profile_id
@@ -352,7 +353,20 @@ def poll_report_progress(n_intervals):
 
                 # Cleanup
                 TaskProgress.complete_task("generate_report")
-                Path(report_file).unlink(missing_ok=True)  # Delete temp file
+
+                # Delete temp file with retry logic (Windows file locking)
+                temp_path = Path(report_file)
+                for attempt in range(3):
+                    try:
+                        temp_path.unlink(missing_ok=True)
+                        break
+                    except PermissionError:
+                        if attempt < 2:
+                            time.sleep(0.5)  # Wait for file handle release
+                        else:
+                            logger.warning(
+                                f"Could not delete temp file after 3 attempts: {report_file}"
+                            )
 
                 # Trigger download and reset UI
                 return (
