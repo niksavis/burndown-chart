@@ -30,6 +30,7 @@ from data.profile_manager import (
     list_profiles,
 )
 from data.query_manager import list_queries_for_profile, get_active_query_id
+from utils.version_checker import check_for_updates
 
 #######################################################################
 # APPLICATION SETUP
@@ -43,6 +44,13 @@ cleanup_old_logs(max_age_days=30)
 logger = logging.getLogger(__name__)
 logger.info("Starting Burndown Chart application")
 
+#######################################################################
+# VERSION CHECK
+#######################################################################
+
+# Check for updates on startup (once, not on page refresh)
+# Store result globally for footer to access
+VERSION_CHECK_RESULT = check_for_updates()
 
 #######################################################################
 # WORKSPACE VALIDATION

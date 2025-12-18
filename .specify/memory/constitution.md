@@ -122,6 +122,10 @@ See `docs/defensive_refactoring_guide.md` for detailed PowerShell procedures and
 
 Unit tests MUST be written during implementation. Integration and performance tests MAY be written after feature completion.
 
+## Development Workflow
+
+**Branch Strategy**: Before implementing any feature or bugfix, the AI agent MUST ask: "Should I create a feature/bugfix branch for this, or work directly on main?" and wait for user decision. Main branch commits trigger version update notifications; feature branches enable isolated development.
+
 ## Governance
 
 This constitution supersedes conflicting guidance. All code changes MUST comply with Core Principles I-VI.

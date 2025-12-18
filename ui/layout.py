@@ -33,6 +33,7 @@ from ui.tabs import create_tabs
 from ui.jira_config_modal import create_jira_config_modal
 from ui.query_creation_modal import create_query_creation_modal
 from ui.field_mapping_modal import create_field_mapping_modal
+from ui.toast_notifications import create_toast
 
 # Integrated query management modals (Feature 011 - replaces legacy settings_modal query functions)
 from ui.save_query_modal import create_save_query_modal
@@ -106,11 +107,47 @@ def create_app_layout(settings, statistics, is_sample_data):
     # Import help system components
     from ui.help_system import create_help_system_layout
 
+    # Import app module for version check (late import to avoid circular dependency)
+    import app
+
+    # Check for version update and prepare toast notification
+    version_update_toast = None
+    if hasattr(app, "VERSION_CHECK_RESULT") and app.VERSION_CHECK_RESULT.get(
+        "update_available", False
+    ):
+        current = app.VERSION_CHECK_RESULT.get("current_commit", "unknown")
+        latest = app.VERSION_CHECK_RESULT.get("latest_commit", "unknown")
+        version_update_toast = create_toast(
+            [
+                html.Div("A new version is available on GitHub!"),
+                html.Div(
+                    f"Current: {current} → Latest: {latest}",
+                    className="mt-1",
+                    style={"fontSize": "0.85rem", "opacity": "0.9"},
+                ),
+                html.A(
+                    [
+                        html.I(className="fab fa-github me-1"),
+                        "View on GitHub",
+                    ],
+                    href="https://github.com/niksavis/burndown-chart",
+                    target="_blank",
+                    className="btn btn-sm btn-success mt-2",
+                    style={"fontSize": "0.85rem"},
+                ),
+            ],
+            toast_type="info",
+            header="🔄 Update Available",
+            duration=10000,  # 10 seconds
+            icon="sync-alt",
+        )
+
     # Modern app container with updated styling matching DORA/Flow design
     return dbc.Container(
         [
             # Toast notification container for profile switching feedback
             html.Div(
+                [version_update_toast] if version_update_toast else [],
                 id="app-notifications",
                 style={
                     "position": "fixed",
@@ -268,7 +305,7 @@ def create_app_layout(settings, statistics, is_sample_data):
                     html.Hr(className="my-2", style={"borderColor": "#dee2e6"}),
                     dbc.Row(
                         [
-                            # Left column - app info
+                            # Left column - app info with update indicator
                             dbc.Col(
                                 html.Small(
                                     [
@@ -280,6 +317,34 @@ def create_app_layout(settings, statistics, is_sample_data):
                                         ),
                                         html.Span(
                                             f"v{__version__}", className="text-muted"
+                                        ),
+                                        # Update available indicator
+                                        (
+                                            html.Span(
+                                                [
+                                                    html.I(
+                                                        className="fas fa-sync-alt ms-2 me-1",
+                                                        style={
+                                                            "fontSize": "0.75rem",
+                                                            "color": "#198754",
+                                                        },
+                                                    ),
+                                                    html.Span(
+                                                        "Update Available",
+                                                        style={
+                                                            "color": "#198754",
+                                                            "fontWeight": "500",
+                                                        },
+                                                    ),
+                                                ],
+                                                id="update-indicator",
+                                                className="ms-1",
+                                            )
+                                            if hasattr(app, "VERSION_CHECK_RESULT")
+                                            and app.VERSION_CHECK_RESULT.get(
+                                                "update_available", False
+                                            )
+                                            else None
                                         ),
                                     ],
                                     className="text-secondary",
@@ -320,6 +385,24 @@ def create_app_layout(settings, statistics, is_sample_data):
                             ),
                         ],
                         className="d-flex justify-content-between align-items-center g-2",
+                    ),
+                    # Update details tooltip (shown only when update available)
+                    (
+                        html.Div(
+                            [
+                                html.I(className="fas fa-info-circle me-1"),
+                                html.Span(
+                                    f"Current: {app.VERSION_CHECK_RESULT.get('current_commit', 'unknown')} → "
+                                    f"Latest: {app.VERSION_CHECK_RESULT.get('latest_commit', 'unknown')}",
+                                    style={"fontSize": "0.7rem"},
+                                ),
+                            ],
+                            className="mt-1 text-muted text-center",
+                            style={"fontSize": "0.7rem"},
+                        )
+                        if hasattr(app, "VERSION_CHECK_RESULT")
+                        and app.VERSION_CHECK_RESULT.get("update_available", False)
+                        else None
                     ),
                 ],
                 className="mt-3 mb-2",
