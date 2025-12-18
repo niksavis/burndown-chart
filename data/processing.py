@@ -798,7 +798,7 @@ def calculate_weekly_averages(
     import logging
 
     logger = logging.getLogger(__name__)
-    logger.error(
+    logger.debug(
         f"[APP VELOCITY] weeks in recent_data: {len(recent_data)}, items per week: {recent_data['items'].tolist()}, points per week: {recent_data['points'].tolist()}"
     )
 
@@ -809,7 +809,7 @@ def calculate_weekly_averages(
         "points"
     ].median()  # Always round up to 2 decimal places (as float, not int)
 
-    logger.error(
+    logger.debug(
         f"[APP VELOCITY] median items={med_weekly_items}, median points={med_weekly_points}"
     )
 

@@ -112,7 +112,7 @@ def _calculate_project_health_score(metrics):
         trend_score = 10
     else:  # declining
         trend_score = 0
-    logger.error(
+    logger.debug(
         f"[APP HEALTH] trend_direction={trend_direction}, trend_score={trend_score}"
     )
 
@@ -125,7 +125,7 @@ def _calculate_project_health_score(metrics):
     else:
         # Negative change: linear penalty from 5 down to 0
         recent_score = max(0, 5 * (1 + recent_change / 20))
-    logger.error(
+    logger.debug(
         f"[APP HEALTH] recent_velocity_change={recent_change}, recent_score={recent_score:.2f}"
     )
 
@@ -135,7 +135,7 @@ def _calculate_project_health_score(metrics):
     )
 
     final_score = max(0, min(100, int(total_score)))
-    logger.error(f"[APP HEALTH] FINAL health_score={final_score}")
+    logger.debug(f"[APP HEALTH] FINAL health_score={final_score}")
 
     return final_score
 
@@ -2090,7 +2090,7 @@ def create_comprehensive_dashboard(
         if (forecast_days and days_to_deadline)
         else 0
     )
-    logger.error(
+    logger.debug(
         f"[APP SCHEDULE] forecast_days={forecast_days}, days_to_deadline={days_to_deadline}, schedule_variance={schedule_variance_calc}"
     )
 
