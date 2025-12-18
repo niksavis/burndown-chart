@@ -3063,14 +3063,32 @@ def create_parameter_panel_expanded(
                                                                                     "color": "#ff6b6b"
                                                                                 },
                                                                             },
+                                                                            4: {
+                                                                                "label": "4"
+                                                                            },
+                                                                            5: {
+                                                                                "label": "5"
+                                                                            },
                                                                             6: {
                                                                                 "label": "6 (rec)",
                                                                                 "style": {
                                                                                     "color": "#51cf66"
                                                                                 },
                                                                             },
+                                                                            7: {
+                                                                                "label": "7"
+                                                                            },
+                                                                            8: {
+                                                                                "label": "8"
+                                                                            },
                                                                             9: {
                                                                                 "label": "9"
+                                                                            },
+                                                                            10: {
+                                                                                "label": "10"
+                                                                            },
+                                                                            11: {
+                                                                                "label": "11"
                                                                             },
                                                                             12: {
                                                                                 "label": "12",
@@ -3752,8 +3770,14 @@ def create_mobile_parameter_bottom_sheet(
                                         value=pert_factor,
                                         marks={
                                             3: {"label": "3"},
+                                            4: {"label": "4"},
+                                            5: {"label": "5"},
                                             6: {"label": "6 (rec)"},
+                                            7: {"label": "7"},
+                                            8: {"label": "8"},
                                             9: {"label": "9"},
+                                            10: {"label": "10"},
+                                            11: {"label": "11"},
                                             12: {"label": "12"},
                                         },
                                         step=1,

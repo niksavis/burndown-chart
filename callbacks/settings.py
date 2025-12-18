@@ -2689,20 +2689,35 @@ def register(app):
             max_data_points = len(statistics)
 
         # Calculate dynamic marks for Data Points slider
-        # 5 points: min (4), 1/4, 1/2 (middle), 3/4, max
+        # For small datasets, show all values. For larger datasets, show 5 evenly spaced marks.
         min_data_points = 4
         range_size = max_data_points - min_data_points
-        quarter_point = math.ceil(min_data_points + range_size / 4)
-        middle_point = math.ceil(min_data_points + range_size / 2)
-        three_quarter_point = math.ceil(min_data_points + 3 * range_size / 4)
 
-        data_points_marks = {
-            min_data_points: {"label": str(min_data_points)},
-            quarter_point: {"label": str(quarter_point)},
-            middle_point: {"label": str(middle_point)},
-            three_quarter_point: {"label": str(three_quarter_point)},
-            max_data_points: {"label": str(max_data_points)},
-        }
+        # If range is small (<=12 weeks), show all intermediate values
+        # This provides better granularity for datasets up to 16 weeks total (4-16)
+        if range_size <= 12:
+            data_points_marks = {
+                i: {"label": str(i)}
+                for i in range(min_data_points, max_data_points + 1)
+            }
+        else:
+            # For larger ranges, calculate 5 evenly-spaced marks using rounding
+            # This avoids skipping values and provides better distribution
+            quarter_point = round(min_data_points + range_size / 4)
+            middle_point = round(min_data_points + range_size / 2)
+            three_quarter_point = round(min_data_points + 3 * range_size / 4)
+
+            # Ensure no duplicates by using a set, then convert to dict
+            mark_values = sorted(
+                {
+                    min_data_points,
+                    quarter_point,
+                    middle_point,
+                    three_quarter_point,
+                    max_data_points,
+                }
+            )
+            data_points_marks = {val: {"label": str(val)} for val in mark_values}
 
         logger.info(
             f"Data Points slider updated: max={max_data_points}, marks={list(data_points_marks.keys())}"
