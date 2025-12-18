@@ -7,6 +7,9 @@ after page refresh or app restart.
 
 import json
 import logging
+import os
+import tempfile
+import time
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Dict, Optional, Tuple
@@ -18,6 +21,68 @@ TASK_STATE_FILE = Path("task_progress.json")
 
 # Task timeout (if task takes longer than this, assume it failed)
 TASK_TIMEOUT_MINUTES = 30
+
+
+def _atomic_write_json(file_path: Path, data: dict) -> None:
+    """Write JSON atomically to prevent corruption from concurrent writes.
+
+    Uses temp file + atomic rename pattern which works on all operating systems.
+    """
+    # Write to temporary file in same directory
+    temp_fd, temp_path = tempfile.mkstemp(
+        dir=file_path.parent, prefix=f".{file_path.name}.", suffix=".tmp"
+    )
+
+    try:
+        with os.fdopen(temp_fd, "w") as f:
+            json.dump(data, f, indent=2)
+            f.flush()
+            os.fsync(f.fileno())  # Ensure data is written to disk
+
+        # Atomic rename (replaces target file)
+        # On Windows, need to remove target first if it exists
+        if os.name == "nt" and file_path.exists():
+            file_path.unlink()
+
+        Path(temp_path).replace(file_path)
+    except Exception:
+        # Clean up temp file on error
+        try:
+            Path(temp_path).unlink(missing_ok=True)
+        except Exception:
+            pass
+        raise
+
+
+def _safe_read_json(file_path: Path, max_retries: int = 5) -> Optional[dict]:
+    """Safely read JSON file with retry logic to handle concurrent writes.
+
+    Args:
+        file_path: Path to JSON file
+        max_retries: Maximum number of read attempts
+
+    Returns:
+        Parsed JSON dict, or None if read failed after all retries
+    """
+    retry_delay = 0.01  # Start with 10ms
+
+    for attempt in range(max_retries):
+        try:
+            with open(file_path, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except json.JSONDecodeError as e:
+            if attempt < max_retries - 1:
+                time.sleep(retry_delay)
+                retry_delay *= 2  # Exponential backoff: 10ms, 20ms, 40ms, 80ms
+            else:
+                logger.error(
+                    f"Failed to read {file_path} after {max_retries} attempts: {e}"
+                )
+                return None
+        except FileNotFoundError:
+            return None
+
+    return None
 
 
 class TaskProgress:
@@ -36,8 +101,9 @@ class TaskProgress:
             return False, None
 
         try:
-            with open(TASK_STATE_FILE, "r") as f:
-                state = json.load(f)
+            state = _safe_read_json(TASK_STATE_FILE)
+            if state is None:
+                return False, None
 
             status = state.get("status")
             if status != "in_progress":
@@ -77,8 +143,9 @@ class TaskProgress:
             return False
 
         try:
-            with open(TASK_STATE_FILE, "r") as f:
-                state = json.load(f)
+            state = _safe_read_json(TASK_STATE_FILE)
+            if state is None:
+                return False
             cancelled = state.get("cancelled", False)
             logger.debug(
                 f"[TaskProgress] is_task_cancelled: cancelled={cancelled}, state={state}"
@@ -99,8 +166,9 @@ class TaskProgress:
             return False
 
         try:
-            with open(TASK_STATE_FILE, "r") as f:
-                state = json.load(f)
+            state = _safe_read_json(TASK_STATE_FILE)
+            if state is None:
+                return False
 
             state["cancelled"] = True
             state["cancel_time"] = datetime.now().isoformat()
@@ -110,12 +178,7 @@ class TaskProgress:
             )
             logger.debug(f"[TaskProgress] State before write: {state}")
 
-            with open(TASK_STATE_FILE, "w") as f:
-                json.dump(state, f, indent=2)
-                f.flush()
-                import os
-
-                os.fsync(f.fileno())
+            _atomic_write_json(TASK_STATE_FILE, state)
 
             logger.info(
                 f"[TaskProgress] Cancellation flag written to disk for task: {state.get('task_name')}"
@@ -135,8 +198,9 @@ class TaskProgress:
         """
         try:
             if TASK_STATE_FILE.exists():
-                with open(TASK_STATE_FILE, "r") as f:
-                    state = json.load(f)
+                state = _safe_read_json(TASK_STATE_FILE)
+                if state is None:
+                    state = {"task_id": task_id}
             else:
                 state = {"task_id": task_id}
 
@@ -148,12 +212,7 @@ class TaskProgress:
                 "operation_in_progress": False,
             }
 
-            with open(TASK_STATE_FILE, "w") as f:
-                json.dump(state, f, indent=2)
-                f.flush()
-                import os
-
-                os.fsync(f.fileno())
+            _atomic_write_json(TASK_STATE_FILE, state)
 
             logger.error(f"Task failed: {error_message}")
         except Exception as e:
@@ -228,12 +287,7 @@ class TaskProgress:
             }
 
         try:
-            with open(TASK_STATE_FILE, "w") as f:
-                json.dump(state, f, indent=2)
-                f.flush()
-                import os
-
-                os.fsync(f.fileno())  # Force immediate write to disk
+            _atomic_write_json(TASK_STATE_FILE, state)
             logger.info(f"Task started: {task_name} (ID: {task_id})")
             return True
         except Exception as e:
@@ -256,8 +310,10 @@ class TaskProgress:
                 logger.warning(f"Task file not found for {task_id}")
                 return
 
-            with open(TASK_STATE_FILE, "r") as f:
-                state = json.load(f)
+            state = _safe_read_json(TASK_STATE_FILE)
+            if state is None:
+                logger.warning(f"Failed to read task progress for {task_id}")
+                return
 
             # CRITICAL: Only mark complete if actually done
             # Do NOT complete if still in fetch phase with incomplete progress
@@ -303,12 +359,7 @@ class TaskProgress:
                 "operation_in_progress": False,
             }
 
-            with open(TASK_STATE_FILE, "w") as f:
-                json.dump(state, f, indent=2)
-                f.flush()
-                import os
-
-                os.fsync(f.fileno())  # Force immediate write to disk
+            _atomic_write_json(TASK_STATE_FILE, state)
 
             logger.info(
                 f"Task completed: {task_id} (phase={phase}, report_file={state.get('report_file')})"
@@ -327,8 +378,9 @@ class TaskProgress:
             return None
 
         try:
-            with open(TASK_STATE_FILE, "r") as f:
-                state = json.load(f)
+            state = _safe_read_json(TASK_STATE_FILE)
+            if state is None:
+                return None
 
             # Only return if status is in_progress (fixes button stuck bug)
             if state.get("status") != "in_progress":
@@ -395,8 +447,10 @@ class TaskProgress:
                 )
                 return
 
-            with open(TASK_STATE_FILE, "r") as f:
-                state = json.load(f)
+            state = _safe_read_json(TASK_STATE_FILE)
+            if state is None:
+                logger.warning(f"Failed to read task progress for {task_id}")
+                return
 
             # Only update if task IDs match
             if state.get("task_id") != task_id:
@@ -423,13 +477,8 @@ class TaskProgress:
             if "ui_state" not in state:
                 state["ui_state"] = {"operation_in_progress": True}
 
-            # Write updated state with explicit flush to ensure immediate visibility
-            with open(TASK_STATE_FILE, "w") as f:
-                json.dump(state, f, indent=2)
-                f.flush()  # Ensure data is written to disk immediately
-                import os
-
-                os.fsync(f.fileno())  # Force OS to write to disk (not just buffer)
+            # Write updated state atomically to prevent corruption
+            _atomic_write_json(TASK_STATE_FILE, state)
 
         except Exception as e:
             logger.error(f"Failed to update task progress: {e}")
