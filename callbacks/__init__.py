@@ -110,6 +110,7 @@ from callbacks import (
     field_value_fetch,  # Auto-fetch field values for dropdowns (Feature 012, auto-registers via @callback)  # noqa: F401
     import_export,  # Import/export full profile callbacks (Feature 012, auto-registers via @callback)  # noqa: F401
     integrated_query_management,  # Integrated query management callbacks (Feature 011, auto-registers via @callback)  # noqa: F401
+    report_generation,  # HTML report generation with progress tracking (Feature 012, auto-registers via @callback)  # noqa: F401
     jira_config,  # JIRA config modal callbacks (auto-registers via @callback)  # noqa: F401
     jira_data_store,  # JIRA issues store population (Feature 007, auto-registers via @callback)  # noqa: F401
     jira_metadata,  # App-level JIRA metadata fetching (Feature 012, auto-registers via @callback)  # noqa: F401

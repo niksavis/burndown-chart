@@ -141,6 +141,8 @@ def create_app_layout(settings, statistics, is_sample_data):
             ),
             # Store version info for callback to display toast after page loads
             dcc.Store(id="version-check-info", data=version_info),
+            # Track if update toast has been shown this session (prevents showing on every page refresh)
+            dcc.Store(id="update-toast-shown", storage_type="session", data=False),
             # JIRA Configuration Modal (Feature 003-jira-config-separation)
             create_jira_config_modal(),
             # Field Mapping Modal (Feature 007-dora-flow-metrics Phase 4)

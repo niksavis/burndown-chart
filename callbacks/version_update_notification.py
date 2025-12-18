@@ -16,11 +16,13 @@ logger = logging.getLogger(__name__)
 
 @callback(
     Output("app-notifications", "children", allow_duplicate=True),
+    Output("update-toast-shown", "data"),
     Input("app-init-complete", "data"),
     Input("version-check-info", "data"),
+    Input("update-toast-shown", "data"),
     prevent_initial_call=True,
 )
-def show_version_update_toast(app_init_complete, version_info):
+def show_version_update_toast(app_init_complete, version_info, toast_already_shown):
     """
     Show version update toast after app initialization completes.
 
@@ -28,16 +30,23 @@ def show_version_update_toast(app_init_complete, version_info):
     toast notification is not cleared by other callbacks that output
     to app-notifications.
 
+    Only shows once per browser session (tracked via dcc.Store with storage_type='session').
+
     Args:
         app_init_complete: Flag indicating app initialization is complete
         version_info: Dict with 'current' and 'latest' commit hashes, or None
+        toast_already_shown: Boolean flag tracking if toast was already shown this session
 
     Returns:
-        Toast component if update available, otherwise no_update
+        Tuple of (Toast component or no_update, toast_shown_flag)
     """
+    # Don't show if already shown this session
+    if toast_already_shown:
+        return no_update, no_update
+
     # Only show toast when app is initialized and update is available
     if not app_init_complete or not version_info:
-        return no_update
+        return no_update, no_update
 
     logger.info(
         f"[VERSION CHECK] Showing update notification: "
@@ -74,4 +83,4 @@ def show_version_update_toast(app_init_complete, version_info):
         icon="sync-alt",
     )
 
-    return toast
+    return toast, True  # Mark toast as shown

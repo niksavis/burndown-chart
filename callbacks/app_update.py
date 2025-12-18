@@ -57,6 +57,27 @@ def manage_update_workflow(
 
     triggered_id = ctx.triggered_id
 
+    # Ignore if no actual click (prevents toast creation from triggering modal)
+    # Check both None and 0 values to prevent spurious triggers
+    if not any(
+        [toast_clicks, footer_clicks, confirm_clicks, cancel_clicks, close_clicks]
+    ):
+        logger.debug(
+            f"[UPDATE MODAL] Ignoring trigger with no clicks: toast={toast_clicks}, footer={footer_clicks}, confirm={confirm_clicks}, cancel={cancel_clicks}, close={close_clicks}"
+        )
+        return (
+            no_update,
+            no_update,
+            no_update,
+            no_update,
+            no_update,
+            no_update,
+            no_update,
+            no_update,
+            no_update,
+            no_update,
+        )
+
     # Cancel or close button clicked
     if triggered_id in ("update-cancel-btn", "update-close-btn"):
         return (
