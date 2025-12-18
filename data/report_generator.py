@@ -1278,6 +1278,7 @@ def _generate_burndown_chart(
                 display: true,
                 content: 'Milestone',
                 position: 'start',
+                yAdjust: -60,
                 backgroundColor: '#ffc107',
                 color: '#000'
             }}
@@ -1295,6 +1296,7 @@ def _generate_burndown_chart(
                 display: true,
                 content: 'Forecast',
                 position: 'start',
+                yAdjust: -30,
                 backgroundColor: '#198754',
                 color: '#fff'
             }}
@@ -1311,6 +1313,7 @@ def _generate_burndown_chart(
                 display: true,
                 content: 'Deadline',
                 position: 'start',
+                yAdjust: 0,
                 backgroundColor: '#dc3545',
                 color: '#fff'
             }}

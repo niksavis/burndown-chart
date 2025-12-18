@@ -186,8 +186,22 @@ def start_report_generation(n_clicks, sections, data_points):
             f"Starting background report generation: sections={sections}, period={time_period} weeks"
         )
 
-        # Initialize task progress
+        # Initialize task progress immediately to prevent old state from showing
         TaskProgress.start_task("generate_report", "Preparing report...")
+
+        # Immediately write initial progress to prevent bar from showing old completion state
+        from pathlib import Path
+        import json
+
+        progress_file = Path("task_progress.json")
+        if progress_file.exists():
+            with open(progress_file, "r", encoding="utf-8") as f:
+                state = json.load(f)
+            # Ensure progress starts at 0
+            state["report_progress"]["percent"] = 0
+            state["report_progress"]["message"] = "Starting..."
+            with open(progress_file, "w", encoding="utf-8") as f:
+                json.dump(state, f, indent=2)
 
         # Start report generation in background thread
         def generate_in_background():
@@ -289,6 +303,31 @@ def poll_report_progress(n_intervals):
         )
 
         if status == "complete":
+            # CRITICAL: Check if this is a stale completion from previous report generation
+            # If complete_time is > 3 seconds old, hide immediately without showing success
+            complete_time = report_progress.get("complete_time")
+            if complete_time:
+                from datetime import datetime
+
+                elapsed = (
+                    datetime.now() - datetime.fromisoformat(complete_time)
+                ).total_seconds()
+
+                if elapsed > 3:
+                    # Stale completion - hide immediately without displaying
+                    logger.info(
+                        f"[Report Progress] Stale completion ({elapsed:.1f}s old), hiding immediately"
+                    )
+                    return (
+                        "Generating report: 0%",
+                        0,
+                        "primary",
+                        True,  # Disable polling
+                        {"display": "none"},  # Hide progress
+                        {},  # Show button
+                        no_update,  # No download
+                    )
+
             # Report generation complete - trigger download
             logger.info(
                 f"[Report Progress] Complete status detected, checking report_file: {report_file}"
