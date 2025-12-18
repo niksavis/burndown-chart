@@ -119,6 +119,7 @@ from callbacks import (
     progress_bar,  # Progress bar callbacks for Update Data operation (auto-registers via @callback)  # noqa: F401
     query_management,  # Query management callbacks (Feature 011 Phase 3, auto-registers via @callback)  # noqa: F401
     query_switching,  # Query switching callbacks (Feature 011, auto-registers via @callback)  # noqa: F401
+    version_update_notification,  # Version update toast notification (auto-registers via @callback)  # noqa: F401
     # The 'export' module doesn't seem to exist and is causing an error
     # export,
     # scope_metrics,  # REMOVED: Orphaned callback with non-existent forecast-data-store

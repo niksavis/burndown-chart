@@ -33,7 +33,6 @@ from ui.tabs import create_tabs
 from ui.jira_config_modal import create_jira_config_modal
 from ui.query_creation_modal import create_query_creation_modal
 from ui.field_mapping_modal import create_field_mapping_modal
-from ui.toast_notifications import create_toast
 
 # Integrated query management modals (Feature 011 - replaces legacy settings_modal query functions)
 from ui.save_query_modal import create_save_query_modal
@@ -110,44 +109,26 @@ def create_app_layout(settings, statistics, is_sample_data):
     # Import app module for version check (late import to avoid circular dependency)
     import app
 
-    # Check for version update and prepare toast notification
-    version_update_toast = None
-    if hasattr(app, "VERSION_CHECK_RESULT") and app.VERSION_CHECK_RESULT.get(
-        "update_available", False
-    ):
-        current = app.VERSION_CHECK_RESULT.get("current_commit", "unknown")
-        latest = app.VERSION_CHECK_RESULT.get("latest_commit", "unknown")
-        version_update_toast = create_toast(
-            [
-                html.Div("A new version is available on GitHub!"),
-                html.Div(
-                    f"Current: {current} → Latest: {latest}",
-                    className="mt-1",
-                    style={"fontSize": "0.85rem", "opacity": "0.9"},
-                ),
-                html.A(
-                    [
-                        html.I(className="fab fa-github me-1"),
-                        "View on GitHub",
-                    ],
-                    href="https://github.com/niksavis/burndown-chart",
-                    target="_blank",
-                    className="btn btn-sm btn-success mt-2",
-                    style={"fontSize": "0.85rem"},
-                ),
-            ],
-            toast_type="info",
-            header="🔄 Update Available",
-            duration=10000,  # 10 seconds
-            icon="sync-alt",
-        )
+    # Store version check result for callback access (not rendered in initial layout)
+    # Toast will be shown via callback to avoid being cleared by page load callbacks
+    version_update_available = hasattr(
+        app, "VERSION_CHECK_RESULT"
+    ) and app.VERSION_CHECK_RESULT.get("update_available", False)
+
+    if version_update_available:
+        version_info = {
+            "current": app.VERSION_CHECK_RESULT.get("current_commit", "unknown"),
+            "latest": app.VERSION_CHECK_RESULT.get("latest_commit", "unknown"),
+        }
+    else:
+        version_info = None
 
     # Modern app container with updated styling matching DORA/Flow design
     return dbc.Container(
         [
             # Toast notification container for profile switching feedback
+            # Note: Version update toast is shown via callback after page loads
             html.Div(
-                [version_update_toast] if version_update_toast else [],
                 id="app-notifications",
                 style={
                     "position": "fixed",
@@ -157,6 +138,8 @@ def create_app_layout(settings, statistics, is_sample_data):
                     "width": "320px",
                 },
             ),
+            # Store version info for callback to display toast after page loads
+            dcc.Store(id="version-check-info", data=version_info),
             # JIRA Configuration Modal (Feature 003-jira-config-separation)
             create_jira_config_modal(),
             # Field Mapping Modal (Feature 007-dora-flow-metrics Phase 4)
