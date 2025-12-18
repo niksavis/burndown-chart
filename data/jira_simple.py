@@ -987,9 +987,17 @@ def fetch_jira_issues(
                 logger.error("[JIRA] Two-phase fetch failed")
                 return False, []
 
-            # Cache the two-phase results
+            # Cache the two-phase results to profile-specific location
+            from data.profile_manager import get_active_query_workspace
+
+            query_workspace = get_active_query_workspace()
+            jira_cache_file = str(query_workspace / "jira_cache.json")
             cache_jira_response(
-                data=all_issues, jql_query=jql, fields_requested=fields, config=config
+                data=all_issues,
+                jql_query=jql,
+                fields_requested=fields,
+                cache_file=jira_cache_file,
+                config=config,
             )
             return True, all_issues
 
