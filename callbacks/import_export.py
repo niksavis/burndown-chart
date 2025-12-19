@@ -14,13 +14,18 @@ logger = logging.getLogger(__name__)
 
 @callback(
     Output("export-profile-download", "data"),
+    Output("app-notifications", "children", allow_duplicate=True),
     Input("export-profile-button", "n_clicks"),
+    State("export-mode-radio", "value"),
+    State("include-token-checkbox", "value"),
     prevent_initial_call=True,
 )
-def export_full_profile(n_clicks):
-    """Export profile and query data as single JSON file."""
+def export_full_profile(n_clicks, export_mode, include_token):
+    """Export profile with mode selection and optional token inclusion (T013)."""
+    from ui.toast_notifications import create_toast
+
     if not n_clicks:
-        return no_update
+        return no_update, no_update
 
     try:
         profile_id = get_active_profile_id()
@@ -28,59 +33,50 @@ def export_full_profile(n_clicks):
 
         if not profile_id or not query_id:
             logger.error("No active profile/query for export")
-            return no_update
+            return no_update, create_toast(
+                "Export Failed", "No active profile or query selected", "danger"
+            )
 
-        # Build paths
-        profile_dir = Path("profiles") / profile_id
-        query_dir = profile_dir / "queries" / query_id
+        # Use new T013 export function
+        from data.import_export import export_profile_with_mode
 
-        export_data = {
-            "export_version": "1.0",
-            "export_timestamp": datetime.now().isoformat(),
-            "profile_id": profile_id,
-            "query_id": query_id,
-        }
-
-        # Load profile.json
-        profile_file = Path(profile_dir) / "profile.json"
-        if profile_file.exists():
-            with open(profile_file, "r", encoding="utf-8") as f:
-                export_data["profile"] = json.load(f)
-
-        # Load query data files
-        query_data = {}
-
-        # project_data.json
-        project_file = Path(query_dir) / "project_data.json"
-        if project_file.exists():
-            with open(project_file, "r", encoding="utf-8") as f:
-                query_data["project_data"] = json.load(f)
-
-        # metrics_snapshots.json
-        metrics_file = Path(query_dir) / "metrics_snapshots.json"
-        if metrics_file.exists():
-            with open(metrics_file, "r", encoding="utf-8") as f:
-                query_data["metrics_snapshots"] = json.load(f)
-
-        export_data["query_data"] = query_data  # type: ignore
+        export_package = export_profile_with_mode(
+            profile_id=profile_id,
+            query_id=query_id,
+            export_mode=export_mode or "CONFIG_ONLY",
+            include_token=bool(include_token),
+        )
 
         # Generate filename
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         profile_name = profile_id.replace(" ", "_").replace("/", "_")
         query_name = query_id.replace(" ", "_").replace("/", "_")
-        filename = f"export_{profile_name}_{query_name}_{timestamp}.json"
+        mode_suffix = "config" if export_mode == "CONFIG_ONLY" else "full"
+        filename = f"export_{profile_name}_{query_name}_{mode_suffix}_{timestamp}.json"
 
         # Convert to JSON string
-        json_content = json.dumps(export_data, indent=2, ensure_ascii=False)
+        json_content = json.dumps(export_package, indent=2, ensure_ascii=False)
+        file_size_kb = len(json_content) / 1024
 
-        logger.info(f"Exported profile/query data: {len(json_content):,} bytes")
+        logger.info(
+            f"Exported profile/query data: {file_size_kb:.1f} KB, mode={export_mode}, token={include_token}"
+        )
 
-        # Return download trigger
-        return {"content": json_content, "filename": filename}
+        # Return download trigger and success toast
+        return (
+            {"content": json_content, "filename": filename},
+            create_toast(
+                "Export Successful",
+                f"Profile exported ({file_size_kb:.1f} KB). Mode: {export_mode}",
+                "success",
+            ),
+        )
 
     except Exception as e:
         logger.error(f"Profile export failed: {e}", exc_info=True)
-        return no_update
+        return no_update, create_toast(
+            "Export Failed", f"Could not export profile: {str(e)}", "danger"
+        )
 
 
 @callback(
@@ -205,3 +201,44 @@ def import_profile_data(contents, filename):
             header="Import Failed",
             duration=10000,
         )
+
+
+# ============================================================================
+# T013: Token Warning Modal Callbacks
+# ============================================================================
+
+
+@callback(
+    Output("token-warning-modal", "is_open"),
+    Input("include-token-checkbox", "value"),
+    prevent_initial_call=True,
+)
+def show_token_warning_callback(include_token):
+    """Show security warning modal when token inclusion enabled."""
+    return bool(include_token)
+
+
+@callback(
+    Output("include-token-checkbox", "value", allow_duplicate=True),
+    Output("token-warning-modal", "is_open", allow_duplicate=True),
+    Input("token-warning-proceed", "n_clicks"),
+    Input("token-warning-cancel", "n_clicks"),
+    prevent_initial_call=True,
+)
+def confirm_token_warning_callback(proceed_clicks, cancel_clicks):
+    """Handle token warning confirmation."""
+    from dash import ctx
+
+    if not ctx.triggered:
+        return no_update, no_update
+
+    triggered_id = ctx.triggered[0]["prop_id"].split(".")[0]
+
+    if triggered_id == "token-warning-cancel":
+        # User canceled - uncheck the checkbox
+        return False, False
+    elif triggered_id == "token-warning-proceed":
+        # User confirmed - keep checkbox checked
+        return True, False
+
+    return no_update, no_update

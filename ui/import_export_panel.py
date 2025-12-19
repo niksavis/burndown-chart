@@ -152,11 +152,52 @@ def _create_import_export_tab():
                 className="text-muted small mb-2",
                 style={"fontSize": "0.8rem"},
             ),
+            # T013: Export mode selection
+            html.Div(
+                [
+                    html.Label(
+                        "Export Mode", className="form-label small fw-bold mb-1"
+                    ),
+                    dbc.RadioItems(
+                        id="export-mode-radio",
+                        options=[
+                            {
+                                "label": "Configuration Only (settings and queries, no data)",
+                                "value": "CONFIG_ONLY",
+                            },
+                            {
+                                "label": "Full Profile with Data (includes cached JIRA data)",
+                                "value": "FULL_DATA",
+                            },
+                        ],
+                        value="CONFIG_ONLY",  # Default to secure option
+                        className="mb-2",
+                    ),
+                ],
+                className="mb-2",
+            ),
+            # T013: Token inclusion checkbox
+            html.Div(
+                [
+                    dbc.Checkbox(
+                        id="include-token-checkbox",
+                        label="Include JIRA Token (⚠️ Security Risk)",
+                        value=False,  # Default unchecked
+                        className="mb-1",
+                    ),
+                    dbc.Tooltip(
+                        "Including token allows recipient to access your JIRA instance. Only enable for personal backups.",
+                        target="include-token-checkbox",
+                        placement="right",
+                    ),
+                ],
+                className="mb-3",
+            ),
             html.Div(
                 [
                     dbc.Button(
                         [
-                            html.I(className="fas fa-download"),
+                            html.I(className="fas fa-download me-2"),
                             html.Span("Export Data"),
                         ],
                         id="export-profile-button",
@@ -173,6 +214,56 @@ def _create_import_export_tab():
                 is_open=False,
                 dismissable=True,
                 duration=8000,
+            ),
+            # T013: Token warning modal
+            dbc.Modal(
+                [
+                    dbc.ModalHeader("Security Warning"),
+                    dbc.ModalBody(
+                        [
+                            html.P("Including your JIRA token in the export will:"),
+                            html.Ul(
+                                [
+                                    html.Li(
+                                        "Allow anyone with the file to access your JIRA instance"
+                                    ),
+                                    html.Li(
+                                        "Expose your credentials if file is shared or leaked"
+                                    ),
+                                    html.Li(
+                                        "Grant full API access until token is revoked"
+                                    ),
+                                ]
+                            ),
+                            html.P("Only proceed if:", className="fw-bold mt-3"),
+                            html.Ul(
+                                [
+                                    html.Li(
+                                        "This is a personal backup on a secure device"
+                                    ),
+                                    html.Li("You will not share this file with others"),
+                                    html.Li(
+                                        "You understand how to revoke the token if needed"
+                                    ),
+                                ]
+                            ),
+                        ]
+                    ),
+                    dbc.ModalFooter(
+                        [
+                            dbc.Button(
+                                "Cancel", id="token-warning-cancel", color="secondary"
+                            ),
+                            dbc.Button(
+                                "I Understand, Proceed",
+                                id="token-warning-proceed",
+                                color="danger",
+                            ),
+                        ]
+                    ),
+                ],
+                id="token-warning-modal",
+                is_open=False,
             ),
         ],
         className="settings-tab-content",
