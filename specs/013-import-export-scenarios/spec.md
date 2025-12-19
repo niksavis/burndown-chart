@@ -2,8 +2,11 @@
 
 **Feature Branch**: `013-import-export-scenarios`  
 **Created**: December 18, 2025  
-**Status**: Draft  
+**Completed**: December 19, 2025  
+**Status**: ✅ DELIVERED (v2.3.0)  
 **Input**: User description: "Allow multiple scenarios for exporting and importing data: (1) import/export profile and query configuration without data, (2) import/export full profile with data of currently selected query, (3) checkbox to export JIRA token or not (default unchecked)"
+
+**See [COMPLETION.md](COMPLETION.md) for detailed delivery report including bonus features and bug fixes.**
 
 ## User Scenarios & Testing
 
