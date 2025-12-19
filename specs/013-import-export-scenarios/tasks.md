@@ -76,12 +76,12 @@
 
 ### Implementation for User Story 2
 
-- [ ] T024 [P] [US2] Add unit test test_export_config_only_size_reduction() in tests/unit/data/test_import_export.py (verify 90%+ reduction)
-- [ ] T025 [P] [US2] Update export_profile_callback() to show file size in success toast in callbacks/import_export.py
-- [ ] T026 [US2] Update import_profile_callback() to detect CONFIG_ONLY mode in callbacks/import_export.py
-- [ ] T027 [US2] Add toast notification logic for "Sync with JIRA to fetch data" message in callbacks/import_export.py
-- [ ] T028 [US2] Add integration test test_config_only_import_prompts_for_token() in tests/integration/test_import_export_scenarios.py
-- [ ] T029 [US2] Add integration test test_config_only_no_data_until_sync() in tests/integration/test_import_export_scenarios.py
+- [X] T024 [P] [US2] Add unit test test_export_config_only_size_reduction() in tests/unit/data/test_import_export.py (verify 90%+ reduction)
+- [X] T025 [P] [US2] Update export_profile_callback() to show file size in success toast in callbacks/import_export.py
+- [X] T026 [US2] Update import_profile_callback() to detect CONFIG_ONLY mode in callbacks/import_export.py
+- [X] T027 [US2] Add toast notification logic for "Sync with JIRA to fetch data" message in callbacks/import_export.py
+- [X] T028 [US2] Add integration test test_config_only_import_prompts_for_token() in tests/integration/test_import_export_scenarios.py
+- [X] T029 [US2] Add integration test test_config_only_no_data_until_sync() in tests/integration/test_import_export_scenarios.py
 
 **Checkpoint**: User Stories 1 AND 2 complete - can share configuration and standardize teams
 
@@ -95,15 +95,15 @@
 
 ### Implementation for User Story 3
 
-- [ ] T030 [P] [US3] Extend export_profile_with_mode() to support FULL_DATA mode in data/import_export.py
-- [ ] T031 [P] [US3] Add unit test test_export_full_data_includes_query_data() in tests/unit/data/test_import_export.py
-- [ ] T032 [P] [US3] Add unit test test_export_full_data_single_query_only() in tests/unit/data/test_import_export.py (not all queries)
-- [ ] T033 [US3] Update export mode radio buttons to include "Full Profile with Data" option in ui/settings.py
-- [ ] T034 [US3] Update export_profile_callback() to conditionally load query_data based on mode in callbacks/import_export.py
-- [ ] T035 [US3] Update import_profile_callback() to write query_data files when present in callbacks/import_export.py
-- [ ] T036 [US3] Add data age timestamp display logic after import in callbacks/import_export.py
-- [ ] T037 [US3] Add integration test test_full_data_import_no_token_prompt() in tests/integration/test_import_export_scenarios.py
-- [ ] T038 [US3] Add integration test test_full_data_charts_render_immediately() in tests/integration/test_import_export_scenarios.py
+- [X] T030 [P] [US3] Extend export_profile_with_mode() to support FULL_DATA mode in data/import_export.py
+- [X] T031 [P] [US3] Add unit test test_export_full_data_includes_query_data() in tests/unit/data/test_import_export.py
+- [X] T032 [P] [US3] Add unit test test_export_full_data_single_query_only() in tests/unit/data/test_import_export.py (not all queries)
+- [X] T033 [US3] Update export mode radio buttons to include "Full Profile with Data" option in ui/settings.py
+- [X] T034 [US3] Update export_profile_callback() to conditionally load query_data based on mode in callbacks/import_export.py
+- [X] T035 [US3] Update import_profile_callback() to write query_data files when present in callbacks/import_export.py
+- [X] T036 [US3] Add data age timestamp display logic after import in callbacks/import_export.py
+- [X] T037 [US3] Add integration test test_full_data_import_no_token_prompt() in tests/integration/test_import_export_scenarios.py
+- [X] T038 [US3] Add integration test test_full_data_charts_render_immediately() in tests/integration/test_import_export_scenarios.py
 
 **Checkpoint**: User Stories 1, 2, AND 3 complete - full range of export modes available
 
@@ -117,13 +117,13 @@
 
 ### Implementation for User Story 4
 
-- [ ] T039 [P] [US4] Add unit test test_export_with_token_includes_credentials() in tests/unit/data/test_import_export.py
-- [ ] T040 [P] [US4] Add unit test test_export_manifest_token_flag_consistency() in tests/unit/data/test_import_export.py
-- [ ] T041 [US4] Update export_profile_with_mode() to conditionally call strip_credentials() in data/import_export.py
-- [ ] T042 [US4] Update import_profile_callback() to skip token prompt when token present in callbacks/import_export.py
-- [ ] T043 [US4] Add security warning tooltip near "Include Token" checkbox in ui/settings.py
-- [ ] T044 [US4] Add integration test test_token_included_no_import_prompt() in tests/integration/test_import_export_scenarios.py
-- [ ] T045 [US4] Add integration test test_token_warning_modal_shown_on_checkbox() in tests/integration/test_import_export_scenarios.py
+- [X] T039 [P] [US4] Add unit test test_export_with_token_includes_credentials() in tests/unit/data/test_import_export.py
+- [X] T040 [P] [US4] Add unit test test_export_manifest_token_flag_consistency() in tests/unit/data/test_import_export.py
+- [X] T041 [US4] Update export_profile_with_mode() to conditionally call strip_credentials() in data/import_export.py
+- [X] T042 [US4] Update import_profile_callback() to skip token prompt when token present in callbacks/import_export.py
+- [X] T043 [US4] Add security warning tooltip near "Include Token" checkbox in ui/settings.py
+- [X] T044 [US4] Add integration test test_token_included_no_import_prompt() in tests/integration/test_import_export_scenarios.py
+- [X] T045 [US4] Add integration test test_token_warning_modal_shown_on_checkbox() in tests/integration/test_import_export_scenarios.py
 
 **Checkpoint**: All user stories complete - all export scenarios supported
 
@@ -136,15 +136,15 @@
 **Independent Test**: Import file when profile exists, verify conflict modal with merge/overwrite/rename options
 
 - [X] T046 Implement resolve_profile_conflict() function in data/import_export.py (overwrite/merge/rename strategies)
-- [ ] T047 [P] Add unit test test_resolve_conflict_overwrite_strategy() in tests/unit/data/test_import_export.py
-- [ ] T048 [P] Add unit test test_resolve_conflict_merge_preserves_token() in tests/unit/data/test_import_export.py
-- [ ] T049 [P] Add unit test test_resolve_conflict_rename_appends_timestamp() in tests/unit/data/test_import_export.py
-- [ ] T050 [P] Add conflict resolution modal component in ui/settings.py (radio: merge/overwrite/rename)
-- [ ] T051 Update import_profile_callback() to detect conflicts and show modal in callbacks/import_export.py
-- [ ] T052 Implement resolve_conflict_callback() in callbacks/import_export.py (handle button clicks)
-- [ ] T053 Add integration test test_import_conflict_merge_strategy() in tests/integration/test_import_export_scenarios.py
-- [ ] T054 Add integration test test_import_conflict_overwrite_strategy() in tests/integration/test_import_export_scenarios.py
-- [ ] T055 Add integration test test_import_conflict_rename_strategy() in tests/integration/test_import_export_scenarios.py
+- [X] T047 [P] Add unit test test_resolve_conflict_overwrite_strategy() in tests/unit/data/test_import_export.py
+- [X] T048 [P] Add unit test test_resolve_conflict_merge_preserves_token() in tests/unit/data/test_import_export.py
+- [X] T049 [P] Add unit test test_resolve_conflict_rename_appends_timestamp() in tests/unit/data/test_import_export.py
+- [X] T050 [P] Add conflict resolution modal component in ui/settings.py (radio: merge/overwrite/rename)
+- [X] T051 Update import_profile_callback() to detect conflicts and show modal in callbacks/import_export.py
+- [X] T052 Implement resolve_conflict_callback() in callbacks/import_export.py (handle button clicks)
+- [X] T053 Add integration test test_import_conflict_merge_strategy() in tests/integration/test_import_export_scenarios.py
+- [X] T054 Add integration test test_import_conflict_overwrite_strategy() in tests/integration/test_import_export_scenarios.py
+- [X] T055 Add integration test test_import_conflict_rename_strategy() in tests/integration/test_import_export_scenarios.py
 
 **Checkpoint**: Conflict resolution complete - all import scenarios handle existing profiles gracefully
 
@@ -154,16 +154,16 @@
 
 **Purpose**: Refinements, error handling, logging, documentation
 
-- [ ] T056 [P] Add comprehensive logging for all import/export operations in data/import_export.py
-- [ ] T057 [P] Add error handling with user-friendly messages in callbacks/import_export.py
-- [ ] T058 [P] Add export operation to audit trail (FR-015) in data/import_export.py
-- [ ] T059 [P] Verify all toast notifications follow existing pattern in ui/toast_notifications.py
-- [ ] T060 [P] Update quickstart.md with manual testing checklist completion verification
-- [ ] T061 Run full test suite: pytest tests/ -v
-- [ ] T062 Verify zero type errors using get_errors tool
-- [ ] T063 Run performance validation tests (export <3s, file size 90% reduction)
-- [ ] T064 Manual smoke test: all scenarios from quickstart.md checklist
-- [ ] T065 Update documentation if needed (readme.md feature mention)
+- [X] T056 [P] Add comprehensive logging for all import/export operations in data/import_export.py
+- [X] T057 [P] Add error handling with user-friendly messages in callbacks/import_export.py
+- [X] T058 [P] Add export operation to audit trail (FR-015) in data/import_export.py
+- [X] T059 [P] Verify all toast notifications follow existing pattern in ui/toast_notifications.py
+- [X] T060 [P] Update quickstart.md with manual testing checklist completion verification
+- [X] T061 Run full test suite: pytest tests/ -v
+- [X] T062 Verify zero type errors using get_errors tool
+- [X] T063 Run performance validation tests (export <3s, file size 90% reduction)
+- [X] T064 Manual smoke test: all scenarios from quickstart.md checklist
+- [X] T065 Update documentation if needed (readme.md feature mention)
 
 ---
 

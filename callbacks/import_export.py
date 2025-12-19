@@ -86,7 +86,7 @@ def export_full_profile(n_clicks, export_mode, include_token):
     prevent_initial_call=True,
 )
 def import_profile_data(contents, filename):
-    """Import profile and query data from JSON file."""
+    """Import profile and query data from JSON file (T026-T027)."""
     from ui.toast_notifications import create_toast
     from dash import html
 
@@ -100,6 +100,11 @@ def import_profile_data(contents, filename):
         content_type, content_string = contents.split(",")
         decoded = base64.b64decode(content_string)
         import_data = json.loads(decoded.decode("utf-8"))
+
+        # T026: Detect export mode from manifest
+        manifest = import_data.get("manifest", {})
+        export_mode = manifest.get("export_mode", "FULL_DATA")
+        is_config_only = export_mode == "CONFIG_ONLY"
 
         # Validate structure
         if "profile_id" not in import_data or "query_id" not in import_data:
@@ -179,19 +184,42 @@ def import_profile_data(contents, filename):
                     query_data["metrics_snapshots"], f, indent=2, ensure_ascii=False
                 )
 
-        logger.info(f"Imported profile {profile_id} / query {query_id}")
-
-        return create_toast(
-            [
-                html.Div(f"Successfully imported: {profile_id} / {query_id}"),
-                html.Div(
-                    "Reload the page to see the imported profile.", className="mt-2"
-                ),
-            ],
-            toast_type="success",
-            header="Import Complete",
-            duration=15000,
+        logger.info(
+            f"Imported profile {profile_id} / query {query_id}, mode={export_mode}"
         )
+
+        # T027: Show different message for CONFIG_ONLY imports
+        if is_config_only:
+            return create_toast(
+                [
+                    html.Div(
+                        f"Successfully imported configuration: {profile_id} / {query_id}"
+                    ),
+                    html.Div(
+                        "⚠️ This is a configuration-only import. "
+                        "Connect to JIRA and click 'Update Data' to fetch issue data.",
+                        className="mt-2 text-warning",
+                    ),
+                    html.Div(
+                        "Reload the page to see the imported profile.", className="mt-2"
+                    ),
+                ],
+                toast_type="info",
+                header="Config Import Complete",
+                duration=20000,
+            )
+        else:
+            return create_toast(
+                [
+                    html.Div(f"Successfully imported: {profile_id} / {query_id}"),
+                    html.Div(
+                        "Reload the page to see the imported profile.", className="mt-2"
+                    ),
+                ],
+                toast_type="success",
+                header="Import Complete",
+                duration=15000,
+            )
 
     except Exception as e:
         logger.error(f"Import failed: {e}", exc_info=True)
