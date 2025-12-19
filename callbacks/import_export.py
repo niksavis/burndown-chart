@@ -47,12 +47,19 @@ def export_full_profile(n_clicks, export_mode, include_token):
             include_token=bool(include_token),
         )
 
-        # Generate filename
+        # Generate filename (matches report format for easy archiving)
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         profile_name = profile_id.replace(" ", "_").replace("/", "_")
         query_name = query_id.replace(" ", "_").replace("/", "_")
-        mode_suffix = "config" if export_mode == "CONFIG_ONLY" else "full"
-        filename = f"export_{profile_name}_{query_name}_{mode_suffix}_{timestamp}.json"
+
+        # Export mode descriptor
+        mode_suffix = "config_only" if export_mode == "CONFIG_ONLY" else "full_data"
+
+        # Token inclusion indicator (only add if token included)
+        token_suffix = "_with_token" if bool(include_token) else ""
+
+        # Format: YYYYMMDD_HHMMSS_Profile_Query_export_MODE[_with_token].json
+        filename = f"{timestamp}_{profile_name}_{query_name}_export_{mode_suffix}{token_suffix}.json"
 
         # Convert to JSON string
         json_content = json.dumps(export_package, indent=2, ensure_ascii=False)
@@ -239,34 +246,44 @@ def import_profile_data(contents, filename):
 @callback(
     Output("token-warning-modal", "is_open"),
     Input("include-token-checkbox", "value"),
-    prevent_initial_call=True,
-)
-def show_token_warning_callback(include_token):
-    """Show security warning modal when token inclusion enabled."""
-    return bool(include_token)
-
-
-@callback(
-    Output("include-token-checkbox", "value", allow_duplicate=True),
-    Output("token-warning-modal", "is_open", allow_duplicate=True),
     Input("token-warning-proceed", "n_clicks"),
     Input("token-warning-cancel", "n_clicks"),
     prevent_initial_call=True,
 )
-def confirm_token_warning_callback(proceed_clicks, cancel_clicks):
-    """Handle token warning confirmation."""
+def show_token_warning_callback(include_token, proceed_clicks, cancel_clicks):
+    """Show security warning modal when token inclusion enabled.
+
+    Only show modal when checkbox is clicked by user, not when programmatically set.
+    """
     from dash import ctx
 
     if not ctx.triggered:
-        return no_update, no_update
+        return no_update
 
     triggered_id = ctx.triggered[0]["prop_id"].split(".")[0]
 
-    if triggered_id == "token-warning-cancel":
-        # User canceled - uncheck the checkbox
-        return False, False
-    elif triggered_id == "token-warning-proceed":
-        # User confirmed - keep checkbox checked
-        return True, False
+    # If checkbox clicked and checked, show modal
+    if triggered_id == "include-token-checkbox" and include_token:
+        return True
 
-    return no_update, no_update
+    # If proceed/cancel button clicked, close modal
+    if triggered_id in ["token-warning-proceed", "token-warning-cancel"]:
+        return False
+
+    return no_update
+
+
+@callback(
+    Output("include-token-checkbox", "value", allow_duplicate=True),
+    Input("token-warning-cancel", "n_clicks"),
+    prevent_initial_call=True,
+)
+def cancel_token_warning_callback(cancel_clicks):
+    """Handle token warning cancellation - uncheck the checkbox."""
+    from dash import ctx
+
+    if not ctx.triggered:
+        return no_update
+
+    # User canceled - uncheck the checkbox
+    return False
