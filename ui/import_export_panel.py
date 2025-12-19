@@ -265,6 +265,104 @@ def _create_import_export_tab():
                 id="token-warning-modal",
                 is_open=False,
             ),
+            # T050: Profile conflict resolution modal
+            dbc.Modal(
+                [
+                    dbc.ModalHeader("Profile Already Exists"),
+                    dbc.ModalBody(
+                        [
+                            html.P(
+                                [
+                                    "A profile with this name already exists: ",
+                                    html.Strong(id="conflict-profile-name"),
+                                ],
+                                className="mb-3",
+                            ),
+                            html.P(
+                                "How would you like to proceed?", className="fw-bold"
+                            ),
+                            dbc.RadioItems(
+                                id="conflict-resolution-strategy",
+                                options=[
+                                    {
+                                        "label": [
+                                            html.Strong("Merge: "),
+                                            "Combine configurations and preserve local JIRA credentials",
+                                        ],
+                                        "value": "merge",
+                                    },
+                                    {
+                                        "label": [
+                                            html.Strong("Overwrite: "),
+                                            "Replace existing profile completely (⚠️ local credentials will be lost)",
+                                        ],
+                                        "value": "overwrite",
+                                    },
+                                    {
+                                        "label": [
+                                            html.Strong("Rename: "),
+                                            "Import as a new profile with custom name",
+                                        ],
+                                        "value": "rename",
+                                    },
+                                ],
+                                value="merge",  # Smart default: preserve credentials
+                                className="mb-3",
+                            ),
+                            # New name input field (shown only when "Rename" is selected)
+                            html.Div(
+                                [
+                                    dbc.Label(
+                                        "New profile name:",
+                                        className="fw-bold mb-2",
+                                    ),
+                                    dbc.Input(
+                                        id="conflict-rename-input",
+                                        type="text",
+                                        placeholder="Enter new profile name...",
+                                        className="mb-2",
+                                    ),
+                                    html.Small(
+                                        "Leave empty to auto-generate name with timestamp",
+                                        className="text-muted",
+                                    ),
+                                ],
+                                id="conflict-rename-section",
+                                style={"display": "none"},  # Hidden by default
+                                className="mb-3 p-3 bg-light rounded",
+                            ),
+                            html.Div(
+                                [
+                                    html.I(className="fas fa-info-circle me-2"),
+                                    html.Small(
+                                        "Merge is recommended for config imports to preserve your JIRA token",
+                                        className="text-muted",
+                                    ),
+                                ],
+                                className="alert alert-info py-2",
+                            ),
+                        ]
+                    ),
+                    dbc.ModalFooter(
+                        [
+                            dbc.Button(
+                                "Cancel Import",
+                                id="conflict-cancel",
+                                color="secondary",
+                            ),
+                            dbc.Button(
+                                "Proceed",
+                                id="conflict-proceed",
+                                color="primary",
+                            ),
+                        ]
+                    ),
+                ],
+                id="conflict-resolution-modal",
+                is_open=False,
+            ),
+            # Store for import data between callbacks (T050)
+            dcc.Store(id="import-data-store"),
         ],
         className="settings-tab-content",
     )

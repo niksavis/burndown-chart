@@ -90,11 +90,14 @@ def _validate_profile_name(
         Input("profile-form-modal", "is_open"),
         Input("delete-profile-modal", "is_open"),
         Input("profile-switch-trigger", "data"),
+        Input("metrics-refresh-trigger", "data"),  # NEW: Refresh after import
     ],
     prevent_initial_call=True,
 )
-def refresh_profile_selector(form_modal_open, delete_modal_open, switch_trigger):
-    """Refresh profile dropdown options when modals close or profiles switch, and manage button states."""
+def refresh_profile_selector(
+    form_modal_open, delete_modal_open, switch_trigger, metrics_refresh
+):
+    """Refresh profile dropdown options when modals close, profiles switch, or data refreshes (import), and manage button states."""
     profiles = list_profiles()
     active_profile = get_active_profile()
     active_profile_id = active_profile.id if active_profile else None

@@ -740,11 +740,13 @@ class TestImportConflictResolution:
             profile_id, "rename", incoming, existing
         )
 
-        # Then - Should have new unique ID
+        # Then - Should have new unique ID with friendly name format
         assert final_id != profile_id
         assert "imported" in final_id or "_" in final_id  # Timestamp or suffix
-        assert renamed["profile_id"] == final_id
-        assert renamed["name"] == "Imported Duplicate"
+        assert renamed.get("profile_id") == final_id or renamed.get("id") == final_id
+        # Name should use friendly name with timestamp (UX improvement)
+        assert "imported" in renamed["name"].lower()
+        assert "Imported Duplicate" in renamed["name"]  # Preserves friendly name
 
         # Original profile should remain unchanged
         assert existing["profile_id"] == profile_id

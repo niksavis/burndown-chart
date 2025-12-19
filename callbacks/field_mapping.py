@@ -686,6 +686,9 @@ def _get_mock_mappings() -> Dict[str, Dict[str, str]]:
     Input(
         "fetched-field-values-store", "data"
     ),  # Trigger re-render when field values fetched (for Types/Environment tabs)
+    Input(
+        "profile-switch-trigger", "data"
+    ),  # NEW: Refresh when profile switches (import)
     State("field-mapping-state-store", "data"),  # Read-only state access
     State("namespace-collected-values", "data"),  # Collected namespace values from DOM
     prevent_initial_call="initial_duplicate",
@@ -696,6 +699,7 @@ def render_tab_content(
     is_open: bool,
     refresh_trigger: int,
     fetched_field_values: dict,
+    profile_switch_trigger: int,
     state_data: dict,
     collected_namespace_values: dict,
 ):
@@ -710,6 +714,7 @@ def render_tab_content(
         is_open: Whether modal is open
         refresh_trigger: Trigger value from auto-configure
         fetched_field_values: Dynamically fetched field values (triggers re-render for Types/Env tabs)
+        profile_switch_trigger: Trigger value from profile switch (import)
         state_data: Current form state from state store
         collected_namespace_values: Values collected from namespace inputs (DOM)
 
@@ -727,10 +732,18 @@ def render_tab_content(
     triggered_id = ctx.triggered_id if ctx.triggered else None
 
     # Debug logging
+    metadata_status = (
+        "None"
+        if metadata is None
+        else (
+            f"error: {metadata.get('error')}"
+            if metadata.get("error")
+            else f"{len(metadata.get('fields', []))} fields"
+        )
+    )
     logger.info(
         f"[FieldMapping] render_tab_content: tab={active_tab}, is_open={is_open}, "
-        f"has_metadata={bool(metadata and metadata.get('fields'))}, "
-        f"field_count={len(metadata.get('fields', [])) if metadata else 0}, "
+        f"metadata={metadata_status}, "
         f"collected_values={bool(collected_namespace_values)}, "
         f"fetched_values={list((fetched_field_values or {}).keys())}, "
         f"triggered_by={triggered_id}"
@@ -885,8 +898,20 @@ def render_tab_content(
     # Render content based on active tab
     if active_tab == "tab-fields":
         try:
+            # Check if metadata has error state
+            if metadata and metadata.get("error"):
+                logger.warning(
+                    f"[FieldMapping] Metadata has error state: {metadata.get('error')}. "
+                    "Fields tab will be empty. Check JIRA configuration."
+                )
+                # Return empty form - user needs to configure JIRA first
+                current_mappings = {
+                    "field_mappings": display_settings.get("field_mappings", {})
+                }
+                return create_field_mapping_form([], current_mappings), state_data
+
             # Use cached fields from metadata store
-            cached_fields = metadata.get("fields", [])
+            cached_fields = metadata.get("fields", []) if metadata else []
 
             # Transform cached metadata to expected format
             available_fields = []

@@ -157,6 +157,8 @@ def _fetch_jira_metadata(
     [
         Input("url", "pathname"),  # Trigger on page load/refresh
         Input("jira-config-save-trigger", "data"),  # Trigger on JIRA config save
+        Input("profile-switch-trigger", "data"),  # Trigger on profile switch
+        Input("metrics-refresh-trigger", "data"),  # Trigger on data refresh (import)
     ],
     [
         State("jira-config-hash", "data"),
@@ -166,6 +168,8 @@ def _fetch_jira_metadata(
 def fetch_metadata_on_startup_or_config_change(
     pathname: str,
     config_save_trigger: Any,
+    profile_switch_trigger: int,
+    metrics_refresh_trigger: int,
     current_hash: Optional[str],
 ):
     """Fetch JIRA metadata on app startup or when JIRA config changes.
@@ -173,10 +177,14 @@ def fetch_metadata_on_startup_or_config_change(
     This callback runs:
     1. On initial page load (pathname input)
     2. When JIRA configuration is saved (config_save_trigger)
+    3. When profile is switched (profile_switch_trigger)
+    4. When data is refreshed after import (metrics_refresh_trigger)
 
     Args:
         pathname: Current URL path (triggers on page load)
         config_save_trigger: Trigger from JIRA config save callback
+        profile_switch_trigger: Trigger from profile switch callback
+        metrics_refresh_trigger: Trigger from import/data refresh callback
         current_hash: Current config hash to detect changes
 
     Returns:

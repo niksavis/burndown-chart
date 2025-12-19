@@ -337,13 +337,23 @@ def resolve_profile_conflict(
 
     # Strategy: Rename - create new profile with timestamp suffix
     if strategy == "rename":
-        timestamp = datetime.now().strftime("%Y-%m-%d")
-        new_profile_id = f"{profile_id} (imported {timestamp})"
-        logger.info(f"Renaming imported profile to '{new_profile_id}'")
+        # Use friendly name instead of technical ID for better UX
+        friendly_name = imported_data.get("name", profile_id)
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        new_profile_name = f"{friendly_name} (imported {timestamp})"
+        # ID still needs to be unique, use timestamp-based ID
+        new_profile_id = f"{profile_id}_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+        logger.info(
+            f"Renaming imported profile to '{new_profile_name}' (ID: {new_profile_id})"
+        )
 
-        # Update profile_id in the data
+        # Update ID and name fields in the data (support both old and new field names)
         renamed_data = copy.deepcopy(imported_data)
-        renamed_data["profile_id"] = new_profile_id
+        renamed_data["id"] = new_profile_id
+        renamed_data["name"] = new_profile_name
+        # Also update profile_id for backward compatibility
+        if "profile_id" in renamed_data:
+            renamed_data["profile_id"] = new_profile_id
 
         return new_profile_id, renamed_data
 
@@ -545,11 +555,11 @@ def _export_profile_cache(profile_id: str, export_dir: Path) -> bool:
 def export_profile_with_mode(
     profile_id: str, query_id: str, export_mode: str, include_token: bool = False
 ) -> Dict[str, Any]:
-    """Export profile with mode-specific data inclusion.
+    """Export FULL profile with ALL queries and their data.
 
     Args:
         profile_id: Profile identifier (e.g., "default")
-        query_id: Active query identifier (e.g., "sprint-123")
+        query_id: Active query identifier (used for manifest metadata, but all queries exported)
         export_mode: One of "CONFIG_ONLY", "FULL_DATA"
         include_token: Whether to include JIRA token (default: False)
 
@@ -558,7 +568,11 @@ def export_profile_with_mode(
         {
             "manifest": ExportManifest,
             "profile_data": dict,
-            "query_data": dict or None  # None if CONFIG_ONLY
+            "query_data": {
+                "query_id_1": {query_metadata, project_data, jira_cache, metrics_snapshots},
+                "query_id_2": {...},
+                ...
+            }
         }
 
     Raises:
@@ -572,8 +586,8 @@ def export_profile_with_mode(
         ... )
         >>> package["manifest"]["export_mode"]
         'CONFIG_ONLY'
-        >>> "query_data" in package
-        False
+        >>> len(package["query_data"])  # All queries exported
+        3
     """
     # Validate export mode
     if export_mode not in ["CONFIG_ONLY", "FULL_DATA"]:
@@ -618,38 +632,64 @@ def export_profile_with_mode(
         "profile_data": profile_data,
     }
 
-    # Include query data if FULL_DATA mode
-    if export_mode == "FULL_DATA":
-        query_dir = profile_dir / "queries" / query_id
+    # Export ALL queries (not just the active one) - True full-profile export
+    queries_dir = profile_dir / "queries"
+    all_queries_data = {}
+    exported_query_count = 0
 
-        if not query_dir.exists():
-            logger.warning(f"Query directory not found: {query_dir}")
-            export_package["query_data"] = None
-        else:
+    if queries_dir.exists():
+        # Iterate through all query directories
+        for query_dir in queries_dir.iterdir():
+            if not query_dir.is_dir():
+                continue
+
+            current_query_id = query_dir.name
             query_data = {}
 
-            # Load project_data.json
-            project_file = query_dir / "project_data.json"
-            if project_file.exists():
-                with open(project_file, "r", encoding="utf-8") as f:
-                    query_data["project_data"] = json.load(f)
+            # Load query.json (name, JQL, description) - REQUIRED for both modes
+            query_file = query_dir / "query.json"
+            if query_file.exists():
+                with open(query_file, "r", encoding="utf-8") as f:
+                    query_data["query_metadata"] = json.load(f)
+            else:
+                logger.warning(f"query.json not found for {current_query_id}, skipping")
+                continue
 
-            # Load jira_cache.json
-            cache_file = query_dir / "jira_cache.json"
-            if cache_file.exists():
-                with open(cache_file, "r", encoding="utf-8") as f:
-                    query_data["jira_cache"] = json.load(f)
+            # Include data files only if FULL_DATA mode
+            if export_mode == "FULL_DATA":
+                # Load project_data.json
+                project_file = query_dir / "project_data.json"
+                if project_file.exists():
+                    with open(project_file, "r", encoding="utf-8") as f:
+                        query_data["project_data"] = json.load(f)
 
-            # Load metrics_snapshots.json
-            metrics_file = query_dir / "metrics_snapshots.json"
-            if metrics_file.exists():
-                with open(metrics_file, "r", encoding="utf-8") as f:
-                    query_data["metrics_snapshots"] = json.load(f)
+                # Load jira_cache.json (CRITICAL for UI display)
+                cache_file = query_dir / "jira_cache.json"
+                if cache_file.exists():
+                    with open(cache_file, "r", encoding="utf-8") as f:
+                        query_data["jira_cache"] = json.load(f)
 
-            export_package["query_data"] = {query_id: query_data}
+                # Load metrics_snapshots.json
+                metrics_file = query_dir / "metrics_snapshots.json"
+                if metrics_file.exists():
+                    with open(metrics_file, "r", encoding="utf-8") as f:
+                        query_data["metrics_snapshots"] = json.load(f)
+
+            all_queries_data[current_query_id] = query_data
+            exported_query_count += 1
+
+    if exported_query_count == 0:
+        logger.warning(f"No queries found to export for profile '{profile_id}'")
+        export_package["query_data"] = None
+    else:
+        export_package["query_data"] = all_queries_data
+        logger.info(
+            f"Exported {exported_query_count} queries for profile '{profile_id}'"
+        )
 
     logger.info(
-        f"Exported profile '{profile_id}' with mode '{export_mode}', token={include_token}"
+        f"Exported profile '{profile_id}' with {exported_query_count} queries, "
+        f"mode='{export_mode}', token={include_token}"
     )
 
     return export_package

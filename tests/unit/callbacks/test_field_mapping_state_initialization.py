@@ -100,6 +100,7 @@ class TestFieldMappingStateInitialization:
             is_open=True,
             refresh_trigger=0,
             fetched_field_values={},  # No fetched values in test
+            profile_switch_trigger=0,  # NEW: Profile switch trigger
             state_data=empty_state,
             collected_namespace_values={},  # No collected DOM values in test
         )
@@ -170,6 +171,7 @@ class TestFieldMappingStateInitialization:
             is_open=True,
             refresh_trigger=0,
             fetched_field_values={},  # No fetched values in test
+            profile_switch_trigger=0,  # NEW: Profile switch trigger
             state_data=existing_state,
             collected_namespace_values={},  # No collected DOM values in test
         )
@@ -221,6 +223,7 @@ class TestFieldMappingStateInitialization:
             is_open=True,
             refresh_trigger=0,
             fetched_field_values={},  # No fetched values in test
+            profile_switch_trigger=0,  # NEW: Profile switch trigger
             state_data=cleared_state,
             collected_namespace_values={},  # No collected DOM values in test
         )

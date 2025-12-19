@@ -349,8 +349,11 @@ class TestResolveProfileConflict:
 
         # Then
         assert final_id != profile_id  # ID should be changed
-        assert "imported" in final_id  # Should have timestamp suffix
-        assert result["profile_id"] == final_id
+        assert "imported" in final_id or "_" in final_id  # Should have timestamp
+        # Should update both id/profile_id (backward compat) and name fields
+        assert result.get("profile_id") == final_id or result.get("id") == final_id
+        # Name should use friendly format with timestamp
+        assert "imported" in result["name"].lower()
 
     def test_resolve_profile_conflict_invalid_strategy(self):
         """Verify resolve_profile_conflict raises error for invalid strategy."""
@@ -778,9 +781,11 @@ class TestConflictResolutionStrategies:
         assert final_id != profile_id
         assert "imported" in final_id.lower() or "_" in final_id  # Timestamp pattern
 
-        # Result should match incoming but with new ID
-        assert result["profile_id"] == final_id
-        assert result["name"] == "Imported Copy"
+        # Result should have new ID in both fields (backward compat)
+        assert result.get("profile_id") == final_id or result.get("id") == final_id
+        # Name should use friendly name with timestamp (UX improvement - bug fix)
+        assert "imported" in result["name"].lower()
+        assert "Imported Copy" in result["name"]  # Should preserve friendly name
 
     def test_resolve_conflict_merge_combines_queries(self):
         """Verify merge strategy combines queries from both profiles.
