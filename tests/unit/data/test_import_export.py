@@ -516,11 +516,11 @@ class TestExportFullDataMode:
         assert full_data_export["query_data"] is not None
         assert "q_test" in full_data_export["query_data"]
 
-    def test_export_full_data_single_query_only(self):
-        """T032: Verify FULL_DATA mode exports only the active query, not all queries.
+    def test_export_full_data_all_queries(self):
+        """T032: Verify FULL_DATA mode exports ALL queries (true full-profile export).
 
-        This ensures export file size stays reasonable even when profile has
-        many queries.
+        This ensures complete profile backup including all queries the user has created.
+        Updated: Changed from single-query to all-queries export for better backup coverage.
         """
         # Given - Profile with multiple queries
         profile_with_multiple_queries = {
@@ -529,16 +529,25 @@ class TestExportFullDataMode:
             "active_query_id": "q_sprint2",
         }
 
-        # Simulated FULL_DATA export (only active query included)
+        # Simulated FULL_DATA export (ALL queries included)
         full_data_export = {
             "manifest": {
                 "export_mode": "FULL_DATA",
             },
             "profile_data": profile_with_multiple_queries,
             "query_data": {
-                "q_sprint2": {  # Only active query
+                "q_sprint1": {
+                    "query_metadata": {"name": "Sprint 1", "jql": "sprint = 1"},
                     "project_data": {"statistics": {}},
-                }
+                },
+                "q_sprint2": {
+                    "query_metadata": {"name": "Sprint 2", "jql": "sprint = 2"},
+                    "project_data": {"statistics": {}},
+                },
+                "q_sprint3": {
+                    "query_metadata": {"name": "Sprint 3", "jql": "sprint = 3"},
+                    "project_data": {"statistics": {}},
+                },
             },
         }
 
@@ -546,11 +555,15 @@ class TestExportFullDataMode:
         query_data = full_data_export.get("query_data", {})
         exported_queries = list(query_data.keys())
 
-        # Then - Should only have the active query
-        assert len(exported_queries) == 1
+        # Then - Should have ALL queries
+        assert len(exported_queries) == 3
+        assert "q_sprint1" in exported_queries
         assert "q_sprint2" in exported_queries
-        assert "q_sprint1" not in exported_queries
-        assert "q_sprint3" not in exported_queries
+        assert "q_sprint3" in exported_queries
+
+        # Verify each query has metadata
+        for query_id, query_content in query_data.items():
+            assert "query_metadata" in query_content
 
 
 # ============================================================================
