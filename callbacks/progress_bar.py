@@ -451,6 +451,82 @@ def cancel_operation(n_clicks):
 
 
 @callback(
+    [
+        Output("statistics-table", "data", allow_duplicate=True),
+        Output("jira-cache-status", "children", allow_duplicate=True),
+    ],
+    Input("metrics-refresh-trigger", "data"),
+    prevent_initial_call=True,
+)
+def reload_data_after_update(refresh_trigger):
+    """
+    Reload statistics and update JIRA cache status after Update Data completes.
+
+    This callback is triggered when the task completes (metrics-refresh-trigger is set by
+    the progress polling callback). It reloads the statistics from disk and updates the
+    JIRA cache status, which triggers downstream callbacks to refresh the UI.
+
+    Args:
+        refresh_trigger: Timestamp when the refresh was triggered
+
+    Returns:
+        tuple: (statistics_data, cache_status)
+    """
+    if not refresh_trigger:
+        raise PreventUpdate
+
+    logger.info("[Progress] Reloading statistics after Update Data completion")
+
+    try:
+        # Load statistics from disk
+        from data.persistence import load_statistics
+        from dash import html
+
+        statistics, is_sample = load_statistics()
+
+        if not statistics:
+            logger.warning("[Progress] No statistics found after reload")
+            return (
+                [],
+                html.Div(
+                    [
+                        html.I(className="fas fa-exclamation-triangle me-2"),
+                        "No data loaded",
+                    ],
+                    className="text-warning small",
+                ),
+            )
+
+        logger.info(f"[Progress] Reloaded {len(statistics)} statistics records")
+
+        # Update cache status to trigger jira-issues-store refresh
+        cache_status = html.Div(
+            [
+                html.I(className="fas fa-check-circle me-2"),
+                f"Data loaded: {len(statistics)} records",
+            ],
+            className="text-success small",
+        )
+
+        return statistics, cache_status
+
+    except Exception as e:
+        logger.error(f"[Progress] Error reloading statistics: {e}", exc_info=True)
+        from dash import html
+
+        return (
+            no_update,
+            html.Div(
+                [
+                    html.I(className="fas fa-exclamation-triangle me-2"),
+                    f"Error: {str(e)}",
+                ],
+                className="text-danger small",
+            ),
+        )
+
+
+@callback(
     Output("progress-poll-interval", "disabled"),
     Input("url", "pathname"),
     prevent_initial_call="initial_duplicate",
