@@ -65,6 +65,11 @@ def export_full_profile(n_clicks, export_mode, include_token):
         json_content = json.dumps(export_package, indent=2, ensure_ascii=False)
         file_size_kb = len(json_content) / 1024
 
+        # User-friendly mode names
+        mode_display = (
+            "Configuration only" if export_mode == "CONFIG_ONLY" else "Full data"
+        )
+
         logger.info(
             f"Exported profile/query data: {file_size_kb:.1f} KB, mode={export_mode}, token={include_token}"
         )
@@ -73,9 +78,10 @@ def export_full_profile(n_clicks, export_mode, include_token):
         return (
             {"content": json_content, "filename": filename},
             create_toast(
-                "Export Successful",
-                f"Profile exported ({file_size_kb:.1f} KB). Mode: {export_mode}",
-                "success",
+                f"Profile exported successfully ({file_size_kb:.1f} KB). Mode: {mode_display}",
+                toast_type="success",
+                header="Export Successful",
+                duration=4000,
             ),
         )
 
