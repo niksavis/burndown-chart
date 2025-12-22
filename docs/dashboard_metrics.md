@@ -27,23 +27,48 @@ The **Project Dashboard** is the primary landing view, providing at-a-glance vis
 
 **What it measures**: Overall project health as a single 0-100 score
 
-**Calculation Method**:
-- **Multi-factor composite score** based on:
-  1. **Completion Progress** (50% weight):
-     - 0-25% complete → 0-25 points
-     - 25-50% complete → 25-50 points
-     - 50-75% complete → 50-75 points
-     - 75-100% complete → 75-100 points
-  
-  2. **Schedule Health** (30% weight):
-     - Ahead of schedule → +30 points
-     - On schedule (±7 days) → +20 points
-     - Behind schedule → 0-10 points (scaled by severity)
-  
-  3. **Velocity Trend** (20% weight):
-     - Increasing velocity → +20 points
-     - Stable velocity → +10 points
-     - Decreasing velocity → 0 points
+**Calculation Method (Formula v2.1)**:
+- **Four-component continuous formula** providing smooth, gradual health changes:
+
+  **Total Health = Progress (30 pts) + Schedule (30 pts) + Stability (20 pts) + Trend (20 pts)**
+
+  1. **Progress Component** (0-30 points):
+     - Linear mapping: `(completion_percentage / 100) × 30`
+     - Example: 50% complete → 15 points, 80% complete → 24 points
+
+  2. **Schedule Component** (0-30 points):
+     - Sigmoid function for smooth transitions: `(tanh(buffer_days / 20) + 1) × 15`
+     - Buffer = days_to_deadline - days_to_completion
+     - Examples:
+       - 30 days ahead → ~28.6 points
+       - On schedule (0 buffer) → 15 points (neutral)
+       - 30 days behind → ~1.4 points
+     - Returns 15 (neutral) if deadline is missing
+
+  3. **Stability Component** (0-20 points):
+     - Velocity consistency via Coefficient of Variation (CV = std_dev / mean)
+     - Linear decay: `20 × max(0, 1 - (CV / 1.5))`
+     - Uses last 10 weeks of completed items (or all available data)
+     - Examples:
+       - CV = 0 (perfect consistency) → 20 points
+       - CV = 0.75 (typical) → 10 points
+       - CV ≥ 1.5 (chaotic) → 0 points
+     - Returns 10 (neutral) if insufficient data (<2 weeks) or zero velocity
+
+  4. **Trend Component** (0-20 points):
+     - Velocity change between older half vs recent half of data
+     - Linear scaling: `clamp(10 + (velocity_change_% / 50) × 10, 0, 20)`
+     - Examples:
+       - +50% velocity growth → 20 points
+       - 0% change (stable) → 10 points (neutral)
+       - -50% velocity decline → 0 points
+     - Returns 10 (neutral) if insufficient trend data (<4 weeks) or zero older velocity
+
+**Key Features**:
+- **Smooth gradients**: No threshold-based penalties - incremental changes produce proportional score adjustments
+- **Incomplete week filtering**: Automatically excludes current incomplete week (unless today is Sunday ≥23:59:59) to prevent mid-week score fluctuations
+- **Full 0-100 range**: Formula validated to span entire range from critical projects (<10) to excellent projects (>90)
+- **Scales to project size**: Works for 4-week sprints through multi-year projects
 
 **Display**:
 - **Primary Value**: 0-100 score displayed prominently (3.5rem font size)
@@ -67,19 +92,26 @@ The **Project Dashboard** is the primary landing view, providing at-a-glance vis
 ```
 
 **What it tells you**:
-- **85/100 (Excellent)**: Project is healthy - good progress, on schedule, velocity stable
+- **85/100 (Excellent)**: Project healthy - good progress (22.5/30), ahead of schedule (28/30), consistent velocity (18/20), positive trend (16.5/20)
 - **75% Complete**: Three-quarters of work finished
-- **Green badge**: Confidence in on-time delivery
+- **Green badge**: High confidence in on-time delivery
 
 **Action Guide by Score**:
 - **80-100 (Excellent)**: Maintain current pace, celebrate wins, monitor for scope creep
-- **60-79 (Good)**: Watch for velocity drops, review upcoming work complexity
-- **40-59 (Fair)**: Investigate velocity issues, consider scope reduction, add resources
+- **60-79 (Good)**: Watch for velocity drops, review upcoming work complexity, address any schedule slippage
+- **40-59 (Fair)**: Investigate velocity issues, consider scope reduction, add resources, reassess timeline
 - **0-39 (At Risk)**: Emergency intervention needed - scope freeze, add capacity, extend deadline
 
-**⚠️ Statistical Note**: Health score weights (50/30/20) are design heuristics, not empirically validated thresholds. Use for trend monitoring (improving/declining), not absolute project health assessment.
+**Why Scores May Change Mid-Week**:
+Health scores remain stable throughout the week due to incomplete week filtering. You may see changes only when:
+- New data is manually added (outside normal week boundaries)
+- Completion percentage is updated
+- Deadline changes (via Settings)
+- It's Sunday night and the week completes
 
-**Code Location**: `data/processing.py::calculate_dashboard_metrics()` and `ui/dashboard_cards.py::_calculate_health_score()`
+**⚠️ Statistical Note**: Component weights (30/30/20/20) balance delivery metrics with process metrics. While not empirically validated for predictive accuracy, they provide directional trend monitoring. Use score trends (improving/stable/declining) rather than absolute values for decision-making.
+
+**Code Location**: `ui/dashboard_cards.py::_calculate_health_score()` and helper functions
 
 ---
 

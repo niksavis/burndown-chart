@@ -172,6 +172,58 @@ def _get_health_status(score):
         }
 
 
+def _get_brief_health_reason(health_metrics: dict) -> str:
+    """Get brief one-line reason for health score.
+
+    Args:
+        health_metrics: Dictionary with velocity_cv, schedule_variance_days,
+                       scope_change_rate, trend_direction, recent_velocity_change
+
+    Returns:
+        Brief reason string explaining the most concerning metric
+    """
+    # Identify most concerning metric (lowest performer)
+    concerns = []
+
+    # Check velocity consistency (CV)
+    velocity_cv = health_metrics.get("velocity_cv", 0)
+    if velocity_cv >= 40:
+        concerns.append(("Velocity unpredictable (CV ≥ 40%)", 3))  # High priority
+    elif velocity_cv >= 25:
+        concerns.append(("Velocity inconsistent (CV ≥ 25%)", 2))
+
+    # Check schedule
+    schedule_variance = health_metrics.get("schedule_variance_days", 0)
+    if schedule_variance > 30:
+        concerns.append((f"Behind schedule ({int(schedule_variance)} days)", 3))
+    elif schedule_variance > 14:
+        concerns.append((f"Slightly behind ({int(schedule_variance)} days)", 2))
+
+    # Check scope
+    scope_change_rate = health_metrics.get("scope_change_rate", 0)
+    if scope_change_rate > 30:
+        concerns.append((f"High scope growth ({scope_change_rate:.0f}%)", 3))
+    elif scope_change_rate > 15:
+        concerns.append((f"Scope growing ({scope_change_rate:.0f}%)", 2))
+
+    # Check trend
+    trend_direction = health_metrics.get("trend_direction", "stable")
+    if trend_direction == "declining":
+        concerns.append(("Velocity declining", 2))
+
+    # Check recent performance
+    recent_change = health_metrics.get("recent_velocity_change", 0)
+    if recent_change < -15:
+        concerns.append((f"Recent drop ({recent_change:.0f}%)", 2))
+
+    # Return highest priority concern
+    if concerns:
+        concerns.sort(key=lambda x: x[1], reverse=True)
+        return concerns[0][0]
+
+    return ""
+
+
 def _create_metric_card(
     title,
     value,
@@ -440,6 +492,7 @@ def _create_executive_summary(statistics_df, settings, forecast_data):
 
     health_score = _calculate_project_health_score(health_metrics)
     health_status = _get_health_status(health_score)
+    health_reason = _get_brief_health_reason(health_metrics)
 
     return dbc.Card(
         [
@@ -501,13 +554,23 @@ def _create_executive_summary(statistics_df, settings, forecast_data):
                                         ),
                                         html.Div(
                                             health_status["label"],
-                                            className="mt-3 mb-2",
+                                            className="mt-3 mb-1",
                                             style={
                                                 "fontSize": "1rem",
                                                 "fontWeight": "bold",
                                                 "color": health_status["color"],
                                             },
                                         ),
+                                        html.Small(
+                                            health_reason,
+                                            className="text-muted d-block mb-3",
+                                            style={
+                                                "fontSize": "0.75rem",
+                                                "fontStyle": "italic",
+                                            },
+                                        )
+                                        if health_reason
+                                        else html.Div(className="mb-2"),
                                         html.Div(
                                             [
                                                 html.Div(

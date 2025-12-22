@@ -999,23 +999,48 @@ The **Project Dashboard** is the primary landing view, providing at-a-glance vis
 
 **What it measures**: Overall project health as a single 0-100 score
 
-**Calculation Method**:
-- **Multi-factor composite score** based on:
-  1. **Completion Progress** (50% weight):
-     - 0-25% complete → 0-25 points
-     - 25-50% complete → 25-50 points
-     - 50-75% complete → 50-75 points
-     - 75-100% complete → 75-100 points
-  
-  2. **Schedule Health** (30% weight):
-     - Ahead of schedule → +30 points
-     - On schedule (±7 days) → +20 points
-     - Behind schedule → 0-10 points (scaled by severity)
-  
-  3. **Velocity Trend** (20% weight):
-     - Increasing velocity → +20 points
-     - Stable velocity → +10 points
-     - Decreasing velocity → 0 points
+**Calculation Method (Formula v2.1)**:
+- **Four-component continuous formula** providing smooth, gradual health changes:
+
+  **Total Health = Progress (30 pts) + Schedule (30 pts) + Stability (20 pts) + Trend (20 pts)**
+
+  1. **Progress Component** (0-30 points):
+     - Linear mapping: `(completion_percentage / 100) × 30`
+     - Example: 50% complete → 15 points, 80% complete → 24 points
+
+  2. **Schedule Component** (0-30 points):
+     - Sigmoid function for smooth transitions: `(tanh(buffer_days / 20) + 1) × 15`
+     - Buffer = days_to_deadline - days_to_completion
+     - Examples:
+       - 30 days ahead → ~28.6 points
+       - On schedule (0 buffer) → 15 points (neutral)
+       - 30 days behind → ~1.4 points
+     - Returns 15 (neutral) if deadline is missing
+
+  3. **Stability Component** (0-20 points):
+     - Velocity consistency via Coefficient of Variation (CV = std_dev / mean)
+     - Linear decay: `20 × max(0, 1 - (CV / 1.5))`
+     - Uses last 10 weeks of completed items (or all available data)
+     - Examples:
+       - CV = 0 (perfect consistency) → 20 points
+       - CV = 0.75 (typical) → 10 points
+       - CV ≥ 1.5 (chaotic) → 0 points
+     - Returns 10 (neutral) if insufficient data (<2 weeks) or zero velocity
+
+  4. **Trend Component** (0-20 points):
+     - Velocity change between older half vs recent half of data
+     - Linear scaling: `clamp(10 + (velocity_change_% / 50) × 10, 0, 20)`
+     - Examples:
+       - +50% velocity growth → 20 points
+       - 0% change (stable) → 10 points (neutral)
+       - -50% velocity decline → 0 points
+     - Returns 10 (neutral) if insufficient trend data (<4 weeks) or zero older velocity
+
+**Key Features**:
+- **Smooth gradients**: No threshold-based penalties - incremental changes produce proportional score adjustments
+- **Incomplete week filtering**: Automatically excludes current incomplete week (unless today is Sunday ≥23:59:59) to prevent mid-week score fluctuations
+- **Full 0-100 range**: Formula validated to span entire range from critical projects (<10) to excellent projects (>90)
+- **Scales to project size**: Works for 4-week sprints through multi-year projects
 
 **Display**:
 - **Primary Value**: 0-100 score displayed prominently (3.5rem font size)
@@ -1039,17 +1064,17 @@ The **Project Dashboard** is the primary landing view, providing at-a-glance vis
 ```
 
 **What it tells you**:
-- **85/100 (Excellent)**: Project is healthy - good progress, on schedule, velocity stable
+- **85/100 (Excellent)**: Project healthy - good progress (22.5/30), ahead of schedule (28/30), consistent velocity (18/20), positive trend (16.5/20)
 - **75% Complete**: Three-quarters of work finished
-- **Green badge**: Confidence in on-time delivery
+- **Green badge**: High confidence in on-time delivery
 
 **Action Guide by Score**:
 - **80-100 (Excellent)**: Maintain current pace, celebrate wins, monitor for scope creep
-- **60-79 (Good)**: Watch for velocity drops, review upcoming work complexity
-- **40-59 (Fair)**: Investigate velocity issues, consider scope reduction, add resources
+- **60-79 (Good)**: Watch for velocity drops, review upcoming work complexity, address any schedule slippage
+- **40-59 (Fair)**: Investigate velocity issues, consider scope reduction, add resources, reassess timeline
 - **0-39 (At Risk)**: Emergency intervention needed - scope freeze, add capacity, extend deadline
 
-**Code Location**: `data/processing.py::calculate_dashboard_metrics()` and `ui/dashboard_cards.py::_calculate_health_score()`
+**Code Location**: `ui/dashboard_cards.py::_calculate_health_score()` and helper functions
 
 ---
 
@@ -1959,35 +1984,37 @@ CI_95 = [mean - margin_of_error, mean + margin_of_error]
 
 ---
 
-### 4. Health Score Arbitrary Weights (⚠️ SUBJECTIVE)
+### 4. Health Score Weights (⚠️ DESIGN HEURISTICS)
 
-**Issue**: Health score uses subjective weights with no empirical basis  
-**Current Formula**:
+**Issue**: Health score uses design heuristics with no empirical validation  
+**Current Formula (v2.1)**:
 ```python
 health_score = (
-    progress_score × 0.25 +    # 25% weight - project completion
-    schedule_score × 0.30 +     # 30% weight - on-time delivery
-    velocity_score × 0.25 +     # 25% weight - velocity trend
-    confidence_score × 0.20     # 20% weight - forecast stability
+    progress_component(0-30) +      # 30% weight - completion percentage
+    schedule_component(0-30) +      # 30% weight - schedule buffer via sigmoid
+    stability_component(0-20) +     # 20% weight - velocity CV
+    trend_component(0-20)           # 20% weight - velocity % change
 )
 ```
 
 **Why This Matters**:
-- Weights (25/30/25/20) are arbitrary design decisions, not data-driven
-- Different teams may value metrics differently (e.g., velocity trend vs. on-time delivery)
+- Weights (30/30/20/20) are design decisions balancing delivery vs process metrics, not data-driven
+- Different teams may value metrics differently (e.g., schedule adherence vs. velocity stability)
 - No empirical validation that these weights predict project success
 
 **Example Impact**:
-- Team A: 60% progress, 100% schedule, 100% velocity, 50% confidence → Health: 80% (Good)
-- Team B: 90% progress, 50% schedule, 50% velocity, 100% confidence → Health: 67% (Fair)
-- Question: Is Team A really "healthier" than Team B? Weights determine outcome.
+- Team A: 60% progress (18 pts), on-schedule (15 pts), perfect stability (20 pts), strong growth (18 pts) → Health: 71 (Good)
+- Team B: 90% progress (27 pts), 30 days behind (1 pt), erratic velocity (8 pts), declining trend (5 pts) → Health: 41 (Fair)
+- Question: Is Team A "healthier"? Formula emphasizes process consistency over raw progress.
 
-**User Impact**: Health score is relative indicator, not absolute measure of project health
+**User Impact**: Health score is relative indicator for trend monitoring, not absolute measure of project health
 
 **Recommended Fix**:
-1. **Option A (Quick)**: Add disclaimer that weights are design heuristics, not empirical thresholds
-2. **Option B (Better)**: Allow user-configurable weights based on team priorities
-3. **Option C (Best)**: Machine learning model trained on historical project outcomes
+1. **Option A (Implemented)**: Documentation clarifies weights are design heuristics with disclaimer
+2. **Option B (Future)**: Allow user-configurable weights based on team priorities
+3. **Option C (Future)**: Machine learning model trained on historical project outcomes
+
+**Workaround**: Use health score for trend monitoring (is health improving/declining?), not absolute project assessment. Focus on component breakdowns (progress, schedule, stability, trend) for actionable insights.
 
 **Workaround**: Use health score for trend monitoring (is health improving/declining?), not absolute thresholds
 
@@ -2098,13 +2125,17 @@ health_score = (
 - Work distribution recommended ranges align with Flow Framework standards
 
 ### Project Dashboard Metrics (✅ Verified Correct)
-- **Project Health Score**: Matches implementation - 3-factor composite (progress 50%, schedule 30%, velocity 20%)
+- **Project Health Score (v2.1)**: Matches implementation - 4-component continuous formula (progress 30pts, schedule 30pts, stability 20pts, trend 20pts) with incomplete week filtering
 - **Completion Forecast**: Matches implementation - uses velocity × PERT factor, calculates confidence from CoV
 - **Current Velocity**: Matches implementation - 10-week rolling average
 - **Remaining Work**: Matches implementation - total scope minus completed work
 - **PERT Timeline**: Matches implementation - 3 scenarios with weighted average formula
 
 **Key Findings**:
+- Health score v2.1 uses smooth continuous functions (tanh sigmoid, linear decay) instead of threshold-based penalties
+- Incomplete week filtering prevents mid-week health score fluctuations (15-30 point drops)
+- Formula validated to span full 0-100 range (critical <10, excellent >90)
+- Minimum data thresholds: 2 weeks for stability, 4 weeks for trend
 - PERT factor application (divide for optimistic, multiply for pessimistic) correct
 - Confidence calculation based on coefficient of variation accurate
 - Velocity trend detection (>10% threshold) matches code
