@@ -157,8 +157,9 @@ app = dash.Dash(
         "/assets/jql_language_mode.js",  # JQL tokenizer for syntax highlighting
         "/assets/jql_editor_native.js",  # Native CodeMirror editors (no textarea transformation)
         "/assets/mobile_navigation.js",  # Mobile navigation JavaScript for swipe gestures
+        "/assets/conflict_resolution_clientside.js",  # Conflict resolution clientside callbacks (import/export)
     ],
-    suppress_callback_exceptions=True,  # Suppress exceptions for components created by callbacks
+    suppress_callback_exceptions=True,  # Suppress errors for components in dynamic layouts (Settings flyout, modals)
     meta_tags=[
         # PWA Meta Tags for Mobile-First Design
         {

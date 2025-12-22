@@ -77,7 +77,7 @@ def create_import_export_panel():
                                 className="w-100",
                                 size="md",
                             ),
-                            dcc.Download(id="download-data"),
+                            dcc.Download(id="export-project-data-download"),
                         ],
                         md=6,
                     ),
