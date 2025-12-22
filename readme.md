@@ -1,7 +1,7 @@
 # Burndown Chart Generator
 
 [![python](https://img.shields.io/badge/Python-3.13-3776AB.svg?style=flat&logo=python&logoColor=white)](https://www.python.org)
-[![version](https://img.shields.io/badge/version-2.4.0-blue.svg)](https://github.com/niksavis/burndown-chart/releases)
+[![version](https://img.shields.io/badge/version-2.4.1-blue.svg)](https://github.com/niksavis/burndown-chart/releases)
 [![License](https://img.shields.io/badge/License-MIT-green)](LICENSE)
 
 **See when your project will finish.** Connect to JIRA, and get automatic forecasts, progress tracking, and team performance metrics - all in your browser.
