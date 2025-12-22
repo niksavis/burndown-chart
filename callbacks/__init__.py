@@ -104,7 +104,7 @@ from callbacks import (
     app_update,  # Application auto-update callbacks (auto-registers via @callback)  # noqa: F401
     banner_status_icons,  # Banner icon animations during operations (auto-registers via @callback)  # noqa: F401
     bug_analysis,  # Bug analysis metrics callbacks (Feature 004)
-    dashboard,  # Dashboard metrics and PERT timeline callbacks (Feature 006, User Story 2)
+    # dashboard,  # REMOVED - Dead code: callbacks reference non-existent UI components (ui/dashboard.py never imported)
     dora_flow_metrics,  # DORA/Flow metrics callbacks (Feature 007, auto-registers via @callback)  # noqa: F401
     field_mapping,  # Field mapping callbacks (Feature 007, auto-registers via @callback)  # noqa: F401
     field_value_fetch,  # Auto-fetch field values for dropdowns (Feature 012, auto-registers via @callback)  # noqa: F401
@@ -156,7 +156,7 @@ def register_all_callbacks(app):
     mobile_navigation.register(app)  # Register mobile navigation callbacks
     jql_editor.register_jql_editor_callbacks(app)  # Register JQL editor sync
     bug_analysis.register(app)  # Register bug analysis callbacks (Feature 004)
-    dashboard.register(app)  # Register dashboard callbacks (Feature 006, User Story 2)
+    # dashboard.register(app)  # REMOVED - Dead code: ui/dashboard.py never imported, callbacks reference non-existent components
     # Note: jira_config, settings_panel, jira_data_store, dora_flow_metrics, field_mapping,
     # integrated_query_management, query_management, profile_management, query_switching,
     # jira_metadata, and namespace_autocomplete callbacks auto-register via @callback decorator when imported

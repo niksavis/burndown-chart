@@ -3,150 +3,145 @@
  * Hold for 3s to trigger force refresh with animated progress
  */
 
-window.dash_clientside = Object.assign({}, window.dash_clientside, {
-  clientside: {
-    setupLongPress: function () {
-      // Wait for button to be available in DOM
-      setTimeout(function () {
-        const button = document.getElementById("update-data-unified");
-        if (!button) {
-          console.warn("Update Data button not found");
-          return;
+// Ensure dash_clientside exists
+window.dash_clientside = window.dash_clientside || {};
+// Ensure clientside namespace exists (may have been created by other scripts)
+window.dash_clientside.clientside = window.dash_clientside.clientside || {};
+// Add our function to the clientside namespace (merges with existing)
+window.dash_clientside.clientside.setupLongPress = function () {
+  // Wait for button to be available in DOM
+  setTimeout(function () {
+    const button = document.getElementById("update-data-unified");
+    if (!button) {
+      console.warn("Update Data button not found");
+      return;
+    }
+
+    let progressInterval = null;
+    let textChangeTimer = null;
+    let startTime = null;
+    let isReadyForForceRefresh = false;
+    let processingForceRefresh = false;
+    let allowNextClick = false;
+    const originalText = "Update Data";
+    const forceRefreshText = "Force Refresh";
+    const LONG_PRESS_DURATION = 2000; // 2 seconds
+
+    // Get text span inside button
+    function getButtonTextElement() {
+      // Button structure: <button><i class="fas..."></i><span>Update Data</span></button>
+      // OR: <button><i class="fas..."></i> Update Data</button>
+      const children = Array.from(button.childNodes);
+
+      // First, try to find a span element
+      for (let child of children) {
+        if (child.nodeType === Node.ELEMENT_NODE && child.tagName === "SPAN") {
+          return child;
         }
+      }
 
-        let progressInterval = null;
-        let textChangeTimer = null;
-        let startTime = null;
-        let isReadyForForceRefresh = false;
-        let processingForceRefresh = false;
-        let allowNextClick = false;
-        const originalText = "Update Data";
-        const forceRefreshText = "Force Refresh";
-        const LONG_PRESS_DURATION = 2000; // 2 seconds
-
-        // Get text span inside button
-        function getButtonTextElement() {
-          // Button structure: <button><i class="fas..."></i><span>Update Data</span></button>
-          // OR: <button><i class="fas..."></i> Update Data</button>
-          const children = Array.from(button.childNodes);
-
-          // First, try to find a span element
-          for (let child of children) {
-            if (
-              child.nodeType === Node.ELEMENT_NODE &&
-              child.tagName === "SPAN"
-            ) {
-              return child;
-            }
-          }
-
-          // Fallback: find direct text node
-          for (let child of children) {
-            if (child.nodeType === Node.TEXT_NODE) {
-              return child;
-            }
-          }
-
-          return null;
+      // Fallback: find direct text node
+      for (let child of children) {
+        if (child.nodeType === Node.TEXT_NODE) {
+          return child;
         }
+      }
 
-        // Start long press
-        function startPress(e) {
-          // Prevent default to avoid text selection
-          e.preventDefault();
+      return null;
+    }
 
-          startTime = Date.now();
-          isReadyForForceRefresh = false;
-          button.classList.add("long-press-active");
+    // Start long press
+    function startPress(e) {
+      // Prevent default to avoid text selection
+      e.preventDefault();
 
-          // Initialize progress width to 0%
-          button.style.setProperty("--progress-width", "0%");
+      startTime = Date.now();
+      isReadyForForceRefresh = false;
+      button.classList.add("long-press-active");
 
-          // Update progress animation by changing CSS custom property
-          progressInterval = setInterval(function () {
-            const elapsed = Date.now() - startTime;
-            const progress = Math.min(
-              (elapsed / LONG_PRESS_DURATION) * 100,
-              100
-            );
-            button.style.setProperty("--progress-width", progress + "%");
-          }, 16); // ~60fps
+      // Initialize progress width to 0%
+      button.style.setProperty("--progress-width", "0%");
 
-          // After 3s: Change text to indicate ready for force refresh
-          textChangeTimer = setTimeout(function () {
-            const textElement = getButtonTextElement();
-            if (textElement) {
-              textElement.textContent = forceRefreshText;
-            }
-            isReadyForForceRefresh = true;
-          }, LONG_PRESS_DURATION);
+      // Update progress animation by changing CSS custom property
+      progressInterval = setInterval(function () {
+        const elapsed = Date.now() - startTime;
+        const progress = Math.min((elapsed / LONG_PRESS_DURATION) * 100, 100);
+        button.style.setProperty("--progress-width", progress + "%");
+      }, 16); // ~60fps
+
+      // After 3s: Change text to indicate ready for force refresh
+      textChangeTimer = setTimeout(function () {
+        const textElement = getButtonTextElement();
+        if (textElement) {
+          textElement.textContent = forceRefreshText;
         }
+        isReadyForForceRefresh = true;
+      }, LONG_PRESS_DURATION);
+    }
 
-        // Handle button release
-        function handleRelease(e) {
-          // If force refresh is ready, trigger it
-          if (isReadyForForceRefresh) {
-            console.log("🔄 Force refresh activated!");
+    // Handle button release
+    function handleRelease(e) {
+      // If force refresh is ready, trigger it
+      if (isReadyForForceRefresh) {
+        console.log("🔄 Force refresh activated!");
 
-            // Store flag globally BEFORE allowing the click to propagate
-            window._forceRefreshPending = true;
-            console.log("✅ Set global _forceRefreshPending flag");
+        // Store flag globally BEFORE allowing the click to propagate
+        window._forceRefreshPending = true;
+        console.log("✅ Set global _forceRefreshPending flag");
 
-            // Don't prevent the event - let it propagate naturally
-            // This ensures clientside callbacks see the flag before server callbacks execute
+        // Don't prevent the event - let it propagate naturally
+        // This ensures clientside callbacks see the flag before server callbacks execute
 
-            // Reset visual state immediately
-            cancelPress();
+        // Reset visual state immediately
+        cancelPress();
 
-            // Note: Flag is cleared by the clientside callback after it reads it
-            return;
-          }
+        // Note: Flag is cleared by the clientside callback after it reads it
+        return;
+      }
 
-          // Reset state for normal clicks
-          cancelPress();
-        }
+      // Reset state for normal clicks
+      cancelPress();
+    }
 
-        // Cancel/reset long press state
-        function cancelPress() {
-          if (textChangeTimer) {
-            clearTimeout(textChangeTimer);
-            textChangeTimer = null;
-          }
-          if (progressInterval) {
-            clearInterval(progressInterval);
-            progressInterval = null;
-          }
+    // Cancel/reset long press state
+    function cancelPress() {
+      if (textChangeTimer) {
+        clearTimeout(textChangeTimer);
+        textChangeTimer = null;
+      }
+      if (progressInterval) {
+        clearInterval(progressInterval);
+        progressInterval = null;
+      }
 
-          button.classList.remove("long-press-active");
-          isReadyForForceRefresh = false;
+      button.classList.remove("long-press-active");
+      isReadyForForceRefresh = false;
 
-          // Reset progress width
-          button.style.setProperty("--progress-width", "0%");
+      // Reset progress width
+      button.style.setProperty("--progress-width", "0%");
 
-          // Reset text
-          const textElement = getButtonTextElement();
-          if (textElement) {
-            textElement.textContent = originalText;
-          }
-        }
+      // Reset text
+      const textElement = getButtonTextElement();
+      if (textElement) {
+        textElement.textContent = originalText;
+      }
+    }
 
-        // Event listeners for mouse
-        button.addEventListener("mousedown", startPress);
-        button.addEventListener("mouseup", handleRelease);
-        button.addEventListener("mouseleave", cancelPress);
+    // Event listeners for mouse
+    button.addEventListener("mousedown", startPress);
+    button.addEventListener("mouseup", handleRelease);
+    button.addEventListener("mouseleave", cancelPress);
 
-        // Event listeners for touch (mobile)
-        button.addEventListener("touchstart", startPress, { passive: false });
-        button.addEventListener("touchend", handleRelease);
-        button.addEventListener("touchcancel", cancelPress);
+    // Event listeners for touch (mobile)
+    button.addEventListener("touchstart", startPress, { passive: false });
+    button.addEventListener("touchend", handleRelease);
+    button.addEventListener("touchcancel", cancelPress);
 
-        console.log("Long-press force refresh initialized");
-      }, 500); // Wait for DOM to be ready
+    console.log("Long-press force refresh initialized");
+  }, 500); // Wait for DOM to be ready
 
-      return window.dash_clientside.no_update;
-    },
-  },
-});
+  return window.dash_clientside.no_update;
+};
 
 // Initialize on page load
 if (document.readyState === "loading") {

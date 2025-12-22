@@ -242,102 +242,105 @@ def register(app):
 
         return fig
 
-    @app.callback(
-        Output("project-dashboard-pert-content", "children"),
-        [
-            Input("current-settings", "modified_timestamp"),
-            Input("current-statistics", "modified_timestamp"),
-            Input("calculation-results", "data"),
-        ],
-        [State("current-settings", "data"), State("current-statistics", "data")],
-    )
-    def update_pert_info(
-        settings_ts, statistics_ts, calc_results, settings, statistics
-    ):
-        """Update the PERT information when settings or statistics change."""
-        # Get context to see which input triggered the callback
-        ctx = callback_context
-        if not ctx.triggered:
-            raise PreventUpdate
-
-        # Validate inputs
-        if settings is None or statistics is None:
-            raise PreventUpdate
-
-        # Get triggered input ID
-        trigger_id = ctx.triggered[0]["prop_id"].split(".")[0]
-
-        # If triggered by calculation_results but data is None, prevent update
-        if trigger_id == "calculation-results" and calc_results is None:
-            raise PreventUpdate
-
-        # Process the settings and statistics data
-        df = pd.DataFrame(statistics)
-        if len(df) > 0:  # Check if there's any data
-            df["date"] = pd.to_datetime(df["date"])
-            df = df.sort_values("date")
-
-        # Get necessary values
-        total_items = settings.get("total_items", 100)
-        total_points = settings.get("total_points", 500)
-        pert_factor = settings.get("pert_factor", 3)
-        deadline = settings.get("deadline", None)
-        data_points_count = int(
-            settings.get("data_points_count", len(df))
-        )  # Get selected data points count (ensure int)
-
-        # Get milestone settings
-        show_milestone = settings.get("show_milestone", False)
-        milestone = settings.get("milestone", None) if show_milestone else None
-
-        # Process data for calculations
-        if not df.empty:
-            df = compute_cumulative_values(df, total_items, total_points)
-
-        # Create forecast plot and get PERT values
-        _, pert_data = create_forecast_plot(
-            df=df,
-            total_items=total_items,
-            total_points=total_points,
-            pert_factor=pert_factor,
-            deadline_str=deadline,
-            milestone_str=milestone,  # Pass milestone parameter
-            data_points_count=data_points_count,
-            show_points=settings.get(
-                "show_points", False
-            ),  # Pass show_points parameter
-        )
-
-        # Calculate weekly averages for the info table with filtering
-        avg_weekly_items, avg_weekly_points, med_weekly_items, med_weekly_points = (
-            calculate_weekly_averages(statistics, data_points_count=data_points_count)
-        )  # Calculate days to deadline
-        deadline_date = pd.to_datetime(deadline)
-        current_date = datetime.now()
-        days_to_deadline = max(0, (deadline_date - current_date).days)
-
-        # Create the PERT info component for the Project Dashboard
-        project_dashboard_pert_info = create_pert_info_table(
-            pert_data["pert_time_items"],
-            pert_data["pert_time_points"],
-            days_to_deadline,
-            avg_weekly_items,  # Preserve decimal precision
-            avg_weekly_points,  # Preserve decimal precision
-            med_weekly_items,  # Preserve decimal precision
-            med_weekly_points,  # Preserve decimal precision
-            pert_factor=pert_factor,
-            total_items=total_items,
-            total_points=total_points,
-            deadline_str=deadline,
-            milestone_str=milestone,  # Pass milestone parameter
-            statistics_df=df,
-            show_points=settings.get(
-                "show_points", False
-            ),  # Pass show_points parameter
-            data_points_count=data_points_count,  # NEW PARAMETER
-        )
-
-        return project_dashboard_pert_info
+    # DEPRECATED CALLBACK - Component "project-dashboard-pert-content" no longer exists in layout
+    # The create_project_summary_card() function that defines this component is deprecated and never called
+    # Dashboard now uses ui/dashboard.py and callbacks/dashboard.py instead
+    # @app.callback(
+    #     Output("project-dashboard-pert-content", "children"),
+    #     [
+    #         Input("current-settings", "modified_timestamp"),
+    #         Input("current-statistics", "modified_timestamp"),
+    #         Input("calculation-results", "data"),
+    #     ],
+    #     [State("current-settings", "data"), State("current-statistics", "data")],
+    # )
+    # def update_pert_info(
+    #     settings_ts, statistics_ts, calc_results, settings, statistics
+    # ):
+    #     """Update the PERT information when settings or statistics change."""
+    #     # Get context to see which input triggered the callback
+    #     ctx = callback_context
+    #     if not ctx.triggered:
+    #         raise PreventUpdate
+    #
+    #     # Validate inputs
+    #     if settings is None or statistics is None:
+    #         raise PreventUpdate
+    #
+    #     # Get triggered input ID
+    #     trigger_id = ctx.triggered[0]["prop_id"].split(".")[0]
+    #
+    #     # If triggered by calculation_results but data is None, prevent update
+    #     if trigger_id == "calculation-results" and calc_results is None:
+    #         raise PreventUpdate
+    #
+    #     # Process the settings and statistics data
+    #     df = pd.DataFrame(statistics)
+    #     if len(df) > 0:  # Check if there's any data
+    #         df["date"] = pd.to_datetime(df["date"])
+    #         df = df.sort_values("date")
+    #
+    #     # Get necessary values
+    #     total_items = settings.get("total_items", 100)
+    #     total_points = settings.get("total_points", 500)
+    #     pert_factor = settings.get("pert_factor", 3)
+    #     deadline = settings.get("deadline", None)
+    #     data_points_count = int(
+    #         settings.get("data_points_count", len(df))
+    #     )  # Get selected data points count (ensure int)
+    #
+    #     # Get milestone settings
+    #     show_milestone = settings.get("show_milestone", False)
+    #     milestone = settings.get("milestone", None) if show_milestone else None
+    #
+    #     # Process data for calculations
+    #     if not df.empty:
+    #         df = compute_cumulative_values(df, total_items, total_points)
+    #
+    #     # Create forecast plot and get PERT values
+    #     _, pert_data = create_forecast_plot(
+    #         df=df,
+    #         total_items=total_items,
+    #         total_points=total_points,
+    #         pert_factor=pert_factor,
+    #         deadline_str=deadline,
+    #         milestone_str=milestone,  # Pass milestone parameter
+    #         data_points_count=data_points_count,
+    #         show_points=settings.get(
+    #             "show_points", False
+    #         ),  # Pass show_points parameter
+    #     )
+    #
+    #     # Calculate weekly averages for the info table with filtering
+    #     avg_weekly_items, avg_weekly_points, med_weekly_items, med_weekly_points = (
+    #         calculate_weekly_averages(statistics, data_points_count=data_points_count)
+    #     )  # Calculate days to deadline
+    #     deadline_date = pd.to_datetime(deadline)
+    #     current_date = datetime.now()
+    #     days_to_deadline = max(0, (deadline_date - current_date).days)
+    #
+    #     # Create the PERT info component for the Project Dashboard
+    #     project_dashboard_pert_info = create_pert_info_table(
+    #         pert_data["pert_time_items"],
+    #         pert_data["pert_time_points"],
+    #         days_to_deadline,
+    #         avg_weekly_items,  # Preserve decimal precision
+    #         avg_weekly_points,  # Preserve decimal precision
+    #         med_weekly_items,  # Preserve decimal precision
+    #         med_weekly_points,  # Preserve decimal precision
+    #         pert_factor=pert_factor,
+    #         total_items=total_items,
+    #         total_points=total_points,
+    #         deadline_str=deadline,
+    #         milestone_str=milestone,  # Pass milestone parameter
+    #         statistics_df=df,
+    #         show_points=settings.get(
+    #             "show_points", False
+    #         ),  # Pass show_points parameter
+    #         data_points_count=data_points_count,  # NEW PARAMETER
+    #     )
+    #
+    #     return project_dashboard_pert_info
 
     def _prepare_trend_data(statistics, pert_factor, data_points_count=None):
         """

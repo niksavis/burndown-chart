@@ -260,6 +260,28 @@ def setup_logging(
     root_logger.addHandler(error_handler)
     root_logger.addHandler(console_handler)
 
+    # Configure Waitress logger to use our formatter (fixes Python 3.13 type mismatch)
+    # Waitress passes string args to %d format, causing TypeError in Python 3.13
+    waitress_logger = logging.getLogger("waitress")
+    waitress_logger.setLevel(logging.WARNING)  # Reduce noise from Waitress
+
+    # Create custom handler with error-tolerant formatter for Waitress
+    class WaitressFormatter(logging.Formatter):
+        """Formatter that handles Waitress type mismatches in Python 3.13."""
+
+        def format(self, record):
+            try:
+                return super().format(record)
+            except (TypeError, ValueError):
+                # If formatting fails, use raw message without args
+                return f"{record.levelname} - waitress - {record.msg}"
+
+    waitress_handler = logging.StreamHandler()
+    waitress_handler.setFormatter(
+        WaitressFormatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+    )
+    waitress_logger.handlers = [waitress_handler]  # Replace default handlers
+
 
 def shutdown_logging() -> None:
     """
