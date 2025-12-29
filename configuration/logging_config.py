@@ -119,13 +119,21 @@ class SensitiveDataFilter(logging.Filter):
         record.msg = msg
 
         # Also redact args if present
+        # IMPORTANT: Preserve original types (int, float) to avoid breaking format strings
+        # like %d in waitress. Only convert to string for redaction check, then preserve
+        # original value if no sensitive patterns were found.
         if record.args:
             redacted_args = []
             for arg in record.args:
                 arg_str = str(arg)
+                original_arg_str = arg_str
                 for pattern, replacement in self.SENSITIVE_PATTERNS:
                     arg_str = re.sub(pattern, replacement, arg_str, flags=re.IGNORECASE)
-                redacted_args.append(arg_str)
+                # Only use string version if redaction occurred, otherwise preserve type
+                if arg_str != original_arg_str:
+                    redacted_args.append(arg_str)
+                else:
+                    redacted_args.append(arg)
             record.args = tuple(redacted_args)
 
         return True
@@ -264,6 +272,12 @@ def setup_logging(
     # Waitress passes string args to %d format, causing TypeError in Python 3.13
     waitress_logger = logging.getLogger("waitress")
     waitress_logger.setLevel(logging.WARNING)  # Reduce noise from Waitress
+
+    # Suppress noisy "Task queue depth" warnings - these are normal under load
+    waitress_queue_logger = logging.getLogger("waitress.queue")
+    waitress_queue_logger.setLevel(
+        logging.ERROR
+    )  # Only show errors, not queue warnings
 
     # Create custom handler with error-tolerant formatter for Waitress
     class WaitressFormatter(logging.Formatter):

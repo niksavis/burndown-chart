@@ -279,7 +279,9 @@ if __name__ == "__main__":
         logger.info(
             f"Starting Waitress production server on {server_config['host']}:{server_config['port']}"
         )
+        url = f"http://{server_config['host']}:{server_config['port']}"
         print(
             f"Starting Waitress production server on {server_config['host']}:{server_config['port']}..."
         )
+        print(f"Open your browser at: {url}", flush=True)
         serve(app.server, host=server_config["host"], port=server_config["port"])
