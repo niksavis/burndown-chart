@@ -104,69 +104,213 @@ profile["field_mappings"]["dora"]["deployment_field"] = "customfield_10001"
 backend.save_profile(profile)
 ```
 
-### 4. Cache Operations with TTL
+### 4. JIRA Issues Operations (Normalized)
+
+**NOTE**: Examples below use normalized methods. Legacy JSON blob methods (`get_jira_cache`, `save_jira_cache`) are deprecated but available during migration.
 
 ```python
 from datetime import datetime, timedelta
 
-# Save to cache with 24-hour expiration
+# Batch save issues from JIRA API response (initial fetch)
 expires_at = datetime.now() + timedelta(hours=24)
-backend.save_jira_cache(
+issues = [
+    {
+        "key": "KAFKA-1234",
+        "fields": {
+            "summary": "Fix memory leak",
+            "status": {"name": "Done"},
+            "assignee": {"displayName": "John Doe"},
+            "issuetype": {"name": "Bug"},
+            "priority": {"name": "High"},
+            "created": "2025-12-01T10:00:00.000Z",
+            "updated": "2025-12-20T15:00:00.000Z",
+            "resolutiondate": "2025-12-20T15:00:00.000Z",
+            "customfield_10016": 5,  # Story points
+            "project": {"key": "KAFKA", "name": "Apache Kafka"},
+            "fixVersions": [{"name": "3.0.0"}],
+            "labels": ["performance", "critical"],
+            "components": [{"name": "Core"}]
+        }
+    },
+    # ... more issues
+]
+
+backend.save_issues_batch(
     profile_id="kafka",
     query_id="12w",
-    cache_key="abc123",  # Hash of (JQL + fields)
-    response={"issues": [...], "total": 50},
+    cache_key="abc123",
+    issues=issues,
     expires_at=expires_at
 )
 
-# Get from cache (returns None if expired)
-cache = backend.get_jira_cache("kafka", "12w", "abc123")
-if cache:
-    issues = cache["issues"]
-else:
-    # Cache miss or expired - fetch from JIRA
-    pass
+# Query issues with filters (no JSON parsing needed!)
+done_issues = backend.get_issues("kafka", "12w", status="Done")
+for issue in done_issues:
+    print(f"{issue['issue_key']}: {issue['summary']} - {issue['assignee']}")
 
-# Cleanup expired entries (background task)
-deleted_count = backend.cleanup_expired_cache()
-print(f"Cleaned up {deleted_count} expired cache entries")
-```
-
-### 5. Metrics Snapshots
-
-```python
-# Save weekly snapshot
-backend.save_metrics_snapshot(
-    profile_id="kafka",
-    query_id="12w",
-    snapshot_date="2025-W12",  # ISO week format
-    metric_type="dora",
-    metrics={
-        "deployment_frequency": 2.5,
-        "lead_time_days": 4.2,
-        "change_failure_rate": 0.08,
-        "mttr_hours": 3.5
-    },
-    forecast={  # Optional (Feature 009)
-        "predicted_value": 2.7,
-        "confidence_interval": [2.0, 3.4]
-    }
+# Filter by multiple criteria
+high_priority_bugs = backend.get_issues(
+    "kafka", "12w",
+    status="In Progress",
+    issue_type="Bug",
+    priority="High",
+    limit=10
 )
 
-# Get historical snapshots (last 12 weeks)
-snapshots = backend.get_metrics_snapshots(
-    profile_id="kafka",
-    query_id="12w",
-    metric_type="dora",
+# Delta update (fetch only changed issues from JIRA, then UPSERT)
+changed_issues = jira_api.fetch_changed_since(last_sync)
+backend.save_issues_batch("kafka", "12w", "abc123", changed_issues, expires_at)
+# UPSERT pattern: existing issues updated, new issues inserted
+
+# Cleanup expired issues (background task)
+cutoff = datetime.now() - timedelta(hours=24)
+deleted_count = backend.delete_expired_issues(cutoff)
+print(f"Cleaned up {deleted_count} expired issues")
+```
+
+### 5. Changelog Operations (Normalized)
+
+```python
+# Batch save changelog entries (flattened from JIRA history API)
+changelog_entries = [
+    {
+        "issue_key": "KAFKA-1234",
+        "change_date": "2025-12-20T15:00:00.000Z",
+        "author": "John Doe",
+        "field_name": "status",
+        "field_type": "jira",
+        "old_value": "In Progress",
+        "new_value": "Done"
+    },
+    # ... more entries
+]
+
+backend.save_changelog_batch("kafka", "12w", changelog_entries, expires_at)
+
+# Query status changes (for DORA lead time calculation)
+status_changes = backend.get_changelog_entries(
+    "kafka", "12w",
+    field_name="status",
+    start_date="2025-12-01T00:00:00Z"
+)
+
+for change in status_changes:
+    if change['new_value'] == "Done":
+        print(f"{change['issue_key']} completed on {change['change_date']}")
+
+# Get all changes for specific issue (for issue history view)
+issue_history = backend.get_changelog_entries(
+    "kafka", "12w",
+    issue_key="KAFKA-1234"
+)
+```
+
+### 6. Project Statistics (Normalized)
+
+```python
+# Batch save weekly statistics
+weekly_stats = [
+    {
+        "stat_date": "2025-12-01",
+        "week_label": "2025-W48",
+        "completed_items": 12,
+        "completed_points": 45.0,
+        "created_items": 8,
+        "created_points": 30.0,
+        "velocity_items": 10.5,
+        "velocity_points": 42.3
+    },
+    # ... 52 weeks of data
+]
+
+backend.save_statistics_batch("kafka", "12w", weekly_stats)
+
+# Query last 12 weeks for burndown chart
+recent_stats = backend.get_statistics(
+    "kafka", "12w",
     limit=12
 )
 
-# Plot trend
-for snap in snapshots:
-    print(f"{snap['snapshot_date']}: Deployment Frequency = {snap['metrics']['deployment_frequency']}")
+for week in recent_stats:
+    print(f"{week['week_label']}: Velocity = {week['velocity_points']} pts/week")
+
+# Save/get project scope (small aggregated data)
+scope = {
+    "remaining_items": 60,
+    "remaining_points": 240.0,
+    "baseline_items": 100,
+    "baseline_points": 400.0,
+    "forecast": {
+        "completion_date": "2025-12-31",
+        "confidence": 0.85
+    }
+}
+backend.save_scope("kafka", "12w", scope)
+
+current_scope = backend.get_scope("kafka", "12w")
+print(f"Remaining work: {current_scope['remaining_items']} items")
 ```
 
-### 6. App State Management
+### 7. Metrics Data Points (Normalized)
+
+```python
+# Batch save metric values for week 2025-W48
+metrics = [
+    {
+        "snapshot_date": "2025-W48",
+        "metric_category": "dora",
+        "metric_name": "deployment_frequency",
+        "metric_value": 2.5,
+        "metric_unit": "per_day",
+        "excluded_issue_count": 0,
+        "forecast_value": 2.7,
+        "forecast_confidence_low": 2.0,
+        "forecast_confidence_high": 3.4,
+        "calculated_at": "2025-12-23T10:00:00Z"
+    },
+    {
+        "snapshot_date": "2025-W48",
+        "metric_category": "dora",
+        "metric_name": "lead_time_days",
+        "metric_value": 4.2,
+        "metric_unit": "days",
+        "excluded_issue_count": 5,
+        "calculated_at": "2025-12-23T10:00:00Z"
+    },
+    # ... more metrics (8 per week = 52 weeks = 416 rows)
+]
+
+backend.save_metrics_batch("kafka", "12w", metrics)
+
+# Query single metric trend (for line chart)
+deployment_trend = backend.get_metric_values(
+    "kafka", "12w",
+    metric_name="deployment_frequency",
+    limit=12
+)
+
+for point in deployment_trend:
+    print(f"{point['snapshot_date']}: {point['metric_value']} {point['metric_unit']}")
+
+# Compare all DORA metrics for specific week
+week_metrics = backend.get_metric_values(
+    "kafka", "12w",
+    metric_category="dora",
+    start_date="2025-W48",
+    end_date="2025-W48"
+)
+
+# Find weeks where change failure rate > 10% (threshold alert)
+high_failure_weeks = backend.get_metric_values(
+    "kafka", "12w",
+    metric_name="change_failure_rate"
+)
+for metric in high_failure_weeks:
+    if metric['metric_value'] > 0.1:
+        print(f"⚠️ High failure rate in {metric['snapshot_date']}: {metric['metric_value']:.1%}")
+```
+
+### 8. App State Management
 
 ```python
 # Get active selections
