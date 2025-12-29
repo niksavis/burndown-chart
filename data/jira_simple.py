@@ -2336,7 +2336,12 @@ def jira_to_csv_format(issues: List[Dict], config: Dict) -> List[Dict]:
         date_from = min(all_dates)
         date_to = max(all_dates)
 
-        # Extend range to ensure we capture all activity
+        # Extend range to at least today to include weeks with zero activity
+        today = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+        if date_to < today:
+            date_to = today
+
+        # Extend range to ensure we capture all activity (extend to full weeks)
         date_from = date_from - timedelta(days=date_from.weekday())  # Start of week
         date_to = date_to + timedelta(days=6 - date_to.weekday())  # End of week
 
