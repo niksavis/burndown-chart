@@ -633,9 +633,20 @@ def prepare_visualization_data(
     # Compute weekly throughput with the filtered data
     grouped_df = compute_weekly_throughput(df_calc)
 
+    # Filter out zero-value weeks before calculating rates
+    # These are artificial weeks added by _fill_missing_weeks and shouldn't
+    # influence PERT pessimistic/optimistic calculations
+    grouped_df_non_zero = grouped_df[
+        (grouped_df["completed_items"] > 0) | (grouped_df["completed_points"] > 0)
+    ].copy()
+
+    # If all weeks are zero, use the original data to avoid empty DataFrame
+    if len(grouped_df_non_zero) == 0:
+        grouped_df_non_zero = grouped_df
+
     # Convert DataFrame to dictionary for caching
     # This prevents the "unhashable type: 'DataFrame'" error
-    grouped_dict = df_to_dict(grouped_df)
+    grouped_dict = df_to_dict(grouped_df_non_zero)
 
     # Log the data type for debugging
     logger = logging.getLogger("burndown_chart")
@@ -647,7 +658,9 @@ def prepare_visualization_data(
     elif isinstance(grouped_dict, list):
         grouped_df_for_rates = pd.DataFrame(grouped_dict)
     else:
-        grouped_df_for_rates = grouped_df  # Use original if conversion failed
+        grouped_df_for_rates = (
+            grouped_df_non_zero  # Use filtered df if conversion failed
+        )
 
     # Call calculate_rates with DataFrame
     try:
