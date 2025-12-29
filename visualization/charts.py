@@ -2749,10 +2749,22 @@ def prepare_visualization_data(
         # Get the most recent data_points_count rows
         df_calc = df_calc.iloc[-data_points_count:]
 
-    # Compute weekly throughput and rates with the filtered data
+    # Compute weekly throughput with the filtered data
     grouped = compute_weekly_throughput(df_calc)
+
+    # Filter out zero-value weeks before calculating rates
+    # These are artificial weeks added by _fill_missing_weeks and shouldn't
+    # influence PERT pessimistic/optimistic calculations
+    grouped_non_zero = grouped[
+        (grouped["completed_items"] > 0) | (grouped["completed_points"] > 0)
+    ].copy()
+
+    # If all weeks are zero, use the original data to avoid empty DataFrame
+    if len(grouped_non_zero) == 0:
+        grouped_non_zero = grouped
+
     rates = calculate_rates(
-        grouped, total_items, total_points, pert_factor, show_points
+        grouped_non_zero, total_items, total_points, pert_factor, show_points
     )
 
     (
