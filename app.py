@@ -45,6 +45,29 @@ logger = logging.getLogger(__name__)
 logger.info("Starting Burndown Chart application")
 
 #######################################################################
+# DATABASE MIGRATION
+#######################################################################
+
+# Run JSON-to-SQLite migration if needed (T029)
+# This must happen before any workspace operations
+try:
+    from data.migration.migrator import run_migration_if_needed
+
+    logger.info("Checking if database migration needed...")
+    migration_success = run_migration_if_needed()
+
+    if migration_success:
+        logger.info("Database ready (migration complete or not needed)")
+    else:
+        logger.error("Database migration failed - app may not function correctly")
+        print("ERROR: Database migration failed. Check logs/app.log for details.")
+        # Continue anyway - app will try to use existing data
+
+except Exception as e:
+    logger.error(f"Migration check failed: {e}", exc_info=True)
+    print(f"WARNING: Migration check failed - {e}. App will attempt to continue.")
+
+#######################################################################
 # VERSION CHECK
 #######################################################################
 

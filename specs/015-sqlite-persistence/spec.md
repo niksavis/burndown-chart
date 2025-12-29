@@ -2,8 +2,26 @@
 
 **Feature Branch**: `015-sqlite-persistence`  
 **Created**: 2025-12-23  
-**Status**: Draft  
+**Status**: Implementation In Progress (Updated: 2025-12-29)  
 **Input**: User description: "Change the data persistence from JSON files to SQLite database. All files created, updated, and deleted by the app must be replaced by database tables and queries."
+
+## Implementation Status (2025-12-29)
+
+**Phase**: Core Migration Complete  
+**Files Modified**:
+- ✅ `data/database.py` - Connection management with WAL mode
+- ✅ `data/migration/schema.py` - 10-table schema with 30+ indexes
+- ✅ `data/migration/schema_manager.py` - Schema initialization
+- ✅ `data/migration/backup.py` - Backup/restore functionality
+- ✅ `data/migration/migrator.py` - JSON-to-SQLite migration orchestrator
+- ✅ `data/migration/validator.py` - Post-migration validation
+- ✅ `data/persistence/__init__.py` - PersistenceBackend interface
+- ✅ `data/persistence/sqlite_backend.py` - Full SQLiteBackend implementation
+- ✅ `data/persistence/json_backend.py` - Legacy JSON backend (stub)
+- ✅ `data/persistence/factory.py` - Backend factory
+- ✅ `app.py` - Migration check integrated at startup
+
+**Next Steps**: See [tasks.md](tasks.md) for remaining integration and test tasks
 
 ## User Scenarios & Testing *(mandatory)*
 
