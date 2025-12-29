@@ -768,8 +768,8 @@ def register(app):
         baseline_points = current_remaining_points + total_completed_points
 
         # Debug logging to verify baseline calculation
-        logger.error(
-            f"[SCOPE BASELINE APP] data_points_count={data_points_count}, "
+        logger.debug(
+            f"[SCOPE BASELINE] data_points_count={data_points_count}, "
             f"filtered_rows={len(df_filtered)}, "
             f"current_remaining={current_remaining_items}/{current_remaining_points}, "
             f"completed_sum={total_completed_items}/{total_completed_points}, "
@@ -901,13 +901,13 @@ def register(app):
 
         ctx = callback_context
         trigger_info = ctx.triggered[0]["prop_id"] if ctx.triggered else "initial"
-        logger.warning(
+        logger.debug(
             f"[CTO DEBUG] render_tab_content triggered by: {trigger_info}, active_tab='{active_tab}', cache_size={len(chart_cache) if chart_cache else 0}"
         )
 
         # Handle initial load: if active_tab is None or empty, default to burndown
         if not active_tab:
-            logger.warning(
+            logger.debug(
                 "[CTO DEBUG] active_tab was empty/None, defaulting to tab-burndown"
             )
             active_tab = "tab-burndown"
@@ -946,7 +946,7 @@ def register(app):
         # to prevent any possibility of cross-tab contamination
         trigger_info = ctx.triggered[0]["prop_id"] if ctx.triggered else ""
         if "chart-tabs" in trigger_info:
-            logger.warning(
+            logger.debug(
                 "[CTO DEBUG] Tab switch detected - CLEARING ALL CACHE to prevent contamination"
             )
             chart_cache = {}
@@ -959,12 +959,12 @@ def register(app):
         # Create simplified cache key - only essential data for chart generation
         data_hash = hash(str(statistics) + str(settings) + str(show_points))
         cache_key = f"{active_tab}_{data_hash}"
-        logger.warning(f"[CTO DEBUG] Cache key generated: {cache_key}")
+        logger.debug(f"[CTO DEBUG] Cache key generated: {cache_key}")
 
         # Check if we have cached content for this exact state
         if cache_key in chart_cache:
             # Return cached content immediately for <100ms response time
-            logger.warning(
+            logger.debug(
                 f"[CTO DEBUG] Returning CACHED content for active_tab='{active_tab}', cache_key={cache_key}"
             )
             ui_state["loading"] = False
@@ -996,7 +996,7 @@ def register(app):
 
             if active_tab == "tab-dashboard":
                 # Generate modern compact dashboard content
-                logger.warning(
+                logger.debug(
                     f"[CTO DEBUG] Creating NEW modern dashboard content, cache_key={cache_key}"
                 )
 
@@ -1108,7 +1108,7 @@ def register(app):
                     show_points,
                 )
                 # Cache the result for next time
-                logger.warning(
+                logger.debug(
                     f"[CTO DEBUG] Created NEW burndown content, caching with key={cache_key}"
                 )
                 chart_cache[cache_key] = burndown_tab_content
@@ -1191,7 +1191,7 @@ def register(app):
 
             elif active_tab == "tab-scope-tracking":
                 # Generate scope tracking content only when needed
-                logger.warning(
+                logger.debug(
                     f"[CTO DEBUG] Creating NEW scope tracking content, cache_key={cache_key}"
                 )
                 scope_tab_content = _create_scope_tracking_tab_content(

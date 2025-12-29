@@ -1892,7 +1892,7 @@ def _create_insights_section(statistics_df, settings):
             recent_velocity = statistics_df["completed_items"].mean()
             historical_velocity = recent_velocity
 
-        if recent_velocity > historical_velocity * 1.1:
+        if historical_velocity > 0 and recent_velocity > historical_velocity * 1.1:
             insights.append(
                 {
                     "severity": "success",
@@ -1900,7 +1900,7 @@ def _create_insights_section(statistics_df, settings):
                     "recommendation": "Consider taking on additional scope or bringing forward deliverables to capitalize on this momentum.",
                 }
             )
-        elif recent_velocity < historical_velocity * 0.9:
+        elif historical_velocity > 0 and recent_velocity < historical_velocity * 0.9:
             insights.append(
                 {
                     "severity": "warning",
@@ -1965,7 +1965,7 @@ def _create_insights_section(statistics_df, settings):
             recent_items = statistics_df.iloc[mid_point:]["completed_items"].sum()
             prev_items = statistics_df.iloc[:mid_point]["completed_items"].sum()
 
-            if recent_items > prev_items * 1.2:
+            if prev_items > 0 and recent_items > prev_items * 1.2:
                 insights.append(
                     {
                         "severity": "success",

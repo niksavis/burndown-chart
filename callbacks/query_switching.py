@@ -261,8 +261,12 @@ def switch_query_callback(selected_query_id, current_options):
         logger.error(f"Query switch validation error: {e}")
         return no_update, no_update, no_update, no_update, no_update
 
+    except PreventUpdate:
+        # Re-raise PreventUpdate - this is expected behavior, not an error
+        raise
+
     except Exception as e:
-        logger.error(f"Failed to switch query: {e}")
+        logger.error(f"Failed to switch query: {type(e).__name__}: {e}")
         return no_update, no_update, no_update, no_update, no_update
 
 
