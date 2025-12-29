@@ -28,6 +28,61 @@ from ui.tooltip_utils import create_hoverlabel_config, format_hover_template
 # Mobile optimization removed for simplicity - will implement via CSS and responsive config
 
 #######################################################################
+# HELPER FUNCTIONS
+#######################################################################
+
+
+def _fill_missing_weeks(weekly_df, start_date, end_date, value_columns):
+    """Fill in missing weeks with zero values to show complete time range.
+    
+    Args:
+        weekly_df: DataFrame with aggregated weekly data (may have gaps)
+        start_date: Start date of the time range
+        end_date: End date of the time range
+        value_columns: List of column names to fill with zeros (e.g., ['items', 'points'])
+    
+    Returns:
+        DataFrame with all weeks in the range, missing weeks filled with zeros
+    """
+    if weekly_df.empty:
+        return weekly_df
+    
+    # Create complete week range
+    all_weeks = []
+    current = start_date
+    while current <= end_date:
+        # Get ISO week info
+        iso_calendar = current.isocalendar()
+        year_week = f"{iso_calendar.year}-W{iso_calendar.week:02d}"
+        all_weeks.append({
+            'year_week': year_week,
+            'start_date': current - timedelta(days=current.weekday())  # Monday of the week
+        })
+        current += timedelta(weeks=1)
+    
+    # Create DataFrame with all weeks
+    all_weeks_df = pd.DataFrame(all_weeks)
+    
+    # Merge with actual data, filling missing values with 0
+    result_df = all_weeks_df.merge(weekly_df, on='year_week', how='left', suffixes=('', '_actual'))
+    
+    # Use the actual start_date if it exists, otherwise use the computed one
+    if 'start_date_actual' in result_df.columns:
+        result_df['start_date'] = result_df['start_date_actual'].fillna(result_df['start_date'])
+        result_df = result_df.drop('start_date_actual', axis=1)
+    
+    # Ensure start_date is datetime type
+    result_df['start_date'] = pd.to_datetime(result_df['start_date'])
+    
+    # Fill missing value columns with 0
+    for col in value_columns:
+        if col in result_df.columns:
+            result_df[col] = result_df[col].fillna(0)
+    
+    return result_df.sort_values('start_date')
+
+
+#######################################################################
 # CHART CREATION FUNCTIONS
 #######################################################################
 
@@ -1039,11 +1094,17 @@ def create_weekly_items_chart(
         .reset_index()
     )
 
+    # Fill in missing weeks with zeros to show complete time range
+    weekly_df = _fill_missing_weeks(weekly_df, start_date, latest_date, ['items'])
+
     # Sort by date
     weekly_df = weekly_df.sort_values("start_date")
 
+    # Ensure start_date is datetime for type safety
+    weekly_df["start_date"] = pd.to_datetime(weekly_df["start_date"])
+
     # Format date for display
-    weekly_df["week_label"] = weekly_df["start_date"].dt.strftime("%b %d")
+    weekly_df["week_label"] = weekly_df["start_date"].dt.strftime("%b %d")  # type: ignore[attr-defined]
 
     # Calculate weighted moving average (last 4 weeks)
     # More weight given to recent weeks using exponential weights
@@ -1289,11 +1350,17 @@ def create_weekly_points_chart(
         .reset_index()
     )
 
+    # Fill in missing weeks with zeros to show complete time range
+    weekly_df = _fill_missing_weeks(weekly_df, start_date, latest_date, ['points'])
+
     # Sort by date
     weekly_df = weekly_df.sort_values("start_date")
 
+    # Ensure start_date is datetime for type safety
+    weekly_df["start_date"] = pd.to_datetime(weekly_df["start_date"])
+
     # Format date for display
-    weekly_df["week_label"] = weekly_df["start_date"].dt.strftime("%b %d")
+    weekly_df["week_label"] = weekly_df["start_date"].dt.strftime("%b %d")  # type: ignore[attr-defined]
 
     # Calculate weighted moving average (last 4 weeks)
     # More weight given to recent weeks using exponential weights
@@ -1533,11 +1600,17 @@ def create_weekly_items_forecast_chart(
         .reset_index()
     )
 
+    # Fill in missing weeks with zeros to show complete time range
+    weekly_df = _fill_missing_weeks(weekly_df, start_date, latest_date, ['items'])
+
     # Sort by date
     weekly_df = weekly_df.sort_values("start_date")
 
+    # Ensure start_date is datetime for type safety
+    weekly_df["start_date"] = pd.to_datetime(weekly_df["start_date"])
+
     # Format date for display
-    weekly_df["week_label"] = weekly_df["start_date"].dt.strftime("%b %d")
+    weekly_df["week_label"] = weekly_df["start_date"].dt.strftime("%b %d")  # type: ignore[attr-defined]
 
     # Generate forecast data using filtered statistics data
     forecast_data = generate_weekly_forecast(
@@ -1754,11 +1827,17 @@ def create_weekly_points_forecast_chart(
         .reset_index()
     )
 
+    # Fill in missing weeks with zeros to show complete time range
+    weekly_df = _fill_missing_weeks(weekly_df, start_date, latest_date, ['points'])
+
     # Sort by date
     weekly_df = weekly_df.sort_values("start_date")
 
+    # Ensure start_date is datetime for type safety
+    weekly_df["start_date"] = pd.to_datetime(weekly_df["start_date"])
+
     # Format date for display
-    weekly_df["week_label"] = weekly_df["start_date"].dt.strftime("%b %d")
+    weekly_df["week_label"] = weekly_df["start_date"].dt.strftime("%b %d")  # type: ignore[attr-defined]
 
     # Calculate weighted moving average (last 4 weeks)
     if len(weekly_df) >= 4:
