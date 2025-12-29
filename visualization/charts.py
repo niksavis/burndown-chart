@@ -2664,17 +2664,26 @@ def prepare_visualization_data(
     Returns:
         Dictionary containing all data needed for visualization
     """
+    # Ensure data_points_count is an integer (could be float from UI slider)
+    if data_points_count is not None:
+        data_points_count = int(data_points_count)
+
     # Import needed functions from data module
     from data.processing import (
         daily_forecast_burnup,
         compute_weekly_throughput,
         calculate_rates,
     )
+    from utils.dataframe_utils import ensure_dataframe
 
     # Handle empty dataframe case
-    if df.empty:
+    if (
+        df is None
+        or (isinstance(df, pd.DataFrame) and df.empty)
+        or (isinstance(df, list) and len(df) == 0)
+    ):
         return {
-            "df_calc": df,
+            "df_calc": pd.DataFrame() if not isinstance(df, pd.DataFrame) else df,
             "pert_time_items": 0,
             "pert_time_points": 0,
             "items_forecasts": {"avg": ([], []), "opt": ([], []), "pes": ([], [])},
@@ -2686,8 +2695,10 @@ def prepare_visualization_data(
             "last_points": total_points,
         }
 
+    # Convert to DataFrame if input is a list of dictionaries
+    df_calc = ensure_dataframe(df)
+
     # Convert string dates to datetime for calculations
-    df_calc = df.copy()
     df_calc["date"] = pd.to_datetime(df_calc["date"])
 
     # Ensure data is sorted by date in ascending order
@@ -2751,6 +2762,10 @@ def prepare_visualization_data(
 
     # Compute weekly throughput with the filtered data
     grouped = compute_weekly_throughput(df_calc)
+
+    # Ensure grouped is a DataFrame
+    if not isinstance(grouped, pd.DataFrame):
+        grouped = pd.DataFrame(grouped)
 
     # Filter out zero-value weeks before calculating rates
     # These are artificial weeks added by _fill_missing_weeks and shouldn't
