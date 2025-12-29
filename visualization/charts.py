@@ -1102,7 +1102,13 @@ def create_weekly_items_chart(
     )
 
     # Fill in missing weeks with zeros to show complete time range
-    weekly_df = _fill_missing_weeks(weekly_df, start_date, latest_date, ["items"])
+    # Use date range from aggregated data to respect data_points_count filtering
+    if not weekly_df.empty:
+        weekly_start = weekly_df["start_date"].min()
+        weekly_end = weekly_df["start_date"].max()
+        weekly_df = _fill_missing_weeks(weekly_df, weekly_start, weekly_end, ["items"])
+    else:
+        weekly_df = _fill_missing_weeks(weekly_df, start_date, latest_date, ["items"])
 
     # Sort by date
     weekly_df = weekly_df.sort_values("start_date")
@@ -1358,7 +1364,13 @@ def create_weekly_points_chart(
     )
 
     # Fill in missing weeks with zeros to show complete time range
-    weekly_df = _fill_missing_weeks(weekly_df, start_date, latest_date, ["points"])
+    # Use date range from aggregated data to respect data_points_count filtering
+    if not weekly_df.empty:
+        weekly_start = weekly_df["start_date"].min()
+        weekly_end = weekly_df["start_date"].max()
+        weekly_df = _fill_missing_weeks(weekly_df, weekly_start, weekly_end, ["points"])
+    else:
+        weekly_df = _fill_missing_weeks(weekly_df, start_date, latest_date, ["points"])
 
     # Sort by date
     weekly_df = weekly_df.sort_values("start_date")
@@ -1608,7 +1620,13 @@ def create_weekly_items_forecast_chart(
     )
 
     # Fill in missing weeks with zeros to show complete time range
-    weekly_df = _fill_missing_weeks(weekly_df, start_date, latest_date, ["items"])
+    # Use date range from aggregated data to respect data_points_count filtering
+    if not weekly_df.empty:
+        weekly_start = weekly_df["start_date"].min()
+        weekly_end = weekly_df["start_date"].max()
+        weekly_df = _fill_missing_weeks(weekly_df, weekly_start, weekly_end, ["items"])
+    else:
+        weekly_df = _fill_missing_weeks(weekly_df, start_date, latest_date, ["items"])
 
     # Sort by date
     weekly_df = weekly_df.sort_values("start_date")
@@ -1835,7 +1853,13 @@ def create_weekly_points_forecast_chart(
     )
 
     # Fill in missing weeks with zeros to show complete time range
-    weekly_df = _fill_missing_weeks(weekly_df, start_date, latest_date, ["points"])
+    # Use date range from aggregated data to respect data_points_count filtering
+    if not weekly_df.empty:
+        weekly_start = weekly_df["start_date"].min()
+        weekly_end = weekly_df["start_date"].max()
+        weekly_df = _fill_missing_weeks(weekly_df, weekly_start, weekly_end, ["points"])
+    else:
+        weekly_df = _fill_missing_weeks(weekly_df, start_date, latest_date, ["points"])
 
     # Sort by date
     weekly_df = weekly_df.sort_values("start_date")
