@@ -42,6 +42,7 @@ TREND_ICONS = {
     "stable": "fas fa-equals",
     "up": "fas fa-arrow-up",
     "down": "fas fa-arrow-down",
+    "baseline": "fas fa-hourglass-half",
 }
 
 TREND_COLORS = {
@@ -1893,9 +1894,36 @@ def create_compact_trend_indicator(trend_data, metric_name="Items"):
     percent_change = trend_data.get("percent_change", 0)
     current_avg = trend_data.get("current_avg", 0)
     previous_avg = trend_data.get("previous_avg", 0)
+    weeks_compared = trend_data.get("weeks_compared", 4)
 
-    # Determine trend direction and colors
-    if abs(percent_change) < 5:
+    # Check if we're in baseline building mode (need 8 weeks: 4 recent + 4 older for comparison)
+    # Two conditions indicate insufficient data:
+    # 1. weeks_compared < 4 means not enough weeks after aggregation
+    # 2. Both averages are 0 and percent_change is 0 means insufficient raw data
+    total_weeks_needed = 8
+    total_weeks_available = weeks_compared * 2  # Default calculation
+
+    is_insufficient_data = weeks_compared < 4 or (
+        current_avg == 0 and previous_avg == 0 and percent_change == 0
+    )
+
+    if is_insufficient_data:
+        # Not enough data for trend comparison - show baseline building message
+        # Estimate weeks available from the data we have
+        if weeks_compared < 4:
+            total_weeks_available = weeks_compared * 2
+        else:
+            # When weeks_compared=4 but averages are 0, we have < 8 weeks of actual data
+            # This happens when raw statistics_data length < 8
+            total_weeks_available = 0  # Unknown exact count
+
+        direction = "baseline"
+        icon_class = TREND_ICONS.get("baseline", "fas fa-hourglass-half")
+        text_color = "#6c757d"
+        bg_color = "rgba(108, 117, 125, 0.1)"
+        border_color = "rgba(108, 117, 125, 0.2)"
+    # Determine trend direction and colors for established trends
+    elif abs(percent_change) < 5:
         direction = "stable"
         icon_class = TREND_ICONS["stable"]
         text_color = TREND_COLORS["stable"]
@@ -1952,7 +1980,14 @@ def create_compact_trend_indicator(trend_data, metric_name="Items"):
                                 style={"fontSize": "0.9rem"},
                             ),
                             html.Span(
-                                f"{abs(percent_change)}% {direction.capitalize()}",
+                                (
+                                    "Building baseline..."
+                                    if direction == "baseline"
+                                    and total_weeks_available == 0
+                                    else f"Building baseline ({total_weeks_available} of {total_weeks_needed} weeks)"
+                                    if direction == "baseline"
+                                    else f"{abs(percent_change):.0f}% {direction.capitalize()}"
+                                ),
                                 style={
                                     "color": text_color,
                                     "fontWeight": "500",
@@ -1964,16 +1999,25 @@ def create_compact_trend_indicator(trend_data, metric_name="Items"):
                     html.Div(
                         className="d-flex justify-content-between align-items-baseline mt-1",
                         style={"fontSize": "0.8rem", "color": "#6c757d"},
-                        children=[
-                            html.Span(
-                                f"4-week avg: {current_avg} {metric_name.lower()}/week",
-                                style={"marginRight": "15px"},
-                            ),
-                            html.Span(
-                                f"Previous: {previous_avg} {metric_name.lower()}/week",
-                                style={"marginLeft": "5px"},
-                            ),
-                        ],
+                        children=(
+                            [
+                                html.Span(
+                                    "Collecting data to establish performance baseline",
+                                    style={"fontStyle": "italic"},
+                                ),
+                            ]
+                            if direction == "baseline"
+                            else [
+                                html.Span(
+                                    f"4-week avg: {current_avg:.1f} {metric_name.lower()}/week",
+                                    style={"marginRight": "15px"},
+                                ),
+                                html.Span(
+                                    f"Previous: {previous_avg:.1f} {metric_name.lower()}/week",
+                                    style={"marginLeft": "5px"},
+                                ),
+                            ]
+                        ),
                     ),
                 ],
             ),
