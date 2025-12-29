@@ -244,40 +244,61 @@ def _create_metric_card(
         icon: Font Awesome icon class
         color: Color for icon and value
         trend: Optional trend data dict with 'direction' and 'percent'
+               - For trends: {'direction': 'up'/'down'/'stable', 'percent': float}
+               - For baseline: {'direction': 'baseline', 'percent': 0, 'message': str}
         sparkline_data: Optional data for sparkline visualization
         tooltip_text: Optional help text for info tooltip
         tooltip_id: Optional unique ID suffix for tooltip (required if tooltip_text provided)
     """
     trend_element = html.Div()
     if trend:
-        trend_color = (
-            "#28a745"
-            if trend["direction"] == "up"
-            else "#dc3545"
-            if trend["direction"] == "down"
-            else "#6c757d"
-        )
-        trend_icon = (
-            "fa-arrow-up"
-            if trend["direction"] == "up"
-            else "fa-arrow-down"
-            if trend["direction"] == "down"
-            else "fa-minus"
-        )
+        if trend.get("direction") == "baseline":
+            # Show baseline building message instead of trend
+            trend_element = html.Div(
+                [
+                    html.I(
+                        className="fas fa-hourglass-half me-1",
+                        style={"fontSize": "0.75rem"},
+                    ),
+                    html.Span(
+                        trend.get("message", "Building baseline"),
+                        style={"fontSize": "0.75rem", "fontStyle": "italic"},
+                    ),
+                ],
+                style={"color": "#6c757d"},
+                className="mt-1",
+            )
+        else:
+            # Show normal trend indicator
+            trend_color = (
+                "#28a745"
+                if trend["direction"] == "up"
+                else "#dc3545"
+                if trend["direction"] == "down"
+                else "#6c757d"
+            )
+            trend_icon = (
+                "fa-arrow-up"
+                if trend["direction"] == "up"
+                else "fa-arrow-down"
+                if trend["direction"] == "down"
+                else "fa-minus"
+            )
 
-        trend_element = html.Div(
-            [
-                html.I(
-                    className=f"fas {trend_icon} me-1", style={"fontSize": "0.75rem"}
-                ),
-                html.Span(
-                    f"{abs(trend['percent']):.0f}%",
-                    style={"fontSize": "0.8rem", "fontWeight": "600"},
-                ),
-            ],
-            style={"color": trend_color},
-            className="mt-1",
-        )
+            trend_element = html.Div(
+                [
+                    html.I(
+                        className=f"fas {trend_icon} me-1",
+                        style={"fontSize": "0.75rem"},
+                    ),
+                    html.Span(
+                        f"{abs(trend['percent']):.0f}%",
+                        style={"fontSize": "0.8rem", "fontWeight": "600"},
+                    ),
+                ],
+                style={"color": trend_color},
+                className="mt-1",
+            )
 
     sparkline_element = html.Div()
     if sparkline_data and len(sparkline_data) > 1:
@@ -972,10 +993,11 @@ def _create_throughput_section(statistics_df, forecast_data, settings):
     # Calculate trends by comparing older vs recent halves of filtered data
     items_trend = None
     points_trend = None
+    weeks_available = len(statistics_df)
 
-    if len(statistics_df) >= 8:
-        # Split into older and recent halves
-        mid_point = len(statistics_df) // 2
+    if weeks_available >= 8:
+        # Have enough data for full trend comparison (4 weeks vs 4 weeks)
+        mid_point = weeks_available // 2
         older_half = statistics_df.iloc[:mid_point]
         recent_half = statistics_df.iloc[mid_point:]
 
@@ -1004,7 +1026,21 @@ def _create_throughput_section(statistics_df, forecast_data, settings):
             if older_points > 0
             else 0,
         }
+    elif weeks_available >= 4:
+        # Have baseline data but not enough for trend comparison
+        # Show a message indicating we're building baseline
+        items_trend = {
+            "direction": "baseline",
+            "percent": 0,
+            "message": f"Building baseline ({weeks_available} of 8 weeks)",
+        }
+        points_trend = {
+            "direction": "baseline",
+            "percent": 0,
+            "message": f"Building baseline ({weeks_available} of 8 weeks)",
+        }
     else:
+        # Not enough data yet
         items_trend = None
         points_trend = None
 
