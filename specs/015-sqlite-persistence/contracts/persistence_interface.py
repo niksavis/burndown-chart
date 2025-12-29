@@ -232,15 +232,103 @@ class PersistenceBackend(ABC):
         pass
 
     # ========================================================================
-    # JIRA Cache Operations
+    # JIRA Cache Operations (Normalized)
     # ========================================================================
+
+    # NOTE: Methods below provide normalized access to JIRA data
+    # Legacy JSON blob methods (get_jira_cache/save_jira_cache) kept for migration compatibility
+
+    @abstractmethod
+    def get_issues(
+        self,
+        profile_id: str,
+        query_id: str,
+        status: Optional[str] = None,
+        assignee: Optional[str] = None,
+        issue_type: Optional[str] = None,
+        project_key: Optional[str] = None,
+        limit: Optional[int] = None,
+    ) -> List[Dict]:
+        """
+        Query normalized JIRA issues with optional filters.
+
+        Args:
+            profile_id: Profile ID
+            query_id: Query ID
+            status: Filter by status (e.g., "Done", "In Progress")
+            assignee: Filter by assignee display name
+            issue_type: Filter by issue type (e.g., "Bug", "Story")
+            project_key: Filter by project key (e.g., "KAFKA")
+            limit: Maximum number of results
+
+        Returns:
+            List of issue dicts with indexed fields + JSON columns
+
+        Example:
+            >>> done_issues = backend.get_issues("kafka", "12w", status="Done")
+            >>> for issue in done_issues:
+            ...     print(f"{issue['issue_key']}: {issue['summary']}")
+        """
+        pass
+
+    @abstractmethod
+    def save_issues_batch(
+        self,
+        profile_id: str,
+        query_id: str,
+        cache_key: str,
+        issues: List[Dict],
+        expires_at: datetime,
+    ) -> None:
+        """
+        Batch insert/update (UPSERT) normalized JIRA issues.
+
+        Args:
+            profile_id: Profile ID
+            query_id: Query ID
+            cache_key: Cache identifier for this fetch
+            issues: List of JIRA issue dicts from API
+            expires_at: Cache expiration timestamp
+
+        Notes:
+            - Uses ON CONFLICT DO UPDATE for efficient delta updates
+            - Extracts indexed columns (status, assignee, etc.) from issue dict
+            - Stores nested data (fix_versions, labels) as JSON
+
+        Example:
+            >>> issues = jira_api.fetch_issues(jql)
+            >>> backend.save_issues_batch("kafka", "12w", "cache_abc", issues, expires_at)
+        """
+        pass
+
+    @abstractmethod
+    def delete_expired_issues(self, cutoff_time: datetime) -> int:
+        """
+        Delete issues where expires_at < cutoff_time.
+
+        Args:
+            cutoff_time: Delete issues expiring before this timestamp
+
+        Returns:
+            Number of issues deleted
+
+        Example:
+            >>> from datetime import datetime, timedelta
+            >>> cutoff = datetime.now() - timedelta(hours=24)
+            >>> deleted = backend.delete_expired_issues(cutoff)
+            >>> print(f"Cleaned up {deleted} expired issues")
+        """
+        pass
 
     @abstractmethod
     def get_jira_cache(
         self, profile_id: str, query_id: str, cache_key: str
     ) -> Optional[Dict]:
         """
-        Get cached JIRA response if not expired.
+        LEGACY: Get cached JIRA response as JSON blob (pre-normalization).
+
+        DEPRECATED: Use get_issues() for normalized access with filters.
+        Kept for backward compatibility during migration period.
 
         Args:
             profile_id: Profile ID
@@ -267,7 +355,10 @@ class PersistenceBackend(ABC):
         expires_at: datetime,
     ) -> None:
         """
-        Save JIRA response to cache.
+        LEGACY: Save JIRA response to cache as JSON blob (pre-normalization).
+
+        DEPRECATED: Use save_issues_batch() for normalized storage.
+        Kept for backward compatibility during migration period.
 
         Args:
             profile_id: Profile ID
@@ -302,15 +393,73 @@ class PersistenceBackend(ABC):
         pass
 
     # ========================================================================
-    # JIRA Changelog Cache Operations
+    # JIRA Changelog Operations (Normalized)
     # ========================================================================
+
+    @abstractmethod
+    def get_changelog_entries(
+        self,
+        profile_id: str,
+        query_id: str,
+        issue_key: Optional[str] = None,
+        field_name: Optional[str] = None,
+        start_date: Optional[str] = None,
+        end_date: Optional[str] = None,
+    ) -> List[Dict]:
+        """
+        Query normalized changelog entries with filters.
+
+        Args:
+            profile_id: Profile ID
+            query_id: Query ID
+            issue_key: Filter by specific issue (e.g., "KAFKA-1234")
+            field_name: Filter by field changed (e.g., "status")
+            start_date: ISO timestamp - changes after this date
+            end_date: ISO timestamp - changes before this date
+
+        Returns:
+            List of changelog entry dicts
+
+        Example:
+            >>> # Get all status changes in last week
+            >>> changes = backend.get_changelog_entries(
+            ...     "kafka", "12w", field_name="status",
+            ...     start_date="2025-12-22T00:00:00Z"
+            ... )
+        """
+        pass
+
+    @abstractmethod
+    def save_changelog_batch(
+        self,
+        profile_id: str,
+        query_id: str,
+        entries: List[Dict],
+        expires_at: datetime,
+    ) -> None:
+        """
+        Batch insert/update normalized changelog entries.
+
+        Args:
+            profile_id: Profile ID
+            query_id: Query ID
+            entries: List of changelog entry dicts (flattened from JIRA history)
+            expires_at: Cache expiration timestamp
+
+        Example:
+            >>> changelog_entries = flatten_jira_changelog(api_response)
+            >>> backend.save_changelog_batch("kafka", "12w", changelog_entries, expires)
+        """
+        pass
 
     @abstractmethod
     def get_jira_changelog(
         self, profile_id: str, query_id: str, issue_key: str
     ) -> Optional[Dict]:
         """
-        Get cached JIRA changelog for issue if not expired.
+        LEGACY: Get cached JIRA changelog for issue as JSON blob.
+
+        DEPRECATED: Use get_changelog_entries() for normalized access.
 
         Args:
             profile_id: Profile ID
@@ -332,7 +481,9 @@ class PersistenceBackend(ABC):
         expires_at: datetime,
     ) -> None:
         """
-        Save JIRA changelog to cache.
+        LEGACY: Save JIRA changelog to cache as JSON blob.
+
+        DEPRECATED: Use save_changelog_batch() for normalized storage.
 
         Args:
             profile_id: Profile ID
@@ -348,13 +499,105 @@ class PersistenceBackend(ABC):
         pass
 
     # ========================================================================
-    # Project Data Operations
+    # Project Statistics Operations (Normalized)
     # ========================================================================
+
+    @abstractmethod
+    def get_statistics(
+        self,
+        profile_id: str,
+        query_id: str,
+        start_date: Optional[str] = None,
+        end_date: Optional[str] = None,
+        limit: Optional[int] = None,
+    ) -> List[Dict]:
+        """
+        Query normalized weekly project statistics.
+
+        Args:
+            profile_id: Profile ID
+            query_id: Query ID
+            start_date: ISO date - stats after this date (e.g., "2025-12-01")
+            end_date: ISO date - stats before this date
+            limit: Maximum number of weeks
+
+        Returns:
+            List of weekly stat dicts (completed_items, velocity, etc.)
+
+        Example:
+            >>> # Get last 12 weeks of stats
+            >>> stats = backend.get_statistics("kafka", "12w", limit=12)
+            >>> for week in stats:
+            ...     print(f"{week['stat_date']}: {week['velocity_points']} pts/week")
+        """
+        pass
+
+    @abstractmethod
+    def save_statistics_batch(
+        self,
+        profile_id: str,
+        query_id: str,
+        stats: List[Dict],
+    ) -> None:
+        """
+        Batch UPSERT weekly statistics.
+
+        Args:
+            profile_id: Profile ID
+            query_id: Query ID
+            stats: List of weekly stat dicts
+
+        Example:
+            >>> weekly_stats = calculate_weekly_statistics(issues)
+            >>> backend.save_statistics_batch("kafka", "12w", weekly_stats)
+        """
+        pass
+
+    @abstractmethod
+    def get_scope(self, profile_id: str, query_id: str) -> Optional[Dict]:
+        """
+        Get project scope data (small aggregated JSON).
+
+        Args:
+            profile_id: Profile ID
+            query_id: Query ID
+
+        Returns:
+            Scope dict with remaining_items, baseline, forecast
+
+        Example:
+            >>> scope = backend.get_scope("kafka", "12w")
+            >>> print(f"Remaining: {scope['remaining_items']} items")
+        """
+        pass
+
+    @abstractmethod
+    def save_scope(
+        self,
+        profile_id: str,
+        query_id: str,
+        scope_data: Dict,
+    ) -> None:
+        """
+        Save project scope data.
+
+        Args:
+            profile_id: Profile ID
+            query_id: Query ID
+            scope_data: Scope dict (small JSON, ~1KB)
+
+        Example:
+            >>> scope = calculate_project_scope(issues)
+            >>> backend.save_scope("kafka", "12w", scope)
+        """
+        pass
 
     @abstractmethod
     def get_project_data(self, profile_id: str, query_id: str) -> Optional[Dict]:
         """
-        Get project data (statistics, scope) for query.
+        LEGACY: Get project data (statistics, scope) as JSON blob.
+
+        DEPRECATED: Use get_statistics() and get_scope() for normalized access.
 
         Args:
             profile_id: Profile ID
@@ -387,15 +630,84 @@ class PersistenceBackend(ABC):
         pass
 
     # ========================================================================
-    # Metrics Snapshots Operations
+    # Metrics Operations (Normalized)
     # ========================================================================
+
+    @abstractmethod
+    def get_metric_values(
+        self,
+        profile_id: str,
+        query_id: str,
+        metric_name: Optional[str] = None,
+        metric_category: Optional[str] = None,
+        start_date: Optional[str] = None,
+        end_date: Optional[str] = None,
+        limit: Optional[int] = None,
+    ) -> List[Dict]:
+        """
+        Query normalized metric data points.
+
+        Args:
+            profile_id: Profile ID
+            query_id: Query ID
+            metric_name: Filter by metric (e.g., "deployment_frequency", "lead_time_days")
+            metric_category: Filter by category ("dora" or "flow")
+            start_date: ISO week - metrics after this date (e.g., "2025-W48")
+            end_date: ISO week - metrics before this date
+            limit: Maximum number of data points
+
+        Returns:
+            List of metric value dicts
+
+        Example:
+            >>> # Get deployment frequency trend for last 12 weeks
+            >>> values = backend.get_metric_values(
+            ...     "kafka", "12w",
+            ...     metric_name="deployment_frequency",
+            ...     limit=12
+            ... )
+            >>> for v in values:
+            ...     print(f"{v['snapshot_date']}: {v['metric_value']} {v['metric_unit']}")
+        """
+        pass
+
+    @abstractmethod
+    def save_metrics_batch(
+        self,
+        profile_id: str,
+        query_id: str,
+        metrics: List[Dict],
+    ) -> None:
+        """
+        Batch UPSERT metric data points.
+
+        Args:
+            profile_id: Profile ID
+            query_id: Query ID
+            metrics: List of metric value dicts
+
+        Example:
+            >>> # Save DORA metrics for week 2025-W48
+            >>> metrics = [
+            ...     {"snapshot_date": "2025-W48", "metric_category": "dora",
+            ...      "metric_name": "deployment_frequency", "metric_value": 2.5,
+            ...      "metric_unit": "per_day"},
+            ...     {"snapshot_date": "2025-W48", "metric_category": "dora",
+            ...      "metric_name": "lead_time_days", "metric_value": 4.2,
+            ...      "metric_unit": "days"},
+            ... ]
+            >>> backend.save_metrics_batch("kafka", "12w", metrics)
+        """
+        pass
 
     @abstractmethod
     def get_metrics_snapshots(
         self, profile_id: str, query_id: str, metric_type: str, limit: int = 52
     ) -> List[Dict]:
         """
-        Get historical metrics snapshots.
+        LEGACY: Get historical metrics snapshots as JSON blobs.
+
+        DEPRECATED: Use get_metric_values() for normalized access with filtering.
 
         Args:
             profile_id: Profile ID

@@ -37,7 +37,7 @@
 - [ ] T007 [P] Implement SQLiteBackend class in data/persistence/sqlite_backend.py (stub all methods)
 - [ ] T008 [P] Implement JSONBackend class in data/persistence/json_backend.py (legacy fallback, stub all methods)
 - [ ] T009 Create backend factory functions (get_backend, set_backend) in data/persistence/**init**.py
-- [ ] T010 Implement database schema creation (8 tables) in data/migration/schema.py per data-model.md
+- [ ] T010 Implement database schema creation (10 normalized tables) in data/migration/schema.py per data-model.md: profiles, queries, app_state, jira_issues, jira_changelog_entries, project_statistics, project_scope, metrics_data_points, task_progress with 30+ indexes
 - [ ] T011 Implement database integrity check in data/database.py (check_database_integrity function)
 - [ ] T012 Add logging configuration for database operations in configuration/logging_config.py
 - [ ] T013 Verify zero errors after Phase 2 foundation
@@ -59,18 +59,20 @@
 - [ ] T016 [US1] Implement app_state table operations in data/persistence/sqlite_backend.py (get_app_state, set_app_state)
 - [ ] T017 [US1] Implement profiles table operations in data/persistence/sqlite_backend.py (get_profile, save_profile)
 - [ ] T018 [US1] Implement queries table operations in data/persistence/sqlite_backend.py (get_query, save_query, list_queries)
-- [ ] T019 [US1] Implement jira_cache table operations in data/persistence/sqlite_backend.py (get_jira_cache, save_jira_cache)
-- [ ] T020 [US1] Implement jira_changelog_cache table operations in data/persistence/sqlite_backend.py (get_jira_changelog, save_jira_changelog)
-- [ ] T021 [US1] Implement project_data table operations in data/persistence/sqlite_backend.py (get_project_data, save_project_data)
-- [ ] T022 [US1] Implement metrics_snapshots table operations in data/persistence/sqlite_backend.py (get_metrics_snapshots, save_metrics_snapshots)
-- [ ] T023 [US1] Implement task_progress table operations in data/persistence/sqlite_backend.py (get_task_progress, save_task_progress, clear_task_progress)
-- [ ] T024 [US1] Implement post-migration validator in data/migration/validator.py (validate_migration function)
-- [ ] T025 [US1] Implement migration orchestrator in data/migration/migrator.py (run_migration_if_needed function)
-- [ ] T026 [US1] Add migration status tracking to app_state table (migration_complete flag)
-- [ ] T027 [US1] Integrate migration check into app.py startup (call run_migration_if_needed before Dash server starts)
-- [ ] T028 [US1] Add rollback mechanism for failed migrations in data/migration/migrator.py
-- [ ] T029 [US1] Verify SC-001: Migration completes <5s for 1000 cached issues (performance benchmark)
-- [ ] T030 [US1] Verify SC-004: Zero data loss during migration (validation test)
+- [ ] T019 [US1] Implement jira_issues table operations in data/persistence/sqlite_backend.py (get_issues, save_issues_batch, delete_expired_issues)
+- [ ] T020 [US1] Implement jira_changelog_entries table operations in data/persistence/sqlite_backend.py (get_changelog_entries, save_changelog_batch)
+- [ ] T021 [US1] Implement project_statistics table operations in data/persistence/sqlite_backend.py (get_statistics, save_statistics_batch)
+- [ ] T022 [US1] Implement project_scope table operations in data/persistence/sqlite_backend.py (get_scope, save_scope)
+- [ ] T023 [US1] Implement metrics_data_points table operations in data/persistence/sqlite_backend.py (get_metric_values, save_metrics_batch)
+- [ ] T024 [US1] Implement task_progress table operations in data/persistence/sqlite_backend.py (get_task_progress, save_task_progress, clear_task_progress)
+- [ ] T025 [US1] Implement legacy JSON blob methods for migration compatibility in data/persistence/sqlite_backend.py (get_jira_cache, save_jira_cache, get_project_data, save_project_data, get_metrics_snapshots)
+- [ ] T026 [US1] Implement post-migration validator in data/migration/validator.py (validate_migration function)
+- [ ] T027 [US1] Implement migration orchestrator in data/migration/migrator.py (run_migration_if_needed function)
+- [ ] T028 [US1] Add migration status tracking to app_state table (migration_complete flag)
+- [ ] T029 [US1] Integrate migration check into app.py startup (call run_migration_if_needed before Dash server starts)
+- [ ] T030 [US1] Add rollback mechanism for failed migrations in data/migration/migrator.py
+- [ ] T031 [US1] Verify SC-001: Migration completes <5s for 1000 cached issues (performance benchmark)
+- [ ] T032 [US1] Verify SC-004: Zero data loss during migration (validation test)
 
 **Checkpoint**: Users with existing JSON files successfully migrate to database on first launch
 
@@ -84,20 +86,20 @@
 
 ### Implementation for User Story 2
 
-- [ ] T031 [P] [US2] Create performance benchmark suite in tests/performance/ directory
-- [ ] T032 [P] [US2] Add composite indexes to database schema in data/migration/schema.py per data-model.md indexing strategy
-- [ ] T033 [US2] Implement prepared statement caching in data/persistence/sqlite_backend.py
-- [ ] T034 [US2] Implement batch insert operations for jira_cache in data/persistence/sqlite_backend.py (save_jira_cache_batch)
-- [ ] T035 [US2] Optimize profile load query with index hints in data/persistence/sqlite_backend.py (get_profile)
-- [ ] T036 [US2] Optimize query switch with composite index on (profile_id, query_id) in queries table
-- [ ] T037 [US2] Update data/profile_manager.py to use get_backend() for profile operations
-- [ ] T038 [US2] Update data/query_manager.py to use get_backend() for query operations
-- [ ] T039 [US2] Update data/jira_simple.py to use get_backend() for cache operations
-- [ ] T040 [US2] Update data/metrics_snapshots.py to use get_backend() for snapshots operations
-- [ ] T041 [US2] Verify SC-002: Database reads complete <50ms for 100 records (benchmark)
-- [ ] T042 [US2] Verify SC-003: Database writes complete <100ms (benchmark)
-- [ ] T043 [US2] Verify SC-005: 1000+ cached issues handled without degradation (load test)
-- [ ] T044 [US2] Verify SC-008: App startup <2s with database (integration test)
+- [ ] T033 [P] [US2] Create performance benchmark suite in tests/performance/ directory
+- [ ] T034 [P] [US2] Add composite indexes to database schema in data/migration/schema.py per data-model.md indexing strategy
+- [ ] T035 [US2] Implement prepared statement caching in data/persistence/sqlite_backend.py
+- [ ] T036 [US2] Implement batch insert operations for normalized tables in data/persistence/sqlite_backend.py (already done in T019-T023)
+- [ ] T037 [US2] Optimize profile load query with index hints in data/persistence/sqlite_backend.py (get_profile)
+- [ ] T038 [US2] Optimize query switch with composite index on (profile_id, query_id) in queries table
+- [ ] T039 [US2] Update data/profile_manager.py to use get_backend() for profile operations
+- [ ] T040 [US2] Update data/query_manager.py to use get_backend() for query operations
+- [ ] T041 [US2] Update data/jira_simple.py to use get_backend() normalized methods (get_issues, save_issues_batch)
+- [ ] T042 [US2] Update data/metrics_snapshots.py to use get_backend() normalized methods (get_metric_values, save_metrics_batch)
+- [ ] T043 [US2] Verify SC-002: Database reads complete <50ms for 100 records (benchmark)
+- [ ] T044 [US2] Verify SC-003: Database writes complete <100ms (benchmark)
+- [ ] T045 [US2] Verify SC-005: 1000+ cached issues handled without degradation (load test)
+- [ ] T046 [US2] Verify SC-008: App startup <2s with database (integration test)
 
 **Checkpoint**: Database operations meet or exceed performance targets
 
@@ -111,18 +113,18 @@
 
 ### Implementation for User Story 3
 
-- [ ] T045 [P] [US3] Implement profile creation in data/persistence/sqlite_backend.py with unique ID generation
-- [ ] T046 [P] [US3] Implement profile deletion with CASCADE DELETE for related data in data/persistence/sqlite_backend.py (delete_profile)
-- [ ] T047 [US3] Implement profile listing with last_used sorting in data/persistence/sqlite_backend.py (list_profiles)
-- [ ] T048 [US3] Implement profile switching with last_used update in data/persistence/sqlite_backend.py
-- [ ] T049 [US3] Implement query deletion with CASCADE DELETE in data/persistence/sqlite_backend.py (delete_query)
-- [ ] T050 [US3] Update callbacks/profile_management.py to use get_backend() for profile CRUD
-- [ ] T051 [US3] Update callbacks/query_management.py to use get_backend() for query CRUD
-- [ ] T052 [US3] Implement profile export to JSON in data/import_export.py (export_profile function)
-- [ ] T053 [US3] Implement profile import from JSON in data/import_export.py (import_profile function)
-- [ ] T054 [US3] Add foreign key constraints validation to schema in data/migration/schema.py
-- [ ] T055 [US3] Test profile isolation: create 2 profiles, verify data separation (integration test)
-- [ ] T056 [US3] Test profile deletion: verify CASCADE DELETE removes all related data (integration test)
+- [ ] T047 [P] [US3] Implement profile creation in data/persistence/sqlite_backend.py with unique ID generation
+- [ ] T048 [P] [US3] Implement profile deletion with CASCADE DELETE for related data in data/persistence/sqlite_backend.py (delete_profile)
+- [ ] T049 [US3] Implement profile listing with last_used sorting in data/persistence/sqlite_backend.py (list_profiles)
+- [ ] T050 [US3] Implement profile switching with last_used update in data/persistence/sqlite_backend.py
+- [ ] T051 [US3] Implement query deletion with CASCADE DELETE in data/persistence/sqlite_backend.py (delete_query)
+- [ ] T052 [US3] Update callbacks/profile_management.py to use get_backend() for profile CRUD
+- [ ] T053 [US3] Update callbacks/query_management.py to use get_backend() for query CRUD
+- [ ] T054 [US3] Implement profile export to JSON directory structure in data/import_export.py (export_profile function - normalized to JSON)
+- [ ] T055 [US3] Implement profile import from JSON directory structure in data/import_export.py (import_profile function)
+- [ ] T056 [US3] Add foreign key constraints validation to schema in data/migration/schema.py
+- [ ] T057 [US3] Test profile isolation: create 2 profiles, verify data separation (integration test)
+- [ ] T058 [US3] Test profile deletion: verify CASCADE DELETE removes all related data (integration test)
 
 **Checkpoint**: Multi-profile workspace fully functional with database
 
@@ -136,16 +138,16 @@
 
 ### Implementation for User Story 4
 
-- [ ] T057 [P] [US4] Enable WAL mode in get_db_connection() context manager in data/database.py
-- [ ] T058 [P] [US4] Implement transaction management in SQLiteBackend (begin_transaction, commit, rollback) in data/persistence/sqlite_backend.py
-- [ ] T059 [US4] Add connection timeout configuration (10s default) in data/database.py
-- [ ] T060 [US4] Implement automatic retry logic for locked database in data/persistence/sqlite_backend.py
-- [ ] T061 [US4] Add connection-per-request pattern enforcement (verify no global connections) via code review
-- [ ] T062 [US4] Implement graceful handling of OperationalError (database locked) in data/persistence/sqlite_backend.py
-- [ ] T063 [US4] Test concurrent reads from multiple threads (integration test with threading module)
-- [ ] T064 [US4] Test concurrent writes from multiple threads (integration test with threading module)
-- [ ] T065 [US4] Verify SC-006: Concurrent access completes without deadlocks (stress test)
-- [ ] T066 [US4] Document WAL file requirements (copy all 3 files) in quickstart.md (already done)
+- [ ] T059 [P] [US4] Enable WAL mode in get_db_connection() context manager in data/database.py
+- [ ] T060 [P] [US4] Implement transaction management in SQLiteBackend (begin_transaction, commit, rollback) in data/persistence/sqlite_backend.py
+- [ ] T061 [US4] Add connection timeout configuration (10s default) in data/database.py
+- [ ] T062 [US4] Implement automatic retry logic for locked database in data/persistence/sqlite_backend.py
+- [ ] T063 [US4] Add connection-per-request pattern enforcement (verify no global connections) via code review
+- [ ] T064 [US4] Implement graceful handling of OperationalError (database locked) in data/persistence/sqlite_backend.py
+- [ ] T065 [US4] Test concurrent reads from multiple threads (integration test with threading module)
+- [ ] T066 [US4] Test concurrent writes from multiple threads (integration test with threading module)
+- [ ] T067 [US4] Verify SC-006: Concurrent access completes without deadlocks (stress test)
+- [ ] T068 [US4] Document WAL file requirements (copy all 3 files) in quickstart.md (already done)
 
 **Checkpoint**: Database safely handles concurrent access scenarios
 
@@ -155,19 +157,19 @@
 
 **Purpose**: Improvements that affect multiple user stories and final validation
 
-- [ ] T067 [P] Update copilot-instructions.md with persistence layer rules (already done via update-agent-context.ps1)
-- [ ] T068 [P] Add database file size monitoring in data/database.py (get_database_size function)
-- [ ] T069 [P] Implement cleanup_expired_cache() background task in data/persistence/sqlite_backend.py
-- [ ] T070 [P] Add database schema versioning to app_state table (schema_version = "1.0")
-- [ ] T071 Code cleanup: Remove dead JSON file utilities following Boy Scout Rule and Constitution Principle VI
-- [ ] T072 Run full test suite and verify all existing tests pass with database backend
-- [ ] T073 Performance audit: Profile database operations and verify all SC-XXX targets met
-- [ ] T074 [P] Verify SC-007: Database file size grows proportionally (1KB/issue, 100B/snapshot)
-- [ ] T075 [P] Verify SC-009: Full test suite passes with zero failures
-- [ ] T076 [P] Verify SC-010: Schema supports future migrations without breaking changes
-- [ ] T077 Documentation review: Verify quickstart.md examples work correctly
-- [ ] T078 Security review: Verify no SQL injection vulnerabilities (parameterized queries only)
-- [ ] T079 Final Constitution Check: Verify all 6 principles still PASS post-implementation
+- [ ] T069 [P] Update copilot-instructions.md with persistence layer rules (already done via update-agent-context.ps1)
+- [ ] T070 [P] Add database file size monitoring in data/database.py (get_database_size function)
+- [ ] T071 [P] Implement cleanup_expired_cache() background task in data/persistence/sqlite_backend.py (use delete_expired_issues)
+- [ ] T072 [P] Add database schema versioning to app_state table (schema_version = "1.0")
+- [ ] T073 Code cleanup: Remove dead JSON file utilities following Boy Scout Rule and Constitution Principle VI
+- [ ] T074 Run full test suite and verify all existing tests pass with database backend
+- [ ] T075 Performance audit: Profile database operations and verify all SC-XXX targets met
+- [ ] T076 [P] Verify SC-007: Database file size grows proportionally per formula in spec.md
+- [ ] T077 [P] Verify SC-009: Full test suite passes with zero failures
+- [ ] T078 [P] Verify SC-010: Schema supports future migrations without breaking changes
+- [ ] T079 Documentation review: Verify quickstart.md examples work correctly with normalized methods
+- [ ] T080 Security review: Verify no SQL injection vulnerabilities (parameterized queries only)
+- [ ] T081 Final Constitution Check: Verify all 6 principles still PASS post-implementation
 
 ---
 
@@ -344,8 +346,8 @@ T067-T079 (Polish)
 
 ---
 
-**Total Tasks**: 79  
-**MVP Tasks (Phase 1-3)**: 30  
+**Total Tasks**: 81 (updated from 79 - added normalized method implementation tasks)  
+**MVP Tasks (Phase 1-3)**: 32 (updated from 30)  
 **Parallel Opportunities**: 25+ tasks marked [P]  
 **Estimated Effort**: 5-8 weeks (single developer)
 

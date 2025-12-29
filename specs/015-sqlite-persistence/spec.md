@@ -92,8 +92,9 @@ Multiple app instances or background processes can safely access database withou
 
 - **FR-001**: System MUST migrate all existing JSON files (`app_settings.json`, `project_data.json`, `jira_cache.json`, `jira_changelog_cache.json`, `jira_query_profiles.json`, `metrics_snapshots.json`, `task_progress.json`) to SQLite database on first launch after upgrade
 - **FR-002**: System MUST create automatic backup of JSON files before migration begins, stored in `backups/{timestamp}/` directory
-- **FR-003**: System MUST create database file (`burndown.db`) in project root directory on first launch if not exists
-- **FR-004**: System MUST structure database with tables: `profiles`, `queries`, `settings`, `jira_cache`, `jira_changelog_cache`, `metrics_snapshots`, `task_progress`
+- **FR-003**: System MUST create database file (`burndown.db`) in `profiles/` directory on first launch if not exists
+- **FR-004**: System MUST structure database with 10 normalized tables: `profiles`, `queries`, `app_state` (replaces settings), `jira_issues` (normalized cache), `jira_changelog_entries` (normalized changelog), `project_statistics` (normalized weekly stats), `project_scope`, `metrics_data_points` (normalized metrics), `task_progress`
+- **FR-004a**: System MUST normalize large collections (JIRA issues 1000+, changelog entries 5000+, weekly statistics 52+, metric values 400+) as individual database rows instead of JSON TEXT blobs to enable indexed queries, efficient delta updates, and SQL-based aggregations without full deserialization
 - **FR-005**: System MUST maintain profile-based data isolation where each profile's data is stored with `profile_id` foreign key
 - **FR-006**: System MUST preserve all existing data structures (JIRA config, field mappings, statistics, scope, metrics history, cached responses with TTL)
 - **FR-007**: System MUST implement TTL (time-to-live) expiration for JIRA cache entries (24-hour default)
@@ -103,18 +104,20 @@ Multiple app instances or background processes can safely access database withou
 - **FR-011**: System MUST log all database operations (create, update, delete) at DEBUG level for troubleshooting
 - **FR-012**: System MUST provide database schema versioning for future migrations
 - **FR-013**: System MUST validate database integrity on startup and repair/recreate if corrupted
-- **FR-014**: System MUST support database export to JSON format for backup/portability purposes
+- **FR-014**: System MUST export database to profile-compatible directory structure (`profiles/{id}/profile.json`, `queries/{id}/query.json`, `jira_cache.json`, etc.) enabling backward compatibility with JSON backend and manual editing if needed
 - **FR-015**: System MUST support database import from JSON format for restore operations
 
-### Key Entities
+### Key Data Categories
 
-- **Profile**: Represents workspace configuration (id, name, created_at, last_accessed). One-to-many with queries, settings, cache
-- **Query**: Represents saved JQL query (id, profile_id, name, jql_string, created_at, last_used)
-- **Settings**: Represents app configuration (id, profile_id, jira_url, jira_token, deadline, pert_optimistic, pert_pessimistic, field_mappings_json)
-- **JiraCache**: Represents cached JIRA API responses (id, profile_id, query_id, cache_key, response_json, expires_at, created_at)
-- **JiraChangelogCache**: Represents cached JIRA changelog data (id, profile_id, issue_key, changelog_json, expires_at)
-- **MetricsSnapshot**: Represents weekly DORA/Flow metric snapshots (id, profile_id, snapshot_date, metrics_json)
-- **TaskProgress**: Represents runtime task progress tracking (id, task_name, progress_percent, status, updated_at)
+- **Profile Management**: Profile configurations with JIRA settings, field mappings, forecast parameters (stored as small JSON ~1KB)
+- **Query Management**: Saved JQL queries with metadata (name, JQL string, timestamps)
+- **JIRA Issue Data**: Individual issue rows with indexed columns (status, assignee, type, priority, dates) plus nested JSON for fix_versions, labels, components
+- **Changelog History**: Individual change event rows (field_name, old_value, new_value, change_date) enabling status transition queries
+- **Project Statistics**: Weekly data points (completed items/points, velocity) for burndown trend analysis
+- **Metrics Time-Series**: Individual metric value rows (deployment_frequency, lead_time, MTTR, etc.) per week for historical trending
+- **Task Progress**: Runtime state tracking (progress percent, status messages)
+
+**Note**: See [data-model.md](data-model.md) for complete 10-table schema with entity relationships, indexing strategy, and migration mapping
 
 ## Success Criteria *(mandatory)*
 
@@ -126,7 +129,7 @@ Multiple app instances or background processes can safely access database withou
 - **SC-004**: Zero data loss during migration - 100% of JSON data successfully transfers to database
 - **SC-005**: Database operations handle 1000+ cached JIRA issues without performance degradation
 - **SC-006**: Concurrent database access from multiple processes completes without deadlocks or corruption
-- **SC-007**: Database file size grows proportionally with data (approximately 1KB per cached issue, 100 bytes per metric snapshot)
+- **SC-007**: Database file size grows proportionally: ~(issue_count × 1KB) + (changelog_entries × 200B) + (weekly_stats × 100B) + (metric_values × 80B) + index_overhead (20% of data), excluding WAL journal files
 - **SC-008**: App startup time remains under 2 seconds initial page load budget with database
 - **SC-009**: Full test suite passes with zero failures after replacing JSON with database persistence
 - **SC-010**: Database schema supports future migrations without breaking changes to existing data
