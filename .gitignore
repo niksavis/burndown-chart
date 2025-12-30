@@ -185,6 +185,9 @@ metrics_snapshots.json
 # Profile & Query workspace data (Feature 011 - contains customer data)
 # Directory created automatically by migration/profile manager on first run
 profiles/
+profiles/burndown.db
+profiles/burndown.db-shm
+profiles/burndown.db-wal
 
 # Log files directory (Feature 008 - runtime logging output)
 # Directory created automatically by logging system on first run

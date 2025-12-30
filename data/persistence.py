@@ -11,7 +11,6 @@ It provides functions for managing settings and statistics using JSON files.
 # Standard library imports
 import json
 import os
-import tempfile
 import threading
 from datetime import datetime, timedelta
 from typing import Dict, Any, List
@@ -29,12 +28,7 @@ from configuration import (
     DEFAULT_TOTAL_ITEMS,
     DEFAULT_TOTAL_POINTS,
     PROJECT_DATA_FILE,
-    SETTINGS_FILE,
     logger,
-)
-from data.profile_manager import (
-    get_active_profile_workspace,
-    get_active_query_workspace,
 )
 
 # File locking to prevent race conditions during concurrent writes
@@ -276,20 +270,24 @@ def save_app_settings(
         logger.error(f"[Config] Could not load existing settings: {e}")
 
     try:
-        # Get profile-level path (settings shared across all queries)
-        workspace = get_active_profile_workspace()
-        profile_file = workspace / "profile.json"
+        # Use repository pattern - get backend and save via database
+        from data.persistence.factory import get_backend
 
-        # Load existing profile data to preserve profile metadata
-        existing_profile = {}
-        if profile_file.exists():
-            with open(profile_file, "r") as f:
-                existing_profile = json.load(f)
+        backend = get_backend()
+
+        # Get active profile ID
+        active_profile_id = backend.get_app_state("active_profile_id")
+        if not active_profile_id:
+            logger.error("[Config] No active profile to save settings to")
+            return
+
+        # Load existing profile to preserve metadata and merge settings
+        existing_profile = backend.get_profile(active_profile_id) or {}
 
         # Build complete profile structure
         profile_data = {
             # Profile metadata (preserve existing values)
-            "id": existing_profile.get("id", workspace.name),
+            "id": existing_profile.get("id", active_profile_id),
             "name": existing_profile.get("name", "Default"),
             "description": existing_profile.get("description", ""),
             "created_at": existing_profile.get(
@@ -394,18 +392,20 @@ def save_app_settings(
             ),
         }
 
-        # Write to a temporary file first
-        temp_file = str(profile_file) + ".tmp"
-        with open(temp_file, "w") as f:
-            json.dump(profile_data, f, indent=2)
-
-        # Rename to final file (atomic operation)
-        if profile_file.exists():
-            os.remove(str(profile_file))
-        os.rename(temp_file, str(profile_file))
-
+        # Save via backend (database) - profile_data already contains 'id' field
+        backend.save_profile(profile_data)
         logger.info(
-            f"[Config] Settings saved to {profile_file}. Profile: {profile_data['name']}"
+            f"[Config] Settings saved to database. Profile: {profile_data['name']}"
+        )
+        logger.debug(
+            f"[Config] Saved forecast_settings: pert_factor={profile_data['forecast_settings'].get('pert_factor')}, "
+            f"deadline={profile_data['forecast_settings'].get('deadline')}, "
+            f"data_points_count={profile_data['forecast_settings'].get('data_points_count')}, "
+            f"milestone={profile_data['forecast_settings'].get('milestone')}"
+        )
+        logger.debug(
+            f"[Config] Saved UI settings: show_milestone={profile_data.get('show_milestone')}, "
+            f"show_points={profile_data.get('show_points')}"
         )
     except Exception as e:
         logger.error(f"[Config] Error saving app settings: {e}")
@@ -413,10 +413,10 @@ def save_app_settings(
 
 def load_app_settings() -> Dict[str, Any]:
     """
-    Load app-level settings from JSON file with automatic migration from legacy format.
+    Load app-level settings via repository pattern (database-first).
 
     Returns:
-        Dictionary containing app settings or default values if file not found
+        Dictionary containing app settings or default values if not found
     """
     default_settings = {
         "pert_factor": DEFAULT_PERT_FACTOR,
@@ -436,161 +436,105 @@ def load_app_settings() -> Dict[str, Any]:
     }
 
     try:
-        # Get profile-level path (settings shared across all queries)
-        workspace = get_active_profile_workspace()
-        profile_file = workspace / "profile.json"
+        # Use repository pattern - backend abstracts storage
+        from data.persistence.factory import get_backend
 
-        # Check if new profile.json exists
-        if profile_file.exists():
-            with open(str(profile_file), "r") as f:
-                profile_data = json.load(f)
-            logger.info(f"[Config] Settings loaded from {profile_file}")
+        backend = get_backend()  # Returns SQLiteBackend by default
 
-            # Flatten profile structure to legacy app_settings format for backward compatibility
-            settings = {
-                "pert_factor": profile_data.get("forecast_settings", {}).get(
-                    "pert_factor", DEFAULT_PERT_FACTOR
-                ),
-                "deadline": profile_data.get("forecast_settings", {}).get(
-                    "deadline", DEFAULT_DEADLINE
-                ),
-                "milestone": profile_data.get("forecast_settings", {}).get("milestone"),
-                "data_points_count": profile_data.get("forecast_settings", {}).get(
-                    "data_points_count", DEFAULT_DATA_POINTS_COUNT
-                ),
-                "show_milestone": profile_data.get("show_milestone", False),
-                "show_points": profile_data.get("show_points", False),
-                "jql_query": "project = JRASERVER",  # Placeholder, actual JQL is in query.json
-                "last_used_data_source": "JIRA",
-                "active_jql_profile_id": "",
-                "cache_metadata": {
-                    "last_cache_key": None,
-                    "last_cache_timestamp": None,
-                    "cache_config_hash": None,
-                },
-                # JIRA configuration
-                "jira_config": profile_data.get("jira_config", {}),
-                # Field mappings
-                "field_mappings": profile_data.get("field_mappings", {}),
-                # Project classification (flatten to root level for backward compatibility)
-                # NOTE: New profiles should have empty lists, not hardcoded defaults
-                # Users configure these values via field mapping modal
-                "devops_projects": profile_data.get("project_classification", {}).get(
-                    "devops_projects", []
-                ),
-                "development_projects": profile_data.get(
-                    "project_classification", {}
-                ).get("development_projects", []),
-                "devops_task_types": profile_data.get("project_classification", {}).get(
-                    "devops_task_types", []
-                ),
-                "bug_types": profile_data.get("project_classification", {}).get(
-                    "bug_types", []
-                ),
-                "production_environment_values": profile_data.get(
-                    "project_classification", {}
-                ).get("production_environment_values", []),
-                "flow_end_statuses": profile_data.get("project_classification", {}).get(
-                    "flow_end_statuses", []
-                ),
-                "active_statuses": profile_data.get("project_classification", {}).get(
-                    "active_statuses", []
-                ),
-                "flow_start_statuses": profile_data.get(
-                    "project_classification", {}
-                ).get("flow_start_statuses", []),
-                "wip_statuses": profile_data.get("project_classification", {}).get(
-                    "wip_statuses", []
-                ),
-                # Flow type mappings
-                "flow_type_mappings": profile_data.get("flow_type_mappings", {}),
-            }
+        # Get active profile ID from app state
+        active_id = backend.get_app_state("active_profile_id")
 
-            # Add default values for any missing fields
-            for key, default_value in default_settings.items():
-                if key not in settings:
-                    settings[key] = default_value
-
-            return settings
-
-        # Fallback to legacy app_settings.json at profile level
-        elif (workspace / "app_settings.json").exists():
-            legacy_settings_file = workspace / "app_settings.json"
-            with open(str(legacy_settings_file), "r") as f:
-                settings = json.load(f)
-            logger.info(f"[Config] Settings loaded from legacy {legacy_settings_file}")
-
-            # Add default values for new fields if they don't exist
-            for key, default_value in default_settings.items():
-                if key not in settings:
-                    settings[key] = default_value
-
-            return settings
-
-        # Check if legacy forecast_settings.json exists at root and migrate
-        elif os.path.exists(SETTINGS_FILE):
-            logger.info(f"[Config] Migrating legacy settings from {SETTINGS_FILE}")
-            with open(SETTINGS_FILE, "r") as f:
-                legacy_settings = json.load(f)
-
-            # Extract app-level settings from legacy format
-            migrated_settings = {
-                "pert_factor": legacy_settings.get("pert_factor", DEFAULT_PERT_FACTOR),
-                "deadline": legacy_settings.get("deadline", DEFAULT_DEADLINE),
-                "data_points_count": legacy_settings.get(
-                    "data_points_count", DEFAULT_DATA_POINTS_COUNT
-                ),
-                "show_milestone": legacy_settings.get("show_milestone", False),
-                "milestone": legacy_settings.get("milestone", None),
-                "show_points": legacy_settings.get("show_points", True),
-                "jql_query": "project = JRASERVER",  # Default JQL for migration
-            }
-
-            # Save migrated app settings (this will create profile.json)
-            save_app_settings(
-                migrated_settings["pert_factor"],
-                migrated_settings["deadline"],
-                migrated_settings["data_points_count"],
-                migrated_settings["show_milestone"],
-                migrated_settings["milestone"],
-                migrated_settings["show_points"],
-                migrated_settings["jql_query"],
-            )
-
-            # Extract project data from legacy format and save separately
-            project_data = {
-                "total_items": legacy_settings.get("total_items", DEFAULT_TOTAL_ITEMS),
-                "total_points": legacy_settings.get(
-                    "total_points", DEFAULT_TOTAL_POINTS
-                ),
-                "estimated_items": legacy_settings.get(
-                    "estimated_items", DEFAULT_ESTIMATED_ITEMS
-                ),
-                "estimated_points": legacy_settings.get(
-                    "estimated_points", DEFAULT_ESTIMATED_POINTS
-                ),
-            }
-
-            save_project_data(
-                project_data["total_items"],
-                project_data["total_points"],
-                project_data["estimated_items"],
-                project_data["estimated_points"],
-                {
-                    "migrated_from": SETTINGS_FILE,
-                    "migration_date": datetime.now().isoformat(),
-                },
-            )
-
-            logger.info("[Config] Legacy settings migration completed")
-            return migrated_settings
-
-        else:
-            logger.info("[Config] No existing settings files, using defaults")
+        if not active_id:
+            logger.info("[Config] No active profile, using defaults")
             return default_settings
 
+        # Load profile from backend (handles SQLite/JSON/in-memory)
+        profile_data = backend.get_profile(active_id)
+
+        if not profile_data:
+            logger.info(f"[Config] Profile {active_id} not found, using defaults")
+            return default_settings
+
+        logger.info(f"[Config] Settings loaded via backend for profile {active_id}")
+
+        # Transform backend data to legacy app_settings format for backward compatibility
+        settings = {
+            "pert_factor": profile_data.get("forecast_settings", {}).get(
+                "pert_factor", DEFAULT_PERT_FACTOR
+            ),
+            "deadline": profile_data.get("forecast_settings", {}).get(
+                "deadline", DEFAULT_DEADLINE
+            ),
+            "milestone": profile_data.get("forecast_settings", {}).get("milestone"),
+            "data_points_count": profile_data.get("forecast_settings", {}).get(
+                "data_points_count", DEFAULT_DATA_POINTS_COUNT
+            ),
+            "show_milestone": profile_data.get("show_milestone", False),
+            "show_points": profile_data.get("show_points", False),
+            "jql_query": "project = JRASERVER",  # Placeholder
+            "last_used_data_source": "JIRA",
+            "active_jql_profile_id": "",
+            "cache_metadata": {
+                "last_cache_key": None,
+                "last_cache_timestamp": None,
+                "cache_config_hash": None,
+            },
+            # JIRA configuration
+            "jira_config": profile_data.get("jira_config", {}),
+            # Field mappings
+            "field_mappings": profile_data.get("field_mappings", {}),
+            # Project classification
+            "devops_projects": profile_data.get("project_classification", {}).get(
+                "devops_projects", []
+            ),
+            "development_projects": profile_data.get("project_classification", {}).get(
+                "development_projects", []
+            ),
+            "devops_task_types": profile_data.get("project_classification", {}).get(
+                "devops_task_types", []
+            ),
+            "bug_types": profile_data.get("project_classification", {}).get(
+                "bug_types", []
+            ),
+            "production_environment_values": profile_data.get(
+                "project_classification", {}
+            ).get("production_environment_values", []),
+            "flow_end_statuses": profile_data.get("project_classification", {}).get(
+                "flow_end_statuses", []
+            ),
+            "active_statuses": profile_data.get("project_classification", {}).get(
+                "active_statuses", []
+            ),
+            "flow_start_statuses": profile_data.get("project_classification", {}).get(
+                "flow_start_statuses", []
+            ),
+            "wip_statuses": profile_data.get("project_classification", {}).get(
+                "wip_statuses", []
+            ),
+            # Flow type mappings
+            "flow_type_mappings": profile_data.get("flow_type_mappings", {}),
+        }
+
+        # Add default values for any missing fields
+        for key, default_value in default_settings.items():
+            if key not in settings:
+                settings[key] = default_value
+
+        logger.debug(
+            f"[Config] Loaded forecast_settings: pert_factor={settings.get('pert_factor')}, "
+            f"deadline={settings.get('deadline')}, "
+            f"data_points_count={settings.get('data_points_count')}, "
+            f"milestone={settings.get('milestone')}"
+        )
+        logger.debug(
+            f"[Config] Loaded UI settings: show_milestone={settings.get('show_milestone')}, "
+            f"show_points={settings.get('show_points')}"
+        )
+
+        return settings
+
     except Exception as e:
-        logger.error(f"[Config] Error loading app settings: {e}")
+        logger.error(f"[Config] Error loading app settings via backend: {e}")
         return default_settings
 
 
@@ -602,7 +546,8 @@ def save_project_data(
     metadata=None,
 ):
     """
-    Save project-specific data to JSON file.
+    DEPRECATED: Use save_unified_project_data() instead.
+    Save project-specific data via repository pattern.
 
     Args:
         total_items: Total number of items
@@ -611,46 +556,46 @@ def save_project_data(
         estimated_points: Number of points for the estimated items
         metadata: Additional project metadata (e.g., JIRA sync info)
     """
-    project_data = {
-        "total_items": total_items,
-        "total_points": total_points,
-        "estimated_items": estimated_items
-        if estimated_items is not None
-        else DEFAULT_ESTIMATED_ITEMS,
-        "estimated_points": estimated_points
-        if estimated_points is not None
-        else DEFAULT_ESTIMATED_POINTS,
-        "metadata": metadata if metadata is not None else {},
-    }
+    logger.warning(
+        "[Deprecated] save_project_data() called - use save_unified_project_data() instead"
+    )
 
     try:
-        # Get profile-aware path
-        workspace = get_active_query_workspace()
-        project_file = workspace / "project_data.json"
+        from data.persistence.factory import get_backend
 
-        # Write to a temporary file first
-        temp_file = str(project_file) + ".tmp"
-        with open(temp_file, "w") as f:
-            json.dump(project_data, f, indent=2)
+        backend = get_backend()
 
-        # Rename to final file (atomic operation)
-        if project_file.exists():
-            os.remove(str(project_file))
-        os.rename(temp_file, str(project_file))
+        active_profile_id = backend.get_app_state("active_profile_id")
+        active_query_id = backend.get_app_state("active_query_id")
 
-        logger.info(f"[Cache] Project data saved to {project_file}")
+        if not active_profile_id or not active_query_id:
+            logger.error("[Cache] No active profile/query to save project data to")
+            return
+
+        scope_data = {
+            "total_items": total_items,
+            "total_points": total_points,
+            "estimated_items": estimated_items
+            if estimated_items is not None
+            else DEFAULT_ESTIMATED_ITEMS,
+            "estimated_points": estimated_points
+            if estimated_points is not None
+            else DEFAULT_ESTIMATED_POINTS,
+            "metadata": metadata if metadata is not None else {},
+        }
+
+        backend.save_scope(active_profile_id, active_query_id, scope_data)
+        logger.info("[Cache] Project data saved to database")
     except Exception as e:
         logger.error(f"[Cache] Error saving project data: {e}")
 
 
 def load_project_data() -> Dict[str, Any]:
     """
-    Load project-specific data from JSON file.
-
-    Uses file locking to prevent reading during concurrent writes.
+    Load project-specific data via repository pattern (database).
 
     Returns:
-        Dictionary containing project data or default values if file not found
+        Dictionary containing project data or default values if not found
     """
     default_data = {
         "total_items": DEFAULT_TOTAL_ITEMS,
@@ -661,28 +606,26 @@ def load_project_data() -> Dict[str, Any]:
     }
 
     try:
-        # Get profile-aware path
-        workspace = get_active_query_workspace()
-        project_file = workspace / "project_data.json"
-        file_path_str = str(project_file)
+        from data.persistence.factory import get_backend
 
-        if project_file.exists():
-            # Use file lock to prevent reading during write
-            file_lock = _get_file_lock(file_path_str)
-            with file_lock:
-                with open(file_path_str, "r", encoding="utf-8") as f:
-                    project_data = json.load(f)
-            logger.info(f"[Cache] Project data loaded from {project_file}")
+        backend = get_backend()
+        active_profile_id = backend.get_app_state("active_profile_id")
+        active_query_id = backend.get_app_state("active_query_id")
 
-            # Add default values for new fields if they don't exist
-            for key, default_value in default_data.items():
-                if key not in project_data:
-                    project_data[key] = default_value
-
-            return project_data
-        else:
-            logger.info("[Cache] Project data file not found, using defaults")
+        if not active_profile_id or not active_query_id:
             return default_data
+
+        scope = backend.get_scope(active_profile_id, active_query_id)
+        if not scope:
+            return default_data
+
+        return {
+            "total_items": scope.get("total_items", DEFAULT_TOTAL_ITEMS),
+            "total_points": scope.get("total_points", DEFAULT_TOTAL_POINTS),
+            "estimated_items": scope.get("estimated_items", DEFAULT_ESTIMATED_ITEMS),
+            "estimated_points": scope.get("estimated_points", DEFAULT_ESTIMATED_POINTS),
+            "metadata": {},
+        }
     except Exception as e:
         logger.error(f"[Cache] Error loading project data: {e}")
         return default_data
@@ -701,103 +644,71 @@ def save_settings(
     show_points=None,
 ):
     """
-    Save user settings to JSON file.
+    DEPRECATED: Legacy function for single-file mode (not used with profiles).
+    Use save_app_settings() instead for profile-based persistence.
 
-    Args:
-        pert_factor: PERT factor value
-        deadline: Deadline date string
-        total_items: Total number of items
-        total_points: Total number of points
-        estimated_items: Number of items that have been estimated
-        estimated_points: Number of points for the estimated items
-        data_points_count: Number of data points to use for calculations
-        show_milestone: Whether to show milestone on charts
-        milestone: Milestone date string
-        show_points: Whether to show points tracking and forecasting
+    This function is kept for backward compatibility only.
     """
-    settings = {
-        "pert_factor": pert_factor,
-        "deadline": deadline,
-        "total_items": total_items,
-        "total_points": total_points,
-        "estimated_items": estimated_items
-        if estimated_items is not None
-        else DEFAULT_ESTIMATED_ITEMS,
-        "estimated_points": estimated_points
-        if estimated_points is not None
-        else DEFAULT_ESTIMATED_POINTS,
-        "data_points_count": data_points_count
-        if data_points_count is not None
-        else max(DEFAULT_DATA_POINTS_COUNT, pert_factor * 2),
+    logger.warning(
+        "[Deprecated] save_settings() called - use save_app_settings() for profile-based storage"
+    )
+
+    # Delegate to save_app_settings with proper structure
+    settings_dict = {
+        "forecast_settings": {
+            "pert_factor": pert_factor,
+            "deadline": deadline,
+            "data_points_count": data_points_count
+            if data_points_count is not None
+            else max(DEFAULT_DATA_POINTS_COUNT, pert_factor * 2),
+            "milestone": milestone,
+        },
+        "project_scope": {
+            "total_items": total_items,
+            "total_points": total_points,
+            "estimated_items": estimated_items
+            if estimated_items is not None
+            else DEFAULT_ESTIMATED_ITEMS,
+            "estimated_points": estimated_points
+            if estimated_points is not None
+            else DEFAULT_ESTIMATED_POINTS,
+        },
         "show_milestone": show_milestone if show_milestone is not None else False,
-        "milestone": milestone,
         "show_points": show_points if show_points is not None else False,
     }
-
-    try:
-        # Write to a temporary file first
-        temp_file = f"{SETTINGS_FILE}.tmp"
-        with open(temp_file, "w") as f:
-            json.dump(settings, f)
-
-        # Rename to final file (atomic operation)
-        if os.path.exists(SETTINGS_FILE):
-            os.remove(SETTINGS_FILE)
-        os.rename(temp_file, SETTINGS_FILE)
-
-        logger.info(f"[Config] Settings saved to {SETTINGS_FILE}")
-    except Exception as e:
-        logger.error(f"[Config] Error saving settings: {e}")
+    save_app_settings(**settings_dict)
 
 
 def load_settings():
     """
-    Load user settings from JSON file.
+    DEPRECATED: Legacy function for single-file mode (not used with profiles).
+    Use load_app_settings() instead for profile-based persistence.
 
-    Returns:
-        Dictionary containing settings or default values if file not found
+    This function is kept for backward compatibility only.
     """
-    default_settings = {
-        "pert_factor": DEFAULT_PERT_FACTOR,
-        "deadline": DEFAULT_DEADLINE,
-        "total_items": DEFAULT_TOTAL_ITEMS,
-        "total_points": DEFAULT_TOTAL_POINTS,
-        "estimated_items": DEFAULT_ESTIMATED_ITEMS,
-        "estimated_points": DEFAULT_ESTIMATED_POINTS,
-        "data_points_count": DEFAULT_DATA_POINTS_COUNT,
-        "show_milestone": False,
-        "milestone": None,
+    logger.warning(
+        "[Deprecated] load_settings() called - use load_app_settings() for profile-based storage"
+    )
+
+    # Delegate to load_app_settings and flatten the structure
+    app_settings = load_app_settings()
+    forecast = app_settings.get("forecast_settings", {})
+
+    return {
+        "pert_factor": forecast.get("pert_factor", DEFAULT_PERT_FACTOR),
+        "deadline": forecast.get("deadline", DEFAULT_DEADLINE),
+        "total_items": app_settings.get("total_items", DEFAULT_TOTAL_ITEMS),
+        "total_points": app_settings.get("total_points", DEFAULT_TOTAL_POINTS),
+        "estimated_items": app_settings.get("estimated_items", DEFAULT_ESTIMATED_ITEMS),
+        "estimated_points": app_settings.get(
+            "estimated_points", DEFAULT_ESTIMATED_POINTS
+        ),
+        "data_points_count": forecast.get(
+            "data_points_count", DEFAULT_DATA_POINTS_COUNT
+        ),
+        "show_milestone": app_settings.get("show_milestone", False),
+        "milestone": forecast.get("milestone"),
     }
-
-    try:
-        if os.path.exists(SETTINGS_FILE):
-            with open(SETTINGS_FILE, "r") as f:
-                settings = json.load(f)
-            logger.info(f"[Config] Settings loaded from {SETTINGS_FILE}")
-
-            # Add default values for new fields if they don't exist
-            if "estimated_items" not in settings:
-                settings["estimated_items"] = DEFAULT_ESTIMATED_ITEMS
-            if "estimated_points" not in settings:
-                settings["estimated_points"] = DEFAULT_ESTIMATED_POINTS
-            if "data_points_count" not in settings:
-                # Default to 2x PERT factor or minimum default
-                pert_factor = settings.get("pert_factor", DEFAULT_PERT_FACTOR)
-                settings["data_points_count"] = max(
-                    DEFAULT_DATA_POINTS_COUNT, pert_factor * 2
-                )
-            if "show_milestone" not in settings:
-                settings["show_milestone"] = False
-            if "milestone" not in settings:
-                settings["milestone"] = None
-
-            return settings
-        else:
-            logger.info("[Config] Settings file not found, using defaults")
-            return default_settings
-    except Exception as e:
-        logger.error(f"[Config] Error loading settings: {e}")
-        return default_settings
 
 
 def save_statistics(data: List[Dict[str, Any]]) -> None:
@@ -898,7 +809,7 @@ def save_statistics_from_csv_import(data: List[Dict[str, Any]]) -> None:
 
 def load_statistics() -> tuple:
     """
-    Load statistics data from unified project data JSON file.
+    Load statistics data via repository pattern (database).
 
     Returns:
         Tuple (data, is_sample) where:
@@ -906,37 +817,43 @@ def load_statistics() -> tuple:
         - is_sample: Boolean indicating if sample data is being used
     """
     try:
-        # Load from unified project data JSON
-        project_data = load_project_data()
+        from data.persistence.factory import get_backend
 
-        if "statistics" in project_data and len(project_data["statistics"]) > 0:
-            # Load statistics from project data
-            statistics = project_data["statistics"]
+        backend = get_backend()
+        active_profile_id = backend.get_app_state("active_profile_id")
+        active_query_id = backend.get_app_state("active_query_id")
 
-            # Ensure data is sorted by date (already should be from JIRA sync)
-            statistics_df = pd.DataFrame(statistics)
-            statistics_df["date"] = pd.to_datetime(
-                statistics_df["date"], errors="coerce"
-            )
-            statistics_df = statistics_df.sort_values("date", ascending=True)
-            # Convert date back to string format and ensure it's stored as string type
-            statistics_df["date"] = (
-                statistics_df["date"]
-                .apply(lambda x: x.strftime("%Y-%m-%d") if pd.notna(x) else "")
-                .astype(str)
-            )
+        if not active_profile_id or not active_query_id:
+            return [], False
 
-            data = statistics_df.to_dict("records")  # type: ignore[assignment]
-            # Ensure any remaining Timestamp objects are converted to strings
-            data = convert_timestamps_to_strings(data)
-            logger.info(f"[Cache] Statistics loaded from {PROJECT_DATA_FILE}")
-            return data, False  # Return data and flag that it's not sample data
-        else:
-            logger.info("[Cache] No statistics found - returning empty data")
-            return [], False  # Return empty data (no sample data)
+        stats_rows = backend.get_statistics(active_profile_id, active_query_id)
+        if not stats_rows:
+            return [], False
+
+        # Convert to DataFrame for processing
+        statistics_df = pd.DataFrame(stats_rows)
+
+        # Rename stat_date to date for compatibility
+        if "stat_date" in statistics_df.columns:
+            statistics_df["date"] = statistics_df["stat_date"]
+
+        statistics_df["date"] = pd.to_datetime(
+            statistics_df["date"], errors="coerce", format="mixed"
+        )
+        statistics_df = statistics_df.sort_values("date", ascending=True)
+        statistics_df["date"] = (
+            statistics_df["date"]
+            .apply(lambda x: x.strftime("%Y-%m-%d") if pd.notna(x) else "")
+            .astype(str)
+        )
+
+        data = statistics_df.to_dict("records")  # type: ignore[assignment]
+        data = convert_timestamps_to_strings(data)
+        logger.info(f"[Cache] Statistics loaded from database: {len(data)} rows")
+        return data, False
     except Exception as e:
         logger.error(f"[Cache] Error loading statistics: {e}")
-        return [], False  # Return empty data on error
+        return [], False
 
 
 def generate_realistic_sample_data():
@@ -1107,46 +1024,56 @@ def read_and_clean_data(df):
 
 def load_unified_project_data() -> Dict[str, Any]:
     """
-    Load unified project data (Phase 3).
+    Load unified project data via repository pattern (database).
 
     QUERY-LEVEL DATA: Statistics and project scope are query-specific.
-    Each query has its own project_data.json in its workspace.
 
     Returns:
         Dict: Unified project data structure
     """
-    from data.schema import (
-        get_default_unified_data,
-        validate_project_data_structure,
-    )
+    from data.schema import get_default_unified_data
 
     try:
-        # Use QUERY-specific path (not profile)
-        workspace = get_active_query_workspace()
-        project_data_file = workspace / "project_data.json"
+        from data.persistence.factory import get_backend
 
-        if not os.path.exists(project_data_file):
-            logger.info("[Cache] Project data file not found, using defaults")
+        backend = get_backend()
+        active_profile_id = backend.get_app_state("active_profile_id")
+        active_query_id = backend.get_app_state("active_query_id")
+
+        if not active_profile_id or not active_query_id:
             return get_default_unified_data()
 
-        with open(project_data_file, "r", encoding="utf-8") as f:
-            data = json.load(f)
+        # Build unified data from backend
+        data = get_default_unified_data()
 
-        # Validate and migrate if necessary
-        if not data.get("metadata", {}).get("version"):
-            data = _migrate_legacy_project_data(data)
+        # Load project scope
+        scope = backend.get_scope(active_profile_id, active_query_id)
+        if scope:
+            data["project_scope"].update(scope)
 
-        # Validate structure
-        if not validate_project_data_structure(data):
-            logger.warning("[Cache] Invalid unified data structure, using defaults")
-            return get_default_unified_data()
+        # Load statistics
+        stats_rows = backend.get_statistics(active_profile_id, active_query_id)
+        statistics = []
+        if stats_rows:
+            for row in stats_rows:
+                stat = dict(row)
+                if "stat_date" in stat:
+                    stat["date"] = stat["stat_date"]
+                statistics.append(stat)
+            data["statistics"] = statistics
 
+        logger.info(
+            f"[Cache] Loaded unified data from database for {active_profile_id}/{active_query_id}: {len(statistics)} stats"
+        )
+        if statistics:
+            logger.info(
+                f"[Cache] First stat: date={statistics[0].get('date')}, items={statistics[0].get('remaining_items')}, points={statistics[0].get('remaining_total_points')}"
+            )
+            logger.info(
+                f"[Cache] Last stat: date={statistics[-1].get('date')}, items={statistics[-1].get('remaining_items')}, points={statistics[-1].get('remaining_total_points')}"
+            )
         return data
 
-    except ValueError as e:
-        # Handle case where no active query exists (e.g., new profile with no queries)
-        logger.info(f"[Cache] No active query workspace: {e} - using defaults")
-        return get_default_unified_data()
     except Exception as e:
         logger.error(f"[Cache] Error loading unified project data: {e}")
         return get_default_unified_data()
@@ -1154,55 +1081,57 @@ def load_unified_project_data() -> Dict[str, Any]:
 
 def save_unified_project_data(data: Dict[str, Any]) -> None:
     """
-    Save unified project data (Phase 3).
+    Save unified project data via repository pattern (database).
 
     QUERY-LEVEL DATA: Statistics and project scope are query-specific.
-    Each query has its own project_data.json in its workspace.
-
-    Uses atomic write pattern (write to temp file, then rename) to prevent
-    race condition corruption when multiple callbacks fire concurrently.
 
     Args:
         data: Unified project data dictionary
     """
     try:
-        # Use QUERY-specific path (not profile)
-        workspace = get_active_query_workspace()
-        project_data_file = workspace / "project_data.json"
-        file_path_str = str(project_data_file)
+        from data.persistence.factory import get_backend
 
-        # Convert any Timestamp objects to strings before serialization
-        serializable_data = convert_timestamps_to_strings(data)
+        backend = get_backend()
+        active_profile_id = backend.get_app_state("active_profile_id")
+        active_query_id = backend.get_app_state("active_query_id")
 
-        # Use file lock to prevent concurrent writes
-        file_lock = _get_file_lock(file_path_str)
-        with file_lock:
-            # Atomic write: write to temp file, then rename
-            # This prevents partial writes from corrupting the file
-            temp_fd, temp_path = tempfile.mkstemp(
-                dir=str(workspace), suffix=".tmp", prefix="project_data_"
+        if not active_profile_id or not active_query_id:
+            logger.warning("[Cache] Cannot save - no active profile/query")
+            return
+
+        # Save project scope
+        if "project_scope" in data:
+            backend.save_scope(
+                active_profile_id, active_query_id, data["project_scope"]
             )
-            try:
-                with os.fdopen(temp_fd, "w", encoding="utf-8") as f:
-                    json.dump(
-                        serializable_data,
-                        f,
-                        indent=2,
-                        ensure_ascii=False,
-                        cls=DateTimeEncoder,
+
+        # Save statistics as batch (list)
+        if "statistics" in data and data["statistics"]:
+            stat_list = []
+            for stat in data["statistics"]:
+                stat_data = dict(stat)
+                # Convert "date" to "stat_date" for database compatibility
+                if "date" in stat_data:
+                    if "stat_date" not in stat_data or not stat_data["stat_date"]:
+                        stat_data["stat_date"] = stat_data["date"]
+                # Ensure stat_date exists (required field)
+                if not stat_data.get("stat_date"):
+                    logger.warning(
+                        f"[Cache] Skipping statistic with no date: {stat_data}"
                     )
-                # Atomic rename (on same filesystem)
-                os.replace(temp_path, project_data_file)
-                logger.info("[Cache] Saved unified project data")
-            except Exception:
-                # Clean up temp file if rename fails
-                if os.path.exists(temp_path):
-                    os.unlink(temp_path)
-                raise
-    except ValueError as e:
-        # Handle case where no active query exists (e.g., new profile with no queries)
-        logger.warning(f"[Cache] Cannot save unified project data: {e}")
-        # Don't raise - allow operation to continue gracefully
+                    continue
+                stat_list.append(stat_data)
+            if stat_list:
+                backend.save_statistics_batch(
+                    active_profile_id, active_query_id, stat_list
+                )
+                logger.info(f"[Cache] Saved {len(stat_list)} statistics to database")
+            else:
+                logger.warning(
+                    "[Cache] No valid statistics to save (all missing dates)"
+                )
+
+        logger.info("[Cache] Saved unified project data to database")
     except Exception as e:
         logger.error(f"[Cache] Error saving unified project data: {e}")
         raise
@@ -1287,21 +1216,13 @@ def update_project_scope(scope_data):
     has_statistics = bool(unified_data.get("statistics"))
     source = unified_data.get("metadata", {}).get("source", "")
 
+    # After migration, all data is in database - no file checks needed
     if not has_statistics and source == "manual":
-        # Check if file actually exists with real data
-        try:
-            workspace = get_active_query_workspace()
-            project_file = workspace / "project_data.json"
-            if project_file.exists() and project_file.stat().st_size > 400:
-                # File exists and has significant content - don't overwrite
-                # 400 bytes is more than the empty default but catches corrupted files
-                logger.warning(
-                    "[Cache] update_project_scope: Skipping save - loaded empty defaults but file exists. "
-                    "This may indicate concurrent write corruption."
-                )
-                return
-        except Exception as e:
-            logger.warning(f"[Cache] update_project_scope: Error checking file: {e}")
+        # If we have no statistics but source is manual, this might be a new query
+        # Safe to proceed with save since we're only updating project_scope
+        logger.debug(
+            "[Cache] update_project_scope: No statistics but source=manual, proceeding with scope update"
+        )
 
     unified_data["project_scope"].update(scope_data)
     unified_data["metadata"]["last_updated"] = datetime.now().isoformat()
@@ -1757,15 +1678,15 @@ def load_jira_configuration() -> Dict[str, Any]:
         if field_mappings:
             app_settings["field_mappings"] = field_mappings
 
-        # Save migrated settings back to file
+        # Save migrated settings via backend
         try:
-            workspace = get_active_profile_workspace()
-            settings_file = workspace / "profile.json"
-            with open(str(settings_file), "w") as f:
-                json.dump(app_settings, f, indent=2)
-            logger.info(
-                f"[Config] Saved migrated JIRA configuration to {settings_file}"
-            )
+            from data.persistence.factory import get_backend
+
+            backend = get_backend()
+            active_profile_id = backend.get_app_state("active_profile_id")
+            if active_profile_id:
+                backend.save_profile(app_settings)
+                logger.info("[Config] Saved migrated JIRA configuration to database")
         except Exception as e:
             logger.error(f"[Config] Error saving migrated JIRA configuration: {e}")
 
@@ -1789,13 +1710,15 @@ def load_jira_configuration() -> Dict[str, Any]:
         if field_mappings:
             app_settings["field_mappings"] = field_mappings
 
-        # Save cleaned settings
+        # Save cleaned settings via backend
         try:
-            workspace = get_active_profile_workspace()
-            settings_file = workspace / "profile.json"
-            with open(str(settings_file), "w") as f:
-                json.dump(app_settings, f, indent=2)
-            logger.info(f"[Config] Removed legacy JIRA fields from {settings_file}")
+            from data.persistence.factory import get_backend
+
+            backend = get_backend()
+            active_profile_id = backend.get_app_state("active_profile_id")
+            if active_profile_id:
+                backend.save_profile(app_settings)
+                logger.info("[Config] Removed legacy JIRA fields from database")
         except Exception as e:
             logger.error(f"[Config] Error saving cleaned JIRA configuration: {e}")
 
@@ -1895,50 +1818,41 @@ def save_jira_configuration(config: Dict[str, Any]) -> bool:
             logger.error(f"[Config] Invalid JIRA configuration: {error_msg}")
             return False
 
-        # Get profile-level path (JIRA config shared across all queries)
-        workspace = get_active_profile_workspace()
-        profile_file = workspace / "profile.json"
+        # Use repository pattern - save via backend
+        from data.persistence.factory import get_backend
+
+        backend = get_backend()
+
+        # Get active profile ID
+        active_profile_id = backend.get_app_state("active_profile_id")
+        if not active_profile_id:
+            logger.error("[Config] No active profile to save JIRA config to")
+            return False
 
         # Load current profile data
-        if profile_file.exists():
-            with open(str(profile_file), "r") as f:
-                profile_data = json.load(f)
-        else:
-            # Initialize empty profile structure
-            profile_data = {
-                "forecast_settings": {},
-                "show_milestone": False,
-                "show_points": False,
-                "jira_config": {},
-                "field_mappings": {},
-                "project_classification": {},
-                "flow_type_mappings": {},
-            }
+        profile_data = backend.get_profile(active_profile_id) or {
+            "forecast_settings": {},
+            "show_milestone": False,
+            "show_points": False,
+            "jira_config": {},
+            "field_mappings": {},
+            "project_classification": {},
+            "flow_type_mappings": {},
+        }
 
         # Update jira_config section
         profile_data["jira_config"] = config
+        # Ensure id is in profile_data
+        profile_data["id"] = active_profile_id
 
-        # Atomic write using temp file
-        temp_file = profile_file.with_suffix(".tmp")
-        with open(str(temp_file), "w") as f:
-            json.dump(profile_data, f, indent=2)
-
-        # Atomic rename (on Windows, replace() handles existing files)
-        temp_file.replace(profile_file)
-
-        logger.info(f"[Config] JIRA configuration saved to {profile_file}")
+        # Save via backend
+        backend.save_profile(profile_data)
+        logger.info("[Config] JIRA configuration saved to database")
         return True
 
     except Exception as e:
         logger.error(f"[Config] Error saving JIRA configuration: {e}")
-        # Clean up temp file if it exists
-        try:
-            workspace = get_active_profile_workspace()
-            temp_file = (workspace / "profile.json").with_suffix(".tmp")
-            if temp_file.exists():
-                temp_file.unlink()
-        except Exception:
-            pass
+        # Database operations don't create temp files - no cleanup needed
         return False
 
 
@@ -2205,8 +2119,6 @@ def save_parameter_panel_state(is_open: bool, user_preference: bool = True) -> b
         True
     """
     try:
-        app_settings = load_app_settings()
-
         # Create parameter panel state dict
         panel_state = {
             "is_open": bool(is_open),
@@ -2214,17 +2126,18 @@ def save_parameter_panel_state(is_open: bool, user_preference: bool = True) -> b
             "user_preference": bool(user_preference),
         }
 
-        # Update app settings
-        app_settings["parameter_panel_state"] = panel_state
+        # Update app settings via backend
+        from data.persistence.factory import get_backend
 
-        # Save to file using profile-level path
-        workspace = get_active_profile_workspace()
-        settings_file = workspace / "profile.json"
-        with open(str(settings_file), "w") as f:
-            json.dump(app_settings, f, indent=2)
+        backend = get_backend()
+
+        # Store panel state in app_state table (UI preference) as JSON string
+        import json
+
+        backend.set_app_state("parameter_panel_state", json.dumps(panel_state))
 
         logger.debug(
-            f"[Config] Parameter panel state saved to {settings_file}: is_open={is_open}"
+            f"[Config] Parameter panel state saved to database: is_open={is_open}"
         )
         return True
 

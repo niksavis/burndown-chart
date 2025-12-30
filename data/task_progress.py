@@ -3,109 +3,25 @@
 This module provides functionality to track and persist progress of long-running
 tasks (like Calculate Metrics) so that progress indicators can be restored
 after page refresh or app restart.
+
+Now uses SQLite database for persistence instead of task_progress.json file.
 """
 
-import json
 import logging
-import os
-import tempfile
-import time
 from datetime import datetime, timedelta
-from pathlib import Path
 from typing import Dict, Optional, Tuple
 
 logger = logging.getLogger(__name__)
-
-# Task state file location
-TASK_STATE_FILE = Path("task_progress.json")
 
 # Task timeout (if task takes longer than this, assume it failed)
 TASK_TIMEOUT_MINUTES = 30
 
 
-def _atomic_write_json(file_path: Path, data: dict) -> None:
-    """Write JSON atomically to prevent corruption from concurrent writes.
+def _get_backend():
+    """Get persistence backend instance."""
+    from data.persistence.factory import get_backend
 
-    Uses temp file + atomic rename pattern which works on all operating systems.
-    """
-    # Write to temporary file in same directory
-    temp_fd, temp_path = tempfile.mkstemp(
-        dir=file_path.parent, prefix=f".{file_path.name}.", suffix=".tmp"
-    )
-
-    try:
-        with os.fdopen(temp_fd, "w") as f:
-            json.dump(data, f, indent=2)
-            f.flush()
-            os.fsync(f.fileno())  # Ensure data is written to disk
-
-        # Atomic rename (replaces target file)
-        # On Windows, need to remove target first if it exists
-        # Retry logic for Windows file locking issues (e.g. antivirus, polling reads)
-        max_retries = 10
-        retry_delay = 0.05  # Start with 50ms
-
-        for attempt in range(max_retries):
-            try:
-                if os.name == "nt" and file_path.exists():
-                    try:
-                        file_path.unlink()
-                    except FileNotFoundError:
-                        pass  # File already gone, that's fine
-
-                Path(temp_path).replace(file_path)
-                return  # Success
-            except (PermissionError, OSError) as e:
-                # PermissionError: File is open by another process
-                # OSError: Generic OS error (e.g. access denied)
-                if attempt < max_retries - 1:
-                    time.sleep(retry_delay)
-                    retry_delay *= 1.5  # Exponential backoff
-                else:
-                    # Log the specific error on final failure
-                    logger.error(
-                        f"Atomic write failed after {max_retries} attempts: {e}"
-                    )
-                    raise
-
-    except Exception:
-        # Clean up temp file on error
-        try:
-            Path(temp_path).unlink(missing_ok=True)
-        except Exception:
-            pass
-        raise
-
-
-def _safe_read_json(file_path: Path, max_retries: int = 5) -> Optional[dict]:
-    """Safely read JSON file with retry logic to handle concurrent writes.
-
-    Args:
-        file_path: Path to JSON file
-        max_retries: Maximum number of read attempts
-
-    Returns:
-        Parsed JSON dict, or None if read failed after all retries
-    """
-    retry_delay = 0.01  # Start with 10ms
-
-    for attempt in range(max_retries):
-        try:
-            with open(file_path, "r", encoding="utf-8") as f:
-                return json.load(f)
-        except json.JSONDecodeError as e:
-            if attempt < max_retries - 1:
-                time.sleep(retry_delay)
-                retry_delay *= 2  # Exponential backoff: 10ms, 20ms, 40ms, 80ms
-            else:
-                logger.error(
-                    f"Failed to read {file_path} after {max_retries} attempts: {e}"
-                )
-                return None
-        except FileNotFoundError:
-            return None
-
-    return None
+    return get_backend()
 
 
 class TaskProgress:
@@ -120,11 +36,10 @@ class TaskProgress:
             - Checks for orphaned tasks (started > TASK_TIMEOUT_MINUTES ago)
             - Returns False if task is stale/orphaned
         """
-        if not TASK_STATE_FILE.exists():
-            return False, None
-
         try:
-            state = _safe_read_json(TASK_STATE_FILE)
+            backend = _get_backend()
+            state = backend.get_task_state()
+
             if state is None:
                 return False, None
 
@@ -161,14 +76,14 @@ class TaskProgress:
         Returns:
             True if cancel flag is set in task state
         """
-        if not TASK_STATE_FILE.exists():
-            logger.debug("[TaskProgress] is_task_cancelled: state file does not exist")
-            return False
-
         try:
-            state = _safe_read_json(TASK_STATE_FILE)
+            backend = _get_backend()
+            state = backend.get_task_state()
+
             if state is None:
+                logger.debug("[TaskProgress] is_task_cancelled: state not found")
                 return False
+
             cancelled = state.get("cancelled", False)
             logger.debug(
                 f"[TaskProgress] is_task_cancelled: cancelled={cancelled}, state={state}"
@@ -185,11 +100,10 @@ class TaskProgress:
         Returns:
             True if cancellation flag was set successfully
         """
-        if not TASK_STATE_FILE.exists():
-            return False
-
         try:
-            state = _safe_read_json(TASK_STATE_FILE)
+            backend = _get_backend()
+            state = backend.get_task_state()
+
             if state is None:
                 return False
 
@@ -201,10 +115,10 @@ class TaskProgress:
             )
             logger.debug(f"[TaskProgress] State before write: {state}")
 
-            _atomic_write_json(TASK_STATE_FILE, state)
+            backend.save_task_state(state)
 
             logger.info(
-                f"[TaskProgress] Cancellation flag written to disk for task: {state.get('task_name')}"
+                f"[TaskProgress] Cancellation flag written to database for task: {state.get('task_name')}"
             )
             return True
         except Exception as e:
@@ -220,11 +134,10 @@ class TaskProgress:
             error_message: Error description
         """
         try:
-            if TASK_STATE_FILE.exists():
-                state = _safe_read_json(TASK_STATE_FILE)
-                if state is None:
-                    state = {"task_id": task_id}
-            else:
+            backend = _get_backend()
+            state = backend.get_task_state()
+
+            if state is None:
                 state = {"task_id": task_id}
 
             state["status"] = "error"
@@ -235,7 +148,7 @@ class TaskProgress:
                 "operation_in_progress": False,
             }
 
-            _atomic_write_json(TASK_STATE_FILE, state)
+            backend.save_task_state(state)
 
             logger.error(f"Task failed: {error_message}")
         except Exception as e:
@@ -266,13 +179,13 @@ class TaskProgress:
             )
             return False
 
-        # Delete any existing file to clear stale state
-        if TASK_STATE_FILE.exists():
-            try:
-                TASK_STATE_FILE.unlink()
-                logger.debug("Cleared previous task progress file")
-            except Exception as e:
-                logger.warning(f"Failed to clear previous progress file: {e}")
+        # Clear any existing state
+        try:
+            backend = _get_backend()
+            backend.clear_task_state()
+            logger.debug("Cleared previous task progress")
+        except Exception as e:
+            logger.warning(f"Failed to clear previous progress: {e}")
 
         state = {
             "task_id": task_id,
@@ -310,7 +223,8 @@ class TaskProgress:
             }
 
         try:
-            _atomic_write_json(TASK_STATE_FILE, state)
+            backend = _get_backend()
+            backend.save_task_state(state)
             logger.info(f"Task started: {task_name} (ID: {task_id})")
             return True
         except Exception as e:
@@ -329,13 +243,11 @@ class TaskProgress:
             **metadata: Additional data to store (e.g., report_file for report generation)
         """
         try:
-            if not TASK_STATE_FILE.exists():
-                logger.warning(f"Task file not found for {task_id}")
-                return
+            backend = _get_backend()
+            state = backend.get_task_state()
 
-            state = _safe_read_json(TASK_STATE_FILE)
             if state is None:
-                logger.warning(f"Failed to read task progress for {task_id}")
+                logger.warning(f"Task state not found for {task_id}")
                 return
 
             # CRITICAL: Only mark complete if actually done
@@ -382,7 +294,7 @@ class TaskProgress:
                 "operation_in_progress": False,
             }
 
-            _atomic_write_json(TASK_STATE_FILE, state)
+            backend.save_task_state(state)
 
             logger.info(
                 f"Task completed: {task_id} (phase={phase}, report_file={state.get('report_file')})"
@@ -397,11 +309,10 @@ class TaskProgress:
         Returns:
             Task state dict if task is in_progress, None otherwise
         """
-        if not TASK_STATE_FILE.exists():
-            return None
-
         try:
-            state = _safe_read_json(TASK_STATE_FILE)
+            backend = _get_backend()
+            state = backend.get_task_state()
+
             if state is None:
                 return None
 
@@ -417,9 +328,8 @@ class TaskProgress:
                 logger.warning(
                     f"Task {state['task_id']} timed out after {elapsed.total_seconds():.0f}s"
                 )
-                # Delete stale file
-                if TASK_STATE_FILE.exists():
-                    TASK_STATE_FILE.unlink()
+                # Clear stale state
+                backend.clear_task_state()
                 return None
 
             return state
@@ -464,15 +374,13 @@ class TaskProgress:
         """
         try:
             # Read current state
-            if not TASK_STATE_FILE.exists():
-                logger.warning(
-                    f"Task progress file not found for {task_id}, cannot update progress"
-                )
-                return
+            backend = _get_backend()
+            state = backend.get_task_state()
 
-            state = _safe_read_json(TASK_STATE_FILE)
             if state is None:
-                logger.warning(f"Failed to read task progress for {task_id}")
+                logger.warning(
+                    f"Task progress state not found for {task_id}, cannot update progress"
+                )
                 return
 
             # Only update if task IDs match
@@ -500,8 +408,8 @@ class TaskProgress:
             if "ui_state" not in state:
                 state["ui_state"] = {"operation_in_progress": True}
 
-            # Write updated state atomically to prevent corruption
-            _atomic_write_json(TASK_STATE_FILE, state)
+            # Write updated state
+            backend.save_task_state(state)
 
         except Exception as e:
             logger.error(f"Failed to update task progress: {e}")

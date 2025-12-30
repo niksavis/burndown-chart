@@ -626,13 +626,23 @@ def load_query_cached_data(n_clicks, selected_query_id):
 
         # Switch to the selected query
         switch_query(selected_query_id)
-        logger.info(
-            f"Switched to query: {selected_query_id}"
-        )  # Load cached data for this query
+        logger.info(f"Switched to query: {selected_query_id}")
+
+        # Load cached data for this query
         unified_data = load_unified_project_data()
 
         # Extract statistics
         statistics = unified_data.get("statistics", [])
+        logger.info(
+            f"[QUERY SWITCH] Loaded {len(statistics)} statistics for query {selected_query_id}"
+        )
+        if statistics:
+            logger.info(
+                f"[QUERY SWITCH] First stat: {statistics[0].get('date', 'NO DATE')} - items: {statistics[0].get('remaining_items', 'NO ITEMS')}, points: {statistics[0].get('remaining_total_points', 'NO POINTS')}"
+            )
+            logger.info(
+                f"[QUERY SWITCH] Last stat: {statistics[-1].get('date', 'NO DATE')} - items: {statistics[-1].get('remaining_items', 'NO ITEMS')}, points: {statistics[-1].get('remaining_total_points', 'NO POINTS')}"
+            )
 
         # Extract scope
         scope = unified_data.get("project_scope", {})
@@ -722,3 +732,95 @@ def load_query_cached_data(n_clicks, selected_query_id):
             no_update,  # Don't update current-statistics on error
             no_update,  # Don't update jira-cache-status on error
         )
+
+
+# ============================================================================
+# Auto-Reload Data When Query Switches
+# ============================================================================
+
+
+# DISABLED: Auto-reload on query switch
+# User requirement: Query dropdown should not trigger data loading automatically
+# Data should only be loaded via explicit "Load Data" button click
+# This allows users to select and modify queries without triggering data loads
+#
+# @callback(
+#     [
+#         Output("statistics-table", "data", allow_duplicate=True),
+#         Output("current-statistics", "data", allow_duplicate=True),
+#         Output("current-settings", "data", allow_duplicate=True),
+#         Output("total-items-input", "value", allow_duplicate=True),
+#         Output("estimated-items-input", "value", allow_duplicate=True),
+#         Output("total-points-display", "value", allow_duplicate=True),
+#         Output("estimated-points-input", "value", allow_duplicate=True),
+#     ],
+#     Input("query-selector", "value"),
+#     State("query-selector", "options"),
+#     prevent_initial_call=True,
+# )
+# def auto_reload_data_on_query_switch(selected_query_id, current_options):
+#     """Automatically reload statistics and settings when query switches.
+#
+#     This ensures that switching queries immediately updates all displayed data
+#     without requiring manual "Load Data" button click.
+#
+#     Args:
+#         selected_query_id: Newly selected query ID
+#         current_options: Current dropdown options (for validation)
+#
+#     Returns:
+#         Tuple of (statistics, statistics_store, settings, total_items,
+#                   estimated_items, total_points, estimated_points)
+#     """
+#     if not selected_query_id or selected_query_id == "__create_new__":
+#         raise PreventUpdate
+#
+#     try:
+#         from data.persistence import (
+#             load_statistics,
+#             load_unified_project_data,
+#             load_app_settings,
+#         )
+#
+#         # Load statistics from database for active query
+#         statistics, _ = load_statistics()
+#
+#         # Load unified project data for scope
+#         unified_data = load_unified_project_data()
+#         scope = unified_data.get("project_scope", {})
+#
+#         estimated_items = scope.get("estimated_items", 0)
+#         estimated_points = scope.get("estimated_points", 0)
+#         total_items = scope.get("remaining_items", 0)
+#         total_points = scope.get("remaining_total_points", 0)
+#         total_points_display = f"{total_points:.0f}"
+#
+#         # Load settings and update with actual scope values
+#         settings = load_app_settings()
+#         settings = {**settings}
+#         settings.update(
+#             {
+#                 "total_items": total_items,
+#                 "total_points": total_points,
+#                 "estimated_items": estimated_items,
+#                 "estimated_points": estimated_points,
+#             }
+#         )
+#
+#         logger.info(
+#             f"Auto-reloaded data for query {selected_query_id}: {len(statistics)} data points"
+#         )
+#
+#         return (
+#             statistics,
+#             statistics,  # Update store
+#             settings,
+#             total_items,
+#             estimated_items,
+#             total_points_display,
+#             estimated_points,
+#         )
+#
+#     except Exception as e:
+#         logger.error(f"Failed to auto-reload data on query switch: {e}")
+#         raise PreventUpdate

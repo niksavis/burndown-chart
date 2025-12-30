@@ -16,6 +16,11 @@ Performance:
 - Batch operations with ON CONFLICT DO UPDATE
 - Indexed queries for <50ms response times
 
+Concurrency:
+- Automatic retry logic for database lock scenarios (up to 3 retries with exponential backoff)
+- Graceful handling of OperationalError: database is locked
+- WAL mode enables concurrent reads
+
 Usage:
     from data.persistence.sqlite_backend import SQLiteBackend
 
@@ -25,8 +30,11 @@ Usage:
 
 import logging
 import json
+import time
+import sqlite3
+from functools import wraps
 from pathlib import Path
-from typing import Dict, List, Optional, Any
+from typing import Dict, List, Optional, Any, Callable
 from datetime import datetime
 
 from data.persistence import (
@@ -38,6 +46,74 @@ from data.persistence import (
 from data.database import get_db_connection
 
 logger = logging.getLogger(__name__)
+
+
+# ========================================================================
+# Retry Logic for Database Locks (T062, T064)
+# ========================================================================
+
+
+def retry_on_db_lock(max_retries: int = 3, base_delay: float = 0.1):
+    """
+    Decorator to retry database operations when database is locked.
+
+    Implements exponential backoff: 0.1s, 0.2s, 0.4s for default settings.
+
+    Args:
+        max_retries: Maximum number of retry attempts (default: 3)
+        base_delay: Base delay in seconds between retries (default: 0.1)
+
+    Example:
+        @retry_on_db_lock(max_retries=3, base_delay=0.1)
+        def save_profile(self, profile: Dict) -> None:
+            # Database operation that might encounter locks
+            ...
+    """
+
+    def decorator(func: Callable) -> Callable:
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            last_exception = None
+
+            for attempt in range(max_retries + 1):
+                try:
+                    return func(*args, **kwargs)
+                except sqlite3.OperationalError as e:
+                    last_exception = e
+                    error_msg = str(e).lower()
+
+                    # Only retry on database lock errors
+                    if "database is locked" in error_msg or "locked" in error_msg:
+                        if attempt < max_retries:
+                            delay = base_delay * (2**attempt)
+                            logger.warning(
+                                f"Database locked in {func.__name__}, retrying in {delay}s (attempt {attempt + 1}/{max_retries})"
+                            )
+                            time.sleep(delay)
+                            continue
+                        else:
+                            logger.error(
+                                f"Database locked in {func.__name__} after {max_retries} retries"
+                            )
+                            raise RuntimeError(
+                                f"Database is locked after {max_retries} retry attempts. "
+                                "This may indicate concurrent access or a hung transaction. "
+                                "Try closing other instances of the app or wait a moment."
+                            ) from e
+                    else:
+                        # Non-lock error - don't retry
+                        raise
+                except Exception:
+                    # Non-OperationalError exceptions should not be retried
+                    raise
+
+            # This should never be reached, but just in case
+            if last_exception:
+                raise last_exception
+
+        return wrapper
+
+    return decorator
 
 
 class SQLiteBackend(PersistenceBackend):
@@ -101,6 +177,7 @@ class SQLiteBackend(PersistenceBackend):
             )
             raise
 
+    @retry_on_db_lock(max_retries=3, base_delay=0.1)
     def save_profile(self, profile: Dict) -> None:
         """Save profile configuration (insert or update) to profiles table."""
         required_fields = ["id", "name", "created_at", "last_used"]
@@ -189,6 +266,7 @@ class SQLiteBackend(PersistenceBackend):
             )
             raise
 
+    @retry_on_db_lock(max_retries=3, base_delay=0.1)
     def delete_profile(self, profile_id: str) -> None:
         """Delete profile and cascade to all queries and data."""
         try:
@@ -242,6 +320,7 @@ class SQLiteBackend(PersistenceBackend):
             )
             raise
 
+    @retry_on_db_lock(max_retries=3, base_delay=0.1)
     def save_query(self, profile_id: str, query: Dict) -> None:
         """Save query configuration (insert or update) to queries table."""
         required_fields = ["id", "name", "jql", "created_at", "last_used"]
@@ -308,6 +387,7 @@ class SQLiteBackend(PersistenceBackend):
             )
             raise
 
+    @retry_on_db_lock(max_retries=3, base_delay=0.1)
     def delete_query(self, profile_id: str, query_id: str) -> None:
         """Delete query and cascade to cache and data."""
         try:
@@ -361,6 +441,7 @@ class SQLiteBackend(PersistenceBackend):
             )
             raise
 
+    @retry_on_db_lock(max_retries=3, base_delay=0.1)
     def set_app_state(self, key: str, value: str) -> None:
         """Set application state value in app_state table."""
         try:
@@ -451,6 +532,7 @@ class SQLiteBackend(PersistenceBackend):
             )
             raise
 
+    @retry_on_db_lock(max_retries=3, base_delay=0.1)
     def save_issues_batch(
         self,
         profile_id: str,
@@ -459,15 +541,73 @@ class SQLiteBackend(PersistenceBackend):
         issues: List[Dict],
         expires_at: datetime,
     ) -> None:
-        """Batch UPSERT normalized issues."""
+        """
+        Batch UPSERT normalized issues with two-layer storage:
+        1. RAW LAYER: All custom fields preserved in custom_fields JSON
+        2. NORMALIZED LAYER: Points extracted via profile's configured mapping
+
+        This enables:
+        - User-configurable field mappings (no hardcoded field IDs)
+        - Graceful degradation (points=NULL if mapping not configured)
+        - Re-normalization without re-fetching from JIRA
+        - Repository pattern (app reads normalized data, backend handles transformation)
+        """
         if not issues:
             return
+
+        # Load profile configuration to get points field mapping
+        profile_data = self.get_profile(profile_id)
+        jira_config = {}
+        points_field = None
+
+        if profile_data:
+            # get_profile already parses jira_config from JSON to dict
+            jira_config = profile_data.get("jira_config", {})
+            if isinstance(jira_config, dict):
+                points_field = jira_config.get("points_field", "").strip()
+                if not points_field:
+                    logger.debug(
+                        f"No points_field configured for profile {profile_id} - points will be NULL"
+                    )
+            else:
+                logger.warning(f"Unexpected jira_config type: {type(jira_config)}")
 
         try:
             with get_db_connection(self.db_path) as conn:
                 cursor = conn.cursor()
 
                 for issue in issues:
+                    fields = issue.get("fields", {})
+
+                    # === RAW LAYER: Save ALL custom fields (immutable) ===
+                    custom_fields_raw = {
+                        k: v for k, v in fields.items() if k.startswith("customfield_")
+                    }
+                    custom_fields_json = json.dumps(custom_fields_raw)
+
+                    # === NORMALIZED LAYER: Extract points via configured mapping ===
+                    points = None
+                    if points_field:  # Only if mapping is configured
+                        points_raw = fields.get(points_field)
+
+                        if points_raw is not None:
+                            # Handle JIRA's complex field types
+                            if isinstance(points_raw, dict):
+                                # Some fields return objects: {"value": 8.0}
+                                points_raw = points_raw.get("value")
+
+                            # Convert to float (check for None first)
+                            if points_raw is not None:
+                                try:
+                                    points = float(points_raw)
+                                except (ValueError, TypeError):
+                                    logger.warning(
+                                        f"Cannot convert points to float for {issue.get('key')}: {points_raw}"
+                                    )
+                                    points = None
+                            else:
+                                points = None
+
                     cursor.execute(
                         """
                         INSERT INTO jira_issues (
@@ -499,43 +639,39 @@ class SQLiteBackend(PersistenceBackend):
                             query_id,
                             cache_key,
                             issue.get("key"),
-                            issue.get("fields", {}).get("summary", ""),
-                            issue.get("fields", {}).get("status", {}).get("name", ""),
-                            issue.get("fields", {})
-                            .get("assignee", {})
-                            .get("displayName")
-                            if issue.get("fields", {}).get("assignee")
+                            fields.get("summary", ""),
+                            fields.get("status", {}).get("name", ""),
+                            fields.get("assignee", {}).get("displayName")
+                            if fields.get("assignee")
                             else None,
-                            issue.get("fields", {})
-                            .get("issuetype", {})
-                            .get("name", ""),
-                            issue.get("fields", {}).get("priority", {}).get("name"),
-                            issue.get("fields", {}).get("resolution", {}).get("name"),
-                            issue.get("fields", {}).get("created"),
-                            issue.get("fields", {}).get("updated"),
-                            issue.get("fields", {}).get("resolutiondate"),
-                            issue.get("fields", {}).get(
-                                "customfield_10016"
-                            ),  # Story points
-                            issue.get("fields", {}).get("project", {}).get("key", ""),
-                            issue.get("fields", {}).get("project", {}).get("name", ""),
-                            json.dumps(issue.get("fields", {}).get("fixVersions")),
-                            json.dumps(issue.get("fields", {}).get("labels")),
-                            json.dumps(issue.get("fields", {}).get("components")),
-                            json.dumps(
-                                {
-                                    k: v
-                                    for k, v in issue.get("fields", {}).items()
-                                    if k.startswith("customfield_")
-                                }
-                            ),
+                            fields.get("issuetype", {}).get("name", ""),
+                            fields.get("priority", {}).get("name"),
+                            fields.get("resolution", {}).get("name"),
+                            fields.get("created"),
+                            fields.get("updated"),
+                            fields.get("resolutiondate"),
+                            points,  # ← Normalized from configured points_field (can be NULL)
+                            fields.get("project", {}).get("key", ""),
+                            fields.get("project", {}).get("name", ""),
+                            json.dumps(fields.get("fixVersions")),
+                            json.dumps(fields.get("labels")),
+                            json.dumps(fields.get("components")),
+                            custom_fields_json,  # ← Raw data (all customfield_* preserved)
                             expires_at.isoformat(),
                             datetime.now().isoformat(),
                         ),
                     )
 
                 conn.commit()
-                logger.info(f"Saved {len(issues)} issues for {profile_id}/{query_id}")
+
+                points_configured = (
+                    f" (points_field: {points_field})"
+                    if points_field
+                    else " (no points mapping)"
+                )
+                logger.info(
+                    f"Saved {len(issues)} issues for {profile_id}/{query_id}{points_configured}"
+                )
 
         except Exception as e:
             logger.error(
@@ -567,13 +703,45 @@ class SQLiteBackend(PersistenceBackend):
     def get_jira_cache(
         self, profile_id: str, query_id: str, cache_key: str
     ) -> Optional[Dict]:
-        """LEGACY: Get JIRA cache - returns aggregated normalized data."""
-        # For backward compatibility, reconstruct JSON blob from normalized tables
-        issues = self.get_issues(profile_id, query_id)
-        if not issues:
-            return None
-        return {"issues": issues, "total": len(issues)}
+        """LEGACY: Get JIRA cache - returns aggregated normalized data with metadata."""
+        try:
+            with get_db_connection(self.db_path) as conn:
+                cursor = conn.cursor()
 
+                # Get cache metadata
+                cursor.execute(
+                    """
+                    SELECT timestamp, config_hash, issue_count, expires_at
+                    FROM jira_cache
+                    WHERE profile_id = ? AND query_id = ? AND cache_key = ?
+                    """,
+                    (profile_id, query_id, cache_key),
+                )
+                row = cursor.fetchone()
+
+                if not row:
+                    return None
+
+                timestamp, config_hash, issue_count, expires_at = row
+
+                # Get issues from normalized table
+                issues = self.get_issues(profile_id, query_id)
+
+                # Return in cache_manager expected format
+                return {
+                    "issues": issues,
+                    "metadata": {
+                        "timestamp": timestamp,
+                        "cache_key": cache_key,
+                        "config_hash": config_hash,
+                    },
+                }
+
+        except Exception as e:
+            logger.error(f"Failed to get JIRA cache: {e}")
+            return None
+
+    @retry_on_db_lock(max_retries=3, base_delay=0.1)
     def save_jira_cache(
         self,
         profile_id: str,
@@ -582,9 +750,135 @@ class SQLiteBackend(PersistenceBackend):
         response: Dict,
         expires_at: datetime,
     ) -> None:
-        """LEGACY: Save JIRA cache - redirects to save_issues_batch."""
+        """
+        Save JIRA cache - saves issues, changelog, and metadata.
+
+        This is the main entry point for saving JIRA data to the database.
+        It handles both issues and changelog extraction from the JIRA API response.
+        """
         issues = response.get("issues", [])
+        metadata = response.get("metadata", {})
+
+        # Save normalized issues (with two-layer storage: raw + normalized)
         self.save_issues_batch(profile_id, query_id, cache_key, issues, expires_at)
+
+        # Extract and save changelog entries from issues
+        changelog_entries = self._extract_changelog_from_issues(issues)
+        if changelog_entries:
+            self.save_changelog_batch(
+                profile_id, query_id, changelog_entries, expires_at
+            )
+            logger.info(
+                f"Extracted and saved {len(changelog_entries)} changelog entries"
+            )
+        else:
+            logger.debug(f"No changelog data found in {len(issues)} issues")
+
+        # Save cache metadata
+        try:
+            with get_db_connection(self.db_path) as conn:
+                cursor = conn.cursor()
+                cursor.execute(
+                    """
+                    INSERT OR REPLACE INTO jira_cache (
+                        profile_id, query_id, cache_key, timestamp, config_hash,
+                        issue_count, expires_at
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        profile_id,
+                        query_id,
+                        cache_key,
+                        metadata.get("timestamp", datetime.now().isoformat()),
+                        metadata.get("config_hash", ""),
+                        len(issues),
+                        expires_at.isoformat(),
+                    ),
+                )
+                conn.commit()
+        except Exception as e:
+            logger.error(f"Failed to save cache metadata: {e}")
+            raise
+
+    def _extract_changelog_from_issues(self, issues: List[Dict]) -> List[Dict]:
+        """
+        Extract changelog entries from issues with expanded changelog.
+
+        JIRA API returns changelog in this structure:
+        issue.changelog.histories[] -> each history has:
+          - created: timestamp
+          - author: {displayName: "..."}
+          - items[]: list of field changes
+
+        Args:
+            issues: List of JIRA issues (may or may not have changelog expanded)
+
+        Returns:
+            List of normalized changelog entry dicts
+        """
+        changelog_entries = []
+
+        for issue in issues:
+            issue_key = issue.get("key")
+            if not issue_key:
+                continue
+
+            changelog = issue.get("changelog", {})
+            if not changelog:
+                continue
+
+            # Handle both dict and object formats (from jira_adapter)
+            if isinstance(changelog, dict):
+                histories = changelog.get("histories", [])
+            else:
+                histories = getattr(changelog, "histories", [])
+
+            for history in histories:
+                # Extract history metadata
+                if isinstance(history, dict):
+                    created = history.get("created")
+                    author_obj = history.get("author", {})
+                    author = (
+                        author_obj.get("displayName", "")
+                        if isinstance(author_obj, dict)
+                        else ""
+                    )
+                    items = history.get("items", [])
+                else:
+                    created = getattr(history, "created", None)
+                    author_obj = getattr(history, "author", None)
+                    author = (
+                        getattr(author_obj, "displayName", "") if author_obj else ""
+                    )
+                    items = getattr(history, "items", [])
+
+                # Extract field changes
+                for item in items:
+                    if isinstance(item, dict):
+                        field_name = item.get("field")
+                        field_type = item.get("fieldtype", "jira")
+                        old_value = item.get("fromString")
+                        new_value = item.get("toString")
+                    else:
+                        field_name = getattr(item, "field", None)
+                        field_type = getattr(item, "fieldtype", "jira")
+                        old_value = getattr(item, "fromString", None)
+                        new_value = getattr(item, "toString", None)
+
+                    if field_name:  # Only save if we have a field name
+                        changelog_entries.append(
+                            {
+                                "issue_key": issue_key,
+                                "change_date": created,
+                                "author": author or "",
+                                "field_name": field_name,
+                                "field_type": field_type,
+                                "old_value": old_value,
+                                "new_value": new_value,
+                            }
+                        )
+
+        return changelog_entries
 
     def cleanup_expired_cache(self) -> int:
         """Remove expired JIRA cache entries (issues + changelog)."""
@@ -610,6 +904,141 @@ class SQLiteBackend(PersistenceBackend):
         except Exception as e:
             logger.error(
                 f"Failed to cleanup expired cache: {e}",
+                extra={"error_type": type(e).__name__},
+            )
+            raise
+
+    def renormalize_points(
+        self, profile_id: str, query_id: Optional[str] = None
+    ) -> int:
+        """
+        Re-normalize points column from raw custom_fields data.
+
+        Use cases:
+        - User changes points_field mapping in profile configuration
+        - Migration completed but mapping was empty/incorrect
+        - Fix data corruption in normalized columns
+
+        This function reads the current points_field mapping from the profile
+        and re-extracts points from the immutable custom_fields JSON for all
+        issues in the profile (or specific query if specified).
+
+        Args:
+            profile_id: Profile to re-normalize
+            query_id: Optional - re-normalize specific query, or all queries if None
+
+        Returns:
+            Number of issues updated
+
+        Example:
+            >>> backend = get_backend()
+            >>> # User changed points_field from customfield_10016 to customfield_10002
+            >>> updated = backend.renormalize_points("my_profile")
+            >>> print(f"Re-normalized {updated} issues")
+        """
+        # Get current mapping from profile
+        profile = self.get_profile(profile_id)
+        if not profile:
+            raise ValueError(f"Profile not found: {profile_id}")
+
+        # Profile is a dict from sqlite Row, jira_config is already a string
+        jira_config_str = profile.get("jira_config") or "{}"
+        try:
+            # Only parse if it's a string
+            if isinstance(jira_config_str, str):
+                jira_config = json.loads(jira_config_str) if jira_config_str else {}
+            else:
+                jira_config = jira_config_str  # Already a dict
+        except json.JSONDecodeError:
+            logger.error(f"Invalid jira_config JSON for profile {profile_id}")
+            return 0
+
+        points_field = jira_config.get("points_field", "").strip()
+
+        if not points_field:
+            logger.warning(
+                f"No points_field configured for profile {profile_id} - cannot re-normalize"
+            )
+            return 0
+
+        logger.info(f"Re-normalizing points using field: {points_field}")
+
+        try:
+            with get_db_connection(self.db_path) as conn:
+                cursor = conn.cursor()
+
+                # Build query to get issues
+                if query_id:
+                    query = """
+                        SELECT id, custom_fields FROM jira_issues 
+                        WHERE profile_id = ? AND query_id = ?
+                    """
+                    params = [profile_id, query_id]
+                else:
+                    query = """
+                        SELECT id, custom_fields FROM jira_issues 
+                        WHERE profile_id = ?
+                    """
+                    params = [profile_id]
+
+                cursor.execute(query, params)
+                rows = cursor.fetchall()
+
+                updated_count = 0
+                for row in rows:
+                    issue_id = row[0]
+                    custom_fields_json = row[1]
+
+                    if not custom_fields_json:
+                        continue
+
+                    try:
+                        custom_fields = json.loads(custom_fields_json)
+                    except json.JSONDecodeError:
+                        logger.warning(
+                            f"Invalid custom_fields JSON for issue ID {issue_id}"
+                        )
+                        continue
+
+                    # Extract points from configured field
+                    points = None
+                    points_raw = custom_fields.get(points_field)
+
+                    if points_raw is not None:
+                        # Handle JIRA's complex field types
+                        if isinstance(points_raw, dict):
+                            points_raw = points_raw.get("value")
+
+                        # Convert to float (check for None first)
+                        if points_raw is not None:
+                            try:
+                                points = float(points_raw)
+                            except (ValueError, TypeError):
+                                logger.debug(
+                                    f"Cannot convert points to float for issue ID {issue_id}: {points_raw}"
+                                )
+                                points = None
+                        else:
+                            points = None
+
+                    # Update normalized column
+                    cursor.execute(
+                        "UPDATE jira_issues SET points = ? WHERE id = ?",
+                        (points, issue_id),
+                    )
+                    updated_count += 1
+
+                conn.commit()
+
+                query_info = f" for query {query_id}" if query_id else ""
+                logger.info(
+                    f"Re-normalized {updated_count} issues for profile {profile_id}{query_info} using {points_field}"
+                )
+                return updated_count
+
+        except Exception as e:
+            logger.error(
+                f"Failed to re-normalize points for {profile_id}: {e}",
                 extra={"error_type": type(e).__name__},
             )
             raise
@@ -677,31 +1106,61 @@ class SQLiteBackend(PersistenceBackend):
                 cursor = conn.cursor()
 
                 for entry in entries:
+                    # Check if entry already exists to avoid duplicates
                     cursor.execute(
                         """
-                        INSERT INTO jira_changelog_entries (
-                            profile_id, query_id, issue_key, change_date, author,
-                            field_name, field_type, old_value, new_value, expires_at
-                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                        ON CONFLICT(profile_id, query_id, issue_key, change_date, field_name) DO UPDATE SET
-                            author = excluded.author,
-                            old_value = excluded.old_value,
-                            new_value = excluded.new_value,
-                            expires_at = excluded.expires_at
-                    """,
+                        SELECT id FROM jira_changelog_entries
+                        WHERE profile_id = ? AND query_id = ? AND issue_key = ?
+                          AND change_date = ? AND field_name = ?
+                        """,
                         (
                             profile_id,
                             query_id,
                             entry.get("issue_key"),
                             entry.get("change_date"),
-                            entry.get("author"),
                             entry.get("field_name"),
-                            entry.get("field_type", "jira"),
-                            entry.get("old_value"),
-                            entry.get("new_value"),
-                            expires_at.isoformat(),
                         ),
                     )
+                    existing = cursor.fetchone()
+
+                    if existing:
+                        # Update existing entry
+                        cursor.execute(
+                            """
+                            UPDATE jira_changelog_entries
+                            SET author = ?, old_value = ?, new_value = ?, expires_at = ?
+                            WHERE id = ?
+                            """,
+                            (
+                                entry.get("author"),
+                                entry.get("old_value"),
+                                entry.get("new_value"),
+                                expires_at.isoformat(),
+                                existing["id"],
+                            ),
+                        )
+                    else:
+                        # Insert new entry
+                        cursor.execute(
+                            """
+                            INSERT INTO jira_changelog_entries (
+                                profile_id, query_id, issue_key, change_date, author,
+                                field_name, field_type, old_value, new_value, expires_at
+                            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                            """,
+                            (
+                                profile_id,
+                                query_id,
+                                entry.get("issue_key"),
+                                entry.get("change_date"),
+                                entry.get("author"),
+                                entry.get("field_name"),
+                                entry.get("field_type", "jira"),
+                                entry.get("old_value"),
+                                entry.get("new_value"),
+                                expires_at.isoformat(),
+                            ),
+                        )
 
                 conn.commit()
                 logger.info(
@@ -765,7 +1224,7 @@ class SQLiteBackend(PersistenceBackend):
                     query += " AND stat_date <= ?"
                     params.append(end_date)
 
-                query += " ORDER BY stat_date DESC"
+                query += " ORDER BY stat_date ASC"  # BUGFIX: Charts expect chronological order (oldest first)
 
                 if limit:
                     query += " LIMIT ?"
@@ -797,15 +1256,26 @@ class SQLiteBackend(PersistenceBackend):
                 cursor = conn.cursor()
 
                 for stat in stats:
+                    # Handle both "stat_date" (database format) and "date" (legacy format)
+                    stat_date = stat.get("stat_date") or stat.get("date")
+                    if not stat_date:
+                        logger.warning(f"Skipping statistic with no date: {stat}")
+                        continue
+
                     cursor.execute(
                         """
                         INSERT INTO project_statistics (
                             profile_id, query_id, stat_date, week_label,
+                            remaining_items, remaining_total_points, items_added, items_completed,
                             completed_items, completed_points, created_items, created_points,
                             velocity_items, velocity_points, recorded_at
-                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                         ON CONFLICT(profile_id, query_id, stat_date) DO UPDATE SET
                             week_label = excluded.week_label,
+                            remaining_items = excluded.remaining_items,
+                            remaining_total_points = excluded.remaining_total_points,
+                            items_added = excluded.items_added,
+                            items_completed = excluded.items_completed,
                             completed_items = excluded.completed_items,
                             completed_points = excluded.completed_points,
                             created_items = excluded.created_items,
@@ -817,8 +1287,12 @@ class SQLiteBackend(PersistenceBackend):
                         (
                             profile_id,
                             query_id,
-                            stat.get("stat_date"),
+                            stat_date,
                             stat.get("week_label"),
+                            stat.get("remaining_items"),
+                            stat.get("remaining_total_points"),
+                            stat.get("items_added", 0),
+                            stat.get("items_completed", 0),
                             stat.get("completed_items", 0),
                             stat.get("completed_points", 0.0),
                             stat.get("created_items", 0),
@@ -1148,6 +1622,98 @@ class SQLiteBackend(PersistenceBackend):
             )
             raise
 
+    def get_task_state(self) -> Optional[Dict]:
+        """
+        Get full task state (supports complex nested structures).
+        Retrieves the first (and only) task progress row and returns full state.
+        """
+        try:
+            with get_db_connection(self.db_path) as conn:
+                cursor = conn.cursor()
+                cursor.execute("SELECT message FROM task_progress LIMIT 1")
+                result = cursor.fetchone()
+                if not result or not result["message"]:
+                    return None
+                # Parse JSON from message field
+                return json.loads(result["message"])
+        except json.JSONDecodeError as e:
+            logger.error(f"Failed to parse task state JSON: {e}")
+            return None
+        except Exception as e:
+            logger.error(
+                f"Failed to get task state: {e}",
+                extra={"error_type": type(e).__name__},
+            )
+            return None
+
+    def save_task_state(self, state: Dict) -> None:
+        """
+        Save full task state (supports complex nested structures).
+        Stores state as JSON in message field.
+        """
+        try:
+            # Serialize state to JSON
+            state_json = json.dumps(state)
+
+            # Extract key fields for indexing
+            task_name = state.get("task_id", "unknown")
+            status = state.get("status", "in_progress")
+
+            # Calculate progress percent (try multiple fields for compatibility)
+            progress_percent = 0.0
+            if "percent" in state:
+                progress_percent = state["percent"]
+            elif "fetch_progress" in state:
+                progress_percent = state["fetch_progress"].get("percent", 0.0)
+            elif "report_progress" in state:
+                progress_percent = state["report_progress"].get("percent", 0.0)
+
+            with get_db_connection(self.db_path) as conn:
+                cursor = conn.cursor()
+                cursor.execute(
+                    """
+                    INSERT INTO task_progress (task_name, progress_percent, status, message, updated_at)
+                    VALUES (?, ?, ?, ?, ?)
+                    ON CONFLICT(task_name) DO UPDATE SET
+                        progress_percent = excluded.progress_percent,
+                        status = excluded.status,
+                        message = excluded.message,
+                        updated_at = excluded.updated_at
+                """,
+                    (
+                        task_name,
+                        progress_percent,
+                        status,
+                        state_json,
+                        datetime.now().isoformat(),
+                    ),
+                )
+                conn.commit()
+                logger.debug(
+                    f"Task state saved: {task_name} - {progress_percent}% {status}"
+                )
+        except Exception as e:
+            logger.error(
+                f"Failed to save task state: {e}",
+                extra={"error_type": type(e).__name__},
+            )
+            raise
+
+    def clear_task_state(self) -> None:
+        """Clear all task progress state."""
+        try:
+            with get_db_connection(self.db_path) as conn:
+                cursor = conn.cursor()
+                cursor.execute("DELETE FROM task_progress")
+                conn.commit()
+                logger.debug("Cleared all task progress state")
+        except Exception as e:
+            logger.error(
+                f"Failed to clear task state: {e}",
+                extra={"error_type": type(e).__name__},
+            )
+            raise
+
     # ========================================================================
     # Transaction Management
     # ========================================================================
@@ -1169,3 +1735,11 @@ class SQLiteBackend(PersistenceBackend):
         logger.warning(
             "rollback_transaction not implemented - use get_db_connection() context manager"
         )
+
+    def close(self) -> None:
+        """Close database connections.
+
+        Note: SQLiteBackend uses connection-per-request pattern via context managers,
+        so there are no persistent connections to close. This is a no-op.
+        """
+        logger.debug("close() called on SQLiteBackend (no-op with context managers)")

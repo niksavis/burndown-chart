@@ -3,8 +3,15 @@
 from datetime import datetime
 import json
 import logging
-from pathlib import Path
-from dash import callback, Output, Input, State, no_update
+from dash import (
+    callback,
+    Output,
+    Input,
+    State,
+    no_update,
+    clientside_callback,
+    ClientsideFunction,
+)
 from data.query_manager import get_active_profile_id, get_active_query_id
 
 logger = logging.getLogger(__name__)
@@ -122,10 +129,13 @@ def detect_import_conflict(contents, filename):
         if not profile_id:
             return False, "", None, no_update
 
-        # Check if profile already exists
-        profile_path = Path("profiles") / profile_id / "profile.json"
+        # Check if profile already exists in database
+        from data.persistence.factory import get_backend
 
-        if profile_path.exists():
+        backend = get_backend()
+        existing_profile = backend.get_profile(profile_id)
+
+        if existing_profile:
             # Conflict detected - show modal with profile name
             # Suggest a default name for rename option
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -174,8 +184,7 @@ def handle_conflict_resolution(
 ):
     """T052: Handle user's conflict resolution choice with optional custom name."""
     from ui.toast_notifications import create_toast
-    from dash import html, ctx
-    from data.import_export import resolve_profile_conflict
+    from dash import ctx
 
     if not ctx.triggered or not import_data:
         return no_update, no_update, no_update, no_update
@@ -205,8 +214,11 @@ def perform_import(import_data, conflict_strategy=None, custom_name=None):
     from ui.toast_notifications import create_toast
     from dash import html
     from data.import_export import resolve_profile_conflict
+    from data.persistence.factory import get_backend
 
     try:
+        backend = get_backend()
+
         # Get profile data from new format
         profile_data = import_data.get("profile_data", {})
         profile_id = profile_data.get("id") or import_data.get("profile_id")
@@ -216,42 +228,10 @@ def perform_import(import_data, conflict_strategy=None, custom_name=None):
         export_mode = manifest.get("export_mode", "FULL_DATA")
         is_config_only = export_mode == "CONFIG_ONLY"
 
-        # Get query info from query_data
-        query_data_dict = import_data.get("query_data", {})
-        original_query_id = None
-        query_metadata = None
-
-        if query_data_dict:
-            # Get original query ID
-            original_query_id = list(query_data_dict.keys())[0]
-            # Get query metadata (name, JQL, description)
-            query_metadata = query_data_dict[original_query_id].get(
-                "query_metadata", {}
-            )
-
-        # Generate new unique query ID (timestamp-based)
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        query_id = f"q_{timestamp}"
-
-        # Use friendly query name if available
-        query_name = (
-            query_metadata.get("name", "Imported Query")
-            if query_metadata
-            else "Imported Query"
-        )
-        query_jql = query_metadata.get("jql", "") if query_metadata else ""
-        query_description = (
-            query_metadata.get("description", "") if query_metadata else ""
-        )
-
         # Handle conflict resolution if strategy provided
         if conflict_strategy:
-            profile_path = Path("profiles") / profile_id / "profile.json"
-            if profile_path.exists():
-                # Load existing profile
-                with open(profile_path, "r", encoding="utf-8") as f:
-                    existing_profile = json.load(f)
-
+            existing_profile = backend.get_profile(profile_id)
+            if existing_profile:
                 # If rename strategy and custom name provided, use it
                 if (
                     conflict_strategy == "rename"
@@ -275,49 +255,15 @@ def perform_import(import_data, conflict_strategy=None, custom_name=None):
                 profile_id = final_profile_id
                 profile_data = resolved_data
 
-        # Create profile and query directories
-        profile_dir = Path("profiles") / profile_id
-        query_dir = profile_dir / "queries" / query_id
-        query_dir.mkdir(parents=True, exist_ok=True)
+        # Ensure required fields are set
+        if "created_at" not in profile_data:
+            profile_data["created_at"] = datetime.now().isoformat()
+        if "last_used" not in profile_data:
+            profile_data["last_used"] = datetime.now().isoformat()
 
-        # Write query.json with metadata (name, JQL, description)
-        query_file = query_dir / "query.json"
-        query_json_data = {
-            "name": query_name,
-            "jql": query_jql,
-            "description": query_description,
-            "created_at": datetime.now().isoformat(),
-        }
-        with open(query_file, "w", encoding="utf-8") as f:
-            json.dump(query_json_data, f, indent=2, ensure_ascii=False)
-
-        # Write profile.json
-        profile_file = profile_dir / "profile.json"
-
-        # Ensure the imported query is registered in the profile's queries list
-        if "queries" not in profile_data:
-            profile_data["queries"] = []
-        if query_id not in profile_data["queries"]:
-            profile_data["queries"].append(query_id)
-
-        with open(profile_file, "w", encoding="utf-8") as f:
-            json.dump(profile_data, f, indent=2, ensure_ascii=False)
-
-        # Update profiles.json registry to register the new profile
-        profiles_json_path = Path("profiles") / "profiles.json"
-        if profiles_json_path.exists():
-            with open(profiles_json_path, "r", encoding="utf-8") as f:
-                profiles_registry = json.load(f)
-        else:
-            profiles_registry = {
-                "version": "3.0",
-                "active_profile_id": "",
-                "active_query_id": "",
-                "profiles": {},
-            }
-
-        # Add/update profile entry in registry
-        profiles_registry["profiles"][profile_id] = profile_data
+        # Save profile to database
+        backend.save_profile(profile_data)
+        logger.info(f"Imported profile '{profile_id}' to database")
 
         # Import ALL queries from query_data (full-profile import)
         query_data_dict = import_data.get("query_data", {})
@@ -333,42 +279,66 @@ def perform_import(import_data, conflict_strategy=None, custom_name=None):
                 )
                 query_jql = query_metadata.get("jql", "")
 
-                # Create query using query manager
-                from data.query_manager import create_query
+                # Generate new query ID (timestamp-based)
+                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
+                created_query_id = f"q_{timestamp}"
 
-                created_query_id = create_query(profile_id, query_name, query_jql)
+                # Create query record in database
+                query_record = {
+                    "id": created_query_id,
+                    "name": query_name,
+                    "jql": query_jql,
+                    "created_at": query_metadata.get(
+                        "created_at", datetime.now().isoformat()
+                    ),
+                    "last_used": query_metadata.get(
+                        "last_used", datetime.now().isoformat()
+                    ),
+                }
+                backend.save_query(profile_id, query_record)
 
                 # Track first imported query for setting as active
                 if first_imported_query_id is None:
                     first_imported_query_id = created_query_id
 
-                # Write query data files for this query
-                created_query_dir = profile_dir / "queries" / created_query_id
-                created_query_dir.mkdir(parents=True, exist_ok=True)
+                # Import FULL_DATA if available
+                if export_mode == "FULL_DATA":
+                    # Import issues (from jira_cache)
+                    if "jira_cache" in query_data:
+                        issues = query_data["jira_cache"].get("issues", [])
+                        if issues:
+                            # Add required metadata fields
+                            for issue in issues:
+                                if "fetched_at" not in issue:
+                                    issue["fetched_at"] = datetime.now().isoformat()
+                                if "version" not in issue:
+                                    issue["version"] = 1
+                            # Use cache key from query ID and current timestamp for expiration
+                            cache_key = f"import_{created_query_id}"
+                            from datetime import timedelta
 
-                if "project_data" in query_data:
-                    project_file = created_query_dir / "project_data.json"
-                    with open(project_file, "w", encoding="utf-8") as f:
-                        json.dump(
-                            query_data["project_data"], f, indent=2, ensure_ascii=False
-                        )
+                            expires_at = datetime.now() + timedelta(days=1)
+                            backend.save_issues_batch(
+                                profile_id,
+                                created_query_id,
+                                cache_key,
+                                issues,
+                                expires_at,
+                            )
+                            logger.info(
+                                f"Imported {len(issues)} issues for query '{query_name}'"
+                            )
 
-                if "jira_cache" in query_data:
-                    cache_file = created_query_dir / "jira_cache.json"
-                    with open(cache_file, "w", encoding="utf-8") as f:
-                        json.dump(
-                            query_data["jira_cache"], f, indent=2, ensure_ascii=False
-                        )
-
-                if "metrics_snapshots" in query_data:
-                    metrics_file = created_query_dir / "metrics_snapshots.json"
-                    with open(metrics_file, "w", encoding="utf-8") as f:
-                        json.dump(
-                            query_data["metrics_snapshots"],
-                            f,
-                            indent=2,
-                            ensure_ascii=False,
-                        )
+                    # Import statistics (from statistics)
+                    if "statistics" in query_data:
+                        statistics = query_data["statistics"]
+                        if statistics:
+                            backend.save_statistics_batch(
+                                profile_id, created_query_id, statistics
+                            )
+                            logger.info(
+                                f"Imported {len(statistics)} statistics for query '{query_name}'"
+                            )
 
                 imported_query_count += 1
                 logger.info(f"Imported query '{query_name}' as {created_query_id}")
@@ -378,18 +348,20 @@ def perform_import(import_data, conflict_strategy=None, custom_name=None):
             )
 
         # Set the imported profile as active, and first query as active query
-        profiles_registry["active_profile_id"] = profile_id
-        profiles_registry["active_query_id"] = first_imported_query_id or query_id
+        active_query_id = (
+            first_imported_query_id or query_data_dict.keys()[0]
+            if query_data_dict
+            else None
+        )
 
-        # Save updated registry
-        with open(profiles_json_path, "w", encoding="utf-8") as f:
-            json.dump(profiles_registry, f, indent=2, ensure_ascii=False)
+        if active_query_id:
+            backend.set_app_state("active_profile_id", profile_id)
+            backend.set_app_state("active_query_id", active_query_id)
 
         # Log result with strategy info
         strategy_msg = f" ({conflict_strategy} strategy)" if conflict_strategy else ""
-        active_query_display = first_imported_query_id or query_id
         logger.info(
-            f"Imported profile {profile_id} with {imported_query_count} queries, active={active_query_display}, mode={export_mode}{strategy_msg}"
+            f"Imported profile {profile_id} with {imported_query_count} queries, active={active_query_id}, mode={export_mode}{strategy_msg}"
         )
 
         # Check if JIRA token is missing (important for field mappings)
@@ -539,8 +511,6 @@ def cancel_token_warning_callback(cancel_clicks):
 
 
 # Clientside callback to show/hide rename input field based on strategy selection
-from dash import clientside_callback, ClientsideFunction
-
 clientside_callback(
     ClientsideFunction(namespace="clientside", function_name="toggleRenameInput"),
     Output("conflict-rename-section", "style"),

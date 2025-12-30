@@ -25,10 +25,13 @@ logger = logging.getLogger(__name__)
         Input("profile-selector", "value"),
         Input("jira-config-status-indicator", "children"),
         Input("save-query-btn", "n_clicks"),
+        Input("query-selector", "value"),  # Track when query is selected
     ],
     prevent_initial_call=False,
 )
-def update_configuration_status(profile_id, jira_status, save_query_clicks):
+def update_configuration_status(
+    profile_id, jira_status, save_query_clicks, selected_query
+):
     """
     Track configuration completion status for dependency chain.
 
@@ -45,6 +48,7 @@ def update_configuration_status(profile_id, jira_status, save_query_clicks):
         profile_id: Currently active profile ID
         jira_status: JIRA connection status indicator content
         save_query_clicks: Number of times save query button clicked
+        selected_query: Currently selected query ID from dropdown
 
     Returns:
         dict: Configuration status with enabled/complete flags for each section
@@ -59,8 +63,14 @@ def update_configuration_status(profile_id, jira_status, save_query_clicks):
         )
 
     # Determine if query is saved
-    # If save button has been clicked at least once, query is saved
-    query_saved = save_query_clicks is not None and save_query_clicks > 0
+    # Query is considered saved if:
+    # 1. Save button has been clicked at least once, OR
+    # 2. An existing query is selected from dropdown (not "Create New")
+    query_saved = (save_query_clicks is not None and save_query_clicks > 0) or (
+        selected_query is not None
+        and selected_query != ""
+        and selected_query != "__create_new__"
+    )
 
     status = {
         "profile": {

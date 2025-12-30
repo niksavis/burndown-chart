@@ -100,7 +100,7 @@ def read_and_clean_data(df: pd.DataFrame) -> pd.DataFrame:
         Cleaned DataFrame with proper types and no missing values
     """
     df = df.copy()
-    df["date"] = pd.to_datetime(df["date"], errors="coerce")
+    df["date"] = pd.to_datetime(df["date"], errors="coerce", format="mixed")
     df.dropna(subset=["date"], inplace=True)
     df.sort_values("date", inplace=True)
     df["date"] = df["date"].dt.strftime("%Y-%m-%d")  # type: ignore[attr-defined]
@@ -128,7 +128,7 @@ def compute_cumulative_values(
 
     # Make sure data is sorted by date in ascending order
     if "date" in df.columns:
-        df["date"] = pd.to_datetime(df["date"])
+        df["date"] = pd.to_datetime(df["date"], format="mixed")
         df = df.sort_values("date", ascending=True)
 
     # Convert to numeric in case there are any string values
@@ -225,10 +225,11 @@ def compute_weekly_throughput(df: pd.DataFrame) -> pd.DataFrame:
         DataFrame with weekly aggregated data
     """
     df = df.copy()
-    df["date"] = pd.to_datetime(df["date"])
+    df["date"] = pd.to_datetime(df["date"], format="mixed", errors="coerce")
     df["week"] = df["date"].dt.isocalendar().week  # type: ignore[attr-defined]
     df["year"] = df["date"].dt.year  # type: ignore[attr-defined]
-    df["year_week"] = df.apply(lambda r: f"{r['year']}-{r['week']}", axis=1)
+    # Use vectorized string formatting to avoid DataFrame return issues
+    df["year_week"] = df["year"].astype(str) + "-" + df["week"].astype(str)
 
     grouped = (
         df.groupby("year_week")
@@ -345,6 +346,20 @@ def calculate_rates(
     if grouped is None or len(grouped) == 0:
         # Return zeros to avoid calculations with empty data
         return 0, 0, 0, 0, 0, 0
+
+    # CRITICAL: Filter out zero-value weeks before any calculations
+    # Zero weeks (often from _fill_missing_weeks) should never influence rate calculations
+    # as they would artificially lower pessimistic rates and extend forecasts unrealistically
+    grouped_filtered = grouped[
+        (grouped["completed_items"] > 0) & (grouped["completed_points"] > 0)
+    ].copy()
+
+    # If filtering removed all data, return zeros (insufficient data for forecasting)
+    if len(grouped_filtered) == 0:
+        return 0, 0, 0, 0, 0, 0
+
+    # Use filtered data for all calculations
+    grouped = grouped_filtered
 
     # Always calculate rates properly for both items and points
     # The show_points parameter should only affect UI display, not calculation logic
@@ -718,15 +733,23 @@ def calculate_weekly_averages(
     data_points_count: int | None = None,  # NEW PARAMETER
 ) -> tuple[float, float, float, float]:
     """
-    Calculate average and median weekly items and points for the last 10 weeks.
+    Calculate average and median weekly items and points.
+
+    CRITICAL: Uses metric snapshots (flow_velocity) as source of truth for items
+    to ensure consistency with DORA/Flow metrics tab. This prevents discrepancies
+    where Dashboard shows different values than Flow Velocity for the same data.
 
     Args:
-        statistics_data: List of dictionaries containing statistics data
-        data_points_count: Optional parameter to limit data to most recent N data points
+        statistics_data: List of dictionaries containing statistics data (FALLBACK for points only)
+        data_points_count: Number of weeks to include (None = use all data)
 
     Returns:
         Tuple of (avg_weekly_items, avg_weekly_points, med_weekly_items, med_weekly_points)
     """
+    import logging
+
+    logger = logging.getLogger(__name__)
+
     # Ensure data_points_count is an integer (could be float from UI slider)
     if data_points_count is not None:
         data_points_count = int(data_points_count)
@@ -739,21 +762,116 @@ def calculate_weekly_averages(
     ):
         return 0, 0, 0, 0
 
-    # Apply data points filtering before calculations
+    # CRITICAL FIX: Use metric snapshots for items to match Flow Velocity exactly
+    # This ensures Dashboard and DORA tab show the same values
+    try:
+        if data_points_count is not None and data_points_count > 0:
+            from data.metrics_snapshots import get_metric_weekly_values
+            from data.time_period_calculator import get_iso_week, format_year_week
+            from datetime import datetime, timedelta
+
+            # Generate week labels exactly like DORA/Flow metrics do
+            weeks = []
+            current_date = datetime.now()
+            for i in range(data_points_count):
+                year, week = get_iso_week(current_date)
+                week_label = format_year_week(year, week)
+                weeks.append(week_label)
+                current_date = current_date - timedelta(days=7)
+
+            week_labels = list(reversed(weeks))  # Oldest to newest
+
+            # Get Flow Velocity values (completed items per week)
+            velocity_items = get_metric_weekly_values(
+                week_labels, "flow_velocity", "completed_count"
+            )
+
+            if velocity_items and any(v > 0 for v in velocity_items):
+                # Calculate from snapshots (source of truth)
+                avg_items = (
+                    sum(velocity_items) / len(velocity_items) if velocity_items else 0
+                )
+                median_items = (
+                    pd.Series(velocity_items).median() if velocity_items else 0
+                )
+
+                logger.info(
+                    f"[VELOCITY] Using metric snapshots: {len(velocity_items)} weeks, "
+                    f"avg={avg_items:.2f}, median={median_items:.2f}"
+                )
+
+                # Fallback to statistics for points (Flow doesn't track points separately)
+                df = pd.DataFrame(statistics_data)
+                if not df.empty and "completed_points" in df.columns:
+                    # Apply same week filtering to statistics for points
+                    if "week_label" in df.columns:
+                        df = df[df["week_label"].isin(week_labels)]
+
+                    df["completed_points"] = pd.to_numeric(
+                        df["completed_points"], errors="coerce"
+                    ).fillna(0)
+
+                    avg_points = df["completed_points"].mean()
+                    median_points = df["completed_points"].median()
+                else:
+                    avg_points = 0.0
+                    median_points = 0.0
+
+                return avg_items, avg_points, median_items, median_points
+            else:
+                logger.warning(
+                    f"[VELOCITY] No metric snapshots found for {len(week_labels)} weeks, "
+                    f"falling back to statistics"
+                )
+    except Exception as e:
+        logger.warning(
+            f"[VELOCITY] Failed to load metric snapshots: {e}, falling back to statistics"
+        )
+
+    # FALLBACK: Use statistics data (old behavior when snapshots unavailable)
+
+    # Apply data points filtering BEFORE calculations
+    # CRITICAL FIX: data_points_count represents WEEKS, not rows
+    # With sparse data, we need to filter by date range, not row count
     if data_points_count is not None and data_points_count > 0:
-        if (
-            isinstance(statistics_data, list)
-            and len(statistics_data) > data_points_count
-        ):
-            statistics_data = statistics_data[-data_points_count:]  # Take most recent
-        elif (
-            isinstance(statistics_data, pd.DataFrame)
-            and len(statistics_data) > data_points_count
-        ):
-            statistics_data = statistics_data.tail(data_points_count)
+        # Convert to DataFrame first to enable date filtering
+        df_temp = pd.DataFrame(statistics_data)
+        if not df_temp.empty:
+            # Handle both "date" and "stat_date" column names
+            date_col = (
+                "date"
+                if "date" in df_temp.columns
+                else ("stat_date" if "stat_date" in df_temp.columns else None)
+            )
+            if date_col:
+                df_temp[date_col] = pd.to_datetime(
+                    df_temp[date_col], errors="coerce", format="mixed"
+                )
+                df_temp = df_temp.dropna(subset=[date_col])
+                df_temp = df_temp.sort_values(date_col, ascending=True)
+
+                # Filter by actual date range (weeks), not row count
+                latest_date = df_temp[date_col].max()
+                cutoff_date = latest_date - timedelta(weeks=data_points_count)  # type: ignore[possibly-unbound]
+                df_temp = df_temp[df_temp[date_col] >= cutoff_date]
+
+                # Ensure column is named "date" for consistency
+                if date_col != "date":
+                    df_temp["date"] = df_temp[date_col]
+
+                # Convert back to list/DataFrame for further processing
+                if isinstance(statistics_data, list):
+                    statistics_data = df_temp.to_dict("records")
+                else:
+                    statistics_data = df_temp
 
     # Create DataFrame and ensure numeric types
     df = pd.DataFrame(statistics_data)
+
+    # Handle both "date" and "stat_date" column names
+    if "stat_date" in df.columns and "date" not in df.columns:
+        df["date"] = df["stat_date"]
+
     df["completed_items"] = pd.to_numeric(
         df["completed_items"], errors="coerce"
     ).fillna(0)
@@ -762,14 +880,19 @@ def calculate_weekly_averages(
     ).fillna(0)
 
     # Convert date to datetime and ensure it's sorted chronologically
-    df["date"] = pd.to_datetime(df["date"], errors="coerce")
+    df["date"] = pd.to_datetime(df["date"], format="mixed", errors="coerce")
     df = df.dropna(subset=["date"])  # Remove rows with invalid dates
     df = df.sort_values("date", ascending=True)
 
     # Group by week to ensure consistent weekly aggregation
     df["week"] = df["date"].dt.isocalendar().week  # type: ignore[attr-defined]
     df["year"] = df["date"].dt.year  # type: ignore[attr-defined]
-    df["year_week"] = df.apply(lambda r: f"{r['year']}-W{r['week']:02d}", axis=1)
+
+    # Use vectorized string formatting instead of apply() to avoid DataFrame return issues
+    # This is faster and more reliable than lambda with axis=1
+    df["year_week"] = (
+        df["year"].astype(str) + "-W" + df["week"].astype(str).str.zfill(2)
+    )
 
     # Aggregate by week
     weekly_df = (
@@ -848,18 +971,36 @@ def generate_weekly_forecast(
     if data_points_count is not None:
         data_points_count = int(data_points_count)
 
-    # Apply data points filtering before forecast calculations
+    # CRITICAL FIX: Apply data points filtering by DATE RANGE, not row count
+    # data_points_count represents WEEKS, not rows. With sparse data,
+    # filtering by row count gives incorrect results.
     if data_points_count is not None and data_points_count > 0:
-        if (
-            isinstance(statistics_data, list)
-            and len(statistics_data) > data_points_count
-        ):
-            statistics_data = statistics_data[-data_points_count:]
-        elif (
-            isinstance(statistics_data, pd.DataFrame)
-            and len(statistics_data) > data_points_count
-        ):
-            statistics_data = statistics_data.tail(data_points_count)
+        if isinstance(statistics_data, list):
+            df_temp = pd.DataFrame(statistics_data)
+            if not df_temp.empty and "date" in df_temp.columns:
+                df_temp["date"] = pd.to_datetime(
+                    df_temp["date"], format="mixed", errors="coerce"
+                )
+                df_temp = df_temp.dropna(subset=["date"])
+                df_temp = df_temp.sort_values("date", ascending=True)
+
+                latest_date = df_temp["date"].max()
+                cutoff_date = latest_date - timedelta(weeks=data_points_count)
+                df_temp = df_temp[df_temp["date"] >= cutoff_date]
+
+                statistics_data = df_temp.to_dict("records")
+        elif isinstance(statistics_data, pd.DataFrame):
+            df_temp = statistics_data.copy()
+            if not df_temp.empty and "date" in df_temp.columns:
+                df_temp["date"] = pd.to_datetime(
+                    df_temp["date"], format="mixed", errors="coerce"
+                )
+                df_temp = df_temp.dropna(subset=["date"])
+                df_temp = df_temp.sort_values("date", ascending=True)
+
+                latest_date = df_temp["date"].max()
+                cutoff_date = latest_date - timedelta(weeks=data_points_count)
+                statistics_data = df_temp[df_temp["date"] >= cutoff_date]
 
     # Create DataFrame from statistics data
     df = pd.DataFrame(statistics_data).copy()
@@ -880,8 +1021,12 @@ def generate_weekly_forecast(
             },
         }
 
+    # Handle both "date" and "stat_date" column names
+    if "stat_date" in df.columns and "date" not in df.columns:
+        df["date"] = df["stat_date"]
+
     # Convert date to datetime and ensure proper format
-    df["date"] = pd.to_datetime(df["date"])
+    df["date"] = pd.to_datetime(df["date"], format="mixed", errors="coerce")
 
     # Ensure data is sorted chronologically
     df = df.sort_values("date", ascending=True)
@@ -889,7 +1034,10 @@ def generate_weekly_forecast(
     # Add week and year columns for grouping
     df["week"] = df["date"].dt.isocalendar().week  # type: ignore[attr-defined]
     df["year"] = df["date"].dt.year  # type: ignore[attr-defined]
-    df["year_week"] = df.apply(lambda r: f"{r['year']}-W{r['week']:02d}", axis=1)
+    # Use vectorized string formatting to avoid DataFrame return issues
+    df["year_week"] = (
+        df["year"].astype(str) + "-W" + df["week"].astype(str).str.zfill(2)
+    )
 
     # Aggregate by week
     weekly_df = (
@@ -973,7 +1121,11 @@ def generate_weekly_forecast(
         next_date = last_date + timedelta(weeks=1)
 
         # Format date for display - clear indication this is the next week
-        formatted_date = next_date.strftime("%b %d")
+        # Protect against NaT values
+        if pd.notna(next_date):
+            formatted_date = next_date.strftime("%b %d")
+        else:
+            formatted_date = "Next Week"
 
         # Create forecast values for items (single week)
         most_likely_items_forecast = [most_likely_items]
@@ -1051,18 +1203,36 @@ def calculate_performance_trend(
     if data_points_count is not None:
         data_points_count = int(data_points_count)
 
-    # Apply data points filtering before trend calculations
+    # CRITICAL FIX: Apply data points filtering by DATE RANGE, not row count
+    # data_points_count represents WEEKS, not rows. With sparse data,
+    # filtering by row count gives incorrect results.
     if data_points_count is not None and data_points_count > 0:
-        if (
-            isinstance(statistics_data, list)
-            and len(statistics_data) > data_points_count
-        ):
-            statistics_data = statistics_data[-data_points_count:]
-        elif (
-            isinstance(statistics_data, pd.DataFrame)
-            and len(statistics_data) > data_points_count
-        ):
-            statistics_data = statistics_data.tail(data_points_count)
+        if isinstance(statistics_data, list):
+            df_temp = pd.DataFrame(statistics_data)
+            if not df_temp.empty and "date" in df_temp.columns:
+                df_temp["date"] = pd.to_datetime(
+                    df_temp["date"], format="mixed", errors="coerce"
+                )
+                df_temp = df_temp.dropna(subset=["date"])
+                df_temp = df_temp.sort_values("date", ascending=True)
+
+                latest_date = df_temp["date"].max()
+                cutoff_date = latest_date - timedelta(weeks=data_points_count)
+                df_temp = df_temp[df_temp["date"] >= cutoff_date]
+
+                statistics_data = df_temp.to_dict("records")
+        elif isinstance(statistics_data, pd.DataFrame):
+            df_temp = statistics_data.copy()
+            if not df_temp.empty and "date" in df_temp.columns:
+                df_temp["date"] = pd.to_datetime(
+                    df_temp["date"], format="mixed", errors="coerce"
+                )
+                df_temp = df_temp.dropna(subset=["date"])
+                df_temp = df_temp.sort_values("date", ascending=True)
+
+                latest_date = df_temp["date"].max()
+                cutoff_date = latest_date - timedelta(weeks=data_points_count)
+                statistics_data = df_temp[df_temp["date"] >= cutoff_date]
 
     # Check if statistics_data is empty or None
     if (
@@ -1084,7 +1254,12 @@ def calculate_performance_trend(
 
     # Create DataFrame and ensure proper date format
     df = pd.DataFrame(statistics_data).copy()
-    df["date"] = pd.to_datetime(df["date"])
+
+    # Handle both "date" and "stat_date" column names
+    if "stat_date" in df.columns and "date" not in df.columns:
+        df["date"] = df["stat_date"]
+
+    df["date"] = pd.to_datetime(df["date"], format="mixed", errors="coerce")
     df = df.dropna(subset=["date"])  # Remove rows with invalid dates
 
     # Ensure chronological order
@@ -1096,7 +1271,10 @@ def calculate_performance_trend(
     # Group by week for consistent weekly aggregation
     df["week"] = df["date"].dt.isocalendar().week  # type: ignore[attr-defined]
     df["year"] = df["date"].dt.year  # type: ignore[attr-defined]
-    df["year_week"] = df.apply(lambda r: f"{r['year']}-W{r['week']:02d}", axis=1)
+    # Use vectorized string formatting to avoid DataFrame return issues
+    df["year_week"] = (
+        df["year"].astype(str) + "-W" + df["week"].astype(str).str.zfill(2)
+    )
 
     # Aggregate by week
     weekly_df = (
@@ -1198,7 +1376,7 @@ def process_statistics_data(
             df[col] = 0
 
     # Convert date to datetime
-    df["date"] = pd.to_datetime(df["date"])
+    df["date"] = pd.to_datetime(df["date"], format="mixed", errors="coerce")
 
     # Sort by date
     df = df.sort_values("date")
@@ -1245,7 +1423,7 @@ def establish_baseline(statistics_data: dict | None) -> dict:
     if "date" not in df.columns or df.empty:
         return {"items": 0, "points": 0, "date": datetime.now().strftime("%Y-%m-%d")}
 
-    earliest_date = pd.to_datetime(df["date"]).min()
+    earliest_date = pd.to_datetime(df["date"], format="mixed", errors="coerce").min()
 
     # Return baseline info
     return {
@@ -1328,8 +1506,16 @@ def calculate_dashboard_metrics(statistics: list, settings: dict) -> dict:
         )
 
     # Calculate current velocity (10-week rolling average or all available data)
+    # CRITICAL FIX: Filter by actual date range, not row count
     data_points_count = min(len(df), int(settings.get("data_points_count", 10)))
-    recent_data = df.tail(data_points_count)
+
+    # Filter by actual weeks instead of row count
+    if data_points_count > 0 and not df.empty:
+        latest_date = df["date"].max()
+        cutoff_date = latest_date - timedelta(weeks=data_points_count)
+        recent_data = df[df["date"] >= cutoff_date]
+    else:
+        recent_data = df
 
     # Calculate velocity using actual number of weeks (not date range)
     # This fixes the bug where sparse data would deflate velocity

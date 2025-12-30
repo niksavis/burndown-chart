@@ -52,7 +52,7 @@ def parse_deadline_milestone(deadline_str, milestone_str=None):
     """
     # Parse deadline with error handling
     try:
-        deadline = pd.to_datetime(deadline_str)
+        deadline = pd.to_datetime(deadline_str, format="mixed", errors="coerce")
     except (ValueError, TypeError):
         # Use fallback date 30 days from now if deadline format is invalid
         deadline = pd.Timestamp.now() + pd.Timedelta(days=30)
@@ -64,7 +64,7 @@ def parse_deadline_milestone(deadline_str, milestone_str=None):
     milestone = None
     if milestone_str:
         try:
-            milestone = pd.to_datetime(milestone_str)
+            milestone = pd.to_datetime(milestone_str, format="mixed", errors="coerce")
             # Only reject milestones that are AFTER the deadline, not equal to it
             if milestone > deadline:
                 logging.getLogger("burndown_chart").warning(
@@ -110,18 +110,10 @@ def get_weekly_metrics(df, data_points_count=None):
     )
 
     if not df.empty:
-        # Apply filtering before calculating metrics
-        filtered_df = df
-        if (
-            data_points_count is not None
-            and data_points_count > 0
-            and len(df) > data_points_count
-        ):
-            filtered_df = df.tail(data_points_count)
-
+        # No pre-filtering needed - calculate_weekly_averages will handle it with date-based filtering
         # Get all four values from calculate_weekly_averages with filtering
         results = calculate_weekly_averages(
-            filtered_df.to_dict("records"), data_points_count=data_points_count
+            df.to_dict("records"), data_points_count=data_points_count
         )
         if isinstance(results, (list, tuple)) and len(results) >= 4:
             avg_weekly_items, avg_weekly_points, med_weekly_items, med_weekly_points = (

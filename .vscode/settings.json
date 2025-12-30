@@ -18,5 +18,13 @@
   },
   "emmet.includeLanguages": {
     "jinja-html": "html"
-  }
+  },
+  "sqltools.connections": [
+    {
+      "previewLimit": 50,
+      "driver": "SQLite",
+      "name": "Burndown Database",
+      "database": "profiles/burndown.db"
+    }
+  ]
 }

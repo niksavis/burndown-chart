@@ -67,27 +67,31 @@ def _render_bug_analysis_content(data_points_count: int):
         # Get JIRA issues from cache with ALL fields (don't specify fields to avoid validation mismatch)
         # By passing empty string for fields, load_jira_cache won't validate fields
         all_issues = []
-        cache_loaded = False  # Track if cache was successfully loaded
 
         try:
-            from data.jira_simple import load_jira_cache
-            from data.persistence import get_active_query_workspace
-            import json
+            # Load from database via backend
+            from data.persistence.factory import get_backend
 
-            # Load from query workspace cache
-            query_workspace = get_active_query_workspace()
-            cache_file = query_workspace / "jira_cache.json"
+            backend = get_backend()
+            active_profile_id = backend.get_app_state("active_profile_id")
+            active_query_id = backend.get_app_state("active_query_id")
 
-            if cache_file.exists():
-                with open(cache_file, "r", encoding="utf-8") as f:
-                    cache_data = json.load(f)
-                    all_issues = cache_data.get("issues", [])
-                    cache_loaded = True
+            # Get all issues from database
+            if active_profile_id and active_query_id:
+                all_issues = backend.get_issues(active_profile_id, active_query_id)
+
+                if all_issues:
                     logger.debug(
-                        f"Loaded {len(all_issues)} issues from query workspace cache: {cache_file}"
+                        f"Loaded {len(all_issues)} issues from database for {active_profile_id}/{active_query_id}"
+                    )
+                else:
+                    logger.warning(
+                        f"No issues found in database for {active_profile_id}/{active_query_id}"
                     )
             else:
-                logger.warning(f"No cache file found at {cache_file}")
+                logger.warning(
+                    f"No active profile/query configured: profile_id={active_profile_id}, query_id={active_query_id}"
+                )
         except Exception as e:
             logger.warning(f"Could not load from JIRA cache: {e}")
 
@@ -222,11 +226,32 @@ def _render_bug_analysis_content(data_points_count: int):
 
             # T056: Create bug investment chart (items + story points)
             # T057: Check if story points data is available
-            has_story_points = any(
+            # Check both weekly aggregations AND raw bug data for story points
+            has_story_points_in_stats = any(
                 stat.get("bugs_points_created", 0) > 0
                 or stat.get("bugs_points_resolved", 0) > 0
                 for stat in weekly_stats
             )
+
+            # Also check if ANY bugs have story points assigned
+            # This catches cases where weekly_stats might be empty but bugs have points
+            has_story_points_in_bugs = any(
+                (bug.get("points") or bug.get("fields", {}).get(points_field, 0) or 0)
+                > 0
+                for bug in (
+                    timeline_filtered_bugs if timeline_filtered_bugs else all_bug_issues
+                )
+            )
+
+            has_story_points = has_story_points_in_stats or has_story_points_in_bugs
+
+            logger.info(
+                f"[BUG ANALYSIS] has_story_points={has_story_points} "
+                f"(stats={has_story_points_in_stats}, bugs={has_story_points_in_bugs}), "
+                f"weekly_stats count={len(weekly_stats)}"
+            )
+            if weekly_stats:
+                logger.debug(f"[BUG ANALYSIS] Sample stat: {weekly_stats[0]}")
 
             if has_story_points:
                 investment_chart = BugInvestmentChart(

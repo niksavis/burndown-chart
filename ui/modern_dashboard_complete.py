@@ -434,7 +434,9 @@ def create_modern_dashboard_content(
                             [
                                 html.I(className="fas fa-calendar-day me-2"),
                                 html.Strong("Deadline: "),
-                                pd.to_datetime(deadline_str).strftime("%b %d, %Y"),
+                                pd.to_datetime(
+                                    deadline_str, format="mixed", errors="coerce"
+                                ).strftime("%b %d, %Y"),
                                 html.Span(
                                     f" ({days_to_deadline} days remaining)",
                                     className="ms-2",

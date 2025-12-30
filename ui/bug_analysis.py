@@ -5,6 +5,7 @@ Provides UI components for bug metrics display, charts, and analysis tab layout.
 
 from dash import html
 import dash_bootstrap_components as dbc
+import pandas as pd
 from typing import Dict, List, Optional
 from data.bug_insights import InsightSeverity
 from ui.tooltip_utils import create_help_icon
@@ -231,7 +232,7 @@ def create_bug_metrics_cards(bug_metrics: Dict, forecast: Dict) -> html.Div:
                                                         style={"fontSize": "0.65rem"},
                                                     ),
                                                     html.Span(
-                                                        f"{date_from.strftime('%b %d, %Y') if date_from else 'All time'} - {date_to.strftime('%b %d, %Y') if date_to else 'Now'}"
+                                                        f"{date_from.strftime('%b %d, %Y') if (date_from and pd.notna(date_from)) else 'All time'} - {date_to.strftime('%b %d, %Y') if (date_to and pd.notna(date_to)) else 'Now'}"
                                                     ),
                                                 ]
                                                 if date_from or date_to

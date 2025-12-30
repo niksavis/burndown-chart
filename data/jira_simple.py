@@ -1855,7 +1855,12 @@ def cache_jira_response(
     config: Dict | None = None,
 ) -> bool:
     """
-    Save JIRA response to cache using new cache_manager.
+    Save JIRA response to DATABASE using persistence backend.
+
+    After database migration, this function:
+    1. Saves normalized issues to database (backend.save_issues_batch())
+    2. Maintains legacy JSON file for backward compatibility
+    3. Saves cache metadata for audit trail
 
     Args:
         data: JIRA issues to cache
@@ -1868,91 +1873,137 @@ def cache_jira_response(
         True if cached successfully
     """
     try:
-        # Save to new cache system if config provided
-        if config:
-            field_mappings = config.get("field_mappings", {})
-            cache_key = generate_cache_key(
-                jql_query=jql_query,
-                field_mappings=field_mappings,
-                time_period_days=30,  # Default time period
-            )
-
-            config_hash = _generate_config_hash(config, fields_requested)
-
-            save_cache(
-                cache_key=cache_key,
-                data=data,
-                config_hash=config_hash,
-                cache_dir="cache",
-            )
-            logger.info(f"[Cache] Saved {len(data)} issues (key: {cache_key[:8]}...)")
-
-            # Save cache metadata to app settings for audit trail (Feature 008 - T057)
-            try:
-                current_settings = load_app_settings()
-                cache_metadata = {
-                    "last_cache_key": cache_key,
-                    "last_cache_timestamp": datetime.now().isoformat(),
-                    "cache_config_hash": config_hash,
-                }
-                save_app_settings(
-                    pert_factor=current_settings.get("pert_factor", 3.0),
-                    deadline=current_settings.get("deadline", "2025-12-31"),
-                    data_points_count=current_settings.get("data_points_count"),
-                    show_milestone=current_settings.get("show_milestone"),
-                    milestone=current_settings.get("milestone"),
-                    show_points=current_settings.get("show_points"),
-                    jql_query=current_settings.get("jql_query"),
-                    last_used_data_source=current_settings.get("last_used_data_source"),
-                    active_jql_profile_id=current_settings.get("active_jql_profile_id"),
-                    cache_metadata=cache_metadata,
-                )
-                logger.debug(f"[Cache] Metadata saved: {cache_key[:8]}...")
-            except Exception as metadata_error:
-                logger.warning(f"[Cache] Failed to save metadata: {metadata_error}")
-
-        # Also save to legacy cache file for backward compatibility
-        import hashlib
         from datetime import timezone
+        import hashlib
 
-        jql_hash = hashlib.sha256(jql_query.encode()).hexdigest()[:16]
-        # Use UTC timezone for consistency with JIRA server time
-        utc_now = datetime.now(timezone.utc)
-        last_updated = utc_now.isoformat()
+        # PHASE 1: Save to DATABASE (primary storage after migration)
+        try:
+            from data.persistence.factory import get_backend
 
-        # For full fetches, mark all issues as "changed" to trigger metrics calculation
-        # This ensures that:
-        # - Full fetches always calculate metrics (all keys in changed_keys)
-        # - Delta fetches with changes calculate metrics (changed keys in changed_keys)
-        # - Delta fetches without changes skip calculation (empty changed_keys)
-        all_keys = [issue["key"] for issue in data]
+            backend = get_backend()
+            active_profile_id = backend.get_app_state("active_profile_id")
+            active_query_id = backend.get_app_state("active_query_id")
 
-        cache_data = {
-            "cache_version": CACHE_VERSION,
-            "timestamp": utc_now.isoformat(),
-            "jql_query": jql_query,
-            "fields_requested": fields_requested,
-            "issues": data,
-            "total_issues": len(data),
-            "last_updated": last_updated,  # For delta fetch (UTC)
-            "jql_hash": jql_hash,  # For query change detection
-            "changed_keys": all_keys,  # Full fetch = all issues are "new" → always calculate
-        }
+            if active_profile_id and active_query_id:
+                # Generate cache key for database storage
+                field_mappings = config.get("field_mappings", {}) if config else {}
+                cache_key = generate_cache_key(
+                    jql_query=jql_query,
+                    field_mappings=field_mappings,
+                    time_period_days=30,  # Default time period
+                )
 
-        with open(cache_file, "w") as f:
-            json.dump(cache_data, f, indent=2)
-            # CRITICAL: Flush file buffers to disk before returning
-            # The settings callback immediately reads this file after fetch returns
-            # Without explicit flush, there's a race condition where the read happens
-            # before the write completes, causing calculation to start with stale/partial data
-            f.flush()
-            import os
+                # Set expiration (24 hours)
+                utc_now = datetime.now(timezone.utc)
+                expires_at = utc_now + timedelta(hours=24)
 
-            os.fsync(f.fileno())  # Force OS to write to disk (not just Python buffer)
+                # Save issues to database using backend
+                # This normalizes data and stores in jira_issues table
+                backend.save_issues_batch(
+                    profile_id=active_profile_id,
+                    query_id=active_query_id,
+                    cache_key=cache_key,
+                    issues=data,
+                    expires_at=expires_at,
+                )
 
-        logger.debug(
-            f"[Cache] Saved {len(data)} issues to legacy cache (v{CACHE_VERSION})"
-        )
+                logger.info(
+                    f"[Database] Saved {len(data)} issues to database for {active_profile_id}/{active_query_id}"
+                )
+
+                # Save cache metadata to app settings for audit trail
+                if config:
+                    config_hash = _generate_config_hash(config, fields_requested)
+                    try:
+                        current_settings = load_app_settings()
+                        cache_metadata = {
+                            "last_cache_key": cache_key,
+                            "last_cache_timestamp": utc_now.isoformat(),
+                            "cache_config_hash": config_hash,
+                        }
+                        save_app_settings(
+                            pert_factor=current_settings.get("pert_factor", 3.0),
+                            deadline=current_settings.get("deadline", "2025-12-31"),
+                            data_points_count=current_settings.get("data_points_count"),
+                            show_milestone=current_settings.get("show_milestone"),
+                            milestone=current_settings.get("milestone"),
+                            show_points=current_settings.get("show_points"),
+                            jql_query=current_settings.get("jql_query"),
+                            last_used_data_source=current_settings.get(
+                                "last_used_data_source"
+                            ),
+                            active_jql_profile_id=current_settings.get(
+                                "active_jql_profile_id"
+                            ),
+                            cache_metadata=cache_metadata,
+                        )
+                        logger.debug(f"[Cache] Metadata saved: {cache_key[:8]}...")
+                    except Exception as metadata_error:
+                        logger.warning(
+                            f"[Cache] Failed to save metadata: {metadata_error}"
+                        )
+
+            else:
+                logger.warning(
+                    "[Database] No active profile/query - skipping database save"
+                )
+
+        except Exception as db_error:
+            logger.error(
+                f"[Database] Failed to save issues to database: {db_error}",
+                exc_info=True,
+            )
+            # Continue to legacy file save for backward compatibility
+
+        # PHASE 2: Save to LEGACY JSON FILE (backward compatibility - optional)
+        # This file is still used by some old code paths, but is not required after DB migration
+        try:
+            jql_hash = hashlib.sha256(jql_query.encode()).hexdigest()[:16]
+            utc_now = datetime.now(timezone.utc)
+            last_updated = utc_now.isoformat()
+
+            # For full fetches, mark all issues as "changed" to trigger metrics calculation
+            all_keys = [issue["key"] for issue in data]
+
+            cache_data = {
+                "cache_version": CACHE_VERSION,
+                "timestamp": utc_now.isoformat(),
+                "jql_query": jql_query,
+                "fields_requested": fields_requested,
+                "issues": data,
+                "total_issues": len(data),
+                "last_updated": last_updated,  # For delta fetch (UTC)
+                "jql_hash": jql_hash,  # For query change detection
+                "changed_keys": all_keys,  # Full fetch = all issues are "new" → always calculate
+            }
+
+            # Only save if directory exists (don't create it)
+            from pathlib import Path
+
+            cache_path = Path(cache_file)
+            if cache_path.parent.exists():
+                with open(cache_file, "w") as f:
+                    json.dump(cache_data, f, indent=2)
+                    # CRITICAL: Flush file buffers to disk before returning
+                    f.flush()
+                    import os
+
+                    os.fsync(
+                        f.fileno()
+                    )  # Force OS to write to disk (not just Python buffer)
+
+                logger.debug(
+                    f"[Cache] Saved {len(data)} issues to legacy JSON file (v{CACHE_VERSION})"
+                )
+            else:
+                logger.debug(
+                    "[Cache] Skipping legacy JSON save - directory doesn't exist (database-only mode)"
+                )
+        except Exception as file_error:
+            logger.debug(
+                f"[Cache] Legacy JSON file save skipped (database-only mode): {file_error}"
+            )
+
         return True
 
     except Exception as e:
@@ -2508,9 +2559,49 @@ def sync_jira_scope_and_data(
 
         # Step 1: Check if force refresh is requested
         if force_refresh:
-            logger.debug("[JIRA] Force refresh - bypassing cache")
+            logger.debug("[JIRA] Force refresh - bypassing cache and clearing database")
             cache_loaded = False
             issues = []
+
+            # CRITICAL: Clear database cache for this query on force refresh
+            # This ensures old issues that no longer match the JQL are removed
+            try:
+                from data.persistence.factory import get_backend
+                from data.database import get_db_connection
+                from pathlib import Path
+
+                backend = get_backend()
+                active_profile_id = backend.get_app_state("active_profile_id")
+                active_query_id = backend.get_app_state("active_query_id")
+
+                if active_profile_id and active_query_id:
+                    # Delete all issues for this query
+                    # Get database path - SQLiteBackend has db_path attribute
+                    db_path = getattr(backend, "db_path", Path("profiles/burndown.db"))
+                    with get_db_connection(Path(db_path)) as conn:
+                        cursor = conn.cursor()
+                        cursor.execute(
+                            "DELETE FROM jira_issues WHERE profile_id = ? AND query_id = ?",
+                            (active_profile_id, active_query_id),
+                        )
+                        deleted_count = cursor.rowcount
+                        conn.commit()
+                        logger.info(
+                            f"[JIRA] Force refresh: deleted {deleted_count} cached issues from database"
+                        )
+
+                        # Delete all statistics for this query
+                        cursor.execute(
+                            "DELETE FROM project_statistics WHERE profile_id = ? AND query_id = ?",
+                            (active_profile_id, active_query_id),
+                        )
+                        stats_deleted = cursor.rowcount
+                        conn.commit()
+                        logger.info(
+                            f"[JIRA] Force refresh: deleted {stats_deleted} statistics from database"
+                        )
+            except Exception as e:
+                logger.warning(f"[JIRA] Failed to clear database cache: {e}")
         else:
             # Get query-specific cache file path
             from data.profile_manager import get_active_query_workspace
@@ -2887,29 +2978,37 @@ def fetch_changelog_on_demand(config: Dict, progress_callback=None) -> Tuple[boo
                     # INCREMENTAL SAVE: Save every 100 issues to prevent data loss on timeout
                     if issues_processed > 0 and issues_processed % batch_size == 0:
                         try:
-                            with open(changelog_cache_file, "w", encoding="utf-8") as f:
-                                json.dump(changelog_cache, f, indent=2)
-                            logger.info(
-                                f"[Cache] Incremental save: {issues_processed}/{len(issues_with_changelog)} issues"
-                            )
+                            # Only save if directory exists (database-only mode compatibility)
+                            from pathlib import Path
+
+                            cache_path = Path(changelog_cache_file)
+                            if cache_path.parent.exists():
+                                with open(
+                                    changelog_cache_file, "w", encoding="utf-8"
+                                ) as f:
+                                    json.dump(changelog_cache, f, indent=2)
+                                logger.info(
+                                    f"[Cache] Incremental save: {issues_processed}/{len(issues_with_changelog)} issues"
+                                )
+                            else:
+                                logger.debug(
+                                    "[Cache] Skipping incremental JSON save - directory doesn't exist (database-only mode)"
+                                )
                             if progress_callback:
                                 progress_callback(
                                     f"Saved progress: {issues_processed} issues"
                                 )
                         except Exception as e:
-                            logger.warning(
-                                f"[Cache] Failed to save incremental progress: {e}"
-                            )
+                            logger.debug(f"[Cache] Incremental save skipped: {e}")
 
-                # Final save: Save all remaining issues
+                # Final save: Save to DATABASE and JSON file
                 if progress_callback:
                     progress_callback(
                         f"Finalizing changelog data for {len(changelog_cache)} issues..."
                     )
 
-                with open(changelog_cache_file, "w", encoding="utf-8") as f:
-                    json.dump(changelog_cache, f, indent=2)
-
+                # Calculate optimization percentage (used in logging and return value)
+                # Initialize early to ensure variable is always defined
                 reduction_pct = (
                     (
                         100
@@ -2920,11 +3019,98 @@ def fetch_changelog_on_demand(config: Dict, progress_callback=None) -> Tuple[boo
                     else 0
                 )
 
-                optimization_msg = f"[Cache] Optimized changelog: {total_histories_before} → {total_histories_after} histories ({reduction_pct:.1f}% reduction)"
-                logger.info(optimization_msg)
-                logger.info(
-                    f"[Cache] Saved optimized changelog to {changelog_cache_file}"
-                )
+                # PHASE 1: Save to DATABASE (primary storage after migration)
+                try:
+                    from data.persistence.factory import get_backend
+                    from datetime import timezone
+
+                    backend = get_backend()
+                    active_profile_id = backend.get_app_state("active_profile_id")
+                    active_query_id = backend.get_app_state("active_query_id")
+
+                    if active_profile_id and active_query_id:
+                        # Convert changelog_cache to normalized entries for database
+                        changelog_entries = []
+                        utc_now = datetime.now(timezone.utc)
+                        expires_at = utc_now + timedelta(hours=24)
+
+                        for issue_key, issue_data in changelog_cache.items():
+                            histories = issue_data.get("changelog", {}).get(
+                                "histories", []
+                            )
+                            for history in histories:
+                                change_date = history.get("created", "")
+                                items = history.get("items", [])
+
+                                for item in items:
+                                    if item.get("field") == "status":
+                                        # Create entry matching database schema
+                                        changelog_entries.append(
+                                            {
+                                                "issue_key": issue_key,
+                                                "change_date": change_date,  # Database expects 'change_date'
+                                                "author": "",  # Not stored in optimized cache
+                                                "field_name": "status",  # Database expects 'field_name'
+                                                "field_type": "jira",
+                                                "old_value": item.get(
+                                                    "fromString"
+                                                ),  # Database expects 'old_value'
+                                                "new_value": item.get(
+                                                    "toString"
+                                                ),  # Database expects 'new_value'
+                                            }
+                                        )
+
+                        if changelog_entries:
+                            # Save to database using batch insert
+                            backend.save_changelog_batch(
+                                profile_id=active_profile_id,
+                                query_id=active_query_id,
+                                entries=changelog_entries,
+                                expires_at=expires_at,
+                            )
+
+                            logger.info(
+                                f"[Database] Saved {len(changelog_entries)} changelog entries to database for {active_profile_id}/{active_query_id}"
+                            )
+                        else:
+                            logger.info(
+                                "[Database] No changelog entries to save (no status changes found)"
+                            )
+                    else:
+                        logger.warning(
+                            "[Database] No active profile/query - skipping database save for changelog"
+                        )
+
+                except Exception as db_error:
+                    logger.error(
+                        f"[Database] Failed to save changelog to database: {db_error}",
+                        exc_info=True,
+                    )
+                    # Continue to legacy file save for backward compatibility
+
+                # PHASE 2: Save to LEGACY JSON FILE (backward compatibility - optional)
+                try:
+                    from pathlib import Path
+
+                    cache_path = Path(changelog_cache_file)
+                    if cache_path.parent.exists():
+                        with open(changelog_cache_file, "w", encoding="utf-8") as f:
+                            json.dump(changelog_cache, f, indent=2)
+
+                        optimization_msg = f"[Cache] Optimized changelog: {total_histories_before} → {total_histories_after} histories ({reduction_pct:.1f}% reduction)"
+                        logger.info(optimization_msg)
+                        logger.info(
+                            f"[Cache] Saved optimized changelog to {changelog_cache_file}"
+                        )
+                    else:
+                        logger.debug(
+                            "[Cache] Skipping legacy changelog JSON save - directory doesn't exist (database-only mode)"
+                        )
+                except Exception as file_error:
+                    logger.debug(
+                        f"[Cache] Legacy changelog JSON save skipped: {file_error}"
+                    )
 
                 # Calculate how many were newly fetched vs already cached
                 newly_fetched = len(issues_with_changelog)

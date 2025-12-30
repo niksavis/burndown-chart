@@ -283,7 +283,9 @@ def register(app):
             data_points_count,
             show_milestone,  # Automatically calculated
             milestone,
-            show_points,  # Added parameter
+            settings[
+                "show_points"
+            ],  # Use the converted boolean from settings dict (NOT raw checklist value)
             jql_query.strip()
             if jql_query and jql_query.strip()
             else "project = JRASERVER",  # Use current JQL input
@@ -775,18 +777,24 @@ def register(app):
                 )
 
             # CRITICAL FIX: For NEW queries with no existing data, treat Update Data as Force Refresh
-            # Check if JIRA cache exists BEFORE fetching - this is the definitive indicator of a new query
+            # Check if JIRA cache exists in database - this is the definitive indicator of a new query
             if not force_refresh_bool:
-                from data.profile_manager import get_active_query_workspace
+                from data.persistence.factory import get_backend
 
-                query_workspace = get_active_query_workspace()
-                cache_file = query_workspace / "jira_cache.json"
+                backend = get_backend()
+                active_profile_id = backend.get_app_state("active_profile_id")
+                active_query_id = backend.get_app_state("active_query_id")
 
-                if not cache_file.exists():
-                    logger.info(
-                        "[Settings] New query detected (no jira_cache.json), treating Update Data as Force Refresh"
+                # Check if any issues exist in database for this query
+                if active_profile_id and active_query_id:
+                    issues = backend.get_issues(
+                        active_profile_id, active_query_id, limit=1
                     )
-                    force_refresh_bool = True
+                    if not issues:
+                        logger.info(
+                            "[Settings] New query detected (no issues in database), treating Update Data as Force Refresh"
+                        )
+                        force_refresh_bool = True
 
             if force_refresh_bool:
                 logger.info("=" * 60)
@@ -801,22 +809,12 @@ def register(app):
             # CRITICAL FIX: Clear changelog cache only on force refresh
             # Changelog is issue-specific (keyed by issue key), not query-specific
             # Reusing changelog saves 1-2 minutes on subsequent operations
-            import os
-            from data.profile_manager import get_data_file_path
-
-            # Only clear changelog on FORCE REFRESH (expensive to re-fetch)
+            # NOTE: After database migration, changelog is in DB, not files
+            # Force refresh will cause jira_simple.py to delete and re-fetch from JIRA
             if force_refresh_bool:
-                changelog_cache = get_data_file_path("jira_changelog_cache.json")
-                if os.path.exists(changelog_cache):
-                    try:
-                        os.remove(changelog_cache)
-                        logger.info(
-                            "[Settings] Force refresh: Cleared changelog cache, will re-fetch from JIRA"
-                        )
-                    except Exception as e:
-                        logger.warning(
-                            f"[Settings] Could not remove changelog cache: {e}"
-                        )
+                logger.info(
+                    "[Settings] Force refresh: Changelog will be re-fetched from JIRA"
+                )
             else:
                 logger.info(
                     "[Settings] Normal refresh: Keeping changelog cache for reuse (saves 1-2 minutes)"
@@ -826,17 +824,36 @@ def register(app):
             import threading
 
             def background_sync():
+                """Background thread for JIRA data fetch."""
+                logger.info("=" * 70)
+                logger.info("[BACKGROUND SYNC] Thread started")
+                logger.info(f"[BACKGROUND SYNC] JQL: {settings_jql}")
+                logger.info(f"[BACKGROUND SYNC] Force refresh: {force_refresh_bool}")
+                logger.info(
+                    f"[BACKGROUND SYNC] JIRA endpoint: {final_jira_api_endpoint}"
+                )
+                logger.info("=" * 70)
+
                 try:
+                    logger.info("[BACKGROUND SYNC] Calling sync_jira_scope_and_data...")
                     success, message, scope_data = sync_jira_scope_and_data(
                         settings_jql,
                         jira_config_for_sync,
                         force_refresh=force_refresh_bool,
                     )
+                    logger.info(
+                        f"[BACKGROUND SYNC] sync_jira_scope_and_data returned: success={success}, message={message}"
+                    )
+
                     if not success:
+                        logger.error(f"[BACKGROUND SYNC] Fetch failed: {message}")
                         TaskProgress.fail_task("update_data", message)
                     else:
                         # Fetch completed successfully - now trigger metrics calculation
                         # The progress polling callback will detect "calculate" phase and trigger metrics
+                        logger.info(
+                            "[BACKGROUND SYNC] Fetch complete, transitioning to calculate phase"
+                        )
                         TaskProgress.update_progress(
                             "update_data",
                             "calculate",
@@ -845,11 +862,17 @@ def register(app):
                             "Fetch complete, starting metrics calculation...",
                         )
                 except Exception as e:
-                    logger.error(f"Background sync failed: {e}", exc_info=True)
+                    logger.error(f"[BACKGROUND SYNC] Exception: {e}", exc_info=True)
                     TaskProgress.fail_task("update_data", f"Error: {str(e)}")
+                finally:
+                    logger.info("[BACKGROUND SYNC] Thread exiting")
 
+            logger.info("[Settings] Starting background sync thread...")
             thread = threading.Thread(target=background_sync, daemon=True)
             thread.start()
+            logger.info(
+                f"[Settings] Background thread started: {thread.name} (alive={thread.is_alive()})"
+            )
 
             # Return immediately to show progress bar - polling will track completion
             return (
@@ -921,54 +944,13 @@ def register(app):
                 )
 
                 # AUTOMATIC METRICS CALCULATION
-                # Check if data actually changed before recalculating metrics
-                # Only skip if: NOT force refresh AND delta fetch returned 0 changes
-                from data.profile_manager import get_active_query_workspace
-                import json
-
+                # After database migration, always calculate metrics after data update
+                # TODO: Implement changed_keys tracking in database schema for optimization
                 should_calculate = True
 
-                # If force refresh, always calculate (full re-fetch)
-                if not force_refresh_bool:
-                    query_workspace = get_active_query_workspace()
-                    cache_file = query_workspace / "jira_cache.json"
-                    logger.info(
-                        f"[Settings] Checking cache file: {cache_file}, exists={cache_file.exists()}"
-                    )
-
-                    try:
-                        if cache_file.exists():
-                            with open(cache_file, "r", encoding="utf-8") as f:
-                                cache_data = json.load(f)
-
-                            # Check changed_keys to determine if calculation is needed:
-                            # - changed_keys = [] → Delta fetch with NO changes → skip calculation
-                            # - changed_keys = [keys...] → Full fetch or delta with changes → calculate
-                            # - changed_keys missing → Old cache format → calculate (be safe)
-                            if "changed_keys" in cache_data:
-                                changed_keys = cache_data["changed_keys"]
-                                if len(changed_keys) == 0:
-                                    should_calculate = False
-                                    logger.info(
-                                        "[Settings] Delta fetch found 0 changes, skipping metrics calculation"
-                                    )
-                                else:
-                                    logger.info(
-                                        f"[Settings] {len(changed_keys)} issues changed/fetched, will calculate metrics"
-                                    )
-                            else:
-                                # Old cache format without changed_keys field - calculate to be safe
-                                logger.info(
-                                    "[Settings] Old cache format (no changed_keys field), will calculate metrics"
-                                )
-                        else:
-                            logger.info(
-                                "[Settings] No cache file exists, this is first fetch, will calculate metrics"
-                            )
-                    except Exception as e:
-                        logger.warning(
-                            f"[Settings] Could not check changed_keys, will calculate: {e}"
-                        )
+                logger.info(
+                    "[Settings] Post-migration: Always calculating metrics after data update"
+                )
 
                 # Metrics calculation will happen in separate callback triggered by store
                 # This allows the Update Data callback to return quickly, enabling progress bar updates
@@ -1340,16 +1322,9 @@ def register(app):
             )
 
             # Clear metrics cache before recalculating
-            from data.profile_manager import get_data_file_path
-            import os
-
-            metrics_cache = get_data_file_path("metrics_snapshots.json")
-            if os.path.exists(metrics_cache):
-                try:
-                    os.remove(metrics_cache)
-                    logger.info("[Settings] Cleared metrics cache before recalculation")
-                except Exception as e:
-                    logger.warning(f"[Settings] Could not remove metrics cache: {e}")
+            # NOTE: After database migration, metrics are in DB and cleared automatically
+            # by the backend when new metrics are saved
+            logger.info("[Settings] Metrics will be recalculated and saved to database")
 
             # Statistics already validated above - proceed with calculation
             from data.metrics_calculator import calculate_metrics_for_last_n_weeks
@@ -1366,7 +1341,6 @@ def register(app):
                     current_week = week_match.group(1)
                     for idx, week in enumerate(custom_weeks, start=1):
                         if week == current_week:
-                            percent = (idx / total_weeks) * 100
                             TaskProgress.update_progress(
                                 "update_data",
                                 "calculate",
@@ -1450,7 +1424,6 @@ def register(app):
 
         try:
             from data.persistence import (
-                calculate_project_scope_from_jira,
                 load_jira_configuration,
             )
 
@@ -1491,6 +1464,8 @@ def register(app):
             }
 
             # Calculate project scope from JIRA (no saving to file!)
+            from data.persistence import calculate_project_scope_from_jira
+
             success, message, scope_data = calculate_project_scope_from_jira(
                 jql_query, ui_config
             )
@@ -2895,7 +2870,7 @@ def register(app):
 
             # Convert statistics to DataFrame for easier manipulation
             df = pd.DataFrame(statistics)
-            df["date"] = pd.to_datetime(df["date"])
+            df["date"] = pd.to_datetime(df["date"], format="mixed", errors="coerce")
             df = df.sort_values("date", ascending=False)  # Most recent first
 
             # Use actual remaining values from project scope (no window calculations)
@@ -3086,81 +3061,20 @@ def register(app):
                 metrics_trigger = int(time.time() * 1000)
             elif phase == "fetch" and fetch_percent == 0:
                 # RECOVERY: Stuck in fetch phase with 0% progress
-                # This happens when delta fetch found 0 changes and tried to complete,
-                # but validation failed because fetch never progressed beyond 0%
-                # Check if cached data exists - if so, the fetch already completed
-                from data.profile_manager import get_active_query_workspace
-                import json
+                # After migration, always assume changes exist and calculate metrics
+                logger.warning(
+                    "[Settings] Recovery: Task stuck at fetch 0%. Post-migration assumes changes exist."
+                )
 
-                query_workspace = get_active_query_workspace()
-                cache_file = query_workspace / "jira_cache.json"
-
-                if cache_file.exists():
-                    logger.warning(
-                        "[Settings] Recovery: Task stuck at fetch 0% but cache exists. "
-                        "This indicates delta fetch completed with 0 changes. Checking if metrics needed..."
-                    )
-
-                    try:
-                        with open(cache_file, "r", encoding="utf-8") as f:
-                            cache_data = json.load(f)
-
-                        # Check if there were any changes
-                        changed_keys = cache_data.get("changed_keys", [])
-
-                        if len(changed_keys) == 0:
-                            # No changes - complete the task immediately
-                            logger.info(
-                                "[Settings] Recovery: 0 changes detected, completing task immediately"
-                            )
-                            TaskProgress.update_progress(
-                                "update_data",
-                                "fetch",
-                                395,  # Use issue count from cache
-                                395,
-                                "Delta check complete - no changes",
-                            )
-                            TaskProgress.complete_task(
-                                "update_data",
-                                "✓ Data loaded: 395 issues from JIRA (no changes detected)",
-                            )
-                            # Return completed state
-                            return (
-                                "",  # No status message
-                                True,  # Disable progress polling
-                                {"display": "none"},  # Hide progress bar
-                                {},  # Show Update Data button
-                                {"display": "none"},  # Hide Cancel button
-                                0,  # Skip metrics (0 = no calculation needed)
-                            )
-                        else:
-                            # Changes detected - trigger metrics calculation
-                            logger.info(
-                                f"[Settings] Recovery: {len(changed_keys)} changes detected, triggering metrics"
-                            )
-                            # Update progress to show fetch complete
-                            TaskProgress.update_progress(
-                                "update_data",
-                                "calculate",
-                                0,
-                                0,
-                                "Preparing metrics calculation...",
-                            )
-                            metrics_trigger = int(time.time() * 1000)
-                    except Exception as e:
-                        logger.error(f"[Settings] Recovery failed: {e}")
-                        # Fail the task to allow user to retry
-                        TaskProgress.fail_task(
-                            "update_data", f"Recovery error: {str(e)}"
-                        )
-                        return (
-                            "",  # No status message
-                            True,  # Disable progress polling
-                            {"display": "none"},  # Hide progress bar
-                            {},  # Show Update Data button
-                            {"display": "none"},  # Hide Cancel button
-                            no_update,  # No metrics trigger
-                        )
+                # Update progress to show fetch complete
+                TaskProgress.update_progress(
+                    "update_data",
+                    "calculate",
+                    0,
+                    0,
+                    "Preparing metrics calculation...",
+                )
+                metrics_trigger = int(time.time() * 1000)
 
             # Read button visibility from ui_state (immediate restore on page load)
             ui_state = active_task.get("ui_state", {})

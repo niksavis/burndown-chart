@@ -6,6 +6,7 @@ This module provides enhanced caching functionality with:
 - Cache validation (age, config hash, version)
 - Automatic invalidation on configuration changes
 - Cache metadata tracking
+- **Database backend integration**: Uses SQLite when available, falls back to JSON files
 
 Usage:
     from data.cache_manager import (
@@ -48,6 +49,36 @@ from typing import Dict, Tuple, Optional, Any, List
 from enum import Enum
 
 logger = logging.getLogger(__name__)
+
+
+# Backend availability flag and lazy import
+_backend_available = None
+_backend_instance = None
+
+
+def _get_backend():
+    """Get persistence backend if available, otherwise return None.
+
+    Uses lazy import to avoid circular dependencies.
+    """
+    global _backend_available, _backend_instance
+
+    if _backend_available is False:
+        return None
+
+    if _backend_instance is not None:
+        return _backend_instance
+
+    try:
+        from data.persistence.factory import get_backend
+
+        _backend_instance = get_backend()
+        _backend_available = True
+        return _backend_instance
+    except Exception as e:
+        logger.debug(f"Backend not available, using JSON fallback: {e}")
+        _backend_available = False
+        return None
 
 
 def generate_cache_key(
@@ -176,13 +207,21 @@ def generate_processing_config_hash(field_mappings: Dict[str, str]) -> str:
 
 
 def load_cache_with_validation(
-    cache_key: str, config_hash: str, max_age_hours: int = 24, cache_dir: str = "cache"
+    cache_key: str,
+    config_hash: str,
+    max_age_hours: int = 24,
+    cache_dir: str = "cache",
+    profile_id: Optional[str] = None,
+    query_id: Optional[str] = None,
 ) -> Tuple[bool, Optional[List[Dict[str, Any]]]]:
     """
     Load cache data with validation checks.
 
+    **Backend Integration**: If backend is available, automatically retrieves
+    active profile/query from app state and loads from database. Falls back to JSON file.
+
     Validates cache by checking:
-    - File exists
+    - File/record exists
     - Not expired (within max_age_hours)
     - Config hash matches (same configuration)
 
@@ -191,6 +230,8 @@ def load_cache_with_validation(
         config_hash: Hash of current configuration
         max_age_hours: Maximum age in hours before cache expires (default: 24)
         cache_dir: Directory containing cache files (default: "cache")
+        profile_id: Optional profile ID (auto-fetched if not provided)
+        query_id: Optional query ID (auto-fetched if not provided)
 
     Returns:
         Tuple of (is_valid, data):
@@ -206,11 +247,73 @@ def load_cache_with_validation(
         >>> if is_valid:
         ...     print(f"Loaded {len(data)} items from cache")
     """
+    # Try database backend first
+    backend = _get_backend()
+    if backend:
+        try:
+            # Get profile/query IDs if not provided
+            if not profile_id:
+                profile_id = backend.get_app_state("active_profile_id")
+            if not query_id:
+                query_id = backend.get_app_state("active_query_id")
+
+            # Only use database if we have both IDs
+            if profile_id and query_id:
+                cache_response = backend.get_jira_cache(profile_id, query_id, cache_key)
+                if cache_response:
+                    # Validate structure
+                    if (
+                        "issues" not in cache_response
+                        or "metadata" not in cache_response
+                    ):
+                        logger.warning(
+                            f"Database cache invalid: missing issues or metadata ({cache_key})"
+                        )
+                    else:
+                        metadata = cache_response["metadata"]
+
+                        # Check config hash
+                        if metadata.get("config_hash") != config_hash:
+                            logger.debug(
+                                f"Database cache invalid: config mismatch ({cache_key})"
+                            )
+                        else:
+                            # Check timestamp
+                            timestamp_str = metadata.get("timestamp")
+                            if timestamp_str:
+                                cache_timestamp = datetime.fromisoformat(timestamp_str)
+                                if cache_timestamp.tzinfo is None:
+                                    cache_timestamp = cache_timestamp.replace(
+                                        tzinfo=timezone.utc
+                                    )
+
+                                now_utc = datetime.now(timezone.utc)
+                                age_hours = (
+                                    now_utc - cache_timestamp
+                                ).total_seconds() / 3600
+
+                                if age_hours <= max_age_hours:
+                                    # Cache is valid
+                                    logger.info(
+                                        f"Database cache hit: loaded {len(cache_response['issues'])} items ({age_hours:.1f}h old)"
+                                    )
+                                    return True, cache_response["issues"]
+                                else:
+                                    logger.debug(
+                                        f"Database cache expired: {age_hours:.1f}h old (max: {max_age_hours}h) ({cache_key})"
+                                    )
+                else:
+                    logger.debug(f"Database cache miss: no record found ({cache_key})")
+        except Exception as e:
+            logger.warning(f"Database cache load failed, falling back to JSON: {e}")
+            # Fall through to JSON file load
+
+    # Fallback to JSON file
     cache_file = os.path.join(cache_dir, f"{cache_key}.json")
 
     # Check if cache file exists
     if not os.path.exists(cache_file):
-        logger.debug(f"Cache miss: file not found ({cache_key})")
+        logger.debug(f"JSON cache miss: file not found ({cache_key})")
         return False, None
 
     try:
@@ -220,20 +323,22 @@ def load_cache_with_validation(
 
         # Validate structure
         if "metadata" not in cache_data or "data" not in cache_data:
-            logger.warning(f"Cache invalid: missing metadata or data ({cache_key})")
+            logger.warning(
+                f"JSON cache invalid: missing metadata or data ({cache_key})"
+            )
             return False, None
 
         metadata = cache_data["metadata"]
 
         # Check config hash
         if metadata.get("config_hash") != config_hash:
-            logger.debug(f"Cache invalid: config mismatch ({cache_key})")
+            logger.debug(f"JSON cache invalid: config mismatch ({cache_key})")
             return False, None
 
         # Check timestamp
         timestamp_str = metadata.get("timestamp")
         if not timestamp_str:
-            logger.warning(f"Cache invalid: missing timestamp ({cache_key})")
+            logger.warning(f"JSON cache invalid: missing timestamp ({cache_key})")
             return False, None
 
         # Parse timestamp and check age
@@ -249,18 +354,18 @@ def load_cache_with_validation(
 
         if age_hours > max_age_hours:
             logger.debug(
-                f"Cache expired: {age_hours:.1f}h old (max: {max_age_hours}h) ({cache_key})"
+                f"JSON cache expired: {age_hours:.1f}h old (max: {max_age_hours}h) ({cache_key})"
             )
             return False, None
 
         # Cache is valid
         logger.info(
-            f"Cache hit: loaded {len(cache_data['data'])} items ({age_hours:.1f}h old)"
+            f"JSON cache hit: loaded {len(cache_data['data'])} items ({age_hours:.1f}h old)"
         )
         return True, cache_data["data"]
 
     except (json.JSONDecodeError, ValueError, KeyError) as e:
-        logger.error(f"Cache read error: {e} ({cache_key})", exc_info=True)
+        logger.error(f"JSON cache read error: {e} ({cache_key})", exc_info=True)
         return False, None
 
 
@@ -269,9 +374,14 @@ def save_cache(
     data: List[Dict[str, Any]],
     config_hash: str,
     cache_dir: str = "cache",
+    profile_id: Optional[str] = None,
+    query_id: Optional[str] = None,
 ) -> None:
     """
     Save data to cache with metadata.
+
+    **Backend Integration**: If backend is available, automatically retrieves
+    active profile/query from app state and saves to database. Falls back to JSON file.
 
     Creates cache file with structure:
     {
@@ -288,6 +398,8 @@ def save_cache(
         data: Data to cache (list of dictionaries)
         config_hash: Hash of current configuration
         cache_dir: Directory to store cache files (default: "cache")
+        profile_id: Optional profile ID (auto-fetched if not provided)
+        query_id: Optional query ID (auto-fetched if not provided)
 
     Example:
         >>> save_cache(
@@ -296,6 +408,38 @@ def save_cache(
         ...     config_hash="def456..."
         ... )
     """
+    # Try database backend first
+    backend = _get_backend()
+    if backend:
+        try:
+            # Get profile/query IDs if not provided
+            if not profile_id:
+                profile_id = backend.get_app_state("active_profile_id")
+            if not query_id:
+                query_id = backend.get_app_state("active_query_id")
+
+            # Only use database if we have both IDs
+            if profile_id and query_id:
+                # Save to database using legacy JSON blob method
+                cache_response = {
+                    "issues": data,
+                    "metadata": {
+                        "timestamp": datetime.now(timezone.utc).isoformat(),
+                        "cache_key": cache_key,
+                        "config_hash": config_hash,
+                    },
+                }
+                expires_at = datetime.now(timezone.utc) + timedelta(hours=24)
+                backend.save_jira_cache(
+                    profile_id, query_id, cache_key, cache_response, expires_at
+                )
+                logger.info(f"Cache saved to database: {len(data)} items ({cache_key})")
+                return
+        except Exception as e:
+            logger.warning(f"Database cache save failed, falling back to JSON: {e}")
+            # Fall through to JSON file save
+
+    # Fallback to JSON file
     # Ensure cache directory exists
     os.makedirs(cache_dir, exist_ok=True)
 
@@ -315,7 +459,7 @@ def save_cache(
         with open(cache_file, "w", encoding="utf-8") as f:
             json.dump(cache_data, f, indent=2)
 
-        logger.info(f"Cache saved: {len(data)} items ({cache_key})")
+        logger.info(f"Cache saved to JSON: {len(data)} items ({cache_key})")
 
     except (IOError, OSError) as e:
         logger.error(f"Cache write error: {e} ({cache_key})", exc_info=True)
@@ -476,4 +620,30 @@ class CacheInvalidationTrigger:
             return True
 
         # No changes detected
+        return False
+
+
+def has_jira_data_for_query(profile_id: str, query_id: str) -> bool:
+    """
+    Check if JIRA issues exist for the given profile and query.
+
+    Args:
+        profile_id: Profile ID
+        query_id: Query ID
+
+    Returns:
+        True if issues exist in database, False otherwise
+
+    Example:
+        >>> if has_jira_data_for_query("default", "q_abc123"):
+        ...     print("Data available")
+    """
+    try:
+        from data.persistence.factory import get_backend
+
+        backend = get_backend()
+        issues = backend.get_issues(profile_id, query_id, limit=1)
+        return len(issues) > 0
+    except Exception as e:
+        logger.error(f"Error checking JIRA data: {e}")
         return False

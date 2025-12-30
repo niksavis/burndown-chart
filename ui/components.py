@@ -1899,12 +1899,12 @@ def create_compact_trend_indicator(trend_data, metric_name="Items"):
     # Check if we're in baseline building mode (need 8 weeks: 4 recent + 4 older for comparison)
     # Two conditions indicate insufficient data:
     # 1. weeks_compared < 4 means not enough weeks after aggregation
-    # 2. Both averages are 0 and percent_change is 0 means insufficient raw data
+    # 2. total_weeks_available < 8 means insufficient total data
     total_weeks_needed = 8
     total_weeks_available = weeks_compared * 2  # Default calculation
 
-    is_insufficient_data = weeks_compared < 4 or (
-        current_avg == 0 and previous_avg == 0 and percent_change == 0
+    is_insufficient_data = (
+        weeks_compared < 4 or total_weeks_available < total_weeks_needed
     )
 
     if is_insufficient_data:

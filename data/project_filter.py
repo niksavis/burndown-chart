@@ -22,6 +22,8 @@ logger = logging.getLogger(__name__)
 def get_issue_project_key(issue: Dict[str, Any]) -> str:
     """Extract project key from Jira issue.
 
+    Handles both JIRA API format and normalized database format.
+
     Args:
         issue: Jira issue dictionary
 
@@ -29,13 +31,18 @@ def get_issue_project_key(issue: Dict[str, Any]) -> str:
         Project key (e.g., "DEVPROJ", "DEVOPS")
     """
     try:
-        # Try to get from fields.project.key first
+        # Try database format first (flat structure)
+        project_key = issue.get("project_key", "")
+        if project_key:
+            return project_key
+
+        # Try JIRA API format (nested structure)
         project_key = issue.get("fields", {}).get("project", {}).get("key", "")
         if project_key:
             return project_key
 
         # Fallback: parse from issue key (e.g., "RI-8957" → "RI")
-        issue_key = issue.get("key", "")
+        issue_key = issue.get("key", "") or issue.get("issue_key", "")
         if issue_key and "-" in issue_key:
             return issue_key.split("-")[0]
 
@@ -48,6 +55,8 @@ def get_issue_project_key(issue: Dict[str, Any]) -> str:
 def get_issue_type(issue: Dict[str, Any]) -> str:
     """Extract issue type name from Jira issue.
 
+    Handles both JIRA API format and normalized database format.
+
     Args:
         issue: Jira issue dictionary
 
@@ -55,6 +64,12 @@ def get_issue_type(issue: Dict[str, Any]) -> str:
         Issue type name (e.g., "Story", "Bug", "Operational Task")
     """
     try:
+        # Try database format first (flat structure)
+        issue_type = issue.get("issue_type", "")
+        if issue_type:
+            return issue_type
+
+        # Try JIRA API format (nested structure)
         return issue.get("fields", {}).get("issuetype", {}).get("name", "")
     except (AttributeError, KeyError) as e:
         logger.warning(f"Failed to extract issue type from issue: {e}")

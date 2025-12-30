@@ -26,6 +26,7 @@ Usage:
 """
 
 import logging
+import json
 from pathlib import Path
 from typing import Dict
 from datetime import datetime
@@ -34,7 +35,6 @@ from data.migration.backup import create_backup, restore_backup
 from data.migration.schema_manager import initialize_schema, verify_schema
 from data.persistence.factory import get_backend
 from data.persistence import PersistenceBackend
-from data.persistence.json_backend import JSONBackend
 
 logger = logging.getLogger(__name__)
 
@@ -90,7 +90,6 @@ def is_migration_needed() -> bool:
 
 def migrate_profile(
     profile_id: str,
-    json_backend: JSONBackend,
     sqlite_backend: PersistenceBackend,
 ) -> Dict[str, int]:
     """
@@ -98,7 +97,6 @@ def migrate_profile(
 
     Args:
         profile_id: Profile identifier
-        json_backend: Source JSON backend
         sqlite_backend: Target SQLite backend
 
     Returns:
@@ -108,7 +106,7 @@ def migrate_profile(
         ValueError: If profile migration fails
 
     Example:
-        >>> stats = migrate_profile("kafka", json_backend, sqlite_backend)
+        >>> stats = migrate_profile("kafka", sqlite_backend)
         >>> print(f"Migrated {stats['issues']} issues")
     """
     logger.info(f"Migrating profile: {profile_id}")
@@ -136,30 +134,44 @@ def migrate_profile(
             with open(profile_json_path, "r", encoding="utf-8") as f:
                 profile_data = json.load(f)
 
-            # Extract profile fields
+            # Extract JIRA config - handle both old and new formats
+            jira_config = profile_data.get("jira_config", {})
+            if not jira_config:
+                # Fallback to old format if jira_config doesn't exist
+                jira_config = {
+                    "base_url": profile_data.get("jira_url", ""),
+                    "token": profile_data.get("jira_token", ""),
+                    "configured": profile_data.get("jira_configured", False),
+                }
+
+            # Extract profile fields - match SQLiteBackend schema exactly
             profile_record = {
                 "id": profile_id,
                 "name": profile_data.get("name", profile_id),
-                "jira_url": profile_data.get("jira_url", ""),
-                "jira_token": profile_data.get("jira_token", ""),
-                "jira_configured": profile_data.get("jira_configured", False),
-                "field_mappings": profile_data.get("field_mappings", {}),
-                "settings": {
-                    k: v
-                    for k, v in profile_data.items()
-                    if k
-                    not in [
-                        "name",
-                        "jira_url",
-                        "jira_token",
-                        "jira_configured",
-                        "field_mappings",
-                    ]
-                },
+                "description": profile_data.get("description", ""),
                 "created_at": profile_data.get(
                     "created_at", datetime.now().isoformat()
                 ),
                 "last_used": profile_data.get("last_used", datetime.now().isoformat()),
+                # Direct fields matching schema
+                "jira_config": jira_config,
+                "field_mappings": profile_data.get("field_mappings", {}),
+                "forecast_settings": profile_data.get("forecast_settings", {}),
+                "project_classification": profile_data.get(
+                    "project_classification", {}
+                ),
+                "flow_type_mappings": profile_data.get("flow_type_mappings", {}),
+                # Convert boolean flags (might be stored as lists from Dash components)
+                "show_milestone": (
+                    bool(profile_data.get("show_milestone"))
+                    if not isinstance(profile_data.get("show_milestone"), list)
+                    else len(profile_data.get("show_milestone", [])) > 0
+                ),
+                "show_points": (
+                    bool(profile_data.get("show_points", True))
+                    if not isinstance(profile_data.get("show_points"), list)
+                    else len(profile_data.get("show_points", [])) > 0
+                ),
             }
 
             sqlite_backend.save_profile(profile_record)
@@ -240,11 +252,12 @@ def migrate_profile(
                             )
                             stats["statistics"] += len(project_data["statistics"])
 
-                        # Migrate scope
-                        if "scope" in project_data:
-                            sqlite_backend.save_scope(
-                                profile_id, query_id, project_data["scope"]
-                            )
+                        # Migrate scope - check both "project_scope" (v2.0) and "scope" (legacy)
+                        scope_data = project_data.get(
+                            "project_scope"
+                        ) or project_data.get("scope")
+                        if scope_data:
+                            sqlite_backend.save_scope(profile_id, query_id, scope_data)
                             stats["scope"] += 1
 
                         logger.info(
@@ -253,6 +266,111 @@ def migrate_profile(
                     except Exception as e:
                         logger.warning(
                             f"Failed to migrate project data for {profile_id}/{query_id}: {e}"
+                        )
+
+                # Step 5: Migrate metrics snapshots (DORA/Flow metrics)
+                metrics_path = query_dir / "metrics_snapshots.json"
+                logger.info(
+                    f"Checking for metrics file: {metrics_path}, exists={metrics_path.exists()}"
+                )
+                if metrics_path.exists():
+                    try:
+                        logger.info(f"Loading metrics from {metrics_path}")
+                        with open(metrics_path, "r", encoding="utf-8") as f:
+                            metrics_snapshots = json.load(f)
+
+                        logger.info(
+                            f"Loaded {len(metrics_snapshots)} weeks of metrics from file"
+                        )
+
+                        if metrics_snapshots:
+                            # Process each week's metrics
+                            for week_label, week_metrics in metrics_snapshots.items():
+                                # Keep ISO week label format (e.g., "2025-W42")
+                                # This matches what load_snapshots() expects
+                                snapshot_date = week_label
+
+                                # Build metric list for batch save
+                                metric_list = []
+
+                                # Process each metric
+                                for metric_name, metric_data in week_metrics.items():
+                                    # Skip non-metric entries like "trends"
+                                    if metric_name == "trends" or not isinstance(
+                                        metric_data, dict
+                                    ):
+                                        continue
+
+                                    # Extract primary value for metric_value column
+                                    metric_value = None
+
+                                    if isinstance(metric_data, dict):
+                                        # Try common value field names in order of preference
+                                        value_fields = [
+                                            "value",  # Generic
+                                            "completed_count",  # Flow velocity, Flow time
+                                            "deployment_count",  # DORA deployment frequency
+                                            "median_days",  # Flow time
+                                            "median_hours",  # Lead time, MTTR
+                                            "avg_days",  # Flow time
+                                            "wip_count",  # Flow load
+                                            "change_failure_rate_percent",  # CFR
+                                            "overall_pct",  # Flow efficiency
+                                        ]
+
+                                        for field in value_fields:
+                                            if field in metric_data and isinstance(
+                                                metric_data[field], (int, float)
+                                            ):
+                                                metric_value = metric_data[field]
+                                                break
+
+                                        # If still no value, use 0.0
+                                        if metric_value is None:
+                                            metric_value = 0.0
+
+                                    # Determine metric category
+                                    if (
+                                        "dora" in metric_name.lower()
+                                        or "deployment" in metric_name.lower()
+                                        or "lead_time" in metric_name.lower()
+                                        or "change_failure" in metric_name.lower()
+                                        or "mttr" in metric_name.lower()
+                                    ):
+                                        metric_category = "dora"
+                                    elif "flow" in metric_name.lower():
+                                        metric_category = "flow"
+                                    else:
+                                        metric_category = "custom"
+
+                                    # Create metric record with FULL original data in calculation_metadata
+                                    metric_record = {
+                                        "snapshot_date": snapshot_date,
+                                        "metric_category": metric_category,
+                                        "metric_name": metric_name,
+                                        "metric_value": metric_value,
+                                        "metric_unit": metric_data.get("unit", ""),
+                                        "excluded_issue_count": 0,
+                                        "calculation_metadata": metric_data,  # Store FULL dict
+                                    }
+
+                                    metric_list.append(metric_record)
+
+                                # Batch save all metrics for this week
+                                if metric_list:
+                                    sqlite_backend.save_metrics_batch(
+                                        profile_id, query_id, metric_list
+                                    )
+                                    stats["metrics"] = stats.get("metrics", 0) + len(
+                                        metric_list
+                                    )
+
+                            logger.info(
+                                f"Migrated {stats.get('metrics', 0)} metrics for {profile_id}/{query_id}"
+                            )
+                    except Exception as e:
+                        logger.warning(
+                            f"Failed to migrate metrics for {profile_id}/{query_id}: {e}"
                         )
 
         logger.info(f"Profile {profile_id} migration complete: {stats}")
@@ -313,7 +431,6 @@ def run_migration_if_needed(
             raise ValueError("Schema verification failed after initialization")
 
         # Step 3: Migrate all profiles
-        json_backend = JSONBackend(str(profiles_path))
         sqlite_backend = get_backend("sqlite", str(db_path))
 
         # Find all JSON profile directories
@@ -339,9 +456,7 @@ def run_migration_if_needed(
             logger.info(f"Migrating profile: {profile_id}")
 
             try:
-                profile_stats = migrate_profile(
-                    profile_id, json_backend, sqlite_backend
-                )
+                profile_stats = migrate_profile(profile_id, sqlite_backend)
 
                 # Accumulate stats
                 for key, value in profile_stats.items():
@@ -353,7 +468,32 @@ def run_migration_if_needed(
 
         logger.info(f"Migration stats: {total_stats}")
 
-        # Step 4: Validate migration
+        # Step 4: Migrate app_state and ensure active profile/query are set
+        app_state_path = profiles_path / "profiles.json"
+        if app_state_path.exists():
+            with open(app_state_path, "r", encoding="utf-8") as f:
+                app_state_data = json.load(f)
+
+            # Save app state to database
+            for key, value in app_state_data.items():
+                sqlite_backend.set_app_state(key, str(value))
+
+        # Ensure active profile/query are set (if profiles exist)
+        active_profile = sqlite_backend.get_app_state("active_profile_id")
+        if not active_profile and profile_dirs:
+            # Set first profile as active
+            first_profile_id = profile_dirs[0].name
+            sqlite_backend.set_app_state("active_profile_id", first_profile_id)
+            logger.info(f"Set active_profile_id to {first_profile_id}")
+
+            # Set first query as active
+            first_profile_queries = sqlite_backend.list_queries(first_profile_id)
+            if first_profile_queries:
+                first_query_id = first_profile_queries[0]["id"]
+                sqlite_backend.set_app_state("active_query_id", first_query_id)
+                logger.info(f"Set active_query_id to {first_query_id}")
+
+        # Step 5: Validate migration
         from data.migration.validator import validate_all_profiles
 
         is_valid, validation_report = validate_all_profiles(profiles_path, db_path)

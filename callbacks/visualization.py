@@ -11,7 +11,7 @@ This module handles callbacks related to visualization updates and interactions.
 import json
 import logging
 import time
-from datetime import datetime
+from datetime import datetime, timedelta
 
 # Third-party library imports
 import dash_bootstrap_components as dbc
@@ -198,7 +198,7 @@ def register(app):
         # Process the settings and statistics data
         df = pd.DataFrame(statistics)
         if len(df) > 0:  # Check if there's any data
-            df["date"] = pd.to_datetime(df["date"])
+            df["date"] = pd.to_datetime(df["date"], format="mixed", errors="coerce")
             df = df.sort_values("date")
 
         # Get necessary values
@@ -733,19 +733,20 @@ def register(app):
             )
 
         # Ensure datetime format for date
-        df["date"] = pd.to_datetime(df["date"])
+        df["date"] = pd.to_datetime(df["date"], format="mixed", errors="coerce")
 
         # Calculate baseline values using the correct method (same as report)
         # Baseline = current remaining + total completed in filtered period
         # This gives us the initial backlog at the start of the data window
         from data.scope_metrics import calculate_total_project_scope
 
-        # Filter to data_points_count if specified
-        df_filtered = (
-            df.tail(data_points_count)
-            if data_points_count and data_points_count > 0
-            else df
-        )
+        # CRITICAL FIX: Filter by actual date range, not row count
+        df_filtered = df
+        if data_points_count and data_points_count > 0:
+            if not df.empty and "date" in df.columns:
+                latest_date = df["date"].max()
+                cutoff_date = latest_date - timedelta(weeks=data_points_count)
+                df_filtered = df[df["date"] >= cutoff_date]
 
         # Get current remaining from project_data.json (not from settings)
         from data.persistence import load_project_data
@@ -905,6 +906,22 @@ def register(app):
             f"[CTO DEBUG] render_tab_content triggered by: {trigger_info}, active_tab='{active_tab}', cache_size={len(chart_cache) if chart_cache else 0}"
         )
 
+        # CRITICAL DEBUG: Log statistics data to diagnose query switching issue
+        if statistics:
+            logger.info(
+                f"[VISUALIZATION] render_tab_content received {len(statistics)} statistics"
+            )
+            logger.info(
+                f"[VISUALIZATION] First stat: date={statistics[0].get('date')}, items={statistics[0].get('remaining_items')}, points={statistics[0].get('remaining_total_points')}"
+            )
+            logger.info(
+                f"[VISUALIZATION] Last stat: date={statistics[-1].get('date')}, items={statistics[-1].get('remaining_items')}, points={statistics[-1].get('remaining_total_points')}"
+            )
+        else:
+            logger.warning(
+                "[VISUALIZATION] render_tab_content received EMPTY statistics!"
+            )
+
         # Handle initial load: if active_tab is None or empty, default to burndown
         if not active_tab:
             logger.debug(
@@ -1008,16 +1025,53 @@ def register(app):
                 )  # Keep unfiltered copy for Recent Completions section
 
                 if not df.empty:
-                    # Apply data_points_count filter first (if specified and data is larger)
-                    if (
-                        data_points_count is not None
-                        and data_points_count > 0
-                        and len(df) > data_points_count
-                    ):
+                    # CRITICAL FIX: Apply data_points_count filter by WEEK LABELS, not date ranges
+                    # This ensures Dashboard and DORA/Flow metrics use the same time periods
+                    if data_points_count is not None and data_points_count > 0:
                         logger.info(
-                            f"Filtering dashboard data from {len(df)} to {data_points_count} data points"
+                            f"Filtering dashboard data by {data_points_count} weeks"
                         )
-                        df = df.tail(data_points_count)
+
+                        # Generate the same week labels that DORA/Flow metrics use
+                        from data.time_period_calculator import (
+                            get_iso_week,
+                            format_year_week,
+                        )
+
+                        weeks = []
+                        current_date = datetime.now()
+                        for i in range(data_points_count):
+                            year, week = get_iso_week(current_date)
+                            week_label = format_year_week(year, week)
+                            weeks.append(week_label)
+                            current_date = current_date - timedelta(days=7)
+
+                        week_labels = set(
+                            reversed(weeks)
+                        )  # Convert to set for fast lookup
+
+                        # Filter by week_label if available, otherwise fall back to date range
+                        if "week_label" in df.columns:
+                            df = df[df["week_label"].isin(week_labels)]
+                            logger.info(
+                                f"Filtered to {len(df)} rows using week_label matching"
+                            )
+                        else:
+                            # Fallback: date range filtering (old behavior for backward compatibility)
+                            df["date"] = pd.to_datetime(
+                                df["date"], format="mixed", errors="coerce"
+                            )
+                            df = df.dropna(subset=["date"]).sort_values(
+                                "date", ascending=True
+                            )
+                            latest_date = df["date"].max()
+                            cutoff_date = latest_date - timedelta(
+                                weeks=data_points_count
+                            )
+                            df = df[df["date"] >= cutoff_date]
+                            logger.warning(
+                                "No week_label column - using date range filtering (less accurate)"
+                            )
 
                     df = compute_cumulative_values(df, total_items, total_points)
                     df_unfiltered = compute_cumulative_values(
@@ -1048,9 +1102,15 @@ def register(app):
                 )
 
                 # Calculate days to deadline
-                deadline_date = pd.to_datetime(deadline)
-                current_date = datetime.now()
-                days_to_deadline = max(0, (deadline_date - current_date).days)
+                try:
+                    deadline_date = pd.to_datetime(deadline)
+                    if pd.isna(deadline_date):
+                        days_to_deadline = 0
+                    else:
+                        current_date = datetime.now()
+                        days_to_deadline = max(0, (deadline_date - current_date).days)
+                except Exception:
+                    days_to_deadline = 0
 
                 # Import and use comprehensive dashboard
                 from ui.dashboard_comprehensive import create_comprehensive_dashboard
@@ -1068,6 +1128,7 @@ def register(app):
                     days_to_deadline=days_to_deadline,
                     total_items=total_items,
                     total_points=total_points,
+                    data_points_count=data_points_count,  # Pass for metric snapshot lookup
                     deadline_str=deadline,
                     show_points=show_points,
                 )

@@ -24,6 +24,9 @@ Usage Example:
 from abc import ABC, abstractmethod
 from typing import Dict, List, Optional
 from datetime import datetime
+import sys
+import importlib.util
+from pathlib import Path
 
 
 class PersistenceBackend(ABC):
@@ -814,6 +817,49 @@ class PersistenceBackend(ABC):
         pass
 
     # ========================================================================
+    # Task State Operations
+    # ========================================================================
+
+    @abstractmethod
+    def get_task_state(self) -> Optional[Dict]:
+        """Get the current task state.
+
+        Returns:
+            Task state dictionary or None if no active task
+
+        Example:
+            >>> state = backend.get_task_state()
+            >>> if state and state.get("status") == "in_progress":
+            ...     print(f"Task {state['task_name']} is running")
+        """
+        pass
+
+    @abstractmethod
+    def save_task_state(self, state: Dict) -> None:
+        """Save task state.
+
+        Args:
+            state: Task state dictionary to save
+
+        Raises:
+            IOError: If persistence fails
+
+        Example:
+            >>> state = {"task_id": "metrics", "status": "in_progress"}
+            >>> backend.save_task_state(state)
+        """
+        pass
+
+    @abstractmethod
+    def clear_task_state(self) -> None:
+        """Clear/delete the task state.
+
+        Example:
+            >>> backend.clear_task_state()
+        """
+        pass
+
+    # ========================================================================
     # Transaction Management
     # ========================================================================
 
@@ -845,6 +891,15 @@ class PersistenceBackend(ABC):
 
         Raises:
             IOError: If rollback fails
+        """
+        pass
+
+    @abstractmethod
+    def close(self) -> None:
+        """Close any open connections or resources.
+
+        Example:
+            >>> backend.close()
         """
         pass
 
@@ -882,3 +937,62 @@ class DatabaseCorruptionError(PersistenceError):
     """Raised when database integrity check fails."""
 
     pass
+
+
+# =============================================================================
+# Re-export Legacy Functions for Backward Compatibility
+# =============================================================================
+# The old data/persistence.py file is now shadowed by this package.
+# Re-export its functions to maintain backward compatibility with existing code.
+
+# Add parent to path temporarily to import the old persistence module
+_parent_dir = str(Path(__file__).parent.parent)
+if _parent_dir not in sys.path:
+    sys.path.insert(0, _parent_dir)
+
+try:
+    # Import from the file (not the package) using a workaround
+    _persistence_file = Path(__file__).parent.parent / "persistence.py"
+    _spec = importlib.util.spec_from_file_location(
+        "_legacy_persistence", _persistence_file
+    )
+    if _spec is None or _spec.loader is None:
+        raise ImportError("Failed to load legacy persistence module")
+    _legacy_persistence = importlib.util.module_from_spec(_spec)
+    _spec.loader.exec_module(_legacy_persistence)
+
+    # Re-export all public functions
+    generate_realistic_sample_data = _legacy_persistence.generate_realistic_sample_data
+    load_app_settings = _legacy_persistence.load_app_settings
+    load_project_data = _legacy_persistence.load_project_data
+    load_settings = _legacy_persistence.load_settings
+    load_statistics = _legacy_persistence.load_statistics
+    read_and_clean_data = _legacy_persistence.read_and_clean_data
+    save_app_settings = _legacy_persistence.save_app_settings
+    save_project_data = _legacy_persistence.save_project_data
+    save_settings = _legacy_persistence.save_settings
+    save_statistics = _legacy_persistence.save_statistics
+    save_statistics_from_csv_import = (
+        _legacy_persistence.save_statistics_from_csv_import
+    )
+    load_jira_configuration = _legacy_persistence.load_jira_configuration
+    save_jira_configuration = _legacy_persistence.save_jira_configuration
+    validate_jira_config = _legacy_persistence.validate_jira_config
+    save_jira_data_unified = _legacy_persistence.save_jira_data_unified
+    load_unified_project_data = _legacy_persistence.load_unified_project_data
+    save_unified_project_data = _legacy_persistence.save_unified_project_data
+    get_project_statistics = _legacy_persistence.get_project_statistics
+    get_project_scope = _legacy_persistence.get_project_scope
+    update_project_scope = _legacy_persistence.update_project_scope
+    calculate_project_scope_from_jira = (
+        _legacy_persistence.calculate_project_scope_from_jira
+    )
+
+    # Clean up temporary module
+    del _legacy_persistence, _spec, _persistence_file
+finally:
+    # Remove parent from path
+    if _parent_dir in sys.path:
+        sys.path.remove(_parent_dir)
+
+del _parent_dir

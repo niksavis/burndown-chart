@@ -392,3 +392,10 @@ class JSONBackend(PersistenceBackend):
     def rollback_transaction(self) -> None:
         """NO-OP: JSON backend doesn't support transactions."""
         pass
+
+    def close(self) -> None:
+        """Close any open resources.
+
+        Note: JSON backend has no persistent connections, so this is a no-op.
+        """
+        pass

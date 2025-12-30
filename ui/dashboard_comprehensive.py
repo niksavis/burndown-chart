@@ -47,7 +47,7 @@ def _format_date_relative(date_str, reference_date=None):
         return "Not set"
 
     try:
-        target_date = pd.to_datetime(date_str)
+        target_date = pd.to_datetime(date_str, format="mixed", errors="coerce")
         ref_date = reference_date or datetime.now()
         days_diff = (target_date - ref_date).days
 
@@ -970,24 +970,70 @@ def _create_executive_summary(statistics_df, settings, forecast_data):
     )
 
 
-def _create_throughput_section(statistics_df, forecast_data, settings):
+def _create_throughput_section(
+    statistics_df, forecast_data, settings, data_points_count=None
+):
     """Create throughput analytics section.
 
-    Note: statistics_df is already filtered by data_points_count in the callback,
-    so we use the entire dataframe for calculations.
+    CRITICAL: Uses metric snapshots (flow_velocity) as source of truth for items
+    to match DORA/Flow metrics tab exactly. This prevents discrepancies where
+    Dashboard shows different values than Flow Velocity.
 
     Args:
-        statistics_df: DataFrame with filtered statistics
+        statistics_df: DataFrame with filtered statistics (FALLBACK for points only)
         forecast_data: Dictionary with forecast data
         settings: Settings dictionary containing show_points flag
+        data_points_count: Number of weeks being displayed (for metric snapshot lookup)
     """
+    import logging
+    from data.metrics_snapshots import get_metric_weekly_values
+    from data.time_period_calculator import get_iso_week, format_year_week
+    from datetime import datetime, timedelta
+
+    logger = logging.getLogger(__name__)
     show_points = settings.get("show_points", True)
     if statistics_df.empty:
         return html.Div()
 
-    # Use ALL the filtered data (already filtered by data_points_count in callback)
-    # Calculate throughput metrics from the entire filtered dataset
-    avg_items = statistics_df["completed_items"].mean()
+    # CRITICAL FIX: Use metric snapshots for items (same source as Flow Velocity)
+    # This ensures Dashboard and DORA tab show identical values
+    avg_items = None
+
+    if data_points_count is not None and data_points_count > 0:
+        try:
+            # Generate week labels exactly like DORA/Flow metrics do
+            weeks = []
+            current_date = datetime.now()
+            for i in range(data_points_count):
+                year, week = get_iso_week(current_date)
+                week_label = format_year_week(year, week)
+                weeks.append(week_label)
+                current_date = current_date - timedelta(days=7)
+
+            week_labels = list(reversed(weeks))
+
+            # Get Flow Velocity values (completed items per week)
+            velocity_items = get_metric_weekly_values(
+                week_labels, "flow_velocity", "completed_count"
+            )
+
+            if velocity_items and any(v > 0 for v in velocity_items):
+                avg_items = sum(velocity_items) / len(velocity_items)
+                logger.info(
+                    f"[DASHBOARD] Using metric snapshots for Items per Week: {avg_items:.2f} "
+                    f"(from {len(velocity_items)} weeks)"
+                )
+        except Exception as e:
+            logger.warning(
+                f"[DASHBOARD] Failed to load metric snapshots: {e}, using statistics"
+            )
+
+    # Fallback to statistics if snapshots unavailable
+    if avg_items is None:
+        avg_items = statistics_df["completed_items"].mean()
+        logger.info(f"[DASHBOARD] Using statistics for Items per Week: {avg_items:.2f}")
+
+    # Always use statistics for points (Flow doesn't track points separately)
     avg_points = statistics_df["completed_points"].mean()
 
     # Calculate trends by comparing older vs recent halves of filtered data
@@ -1641,7 +1687,15 @@ def _create_quality_scope_section(statistics_df, settings):
         if "date" in statistics_df.columns and not statistics_df.empty:
             start_date = statistics_df["date"].min()
             end_date = statistics_df["date"].max()
-            date_range = f"{pd.to_datetime(start_date).strftime('%b %d, %Y')} - {pd.to_datetime(end_date).strftime('%b %d, %Y')}"
+            # Convert to datetime and handle NaT (Not a Time) values
+            start_dt = pd.to_datetime(start_date, format="mixed", errors="coerce")
+            end_dt = pd.to_datetime(end_date, format="mixed", errors="coerce")
+            if pd.notna(start_dt) and pd.notna(end_dt):
+                date_range = (
+                    f"{start_dt.strftime('%b %d, %Y')} - {end_dt.strftime('%b %d, %Y')}"
+                )
+            else:
+                date_range = "tracked period"
             weeks_count = len(statistics_df)
         else:
             date_range = "tracked period"
@@ -2145,6 +2199,7 @@ def create_comprehensive_dashboard(
     deadline_str,
     show_points=True,
     additional_context=None,
+    data_points_count=None,
 ):
     """
     Create a comprehensive project dashboard with all available metrics.
@@ -2280,7 +2335,9 @@ def create_comprehensive_dashboard(
             # Executive Summary
             _create_executive_summary(statistics_df, settings, forecast_data),
             # Throughput Analytics
-            _create_throughput_section(statistics_df, forecast_data, settings),
+            _create_throughput_section(
+                statistics_df, forecast_data, settings, data_points_count
+            ),
             # Forecast Section
             _create_forecast_section(
                 forecast_data, confidence_data, show_points=show_points

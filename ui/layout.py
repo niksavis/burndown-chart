@@ -127,8 +127,8 @@ def create_app_layout(settings, statistics, is_sample_data):
     # Modern app container with updated styling matching DORA/Flow design
     return dbc.Container(
         [
-            # Toast notification container for profile switching feedback
-            # Note: Version update toast is shown via callback after page loads
+            # Toast notification container for all app notifications
+            # (profile switching, version updates, migration, etc.)
             html.Div(
                 id="app-notifications",
                 style={
@@ -143,6 +143,8 @@ def create_app_layout(settings, statistics, is_sample_data):
             dcc.Store(id="version-check-info", data=version_info),
             # Track if update toast has been shown this session (prevents showing on every page refresh)
             dcc.Store(id="update-toast-shown", storage_type="session", data=False),
+            # Migration status tracking (prevents re-running migration)
+            dcc.Store(id="migration-status", storage_type="session", data=None),
             # JIRA Configuration Modal (Feature 003-jira-config-separation)
             create_jira_config_modal(),
             # Field Mapping Modal (Feature 007-dora-flow-metrics Phase 4)

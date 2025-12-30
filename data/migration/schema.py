@@ -113,18 +113,18 @@ def create_schema(conn: sqlite3.Connection) -> None:
             query_id TEXT NOT NULL,
             cache_key TEXT NOT NULL,
             issue_key TEXT NOT NULL,
-            summary TEXT NOT NULL,
-            status TEXT NOT NULL,
+            summary TEXT,
+            status TEXT,
             assignee TEXT,
-            issue_type TEXT NOT NULL,
+            issue_type TEXT,
             priority TEXT,
             resolution TEXT,
-            created TEXT NOT NULL,
-            updated TEXT NOT NULL,
+            created TEXT,
+            updated TEXT,
             resolved TEXT,
             points REAL,
-            project_key TEXT NOT NULL,
-            project_name TEXT NOT NULL,
+            project_key TEXT,
+            project_name TEXT,
             fix_versions TEXT,
             labels TEXT,
             components TEXT,
@@ -148,6 +148,26 @@ def create_schema(conn: sqlite3.Connection) -> None:
     )
     cursor.execute(
         "CREATE INDEX IF NOT EXISTS idx_jira_issues_assignee ON jira_issues(profile_id, query_id, assignee)"
+    )
+
+    # Table 4b: jira_cache (metadata for cache validation)
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS jira_cache (
+            profile_id TEXT NOT NULL,
+            query_id TEXT NOT NULL,
+            cache_key TEXT NOT NULL,
+            timestamp TEXT NOT NULL,
+            config_hash TEXT NOT NULL,
+            issue_count INTEGER NOT NULL,
+            expires_at TEXT NOT NULL,
+            PRIMARY KEY (profile_id, query_id, cache_key),
+            FOREIGN KEY (profile_id, query_id) REFERENCES queries(profile_id, id) ON DELETE CASCADE
+        )
+    """)
+
+    # Index for jira_cache
+    cursor.execute(
+        "CREATE INDEX IF NOT EXISTS idx_jira_cache_key ON jira_cache(profile_id, query_id, cache_key)"
     )
     cursor.execute(
         "CREATE INDEX IF NOT EXISTS idx_jira_issues_type ON jira_issues(profile_id, query_id, issue_type)"
@@ -212,6 +232,10 @@ def create_schema(conn: sqlite3.Connection) -> None:
             query_id TEXT NOT NULL,
             stat_date TEXT NOT NULL,
             week_label TEXT,
+            remaining_items INTEGER,
+            remaining_total_points REAL,
+            items_added INTEGER DEFAULT 0,
+            items_completed INTEGER DEFAULT 0,
             completed_items INTEGER DEFAULT 0,
             completed_points REAL DEFAULT 0.0,
             created_items INTEGER DEFAULT 0,

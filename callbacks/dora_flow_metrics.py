@@ -165,11 +165,61 @@ def load_and_display_dora_metrics(
         Metrics cards HTML (no toast messages, consistent with Flow Metrics)
     """
     try:
-        # Check if JIRA data is loaded FIRST (before checking for metrics)
-        if not jira_data_store or not jira_data_store.get("issues"):
+        import dash_bootstrap_components as dbc
+        from ui.loading_utils import create_skeleton_loader
+
+        # DEBUG: Log the exact state of jira_data_store
+        logger.info(
+            f"DORA CALLBACK START: jira_data_store type={type(jira_data_store)}"
+        )
+        logger.info(
+            f"DORA CALLBACK START: jira_data_store is None = {jira_data_store is None}"
+        )
+        logger.info(
+            f"DORA CALLBACK START: bool(jira_data_store) = {bool(jira_data_store)}"
+        )
+        logger.info(f"DORA CALLBACK START: active_tab = {active_tab}")
+        if jira_data_store is not None:
+            logger.info(
+                f"DORA CALLBACK START: jira_data_store.keys() = {jira_data_store.keys() if isinstance(jira_data_store, dict) else 'NOT A DICT'}"
+            )
+            if isinstance(jira_data_store, dict):
+                logger.info(
+                    f"DORA CALLBACK START: len(issues) = {len(jira_data_store.get('issues', []))}"
+                )
+
+        # CRITICAL: Only render if on DORA tab
+        # This prevents stale "No Data" content from initial load flashing when switching tabs
+        if active_tab != "tab-dora-metrics":
+            from dash import no_update
+
+            logger.info("DORA: Not on DORA tab, skipping render")
+            return no_update
+
+        # Check if data is being loaded (None or empty = initial load, show skeleton)
+        # Only show "No Data" if we have a populated jira_data_store with no issues
+        if jira_data_store is None or not jira_data_store:
+            logger.info("DORA: Initial load, showing skeleton cards")
+            # Return skeleton cards for all 4 DORA metrics
+            return dbc.Row(
+                [
+                    dbc.Col(
+                        create_skeleton_loader(type="card", height="200px"),
+                        xs=12,
+                        sm=6,
+                        lg=3,
+                        className="mb-4",
+                    )
+                    for _ in range(4)
+                ],
+                className="g-4",
+            )
+
+        # Check if JIRA data has been loaded but is empty
+        if not jira_data_store.get("issues"):
             from ui.empty_states import create_no_data_state
 
-            logger.info("DORA: No JIRA data loaded, showing 'No Data' state")
+            logger.info("DORA: No JIRA issues in loaded data, showing 'No Data' state")
             return create_no_data_state()
 
         # Get number of weeks to display (default 12 if not set)
@@ -469,6 +519,7 @@ def load_and_display_dora_metrics(
     Output("flow-metrics-cards-container", "children"),
     [
         Input("jira-issues-store", "data"),
+        Input("chart-tabs", "active_tab"),  # Check which tab is active
         Input("data-points-input", "value"),
         Input("metrics-refresh-trigger", "data"),  # NEW: Trigger from Refresh button
     ],
@@ -479,6 +530,7 @@ def load_and_display_dora_metrics(
 )
 def calculate_and_display_flow_metrics(
     jira_data_store: Optional[Dict[str, Any]],
+    active_tab: Optional[str],
     data_points: int,
     metrics_refresh_trigger: Optional[int],
     app_settings: Optional[Dict[str, Any]],
@@ -494,6 +546,7 @@ def calculate_and_display_flow_metrics(
 
     Args:
         jira_data_store: Cached JIRA issues from global store (used for context)
+        active_tab: Currently active tab (only render if on Flow tab)
         data_points: Number of weeks to display (from Data Points slider)
         metrics_refresh_trigger: Timestamp of last metrics refresh (triggers update)
         app_settings: Application settings including field mappings
@@ -502,8 +555,58 @@ def calculate_and_display_flow_metrics(
         Tuple of (metrics_cards_html, distribution_chart_html)
     """
     try:
-        # Validate inputs
-        if not jira_data_store or not jira_data_store.get("issues"):
+        import dash_bootstrap_components as dbc
+        from ui.loading_utils import create_skeleton_loader
+
+        # DEBUG: Log the exact state of jira_data_store
+        logger.info(
+            f"FLOW CALLBACK START: jira_data_store type={type(jira_data_store)}"
+        )
+        logger.info(
+            f"FLOW CALLBACK START: jira_data_store is None = {jira_data_store is None}"
+        )
+        logger.info(
+            f"FLOW CALLBACK START: bool(jira_data_store) = {bool(jira_data_store)}"
+        )
+        logger.info(f"FLOW CALLBACK START: active_tab = {active_tab}")
+        if jira_data_store is not None:
+            logger.info(
+                f"FLOW CALLBACK START: jira_data_store.keys() = {jira_data_store.keys() if isinstance(jira_data_store, dict) else 'NOT A DICT'}"
+            )
+            if isinstance(jira_data_store, dict):
+                logger.info(
+                    f"FLOW CALLBACK START: len(issues) = {len(jira_data_store.get('issues', []))}"
+                )
+
+        # CRITICAL: Only render if on Flow tab
+        # This prevents stale "No Data" content from initial load flashing when switching tabs
+        if active_tab != "tab-flow-metrics":
+            from dash import no_update
+
+            logger.info("FLOW: Not on Flow tab, skipping render")
+            return no_update
+
+        # Check if data is being loaded (None or empty = initial load, show skeleton)
+        # Only show "No Data" if we have a populated jira_data_store with no issues
+        if jira_data_store is None or not jira_data_store:
+            logger.info("Flow: Initial load, showing skeleton cards")
+            # Return skeleton cards for all 4 Flow metrics
+            return dbc.Row(
+                [
+                    dbc.Col(
+                        create_skeleton_loader(type="card", height="200px"),
+                        xs=12,
+                        sm=6,
+                        lg=3,
+                        className="mb-4",
+                    )
+                    for _ in range(4)
+                ],
+                className="g-4",
+            )
+
+        # Validate inputs - if store is populated but has no issues
+        if not jira_data_store.get("issues"):
             from ui.empty_states import create_no_data_state
 
             # Return no_data state for all metrics (Work Distribution included in same container)

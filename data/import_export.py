@@ -357,6 +357,9 @@ def resolve_profile_conflict(
 
         return new_profile_id, renamed_data
 
+    # Should never reach here due to strategy validation at start
+    raise ValueError(f"Unsupported conflict resolution strategy: {strategy}")
+
 
 # ============================================================================
 # T009: Profile Export System with Setup Status Migration
@@ -595,18 +598,14 @@ def export_profile_with_mode(
             f"Invalid export_mode: {export_mode}. Must be 'CONFIG_ONLY' or 'FULL_DATA'"
         )
 
-    # Load profile data
-    from data.query_manager import get_active_profile_id
-    from pathlib import Path
+    # Load profile data from database
+    from data.persistence.factory import get_backend
 
-    profile_dir = Path("profiles") / profile_id
-    profile_file = profile_dir / "profile.json"
+    backend = get_backend()
+    profile_data = backend.get_profile(profile_id)
 
-    if not profile_file.exists():
-        raise FileNotFoundError(f"Profile '{profile_id}' not found at {profile_file}")
-
-    with open(profile_file, "r", encoding="utf-8") as f:
-        profile_data = json.load(f)
+    if not profile_data:
+        raise FileNotFoundError(f"Profile '{profile_id}' not found in database")
 
     # Strip credentials if not including token
     if not include_token:
@@ -633,50 +632,42 @@ def export_profile_with_mode(
     }
 
     # Export ALL queries (not just the active one) - True full-profile export
-    queries_dir = profile_dir / "queries"
     all_queries_data = {}
     exported_query_count = 0
 
-    if queries_dir.exists():
-        # Iterate through all query directories
-        for query_dir in queries_dir.iterdir():
-            if not query_dir.is_dir():
-                continue
+    # Get all queries for this profile from database
+    queries = backend.list_queries(profile_id)
 
-            current_query_id = query_dir.name
-            query_data = {}
+    for query_info in queries:
+        current_query_id = query_info["id"]
+        query_data = {}
 
-            # Load query.json (name, JQL, description) - REQUIRED for both modes
-            query_file = query_dir / "query.json"
-            if query_file.exists():
-                with open(query_file, "r", encoding="utf-8") as f:
-                    query_data["query_metadata"] = json.load(f)
-            else:
-                logger.warning(f"query.json not found for {current_query_id}, skipping")
-                continue
+        # Get query metadata (name, JQL, description) - REQUIRED for both modes
+        query_metadata = {
+            "id": query_info["id"],
+            "name": query_info["name"],
+            "jql": query_info["jql"],
+            "created_at": query_info["created_at"],
+            "last_used": query_info["last_used"],
+        }
+        query_data["query_metadata"] = query_metadata
 
-            # Include data files only if FULL_DATA mode
-            if export_mode == "FULL_DATA":
-                # Load project_data.json
-                project_file = query_dir / "project_data.json"
-                if project_file.exists():
-                    with open(project_file, "r", encoding="utf-8") as f:
-                        query_data["project_data"] = json.load(f)
+        # Include data files only if FULL_DATA mode
+        if export_mode == "FULL_DATA":
+            # Get issues (replaces jira_cache.json)
+            issues = backend.get_issues(profile_id, current_query_id, limit=100000)
+            if issues:
+                query_data["jira_cache"] = {"issues": issues}
 
-                # Load jira_cache.json (CRITICAL for UI display)
-                cache_file = query_dir / "jira_cache.json"
-                if cache_file.exists():
-                    with open(cache_file, "r", encoding="utf-8") as f:
-                        query_data["jira_cache"] = json.load(f)
+            # Get statistics (replaces project_data.json and metrics_snapshots.json)
+            statistics = backend.get_statistics(
+                profile_id, current_query_id, limit=100000
+            )
+            if statistics:
+                query_data["statistics"] = statistics
 
-                # Load metrics_snapshots.json
-                metrics_file = query_dir / "metrics_snapshots.json"
-                if metrics_file.exists():
-                    with open(metrics_file, "r", encoding="utf-8") as f:
-                        query_data["metrics_snapshots"] = json.load(f)
-
-            all_queries_data[current_query_id] = query_data
-            exported_query_count += 1
+        all_queries_data[current_query_id] = query_data
+        exported_query_count += 1
 
     if exported_query_count == 0:
         logger.warning(f"No queries found to export for profile '{profile_id}'")

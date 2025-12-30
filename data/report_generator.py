@@ -298,12 +298,14 @@ def _calculate_dashboard_metrics(
     df_windowed = pd.DataFrame(windowed_statistics)
     # Convert date column to datetime for proper date arithmetic
     if not df_windowed.empty and "date" in df_windowed.columns:
-        df_windowed["date"] = pd.to_datetime(df_windowed["date"])
+        df_windowed["date"] = pd.to_datetime(
+            df_windowed["date"], format="mixed", errors="coerce"
+        )
 
     # Create dataframe from ALL statistics for last date (same as app in processing.py)
     df_all = pd.DataFrame(all_statistics)
     if not df_all.empty and "date" in df_all.columns:
-        df_all["date"] = pd.to_datetime(df_all["date"])
+        df_all["date"] = pd.to_datetime(df_all["date"], format="mixed", errors="coerce")
 
     completed_items = (
         int(df_windowed["completed_items"].sum()) if not df_windowed.empty else 0
@@ -438,11 +440,25 @@ def _calculate_dashboard_metrics(
     from data.processing import calculate_velocity_from_dataframe
 
     data_points_count = settings.get("data_points_count", weeks_count)
-    df_for_velocity = (
-        df_windowed.tail(data_points_count)
-        if len(df_windowed) > data_points_count
-        else df_windowed
-    )
+
+    # CRITICAL FIX: Filter by actual date range, not row count
+    df_for_velocity = df_windowed
+    if (
+        data_points_count > 0
+        and not df_windowed.empty
+        and "date" in df_windowed.columns
+    ):
+        df_windowed_temp = df_windowed.copy()
+        df_windowed_temp["date"] = pd.to_datetime(
+            df_windowed_temp["date"], format="mixed", errors="coerce"
+        )
+        df_windowed_temp = df_windowed_temp.dropna(subset=["date"]).sort_values(
+            "date", ascending=True
+        )
+
+        latest_date = df_windowed_temp["date"].max()
+        cutoff_date = latest_date - timedelta(weeks=data_points_count)
+        df_for_velocity = df_windowed_temp[df_windowed_temp["date"] >= cutoff_date]
 
     # Use the same function as app (returns items PER WEEK, not per day)
     velocity_items = calculate_velocity_from_dataframe(
@@ -614,7 +630,7 @@ def _calculate_burndown_metrics(
         return {"has_data": False, "weeks_count": weeks_count}
 
     df = pd.DataFrame(statistics)
-    df["date"] = pd.to_datetime(df["date"])  # type: ignore
+    df["date"] = pd.to_datetime(df["date"], format="mixed", errors="coerce")  # type: ignore
 
     # Calculate velocity using proper week counting
     velocity_items = calculate_velocity_from_dataframe(df, "completed_items")
@@ -1133,7 +1149,7 @@ def _calculate_weekly_breakdown(statistics: List[Dict]) -> List[Dict]:
         return []
 
     df = pd.DataFrame(statistics)
-    df["date"] = pd.to_datetime(df["date"])  # type: ignore
+    df["date"] = pd.to_datetime(df["date"], format="mixed", errors="coerce")  # type: ignore
     df["week"] = df["date"].dt.strftime("%Y-W%U")  # type: ignore
 
     # Group by week and aggregate
@@ -1174,7 +1190,7 @@ def _calculate_historical_burndown(
         return {"dates": [], "remaining_items": [], "remaining_points": []}
 
     df = pd.DataFrame(statistics)
-    df["date"] = pd.to_datetime(df["date"])
+    df["date"] = pd.to_datetime(df["date"], format="mixed", errors="coerce")
     df = df.sort_values("date")
 
     current_remaining_items = project_scope.get("remaining_items", 0)
@@ -1488,10 +1504,13 @@ def _generate_scope_changes_chart(metrics: Dict[str, Any]) -> str:
     df = pd.DataFrame(statistics)
 
     # Convert date to datetime and generate week labels
-    df["date"] = pd.to_datetime(df["date"])  # type: ignore
+    df["date"] = pd.to_datetime(df["date"], format="mixed", errors="coerce")  # type: ignore
     df["week"] = df["date"].dt.isocalendar().week  # type: ignore
     df["year"] = df["date"].dt.isocalendar().year  # type: ignore
-    df["week_label"] = df.apply(lambda r: f"{r['year']}-W{r['week']:02d}", axis=1)
+    # Use vectorized string formatting to avoid DataFrame return issues
+    df["week_label"] = (
+        df["year"].astype(str) + "-W" + df["week"].astype(str).str.zfill(2)
+    )
 
     # Group by week to aggregate daily data
     weekly_df = (
