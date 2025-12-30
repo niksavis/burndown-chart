@@ -255,6 +255,7 @@ def update_progress_bars(n_intervals):
                         False,  # Enable Update Data button
                         {"display": "none"},  # Hide Cancel button
                         no_update,  # No metrics trigger
+                        no_update,  # No metrics refresh
                     )
                 else:
                     # Show error message
