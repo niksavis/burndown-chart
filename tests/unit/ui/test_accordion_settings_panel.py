@@ -15,7 +15,7 @@ import dash_bootstrap_components as dbc
 class TestAccordionSettingsPanel:
     """Test accordion settings panel structure."""
 
-    def test_accordion_panel_creates_successfully(self):
+    def test_accordion_panel_creates_successfully(self, temp_database):
         """Verify accordion panel renders without errors."""
         from ui.accordion_settings_panel import create_accordion_settings_panel
 
@@ -24,7 +24,7 @@ class TestAccordionSettingsPanel:
         assert panel is not None
         assert isinstance(panel, html.Div)
 
-    def test_accordion_has_five_sections(self):
+    def test_accordion_has_five_sections(self, temp_database):
         """Verify accordion contains all 5 required sections."""
         from ui.accordion_settings_panel import create_accordion_settings_panel
 
@@ -53,7 +53,7 @@ class TestAccordionSettingsPanel:
         assert isinstance(sections, list)
         assert len(sections) == 5  # 5 sections
 
-    def test_section_titles_correct(self):
+    def test_section_titles_correct(self, temp_database):
         """Verify each section has correct title."""
         from ui.accordion_settings_panel import create_accordion_settings_panel
 
@@ -67,7 +67,7 @@ class TestAccordionSettingsPanel:
         assert "4. Query Management" in panel_str or "Query Management" in panel_str
         assert "5. Data Operations" in panel_str or "Data Operations" in panel_str
 
-    def test_profile_settings_card_present(self):
+    def test_profile_settings_card_present(self, temp_database):
         """Verify profile settings card is included."""
         from ui.accordion_settings_panel import create_accordion_settings_panel
 
@@ -80,7 +80,7 @@ class TestAccordionSettingsPanel:
         assert "Profile Management" in panel_str
         # Note: PERT factor/deadline are in Parameters panel, not Profile Settings
 
-    def test_configuration_status_store_present(self):
+    def test_configuration_status_store_present(self, temp_database):
         """Verify configuration status store exists for dependency tracking."""
         from ui.accordion_settings_panel import create_accordion_settings_panel
 
@@ -93,7 +93,7 @@ class TestAccordionSettingsPanel:
 class TestProfileSettingsCard:
     """Test profile settings card component."""
 
-    def test_profile_settings_card_creates(self):
+    def test_profile_settings_card_creates(self, temp_database):
         """Verify profile settings card renders."""
         from ui.profile_settings_card import create_profile_settings_card
 
@@ -103,7 +103,7 @@ class TestProfileSettingsCard:
         # Returns Div wrapper, not Card directly
         assert isinstance(card, html.Div)
 
-    def test_profile_settings_has_all_inputs(self):
+    def test_profile_settings_has_all_inputs(self, temp_database):
         """Verify all required inputs are present."""
         from ui.profile_settings_card import create_profile_settings_card
 
@@ -116,7 +116,7 @@ class TestProfileSettingsCard:
         assert "duplicate-profile-btn" in card_str
         assert "delete-profile-btn" in card_str
 
-    def test_profile_settings_has_labels(self):
+    def test_profile_settings_has_labels(self, temp_database):
         """Verify all labels are present."""
         from ui.profile_settings_card import create_profile_settings_card
 
@@ -165,7 +165,7 @@ class TestAccordionCardComponents:
 class TestLayoutIntegration:
     """Test accordion panel integration with main layout."""
 
-    def test_layout_uses_accordion_panel_when_enabled(self):
+    def test_layout_uses_accordion_panel_when_enabled(self, temp_database):
         """Verify layout uses accordion panel when feature flag enabled."""
         import ui.layout
 
@@ -189,7 +189,7 @@ class TestLayoutIntegration:
             # Restore original flag
             ui.layout.USE_ACCORDION_SETTINGS = original_flag
 
-    def test_layout_creates_with_both_panels(self):
+    def test_layout_creates_with_both_panels(self, temp_database):
         """Verify layout works with both old and new panel."""
         import ui.layout
         from ui.layout import serve_layout

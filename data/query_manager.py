@@ -275,87 +275,66 @@ def update_query(
         query_id: Query to update
         name: New display name (optional, keeps existing if None)
         jql: New JQL query string (optional, keeps existing if None)
-        description: New description (optional, keeps existing if None)
+        description: New description (optional, keeps existing if None - NOTE: not yet persisted in database)
 
     Returns:
-        bool: True if update successful, False otherwise
+        bool: True if update successful
 
     Raises:
         ValueError: If profile or query doesn't exist
 
     Side Effects:
-        - Updates query.json atomically
-        - Adds updated_at timestamp
+        - Updates query in database atomically
         - Logs update operation
 
     Example:
         >>> update_query("kafka", "main", jql="project = KAFKA AND priority > Medium")
         True
     """
-    profile_dir = PROFILES_DIR / profile_id
-    if not profile_dir.exists():
-        raise ValueError(f"Profile '{profile_id}' not found at {profile_dir}")
+    # Use repository pattern - get backend and load query
+    from data.persistence.factory import get_backend
 
-    query_dir = profile_dir / "queries" / query_id
-    if not query_dir.exists():
+    backend = get_backend()
+
+    # Load existing query data from database
+    query_data = backend.get_query(profile_id, query_id)
+    if not query_data:
         raise ValueError(f"Query '{query_id}' not found in profile '{profile_id}'")
 
-    query_file = query_dir / "query.json"
-    if not query_file.exists():
-        raise ValueError(f"Query metadata file not found at {query_file}")
+    # Track what changed for logging
+    changes = []
 
-    try:
-        # Use repository pattern - get backend and load query
-        from data.persistence.factory import get_backend
+    # Update fields if provided
+    if name is not None and name != query_data.get("name"):
+        old_name = query_data.get("name")
+        query_data["name"] = name
+        changes.append(f"name: '{old_name}' -> '{name}'")
 
-        backend = get_backend()
+    if jql is not None and jql != query_data.get("jql"):
+        query_data["jql"] = jql
+        changes.append("jql updated")
 
-        # Load existing query data from database
-        query_data = backend.get_query(profile_id, query_id)
-        if not query_data:
-            raise ValueError(f"Query '{query_id}' not found in database")
+    if description is not None and description != query_data.get("description"):
+        query_data["description"] = description
+        changes.append("description updated (not persisted)")
 
-        # Track what changed for logging
-        changes = []
-
-        # Update fields if provided
-        if name is not None and name != query_data.get("name"):
-            old_name = query_data.get("name")
-            query_data["name"] = name
-            changes.append(f"name: '{old_name}' -> '{name}'")
-
-        if jql is not None and jql != query_data.get("jql"):
-            query_data["jql"] = jql
-            changes.append("jql updated")
-
-        if description is not None and description != query_data.get("description"):
-            query_data["description"] = description
-            changes.append("description updated")
-
-        # If no changes, return early
-        if not changes:
-            logger.info(f"No changes to query '{query_id}' in profile '{profile_id}'")
-            return True
-
-        # Add updated timestamp
-        query_data["updated_at"] = datetime.now(timezone.utc).isoformat()
-        # Ensure id is in query_data
-        query_data["id"] = query_id
-
-        # Save via backend (expects profile_id and query dict)
-        backend.save_query(profile_id, query_data)
-
-        logger.info(
-            f"Updated query '{query_id}' in profile '{profile_id}': {', '.join(changes)}"
-        )
-
+    # If no changes, return early
+    if not changes:
+        logger.info(f"No changes to query '{query_id}' in profile '{profile_id}'")
         return True
 
-    except Exception as e:
-        logger.error(
-            f"Failed to update query '{query_id}' in profile '{profile_id}': {e}"
-        )
-        return False
+    # Ensure id is in query_data
+    query_data["id"] = query_id
+
+    # Save via backend (expects profile_id and query dict)
+    # Note: only name, jql, last_used are persisted (schema limitation)
+    backend.save_query(profile_id, query_data)
+
+    logger.info(
+        f"Updated query '{query_id}' in profile '{profile_id}': {', '.join(changes)}"
+    )
+
+    return True
 
 
 def delete_query(profile_id: str, query_id: str, allow_cascade: bool = False) -> None:
@@ -414,7 +393,7 @@ def validate_query_exists_for_data_operation(query_id: str) -> None:
 
     Raises:
         DependencyError: If query doesn't exist (not saved yet)
-        ValueError: If profiles.json malformed or active profile not set
+        ValueError: If active profile not set
 
     Example:
         >>> validate_query_exists_for_data_operation("main")
@@ -423,22 +402,23 @@ def validate_query_exists_for_data_operation(query_id: str) -> None:
         >>> validate_query_exists_for_data_operation("unsaved-query")
         # Raises DependencyError - query not saved
     """
+    backend = get_backend()
+
     try:
         active_profile_id = get_active_profile_id()
     except ValueError as e:
         raise ValueError(f"Cannot validate query: {e}")
 
-    # Check if query directory exists
-    query_dir = PROFILES_DIR / active_profile_id / "queries" / query_id
-    if not query_dir.exists():
+    # Check if query exists in database
+    query = backend.get_query(active_profile_id, query_id)
+    if not query:
         raise DependencyError(
             f"Query '{query_id}' must be saved before executing data operations. "
             "Click 'Save Query' first, then 'Update Data'."
         )
 
-    # Check if query.json exists (ensures query is properly initialized)
-    query_file = query_dir / "query.json"
-    if not query_file.exists():
+    # Verify query has required fields (name and jql)
+    if not query.get("name") or not query.get("jql"):
         raise DependencyError(
             f"Query '{query_id}' is not properly initialized. "
             "Re-save the query with name and JQL, then try again."

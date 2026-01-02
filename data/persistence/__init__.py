@@ -984,6 +984,7 @@ try:
     get_project_statistics = _legacy_persistence.get_project_statistics
     get_project_scope = _legacy_persistence.get_project_scope
     update_project_scope = _legacy_persistence.update_project_scope
+    update_project_scope_from_jira = _legacy_persistence.update_project_scope_from_jira
     calculate_project_scope_from_jira = (
         _legacy_persistence.calculate_project_scope_from_jira
     )

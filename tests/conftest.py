@@ -29,7 +29,53 @@ if str(project_root) not in sys.path:
 
 
 @pytest.fixture(scope="function")
-def isolate_test_data():
+def temp_database():
+    """
+    Create temporary SQLite database for testing.
+
+    Initializes a fresh database with all tables and indexes.
+    Automatically cleaned up after test completes.
+
+    Usage:
+        def test_something(temp_database):
+            # backend will automatically use temp database
+            ...
+    """
+    temp_db_file = tempfile.NamedTemporaryFile(suffix=".db", delete=False)
+    temp_db_path = Path(temp_db_file.name)
+    temp_db_file.close()
+
+    # Initialize database schema
+    from data.migration.schema_manager import initialize_schema
+
+    initialize_schema(db_path=temp_db_path)
+
+    # Patch database path for all modules
+    db_patches = [
+        patch("data.database.DB_PATH", temp_db_path),
+        patch("data.persistence.factory.DEFAULT_SQLITE_PATH", str(temp_db_path)),
+    ]
+
+    for p in db_patches:
+        p.start()
+
+    # Clear backend singleton to force recreation with new path
+    import data.persistence.factory as factory
+
+    factory._backend_instance = None
+
+    yield temp_db_path
+
+    for p in db_patches:
+        p.stop()
+
+    # Cleanup
+    if temp_db_path.exists():
+        temp_db_path.unlink()
+
+
+@pytest.fixture(scope="function")
+def isolate_test_data(temp_database):
     """
     Isolate tests from real application data.
 
@@ -67,7 +113,6 @@ def isolate_test_data():
     patches = [
         # Profile manager patches
         patch("data.profile_manager.PROFILES_DIR", temp_profiles_dir),
-        patch("data.profile_manager.PROFILES_FILE", temp_profiles_file),
         # Persistence patches (try multiple possible locations)
     ]
 
