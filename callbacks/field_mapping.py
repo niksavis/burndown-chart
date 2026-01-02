@@ -1383,20 +1383,24 @@ def auto_configure_from_metadata(
                                 )
 
                 if active_query_id:
-                    # Load query file to get JQL
-                    from data.profile_manager import get_query_file_path
+                    # Load query from database
+                    from data.persistence.factory import get_backend
 
-                    query_path = get_query_file_path(profile_id, active_query_id)
+                    backend = get_backend()
 
                     try:
-                        with open(query_path, "r", encoding="utf-8") as qf:
-                            query_data = json.load(qf)
+                        query_data = backend.get_query(profile_id, active_query_id)
+                        if query_data:
                             jql_query = query_data.get("jql", "")
                             logger.info(
                                 f"[AutoConfigure] Loaded JQL query from active query: {jql_query}"
                             )
+                        else:
+                            logger.warning(
+                                f"[AutoConfigure] Query {active_query_id} not found in database"
+                            )
                     except Exception as qe:
-                        logger.warning(f"Could not load query file: {qe}")
+                        logger.warning(f"Could not load query from database: {qe}")
                 else:
                     logger.warning(
                         "No active query ID found in profile and no fallback queries available"

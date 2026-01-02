@@ -365,18 +365,16 @@ def load_query_jql(query_id):
         return ""
 
     try:
-        from data.query_manager import get_active_profile_id, PROFILES_DIR
-        import json
+        from data.query_manager import get_active_profile_id
+        from data.persistence.factory import get_backend
 
         profile_id = get_active_profile_id()
-        query_file = PROFILES_DIR / profile_id / "queries" / query_id / "query.json"
+        backend = get_backend()
+        query_data = backend.get_query(profile_id, query_id)
 
-        if not query_file.exists():
-            logger.warning(f"[Query Load] Query file not found: {query_file}")
+        if not query_data:
+            logger.warning(f"[Query Load] Query not found in database: {query_id}")
             return ""
-
-        with open(query_file, "r", encoding="utf-8") as f:
-            query_data = json.load(f)
 
         jql = query_data.get("jql", "")
         logger.info(f"[Query Load] Loaded JQL for query '{query_id}': {jql[:50]}...")
@@ -500,18 +498,16 @@ def cancel_query_edit(n_clicks, query_id):
         return no_update
 
     try:
-        from data.query_manager import get_active_profile_id, PROFILES_DIR
-        import json
+        from data.query_manager import get_active_profile_id
+        from data.persistence.factory import get_backend
 
         profile_id = get_active_profile_id()
-        query_file = PROFILES_DIR / profile_id / "queries" / query_id / "query.json"
+        backend = get_backend()
+        query_data = backend.get_query(profile_id, query_id)
 
-        if not query_file.exists():
-            logger.warning(f"[Query Cancel] Query file not found: {query_file}")
+        if not query_data:
+            logger.warning(f"[Query Cancel] Query not found in database: {query_id}")
             return no_update
-
-        with open(query_file, "r", encoding="utf-8") as f:
-            query_data = json.load(f)
 
         jql = query_data.get("jql", "")
         logger.info(f"[Query Cancel] Reloaded original JQL for query '{query_id}'")
