@@ -10,12 +10,14 @@ Sections:
 3. Field Mappings (ENABLED WHEN JIRA CONNECTED)
 4. Query Management (ENABLED WHEN JIRA CONFIGURED)
 5. Data Operations (ENABLED WHEN QUERY SAVED)
+6. Budget Configuration (ENABLED WHEN PROFILE EXISTS)
 """
 
 import dash_bootstrap_components as dbc
 from dash import dcc, html
 
 from ui.profile_settings_card import create_profile_settings_card
+from ui.budget_settings_card import create_budget_settings_card
 from ui.jira_config_modal import create_jira_config_button
 from ui.jql_editor import create_jql_editor
 
@@ -359,9 +361,10 @@ def create_tabbed_settings_panel() -> html.Div:
     1. Profile - User profile and workspace management
     2. Connect - JIRA connection and field mapping (combined)
     3. Queries - Query management and data operations (combined)
+    4. Budget - Budget configuration and tracking
 
     Returns:
-        html.Div: Complete tabbed settings panel with 3 consolidated tabs
+        html.Div: Complete tabbed settings panel with 4 consolidated tabs
     """
     return html.Div(
         [
@@ -413,6 +416,17 @@ def create_tabbed_settings_panel() -> html.Div:
                                 id="data-actions-section-content",
                                 style={"display": "none"},
                             ),
+                        ],
+                    ),
+                    dbc.Tab(
+                        label="Budget",
+                        tab_id="budget-tab",
+                        label_style={"width": "100%"},
+                        children=[
+                            html.Div(
+                                [create_budget_settings_card()],
+                                className="settings-tab-content",
+                            )
                         ],
                     ),
                 ],
