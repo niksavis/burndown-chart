@@ -825,6 +825,96 @@
         </div>
         {% endif %}
 
+        <!-- Budget Section -->
+        {% if 'budget' in sections %}
+        <div class="section">
+            <h2 class="section-title">
+                <i class="fas fa-money-bill-wave"></i>
+                Beyond Budgeting Analysis
+            </h2>
+            
+            {% if metrics.budget.has_data %}
+                <!-- Budget Overview -->
+                <div class="row justify-content-center mb-4">
+                    <div class="col-md-8">
+                        <h5 class="text-center mb-3">Budget Overview</h5>
+                        <table class="table table-sm table-striped">
+                            <tbody>
+                                <tr>
+                                    <td class="metric-card-label"><i class="fas fa-wallet"></i> Total Budget</td>
+                                    <td class="text-end">
+                                        <strong style="color: #0d6efd;">{{ metrics.budget.currency_symbol }}{{ metrics.budget.budget_total|round(0)|int }}</strong>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td class="metric-card-label"><i class="fas fa-calendar-alt"></i> Time Allocated</td>
+                                    <td class="text-end"><strong>{{ metrics.budget.time_allocated_weeks }}</strong> weeks</td>
+                                </tr>
+                                <tr>
+                                    <td class="metric-card-label"><i class="fas fa-chart-line"></i> Weekly Cost Rate</td>
+                                    <td class="text-end">{{ metrics.budget.currency_symbol }}{{ metrics.budget.cost_per_week|round(0)|int }}/week</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Budget Consumption -->
+                <div class="row justify-content-center mb-4">
+                    <div class="col-md-8">
+                        <h5 class="text-center mb-3">Budget Consumption</h5>
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between mb-1">
+                                <span><i class="fas fa-fire"></i> Consumed</span>
+                                <span><strong style="color: {% if metrics.budget.consumed_percentage > 90 %}#dc3545{% elif metrics.budget.consumed_percentage > 75 %}#fd7e14{% else %}#198754{% endif %};">{{ metrics.budget.consumed_percentage|round(1) }}%</strong></span>
+                            </div>
+                            <div class="progress" style="height: 25px;">
+                                <div class="progress-bar {% if metrics.budget.consumed_percentage > 90 %}bg-danger{% elif metrics.budget.consumed_percentage > 75 %}bg-warning{% else %}bg-success{% endif %}" 
+                                     role="progressbar" 
+                                     style="width: {{ metrics.budget.consumed_percentage }}%;" 
+                                     aria-valuenow="{{ metrics.budget.consumed_percentage }}" 
+                                     aria-valuemin="0" 
+                                     aria-valuemax="100">
+                                    {{ metrics.budget.currency_symbol }}{{ metrics.budget.consumed_amount|round(0)|int }}
+                                </div>
+                            </div>
+                        </div>
+                        <table class="table table-sm table-borderless">
+                            <tbody>
+                                <tr>
+                                    <td><i class="fas fa-check-circle text-success"></i> Consumed</td>
+                                    <td class="text-end">{{ metrics.budget.currency_symbol }}{{ metrics.budget.consumed_amount|round(0)|int }}</td>
+                                </tr>
+                                <tr>
+                                    <td><i class="fas fa-hourglass-half text-primary"></i> Remaining</td>
+                                    <td class="text-end">{{ metrics.budget.currency_symbol }}{{ metrics.budget.remaining_amount|round(0)|int }}</td>
+                                </tr>
+                                <tr>
+                                    <td><i class="fas fa-road text-info"></i> Runway</td>
+                                    <td class="text-end"><strong>{{ metrics.budget.runway_weeks|round(1) }}</strong> weeks</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                {% if metrics.budget.revision_count > 0 %}
+                <div class="row justify-content-center">
+                    <div class="col-md-8">
+                        <p class="text-muted text-center small">
+                            <i class="fas fa-history"></i> {{ metrics.budget.revision_count }} budget revision{{ "s" if metrics.budget.revision_count > 1 else "" }} tracked
+                        </p>
+                    </div>
+                </div>
+                {% endif %}
+            {% else %}
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle"></i> No budget data configured for this profile.
+                </div>
+            {% endif %}
+        </div>
+        {% endif %}
+
         <!-- Flow Metrics Section -->
         {% if 'flow' in sections %}
         <div class="section">

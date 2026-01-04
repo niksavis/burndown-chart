@@ -32,8 +32,9 @@
   - Accept: `profile_id`, `query_id`, `export_mode`, `include_token`
   - Validate mode in ["CONFIG_ONLY", "FULL_DATA"]
   - Conditionally load query_data based on mode
+  - Load budget_data (budget_settings and budget_revisions) if present
   - Call `strip_credentials()` if `include_token=False`
-  - Return ExportPackage dict
+  - Return ExportPackage dict with budget_data included
 
 - [ ] **Implement validate_import_data()**
   - Stage 1: Format validation (JSON structure)
@@ -99,6 +100,8 @@
   - Show error toast if invalid
   - Check for profile conflict → open conflict modal
   - Check for token requirement → open token prompt modal
+  - Import budget_data if present (budget_settings and budget_revisions)
+  - Update budget revision timestamps to import time
   - Store import context in dcc.Store
 
 - [ ] **Add show_token_warning_callback()** in `callbacks/import_export.py`

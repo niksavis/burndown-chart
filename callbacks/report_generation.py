@@ -83,7 +83,7 @@ def update_report_size_estimate(sections):
     """Estimate report file size based on selected sections."""
     sections = sections or []
     base_size = 50  # KB
-    section_sizes = {"burndown": 300, "dora": 500, "flow": 500}
+    section_sizes = {"burndown": 300, "dora": 500, "flow": 500, "budget": 100}
     total_kb = base_size + sum(section_sizes.get(s, 0) for s in sections)
     size_mb = total_kb / 1024
     return f"Estimated size: ~{size_mb:.1f} MB"

@@ -358,6 +358,26 @@ def perform_import(import_data, conflict_strategy=None, custom_name=None):
             backend.set_app_state("active_profile_id", profile_id)
             backend.set_app_state("active_query_id", active_query_id)
 
+        # Import budget data if present
+        budget_data = import_data.get("budget_data", {})
+        if budget_data:
+            # Import budget settings
+            if "budget_settings" in budget_data:
+                settings = budget_data["budget_settings"]
+                # Update timestamps for import
+                settings["created_at"] = datetime.now().isoformat()
+                settings["updated_at"] = datetime.now().isoformat()
+                backend.save_budget_settings(profile_id, settings)
+                logger.info(f"Imported budget settings for profile '{profile_id}'")
+
+            # Import budget revisions
+            if "budget_revisions" in budget_data:
+                revisions = budget_data["budget_revisions"]
+                backend.save_budget_revisions(profile_id, revisions)
+                logger.info(
+                    f"Imported {len(revisions)} budget revisions for profile '{profile_id}'"
+                )
+
         # Log result with strategy info
         strategy_msg = f" ({conflict_strategy} strategy)" if conflict_strategy else ""
         logger.info(

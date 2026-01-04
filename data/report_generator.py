@@ -242,6 +242,15 @@ def _calculate_all_metrics(
             report_data["profile_id"], report_data["weeks_count"]
         )
 
+    # Budget metrics
+    if "budget" in sections:
+        from data.query_manager import get_active_query_id
+
+        query_id = get_active_query_id() or ""
+        metrics["budget"] = _calculate_budget_metrics(
+            report_data["profile_id"], query_id, report_data["weeks_count"]
+        )
+
     return metrics
 
 
@@ -1180,6 +1189,92 @@ def _calculate_weekly_breakdown(statistics: List[Dict]) -> List[Dict]:
         )
 
     return weekly_data
+
+
+def _calculate_budget_metrics(
+    profile_id: str, query_id: str, weeks_count: int
+) -> Dict[str, Any]:
+    """
+    Calculate budget metrics for report.
+
+    Args:
+        profile_id: Profile identifier
+        query_id: Query identifier
+        weeks_count: Number of weeks in analysis period
+
+    Returns:
+        Dictionary with budget metrics and weekly tracking data
+    """
+    from data.persistence.factory import get_backend
+
+    logger.info(f"Calculating budget metrics for {profile_id}/{query_id}")
+
+    backend = get_backend()
+    budget_settings = backend.get_budget_settings(profile_id)
+
+    if not budget_settings:
+        logger.info("No budget configured for profile")
+        return {"has_data": False}
+
+    # Get budget revisions for history
+    revisions = backend.get_budget_revisions(profile_id) or []
+
+    # Calculate latest budget state
+    time_allocated = budget_settings.get("time_allocated_weeks", 0)
+    cost_per_week = budget_settings.get("team_cost_per_week_eur", 0.0)
+    budget_total = budget_settings.get("budget_total_eur", 0.0)
+    currency = budget_settings.get("currency_symbol", "€")
+
+    # Get completed work from statistics
+    from data.persistence import load_unified_project_data
+
+    project_data = load_unified_project_data()
+    all_stats = project_data.get("statistics", [])
+
+    if not all_stats:
+        logger.warning("No statistics available for budget calculation")
+        consumed_eur = 0.0
+        consumed_pct = 0.0
+        recent_stats = []
+    else:
+        # Calculate total completed items across all time
+        total_completed = sum(stat.get("completed_items", 0) for stat in all_stats)
+
+        # Calculate cost per item from velocity
+        # Use recent velocity (last 4 weeks) for cost calculation
+        recent_stats = all_stats[-4:] if len(all_stats) >= 4 else all_stats
+        if recent_stats:
+            weeks = len(recent_stats)
+            recent_completed = sum(
+                stat.get("completed_items", 0) for stat in recent_stats
+            )
+            velocity = recent_completed / weeks if weeks > 0 else 0
+            cost_per_item = cost_per_week / velocity if velocity > 0 else 0
+        else:
+            cost_per_item = 0
+
+        consumed_eur = total_completed * cost_per_item
+        consumed_pct = (consumed_eur / budget_total * 100) if budget_total > 0 else 0
+
+    # Calculate runway (weeks remaining at current burn rate)
+    if recent_stats and budget_total > consumed_eur:
+        remaining_budget = budget_total - consumed_eur
+        runway_weeks = remaining_budget / cost_per_week if cost_per_week > 0 else 0
+    else:
+        runway_weeks = 0
+
+    return {
+        "has_data": True,
+        "time_allocated_weeks": time_allocated,
+        "cost_per_week": cost_per_week,
+        "budget_total": budget_total,
+        "currency_symbol": currency,
+        "consumed_amount": consumed_eur,
+        "consumed_percentage": consumed_pct,
+        "remaining_amount": budget_total - consumed_eur,
+        "runway_weeks": runway_weeks,
+        "revision_count": len(revisions),
+    }
 
 
 def _calculate_historical_burndown(

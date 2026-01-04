@@ -424,7 +424,7 @@ def _create_reports_tab():
                     dbc.Checklist(
                         id="report-sections-checklist",
                         options=[],
-                        value=["burndown", "dora", "flow"],
+                        value=["burndown", "dora", "flow", "budget"],
                         style={"display": "none"},
                     ),
                     dbc.RadioItems(
