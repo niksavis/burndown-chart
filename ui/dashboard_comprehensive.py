@@ -1243,8 +1243,16 @@ def _create_forecast_section(pert_data, confidence_data, show_points=True):
         current_date + timedelta(days=confidence_data.get("ci_95", 0))
     ).strftime("%b %d, %Y")
 
-    # Determine on-track probability tier
-    deadline_prob = confidence_data.get("deadline_probability", 75)
+    # Get probabilities for both tracks
+    deadline_prob_items = confidence_data.get("deadline_probability_items", 75)
+    deadline_prob_points = confidence_data.get("deadline_probability_points")
+
+    # Determine on-track probability tier (using primary metric)
+    deadline_prob = (
+        deadline_prob_points
+        if (show_points and deadline_prob_points)
+        else deadline_prob_items
+    )
     if deadline_prob >= 70:
         prob_tier = "Healthy"
         prob_color = "#28a745"
@@ -1254,6 +1262,22 @@ def _create_forecast_section(pert_data, confidence_data, show_points=True):
     else:
         prob_tier = "At Risk"
         prob_color = "#dc3545"
+
+    # Get tier info for items track
+    items_prob_tier = (
+        "Healthy"
+        if deadline_prob_items >= 70
+        else "Warning"
+        if deadline_prob_items >= 40
+        else "At Risk"
+    )
+    items_prob_color = (
+        "#28a745"
+        if deadline_prob_items >= 70
+        else "#ffc107"
+        if deadline_prob_items >= 40
+        else "#dc3545"
+    )
 
     # Create Enhanced Expected Completion card with BOTH forecasts
     expected_completion_card = dbc.Card(
@@ -1301,7 +1325,7 @@ def _create_forecast_section(pert_data, confidence_data, show_points=True):
                             ),
                             html.Div(
                                 items_pert_date,
-                                className="h4 mb-3",
+                                className="h3 mb-3",
                                 style={
                                     "fontWeight": "bold",
                                     "color": COLOR_PALETTE["items"],
@@ -1337,7 +1361,7 @@ def _create_forecast_section(pert_data, confidence_data, show_points=True):
                             ),
                             html.Div(
                                 points_pert_date if show_points else "Not available",
-                                className="h4 mb-0",
+                                className="h3 mb-0",
                                 style={
                                     "fontWeight": "bold",
                                     "color": COLOR_PALETTE["points"]
@@ -1493,39 +1517,145 @@ def _create_forecast_section(pert_data, confidence_data, show_points=True):
             ),
             dbc.CardBody(
                 [
-                    # Progress ring showing probability
-                    html.Div(
-                        _create_progress_ring(deadline_prob, prob_color, 100),
-                        className="d-flex justify-content-center mb-3",
-                    ),
-                    # Status badge
+                    # Items-based probability
                     html.Div(
                         [
-                            html.Span(
-                                prob_tier,
-                                className="badge",
-                                style={
-                                    "backgroundColor": prob_color,
-                                    "fontSize": "1rem",
-                                    "padding": "0.5rem 1.5rem",
-                                    "color": "white",
-                                },
+                            html.Div(
+                                [
+                                    html.I(
+                                        className="fas fa-tasks me-2",
+                                        style={
+                                            "color": COLOR_PALETTE["items"],
+                                            "fontSize": "1rem",
+                                        },
+                                    ),
+                                    html.Span(
+                                        "Items-based",
+                                        className="text-muted",
+                                        style={"fontSize": "0.85rem"},
+                                    ),
+                                ],
+                                className="mb-2",
+                            ),
+                            html.Div(
+                                _create_progress_ring(
+                                    deadline_prob_items, items_prob_color, 60
+                                ),
+                                className="d-flex justify-content-center mb-2",
+                            ),
+                            html.Div(
+                                [
+                                    html.Span(
+                                        items_prob_tier,
+                                        className="badge",
+                                        style={
+                                            "backgroundColor": items_prob_color,
+                                            "fontSize": "0.85rem",
+                                            "padding": "0.4rem 1rem",
+                                            "color": "white",
+                                        },
+                                    ),
+                                ],
+                                className="text-center",
                             ),
                         ],
-                        className="text-center mb-2",
+                        className="text-center pb-3",
+                        style={"borderBottom": "1px solid #e9ecef"}
+                        if show_points
+                        else {},
                     ),
-                    # Additional context
+                    # Points-based probability (always show, with placeholder when disabled)
                     html.Div(
-                        f"Based on {forecast_metric} velocity",
-                        className="text-muted text-center",
-                        style={"fontSize": "0.85rem"},
+                        [
+                            html.Div(
+                                [
+                                    html.I(
+                                        className="fas fa-chart-bar me-2",
+                                        style={
+                                            "color": COLOR_PALETTE["points"]
+                                            if show_points
+                                            else "#6c757d",
+                                            "fontSize": "1rem",
+                                        },
+                                    ),
+                                    html.Span(
+                                        "Points-based",
+                                        className="text-muted",
+                                        style={"fontSize": "0.85rem"},
+                                    ),
+                                ],
+                                className="mb-2 mt-3",
+                            ),
+                            html.Div(
+                                _create_progress_ring(
+                                    deadline_prob_points
+                                    if (
+                                        show_points and deadline_prob_points is not None
+                                    )
+                                    else 0,
+                                    prob_color
+                                    if (
+                                        show_points and deadline_prob_points is not None
+                                    )
+                                    else "#6c757d",
+                                    60,
+                                ),
+                                className="d-flex justify-content-center mb-2",
+                            )
+                            if (show_points and deadline_prob_points is not None)
+                            else html.Div(
+                                "Not available",
+                                className="h5 mb-2",
+                                style={
+                                    "fontWeight": "bold",
+                                    "color": "#adb5bd",
+                                },
+                            ),
+                            html.Div(
+                                [
+                                    html.Span(
+                                        prob_tier
+                                        if (
+                                            show_points
+                                            and deadline_prob_points is not None
+                                        )
+                                        else "N/A",
+                                        className="badge",
+                                        style={
+                                            "backgroundColor": prob_color
+                                            if (
+                                                show_points
+                                                and deadline_prob_points is not None
+                                            )
+                                            else "#6c757d",
+                                            "fontSize": "0.85rem",
+                                            "padding": "0.4rem 1rem",
+                                            "color": "white",
+                                        },
+                                    ),
+                                ],
+                                className="text-center mb-2",
+                            )
+                            if (show_points and deadline_prob_points is not None)
+                            else None,
+                            html.Small(
+                                "Enable Points Tracking in Parameters",
+                                className="text-muted d-block mt-2",
+                                style={"fontSize": "0.75rem", "fontStyle": "italic"},
+                            )
+                            if not (show_points and deadline_prob_points is not None)
+                            else None,
+                        ],
+                        className="text-center",
                     ),
                 ],
                 className="text-center py-3",
             ),
             dbc.CardFooter(
                 html.Small(
-                    "Deadline achievement likelihood",
+                    "Deadline achievement likelihood based on items and story points"
+                    if show_points
+                    else "Deadline achievement likelihood based on items",
                     className="text-muted",
                 ),
                 className="text-center",
@@ -1959,14 +2089,15 @@ def _create_quality_scope_section(statistics_df, settings):
                                                                     "justifyContent": "center",
                                                                 },
                                                             ),
-                                                            html.H5(
+                                                            html.Div(
                                                                 metric["value"],
+                                                                className="h3 mb-0",
                                                                 style={
+                                                                    "fontWeight": "bold",
                                                                     "color": metric[
                                                                         "color"
-                                                                    ]
+                                                                    ],
                                                                 },
-                                                                className="mb-0",
                                                             ),
                                                         ],
                                                         className="text-center p-2",
@@ -1982,7 +2113,7 @@ def _create_quality_scope_section(statistics_df, settings):
                                         ]
                                     ),
                                 ],
-                                className="h-100 shadow-sm border-0",
+                                className="h-100 shadow-sm border-0 metric-card",
                             )
                         ],
                         width=12,
@@ -2049,14 +2180,15 @@ def _create_quality_scope_section(statistics_df, settings):
                                                                     "justifyContent": "center",
                                                                 },
                                                             ),
-                                                            html.H5(
+                                                            html.Div(
                                                                 metric["value"],
+                                                                className="h3 mb-0",
                                                                 style={
+                                                                    "fontWeight": "bold",
                                                                     "color": metric[
                                                                         "color"
-                                                                    ]
+                                                                    ],
                                                                 },
-                                                                className="mb-0",
                                                             ),
                                                         ],
                                                         className="text-center p-2",
@@ -2067,7 +2199,7 @@ def _create_quality_scope_section(statistics_df, settings):
                                         ]
                                     ),
                                 ],
-                                className="h-100 shadow-sm border-0",
+                                className="h-100 shadow-sm border-0 metric-card",
                             )
                         ],
                         width=12,
@@ -2081,7 +2213,7 @@ def _create_quality_scope_section(statistics_df, settings):
     )
 
 
-def _create_insights_section(statistics_df, settings):
+def _create_insights_section(statistics_df, settings, budget_data=None):
     """Create actionable insights section.
 
     Note: statistics_df is already filtered by data_points_count in the callback.
@@ -2120,6 +2252,46 @@ def _create_insights_section(statistics_df, settings):
                     "recommendation": "Review team capacity, identify blockers, and assess scope complexity. Consider retrospectives to understand root causes.",
                 }
             )
+
+        # Budget insights (if budget data is available)
+        if budget_data:
+            utilization_pct = budget_data.get("utilization_percentage", 0)
+            runway_weeks = budget_data.get("runway_weeks", 0)
+            burn_rate = budget_data.get("burn_rate", 0)
+            currency = budget_data.get("currency_symbol", "€")
+
+            if utilization_pct > 90:
+                insights.append(
+                    {
+                        "severity": "danger",
+                        "message": f"Budget Critical - {utilization_pct:.1f}% consumed with only {runway_weeks:.1f} weeks remaining",
+                        "recommendation": f"Immediate action required: Review remaining scope, consider budget increase, or reduce team costs. Current burn rate: {currency}{burn_rate:,.0f}/week.",
+                    }
+                )
+            elif utilization_pct > 75:
+                insights.append(
+                    {
+                        "severity": "warning",
+                        "message": f"Budget Alert - {utilization_pct:.1f}% consumed, approaching budget limits",
+                        "recommendation": f"Monitor closely: {runway_weeks:.1f} weeks of runway remaining at current burn rate ({currency}{burn_rate:,.0f}/week). Consider optimizing team costs or adjusting scope.",
+                    }
+                )
+            elif runway_weeks < 8 and runway_weeks > 0:
+                insights.append(
+                    {
+                        "severity": "warning",
+                        "message": f"Limited Runway - Only {runway_weeks:.1f} weeks of budget remaining",
+                        "recommendation": f"Plan for project completion or budget extension. Current burn rate: {currency}{burn_rate:,.0f}/week. Review if remaining scope aligns with available runway.",
+                    }
+                )
+            elif utilization_pct < 50 and runway_weeks > 12:
+                insights.append(
+                    {
+                        "severity": "success",
+                        "message": f"Healthy Budget - {utilization_pct:.1f}% consumed with {runway_weeks:.1f} weeks of runway",
+                        "recommendation": f"Budget on track. Continue monitoring burn rate ({currency}{burn_rate:,.0f}/week) and adjust forecasts as scope evolves.",
+                    }
+                )
 
         # Scope change insights
         if "created_items" in statistics_df.columns:
@@ -2403,13 +2575,47 @@ def create_comprehensive_dashboard(
     # Use points-based forecast when available (matches report and burndown chart)
     forecast_days = pert_time_points if pert_time_points else pert_time_items
 
+    # Calculate deadline probability for BOTH items and points tracks
+    def calculate_deadline_probability(
+        forecast, days_to_deadline, velocity_mean, velocity_std, weeks_observed
+    ):
+        """Calculate deadline probability for a given forecast."""
+        if not forecast or velocity_mean <= 0 or velocity_std <= 0:
+            return 75 if (forecast or 0) <= (days_to_deadline or 0) else 25
+
+        cv_ratio = velocity_std / velocity_mean
+        weeks_remaining = max(1, forecast / 7)
+        uncertainty_factor = (weeks_remaining / weeks_observed) ** 0.5
+        forecast_std_days = forecast * cv_ratio * uncertainty_factor
+
+        if days_to_deadline > 0 and forecast_std_days > 0:
+            z_score = (days_to_deadline - forecast) / forecast_std_days
+            return 100 / (1 + 2.718 ** (-1.7 * z_score))
+        else:
+            return 75 if forecast <= days_to_deadline else 25
+
+    weeks_observed = len(statistics_df) if not statistics_df.empty else 1
+    deadline_probability_items = calculate_deadline_probability(
+        pert_time_items, days_to_deadline, velocity_mean, velocity_std, weeks_observed
+    )
+    deadline_probability_points = (
+        calculate_deadline_probability(
+            pert_time_points,
+            days_to_deadline,
+            velocity_mean,
+            velocity_std,
+            weeks_observed,
+        )
+        if pert_time_points
+        else None
+    )
+
     if forecast_days and velocity_mean > 0 and velocity_std > 0:
         # Coefficient of variation as a ratio (not percentage)
         cv_ratio = velocity_std / velocity_mean
 
         # Forecast standard deviation: uncertainty scales with forecast duration and velocity variability
         # Using: σ_forecast ≈ forecast_days * CV * sqrt(weeks_remaining / weeks_observed)
-        weeks_observed = len(statistics_df) if not statistics_df.empty else 1
         weeks_remaining = max(1, forecast_days / 7)  # Convert days to weeks
         uncertainty_factor = (weeks_remaining / weeks_observed) ** 0.5
 
@@ -2421,28 +2627,36 @@ def create_comprehensive_dashboard(
         ci_50_days = forecast_days  # Median = PERT estimate (50th percentile)
         ci_95_days = forecast_days + (1.65 * forecast_std_days)  # 95th percentile
 
-        # Calculate deadline probability using z-score
-        # Z = (deadline - forecast) / forecast_std
-        if days_to_deadline > 0 and forecast_std_days > 0:
-            z_score = (days_to_deadline - forecast_days) / forecast_std_days
-            # Approximate normal CDF using logistic approximation: Φ(z) ≈ 1 / (1 + e^(-1.7 * z))
-            deadline_probability = 100 / (1 + 2.718 ** (-1.7 * z_score))
-        else:
-            # Fallback: simple linear estimate
-            deadline_probability = 75 if forecast_days <= days_to_deadline else 25
+        # Use combined probability (average when both available, or single track)
+        deadline_probability = (
+            deadline_probability_points
+            if pert_time_points
+            else deadline_probability_items
+        )
     else:
         # Fallback for insufficient data: use conservative fixed offsets
         ci_50_days = forecast_days if forecast_days else 0
         ci_95_days = (forecast_days + 14) if forecast_days else 0
         deadline_probability = (
-            75 if (forecast_days or 0) <= (days_to_deadline or 0) else 25
+            deadline_probability_points
+            if pert_time_points
+            else deadline_probability_items
         )
+
+    # Ensure deadline_probability is not None before using in min()
+    final_deadline_prob = (
+        deadline_probability if deadline_probability is not None else 75
+    )
 
     confidence_data = {
         "ci_50": max(0, ci_50_days),
         "ci_80": pert_time_items if pert_time_items else 0,  # Keep for compatibility
         "ci_95": max(0, ci_95_days),
-        "deadline_probability": max(0, min(100, deadline_probability)),
+        "deadline_probability": max(0, min(100, final_deadline_prob)),
+        "deadline_probability_items": max(0, min(100, deadline_probability_items)),
+        "deadline_probability_points": max(0, min(100, deadline_probability_points))
+        if deadline_probability_points
+        else None,
     }
 
     # Prepare settings for sections
@@ -2452,6 +2666,9 @@ def create_comprehensive_dashboard(
         "deadline": deadline_str,
         "show_points": show_points,
     }
+
+    # Extract budget data from additional_context for insights
+    budget_data = additional_context.get("budget_data") if additional_context else None
 
     return html.Div(
         [
@@ -2473,9 +2690,7 @@ def create_comprehensive_dashboard(
                 week_label=additional_context.get("current_week_label", "")
                 if additional_context
                 else "",
-                budget_data=additional_context.get("budget_data")
-                if additional_context
-                else None,
+                budget_data=budget_data,
                 points_available=show_points,
                 data_points_count=data_points_count or 12,
             ),
@@ -2488,7 +2703,7 @@ def create_comprehensive_dashboard(
             # Quality & Scope Section
             _create_quality_scope_section(statistics_df, settings),
             # Insights Section
-            _create_insights_section(statistics_df, settings),
+            _create_insights_section(statistics_df, settings, budget_data),
         ],
         className="dashboard-comprehensive",
     )

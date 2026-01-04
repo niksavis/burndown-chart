@@ -2896,6 +2896,69 @@ def register(app):
     # This ensures consistent values between app load and slider interaction
     # No separate initialization callback needed
 
+    # Callback to reload remaining work scope after metrics calculation completes
+    @app.callback(
+        [
+            Output("estimated-items-input", "value", allow_duplicate=True),
+            Output("total-items-input", "value", allow_duplicate=True),
+            Output("estimated-points-input", "value", allow_duplicate=True),
+            Output("total-points-display", "value", allow_duplicate=True),
+        ],
+        [Input("metrics-refresh-trigger", "data")],
+        [State("current-statistics", "data")],
+        prevent_initial_call=True,
+    )
+    def reload_scope_after_metrics(refresh_trigger, statistics):
+        """
+        Reload scope data from database after metrics calculation completes.
+
+        When Update Data finishes, this callback reloads the scope values
+        (estimated_items, remaining_items, estimated_points, remaining_points)
+        from the database and updates the parameter panel inputs.
+
+        Args:
+            refresh_trigger: Timestamp when metrics calculation completed
+            statistics: Current statistics data
+
+        Returns:
+            Tuple: (estimated_items, remaining_items, estimated_points, remaining_points_display)
+        """
+        if not refresh_trigger:
+            raise PreventUpdate
+
+        logger.info("[Settings] Reloading scope data after metrics calculation")
+
+        try:
+            from data.persistence import load_project_data
+
+            # Load scope data from database
+            project_data = load_project_data()
+
+            estimated_items = project_data.get("estimated_items", 0)
+            remaining_items = project_data.get("total_items", 0)
+            estimated_points = project_data.get("estimated_points", 0)
+            remaining_points = project_data.get("total_points", 0)
+
+            # Format points as display string
+            remaining_points_display = f"{remaining_points:.0f}"
+
+            logger.info(
+                f"[Settings] Scope reloaded: estimated_items={estimated_items}, "
+                f"remaining_items={remaining_items}, estimated_points={estimated_points}, "
+                f"remaining_points={remaining_points:.1f}"
+            )
+
+            return (
+                estimated_items,
+                remaining_items,
+                estimated_points,
+                remaining_points_display,
+            )
+
+        except Exception as e:
+            logger.error(f"[Settings] Error reloading scope data: {e}", exc_info=True)
+            raise PreventUpdate
+
     # Callback to recalculate remaining work scope when data points slider changes
     @app.callback(
         [
