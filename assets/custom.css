@@ -211,6 +211,18 @@
   overflow: hidden !important;
 }
 
+/* CRITICAL FIX: Apply same overflow rules to settings and data panels */
+/* Prevents both panels' content from being visible during transition */
+#settings-collapse.collapse.show,
+#import-export-collapse.collapse.show {
+  overflow: visible !important;
+}
+
+#settings-collapse.collapsing,
+#import-export-collapse.collapsing {
+  overflow: hidden !important;
+}
+
 /* Ensure the tabbed settings panel inside allows overflow when expanded */
 #parameter-collapse.show .tabbed-settings-panel,
 #parameter-collapse.show .settings-tab-content,

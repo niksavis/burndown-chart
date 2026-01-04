@@ -17,7 +17,6 @@ import dash_bootstrap_components as dbc
 from dash import dcc, html
 
 from ui.profile_settings_card import create_profile_settings_card
-from ui.budget_settings_card import create_budget_settings_card
 from ui.jira_config_modal import create_jira_config_button
 from ui.jql_editor import create_jql_editor
 
@@ -416,17 +415,6 @@ def create_tabbed_settings_panel() -> html.Div:
                                 id="data-actions-section-content",
                                 style={"display": "none"},
                             ),
-                        ],
-                    ),
-                    dbc.Tab(
-                        label="Budget",
-                        tab_id="budget-tab",
-                        label_style={"width": "100%"},
-                        children=[
-                            html.Div(
-                                [create_budget_settings_card()],
-                                className="settings-tab-content",
-                            )
                         ],
                     ),
                 ],

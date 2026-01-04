@@ -221,13 +221,13 @@ def register(app):
         )  # Simplified: True if milestone date exists
 
         # Skip if not initialized or critical values are None
+        # NOTE: deadline and milestone are optional, so they're not in the required list
         if (
             not init_complete
             or not ctx.triggered
             or None
             in [
                 pert_factor,
-                deadline,
                 total_items,
                 data_points_count,
             ]

@@ -735,7 +735,11 @@ def create_forecast_plot(
 
         # Calculate days to deadline for metrics
         current_date = datetime.now()
-        days_to_deadline = max(0, (deadline - pd.Timestamp(current_date)).days)
+        # Handle None or NaT deadline safely
+        if deadline is None or pd.isna(deadline):
+            days_to_deadline = 0
+        else:
+            days_to_deadline = max(0, (deadline - pd.Timestamp(current_date)).days)
 
         # Calculate weekly metrics
         avg_weekly_items, avg_weekly_points, med_weekly_items, med_weekly_points = (
@@ -791,7 +795,9 @@ def create_forecast_plot(
                 "total_items": total_items,
                 "total_points": total_points,
                 "deadline": deadline.strftime("%Y-%m-%d")
-                if hasattr(deadline, "strftime")
+                if deadline is not None
+                and hasattr(deadline, "strftime")
+                and not pd.isna(deadline)
                 else "Unknown",
                 "days_to_deadline": days_to_deadline,
                 "avg_weekly_items": float(avg_weekly_items),

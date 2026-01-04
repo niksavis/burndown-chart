@@ -2245,12 +2245,13 @@ def save_or_validate_mappings(namespace_values, state_data):
     # Check JIRA configuration exists before allowing save
     settings = load_app_settings()
     jira_config = settings.get("jira_config", {})
-    has_jira_config = bool(jira_config.get("base_url") and jira_config.get("token"))
+    # Only base_url is required - token is optional for public JIRA servers
+    has_jira_config = bool(jira_config.get("base_url"))
 
     if not has_jira_config:
         logger.warning("[FieldMapping] Save rejected - JIRA configuration not set up")
         toast = create_error_toast(
-            "Please configure JIRA connection first (URL and token) in the Settings panel.",
+            "Please configure JIRA connection first (URL) in the Settings panel.",
             header="JIRA Not Configured",
         )
         return False, "", no_update, toast

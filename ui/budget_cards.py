@@ -99,7 +99,6 @@ def create_budget_utilization_card(
 
     metric_data = {
         "metric_name": "budget_utilization",
-        "alternative_name": "Budget Utilization",
         "value": consumed_pct,
         "unit": "%",
         "performance_tier": tier_label,
@@ -159,7 +158,6 @@ def create_weekly_burn_rate_card(
 
     metric_data = {
         "metric_name": "weekly_burn_rate",
-        "alternative_name": "Weekly Burn Rate",
         "value": burn_rate,
         "unit": f"{currency_symbol}/week",
         "performance_tier": None,
@@ -220,7 +218,6 @@ def create_budget_runway_card(
 
     metric_data = {
         "metric_name": "budget_runway",
-        "alternative_name": "Budget Runway",
         "value": runway_weeks,
         "unit": "weeks",
         "performance_tier": tier_label,
@@ -260,7 +257,6 @@ def create_cost_per_item_card(
 
     metric_data = {
         "metric_name": "cost_per_item",
-        "alternative_name": "Cost per Item",
         "value": cost_per_item,
         "unit": f"{currency_symbol}/item",
         "performance_tier": None,
@@ -300,7 +296,6 @@ def create_cost_per_point_card(
         # Return warning card when points unavailable
         metric_data = {
             "metric_name": "cost_per_point",
-            "alternative_name": "Cost per Point",
             "value": None,
             "unit": f"{currency_symbol}/point",
             "error_state": "missing_mapping",
@@ -315,7 +310,6 @@ def create_cost_per_point_card(
 
     metric_data = {
         "metric_name": "cost_per_point",
-        "alternative_name": "Cost per Point",
         "value": cost_per_point,
         "unit": f"{currency_symbol}/point",
         "performance_tier": None,
@@ -357,7 +351,6 @@ def create_budget_forecast_card(
     """
     metric_data = {
         "metric_name": "budget_forecast",
-        "alternative_name": "Budget Forecast",
         "value": forecast_value,
         "unit": currency_symbol,
         "performance_tier": None,
@@ -467,12 +460,7 @@ def create_cost_breakdown_card(
 
     card_content = dbc.Card(
         [
-            dbc.CardHeader(
-                [
-                    html.I(className=f"fas {get_currency_icon(currency_symbol)} me-2"),
-                    html.Strong("Cost Breakdown by Work Type"),
-                ]
-            ),
+            dbc.CardHeader(html.Strong("Cost Breakdown by Work Type")),
             dbc.CardBody(
                 [
                     html.Div(

@@ -292,11 +292,24 @@ def register(app):
                         # Handle any date parsing errors
                         new_date = datetime.now().strftime("%Y-%m-%d")
 
+                # Calculate week_label for the new row
+                from data.iso_week_bucketing import get_week_label
+
+                try:
+                    date_obj = datetime.strptime(new_date, "%Y-%m-%d")
+                    week_label = get_week_label(date_obj)
+                except (ValueError, TypeError) as e:
+                    logger.warning(
+                        f"Could not calculate week_label for {new_date}: {e}"
+                    )
+                    week_label = ""
+
                 # Insert at beginning (will be at top with desc sorting)
                 rows.insert(
                     0,
                     {
                         "date": new_date,
+                        "week_label": week_label,
                         "completed_items": 0,
                         "completed_points": 0,
                         "created_items": 0,

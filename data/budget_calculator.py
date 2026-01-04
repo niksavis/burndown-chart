@@ -17,7 +17,6 @@ Created: January 4, 2026
 
 import logging
 import json
-from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, Optional, Tuple, Any
 
@@ -63,24 +62,6 @@ def get_budget_at_week(
         with conn_context as conn:
             cursor = conn.cursor()
 
-            # Check if result is cached in metrics_data_points
-            cursor.execute(
-                """
-                SELECT calculation_metadata
-                FROM metrics_data_points
-                WHERE profile_id = ?
-                  AND snapshot_date = ?
-                  AND metric_category = 'budget_tracking'
-                  AND metric_name = 'budget_snapshot'
-            """,
-                (profile_id, week_label),
-            )
-
-            cached = cursor.fetchone()
-            if cached and cached[0]:
-                logger.debug(f"Using cached budget for {profile_id} at {week_label}")
-                return json.loads(cached[0])
-
             # Load base budget settings
             cursor.execute(
                 """
@@ -123,24 +104,9 @@ def get_budget_at_week(
                 budget["team_cost_per_week_eur"] += row[1] or 0.0
                 budget["budget_total_eur"] += row[2] or 0.0
 
-            # Cache the result
-            now_iso = datetime.now(timezone.utc).isoformat()
-            cursor.execute(
-                """
-                INSERT OR REPLACE INTO metrics_data_points (
-                    profile_id, query_id, snapshot_date, metric_category,
-                    metric_name, metric_value, calculation_metadata, calculated_at
-                ) VALUES (?, '', ?, 'budget_tracking', 'budget_snapshot', ?, ?, ?)
-            """,
-                (
-                    profile_id,
-                    week_label,
-                    budget["budget_total_eur"],
-                    json.dumps(budget),
-                    now_iso,
-                ),
-            )
-            conn.commit()
+            # Note: Budget snapshots are profile-level, not cached in metrics_data_points
+            # because metrics_data_points requires a query_id foreign key.
+            # Budget calculation is fast enough without caching.
 
             logger.info(
                 f"Calculated budget for {profile_id} at {week_label}: {budget['budget_total_eur']:.2f}"
@@ -187,7 +153,7 @@ def calculate_budget_consumed(
             cursor = conn.cursor()
             cursor.execute(
                 """
-                SELECT SUM(completed_count)
+                SELECT SUM(completed_items)
                 FROM project_statistics
                 WHERE profile_id = ?
                   AND query_id = ?
@@ -410,7 +376,7 @@ def calculate_runway(
 
                 cursor.execute(
                     """
-                    SELECT completed_count
+                    SELECT completed_items
                     FROM project_statistics
                     WHERE profile_id = ?
                       AND query_id = ?
@@ -494,9 +460,9 @@ def _get_velocity(
             # Fallback: calculate from project_statistics
             cursor.execute(
                 """
-                SELECT AVG(completed_count)
+                SELECT AVG(completed_items)
                 FROM (
-                    SELECT completed_count
+                    SELECT completed_items
                     FROM project_statistics
                     WHERE profile_id = ?
                       AND query_id = ?

@@ -25,7 +25,6 @@ from ui.budget_cards import (
     create_cost_per_point_card,
     create_budget_forecast_card,
     create_cost_breakdown_card,
-    get_currency_icon,
 )
 
 logger = logging.getLogger(__name__)
@@ -98,17 +97,12 @@ def _create_budget_section(
     currency_symbol = budget_data.get("currency_symbol", "€")
     exhaustion_alert = budget_data.get("exhaustion_alert", {})
 
-    # Section header with currency icon
+    # Section header (no currency icon to reduce visual clutter)
     section_header = html.Div(
         [
-            html.H3(
-                [
-                    html.I(
-                        className=f"fas {get_currency_icon(currency_symbol)} me-2 text-primary"
-                    ),
-                    "Budget & Resource Tracking",
-                ],
-                className="mb-3",
+            html.H5(
+                "Budget & Resource Tracking",
+                className="mb-3 mt-4",
             )
         ]
     )

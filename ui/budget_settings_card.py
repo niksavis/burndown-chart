@@ -103,7 +103,7 @@ def create_budget_settings_card() -> html.Div:
                                 ]
                             ),
                             dbc.Tooltip(
-                                "Number of weeks allocated for project completion. Defaults to forecast window (data_points_count).",
+                                "Number of weeks allocated for project completion. Defaults to the forecast time period (Data Points range).",
                                 target="time-allocated-tooltip",
                                 placement="right",
                             ),
@@ -138,28 +138,31 @@ def create_budget_settings_card() -> html.Div:
                                 ]
                             ),
                             dbc.Tooltip(
-                                "Total budget amount. Optional - can be derived from team cost × time.",
+                                "Total budget amount. Optional - can be derived from team cost × time. Supports decimals (e.g., 50000.00).",
                                 target="budget-total-tooltip",
                                 placement="right",
                             ),
                             dbc.InputGroup(
                                 [
-                                    dbc.InputGroupText("±"),
-                                    dbc.Input(
-                                        id="budget-total-input",
-                                        type="number",
-                                        min=0,
-                                        step=100,
-                                        placeholder="e.g., 50000",
-                                        className="text-end",
-                                    ),
                                     dbc.Input(
                                         id="budget-currency-symbol-input",
                                         type="text",
                                         maxLength=3,
                                         placeholder="€",
                                         value="€",
-                                        style={"maxWidth": "60px"},
+                                        style={
+                                            "maxWidth": "60px",
+                                            "fontWeight": "bold",
+                                        },
+                                        className="text-center",
+                                    ),
+                                    dbc.Input(
+                                        id="budget-total-input",
+                                        type="number",
+                                        min=0,
+                                        step=10,
+                                        placeholder="e.g., 50000",
+                                        className="text-end",
                                     ),
                                 ]
                             ),
@@ -247,32 +250,41 @@ def create_budget_settings_card() -> html.Div:
                     dbc.Textarea(
                         id="budget-revision-reason-input",
                         placeholder="e.g., Additional funding approved for Phase 2",
-                        rows=2,
+                        rows=1,
                         maxLength=500,
+                        style={"resize": "vertical"},
                     ),
                 ],
                 id="budget-revision-reason-container",
                 className="mb-3",
             ),
             # Action buttons
-            dbc.ButtonGroup(
+            html.Div(
                 [
-                    dbc.Button(
-                        [html.I(className="fas fa-save me-2"), "Save Budget"],
-                        id="save-budget-button",
-                        color="primary",
+                    dbc.ButtonGroup(
+                        [
+                            dbc.Button(
+                                [html.I(className="fas fa-save me-2"), "Save Budget"],
+                                id="save-budget-button",
+                                color="primary",
+                            ),
+                            dbc.Button(
+                                [html.I(className="fas fa-times me-2"), "Cancel"],
+                                id="cancel-budget-button",
+                                color="secondary",
+                                outline=True,
+                            ),
+                        ],
+                        className="w-100",
                     ),
-                    dbc.Button(
-                        [html.I(className="fas fa-times me-2"), "Cancel"],
-                        id="cancel-budget-button",
-                        color="secondary",
-                        outline=True,
+                    dbc.Tooltip(
+                        "Discard changes and restore previous budget configuration",
+                        target="cancel-budget-button",
+                        placement="top",
                     ),
                 ],
-                className="w-100 mb-3",
+                className="mb-3",
             ),
-            # Status message
-            html.Div(id="budget-save-status", className="mt-2"),
             # Reconfigure confirmation modal
             dbc.Modal(
                 [

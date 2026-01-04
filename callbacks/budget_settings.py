@@ -203,7 +203,7 @@ def update_cost_rate_helper(rate_type, currency_symbol):
 
 @callback(
     [
-        Output("budget-save-status", "children"),
+        Output("app-notifications", "children", allow_duplicate=True),
         Output("budget-settings-store", "data", allow_duplicate=True),
         Output("budget-reconfigure-modal", "is_open"),
     ],
@@ -254,21 +254,23 @@ def save_budget_settings(
     if not n_clicks or not profile_id:
         return no_update, no_update, no_update
 
+    from ui.toast_notifications import create_toast
+
     # Validate inputs
     if not time_allocated or time_allocated < 1:
-        error = dbc.Alert(
+        error = create_toast(
             "Time allocated must be at least 1 week",
-            color="danger",
-            dismissable=True,
+            toast_type="danger",
+            header="Validation Error",
             duration=4000,
         )
         return error, no_update, no_update
 
     if not team_cost or team_cost <= 0:
-        error = dbc.Alert(
+        error = create_toast(
             "Team cost must be greater than 0",
-            color="danger",
-            dismissable=True,
+            toast_type="danger",
+            header="Validation Error",
             duration=4000,
         )
         return error, no_update, no_update
@@ -389,15 +391,21 @@ def save_budget_settings(
                 "updated_at": now_iso,
             }
 
-            success = dbc.Alert(
-                success_msg, color="success", dismissable=True, duration=4000
+            success = create_toast(
+                success_msg,
+                toast_type="success",
+                header="Budget Saved",
+                duration=4000,
             )
             return success, new_store, False
 
     except Exception as e:
         logger.error(f"Failed to save budget settings: {e}")
-        error = dbc.Alert(
-            f"Failed to save: {str(e)}", color="danger", dismissable=True, duration=4000
+        error = create_toast(
+            f"Failed to save: {str(e)}",
+            toast_type="danger",
+            header="Save Failed",
+            duration=4000,
         )
         return error, no_update, False
 
@@ -428,7 +436,7 @@ def enable_reconfigure_button(checkbox_value):
 @callback(
     [
         Output("budget-reconfigure-modal", "is_open", allow_duplicate=True),
-        Output("budget-save-status", "children", allow_duplicate=True),
+        Output("app-notifications", "children", allow_duplicate=True),
         Output("budget-settings-store", "data", allow_duplicate=True),
         Output("budget-reconfigure-confirm-checkbox", "value"),
     ],
@@ -480,6 +488,8 @@ def handle_reconfigure_modal(
 
     elif trigger == "budget-reconfigure-confirm-button":
         # Reconfigure budget (delete revisions and reset baseline)
+        from ui.toast_notifications import create_toast
+
         try:
             # Convert team cost to weekly rate
             if cost_rate_type == "daily":
@@ -537,10 +547,10 @@ def handle_reconfigure_modal(
                 "updated_at": now_iso,
             }
 
-            success = dbc.Alert(
+            success = create_toast(
                 "Budget reconfigured successfully. All revision history deleted.",
-                color="success",
-                dismissable=True,
+                toast_type="success",
+                header="Budget Reconfigured",
                 duration=4000,
             )
 
@@ -548,10 +558,10 @@ def handle_reconfigure_modal(
 
         except Exception as e:
             logger.error(f"Failed to reconfigure budget: {e}")
-            error = dbc.Alert(
+            error = create_toast(
                 f"Failed to reconfigure: {str(e)}",
-                color="danger",
-                dismissable=True,
+                toast_type="danger",
+                header="Reconfigure Failed",
                 duration=4000,
             )
             return False, error, no_update, []

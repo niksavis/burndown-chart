@@ -213,8 +213,8 @@ def prepare_metrics_data(
     # Calculate days to deadline
     current_date = datetime.now()
 
-    # Handle NaT deadline safely
-    if pd.isna(deadline):
+    # Handle None or NaT deadline safely
+    if deadline is None or pd.isna(deadline):
         days_to_deadline = 0
         deadline_str = "No deadline set"
     else:

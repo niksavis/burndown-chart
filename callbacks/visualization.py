@@ -40,9 +40,16 @@ from data import (
     generate_weekly_forecast,
 )
 from data.schema import DEFAULT_SETTINGS
+from data.budget_calculator import (
+    get_budget_at_week,
+    calculate_budget_consumed,
+    calculate_runway,
+    calculate_cost_breakdown_by_type,
+)
+from data.persistence.factory import get_backend
+from data.iso_week_bucketing import get_week_label
 from ui import (
     create_compact_trend_indicator,
-    create_pert_info_table,
 )
 from ui.loading_utils import (
     create_content_placeholder,
@@ -738,7 +745,6 @@ def register(app):
         # Calculate baseline values using the correct method (same as report)
         # Baseline = current remaining + total completed in filtered period
         # This gives us the initial backlog at the start of the data window
-        from data.scope_metrics import calculate_total_project_scope
 
         # CRITICAL FIX: Filter by actual date range, not row count
         df_filtered = df
@@ -1112,6 +1118,78 @@ def register(app):
                 except Exception:
                     days_to_deadline = 0
 
+                # Calculate budget data for dashboard
+                budget_data = None
+                profile_id = ""
+                query_id = ""
+                current_week_label = ""
+                try:
+                    backend = get_backend()
+                    profile_id = backend.get_app_state("active_profile_id") or ""
+                    query_id = backend.get_app_state("active_query_id") or ""
+                    current_week_label = get_week_label(datetime.now())
+
+                    logger.info(
+                        f"[BUDGET DEBUG] profile_id={profile_id}, query_id={query_id}, "
+                        f"week={current_week_label}"
+                    )
+
+                    if profile_id and query_id:
+                        # Check if budget is configured
+                        budget_config = get_budget_at_week(
+                            profile_id, current_week_label
+                        )
+                        logger.info(f"[BUDGET DEBUG] budget_config={budget_config}")
+
+                        if budget_config:
+                            # Calculate budget metrics
+                            consumed_eur, budget_total, consumed_pct = (
+                                calculate_budget_consumed(
+                                    profile_id, query_id, current_week_label
+                                )
+                            )
+                            logger.info(
+                                f"[BUDGET DEBUG] consumed={consumed_eur}, total={budget_total}, "
+                                f"pct={consumed_pct}"
+                            )
+                            runway_weeks, burn_rate = calculate_runway(
+                                profile_id,
+                                query_id,
+                                current_week_label,
+                                data_points_count,
+                            )
+                            logger.info(
+                                f"[BUDGET DEBUG] runway={runway_weeks}, burn_rate={burn_rate}"
+                            )
+                            cost_breakdown = calculate_cost_breakdown_by_type(
+                                profile_id, query_id, current_week_label
+                            )
+                            logger.info(f"[BUDGET DEBUG] breakdown={cost_breakdown}")
+
+                            budget_data = {
+                                "configured": True,
+                                "currency_symbol": budget_config.get(
+                                    "currency_symbol", "€"
+                                ),
+                                "consumed_pct": consumed_pct,
+                                "consumed_eur": consumed_eur,
+                                "budget_total": budget_total,
+                                "burn_rate": burn_rate,
+                                "runway_weeks": runway_weeks,
+                                "breakdown": cost_breakdown,
+                            }
+                            logger.info(
+                                f"Budget data calculated: {consumed_pct:.1f}% consumed, "
+                                f"runway={runway_weeks:.1f} weeks"
+                            )
+                        else:
+                            logger.debug(
+                                f"No budget configured for profile {profile_id}"
+                            )
+                except Exception as e:
+                    logger.error(f"Failed to calculate budget data: {e}", exc_info=True)
+                    budget_data = None
+
                 # Import and use comprehensive dashboard
                 from ui.dashboard_comprehensive import create_comprehensive_dashboard
 
@@ -1131,6 +1209,14 @@ def register(app):
                     data_points_count=data_points_count,  # Pass for metric snapshot lookup
                     deadline_str=deadline,
                     show_points=show_points,
+                    additional_context={
+                        "profile_id": profile_id,
+                        "query_id": query_id,
+                        "current_week_label": current_week_label,
+                        "budget_data": budget_data,
+                    }
+                    if budget_data
+                    else None,
                 )
 
                 # Cache the result for next time

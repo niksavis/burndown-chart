@@ -26,6 +26,7 @@ from datetime import datetime, timedelta
 from ui.style_constants import COLOR_PALETTE
 from ui.tooltip_utils import create_info_tooltip
 from ui.budget_section import _create_budget_section
+from ui.metric_cards import create_metric_card as create_professional_metric_card
 from configuration.help_content import DASHBOARD_METRICS_TOOLTIPS
 
 
@@ -236,7 +237,10 @@ def _create_metric_card(
     tooltip_text=None,
     tooltip_id=None,
 ):
-    """Create a standardized metric card.
+    """Create a standardized metric card using professional system.
+
+    Adapter function that converts old card format to new professional
+    metric_cards.create_metric_card format for visual consistency.
 
     Args:
         title: Card title text
@@ -245,109 +249,60 @@ def _create_metric_card(
         icon: Font Awesome icon class
         color: Color for icon and value
         trend: Optional trend data dict with 'direction' and 'percent'
-               - For trends: {'direction': 'up'/'down'/'stable', 'percent': float}
-               - For baseline: {'direction': 'baseline', 'percent': 0, 'message': str}
         sparkline_data: Optional data for sparkline visualization
         tooltip_text: Optional help text for info tooltip
-        tooltip_id: Optional unique ID suffix for tooltip (required if tooltip_text provided)
+        tooltip_id: Optional unique ID suffix for tooltip
     """
-    trend_element = html.Div()
-    if trend:
-        if trend.get("direction") == "baseline":
-            # Show baseline building message instead of trend
-            trend_element = html.Div(
-                [
-                    html.I(
-                        className="fas fa-hourglass-half me-1",
-                        style={"fontSize": "0.75rem"},
-                    ),
-                    html.Span(
-                        trend.get("message", "Building baseline"),
-                        style={"fontSize": "0.75rem", "fontStyle": "italic"},
-                    ),
-                ],
-                style={"color": "#6c757d"},
-                className="mt-1",
-            )
-        else:
-            # Show normal trend indicator
-            trend_color = (
-                "#28a745"
-                if trend["direction"] == "up"
-                else "#dc3545"
-                if trend["direction"] == "down"
-                else "#6c757d"
-            )
-            trend_icon = (
-                "fa-arrow-up"
-                if trend["direction"] == "up"
-                else "fa-arrow-down"
-                if trend["direction"] == "down"
-                else "fa-minus"
-            )
-
-            trend_element = html.Div(
-                [
-                    html.I(
-                        className=f"fas {trend_icon} me-1",
-                        style={"fontSize": "0.75rem"},
-                    ),
-                    html.Span(
-                        f"{abs(trend['percent']):.0f}%",
-                        style={"fontSize": "0.8rem", "fontWeight": "600"},
-                    ),
-                ],
-                style={"color": trend_color},
-                className="mt-1",
-            )
-
-    sparkline_element = html.Div()
-    if sparkline_data and len(sparkline_data) > 1:
-        sparkline_element = _create_mini_sparkline(sparkline_data, color, height=40)
-
-    # Create title with optional tooltip
-    title_content = title
-    if tooltip_text and tooltip_id:
-        title_content = html.Span(
-            [
-                title,
-                html.Span(" ", style={"marginRight": "4px"}),
-                create_info_tooltip(tooltip_text, tooltip_id),
-            ],
-            style={"display": "flex", "alignItems": "center", "gap": "4px"},
+    # Convert old format to professional metric_data format
+    # Extract numeric value from formatted string
+    try:
+        numeric_value = (
+            float(value.replace(",", "").split()[0])
+            if isinstance(value, str)
+            else float(value)
         )
+    except (ValueError, IndexError, AttributeError):
+        numeric_value = None
 
-    return dbc.Card(
-        [
-            dbc.CardBody(
-                [
-                    html.Div(
-                        [
-                            html.I(
-                                className=f"fas {icon}",
-                                style={"color": color, "fontSize": "1.2rem"},
-                            ),
-                            html.H6(
-                                title_content,
-                                className="mb-1 mt-2",
-                                style={"fontSize": "0.9rem", "fontWeight": "600"},
-                            ),
-                            html.Div(
-                                value,
-                                className="h4 mb-0",
-                                style={"color": color, "fontWeight": "bold"},
-                            ),
-                            html.Small(subtitle, className="text-muted"),
-                            trend_element,
-                            sparkline_element,
-                        ]
-                    )
-                ],
-                className="p-3",
-            )
-        ],
-        className="h-100 shadow-sm border-0",
-    )
+    # Determine performance tier color based on value
+    if numeric_value is not None:
+        if numeric_value > 15:
+            tier_color = "green"
+        elif numeric_value > 8:
+            tier_color = "yellow"
+        elif numeric_value > 3:
+            tier_color = "orange"
+        else:
+            tier_color = "red"
+    else:
+        tier_color = "green"
+
+    metric_data = {
+        "metric_name": title.lower().replace(" ", "_"),
+        "display_name": title,
+        "value": numeric_value,
+        "unit": "",
+        "subtitle": subtitle,
+        "icon": icon,
+        "color": color,
+        "performance_tier_color": tier_color,
+        "error_state": "success" if numeric_value is not None else "no_data",
+        "tooltip": tooltip_text,
+        "weekly_values": sparkline_data if sparkline_data else [],
+        "trend_direction": trend.get("direction", "stable")
+        if trend and trend.get("direction") != "baseline"
+        else "stable",
+        "trend_percent": abs(trend.get("percent", 0))
+        if trend and trend.get("direction") != "baseline"
+        else 0,
+    }
+
+    # Handle baseline case
+    if trend and trend.get("direction") == "baseline":
+        metric_data["error_state"] = "building_baseline"
+        metric_data["error_message"] = trend.get("message", "Building baseline")
+
+    return create_professional_metric_card(metric_data)
 
 
 def _create_mini_sparkline(data, color, height=20):
@@ -1107,16 +1062,34 @@ def _create_throughput_section(
                 [
                     dbc.Col(
                         [
-                            _create_metric_card(
-                                "Items per Week",
-                                f"{avg_items:.1f}",
-                                "Average delivery rate",
-                                "fa-tasks",
-                                COLOR_PALETTE["items"],
-                                trend=items_trend,
-                                sparkline_data=list(statistics_df["completed_items"]),
-                                tooltip_text="Average number of work items completed per week. Calculated using the corrected velocity method that counts actual weeks with data (not date range spans).",
-                                tooltip_id="throughput-items-per-week",
+                            create_professional_metric_card(
+                                {
+                                    "metric_name": "items_per_week",
+                                    "display_name": "Items per Week",
+                                    "value": avg_items,
+                                    "unit": "items/week",
+                                    "subtitle": "Average delivery rate",
+                                    "icon": "fa-tasks",
+                                    "color": COLOR_PALETTE["items"],
+                                    "performance_tier_color": "green"
+                                    if avg_items > 10
+                                    else "yellow"
+                                    if avg_items > 5
+                                    else "orange",
+                                    "error_state": "success",
+                                    "tooltip": "Average number of work items completed per week. Calculated using the corrected velocity method that counts actual weeks with data (not date range spans).",
+                                    "weekly_values": list(
+                                        statistics_df["completed_items"]
+                                    )
+                                    if not statistics_df.empty
+                                    else [],
+                                    "trend_direction": items_trend.get("direction")
+                                    if items_trend
+                                    else "stable",
+                                    "trend_percent": items_trend.get("percent", 0)
+                                    if items_trend
+                                    else 0,
+                                }
                             )
                         ],
                         width=12,
@@ -1126,22 +1099,44 @@ def _create_throughput_section(
                     ),
                     dbc.Col(
                         [
-                            _create_metric_card(
-                                "Points per Week",
-                                f"{avg_points:.1f}" if show_points else "--",
-                                "Average story points"
-                                if show_points
-                                else "Points tracking disabled",
-                                "fa-chart-bar",
-                                COLOR_PALETTE["points"] if show_points else "#6c757d",
-                                trend=points_trend if show_points else None,
-                                sparkline_data=list(statistics_df["completed_points"])
-                                if show_points
-                                else None,
-                                tooltip_text="Average story points completed per week. Story points represent work complexity and effort. Higher values indicate faster delivery of larger work items."
-                                if show_points
-                                else "Enable Story Points Tracking in Settings to view this metric. When disabled, forecasts use item counts instead.",
-                                tooltip_id="throughput-points-per-week",
+                            create_professional_metric_card(
+                                {
+                                    "metric_name": "points_per_week",
+                                    "display_name": "Points per Week",
+                                    "value": avg_points if show_points else None,
+                                    "unit": "points/week"
+                                    if show_points
+                                    else "disabled",
+                                    "subtitle": "Average story points"
+                                    if show_points
+                                    else "Points tracking disabled",
+                                    "icon": "fa-chart-bar",
+                                    "color": COLOR_PALETTE["points"]
+                                    if show_points
+                                    else "#6c757d",
+                                    "performance_tier_color": "green"
+                                    if show_points and avg_points > 20
+                                    else "yellow"
+                                    if show_points and avg_points > 10
+                                    else "orange",
+                                    "error_state": "success"
+                                    if show_points
+                                    else "no_data",
+                                    "tooltip": "Average story points completed per week. Story points represent work complexity and effort. Higher values indicate faster delivery of larger work items."
+                                    if show_points
+                                    else "Enable Points Tracking in Parameters panel and configure the points field in JIRA Configuration to view this metric. When disabled, forecasts use item counts instead.",
+                                    "weekly_values": list(
+                                        statistics_df["completed_points"]
+                                    )
+                                    if show_points and not statistics_df.empty
+                                    else [],
+                                    "trend_direction": points_trend.get("direction")
+                                    if points_trend and show_points
+                                    else "stable",
+                                    "trend_percent": points_trend.get("percent", 0)
+                                    if points_trend and show_points
+                                    else 0,
+                                }
                             )
                         ],
                         width=12,
@@ -1151,21 +1146,30 @@ def _create_throughput_section(
                     ),
                     dbc.Col(
                         [
-                            _create_metric_card(
-                                "Avg Item Size",
-                                f"{_safe_divide(avg_points, avg_items):.1f} pts"
-                                if show_points
-                                else "--",
-                                "Points per item"
-                                if show_points
-                                else "Points tracking disabled",
-                                "fa-weight-hanging",
-                                "#17a2b8" if show_points else "#6c757d",
-                                sparkline_data=None,
-                                tooltip_text="Average story points per completed work item. Shows typical item complexity. Higher values mean larger items taking longer to complete. Use this to understand capacity: fewer large items or more small items per sprint."
-                                if show_points
-                                else "Enable Story Points Tracking in Settings to view this metric. When disabled, forecasts use item counts instead.",
-                                tooltip_id="throughput-item-size",
+                            create_professional_metric_card(
+                                {
+                                    "metric_name": "avg_item_size",
+                                    "display_name": "Avg Item Size",
+                                    "value": _safe_divide(avg_points, avg_items)
+                                    if show_points
+                                    else None,
+                                    "unit": "pts/item" if show_points else "disabled",
+                                    "subtitle": "Points per item"
+                                    if show_points
+                                    else "Points tracking disabled",
+                                    "icon": "fa-weight-hanging",
+                                    "color": "#17a2b8" if show_points else "#6c757d",
+                                    "performance_tier_color": "green",
+                                    "error_state": "success"
+                                    if show_points
+                                    else "no_data",
+                                    "tooltip": "Average story points per completed work item. Shows typical item complexity. Higher values mean larger items taking longer to complete. Use this to understand capacity: fewer large items or more small items per sprint."
+                                    if show_points
+                                    else "Enable Points Tracking in Parameters panel and configure the points field in JIRA Configuration to view this metric. When disabled, forecasts use item counts instead.",
+                                    "weekly_values": [],
+                                    "trend_direction": "stable",
+                                    "trend_percent": 0,
+                                }
                             )
                         ],
                         width=12,
@@ -1180,6 +1184,33 @@ def _create_throughput_section(
     )
 
 
+def _get_forecast_history():
+    """Get historical forecast data for trend visualization.
+
+    Returns:
+        Tuple of (dates, items_forecasts, points_forecasts) lists
+    """
+    try:
+        from data.persistence import load_unified_project_data
+
+        unified_data = load_unified_project_data()
+        forecast_history = unified_data.get("forecast_history", [])
+
+        # Extract data for plotting (last 10 data points)
+        dates = []
+        items_forecasts = []
+        points_forecasts = []
+
+        for entry in forecast_history[-10:]:
+            dates.append(entry.get("date", ""))
+            items_forecasts.append(entry.get("items_forecast_date", ""))
+            points_forecasts.append(entry.get("points_forecast_date", ""))
+
+        return dates, items_forecasts, points_forecasts
+    except Exception:
+        return [], [], []
+
+
 def _create_forecast_section(pert_data, confidence_data, show_points=True):
     """Create forecasting section with multiple prediction methods.
 
@@ -1190,17 +1221,21 @@ def _create_forecast_section(pert_data, confidence_data, show_points=True):
     """
     current_date = datetime.now()
 
-    # Use points-based forecast when available and enabled (matches report and burndown chart)
-    # Use items-based forecast as fallback
-    forecast_days = (
-        pert_data.get("pert_time_points", 0)
-        if show_points
-        else pert_data.get("pert_time_items", 0)
+    # Calculate BOTH items-based and points-based forecasts
+    items_forecast_days = pert_data.get("pert_time_items", 0)
+    points_forecast_days = pert_data.get("pert_time_points", 0)
+
+    items_pert_date = (current_date + timedelta(days=items_forecast_days)).strftime(
+        "%b %d, %Y"
     )
+    points_pert_date = (current_date + timedelta(days=points_forecast_days)).strftime(
+        "%b %d, %Y"
+    )
+
+    # Use appropriate forecast metric for confidence intervals (matches report/burndown)
     forecast_metric = "story points" if show_points else "items"
 
-    # Format forecast dates
-    pert_date = (current_date + timedelta(days=forecast_days)).strftime("%b %d, %Y")
+    # Format confidence interval dates
     optimistic_date = (
         current_date + timedelta(days=confidence_data.get("ci_50", 0))
     ).strftime("%b %d, %Y")
@@ -1208,12 +1243,387 @@ def _create_forecast_section(pert_data, confidence_data, show_points=True):
         current_date + timedelta(days=confidence_data.get("ci_95", 0))
     ).strftime("%b %d, %Y")
 
+    # Determine on-track probability tier
+    deadline_prob = confidence_data.get("deadline_probability", 75)
+    if deadline_prob >= 70:
+        prob_tier = "Healthy"
+        prob_color = "#28a745"
+    elif deadline_prob >= 40:
+        prob_tier = "Warning"
+        prob_color = "#ffc107"
+    else:
+        prob_tier = "At Risk"
+        prob_color = "#dc3545"
+
+    # Create Enhanced Expected Completion card with BOTH forecasts
+    expected_completion_card = dbc.Card(
+        [
+            dbc.CardHeader(
+                [
+                    html.Span(
+                        "Expected Completion",
+                        className="metric-card-title",
+                    ),
+                    " ",
+                    create_info_tooltip(
+                        help_text="Calculated using PERT three-point estimation: (Optimistic + 4×Most_Likely + Pessimistic) ÷ 6. "
+                        "Shows forecasts based on both items and story points velocity. "
+                        "This weighted average emphasizes the most likely scenario (4x weight) while accounting for best/worst cases from your historical velocity data. "
+                        "Same method used in Burndown Chart and Report.",
+                        id_suffix="metric-expected_completion",
+                        placement="top",
+                        variant="dark",
+                    ),
+                ],
+                className="d-flex align-items-center",
+            ),
+            dbc.CardBody(
+                [
+                    # Items-based forecast
+                    html.Div(
+                        [
+                            html.Div(
+                                [
+                                    html.I(
+                                        className="fas fa-tasks me-2",
+                                        style={
+                                            "color": COLOR_PALETTE["items"],
+                                            "fontSize": "1rem",
+                                        },
+                                    ),
+                                    html.Span(
+                                        "Items-based",
+                                        className="text-muted",
+                                        style={"fontSize": "0.85rem"},
+                                    ),
+                                ],
+                                className="mb-1",
+                            ),
+                            html.Div(
+                                items_pert_date,
+                                className="h4 mb-3",
+                                style={
+                                    "fontWeight": "bold",
+                                    "color": COLOR_PALETTE["items"],
+                                },
+                            ),
+                        ],
+                        className="text-center pb-2",
+                        style={"borderBottom": "1px solid #e9ecef"}
+                        if show_points
+                        else {},
+                    ),
+                    # Points-based forecast (always show, with placeholder when disabled)
+                    html.Div(
+                        [
+                            html.Div(
+                                [
+                                    html.I(
+                                        className="fas fa-chart-bar me-2",
+                                        style={
+                                            "color": COLOR_PALETTE["points"]
+                                            if show_points
+                                            else "#6c757d",
+                                            "fontSize": "1rem",
+                                        },
+                                    ),
+                                    html.Span(
+                                        "Points-based",
+                                        className="text-muted",
+                                        style={"fontSize": "0.85rem"},
+                                    ),
+                                ],
+                                className="mb-1 mt-3",
+                            ),
+                            html.Div(
+                                points_pert_date if show_points else "Not available",
+                                className="h4 mb-0",
+                                style={
+                                    "fontWeight": "bold",
+                                    "color": COLOR_PALETTE["points"]
+                                    if show_points
+                                    else "#adb5bd",
+                                },
+                            ),
+                            html.Small(
+                                "Enable Points Tracking in Parameters",
+                                className="text-muted d-block mt-2",
+                                style={"fontSize": "0.75rem", "fontStyle": "italic"},
+                            )
+                            if not show_points
+                            else None,
+                        ],
+                        className="text-center",
+                    ),
+                ],
+                className="text-center py-3",
+            ),
+            dbc.CardFooter(
+                html.Small(
+                    "PERT forecast based on items and story points velocity"
+                    if show_points
+                    else "PERT forecast based on items velocity",
+                    className="text-muted",
+                ),
+                className="text-center",
+            ),
+        ],
+        className="metric-card mb-3 h-100",
+    )
+
+    # Enhanced Confidence Intervals card with bigger dates and better spacing
+    confidence_intervals_card = dbc.Card(
+        [
+            dbc.CardHeader(
+                [
+                    html.Span(
+                        "Confidence Intervals",
+                        className="metric-card-title",
+                    ),
+                    " ",
+                    create_info_tooltip(
+                        help_text=f"Statistical probability ranges based on {forecast_metric} velocity variability. "
+                        f"50%: 50th percentile (median) - the PERT forecast itself. "
+                        f"95%: 95th percentile - conservative estimate with 1.65σ buffer (adds uncertainty for remaining work). "
+                        f"Wider spread indicates higher velocity uncertainty. Calculated from your historical data variance.",
+                        id_suffix="metric-confidence_intervals",
+                        placement="top",
+                        variant="dark",
+                    ),
+                ],
+                className="d-flex align-items-center",
+            ),
+            dbc.CardBody(
+                [
+                    # 50% Confidence (Optimistic)
+                    html.Div(
+                        [
+                            html.Div(
+                                [
+                                    html.I(
+                                        className="fas fa-thumbs-up me-2",
+                                        style={"color": "#28a745"},
+                                    ),
+                                    html.Span(
+                                        "50% Confidence",
+                                        style={
+                                            "fontSize": "0.9rem",
+                                            "fontWeight": "600",
+                                        },
+                                    ),
+                                ],
+                                className="mb-2",
+                            ),
+                            html.Div(
+                                optimistic_date,
+                                className="h3 mb-3",
+                                style={
+                                    "color": "#28a745",
+                                    "fontWeight": "bold",
+                                },
+                            ),
+                        ],
+                        className="text-center pb-3",
+                        style={"borderBottom": "2px solid #e9ecef"},
+                    ),
+                    # 95% Confidence (Pessimistic)
+                    html.Div(
+                        [
+                            html.Div(
+                                [
+                                    html.I(
+                                        className="fas fa-shield-alt me-2",
+                                        style={"color": "#dc3545"},
+                                    ),
+                                    html.Span(
+                                        "95% Confidence",
+                                        style={
+                                            "fontSize": "0.9rem",
+                                            "fontWeight": "600",
+                                        },
+                                    ),
+                                ],
+                                className="mb-2 mt-3",
+                            ),
+                            html.Div(
+                                pessimistic_date,
+                                className="h3 mb-0",
+                                style={
+                                    "color": "#dc3545",
+                                    "fontWeight": "bold",
+                                },
+                            ),
+                        ],
+                        className="text-center",
+                    ),
+                ],
+                className="text-center py-3",
+            ),
+            dbc.CardFooter(
+                html.Small(
+                    "Statistical delivery probability ranges",
+                    className="text-muted",
+                ),
+                className="text-center",
+            ),
+        ],
+        className="metric-card mb-3 h-100",
+    )
+
+    # Enhanced On-Track Probability card with visual indicator
+    on_track_card = dbc.Card(
+        [
+            dbc.CardHeader(
+                [
+                    html.Span(
+                        "On-Track Probability",
+                        className="metric-card-title",
+                    ),
+                    " ",
+                    create_info_tooltip(
+                        help_text="Statistical probability of meeting deadline using normal distribution. "
+                        "Calculated via Z-score: (deadline_days - expected_days) / forecast_std_dev. "
+                        "Based on how many standard deviations your deadline is from expected completion, adjusted for velocity consistency.",
+                        id_suffix="metric-on_track_probability",
+                        placement="top",
+                        variant="dark",
+                    ),
+                ],
+                className="d-flex align-items-center",
+            ),
+            dbc.CardBody(
+                [
+                    # Progress ring showing probability
+                    html.Div(
+                        _create_progress_ring(deadline_prob, prob_color, 100),
+                        className="d-flex justify-content-center mb-3",
+                    ),
+                    # Status badge
+                    html.Div(
+                        [
+                            html.Span(
+                                prob_tier,
+                                className="badge",
+                                style={
+                                    "backgroundColor": prob_color,
+                                    "fontSize": "1rem",
+                                    "padding": "0.5rem 1.5rem",
+                                    "color": "white",
+                                },
+                            ),
+                        ],
+                        className="text-center mb-2",
+                    ),
+                    # Additional context
+                    html.Div(
+                        f"Based on {forecast_metric} velocity",
+                        className="text-muted text-center",
+                        style={"fontSize": "0.85rem"},
+                    ),
+                ],
+                className="text-center py-3",
+            ),
+            dbc.CardFooter(
+                html.Small(
+                    "Deadline achievement likelihood",
+                    className="text-muted",
+                ),
+                className="text-center",
+            ),
+        ],
+        className="metric-card mb-3 h-100",
+    )
+
+    # Create forecast history trend chart (if data available)
+    history_dates, history_items, history_points = _get_forecast_history()
+
+    forecast_trend_chart = None
+    if history_dates and len(history_dates) >= 2:
+        import plotly.graph_objects as go
+
+        fig = go.Figure()
+
+        # Add items-based forecast trend
+        if history_items:
+            fig.add_trace(
+                go.Scatter(
+                    x=history_dates,
+                    y=history_items,
+                    mode="lines+markers",
+                    name="Items-based Forecast",
+                    line=dict(color=COLOR_PALETTE["items"], width=3),
+                    marker=dict(size=8, symbol="circle"),
+                )
+            )
+
+        # Add points-based forecast trend (if available)
+        if history_points and show_points:
+            fig.add_trace(
+                go.Scatter(
+                    x=history_dates,
+                    y=history_points,
+                    mode="lines+markers",
+                    name="Points-based Forecast",
+                    line=dict(color=COLOR_PALETTE["points"], width=3, dash="dot"),
+                    marker=dict(size=8, symbol="diamond"),
+                )
+            )
+
+        fig.update_layout(
+            title=dict(
+                text="Forecast Evolution Over Time",
+                font=dict(size=14, color="#495057"),
+                x=0.5,
+                xanchor="center",
+            ),
+            xaxis=dict(
+                title="Calculation Date",
+                showgrid=True,
+                gridcolor="#e9ecef",
+            ),
+            yaxis=dict(
+                title="Predicted Completion Date",
+                showgrid=True,
+                gridcolor="#e9ecef",
+            ),
+            hovermode="x unified",
+            plot_bgcolor="white",
+            paper_bgcolor="white",
+            height=300,
+            margin=dict(l=60, r=40, t=50, b=60),
+            legend=dict(
+                orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1
+            ),
+        )
+
+        from dash import dcc
+
+        forecast_trend_chart = dbc.Card(
+            dbc.CardBody(
+                [
+                    dcc.Graph(
+                        figure=fig,
+                        config={"displayModeBar": False},
+                        style={"height": "300px"},
+                    ),
+                    html.Div(
+                        html.Small(
+                            "Historical trend showing how forecast dates have changed as the project progresses",
+                            className="text-muted",
+                        ),
+                        className="text-center mt-2",
+                    ),
+                ]
+            ),
+            className="metric-card mb-3",
+        )
+
     return html.Div(
         [
             html.H5(
                 [
                     html.I(
-                        className="fas fa-crystal-ball me-2", style={"color": "#6610f2"}
+                        className="fas fa-chart-line me-2", style={"color": "#6610f2"}
                     ),
                     "Delivery Forecast",
                 ],
@@ -1221,228 +1631,15 @@ def _create_forecast_section(pert_data, confidence_data, show_points=True):
             ),
             dbc.Row(
                 [
+                    dbc.Col(expected_completion_card, width=12, md=4, className="mb-3"),
                     dbc.Col(
-                        [
-                            dbc.Card(
-                                [
-                                    dbc.CardBody(
-                                        [
-                                            html.I(
-                                                className="fas fa-calendar-check",
-                                                style={
-                                                    "color": "#6610f2",
-                                                    "fontSize": "1.2rem",
-                                                },
-                                            ),
-                                            html.Div(
-                                                [
-                                                    html.Span(
-                                                        "Expected Completion",
-                                                        style={
-                                                            "fontSize": "0.9rem",
-                                                            "fontWeight": "600",
-                                                        },
-                                                    ),
-                                                    create_info_tooltip(
-                                                        "expected-completion-info",
-                                                        f"Calculated using PERT three-point estimation: (Optimistic + 4×Most_Likely + Pessimistic) ÷ 6. "
-                                                        f"Based on {forecast_metric} velocity. "
-                                                        f"This weighted average emphasizes the most likely scenario (4x weight) while accounting for best/worst cases from your historical velocity data. "
-                                                        f"Same method used in Burndown Chart and Report.",
-                                                    ),
-                                                ],
-                                                className="mb-1 mt-2 d-flex align-items-center gap-1",
-                                            ),
-                                            html.Div(
-                                                pert_date,
-                                                className="h4 mb-0",
-                                                style={
-                                                    "color": "#6610f2",
-                                                    "fontWeight": "bold",
-                                                },
-                                            ),
-                                            html.Small(
-                                                f"PERT forecast based on {forecast_metric} velocity",
-                                                className="text-muted",
-                                            ),
-                                        ],
-                                        className="p-3",
-                                    )
-                                ],
-                                className="h-100 shadow-sm border-0",
-                            )
-                        ],
-                        width=12,
-                        md=4,
-                        className="mb-3",
+                        confidence_intervals_card, width=12, md=4, className="mb-3"
                     ),
-                    dbc.Col(
-                        [
-                            dbc.Card(
-                                [
-                                    dbc.CardBody(
-                                        [
-                                            html.I(
-                                                className="fas fa-chart-line",
-                                                style={
-                                                    "color": "#17a2b8",
-                                                    "fontSize": "1.2rem",
-                                                },
-                                            ),
-                                            html.Div(
-                                                [
-                                                    html.Span(
-                                                        "Confidence Intervals",
-                                                        style={
-                                                            "fontSize": "0.9rem",
-                                                            "fontWeight": "600",
-                                                        },
-                                                    ),
-                                                    create_info_tooltip(
-                                                        "confidence-intervals-info",
-                                                        f"Statistical probability ranges based on {forecast_metric} velocity variability. "
-                                                        f"50%: 50th percentile (median) - the PERT forecast itself. "
-                                                        f"95%: 95th percentile - conservative estimate with 1.65σ buffer (adds uncertainty for remaining work). "
-                                                        f"Wider spread indicates higher velocity uncertainty. Calculated from your historical data variance.",
-                                                    ),
-                                                ],
-                                                className="mb-1 mt-2 d-flex align-items-center gap-1",
-                                            ),
-                                            html.Div(
-                                                [
-                                                    html.Div(
-                                                        [
-                                                            html.Span(
-                                                                "50%: ",
-                                                                className="text-muted",
-                                                                style={
-                                                                    "fontSize": "0.85rem"
-                                                                },
-                                                            ),
-                                                            html.Span(
-                                                                optimistic_date,
-                                                                style={
-                                                                    "color": "#28a745",
-                                                                    "fontSize": "1.25rem",
-                                                                    "fontWeight": "bold",
-                                                                },
-                                                            ),
-                                                        ],
-                                                        className="mb-2",
-                                                    ),
-                                                    html.Div(
-                                                        [
-                                                            html.Span(
-                                                                "95%: ",
-                                                                className="text-muted",
-                                                                style={
-                                                                    "fontSize": "0.85rem"
-                                                                },
-                                                            ),
-                                                            html.Span(
-                                                                pessimistic_date,
-                                                                style={
-                                                                    "color": "#dc3545",
-                                                                    "fontSize": "1.25rem",
-                                                                    "fontWeight": "bold",
-                                                                },
-                                                            ),
-                                                        ]
-                                                    ),
-                                                ],
-                                                className="mb-0",
-                                            ),
-                                            html.Small(
-                                                "Range represents delivery confidence levels",
-                                                className="text-muted",
-                                            ),
-                                        ],
-                                        className="p-3",
-                                    )
-                                ],
-                                className="h-100 shadow-sm border-0",
-                            )
-                        ],
-                        width=12,
-                        md=4,
-                        className="mb-3",
-                    ),
-                    dbc.Col(
-                        [
-                            dbc.Card(
-                                [
-                                    dbc.CardBody(
-                                        [
-                                            html.I(
-                                                className="fas fa-bullseye",
-                                                style={
-                                                    "color": "#28a745"
-                                                    if confidence_data.get(
-                                                        "deadline_probability", 75
-                                                    )
-                                                    >= 70
-                                                    else "#ffc107"
-                                                    if confidence_data.get(
-                                                        "deadline_probability", 75
-                                                    )
-                                                    >= 40
-                                                    else "#dc3545",
-                                                    "fontSize": "1.2rem",
-                                                },
-                                            ),
-                                            html.Div(
-                                                [
-                                                    html.Span(
-                                                        "On-Track Probability",
-                                                        style={
-                                                            "fontSize": "0.9rem",
-                                                            "fontWeight": "600",
-                                                        },
-                                                    ),
-                                                    create_info_tooltip(
-                                                        "on-track-probability-info",
-                                                        "Statistical probability of meeting deadline using normal distribution. "
-                                                        "Calculated via Z-score: (deadline_days - expected_days) / forecast_std_dev. "
-                                                        "Based on how many standard deviations your deadline is from expected completion, adjusted for velocity consistency.",
-                                                    ),
-                                                ],
-                                                className="mb-1 mt-2 d-flex align-items-center gap-1",
-                                            ),
-                                            html.Div(
-                                                f"{confidence_data.get('deadline_probability', 75):.0f}%",
-                                                className="h4 mb-0",
-                                                style={
-                                                    "color": "#28a745"
-                                                    if confidence_data.get(
-                                                        "deadline_probability", 75
-                                                    )
-                                                    >= 70
-                                                    else "#ffc107"
-                                                    if confidence_data.get(
-                                                        "deadline_probability", 75
-                                                    )
-                                                    >= 40
-                                                    else "#dc3545",
-                                                    "fontWeight": "bold",
-                                                },
-                                            ),
-                                            html.Small(
-                                                "Statistical likelihood of completing by deadline based on Z-score analysis",
-                                                className="text-muted",
-                                            ),
-                                        ],
-                                        className="p-3",
-                                    )
-                                ],
-                                className="h-100 shadow-sm border-0",
-                            )
-                        ],
-                        width=12,
-                        md=4,
-                        className="mb-3",
-                    ),
+                    dbc.Col(on_track_card, width=12, md=4, className="mb-3"),
                 ]
             ),
+            # Forecast history trend chart (if available)
+            forecast_trend_chart if forecast_trend_chart else html.Div(),
         ],
         className="mb-4",
     )
@@ -1484,6 +1681,91 @@ def _create_recent_activity_section(statistics_df, show_points=True):
         recent_data["completed_points"].tolist() if has_points_data else [0, 0, 0, 0]
     )
 
+    # Create metric cards for Recent Completions
+    items_cards = [
+        create_professional_metric_card(
+            {
+                "metric_name": "items_completed",
+                "value": total_items_completed,
+                "unit": "items",
+                "tooltip": f"Total items completed in the last {recent_window} weeks. This metric shows recent delivery throughput regardless of the data points filter.",
+                "error_state": "success",
+                "total_issue_count": 0,
+            }
+        ),
+        create_professional_metric_card(
+            {
+                "metric_name": "items_per_week_avg",
+                "value": avg_items_weekly,
+                "unit": "items/week",
+                "tooltip": f"Average items completed per week over the last {recent_window} weeks. Indicates current team velocity.",
+                "error_state": "success",
+                "total_issue_count": 0,
+                "weekly_values": items_sparkline_values,
+                "weekly_labels": [
+                    f"W{i + 1}" for i in range(len(items_sparkline_values))
+                ],
+            }
+        ),
+    ]
+
+    # Always show points cards - use placeholder when disabled
+    if has_points_data and show_points:
+        points_cards = [
+            create_professional_metric_card(
+                {
+                    "metric_name": "points_completed",
+                    "value": total_points_completed,
+                    "unit": "points",
+                    "tooltip": f"Total story points completed in the last {recent_window} weeks. This metric shows recent delivery throughput in terms of story points.",
+                    "error_state": "success",
+                    "total_issue_count": 0,
+                }
+            ),
+            create_professional_metric_card(
+                {
+                    "metric_name": "points_per_week_avg",
+                    "value": avg_points_weekly,
+                    "unit": "points/week",
+                    "tooltip": f"Average story points completed per week over the last {recent_window} weeks. Indicates current team velocity in terms of story points.",
+                    "error_state": "success",
+                    "total_issue_count": 0,
+                    "weekly_values": points_sparkline_values,
+                    "weekly_labels": [
+                        f"W{i + 1}" for i in range(len(points_sparkline_values))
+                    ],
+                }
+            ),
+        ]
+    else:
+        # Show placeholder cards when points tracking is disabled
+        points_cards = [
+            create_professional_metric_card(
+                {
+                    "metric_name": "points_completed",
+                    "value": None,
+                    "unit": "points",
+                    "error_state": "missing_mapping",
+                    "error_message": "Points tracking disabled",
+                    "tooltip": "Enable Points Tracking in Parameters panel and configure the points field in JIRA Configuration to view this metric. When disabled, use Items Completed for throughput tracking.",
+                    "total_issue_count": 0,
+                }
+            ),
+            create_professional_metric_card(
+                {
+                    "metric_name": "points_per_week_avg",
+                    "value": None,
+                    "unit": "points/week",
+                    "error_state": "missing_mapping",
+                    "error_message": "Points tracking disabled",
+                    "tooltip": "Enable Points Tracking in Parameters panel and configure the points field in JIRA Configuration to view this metric. When disabled, use Items/Week Avg for velocity tracking.",
+                    "total_issue_count": 0,
+                }
+            ),
+        ]
+
+    all_cards = items_cards + points_cards
+
     return html.Div(
         [
             html.H5(
@@ -1497,174 +1779,13 @@ def _create_recent_activity_section(statistics_df, show_points=True):
                         f" (Last {recent_window} Weeks)", className="text-muted ms-2"
                     ),
                 ],
-                className="mb-3",
+                className="mb-3 mt-2",
             ),
-            dbc.Card(
+            dbc.Row(
                 [
-                    dbc.CardBody(
-                        [
-                            # Items Row
-                            dbc.Row(
-                                [
-                                    dbc.Col(
-                                        [
-                                            html.Div(
-                                                [
-                                                    html.H3(
-                                                        str(int(total_items_completed)),
-                                                        className="mb-0 text-center",
-                                                        style={
-                                                            "color": COLOR_PALETTE[
-                                                                "items"
-                                                            ]
-                                                        },
-                                                    ),
-                                                    html.P(
-                                                        "Items Completed",
-                                                        className="text-muted text-center mb-0",
-                                                    ),
-                                                ]
-                                            )
-                                        ],
-                                        width=12,
-                                        md=4,
-                                        className="text-center mb-3 mb-md-0",
-                                    ),
-                                    dbc.Col(
-                                        [
-                                            html.Div(
-                                                [
-                                                    html.H4(
-                                                        f"{avg_items_weekly:.1f}",
-                                                        className="mb-0 text-center",
-                                                        style={
-                                                            "color": COLOR_PALETTE[
-                                                                "items"
-                                                            ]
-                                                        },
-                                                    ),
-                                                    html.P(
-                                                        "Items/Week Avg",
-                                                        className="text-muted text-center mb-0",
-                                                    ),
-                                                ]
-                                            )
-                                        ],
-                                        width=12,
-                                        md=4,
-                                        className="text-center mb-3 mb-md-0",
-                                    ),
-                                    dbc.Col(
-                                        [
-                                            html.Div(
-                                                [
-                                                    html.Div(
-                                                        _create_mini_sparkline(
-                                                            items_sparkline_values,
-                                                            COLOR_PALETTE["items"],
-                                                        ),
-                                                        className="d-flex justify-content-center mb-1",
-                                                    ),
-                                                    html.P(
-                                                        "Items Trend",
-                                                        className="text-muted text-center mb-0 small",
-                                                    ),
-                                                ]
-                                            )
-                                        ],
-                                        width=12,
-                                        md=4,
-                                        className="text-center mb-3 mb-md-0",
-                                    ),
-                                ],
-                                className="align-items-center mb-3",
-                            ),
-                            # Divider
-                            html.Hr(className="my-2")
-                            if (has_points_data and show_points)
-                            else None,
-                            # Points Row (only show if points data exists AND show_points is enabled)
-                            dbc.Row(
-                                [
-                                    dbc.Col(
-                                        [
-                                            html.Div(
-                                                [
-                                                    html.H3(
-                                                        f"{total_points_completed:.0f}",
-                                                        className="mb-0 text-center",
-                                                        style={
-                                                            "color": COLOR_PALETTE[
-                                                                "points"
-                                                            ]
-                                                        },
-                                                    ),
-                                                    html.P(
-                                                        "Points Completed",
-                                                        className="text-muted text-center mb-0",
-                                                    ),
-                                                ]
-                                            )
-                                        ],
-                                        width=12,
-                                        md=4,
-                                        className="text-center mb-3 mb-md-0",
-                                    ),
-                                    dbc.Col(
-                                        [
-                                            html.Div(
-                                                [
-                                                    html.H4(
-                                                        f"{avg_points_weekly:.1f}",
-                                                        className="mb-0 text-center",
-                                                        style={
-                                                            "color": COLOR_PALETTE[
-                                                                "points"
-                                                            ]
-                                                        },
-                                                    ),
-                                                    html.P(
-                                                        "Points/Week Avg",
-                                                        className="text-muted text-center mb-0",
-                                                    ),
-                                                ]
-                                            )
-                                        ],
-                                        width=12,
-                                        md=4,
-                                        className="text-center mb-3 mb-md-0",
-                                    ),
-                                    dbc.Col(
-                                        [
-                                            html.Div(
-                                                [
-                                                    html.Div(
-                                                        _create_mini_sparkline(
-                                                            points_sparkline_values,
-                                                            COLOR_PALETTE["points"],
-                                                        ),
-                                                        className="d-flex justify-content-center mb-1",
-                                                    ),
-                                                    html.P(
-                                                        "Points Trend",
-                                                        className="text-muted text-center mb-0 small",
-                                                    ),
-                                                ]
-                                            )
-                                        ],
-                                        width=12,
-                                        md=4,
-                                        className="text-center",
-                                    ),
-                                ],
-                                className="align-items-center",
-                            )
-                            if (has_points_data and show_points)
-                            else None,
-                        ]
-                    )
-                ],
-                className="shadow-sm border-0",
+                    dbc.Col(card, width=12, md=6, lg=3, className="mb-3")
+                    for card in all_cards
+                ]
             ),
         ],
         className="mb-4",
@@ -2163,20 +2284,22 @@ def _create_insights_section(statistics_df, settings):
         )
         insight_items.append(insight_item)
 
-    return dbc.Card(
-        dbc.CardBody(
-            [
-                html.H4(
-                    [
-                        html.I(className="fas fa-lightbulb me-2"),
-                        "Actionable Insights",
-                    ],
-                    className="card-title mb-3",
-                ),
-                html.Div(insight_items),
-            ]
-        ),
-        className="mb-3",
+    return html.Div(
+        [
+            html.H5(
+                [
+                    html.I(
+                        className="fas fa-lightbulb me-2", style={"color": "#ffc107"}
+                    ),
+                    "Actionable Insights",
+                ],
+                className="mb-3 mt-2",
+            ),
+            dbc.Card(
+                dbc.CardBody(html.Div(insight_items)),
+                className="mb-4",
+            ),
+        ],
     )
 
 

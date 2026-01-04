@@ -2361,6 +2361,8 @@ def extract_story_points_value(story_points_value, field_name: str = "") -> floa
 
 def jira_to_csv_format(issues: List[Dict], config: Dict) -> List[Dict]:
     """Transform JIRA issues to CSV statistics format."""
+    from data.iso_week_bucketing import get_week_label
+
     try:
         if not issues:
             return []
@@ -2452,9 +2454,13 @@ def jira_to_csv_format(issues: List[Dict], config: Dict) -> List[Dict]:
                             )
                         created_points += story_points
 
+            # Calculate week_label for this date (YYYY-Wxx format)
+            week_label = get_week_label(current_date)
+
             weekly_data.append(
                 {
                     "date": current_date.strftime("%Y-%m-%d"),
+                    "week_label": week_label,
                     "completed_items": completed_items,
                     "completed_points": completed_points,
                     "created_items": created_items,
@@ -3281,7 +3287,7 @@ def test_jql_query(config: Dict) -> Tuple[bool, str]:
 #######################################################################
 
 
-def construct_jira_endpoint(base_url: str, api_version: str = "v3") -> str:
+def construct_jira_endpoint(base_url: str, api_version: str = "v2") -> str:
     """
     Construct full JIRA API endpoint from base URL and version.
 
@@ -3311,7 +3317,7 @@ def construct_jira_endpoint(base_url: str, api_version: str = "v3") -> str:
     return f"{clean_url}{api_path}"
 
 
-def test_jira_connection(base_url: str, token: str, api_version: str = "v3") -> Dict:
+def test_jira_connection(base_url: str, token: str, api_version: str = "v2") -> Dict:
     """
     Test JIRA connection by calling serverInfo endpoint.
 
