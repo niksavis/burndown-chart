@@ -25,6 +25,7 @@ from datetime import datetime, timedelta
 
 from ui.style_constants import COLOR_PALETTE
 from ui.tooltip_utils import create_info_tooltip
+from ui.budget_section import _create_budget_section
 from configuration.help_content import DASHBOARD_METRICS_TOOLTIPS
 
 
@@ -2337,6 +2338,23 @@ def create_comprehensive_dashboard(
             # Throughput Analytics
             _create_throughput_section(
                 statistics_df, forecast_data, settings, data_points_count
+            ),
+            # Budget & Resource Tracking (conditional on budget configuration)
+            _create_budget_section(
+                profile_id=additional_context.get("profile_id", "")
+                if additional_context
+                else "",
+                query_id=additional_context.get("query_id", "")
+                if additional_context
+                else "",
+                week_label=additional_context.get("current_week_label", "")
+                if additional_context
+                else "",
+                budget_data=additional_context.get("budget_data")
+                if additional_context
+                else None,
+                points_available=show_points,
+                data_points_count=data_points_count or 12,
             ),
             # Forecast Section
             _create_forecast_section(
