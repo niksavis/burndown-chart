@@ -556,7 +556,11 @@ def _export_profile_cache(profile_id: str, export_dir: Path) -> bool:
 
 
 def export_profile_with_mode(
-    profile_id: str, query_id: str, export_mode: str, include_token: bool = False
+    profile_id: str,
+    query_id: str,
+    export_mode: str,
+    include_token: bool = False,
+    include_budget: bool = False,
 ) -> Dict[str, Any]:
     """Export FULL profile with ALL queries and their data.
 
@@ -565,6 +569,7 @@ def export_profile_with_mode(
         query_id: Active query identifier (used for manifest metadata, but all queries exported)
         export_mode: One of "CONFIG_ONLY", "FULL_DATA"
         include_token: Whether to include JIRA token (default: False)
+        include_budget: Whether to include budget data (default: False)
 
     Returns:
         Export package dictionary with structure:
@@ -669,22 +674,26 @@ def export_profile_with_mode(
         all_queries_data[current_query_id] = query_data
         exported_query_count += 1
 
-    # Export budget settings and revisions (profile-level data)
-    budget_data = {}
-    budget_settings = backend.get_budget_settings(profile_id)
-    if budget_settings:
-        budget_data["budget_settings"] = budget_settings
-        logger.info(f"Exported budget settings for profile '{profile_id}'")
+    # Export budget settings and revisions (profile-level data) - only if explicitly requested
+    if include_budget:
+        budget_data = {}
+        budget_settings = backend.get_budget_settings(profile_id)
+        if budget_settings:
+            budget_data["budget_settings"] = budget_settings
+            logger.info(f"Exported budget settings for profile '{profile_id}'")
 
-    budget_revisions = backend.get_budget_revisions(profile_id)
-    if budget_revisions:
-        budget_data["budget_revisions"] = budget_revisions
-        logger.info(
-            f"Exported {len(budget_revisions)} budget revisions for profile '{profile_id}'"
-        )
+        budget_revisions = backend.get_budget_revisions(profile_id)
+        if budget_revisions:
+            budget_data["budget_revisions"] = budget_revisions
+            logger.info(
+                f"Exported {len(budget_revisions)} budget revisions for profile '{profile_id}'"
+            )
 
-    if budget_data:
-        export_package["budget_data"] = budget_data
+        if budget_data:
+            export_package["budget_data"] = budget_data
+            logger.info("Budget data included in export (user opted-in)")
+    else:
+        logger.info("Budget data excluded from export (default)")
 
     if exported_query_count == 0:
         logger.warning(f"No queries found to export for profile '{profile_id}'")
@@ -697,7 +706,7 @@ def export_profile_with_mode(
 
     logger.info(
         f"Exported profile '{profile_id}' with {exported_query_count} queries, "
-        f"mode='{export_mode}', token={include_token}"
+        f"mode='{export_mode}', token={include_token}, budget={include_budget}"
     )
 
     return export_package

@@ -3,6 +3,7 @@
 from datetime import datetime
 import json
 import logging
+import time
 from dash import (
     callback,
     Output,
@@ -25,9 +26,10 @@ logger = logging.getLogger(__name__)
     Input("export-profile-button", "n_clicks"),
     State("export-mode-radio", "value"),
     State("include-token-checkbox", "value"),
+    State("include-budget-checkbox", "value"),
     prevent_initial_call=True,
 )
-def export_full_profile(n_clicks, export_mode, include_token):
+def export_full_profile(n_clicks, export_mode, include_token, include_budget):
     """Export profile with mode selection and optional token inclusion (T013)."""
     from ui.toast_notifications import create_toast
 
@@ -52,6 +54,7 @@ def export_full_profile(n_clicks, export_mode, include_token):
             query_id=query_id,
             export_mode=export_mode or "CONFIG_ONLY",
             include_token=bool(include_token),
+            include_budget=bool(include_budget),
         )
 
         # Generate filename (matches report format for easy archiving)
@@ -416,6 +419,23 @@ def perform_import(import_data, conflict_strategy=None, custom_name=None):
                     )
                 )
 
+            # Check if budget data was imported
+            has_budget = bool(budget_data)
+            if has_budget:
+                warning_parts.append(
+                    html.Div(
+                        "💰 Budget data included in import and has been configured.",
+                        className="mt-2 text-success",
+                    )
+                )
+            else:
+                warning_parts.append(
+                    html.Div(
+                        "💰 Budget data not included. Configure in Budget tab if needed.",
+                        className="mt-2 text-muted",
+                    )
+                )
+
             return (
                 create_toast(
                     warning_parts,
@@ -423,11 +443,10 @@ def perform_import(import_data, conflict_strategy=None, custom_name=None):
                     header="Config Import Complete",
                     duration=20000,  # Extended duration for important message
                 ),
-                no_update,  # No refresh for config-only imports
+                time.time(),  # Trigger refresh to update profile dropdown
             )
         else:
             # Full data import - trigger refresh to reload data
-            import time
 
             # Build success message with token guidance if needed
             query_count_msg = (
@@ -451,6 +470,23 @@ def perform_import(import_data, conflict_strategy=None, custom_name=None):
                         "🔑 JIRA token not included. Field mappings will be empty until you add your token "
                         "in Settings → Configure JIRA Connection.",
                         className="mt-2 text-warning fw-bold",
+                    )
+                )
+
+            # Check if budget data was imported
+            has_budget = bool(budget_data)
+            if has_budget:
+                success_parts.append(
+                    html.Div(
+                        "💰 Budget data included in import and has been configured.",
+                        className="mt-2 text-success",
+                    )
+                )
+            else:
+                success_parts.append(
+                    html.Div(
+                        "💰 Budget data not included. Configure in Budget tab if needed.",
+                        className="mt-2 text-muted",
                     )
                 )
 

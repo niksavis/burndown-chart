@@ -191,6 +191,23 @@ def _create_import_export_tab():
                         placement="right",
                     ),
                 ],
+                className="mb-2",
+            ),
+            # Budget data inclusion checkbox
+            html.Div(
+                [
+                    dbc.Checkbox(
+                        id="include-budget-checkbox",
+                        label="Include Budget Data",
+                        value=False,  # Default unchecked
+                        className="mb-1",
+                    ),
+                    dbc.Tooltip(
+                        "Budget data is project-specific. Uncheck when sharing configurations with others.",
+                        target="include-budget-checkbox",
+                        placement="right",
+                    ),
+                ],
                 className="mb-3",
             ),
             html.Div(

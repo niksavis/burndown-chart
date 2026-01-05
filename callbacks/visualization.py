@@ -863,6 +863,9 @@ def register(app):
             Input("calculation-results", "data"),
             Input("date-range-weeks", "data"),
             Input("points-toggle", "value"),  # Updated to new parameter panel component
+            Input(
+                "budget-settings-store", "data"
+            ),  # Trigger refresh when budget changes
         ],
         [
             State("current-settings", "data"),
@@ -879,6 +882,7 @@ def register(app):
         calc_results,
         date_range_weeks,
         show_points,  # Added parameter
+        budget_store,  # Added parameter
         settings,
         statistics,
         chart_cache,
@@ -967,10 +971,16 @@ def register(app):
         # CTO FIX: Clear old cache entries to prevent memory bloat (keep last 5)
         # BUT: If we're switching tabs (trigger is from chart-tabs), clear ALL cache
         # to prevent any possibility of cross-tab contamination
+        # ALSO: Clear ALL cache when budget changes to ensure fresh render
         trigger_info = ctx.triggered[0]["prop_id"] if ctx.triggered else ""
         if "chart-tabs" in trigger_info:
             logger.debug(
                 "[CTO DEBUG] Tab switch detected - CLEARING ALL CACHE to prevent contamination"
+            )
+            chart_cache = {}
+        elif "budget-settings-store" in trigger_info:
+            logger.debug(
+                "[CTO DEBUG] Budget change detected - CLEARING ALL CACHE to refresh budget cards"
             )
             chart_cache = {}
         elif len(chart_cache) > 5:
@@ -980,7 +990,9 @@ def register(app):
                     del chart_cache[old_key]
 
         # Create simplified cache key - only essential data for chart generation
-        data_hash = hash(str(statistics) + str(settings) + str(show_points))
+        data_hash = hash(
+            str(statistics) + str(settings) + str(show_points) + str(budget_store)
+        )
         cache_key = f"{active_tab}_{data_hash}"
         logger.debug(f"[CTO DEBUG] Cache key generated: {cache_key}")
 
