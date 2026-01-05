@@ -559,40 +559,46 @@ def save_budget_settings(
 
     from ui.toast_notifications import create_toast
 
-    # Validate inputs
-    if not time_allocated or time_allocated < 1:
-        error = create_toast(
-            "Time allocated must be at least 1 week",
-            toast_type="danger",
-            header="Validation Error",
-            duration=4000,
-        )
-        return error, no_update
+    # Validate inputs based on mode
+    if budget_mode == "auto":
+        # Auto mode requires time and cost for calculation
+        if not time_allocated or time_allocated < 1:
+            error = create_toast(
+                "Time allocated must be at least 1 week",
+                toast_type="danger",
+                header="Validation Error",
+                duration=4000,
+            )
+            return error, no_update
 
-    if not team_cost or team_cost <= 0:
-        error = create_toast(
-            "Team cost must be greater than 0",
-            toast_type="danger",
-            header="Validation Error",
-            duration=4000,
-        )
-        return error, no_update
+        if not team_cost or team_cost <= 0:
+            error = create_toast(
+                "Team cost must be greater than 0",
+                toast_type="danger",
+                header="Validation Error",
+                duration=4000,
+            )
+            return error, no_update
+
+        budget_total = team_cost * time_allocated
+
+    else:  # manual mode
+        # Manual mode only requires manual budget total
+        if not budget_total_manual or budget_total_manual <= 0:
+            error = create_toast(
+                "Manual budget total must be greater than 0",
+                toast_type="danger",
+                header="Validation Error",
+                duration=4000,
+            )
+            return error, no_update
+
+        budget_total = budget_total_manual
+        # Set defaults for optional fields in manual mode
+        time_allocated = time_allocated or 0
+        team_cost = team_cost or 0
 
     try:
-        # Calculate or use budget_total based on mode
-        if budget_mode == "auto":
-            budget_total = team_cost * time_allocated
-        else:  # manual mode
-            if not budget_total_manual or budget_total_manual <= 0:
-                error = create_toast(
-                    "Manual budget total must be greater than 0",
-                    toast_type="danger",
-                    header="Validation Error",
-                    duration=4000,
-                )
-                return error, no_update
-            budget_total = budget_total_manual
-
         now_iso = datetime.now(timezone.utc).isoformat()
 
         # Use effective_date if provided, otherwise use current date
