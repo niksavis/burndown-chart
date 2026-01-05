@@ -10,6 +10,7 @@ Features:
 - Budget total (optional)
 - Currency symbol (freeform text, default "€")
 - Team cost rate (weekly/daily/hourly with conversion helpers)
+- Effective date picker (allows retroactive budget entry)
 - Revision reason (optional, for audit trail)
 - Help tooltips for guidance
 
@@ -43,6 +44,22 @@ def create_budget_settings_card() -> html.Div:
                     html.Span("Budget Configuration", className="fw-bold"),
                 ],
                 className="d-flex align-items-center mb-3",
+            ),
+            # Current Budget Summary Card
+            dbc.Card(
+                [
+                    dbc.CardBody(
+                        [
+                            html.H6("Current Budget", className="text-muted mb-3"),
+                            html.Div(id="budget-current-summary", className="small"),
+                        ]
+                    )
+                ],
+                className="mb-3",
+                id="budget-summary-card",
+                style={
+                    "display": "none"
+                },  # Hidden by default, shown when budget exists
             ),
             # Status indicator
             html.Div(
@@ -86,6 +103,41 @@ def create_budget_settings_card() -> html.Div:
                         className="mb-3",
                     ),
                 ]
+            ),
+            # Effective Date Picker (for retroactive budget entry)
+            html.Div(
+                [
+                    dbc.Label(
+                        [
+                            "Effective Date (optional) ",
+                            html.I(
+                                className="fas fa-info-circle text-muted ms-1",
+                                id="budget-effective-date-tooltip",
+                                style={"cursor": "pointer"},
+                            ),
+                        ]
+                    ),
+                    dbc.Tooltip(
+                        "Date when this budget change takes effect. Leave empty to use current date. "
+                        "Use this to enter budget configurations retroactively (e.g., if you're configuring budget 3 months late).",
+                        target="budget-effective-date-tooltip",
+                        placement="right",
+                    ),
+                    dcc.DatePickerSingle(
+                        id="budget-effective-date-picker",
+                        date=None,
+                        display_format="YYYY-MM-DD",
+                        first_day_of_week=1,
+                        placeholder="Current date (default)",
+                        className="w-100",
+                        style={"fontSize": "0.875rem"},
+                    ),
+                    html.Small(
+                        "Budget revision will be timestamped with this date's ISO week",
+                        className="text-muted d-block mt-1",
+                    ),
+                ],
+                className="mb-3",
             ),
             # Time allocation input
             dbc.Row(
@@ -171,7 +223,7 @@ def create_budget_settings_card() -> html.Div:
                         md=6,
                     ),
                 ],
-                className="mb-3",
+                className="mb-4",
             ),
             # Team cost rate configuration
             html.Div(
@@ -284,6 +336,41 @@ def create_budget_settings_card() -> html.Div:
                     ),
                 ],
                 className="mb-3",
+            ),
+            # Budget Revision History Section (Collapsible)
+            html.Div(
+                [
+                    html.Hr(className="my-4"),
+                    dbc.Button(
+                        [
+                            html.I(className="fas fa-history me-2"),
+                            html.Span("Budget Revision History", className="fw-bold"),
+                            html.I(
+                                className="fas fa-chevron-down ms-auto",
+                                id="revision-history-chevron",
+                            ),
+                        ],
+                        id="revision-history-toggle",
+                        color="link",
+                        className="d-flex align-items-center w-100 text-start p-0 text-decoration-none",
+                        style={"border": "none"},
+                    ),
+                    dbc.Collapse(
+                        html.Div(
+                            id="budget-revision-history",
+                            children=[
+                                html.P(
+                                    "No budget revisions yet. Changes will appear here after you save budget updates.",
+                                    className="text-muted small",
+                                )
+                            ],
+                            className="mt-3",
+                        ),
+                        id="revision-history-collapse",
+                        is_open=False,
+                    ),
+                ],
+                id="budget-revision-history-section",
             ),
             # Reconfigure confirmation modal
             dbc.Modal(

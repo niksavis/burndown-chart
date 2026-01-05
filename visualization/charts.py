@@ -2875,17 +2875,28 @@ def prepare_visualization_data(
     if not isinstance(grouped, pd.DataFrame):
         grouped = pd.DataFrame(grouped)
 
-    # Filter out zero-value weeks before calculating rates
-    # These are artificial weeks added by _fill_missing_weeks and shouldn't
-    # influence PERT pessimistic/optimistic calculations
-    # Use AND condition to ensure weeks with meaningful data for both metrics
-    grouped_non_zero = grouped[
-        (grouped["completed_items"] > 0) & (grouped["completed_points"] > 0)
-    ].copy()
+    # Debug logging for data size
+    import logging
 
-    # If no valid weeks exist, return early with safe defaults
+    logger = logging.getLogger(__name__)
+    logger.info(
+        f"[CHART DATA] df_calc rows={len(df_calc)}, grouped weeks={len(grouped)}, "
+        f"data_points_count={data_points_count}"
+    )
+
+    # Filter out zero-value weeks before calculating rates
+    # Filter separately for items and points to support projects with only one tracking type
+    # Zero weeks (often from _fill_missing_weeks) shouldn't influence rate calculations
+    grouped_items_non_zero = grouped[grouped["completed_items"] > 0].copy()
+    grouped_points_non_zero = grouped[grouped["completed_points"] > 0].copy()
+
+    # Determine which filtering to use based on available data
+    has_items_data = len(grouped_items_non_zero) > 0
+    has_points_data = len(grouped_points_non_zero) > 0
+
+    # If no valid weeks exist for either metric, return early with safe defaults
     # (prevents pessimistic forecasts from extending years into the future)
-    if len(grouped_non_zero) == 0:
+    if not has_items_data and not has_points_data:
         # Return empty forecast data to indicate insufficient data
         return {
             "df_calc": df_calc,
@@ -2909,6 +2920,12 @@ def prepare_visualization_data(
             if not df_calc.empty
             else total_points,
         }
+
+    # Use items data for calculation if available, otherwise use points data
+    # This ensures we can calculate forecasts even when only one type has data
+    grouped_non_zero = (
+        grouped_items_non_zero if has_items_data else grouped_points_non_zero
+    )
 
     rates = calculate_rates(
         grouped_non_zero, total_items, total_points, pert_factor, show_points
@@ -2938,6 +2955,13 @@ def prepare_visualization_data(
 
     # Get starting points for forecast
     start_date = df_calc["date"].iloc[-1] if not df_calc.empty else datetime.now()
+
+    # Debug logging for forecast calculation
+    logger.info(
+        f"[CHART FORECAST] start_date={start_date.strftime('%Y-%m-%d') if hasattr(start_date, 'strftime') else start_date}, "
+        f"pert_time_items={pert_time_items:.2f}, total_items={total_items}, "
+        f"items_daily_rate={items_daily_rate:.4f}"
+    )
 
     # For burndown charts, we need to get the correct last values
     # (these represent remaining work, not completed work)
@@ -2997,6 +3021,11 @@ def prepare_visualization_data(
         items_end_date = burnup_items_avg[0][-1] if burnup_items_avg[0] else start_date
         points_end_date = (
             burnup_points_avg[0][-1] if burnup_points_avg[0] else start_date
+        )
+
+        logger.info(
+            f"[CHART FORECAST] Burndown end dates: items_end_date={items_end_date.strftime('%Y-%m-%d') if hasattr(items_end_date, 'strftime') else items_end_date}, "
+            f"days_to_items_end={(items_end_date - start_date).days if hasattr(items_end_date, 'strftime') else 0}"
         )
 
         # Now calculate burndown forecasts with fixed end dates

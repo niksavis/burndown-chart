@@ -26,6 +26,7 @@ from datetime import datetime, timedelta
 from ui.style_constants import COLOR_PALETTE
 from ui.tooltip_utils import create_info_tooltip
 from ui.budget_section import _create_budget_section
+from ui.budget_cards import create_forecast_alignment_card
 from ui.metric_cards import create_metric_card as create_professional_metric_card
 from configuration.help_content import DASHBOARD_METRICS_TOOLTIPS
 
@@ -1211,25 +1212,36 @@ def _get_forecast_history():
         return [], [], []
 
 
-def _create_forecast_section(pert_data, confidence_data, show_points=True):
+def _create_forecast_section(
+    pert_data, confidence_data, budget_data=None, show_points=True
+):
     """Create forecasting section with multiple prediction methods.
 
     Args:
-        pert_data: Dictionary with pert_time_items and pert_time_points
+        pert_data: Dictionary with pert_time_items, pert_time_points, and last_date
         confidence_data: Dictionary with ci_50, ci_95, deadline_probability
+        budget_data: Optional budget data for forecast alignment
         show_points: Whether to use points-based (True) or items-based (False) forecast
     """
-    current_date = datetime.now()
+    # Use last statistics date from pert_data (aligns with weekly data structure)
+    # Falls back to datetime.now() only if last_date not available
+    current_date = pert_data.get("last_date", datetime.now())
 
     # Calculate BOTH items-based and points-based forecasts
     items_forecast_days = pert_data.get("pert_time_items", 0)
     points_forecast_days = pert_data.get("pert_time_points", 0)
 
-    items_pert_date = (current_date + timedelta(days=items_forecast_days)).strftime(
-        "%b %d, %Y"
+    # Only format date if there's actual forecast time (not 0)
+    # Use YYYY-MM-DD format for region-neutral display
+    items_pert_date = (
+        (current_date + timedelta(days=items_forecast_days)).strftime("%Y-%m-%d")
+        if items_forecast_days > 0
+        else "No data"
     )
-    points_pert_date = (current_date + timedelta(days=points_forecast_days)).strftime(
-        "%b %d, %Y"
+    points_pert_date = (
+        (current_date + timedelta(days=points_forecast_days)).strftime("%Y-%m-%d")
+        if points_forecast_days > 0
+        else "No data"
     )
 
     # Use appropriate forecast metric for confidence intervals (matches report/burndown)
@@ -1238,10 +1250,10 @@ def _create_forecast_section(pert_data, confidence_data, show_points=True):
     # Format confidence interval dates
     optimistic_date = (
         current_date + timedelta(days=confidence_data.get("ci_50", 0))
-    ).strftime("%b %d, %Y")
+    ).strftime("%Y-%m-%d")
     pessimistic_date = (
         current_date + timedelta(days=confidence_data.get("ci_95", 0))
-    ).strftime("%b %d, %Y")
+    ).strftime("%Y-%m-%d")
 
     # Get probabilities for both tracks
     deadline_prob_items = confidence_data.get("deadline_probability_items", 75)
@@ -1768,6 +1780,26 @@ def _create_forecast_section(pert_data, confidence_data, show_points=True):
                     dbc.Col(on_track_card, width=12, md=4, className="mb-3"),
                 ]
             ),
+            # Forecast vs Budget Alignment card (if budget configured)
+            (
+                dbc.Row(
+                    [
+                        dbc.Col(
+                            create_forecast_alignment_card(
+                                pert_time_items=pert_data.get("pert_time_items", 0),
+                                pert_time_points=pert_data.get("pert_time_points"),
+                                runway_weeks=budget_data.get("runway_weeks", 0),
+                                show_points=show_points,
+                                card_id="forecast-alignment-card",
+                            ),
+                            width=12,
+                            className="mb-3",
+                        )
+                    ]
+                )
+                if budget_data and budget_data.get("configured")
+                else html.Div()
+            ),
             # Forecast history trend chart (if available)
             forecast_trend_chart if forecast_trend_chart else html.Div(),
         ],
@@ -1944,7 +1976,7 @@ def _create_quality_scope_section(statistics_df, settings):
             end_dt = pd.to_datetime(end_date, format="mixed", errors="coerce")
             if pd.notna(start_dt) and pd.notna(end_dt):
                 date_range = (
-                    f"{start_dt.strftime('%b %d, %Y')} - {end_dt.strftime('%b %d, %Y')}"
+                    f"{start_dt.strftime('%Y-%m-%d')} - {end_dt.strftime('%Y-%m-%d')}"
                 )
             else:
                 date_range = "tracked period"
@@ -2255,12 +2287,23 @@ def _create_insights_section(statistics_df, settings, budget_data=None):
 
         # Budget insights (if budget data is available)
         if budget_data:
+            import math
+
             utilization_pct = budget_data.get("utilization_percentage", 0)
             runway_weeks = budget_data.get("runway_weeks", 0)
             burn_rate = budget_data.get("burn_rate", 0)
             currency = budget_data.get("currency_symbol", "€")
 
-            if utilization_pct > 90:
+            # Handle infinity runway (when burn rate is 0)
+            if math.isinf(runway_weeks):
+                insights.append(
+                    {
+                        "severity": "info",
+                        "message": "Budget Status - No consumption detected",
+                        "recommendation": "Budget tracking will begin once team velocity and costs are established. Ensure project parameters and team costs are configured correctly.",
+                    }
+                )
+            elif utilization_pct > 90:
                 insights.append(
                     {
                         "severity": "danger",
@@ -2544,12 +2587,21 @@ def create_comprehensive_dashboard(
         f"[APP SCHEDULE] forecast_days={forecast_days}, days_to_deadline={days_to_deadline}, schedule_variance={schedule_variance_calc}"
     )
 
+    # Extract last statistics date for forecast starting point (aligns with weekly data structure)
+    # CRITICAL: Statistics are weekly-based (Mondays), so use last Monday data point not datetime.now()
+    last_date = (
+        statistics_df["date"].max()
+        if not statistics_df.empty and "date" in statistics_df.columns
+        else datetime.now()
+    )
+
     forecast_data = {
         "pert_time_items": pert_time_items,
         "pert_time_points": pert_time_points,
         "velocity_cv": 25,  # Default coefficient of variation
         "schedule_variance_days": schedule_variance_calc,
-        "completion_date": (datetime.now() + timedelta(days=forecast_days)).strftime(
+        "last_date": last_date,  # Starting point for forecast calculations
+        "completion_date": (last_date + timedelta(days=forecast_days)).strftime(
             "%Y-%m-%d"
         )
         if forecast_days
@@ -2696,7 +2748,10 @@ def create_comprehensive_dashboard(
             ),
             # Forecast Section
             _create_forecast_section(
-                forecast_data, confidence_data, show_points=show_points
+                forecast_data,
+                confidence_data,
+                budget_data=budget_data,
+                show_points=show_points,
             ),
             # Recent Activity Section - uses unfiltered data for consistent 4-week view
             _create_recent_activity_section(statistics_df_unfiltered, show_points),

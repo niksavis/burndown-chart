@@ -112,7 +112,7 @@ def create_budget_utilization_card(
         },
     }
 
-    return create_metric_card(metric_data, card_id)
+    return create_metric_card(metric_data, card_id, show_details_button=False)
 
 
 def create_weekly_burn_rate_card(
@@ -173,7 +173,7 @@ def create_weekly_burn_rate_card(
         },
     }
 
-    return create_metric_card(metric_data, card_id)
+    return create_metric_card(metric_data, card_id, show_details_button=False)
 
 
 def create_budget_runway_card(
@@ -197,6 +197,41 @@ def create_budget_runway_card(
     Example:
         >>> card = create_budget_runway_card(12.5, 15.0, "€")
     """
+    import math
+
+    # Handle infinity runway (when burn rate is 0)
+    if math.isinf(runway_weeks):
+        metric_data = {
+            "metric_name": "budget_runway",
+            "value": None,
+            "unit": "",
+            "performance_tier": "No Consumption",
+            "performance_tier_color": "blue",
+            "error_state": "info",
+            "total_issue_count": 0,
+            "details": {
+                "status": "Waiting for work completion to calculate burn rate. "
+                "Budget runway is calculated from ACTUAL completed items, not just team cost."
+            },
+        }
+        return create_metric_card(metric_data, card_id, show_details_button=False)
+
+    # Handle negative runway (over budget)
+    if runway_weeks < 0:
+        metric_data = {
+            "metric_name": "budget_runway",
+            "value": abs(runway_weeks),
+            "unit": "weeks over budget",
+            "performance_tier": "Over Budget",
+            "performance_tier_color": "red",
+            "error_state": "success",  # Must be "success" to render as metric card, not error card
+            "total_issue_count": 0,
+            "details": {
+                "status": "Budget exceeded. Immediate action required: Review scope, increase budget, or reduce team costs."
+            },
+        }
+        return create_metric_card(metric_data, card_id, show_details_button=False)
+
     # Determine health status
     if runway_weeks < 4:
         tier_color = "red"
@@ -227,7 +262,7 @@ def create_budget_runway_card(
         "details": details,
     }
 
-    return create_metric_card(metric_data, card_id)
+    return create_metric_card(metric_data, card_id, show_details_button=False)
 
 
 def create_cost_per_item_card(
@@ -266,7 +301,7 @@ def create_cost_per_item_card(
         "details": details,
     }
 
-    return create_metric_card(metric_data, card_id)
+    return create_metric_card(metric_data, card_id, show_details_button=False)
 
 
 def create_cost_per_point_card(
@@ -302,7 +337,7 @@ def create_cost_per_point_card(
             "error_message": "Points unavailable, using item cost only",
             "total_issue_count": 0,
         }
-        return create_metric_card(metric_data, card_id)
+        return create_metric_card(metric_data, card_id, show_details_button=False)
 
     details = {"calculation": "Auto-calculated: Team Cost ÷ (Velocity × Points/Item)"}
     if pert_weighted_avg:
@@ -319,7 +354,7 @@ def create_cost_per_point_card(
         "details": details,
     }
 
-    return create_metric_card(metric_data, card_id)
+    return create_metric_card(metric_data, card_id, show_details_button=False)
 
 
 def create_budget_forecast_card(
@@ -363,7 +398,7 @@ def create_budget_forecast_card(
         },
     }
 
-    return create_metric_card(metric_data, card_id)
+    return create_metric_card(metric_data, card_id, show_details_button=False)
 
 
 def create_cost_breakdown_card(
@@ -527,3 +562,264 @@ def _create_inline_sparkline(values: List[float]) -> html.Div:
         className="d-flex align-items-end justify-content-center",
         style={"height": "20px", "gap": "1px"},
     )
+
+
+def create_forecast_alignment_card(
+    pert_time_items: float,
+    pert_time_points: Optional[float],
+    runway_weeks: float,
+    show_points: bool = True,
+    card_id: Optional[str] = None,
+) -> dbc.Card:
+    """
+    Create Forecast vs Budget Alignment card showing timeline comparison.
+
+    Displays gap between PERT forecast completion time and budget runway
+    for both items and points tracking. Styled as table matching Cost Breakdown card.
+
+    Args:
+        pert_time_items: PERT forecast days (items-based)
+        pert_time_points: PERT forecast days (points-based)
+        runway_weeks: Budget runway in weeks
+        show_points: Whether points tracking is active
+        card_id: Optional HTML ID for the card
+
+    Returns:
+        Dash Bootstrap Card component (full-width table layout)
+
+    Health Status:
+        - Healthy (green): Budget runway >= PERT forecast (gap >= 0)
+        - Warning (yellow): Gap between -2 and 0 weeks
+        - At Risk (red): Budget exhausts >2 weeks before completion
+        - No Data (blue): No budget consumption detected
+
+    Example:
+        >>> card = create_forecast_alignment_card(105.0, 92.4, 12.5, True)
+    """
+    import math
+    from configuration import COLOR_PALETTE
+
+    # Convert days to weeks
+    pert_weeks_items = pert_time_items / 7.0
+    pert_weeks_points = pert_time_points / 7.0 if pert_time_points else pert_weeks_items
+
+    # Handle infinity runway (no budget consumption)
+    if math.isinf(runway_weeks):
+        # Show informational message when no consumption data
+        return dbc.Card(
+            [
+                dbc.CardHeader(
+                    [
+                        html.Span(
+                            "Forecast vs Budget Alignment",
+                            className="fw-bold",
+                        ),
+                        " ",
+                        html.I(
+                            className="fas fa-info-circle text-info",
+                            title="Waiting for budget consumption data",
+                        ),
+                    ],
+                ),
+                dbc.CardBody(
+                    [
+                        dbc.Alert(
+                            [
+                                html.I(className="fas fa-hourglass-start me-2"),
+                                html.Strong("No Budget Consumption Data"),
+                                html.P(
+                                    "Budget tracking will begin once work completion is recorded. "
+                                    "The burn rate is calculated from ACTUAL completed work, not just team cost. "
+                                    "Complete some items to start tracking budget consumption.",
+                                    className="mb-0 mt-2 small",
+                                ),
+                            ],
+                            color="info",
+                            className="mb-0",
+                        )
+                    ]
+                ),
+            ],
+            id=card_id,
+            className="mb-3",
+        )
+
+    # Calculate gaps
+    gap_items = runway_weeks - pert_weeks_items
+    gap_points = runway_weeks - pert_weeks_points
+
+    # Determine overall health (worst case of items/points)
+    min_gap = min(gap_items, gap_points) if show_points else gap_items
+    if min_gap >= 0:
+        overall_health = "Healthy"
+        health_color = "#198754"  # green
+        health_icon = "fa-check-circle"
+    elif min_gap >= -2:
+        overall_health = "Warning"
+        health_color = "#ffc107"  # yellow
+        health_icon = "fa-exclamation-triangle"
+    else:
+        overall_health = "At Risk"
+        health_color = "#dc3545"  # red
+        health_icon = "fa-times-circle"
+
+    # Helper to format gap display
+    def format_gap(gap: float) -> tuple[str, str, str]:
+        if gap >= 0:
+            return f"+{gap:.1f} weeks", "#198754", "fa-arrow-up"
+        elif gap >= -2:
+            return f"{gap:.1f} weeks", "#ffc107", "fa-minus-circle"
+        else:
+            return f"{gap:.1f} weeks", "#dc3545", "fa-arrow-down"
+
+    gap_items_text, gap_items_color, gap_items_icon = format_gap(gap_items)
+    gap_points_text, gap_points_color, gap_points_icon = format_gap(gap_points)
+
+    # Build table rows
+    table_rows = []
+
+    # Items-based row
+    table_rows.append(
+        html.Tr(
+            [
+                html.Td(
+                    [
+                        html.I(
+                            className="fas fa-tasks me-2",
+                            style={"color": COLOR_PALETTE["items"]},
+                        ),
+                        "Items-based",
+                    ],
+                    className="text-start fw-semibold",
+                ),
+                html.Td(f"{pert_weeks_items:.1f} weeks", className="text-end"),
+                html.Td(f"{runway_weeks:.1f} weeks", className="text-end"),
+                html.Td(
+                    [
+                        html.I(className=f"fas {gap_items_icon} me-1"),
+                        html.Span(
+                            gap_items_text,
+                            style={"color": gap_items_color, "fontWeight": "bold"},
+                        ),
+                    ],
+                    className="text-end",
+                ),
+            ]
+        )
+    )
+
+    # Points-based row (if enabled)
+    if show_points:
+        table_rows.append(
+            html.Tr(
+                [
+                    html.Td(
+                        [
+                            html.I(
+                                className="fas fa-chart-bar me-2",
+                                style={"color": COLOR_PALETTE["points"]},
+                            ),
+                            "Points-based",
+                        ],
+                        className="text-start fw-semibold",
+                    ),
+                    html.Td(f"{pert_weeks_points:.1f} weeks", className="text-end"),
+                    html.Td(f"{runway_weeks:.1f} weeks", className="text-end"),
+                    html.Td(
+                        [
+                            html.I(className=f"fas {gap_points_icon} me-1"),
+                            html.Span(
+                                gap_points_text,
+                                style={"color": gap_points_color, "fontWeight": "bold"},
+                            ),
+                        ],
+                        className="text-end",
+                    ),
+                ]
+            )
+        )
+
+    alignment_table = dbc.Table(
+        [
+            html.Thead(
+                html.Tr(
+                    [
+                        html.Th("Metric", className="text-start"),
+                        html.Th("PERT Forecast", className="text-end"),
+                        html.Th("Budget Runway", className="text-end"),
+                        html.Th("Gap", className="text-end"),
+                    ]
+                )
+            ),
+            html.Tbody(table_rows),
+        ],
+        bordered=True,
+        hover=True,
+        responsive=True,
+        size="sm",
+    )
+
+    # Create card with health status badge
+    from ui.tooltip_utils import create_info_tooltip
+
+    card = dbc.Card(
+        [
+            dbc.CardHeader(
+                [
+                    html.Span(
+                        "Forecast vs Budget Alignment",
+                        className="fw-bold",
+                    ),
+                    " ",
+                    create_info_tooltip(
+                        help_text="Compares PERT forecast completion time with budget runway. "
+                        "Positive gap = budget outlasts forecast (healthy). "
+                        "Negative gap = budget exhausts before completion (risk). "
+                        "Budget runway is calculated from ACTUAL work completed, not just team cost.",
+                        id_suffix="metric-forecast_alignment",
+                        placement="top",
+                        variant="dark",
+                    ),
+                    html.Div(
+                        [
+                            html.I(className=f"fas {health_icon} me-1"),
+                            html.Span(
+                                overall_health,
+                                className="badge",
+                                style={
+                                    "backgroundColor": health_color,
+                                    "color": "white",
+                                    "fontSize": "0.85rem",
+                                    "padding": "0.35rem 0.65rem",
+                                },
+                            ),
+                        ],
+                        className="ms-auto d-flex align-items-center",
+                    ),
+                ],
+                className="d-flex align-items-center",
+            ),
+            dbc.CardBody(
+                [
+                    alignment_table,
+                    html.P(
+                        [
+                            html.I(className="fas fa-info-circle me-1"),
+                            html.Small(
+                                "Positive gap indicates sufficient budget for forecast completion. "
+                                "Negative gap suggests budget may exhaust before project completion. "
+                                "Runway calculated from actual burn rate (completed work × cost per item).",
+                                className="text-muted",
+                            ),
+                        ],
+                        className="mb-0 mt-2",
+                    ),
+                ],
+                className="pt-3",
+            ),
+        ],
+        id=card_id,
+        className="mb-3",
+    )
+
+    return card

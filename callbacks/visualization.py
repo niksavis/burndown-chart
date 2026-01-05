@@ -1045,7 +1045,17 @@ def register(app):
                         )
 
                         weeks = []
-                        current_date = datetime.now()
+                        # CRITICAL: Start from last statistics date, not today
+                        # Statistics are weekly (Mondays), so starting from "now" may include
+                        # incomplete current week with no data
+                        if not df.empty and "date" in df.columns:
+                            df["date"] = pd.to_datetime(
+                                df["date"], format="mixed", errors="coerce"
+                            )
+                            current_date = df["date"].max()
+                        else:
+                            current_date = datetime.now()
+
                         for i in range(data_points_count):
                             year, week = get_iso_week(current_date)
                             week_label = format_year_week(year, week)
@@ -1166,6 +1176,63 @@ def register(app):
                             )
                             logger.info(f"[BUDGET DEBUG] breakdown={cost_breakdown}")
 
+                            # Calculate additional budget metrics for UI cards
+                            from data.budget_calculator import _get_velocity
+                            from data.iso_week_bucketing import get_last_n_weeks
+
+                            # Get cost per item/point
+                            velocity_items = _get_velocity(
+                                profile_id, query_id, current_week_label
+                            )
+                            cost_per_item = (
+                                (
+                                    budget_config["team_cost_per_week_eur"]
+                                    / velocity_items
+                                )
+                                if velocity_items > 0
+                                else 0
+                            )
+                            cost_per_point = 0  # TODO: Add points velocity calculation
+
+                            # Get weekly burn rates for sparkline
+                            weekly_burn_rates = []
+                            weekly_labels = []
+                            weeks = get_last_n_weeks(min(data_points_count, 12))
+
+                            from data.database import get_db_connection
+
+                            conn_context = get_db_connection()
+                            with conn_context as conn:
+                                cursor = conn.cursor()
+                                for week_info in weeks:
+                                    wk_label = week_info[0]
+                                    weekly_labels.append(wk_label)
+
+                                    # Get completed items for this week
+                                    cursor.execute(
+                                        """
+                                        SELECT completed_items
+                                        FROM project_statistics
+                                        WHERE profile_id = ? AND query_id = ? AND week_label = ?
+                                        """,
+                                        (profile_id, query_id, wk_label),
+                                    )
+                                    result = cursor.fetchone()
+                                    completed = result[0] if result and result[0] else 0
+
+                                    # Calculate weekly cost
+                                    velocity = _get_velocity(
+                                        profile_id, query_id, wk_label
+                                    )
+                                    if velocity > 0:
+                                        weekly_cost = completed * (
+                                            budget_config["team_cost_per_week_eur"]
+                                            / velocity
+                                        )
+                                    else:
+                                        weekly_cost = 0
+                                    weekly_burn_rates.append(weekly_cost)
+
                             budget_data = {
                                 "configured": True,
                                 "currency_symbol": budget_config.get(
@@ -1177,10 +1244,35 @@ def register(app):
                                 "burn_rate": burn_rate,
                                 "runway_weeks": runway_weeks,
                                 "breakdown": cost_breakdown,
+                                # Additional fields for budget cards
+                                "cost_per_item": cost_per_item,
+                                "cost_per_point": cost_per_point,
+                                "weekly_burn_rates": weekly_burn_rates,
+                                "weekly_labels": weekly_labels,
+                                "burn_trend_pct": 0,  # TODO: Calculate trend
+                                "pert_cost_avg_item": None,  # TODO: Add PERT cost calculation
+                                "pert_cost_avg_point": None,
+                                "forecast_total": budget_total,  # TODO: Add forecast calculation
+                                "forecast_low": budget_total * 0.9,
+                                "forecast_high": budget_total * 1.1,
+                                "pert_forecast_weeks": pert_data.get(
+                                    "pert_time_items", 0
+                                )
+                                / 7
+                                if pert_data
+                                else 0,
                             }
+                            # Format runway for logging (handle inf and negative)
+                            import math
+
+                            if math.isinf(runway_weeks):
+                                runway_str = "inf"
+                            else:
+                                runway_str = f"{runway_weeks:.1f}"
+
                             logger.info(
                                 f"Budget data calculated: {consumed_pct:.1f}% consumed, "
-                                f"runway={runway_weeks:.1f} weeks"
+                                f"runway={runway_str} weeks, cost_per_item={cost_per_item:.2f}"
                             )
                         else:
                             logger.debug(

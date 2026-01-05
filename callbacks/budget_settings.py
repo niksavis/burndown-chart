@@ -7,7 +7,7 @@ revision tracking and modal interactions.
 
 import logging
 from datetime import datetime, timezone
-from dash import callback, Output, Input, State, no_update, ctx
+from dash import callback, Output, Input, State, no_update, ctx, html
 import dash_bootstrap_components as dbc
 
 from data.database import get_db_connection
@@ -30,6 +30,10 @@ logger = logging.getLogger(__name__)
         Output("budget-currency-symbol-input", "value"),
         Output("budget-team-cost-input", "value"),
         Output("budget-cost-rate-type", "value"),
+        Output("budget-effective-date-picker", "date"),
+        Output("budget-revision-history", "children"),
+        Output("budget-current-summary", "children"),
+        Output("budget-summary-card", "style"),
     ],
     [
         Input("profile-selector", "value"),
@@ -49,8 +53,66 @@ def load_budget_settings(profile_id, active_tab):
         Tuple of (store_data, status_indicator, time_input, total_input,
                   currency_input, cost_input, rate_type)
     """
-    if not profile_id or active_tab != "budget-tab":
+    # Only skip if we don't have a profile_id
+    if not profile_id:
         return (
+            no_update,
+            no_update,
+            no_update,
+            no_update,
+            no_update,
+            no_update,
+            no_update,
+            no_update,
+            no_update,
+            no_update,
+            {"display": "none"},
+        )
+
+    # If not on budget tab, only update the store (for other components to use)
+    # but skip updating the UI inputs
+    if active_tab != "budget-tab":
+        try:
+            with get_db_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute(
+                    """
+                    SELECT time_allocated_weeks, team_cost_per_week_eur,
+                           budget_total_eur, currency_symbol, cost_rate_type
+                    FROM budget_settings
+                    WHERE profile_id = ?
+                """,
+                    (profile_id,),
+                )
+                result = cursor.fetchone()
+                if result:
+                    store_data = {
+                        "time_allocated_weeks": result[0],
+                        "budget_total_eur": result[2],
+                        "currency_symbol": result[3] or "€",
+                        "team_cost_per_week_eur": result[1],
+                        "cost_rate_type": result[4] or "weekly",
+                    }
+                    return (
+                        store_data,
+                        no_update,
+                        no_update,
+                        no_update,
+                        no_update,
+                        no_update,
+                        no_update,
+                        no_update,
+                        no_update,
+                        no_update,
+                        no_update,
+                    )
+        except Exception:
+            pass
+        return (
+            no_update,
+            no_update,
+            no_update,
+            no_update,
             no_update,
             no_update,
             no_update,
@@ -83,7 +145,25 @@ def load_budget_settings(profile_id, active_tab):
                     dbc.Badge("Not Configured", color="secondary", className="me-2"),
                     "Configure budget to enable tracking",
                 ]
-                return {}, status, None, None, "€", None, "weekly"
+                empty_history = [
+                    html.P(
+                        "No budget configured yet.",
+                        className="text-muted small",
+                    )
+                ]
+                return (
+                    {},
+                    status,
+                    None,
+                    None,
+                    "€",
+                    None,
+                    "weekly",
+                    None,
+                    empty_history,
+                    [],
+                    {"display": "none"},
+                )
 
             # Budget exists
             time_allocated = result[0]
@@ -108,6 +188,130 @@ def load_budget_settings(profile_id, active_tab):
                 f"Last updated: {updated_at[:10] if updated_at else 'Unknown'}",
             ]
 
+            # Load budget revisions for history display
+            cursor.execute(
+                """
+                SELECT revision_date, week_label, time_allocated_weeks_delta,
+                       team_cost_delta, budget_total_delta, revision_reason
+                FROM budget_revisions
+                WHERE profile_id = ?
+                ORDER BY revision_date DESC
+                LIMIT 10
+            """,
+                (profile_id,),
+            )
+
+            revisions = cursor.fetchall()
+            if revisions:
+                revision_items = []
+                for rev in revisions:
+                    (
+                        rev_date,
+                        week_label,
+                        time_delta,
+                        cost_delta,
+                        total_delta,
+                        reason,
+                    ) = rev
+
+                    # Format changes
+                    changes = []
+                    if time_delta != 0:
+                        sign = "+" if time_delta > 0 else ""
+                        changes.append(f"{sign}{time_delta} weeks")
+                    if cost_delta != 0:
+                        sign = "+" if cost_delta > 0 else ""
+                        changes.append(f"{sign}{currency_symbol}{cost_delta:.0f}/week")
+                    if total_delta != 0:
+                        sign = "+" if total_delta > 0 else ""
+                        changes.append(
+                            f"{sign}{currency_symbol}{total_delta:,.0f} total"
+                        )
+
+                    change_text = ", ".join(changes) if changes else "No changes"
+
+                    revision_items.append(
+                        html.Div(
+                            [
+                                html.Div(
+                                    [
+                                        html.Strong(
+                                            f"Week {week_label}",
+                                            className="text-primary",
+                                        ),
+                                        html.Small(
+                                            f" ({rev_date[:10]})",
+                                            className="text-muted ms-2",
+                                        ),
+                                    ],
+                                    className="mb-1",
+                                ),
+                                html.Div(
+                                    [
+                                        html.I(
+                                            className="fas fa-arrow-right text-muted me-2"
+                                        ),
+                                        html.Span(change_text, className="fw-medium"),
+                                    ],
+                                    className="mb-1",
+                                ),
+                                html.Div(
+                                    [
+                                        html.I(
+                                            className="fas fa-comment-dots text-muted me-2"
+                                        ),
+                                        html.Span(
+                                            reason or "No reason provided",
+                                            className="text-muted small fst-italic",
+                                        ),
+                                    ]
+                                )
+                                if reason
+                                else None,
+                            ],
+                            className="border-start border-3 border-primary ps-3 mb-3",
+                        )
+                    )
+
+                revision_history = revision_items
+            else:
+                revision_history = [
+                    html.P(
+                        "No revisions yet. Budget changes will appear here after you update the budget.",
+                        className="text-muted small",
+                    )
+                ]
+
+            # Create current budget summary
+            summary = [
+                html.Div(
+                    [
+                        html.I(className="fas fa-calendar-alt me-2"),
+                        html.Strong("Time Allocated: "),
+                        f"{time_allocated} weeks",
+                    ],
+                    className="mb-2",
+                ),
+                html.Div(
+                    [
+                        html.I(className="fas fa-dollar-sign me-2"),
+                        html.Strong("Team Cost Rate: "),
+                        f"{currency_symbol}{team_cost:,.0f}/{cost_rate_type}",
+                    ],
+                    className="mb-2",
+                ),
+                html.Div(
+                    [
+                        html.I(className="fas fa-piggy-bank me-2"),
+                        html.Strong("Total Budget: "),
+                        f"{currency_symbol}{budget_total:,.0f}"
+                        if budget_total
+                        else "Not specified",
+                    ],
+                    className="mb-0",
+                ),
+            ]
+
             return (
                 store_data,
                 status,
@@ -116,6 +320,10 @@ def load_budget_settings(profile_id, active_tab):
                 currency_symbol,
                 team_cost,
                 cost_rate_type,
+                None,  # Reset effective date picker
+                revision_history,
+                summary,
+                {"display": "block"},  # Show summary card
             )
 
     except Exception as e:
@@ -124,12 +332,59 @@ def load_budget_settings(profile_id, active_tab):
             dbc.Badge("Error", color="danger", className="me-2"),
             f"Failed to load settings: {str(e)}",
         ]
-        return {}, error_status, None, None, "€", None, "weekly"
+        error_history = [
+            html.P(
+                f"Error loading revision history: {str(e)}",
+                className="text-danger small",
+            )
+        ]
+        return (
+            {},
+            error_status,
+            None,
+            None,
+            "€",
+            None,
+            "weekly",
+            None,
+            error_history,
+            [],
+            {"display": "none"},
+        )
 
 
 # ============================================================================
 # Budget Mode Toggle
 # ============================================================================
+
+
+@callback(
+    [
+        Output("revision-history-collapse", "is_open"),
+        Output("revision-history-chevron", "className"),
+    ],
+    Input("revision-history-toggle", "n_clicks"),
+    State("revision-history-collapse", "is_open"),
+    prevent_initial_call=True,
+)
+def toggle_revision_history(n_clicks, is_open):
+    """
+    Toggle budget revision history collapse.
+
+    Args:
+        n_clicks: Button click count
+        is_open: Current collapse state
+
+    Returns:
+        Tuple of (is_open, chevron_class)
+    """
+    if n_clicks:
+        new_state = not is_open
+        chevron_class = (
+            "fas fa-chevron-up ms-auto" if new_state else "fas fa-chevron-down ms-auto"
+        )
+        return new_state, chevron_class
+    return is_open, "fas fa-chevron-down ms-auto"
 
 
 @callback(
@@ -218,6 +473,7 @@ def update_cost_rate_helper(rate_type, currency_symbol):
         State("budget-cost-rate-type", "value"),
         State("budget-revision-reason-input", "value"),
         State("budget-settings-store", "data"),
+        State("budget-effective-date-picker", "date"),
     ],
     prevent_initial_call=True,
 )
@@ -232,6 +488,7 @@ def save_budget_settings(
     cost_rate_type,
     revision_reason,
     current_settings,
+    effective_date,
 ):
     """
     Save or update budget settings with revision tracking.
@@ -293,7 +550,20 @@ def save_budget_settings(
             budget_total = team_cost_weekly * time_allocated
 
         now_iso = datetime.now(timezone.utc).isoformat()
-        current_week = get_week_label(datetime.now())
+
+        # Use effective_date if provided, otherwise use current date
+        if effective_date:
+            # Parse the date string from DatePickerSingle (format: YYYY-MM-DD)
+            effective_dt = datetime.fromisoformat(effective_date)
+            current_week = get_week_label(effective_dt)
+            logger.info(
+                f"Using effective date {effective_date} for budget revision (week: {current_week})"
+            )
+        else:
+            current_week = get_week_label(datetime.now())
+            logger.info(
+                f"Using current date for budget revision (week: {current_week})"
+            )
 
         with get_db_connection() as conn:
             cursor = conn.cursor()
@@ -408,6 +678,146 @@ def save_budget_settings(
             duration=4000,
         )
         return error, no_update, False
+
+
+# ============================================================================
+# Refresh Budget Revision History After Save
+# ============================================================================
+
+
+@callback(
+    Output("budget-revision-history", "children", allow_duplicate=True),
+    [
+        Input("budget-settings-store", "data"),
+        Input("profile-selector", "value"),
+    ],
+    prevent_initial_call=True,
+)
+def refresh_budget_revision_history(store_data, profile_id):
+    """
+    Refresh budget revision history when store updates (after save).
+
+    Args:
+        store_data: Updated budget settings store
+        profile_id: Active profile identifier
+
+    Returns:
+        List of revision history UI elements
+    """
+    if not profile_id or not store_data:
+        return no_update
+
+    try:
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+
+            # Get currency symbol from store
+            currency_symbol = store_data.get("currency_symbol", "€")
+
+            # Load budget revisions
+            cursor.execute(
+                """
+                SELECT revision_date, week_label, time_allocated_weeks_delta,
+                       team_cost_delta, budget_total_delta, revision_reason
+                FROM budget_revisions
+                WHERE profile_id = ?
+                ORDER BY revision_date DESC
+                LIMIT 10
+            """,
+                (profile_id,),
+            )
+
+            revisions = cursor.fetchall()
+            if revisions:
+                revision_items = []
+                for rev in revisions:
+                    (
+                        rev_date,
+                        week_label,
+                        time_delta,
+                        cost_delta,
+                        total_delta,
+                        reason,
+                    ) = rev
+
+                    # Format changes
+                    changes = []
+                    if time_delta != 0:
+                        sign = "+" if time_delta > 0 else ""
+                        changes.append(f"{sign}{time_delta} weeks")
+                    if cost_delta != 0:
+                        sign = "+" if cost_delta > 0 else ""
+                        changes.append(f"{sign}{currency_symbol}{cost_delta:.0f}/week")
+                    if total_delta != 0:
+                        sign = "+" if total_delta > 0 else ""
+                        changes.append(
+                            f"{sign}{currency_symbol}{total_delta:,.0f} total"
+                        )
+
+                    change_text = ", ".join(changes) if changes else "No changes"
+
+                    revision_items.append(
+                        html.Div(
+                            [
+                                html.Div(
+                                    [
+                                        html.Strong(
+                                            f"Week {week_label}",
+                                            className="text-primary",
+                                        ),
+                                        html.Small(
+                                            f" ({rev_date[:10]})",
+                                            className="text-muted ms-2",
+                                        ),
+                                    ],
+                                    className="mb-1",
+                                ),
+                                html.Div(
+                                    [
+                                        html.I(
+                                            className="fas fa-arrow-right text-muted me-2"
+                                        ),
+                                        html.Span(change_text, className="fw-medium"),
+                                    ],
+                                    className="mb-1",
+                                ),
+                                (
+                                    html.Div(
+                                        [
+                                            html.I(
+                                                className="fas fa-comment-dots text-muted me-2"
+                                            ),
+                                            html.Span(
+                                                reason or "No reason provided",
+                                                className="text-muted small fst-italic",
+                                            ),
+                                        ]
+                                    )
+                                    if reason
+                                    else None
+                                ),
+                            ],
+                            className="border-start border-3 border-primary ps-3 mb-3",
+                        )
+                    )
+
+                return revision_items
+            else:
+                return [
+                    html.P(
+                        "No revisions yet. Budget changes will appear here after you update the budget.",
+                        className="text-muted small",
+                    )
+                ]
+
+    except Exception as e:
+        logger.error(f"Failed to refresh budget revision history: {e}")
+        return [
+            html.P(
+                f"Error loading revision history: {str(e)}",
+                className="text-danger small",
+            )
+        ]
 
 
 # ============================================================================

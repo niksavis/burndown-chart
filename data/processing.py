@@ -350,75 +350,104 @@ def calculate_rates(
     # CRITICAL: Filter out zero-value weeks before any calculations
     # Zero weeks (often from _fill_missing_weeks) should never influence rate calculations
     # as they would artificially lower pessimistic rates and extend forecasts unrealistically
-    grouped_filtered = grouped[
-        (grouped["completed_items"] > 0) & (grouped["completed_points"] > 0)
-    ].copy()
+    # Filter separately for items and points to support projects with only one tracking type
+    grouped_items_filtered = grouped[grouped["completed_items"] > 0].copy()
+    grouped_points_filtered = grouped[grouped["completed_points"] > 0].copy()
 
-    # If filtering removed all data, return zeros (insufficient data for forecasting)
-    if len(grouped_filtered) == 0:
+    # Determine which filtering to use based on available data
+    has_items_data = len(grouped_items_filtered) > 0
+    has_points_data = len(grouped_points_filtered) > 0
+
+    # If neither has data, return zeros (insufficient data for forecasting)
+    if not has_items_data and not has_points_data:
         return 0, 0, 0, 0, 0, 0
-
-    # Use filtered data for all calculations
-    grouped = grouped_filtered
 
     # Always calculate rates properly for both items and points
     # The show_points parameter should only affect UI display, not calculation logic
     days_per_week = 7.0
-    valid_data_count = len(grouped)
 
-    # When data is limited, adjust strategy to ensure stable results
-    if valid_data_count <= 3:
-        # With very few data points (≤3 weeks), use mean for all estimates
-        # This prevents unreliable forecasts when confidence window exceeds available data
-        most_likely_items_rate = grouped["completed_items"].mean() / days_per_week
-        most_likely_points_rate = grouped["completed_points"].mean() / days_per_week
+    # Calculate items rates if data exists
+    if has_items_data:
+        valid_items_count = len(grouped_items_filtered)
 
-        # Use the same value for optimistic and pessimistic to avoid erratic forecasts
-        # with tiny datasets (no meaningful best/worst case distinction possible)
-        optimistic_items_rate = most_likely_items_rate
-        pessimistic_items_rate = most_likely_items_rate
-        optimistic_points_rate = most_likely_points_rate
-        pessimistic_points_rate = most_likely_points_rate
+        # When data is limited, adjust strategy to ensure stable results
+        if valid_items_count <= 3:
+            # With very few data points (≤3 weeks), use mean for all estimates
+            most_likely_items_rate = (
+                grouped_items_filtered["completed_items"].mean() / days_per_week
+            )
+            optimistic_items_rate = most_likely_items_rate
+            pessimistic_items_rate = most_likely_items_rate
+        else:
+            # Normal case with sufficient data (4+ weeks)
+            valid_pert_factor = min(pert_factor, max(1, valid_items_count // 3))
+            valid_pert_factor = max(valid_pert_factor, 1)
+
+            optimistic_items_rate = (
+                grouped_items_filtered["completed_items"]
+                .nlargest(valid_pert_factor)
+                .mean()
+                / days_per_week
+            )
+            pessimistic_items_rate = (
+                grouped_items_filtered["completed_items"]
+                .nsmallest(valid_pert_factor)
+                .mean()
+                / days_per_week
+            )
+            most_likely_items_rate = (
+                grouped_items_filtered["completed_items"].mean() / days_per_week
+            )
+
+        # Prevent zero rates
+        optimistic_items_rate = max(0.001, optimistic_items_rate)
+        pessimistic_items_rate = max(0.001, pessimistic_items_rate)
+        most_likely_items_rate = max(0.001, most_likely_items_rate)
     else:
-        # Normal case with sufficient data (4+ weeks)
-        # Adjust confidence window to be at most 1/3 of available data for stable results
-        # This ensures we're sampling meaningful best/worst cases without overfitting
-        valid_pert_factor = min(pert_factor, max(1, valid_data_count // 3))
-        valid_pert_factor = max(valid_pert_factor, 1)  # Ensure at least 1
+        # No items data - set rates to minimal values
+        optimistic_items_rate = 0.001
+        pessimistic_items_rate = 0.001
+        most_likely_items_rate = 0.001
 
-        # Calculate daily rates for items using sampled weeks
-        # Optimistic: Average of N best performing weeks
-        optimistic_items_rate = (
-            grouped["completed_items"].nlargest(valid_pert_factor).mean()
-            / days_per_week
-        )
-        # Pessimistic: Average of N worst performing weeks
-        pessimistic_items_rate = (
-            grouped["completed_items"].nsmallest(valid_pert_factor).mean()
-            / days_per_week
-        )
-        # Most Likely: Average of ALL weeks (not sampled)
-        most_likely_items_rate = grouped["completed_items"].mean() / days_per_week
+    # Calculate points rates if data exists
+    if has_points_data:
+        valid_points_count = len(grouped_points_filtered)
 
-        # Calculate daily rates for points (same approach)
-        optimistic_points_rate = (
-            grouped["completed_points"].nlargest(valid_pert_factor).mean()
-            / days_per_week
-        )
-        pessimistic_points_rate = (
-            grouped["completed_points"].nsmallest(valid_pert_factor).mean()
-            / days_per_week
-        )
-        most_likely_points_rate = grouped["completed_points"].mean() / days_per_week
+        if valid_points_count <= 3:
+            most_likely_points_rate = (
+                grouped_points_filtered["completed_points"].mean() / days_per_week
+            )
+            optimistic_points_rate = most_likely_points_rate
+            pessimistic_points_rate = most_likely_points_rate
+        else:
+            valid_pert_factor = min(pert_factor, max(1, valid_points_count // 3))
+            valid_pert_factor = max(valid_pert_factor, 1)
 
-    # Prevent any zero or negative rates that would cause division by zero errors
-    # or negative time forecasts
-    optimistic_items_rate = max(0.001, optimistic_items_rate)
-    pessimistic_items_rate = max(0.001, pessimistic_items_rate)
-    most_likely_items_rate = max(0.001, most_likely_items_rate)
-    optimistic_points_rate = max(0.001, optimistic_points_rate)
-    pessimistic_points_rate = max(0.001, pessimistic_points_rate)
-    most_likely_points_rate = max(0.001, most_likely_points_rate)
+            optimistic_points_rate = (
+                grouped_points_filtered["completed_points"]
+                .nlargest(valid_pert_factor)
+                .mean()
+                / days_per_week
+            )
+            pessimistic_points_rate = (
+                grouped_points_filtered["completed_points"]
+                .nsmallest(valid_pert_factor)
+                .mean()
+                / days_per_week
+            )
+            most_likely_points_rate = (
+                grouped_points_filtered["completed_points"].mean() / days_per_week
+            )
+
+        # Prevent zero rates
+        optimistic_points_rate = max(0.001, optimistic_points_rate)
+        pessimistic_points_rate = max(0.001, pessimistic_points_rate)
+        most_likely_points_rate = max(0.001, most_likely_points_rate)
+    else:
+        # No points data - set rates to minimal values
+        optimistic_points_rate = 0.001
+        pessimistic_points_rate = 0.001
+        most_likely_points_rate = 0.001
 
     # Calculate time estimates for items
     optimistic_time_items = (
@@ -724,6 +753,17 @@ def daily_forecast_burnup(
         final_date = start_date + timedelta(days=min(days_needed, MAX_FORECAST_DAYS))
         dates.append(final_date)
         values.append(target_scope)
+
+    # Debug logging
+    import logging
+
+    logger = logging.getLogger(__name__)
+    if dates:
+        logger.info(
+            f"[BURNUP FORECAST] start={start_date.strftime('%Y-%m-%d')}, end={dates[-1].strftime('%Y-%m-%d')}, "
+            f"days={(dates[-1] - start_date).days}, target={target_scope:.1f}, daily_rate={daily_rate:.4f}, "
+            f"sample_interval={sample_interval}, points_generated={len(dates)}"
+        )
 
     return (dates, values)
 

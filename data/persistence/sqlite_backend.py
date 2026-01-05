@@ -48,6 +48,34 @@ from data.database import get_db_connection
 logger = logging.getLogger(__name__)
 
 
+def _extract_nested_field(fields_dict: Dict, field_path: str) -> Any:
+    """Extract value from nested field path (e.g., 'resolved.resolutiondate').
+
+    Args:
+        fields_dict: JIRA fields dictionary
+        field_path: Field path, may contain dots for nested access
+
+    Returns:
+        Field value or None if not found
+    """
+    if not field_path:
+        return None
+
+    # Handle nested field paths (e.g., "resolved.resolutiondate")
+    if "." in field_path:
+        parts = field_path.split(".")
+        value = fields_dict
+        for part in parts:
+            if isinstance(value, dict):
+                value = value.get(part)
+            else:
+                return None
+        return value
+    else:
+        # Simple field (e.g., "created", "resolutiondate")
+        return fields_dict.get(field_path)
+
+
 # ========================================================================
 # Retry Logic for Database Locks (T062, T064)
 # ========================================================================
@@ -555,10 +583,11 @@ class SQLiteBackend(PersistenceBackend):
         if not issues:
             return
 
-        # Load profile configuration to get points field mapping
+        # Load profile configuration to get points field mapping and general field mappings
         profile_data = self.get_profile(profile_id)
         jira_config = {}
         points_field = None
+        field_mappings = {}
 
         if profile_data:
             # get_profile already parses jira_config from JSON to dict
@@ -572,12 +601,48 @@ class SQLiteBackend(PersistenceBackend):
             else:
                 logger.warning(f"Unexpected jira_config type: {type(jira_config)}")
 
+            # Get general field mappings for standard JIRA fields
+            field_mappings = profile_data.get("field_mappings", {})
+            if not isinstance(field_mappings, dict):
+                field_mappings = {}
+                logger.warning(
+                    f"Unexpected field_mappings type: {type(field_mappings)}"
+                )
+
+        # Get general field mappings with fallbacks to standard JIRA field names
+        general_mappings = field_mappings.get("general", {})
+        if not isinstance(general_mappings, dict):
+            general_mappings = {}
+
+        completed_date_field = general_mappings.get("completed_date", "resolutiondate")
+        created_date_field = general_mappings.get("created_date", "created")
+        updated_date_field = general_mappings.get("updated_date", "updated")
+
         try:
             with get_db_connection(self.db_path) as conn:
                 cursor = conn.cursor()
 
                 for issue in issues:
                     fields = issue.get("fields", {})
+
+                    # DEBUG: Log field structure for resolved issues
+                    if fields.get("resolution"):
+                        logger.info(
+                            f"[DEBUG] Issue {issue.get('key')} has resolution: {fields.get('resolution')}"
+                        )
+                        logger.info(f"[DEBUG] Field keys: {list(fields.keys())[:20]}")
+                        if "resolved" in fields:
+                            logger.info(
+                                f"[DEBUG] 'resolved' field type: {type(fields['resolved'])}, value: {fields['resolved']}"
+                            )
+                        else:
+                            logger.info(
+                                "[DEBUG] 'resolved' field NOT FOUND in fields dict"
+                            )
+                        if "resolutiondate" in fields:
+                            logger.info(
+                                f"[DEBUG] 'resolutiondate' field found: {fields['resolutiondate']}"
+                            )
 
                     # === RAW LAYER: Save ALL custom fields (immutable) ===
                     custom_fields_raw = {
@@ -647,9 +712,15 @@ class SQLiteBackend(PersistenceBackend):
                             fields.get("issuetype", {}).get("name", ""),
                             fields.get("priority", {}).get("name"),
                             fields.get("resolution", {}).get("name"),
-                            fields.get("created"),
-                            fields.get("updated"),
-                            fields.get("resolutiondate"),
+                            _extract_nested_field(
+                                fields, created_date_field
+                            ),  # Supports nested: "created"
+                            _extract_nested_field(
+                                fields, updated_date_field
+                            ),  # Supports nested: "updated"
+                            _extract_nested_field(
+                                fields, completed_date_field
+                            ),  # Supports nested: "resolved.resolutiondate"
                             points,  # ← Normalized from configured points_field (can be NULL)
                             fields.get("project", {}).get("key", ""),
                             fields.get("project", {}).get("name", ""),

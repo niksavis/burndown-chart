@@ -252,7 +252,7 @@ def calculate_cost_breakdown_by_type(
             # Get completed issues
             cursor.execute(
                 """
-                SELECT issue_type, fields
+                SELECT issue_type, custom_fields
                 FROM jira_issues
                 WHERE profile_id = ?
                   AND query_id = ?
@@ -360,8 +360,10 @@ def calculate_runway(
         remaining = total - consumed
 
         # Get last N weeks for burn rate calculation
-        weights = [0.1, 0.2, 0.3, 0.4][:data_points_count]
-        weeks = get_last_n_weeks(data_points_count)
+        # Use last 4 weeks for weighted average (not data_points_count which could be larger)
+        weeks_for_burn = min(data_points_count, 4)
+        weights = [0.1, 0.2, 0.3, 0.4][:weeks_for_burn]
+        weeks = get_last_n_weeks(weeks_for_burn)
 
         conn_context = (
             get_db_connection() if db_path is None else get_db_connection(db_path)
@@ -395,6 +397,10 @@ def calculate_runway(
                     weekly_cost = 0.0
 
                 weekly_costs.append(weekly_cost)
+                logger.debug(
+                    f"Week {wk_label}: completed={completed}, velocity={velocity:.2f}, "
+                    f"cost={weekly_cost:.2f}"
+                )
 
         # Calculate weighted burn rate
         if not weekly_costs or all(c == 0 for c in weekly_costs):
