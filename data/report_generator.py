@@ -557,6 +557,12 @@ def _calculate_dashboard_metrics(
         df_windowed["date"].iloc[-1] if not df_windowed.empty else datetime.now()
     )
 
+    logger.info(
+        f"[REPORT FORECAST] last_date={last_date.strftime('%Y-%m-%d') if hasattr(last_date, 'strftime') else last_date}, "
+        f"pert_days={pert_days}, df_windowed_rows={len(df_windowed)}, "
+        f"completion_date={(last_date + timedelta(days=pert_days)).strftime('%Y-%m-%d') if pert_days and pert_days > 0 else 'None'}"
+    )
+
     if pert_days and pert_days > 0:
         # Start forecast from last statistics date (last Monday), not today
         # This aligns with weekly data aggregation structure

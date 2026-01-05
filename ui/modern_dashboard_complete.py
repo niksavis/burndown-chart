@@ -288,7 +288,12 @@ def create_modern_dashboard_content(
     - All forecast methods (PERT, Average, Median)
     - Trend indicators
     """
-    current_date = datetime.now()
+    # Use last statistics date as forecast starting point (aligns with report)
+    # Statistics are weekly-based (Mondays), so forecast should start from last data point
+    # NOT datetime.now() which could be any day of the week
+    current_date = (
+        statistics_df["date"].iloc[-1] if not statistics_df.empty else datetime.now()
+    )
 
     # Calculate completed and remaining
     completed_items = (

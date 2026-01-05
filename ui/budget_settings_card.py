@@ -100,7 +100,7 @@ def _create_current_budget_card_content(
             ],
             className="fw-semibold mb-2",
             style={
-                "fontSize": "0.95rem",
+                "fontSize": "0.875rem",
                 "paddingTop": "0.5rem",
                 "paddingLeft": "0.25rem",
             },
@@ -268,10 +268,10 @@ def _create_current_budget_card(
     return dbc.Card(
         dbc.CardBody(
             content,
-            style={"padding": "1rem 1.25rem"},
+            style={"padding": "0.75rem 1rem"},
         ),
         id="budget-current-card",
-        className=f"mb-3 border-{card_color.split('-')[0]} shadow-sm",
+        className=f"mb-2 border-{card_color.split('-')[0]} shadow-sm",
         style={"backgroundColor": f"var(--bs-{card_color})"},
     )
 
@@ -316,7 +316,8 @@ def _create_budget_total_mode_selector(
                         style={"cursor": "pointer"},
                     ),
                 ],
-                className="fw-bold",
+                className="mb-1",
+                style={"fontSize": "0.875rem", "fontWeight": "600"},
             ),
             dbc.Tooltip(
                 "Choose how to calculate Total Budget. Auto mode derives from Time × Team Cost. "
@@ -328,68 +329,88 @@ def _create_budget_total_mode_selector(
                 id="budget-total-mode",
                 options=[
                     {
-                        "label": "Auto-calculate (Time × Team Cost) [recommended]",
+                        "label": "Auto (Time × Cost)",
                         "value": "auto",
                     },
                     {
-                        "label": "Manual override (specify exact amount)",
+                        "label": "Manual override",
                         "value": "manual",
                     },
                 ],
                 value=current_mode,
+                inline=True,
                 className="mb-2",
+                style={"fontSize": "0.875rem"},
             ),
             # Auto-calculate preview (shown when auto mode selected)
             html.Div(
                 [
-                    html.I(className="fas fa-arrow-right text-muted me-2"),
-                    html.Span("Calculated: ", className="text-muted small"),
                     html.Span(
-                        id="budget-total-auto-preview",
-                        children=f"{currency_symbol}{auto_value:,.2f}",
-                        className="fw-bold",
+                        [
+                            html.I(
+                                className="fas fa-arrow-right text-primary me-2",
+                                style={"fontSize": "0.75rem"},
+                            ),
+                            "Calculated: ",
+                            html.Span(
+                                id="budget-total-auto-preview",
+                                children=f"{currency_symbol}{auto_value:,.2f}",
+                                className="fw-bold",
+                            ),
+                        ],
+                        style={"fontSize": "0.875rem"},
                     ),
                 ],
                 id="budget-total-auto-container",
-                className="ms-4 mb-3",
+                className="ms-3 mb-2",
                 style={"display": "block" if current_mode == "auto" else "none"},
             ),
             # Manual input (shown when manual mode selected)
             html.Div(
                 [
-                    dbc.InputGroup(
+                    html.Div(
                         [
-                            dbc.InputGroupText(
-                                id="budget-total-manual-currency",
-                                children=currency_symbol,
+                            dbc.InputGroup(
+                                [
+                                    dbc.InputGroupText(
+                                        id="budget-total-manual-currency",
+                                        children=currency_symbol,
+                                        style={"padding": "0.25rem 0.5rem"},
+                                    ),
+                                    dbc.Input(
+                                        id="budget-total-manual-input",
+                                        type="number",
+                                        min=0,
+                                        step=10,
+                                        placeholder="e.g., 60000",
+                                        className="text-end",
+                                        style={"maxWidth": "150px"},
+                                        size="sm",
+                                    ),
+                                ],
+                                size="sm",
+                                style={"maxWidth": "220px", "display": "inline-flex"},
                             ),
-                            dbc.Input(
-                                id="budget-total-manual-input",
-                                type="number",
-                                min=0,
-                                step=10,
-                                placeholder="e.g., 60000",
-                                className="text-end",
+                            html.Small(
+                                [
+                                    html.I(
+                                        className="fas fa-exclamation-triangle me-1"
+                                    ),
+                                    "Overrides auto-calculation above",
+                                ],
+                                className="text-warning ms-1",
+                                style={"fontSize": "0.75rem"},
                             ),
                         ],
-                        className="mb-2",
-                    ),
-                    dbc.Alert(
-                        [
-                            html.I(className="fas fa-exclamation-triangle me-2"),
-                            "Manual override active. Use this when budget includes non-team costs "
-                            "(e.g., external contractors, licenses, infrastructure).",
-                        ],
-                        color="warning",
-                        className="small py-2 mb-0",
+                        className="d-flex align-items-center",
                     ),
                 ],
                 id="budget-total-manual-container",
-                className="ms-4 mb-3",
+                className="mb-2",
                 style={"display": "none" if current_mode == "auto" else "block"},
             ),
         ],
-        className="mb-4",
+        className="mb-2",
     )
 
 
@@ -446,44 +467,59 @@ def _create_advanced_options_collapse() -> html.Div:
                                         ),
                                         "Danger Zone",
                                     ],
-                                    className="text-danger mb-3",
+                                    className="text-danger mb-2",
                                 ),
-                                html.Div(
+                                # Danger Zone buttons in 2 columns
+                                dbc.Row(
                                     [
-                                        html.P(
-                                            "Delete all budget revision history and reset baseline. This action cannot be undone.",
-                                            className="text-muted small mb-2",
-                                        ),
-                                        dbc.Button(
+                                        dbc.Col(
                                             [
-                                                html.I(className="fas fa-trash me-2"),
-                                                "Reset Budget Baseline...",
-                                            ],
-                                            id="budget-delete-history-button",
-                                            color="danger",
-                                            outline=True,
-                                            size="sm",
-                                            className="me-2",
-                                        ),
-                                    ],
-                                    className="mb-3",
-                                ),
-                                html.Div(
-                                    [
-                                        html.P(
-                                            "Completely remove budget configuration. This will delete all data and cannot be undone.",
-                                            className="text-muted small mb-2",
-                                        ),
-                                        dbc.Button(
-                                            [
-                                                html.I(
-                                                    className="fas fa-times-circle me-2"
+                                                html.P(
+                                                    "Delete all budget revision history and reset baseline.",
+                                                    className="text-muted small mb-2",
+                                                    style={"fontSize": "0.75rem"},
                                                 ),
-                                                "Delete Budget Completely...",
+                                                dbc.Button(
+                                                    [
+                                                        html.I(
+                                                            className="fas fa-trash me-2"
+                                                        ),
+                                                        "Reset Baseline...",
+                                                    ],
+                                                    id="budget-delete-history-button",
+                                                    color="danger",
+                                                    outline=True,
+                                                    size="sm",
+                                                    className="w-100",
+                                                ),
                                             ],
-                                            id="budget-delete-complete-button",
-                                            color="danger",
-                                            size="sm",
+                                            xs=12,
+                                            md=6,
+                                            className="mb-2",
+                                        ),
+                                        dbc.Col(
+                                            [
+                                                html.P(
+                                                    "Completely remove budget configuration and all data.",
+                                                    className="text-muted small mb-2",
+                                                    style={"fontSize": "0.75rem"},
+                                                ),
+                                                dbc.Button(
+                                                    [
+                                                        html.I(
+                                                            className="fas fa-times-circle me-2"
+                                                        ),
+                                                        "Delete Completely...",
+                                                    ],
+                                                    id="budget-delete-complete-button",
+                                                    color="danger",
+                                                    size="sm",
+                                                    className="w-100",
+                                                ),
+                                            ],
+                                            xs=12,
+                                            md=6,
+                                            className="mb-2",
                                         ),
                                     ],
                                 ),
@@ -529,13 +565,14 @@ def create_budget_settings_card() -> html.Div:
             ),
             # Current Budget Card (Always Visible)
             _create_current_budget_card(budget_data=None, show_placeholder=True),
-            html.Hr(className="my-4"),
-            # Time Allocated and Team Cost Row
+            html.Hr(className="my-3"),
+            # Main Budget Configuration Row - Time Allocated, Team Cost, Effective Date, Reason
             dbc.Row(
                 [
+                    # Time Allocated (col 1)
                     dbc.Col(
                         [
-                            dbc.Label(
+                            html.Label(
                                 [
                                     "Time Allocated ",
                                     html.I(
@@ -543,39 +580,52 @@ def create_budget_settings_card() -> html.Div:
                                         id="time-allocated-tooltip",
                                         style={"cursor": "pointer"},
                                     ),
-                                ]
+                                ],
+                                className="form-label fw-medium",
+                                style={"fontSize": "0.875rem"},
                             ),
                             dbc.Tooltip(
-                                "Number of weeks allocated for project completion. Use forecast time period or project deadline.",
+                                "Weeks to complete",
                                 target="time-allocated-tooltip",
-                                placement="right",
+                                placement="top",
                             ),
                             dbc.InputGroup(
                                 [
-                                    dbc.InputGroupText("±"),
+                                    dbc.InputGroupText(
+                                        "±", style={"padding": "0.25rem 0.5rem"}
+                                    ),
                                     dbc.Input(
                                         id="budget-time-allocated-input",
                                         type="number",
                                         min=1,
                                         step=1,
-                                        placeholder="e.g., 12",
+                                        placeholder="12",
                                         className="text-end",
+                                        size="sm",
                                     ),
-                                    dbc.InputGroupText("weeks"),
-                                ]
+                                    dbc.InputGroupText(
+                                        "wks", style={"padding": "0.25rem 0.5rem"}
+                                    ),
+                                ],
+                                size="sm",
                             ),
                             html.Small(
                                 id="budget-time-current-value",
                                 className="text-muted d-block mt-1",
                                 children="Current: Not set",
+                                style={"fontSize": "0.75rem"},
                             ),
                         ],
                         xs=12,
+                        sm=6,
                         md=6,
+                        lg=2,
+                        className="mb-3",
                     ),
+                    # Team Cost (col 2)
                     dbc.Col(
                         [
-                            dbc.Label(
+                            html.Label(
                                 [
                                     "Team Cost ",
                                     html.I(
@@ -583,12 +633,14 @@ def create_budget_settings_card() -> html.Div:
                                         id="team-cost-tooltip",
                                         style={"cursor": "pointer"},
                                     ),
-                                ]
+                                ],
+                                className="form-label fw-medium",
+                                style={"fontSize": "0.875rem"},
                             ),
                             dbc.Tooltip(
-                                "Weekly cost of your team. Use total blended rate for all team members. Currency symbol is editable.",
+                                "Weekly cost",
                                 target="team-cost-tooltip",
-                                placement="right",
+                                placement="top",
                             ),
                             dbc.InputGroup(
                                 [
@@ -599,101 +651,124 @@ def create_budget_settings_card() -> html.Div:
                                         placeholder="€",
                                         value="€",
                                         style={
-                                            "maxWidth": "50px",
+                                            "maxWidth": "45px",
                                             "fontWeight": "bold",
+                                            "padding": "0.25rem 0.25rem",
                                         },
                                         className="text-center",
+                                        size="sm",
                                     ),
-                                    dbc.InputGroupText("±"),
+                                    dbc.InputGroupText(
+                                        "±", style={"padding": "0.25rem 0.5rem"}
+                                    ),
                                     dbc.Input(
                                         id="budget-team-cost-input",
                                         type="number",
                                         min=0,
                                         step=10,
-                                        placeholder="e.g., 4000",
+                                        placeholder="4000",
                                         className="text-end",
+                                        size="sm",
                                     ),
-                                    dbc.InputGroupText("/week"),
-                                ]
+                                    dbc.InputGroupText(
+                                        "/wk", style={"padding": "0.25rem 0.5rem"}
+                                    ),
+                                ],
+                                size="sm",
                             ),
                             html.Small(
                                 id="budget-cost-current-value",
                                 className="text-muted d-block mt-1",
                                 children="Current: Not set",
+                                style={"fontSize": "0.75rem"},
                             ),
                         ],
                         xs=12,
+                        sm=6,
                         md=6,
+                        lg=3,
+                        className="mb-3",
                     ),
-                ],
-                className="mb-4",
-            ),
-            # Budget Total Calculation Mode Selector
-            _create_budget_total_mode_selector(current_mode="auto"),
-            # Effective Date (visible by default for clarity)
-            html.Div(
-                [
-                    dbc.Label(
+                    # Effective Date (col 3)
+                    dbc.Col(
                         [
-                            "Effective Date ",
-                            html.I(
-                                className="fas fa-info-circle text-muted ms-1",
-                                id="budget-effective-date-info-tooltip",
-                                style={"cursor": "pointer"},
+                            html.Label(
+                                [
+                                    "Effective Date ",
+                                    html.I(
+                                        className="fas fa-info-circle text-muted ms-1",
+                                        id="budget-effective-date-info-tooltip",
+                                        style={"cursor": "pointer"},
+                                    ),
+                                ],
+                                className="form-label fw-medium",
+                                style={"fontSize": "0.875rem"},
+                            ),
+                            dbc.Tooltip(
+                                "Budget start date",
+                                target="budget-effective-date-info-tooltip",
+                                placement="top",
+                            ),
+                            dcc.DatePickerSingle(
+                                id="budget-effective-date-picker",
+                                date=None,
+                                display_format="YYYY-MM-DD",
+                                placeholder="Today",
+                                clearable=True,
+                                className="w-100",
+                                style={"fontSize": "0.875rem"},
+                            ),
+                            html.Small(
+                                "Leave empty for today",
+                                className="text-muted d-block mt-1",
+                                style={"fontSize": "0.75rem"},
                             ),
                         ],
-                        className="fw-bold",
+                        xs=12,
+                        sm=6,
+                        md=6,
+                        lg=2,
+                        className="mb-3",
                     ),
-                    dbc.Tooltip(
-                        "Budget takes effect from this date. Leave empty to use today's date. "
-                        "Use retroactive dates if entering budget for past periods.",
-                        target="budget-effective-date-info-tooltip",
-                        placement="right",
-                    ),
-                    dcc.DatePickerSingle(
-                        id="budget-effective-date-picker",
-                        date=None,  # Default to None (will use current date in callback)
-                        display_format="YYYY-MM-DD",
-                        placeholder="Today (leave empty for current date)",
-                        clearable=True,
-                        className="mb-2",
-                        style={"width": "100%"},
-                    ),
-                    html.Small(
-                        "💡 Tip: Budget is applied from this date forward. Leave empty to start from today.",
-                        className="text-muted d-block",
-                    ),
-                ],
-                className="mb-3",
-            ),
-            # Revision Reason
-            html.Div(
-                [
-                    dbc.Label(
+                    # Reason (col 4)
+                    dbc.Col(
                         [
-                            "Reason for Change (optional) ",
-                            html.I(
-                                className="fas fa-info-circle text-muted ms-1",
-                                id="revision-reason-tooltip",
-                                style={"cursor": "pointer"},
+                            html.Label(
+                                [
+                                    "Reason (optional) ",
+                                    html.I(
+                                        className="fas fa-info-circle text-muted ms-1",
+                                        id="revision-reason-tooltip",
+                                        style={"cursor": "pointer"},
+                                    ),
+                                ],
+                                className="form-label fw-medium",
+                                style={"fontSize": "0.875rem"},
                             ),
-                        ]
-                    ),
-                    dbc.Tooltip(
-                        "Document why the budget changed for audit trail and team transparency.",
-                        target="revision-reason-tooltip",
-                        placement="right",
-                    ),
-                    dbc.Textarea(
-                        id="budget-revision-reason-input",
-                        placeholder="e.g., Additional funding approved for Phase 2",
-                        rows=2,
-                        maxLength=500,
-                        style={"resize": "vertical"},
+                            dbc.Tooltip(
+                                "Why budget changed",
+                                target="revision-reason-tooltip",
+                                placement="top",
+                            ),
+                            dbc.Textarea(
+                                id="budget-revision-reason-input",
+                                placeholder="e.g., Additional funding for Phase 2",
+                                rows=1,
+                                maxLength=500,
+                                style={"resize": "vertical", "fontSize": "0.875rem"},
+                                size="sm",
+                            ),
+                        ],
+                        xs=12,
+                        sm=6,
+                        md=6,
+                        lg=5,
+                        className="mb-3",
                     ),
                 ],
-                className="mb-3",
             ),
+            # Budget Total Calculation Mode Selector (Row 2)
+            _create_budget_total_mode_selector(current_mode="auto"),
             # Action buttons
             html.Div(
                 [
@@ -722,9 +797,9 @@ def create_budget_settings_card() -> html.Div:
                         placement="top",
                     ),
                 ],
-                className="mb-4",
+                className="mb-3",
             ),
-            html.Hr(className="my-4"),
+            html.Hr(className="my-3"),
             # Advanced Options (Collapsible)
             _create_advanced_options_collapse(),
             # Delete History Confirmation Modal

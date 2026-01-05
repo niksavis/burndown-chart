@@ -1092,6 +1092,9 @@ def register(app):
                         # Filter by week_label if available, otherwise fall back to date range
                         if "week_label" in df.columns:
                             df = df[df["week_label"].isin(week_labels)]
+                            # CRITICAL: Sort after filtering to ensure .iloc[-1] gets the chronologically last date
+                            # This matches report_generator.py logic and ensures forecast dates align
+                            df = df.sort_values("date", ascending=True)
                             logger.info(
                                 f"Filtered to {len(df)} rows using week_label matching"
                             )

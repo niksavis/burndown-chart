@@ -172,6 +172,7 @@ def _create_import_export_tab():
                         ],
                         value="CONFIG_ONLY",  # Default to secure option
                         className="mb-2",
+                        style={"fontSize": "0.875rem"},
                     ),
                 ],
                 className="mb-2",
@@ -183,7 +184,7 @@ def _create_import_export_tab():
                         id="include-token-checkbox",
                         label="Include JIRA Token (⚠️ Security Risk)",
                         value=False,  # Default unchecked
-                        className="mb-1",
+                        style={"fontSize": "0.875rem"},
                     ),
                     dbc.Tooltip(
                         "Including token allows recipient to access your JIRA instance. Only enable for personal backups.",
@@ -200,7 +201,7 @@ def _create_import_export_tab():
                         id="include-budget-checkbox",
                         label="Include Budget Data",
                         value=False,  # Default unchecked
-                        className="mb-1",
+                        style={"fontSize": "0.875rem"},
                     ),
                     dbc.Tooltip(
                         "Budget data is project-specific. Uncheck when sharing configurations with others.",
@@ -208,7 +209,7 @@ def _create_import_export_tab():
                         placement="right",
                     ),
                 ],
-                className="mb-3",
+                className="mb-2",
             ),
             html.Div(
                 [

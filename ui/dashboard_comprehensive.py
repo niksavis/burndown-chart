@@ -857,10 +857,10 @@ def _create_executive_summary(statistics_df, settings, forecast_data):
                                                             html.Div(
                                                                 "--",
                                                                 style={
-                                                                    "fontSize": "1.5rem",
+                                                                    "fontSize": "2rem",
                                                                     "color": "#adb5bd",
-                                                                    "marginTop": "15px",
-                                                                    "marginBottom": "15px",
+                                                                    "marginTop": "20px",
+                                                                    "marginBottom": "20px",
                                                                 },
                                                             ),
                                                             html.Div(
@@ -2589,10 +2589,18 @@ def create_comprehensive_dashboard(
 
     # Extract last statistics date for forecast starting point (aligns with weekly data structure)
     # CRITICAL: Statistics are weekly-based (Mondays), so use last Monday data point not datetime.now()
+    # Use iloc[-1] (not max()) to ensure we get the LAST date in the sorted/filtered dataframe
+    # This matches report_generator.py logic exactly (df_windowed["date"].iloc[-1])
     last_date = (
-        statistics_df["date"].max()
+        statistics_df["date"].iloc[-1]
         if not statistics_df.empty and "date" in statistics_df.columns
         else datetime.now()
+    )
+
+    logger.info(
+        f"[DASHBOARD FORECAST] last_date={last_date.strftime('%Y-%m-%d') if hasattr(last_date, 'strftime') else last_date}, "
+        f"forecast_days={forecast_days}, statistics_rows={len(statistics_df)}, "
+        f"completion_date={(last_date + timedelta(days=forecast_days)).strftime('%Y-%m-%d') if forecast_days else 'None'}"
     )
 
     forecast_data = {
