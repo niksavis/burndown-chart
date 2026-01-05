@@ -266,16 +266,34 @@ def _create_current_budget_card(
         card_color = "success-subtle"
 
     return dbc.Card(
-        dbc.CardBody(
-            content,
-            id="budget-current-card-body",
-            style={
-                "padding": "0.75rem 1rem",
-                "minHeight": "200px",
-                "maxHeight": "200px",
-                "overflowY": "auto",
-            },
-        ),
+        [
+            dbc.CardBody(
+                content,
+                id="budget-current-card-body",
+                style={
+                    "padding": "0.75rem 1rem",
+                    "minHeight": "200px",
+                    "maxHeight": "200px",
+                    "overflowY": "auto",
+                },
+            ),
+            dbc.CardFooter(
+                dbc.Button(
+                    [
+                        html.I(className="fas fa-trash me-2 d-none d-sm-inline"),
+                        html.I(className="fas fa-trash d-inline d-sm-none"),
+                        html.Span("Delete Budget", className="d-none d-sm-inline"),
+                    ],
+                    id="budget-delete-complete-button",
+                    color="danger",
+                    outline=True,
+                    size="sm",
+                    className="w-100",
+                ),
+                className="bg-light border-top py-2",
+                style={"padding": "0.5rem"},
+            ),
+        ],
         id="budget-current-card",
         className=f"mb-2 border-{card_color.split('-')[0]} shadow-sm h-100",
         style={"backgroundColor": f"var(--bs-{card_color})"},
@@ -435,84 +453,104 @@ def _create_revision_history_card() -> dbc.Card:
         - budget-revision-history-page-info: Page info text
     """
     return dbc.Card(
-        dbc.CardBody(
-            [
-                # Title
-                html.Div(
-                    [
-                        html.I(className="fas fa-history text-primary me-2"),
-                        "Revision History",
-                    ],
-                    className="fw-bold mb-2",
-                    style={"fontSize": "0.9rem"},
-                ),
-                # Revision history table container
-                html.Div(
-                    id="budget-revision-history",
-                    children=[
-                        html.P(
-                            "No revisions yet. Budget changes will appear here.",
-                            className="text-muted small text-center",
-                            style={"padding": "1rem 0"},
-                        )
-                    ],
-                    style={
-                        "overflowY": "auto",
-                        "flex": "1",
-                        "marginBottom": "0.5rem",
-                    },
-                ),
-                # Pagination controls at bottom
-                html.Div(
-                    dbc.Row(
+        [
+            dbc.CardBody(
+                [
+                    # Title
+                    html.Div(
                         [
-                            dbc.Col(
-                                dbc.ButtonGroup(
-                                    [
-                                        dbc.Button(
-                                            html.I(className="fas fa-chevron-left"),
-                                            id="budget-revision-history-prev",
-                                            size="sm",
-                                            color="secondary",
-                                            outline=True,
-                                            disabled=True,
-                                        ),
-                                        dbc.Button(
-                                            html.I(className="fas fa-chevron-right"),
-                                            id="budget-revision-history-next",
-                                            size="sm",
-                                            color="secondary",
-                                            outline=True,
-                                            disabled=True,
-                                        ),
-                                    ],
-                                    size="sm",
-                                ),
-                                width="auto",
-                            ),
-                            dbc.Col(
-                                html.Small(
-                                    "Page 1 of 1",
-                                    id="budget-revision-history-page-info",
-                                    className="text-muted",
-                                ),
-                                className="d-flex align-items-center",
-                            ),
+                            html.I(className="fas fa-history text-primary me-2"),
+                            "Revision History",
                         ],
-                        className="g-2 align-items-center",
+                        className="fw-bold mb-2",
+                        style={"fontSize": "0.9rem"},
                     ),
-                    className="border-top pt-2",
-                    style={"borderColor": "#dee2e6 !important"},
+                    # Revision history table container
+                    html.Div(
+                        id="budget-revision-history",
+                        children=[
+                            html.P(
+                                "No revisions yet. Budget changes will appear here.",
+                                className="text-muted small text-center",
+                                style={"padding": "1rem 0"},
+                            )
+                        ],
+                        style={
+                            "overflowY": "auto",
+                            "flex": "1",
+                            "marginBottom": "0.5rem",
+                        },
+                    ),
+                    # Pagination controls
+                    html.Div(
+                        dbc.Row(
+                            [
+                                dbc.Col(
+                                    dbc.ButtonGroup(
+                                        [
+                                            dbc.Button(
+                                                html.I(className="fas fa-chevron-left"),
+                                                id="budget-revision-history-prev",
+                                                size="sm",
+                                                color="secondary",
+                                                outline=True,
+                                                disabled=True,
+                                            ),
+                                            dbc.Button(
+                                                html.I(
+                                                    className="fas fa-chevron-right"
+                                                ),
+                                                id="budget-revision-history-next",
+                                                size="sm",
+                                                color="secondary",
+                                                outline=True,
+                                                disabled=True,
+                                            ),
+                                        ],
+                                        size="sm",
+                                    ),
+                                    width="auto",
+                                ),
+                                dbc.Col(
+                                    html.Small(
+                                        "Page 1 of 1",
+                                        id="budget-revision-history-page-info",
+                                        className="text-muted",
+                                    ),
+                                    className="d-flex align-items-center",
+                                ),
+                            ],
+                            className="g-2 align-items-center",
+                        ),
+                        className="border-top pt-2",
+                        style={"borderColor": "#dee2e6 !important"},
+                    ),
+                ],
+                style={
+                    "padding": "0.75rem 1rem",
+                    "minHeight": "200px",
+                    "maxHeight": "200px",
+                    "display": "flex",
+                    "flexDirection": "column",
+                },
+            ),
+            dbc.CardFooter(
+                dbc.Button(
+                    [
+                        html.I(className="fas fa-eraser me-2 d-none d-sm-inline"),
+                        html.I(className="fas fa-eraser d-inline d-sm-none"),
+                        html.Span("Clear History", className="d-none d-sm-inline"),
+                    ],
+                    id="budget-delete-history-button",
+                    color="danger",
+                    outline=True,
+                    size="sm",
+                    className="w-100",
                 ),
-            ],
-            style={
-                "padding": "0.75rem 1rem",
-                "minHeight": "200px",
-                "maxHeight": "200px",
-                "display": "flex",
-                "flexDirection": "column",
-            },
-        ),
+                className="bg-light border-top py-2",
+                style={"padding": "0.5rem"},
+            ),
+        ],
         id="budget-revision-history-card",
         className="mb-2 border-secondary shadow-sm h-100",
         style={"backgroundColor": "var(--bs-light)"},
@@ -863,76 +901,80 @@ def create_budget_settings_card() -> html.Div:
             ),
             # Budget Total Calculation Mode Selector (Row 2)
             _create_budget_total_mode_selector(current_mode="auto"),
-            # Action buttons
+            # Action button
             html.Div(
-                [
-                    dbc.ButtonGroup(
-                        [
-                            dbc.Button(
-                                [
-                                    html.I(className="fas fa-save me-2"),
-                                    "Save Budget Update",
-                                ],
-                                id="save-budget-button",
-                                color="primary",
-                            ),
-                            dbc.Button(
-                                [html.I(className="fas fa-times me-2"), "Cancel"],
-                                id="cancel-budget-button",
-                                color="secondary",
-                                outline=True,
-                            ),
-                        ],
-                        className="w-100",
-                    ),
-                    dbc.Tooltip(
-                        "Discard changes and restore previous budget configuration",
-                        target="cancel-budget-button",
-                        placement="top",
-                    ),
-                ],
+                dbc.Button(
+                    [
+                        html.I(className="fas fa-save"),
+                        html.Span("Update Budget"),
+                    ],
+                    id="save-budget-button",
+                    color="primary",
+                    className="action-button",
+                ),
                 className="mb-3",
             ),
-            html.Hr(className="my-3"),
-            # Advanced Options (Collapsible)
-            _create_advanced_options_collapse(),
             # Delete History Confirmation Modal
             dbc.Modal(
                 [
                     dbc.ModalHeader(
                         dbc.ModalTitle(
                             [
-                                html.I(
-                                    className="fas fa-exclamation-triangle text-danger me-2"
-                                ),
-                                "Confirm Delete Budget History",
+                                html.I(className="fas fa-eraser text-danger me-2"),
+                                "Clear Budget History",
                             ]
-                        )
+                        ),
+                        close_button=True,
                     ),
                     dbc.ModalBody(
                         [
                             html.P(
+                                "Are you sure you want to clear all budget revision history?",
+                                className="mb-3",
+                            ),
+                            # Data Loss Warning
+                            dbc.Alert(
                                 [
-                                    html.Strong("Warning: "),
-                                    "This will permanently delete all budget revision history and reset the budget baseline. "
-                                    "This action cannot be undone.",
+                                    html.Div(
+                                        [
+                                            html.I(
+                                                className="fas fa-exclamation-triangle me-2"
+                                            ),
+                                            html.Strong(
+                                                "This will permanently delete:"
+                                            ),
+                                        ],
+                                        className="mb-2",
+                                    ),
+                                    html.Ul(
+                                        [
+                                            html.Li("All budget revision history"),
+                                            html.Li("Historical change tracking"),
+                                            html.Li("Audit trail of budget updates"),
+                                        ],
+                                        className="mb-2",
+                                    ),
+                                    html.Div(
+                                        [
+                                            html.I(className="fas fa-ban me-2"),
+                                            html.Strong(
+                                                "This action cannot be undone."
+                                            ),
+                                        ],
+                                        className="text-danger",
+                                    ),
                                 ],
-                                className="text-danger",
+                                color="danger",
+                                className="mb-2",
                             ),
-                            html.P(
-                                "Budget revisions track changes over time and provide valuable audit trails. "
-                                "Only delete history if you need to completely reset the budget tracking."
-                            ),
-                            html.Hr(),
-                            dbc.Checklist(
-                                id="budget-delete-history-confirm-checkbox",
-                                options=[
-                                    {
-                                        "label": "I understand this will permanently delete all budget revision history",
-                                        "value": "confirmed",
-                                    }
+                            # Info about what remains
+                            dbc.Alert(
+                                [
+                                    html.I(className="fas fa-info-circle me-2"),
+                                    "Current budget configuration will remain active.",
                                 ],
-                                value=[],
+                                color="info",
+                                className="mb-0",
                             ),
                         ]
                     ),
@@ -942,16 +984,16 @@ def create_budget_settings_card() -> html.Div:
                                 "Cancel",
                                 id="budget-delete-history-cancel-button",
                                 color="secondary",
-                                className="me-2",
+                                outline=True,
+                                className="me-auto",
                             ),
                             dbc.Button(
                                 [
-                                    html.I(className="fas fa-trash me-2"),
-                                    "Confirm Delete History",
+                                    html.I(className="fas fa-eraser me-2"),
+                                    "Clear History",
                                 ],
                                 id="budget-delete-history-confirm-button",
                                 color="danger",
-                                disabled=True,
                             ),
                         ]
                     ),
@@ -959,6 +1001,8 @@ def create_budget_settings_card() -> html.Div:
                 id="budget-delete-history-modal",
                 is_open=False,
                 backdrop="static",
+                centered=True,
+                size="md",
             ),
             # Modal for deleting complete budget
             dbc.Modal(
@@ -966,37 +1010,74 @@ def create_budget_settings_card() -> html.Div:
                     dbc.ModalHeader(
                         dbc.ModalTitle(
                             [
-                                html.I(
-                                    className="fas fa-times-circle text-danger me-2"
-                                ),
-                                "Delete Budget Completely",
+                                html.I(className="fas fa-trash text-danger me-2"),
+                                "Delete Budget",
                             ]
-                        )
+                        ),
+                        close_button=True,
                     ),
                     dbc.ModalBody(
                         [
                             html.P(
+                                "Are you sure you want to delete the entire budget configuration?",
+                                className="mb-3",
+                            ),
+                            # Data Loss Warning
+                            dbc.Alert(
                                 [
-                                    html.Strong("Warning: "),
-                                    "This will permanently delete the entire budget configuration including all history and revisions. "
-                                    "This action cannot be undone.",
+                                    html.Div(
+                                        [
+                                            html.I(
+                                                className="fas fa-exclamation-triangle me-2"
+                                            ),
+                                            html.Strong(
+                                                "This will permanently delete:"
+                                            ),
+                                        ],
+                                        className="mb-2",
+                                    ),
+                                    html.Ul(
+                                        [
+                                            html.Li(
+                                                "Budget configuration (time allocated, team cost, total)"
+                                            ),
+                                            html.Li("All budget revision history"),
+                                            html.Li("Historical change tracking"),
+                                            html.Li("All budget-related calculations"),
+                                        ],
+                                        className="mb-2",
+                                    ),
+                                    html.Div(
+                                        [
+                                            html.I(className="fas fa-ban me-2"),
+                                            html.Strong(
+                                                "This action cannot be undone."
+                                            ),
+                                        ],
+                                        className="text-danger",
+                                    ),
                                 ],
-                                className="text-danger",
+                                color="danger",
+                                className="mb-3",
                             ),
-                            html.P(
-                                "You will need to reconfigure the budget from scratch if you proceed. "
-                                "Consider using 'Reset Budget Baseline' instead if you only want to clear the revision history."
-                            ),
-                            html.Hr(),
-                            dbc.Checklist(
-                                id="budget-delete-complete-confirm-checkbox",
-                                options=[
-                                    {
-                                        "label": "I understand this will permanently delete the entire budget configuration",
-                                        "value": "confirmed",
-                                    }
-                                ],
-                                value=[],
+                            dbc.Row(
+                                [
+                                    dbc.Col(
+                                        [
+                                            dbc.Label(
+                                                'Type "DELETE" to confirm:',
+                                                html_for="budget-delete-confirmation-input",
+                                            ),
+                                            dbc.Input(
+                                                id="budget-delete-confirmation-input",
+                                                type="text",
+                                                placeholder="Type DELETE here...",
+                                                className="mb-3",
+                                            ),
+                                        ],
+                                        width=12,
+                                    ),
+                                ]
                             ),
                         ]
                     ),
@@ -1006,12 +1087,13 @@ def create_budget_settings_card() -> html.Div:
                                 "Cancel",
                                 id="budget-delete-complete-cancel-button",
                                 color="secondary",
-                                className="me-2",
+                                outline=True,
+                                className="me-auto",
                             ),
                             dbc.Button(
                                 [
-                                    html.I(className="fas fa-times-circle me-2"),
-                                    "Confirm Delete Budget",
+                                    html.I(className="fas fa-trash me-2"),
+                                    "Delete Budget",
                                 ],
                                 id="budget-delete-complete-confirm-button",
                                 color="danger",
@@ -1023,6 +1105,8 @@ def create_budget_settings_card() -> html.Div:
                 id="budget-delete-complete-modal",
                 is_open=False,
                 backdrop="static",
+                centered=True,
+                size="md",
             ),
         ]
     )

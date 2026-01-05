@@ -857,41 +857,6 @@ def refresh_budget_revision_history(store_data, profile_id, current_page):
 # Cancel Button
 # ============================================================================
 
-
-@callback(
-    [
-        Output("budget-time-allocated-input", "value", allow_duplicate=True),
-        Output("budget-total-manual-input", "value", allow_duplicate=True),
-        Output("budget-team-cost-input", "value", allow_duplicate=True),
-        Output("budget-revision-reason-input", "value"),
-    ],
-    Input("cancel-budget-button", "n_clicks"),
-    State("budget-settings-store", "data"),
-    prevent_initial_call=True,
-)
-def cancel_budget_changes(n_clicks, current_settings):
-    """
-    Reset form to current settings when cancel is clicked.
-
-    Args:
-        n_clicks: Cancel button clicks
-        current_settings: Current budget settings from store
-
-    Returns:
-        Tuple of (time_input, manual_total_input, cost_input, reason_input)
-    """
-    if not n_clicks or not current_settings:
-        return no_update, no_update, no_update, no_update
-
-    budget_total = current_settings.get("budget_total_eur")
-    return (
-        current_settings.get("time_allocated_weeks"),
-        budget_total,
-        current_settings.get("team_cost_per_week_eur"),
-        "",
-    )
-
-
 # ============================================================================
 # Budget Alert Toggle
 # ============================================================================
@@ -1126,24 +1091,6 @@ def toggle_delete_history_modal(delete_clicks, cancel_clicks, confirm_clicks, is
 
 
 @callback(
-    Output("budget-delete-history-confirm-button", "disabled"),
-    Input("budget-delete-history-confirm-checkbox", "value"),
-    prevent_initial_call=True,
-)
-def enable_delete_confirm_button(checkbox_values):
-    """
-    Enable confirm button only when checkbox is checked.
-
-    Args:
-        checkbox_values: List of checked values
-
-    Returns:
-        bool: Button disabled state
-    """
-    return "confirmed" not in (checkbox_values or [])
-
-
-@callback(
     [
         Output("app-notifications", "children", allow_duplicate=True),
         Output("budget-settings-store", "data", allow_duplicate=True),
@@ -1251,20 +1198,20 @@ def toggle_delete_complete_modal(delete_clicks, cancel_clicks, confirm_clicks, i
 
 @callback(
     Output("budget-delete-complete-confirm-button", "disabled"),
-    Input("budget-delete-complete-confirm-checkbox", "value"),
+    Input("budget-delete-confirmation-input", "value"),
     prevent_initial_call=True,
 )
-def enable_delete_complete_button(checkbox_values):
+def enable_delete_complete_button(confirmation_text):
     """
-    Enable confirm button only when checkbox is checked.
+    Enable confirm button only when user types "DELETE".
 
     Args:
-        checkbox_values: List of checked values
+        confirmation_text: Text entered by user
 
     Returns:
         bool: Button disabled state
     """
-    return "confirmed" not in (checkbox_values or [])
+    return (confirmation_text or "").strip().upper() != "DELETE"
 
 
 @callback(
