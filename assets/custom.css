@@ -4719,5 +4719,48 @@ body {
 }
 
 /* ================================================================
+   Placeholder Text Styling
+   ================================================================ */
+
+/* Make placeholder text more transparent and distinguishable from actual values */
+.form-control::placeholder,
+.form-control::-webkit-input-placeholder,
+.form-control::-moz-placeholder,
+.form-control:-ms-input-placeholder {
+  color: #adb5bd !important; /* Bootstrap gray-400, lighter than default */
+  opacity: 0.6 !important;
+  font-style: italic;
+}
+
+/* Textarea placeholders */
+textarea.form-control::placeholder,
+textarea.form-control::-webkit-input-placeholder,
+textarea.form-control::-moz-placeholder,
+textarea.form-control:-ms-input-placeholder {
+  color: #adb5bd !important;
+  opacity: 0.6 !important;
+  font-style: italic;
+}
+
+/* Budget-specific input placeholders (extra specificity for consistency) */
+#budget-time-allocated-input::placeholder,
+#budget-currency-symbol-input::placeholder,
+#budget-team-cost-input::placeholder,
+#budget-total-manual-input::placeholder,
+#budget-revision-reason-input::placeholder,
+#budget-delete-confirmation-input::placeholder {
+  color: #adb5bd !important;
+  opacity: 0.6 !important;
+  font-style: italic;
+}
+
+/* Date picker placeholder */
+#budget-effective-date-picker .DateInput_input::placeholder {
+  color: #adb5bd !important;
+  opacity: 0.6 !important;
+  font-style: italic;
+}
+
+/* ================================================================
    End of Custom Styles
    ================================================================ */
