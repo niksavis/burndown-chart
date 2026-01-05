@@ -6,6 +6,7 @@ revision tracking and modal interactions.
 """
 
 import logging
+import math
 from datetime import datetime, timezone
 from dash import callback, Output, Input, State, no_update, ctx, html
 
@@ -14,6 +15,189 @@ from data.iso_week_bucketing import get_week_label
 from ui.budget_settings_card import _create_current_budget_card_content
 
 logger = logging.getLogger(__name__)
+
+# Pagination settings
+REVISIONS_PER_PAGE = 2
+
+
+def _create_revision_history_table(
+    revisions, currency_symbol, page=1, per_page=REVISIONS_PER_PAGE
+):
+    """
+    Create paginated revision history table with navigation controls.
+
+    Args:
+        revisions: List of revision tuples from database
+        currency_symbol: Currency symbol for display
+        page: Current page number (1-indexed)
+        per_page: Number of revisions per page
+
+    Returns:
+        Tuple of (table_element, page_info, prev_disabled, next_disabled, total_pages)
+    """
+    if not revisions:
+        return (
+            html.P(
+                "No revisions yet. Budget changes will appear here.",
+                className="text-muted small text-center",
+                style={"padding": "1rem 0"},
+            ),
+            "Page 1 of 1",
+            True,
+            True,
+            1,
+        )
+
+    total_revisions = len(revisions)
+    total_pages = math.ceil(total_revisions / per_page)
+
+    # Ensure page is within bounds
+    page = max(1, min(page, total_pages))
+
+    # Calculate slice indices
+    start_idx = (page - 1) * per_page
+    end_idx = min(start_idx + per_page, total_revisions)
+
+    paginated_revisions = revisions[start_idx:end_idx]
+
+    # Create table rows
+    table_rows = []
+    for rev in paginated_revisions:
+        (
+            rev_date,
+            week_label,
+            time_delta,
+            cost_delta,
+            total_delta,
+            reason,
+        ) = rev
+
+        # Format changes compactly
+        changes = []
+        if time_delta != 0:
+            sign = "+" if time_delta > 0 else ""
+            changes.append(
+                html.Span(
+                    f"{sign}{time_delta}w",
+                    className="badge bg-primary me-1",
+                    style={"fontSize": "0.7rem"},
+                )
+            )
+        if cost_delta != 0:
+            sign = "+" if cost_delta > 0 else ""
+            changes.append(
+                html.Span(
+                    f"{sign}{currency_symbol}{cost_delta:.0f}/wk",
+                    className="badge bg-info me-1",
+                    style={"fontSize": "0.7rem"},
+                )
+            )
+        if total_delta != 0:
+            sign = "+" if total_delta > 0 else ""
+            badge_class = "bg-success" if total_delta > 0 else "bg-danger"
+            changes.append(
+                html.Span(
+                    f"{sign}{currency_symbol}{total_delta:,.0f}",
+                    className=f"badge {badge_class}",
+                    style={"fontSize": "0.7rem"},
+                )
+            )
+
+        table_rows.append(
+            html.Tr(
+                [
+                    html.Td(
+                        html.Strong(
+                            week_label,
+                            style={"fontSize": "0.7rem"},
+                        ),
+                        style={
+                            "verticalAlign": "top",
+                            "width": "95px",
+                            "padding": "0.4rem",
+                            "whiteSpace": "nowrap",
+                        },
+                    ),
+                    html.Td(
+                        html.Small(
+                            rev_date[:10],
+                            className="text-muted",
+                            style={"fontSize": "0.7rem"},
+                        ),
+                        style={
+                            "verticalAlign": "top",
+                            "width": "90px",
+                            "padding": "0.4rem",
+                        },
+                    ),
+                    html.Td(
+                        changes
+                        if changes
+                        else html.Span("No changes", className="text-muted small"),
+                        style={"verticalAlign": "top", "padding": "0.4rem"},
+                    ),
+                    html.Td(
+                        html.Small(
+                            reason or "—",
+                            className="text-muted fst-italic",
+                            style={"fontSize": "0.7rem"},
+                        ),
+                        style={"verticalAlign": "top", "padding": "0.4rem"},
+                    )
+                    if reason
+                    else html.Td(
+                        "—",
+                        className="text-muted",
+                        style={"verticalAlign": "top", "padding": "0.4rem"},
+                    ),
+                ],
+                style={"borderBottom": "1px solid #e9ecef"},
+            )
+        )
+
+    table = html.Table(
+        [
+            html.Thead(
+                html.Tr(
+                    [
+                        html.Th(
+                            "Week",
+                            style={
+                                "fontSize": "0.75rem",
+                                "width": "95px",
+                                "padding": "0.4rem",
+                            },
+                        ),
+                        html.Th(
+                            "Date",
+                            style={
+                                "fontSize": "0.75rem",
+                                "width": "90px",
+                                "padding": "0.4rem",
+                            },
+                        ),
+                        html.Th(
+                            "Changes",
+                            style={"fontSize": "0.75rem", "padding": "0.4rem"},
+                        ),
+                        html.Th(
+                            "Reason", style={"fontSize": "0.75rem", "padding": "0.4rem"}
+                        ),
+                    ],
+                    style={"borderBottom": "2px solid #dee2e6"},
+                )
+            ),
+            html.Tbody(table_rows),
+        ],
+        className="table table-sm table-hover",
+        style={"fontSize": "0.8rem", "marginBottom": "0"},
+    )
+
+    page_info = f"Page {page} of {total_pages}"
+    prev_disabled = page <= 1
+    next_disabled = page >= total_pages
+
+    return table, page_info, prev_disabled, next_disabled, total_pages
 
 
 # ============================================================================
@@ -33,6 +217,9 @@ logger = logging.getLogger(__name__)
         Output("budget-total-mode", "value"),
         Output("budget-time-current-value", "children"),
         Output("budget-cost-current-value", "children"),
+        Output("budget-revision-history-page-info", "children"),
+        Output("budget-revision-history-prev", "disabled"),
+        Output("budget-revision-history-next", "disabled"),
     ],
     [
         Input("profile-selector", "value"),
@@ -55,6 +242,9 @@ def load_budget_settings(profile_id, active_tab):
     # Only skip if we don't have a profile_id
     if not profile_id:
         return (
+            no_update,
+            no_update,
+            no_update,
             no_update,
             no_update,
             no_update,
@@ -103,10 +293,16 @@ def load_budget_settings(profile_id, active_tab):
                         no_update,
                         no_update,
                         no_update,
+                        no_update,
+                        no_update,
+                        no_update,
                     )
         except Exception:
             pass
         return (
+            no_update,
+            no_update,
+            no_update,
             no_update,
             no_update,
             no_update,
@@ -155,6 +351,9 @@ def load_budget_settings(profile_id, active_tab):
                     "auto",  # Default to auto mode
                     "Current: Not set",
                     "Current: Not set",
+                    "Page 1 of 1",
+                    True,
+                    True,
                 )
 
             # Budget exists
@@ -183,7 +382,7 @@ def load_budget_settings(profile_id, active_tab):
             else:
                 budget_mode = "auto"
 
-            # Load budget revisions for history display
+            # Load budget revisions for history display (paginate with helper)
             cursor.execute(
                 """
                 SELECT revision_date, week_label, time_allocated_weeks_delta,
@@ -191,91 +390,21 @@ def load_budget_settings(profile_id, active_tab):
                 FROM budget_revisions
                 WHERE profile_id = ?
                 ORDER BY revision_date DESC
-                LIMIT 10
             """,
                 (profile_id,),
             )
 
             revisions = cursor.fetchall()
+
+            # Use helper to create paginated table
+            table, page_info, prev_disabled, next_disabled, _ = (
+                _create_revision_history_table(revisions, currency_symbol, page=1)
+            )
+
             if revisions:
-                revision_items = []
-                for rev in revisions:
-                    (
-                        rev_date,
-                        week_label_rev,
-                        time_delta,
-                        cost_delta,
-                        total_delta,
-                        reason,
-                    ) = rev
-
-                    # Format changes
-                    changes = []
-                    if time_delta != 0:
-                        sign = "+" if time_delta > 0 else ""
-                        changes.append(f"{sign}{time_delta} weeks")
-                    if cost_delta != 0:
-                        sign = "+" if cost_delta > 0 else ""
-                        changes.append(f"{sign}{currency_symbol}{cost_delta:.0f}/week")
-                    if total_delta != 0:
-                        sign = "+" if total_delta > 0 else ""
-                        changes.append(
-                            f"{sign}{currency_symbol}{total_delta:,.0f} total"
-                        )
-
-                    change_text = ", ".join(changes) if changes else "No changes"
-
-                    revision_items.append(
-                        html.Div(
-                            [
-                                html.Div(
-                                    [
-                                        html.Strong(
-                                            f"Week {week_label_rev}",
-                                            className="text-primary",
-                                        ),
-                                        html.Small(
-                                            f" ({rev_date[:10]})",
-                                            className="text-muted ms-2",
-                                        ),
-                                    ],
-                                    className="mb-1",
-                                ),
-                                html.Div(
-                                    [
-                                        html.I(
-                                            className="fas fa-arrow-right text-muted me-2"
-                                        ),
-                                        html.Span(change_text, className="fw-medium"),
-                                    ],
-                                    className="mb-1",
-                                ),
-                                html.Div(
-                                    [
-                                        html.I(
-                                            className="fas fa-comment-dots text-muted me-2"
-                                        ),
-                                        html.Span(
-                                            reason or "No reason provided",
-                                            className="text-muted small fst-italic",
-                                        ),
-                                    ]
-                                )
-                                if reason
-                                else None,
-                            ],
-                            className="border-start border-3 border-primary ps-3 mb-3",
-                        )
-                    )
-
-                revision_history = revision_items
+                revision_history = [table]
             else:
-                revision_history = [
-                    html.P(
-                        "No revisions yet. Budget changes will appear here after you update the budget.",
-                        className="text-muted small",
-                    )
-                ]
+                revision_history = [table]  # Helper returns placeholder for empty
 
             return (
                 store_data,
@@ -288,6 +417,9 @@ def load_budget_settings(profile_id, active_tab):
                 budget_mode,
                 f"Current: {time_allocated} weeks",
                 f"Current: {currency_symbol}{team_cost:,.2f}/week",
+                page_info,
+                prev_disabled,
+                next_disabled,
             )
 
     except Exception as e:
@@ -310,6 +442,9 @@ def load_budget_settings(profile_id, active_tab):
             "auto",
             f"Error: {str(e)}",
             f"Error: {str(e)}",
+            "Page 1 of 1",
+            True,
+            True,
         )
 
 
@@ -604,7 +739,7 @@ def save_budget_settings(
 
 
 @callback(
-    Output("budget-current-card", "children", allow_duplicate=True),
+    Output("budget-current-card-body", "children", allow_duplicate=True),
     Input("budget-settings-store", "data"),
     prevent_initial_call="initial_duplicate",
 )
@@ -660,16 +795,18 @@ def refresh_current_budget_card(store_data):
     [
         Input("budget-settings-store", "data"),
         Input("profile-selector", "value"),
+        Input("budget-revision-history-page", "data"),
     ],
     prevent_initial_call=True,
 )
-def refresh_budget_revision_history(store_data, profile_id):
+def refresh_budget_revision_history(store_data, profile_id, current_page):
     """
     Refresh budget revision history when store updates (after save).
 
     Args:
         store_data: Updated budget settings store
         profile_id: Active profile identifier
+        current_page: Current pagination page
 
     Returns:
         List of revision history UI elements
@@ -684,7 +821,7 @@ def refresh_budget_revision_history(store_data, profile_id):
             # Get currency symbol from store
             currency_symbol = store_data.get("currency_symbol", "€")
 
-            # Load budget revisions
+            # Load ALL budget revisions (no LIMIT for pagination)
             cursor.execute(
                 """
                 SELECT revision_date, week_label, time_allocated_weeks_delta,
@@ -692,93 +829,19 @@ def refresh_budget_revision_history(store_data, profile_id):
                 FROM budget_revisions
                 WHERE profile_id = ?
                 ORDER BY revision_date DESC
-                LIMIT 10
             """,
                 (profile_id,),
             )
 
             revisions = cursor.fetchall()
-            if revisions:
-                revision_items = []
-                for rev in revisions:
-                    (
-                        rev_date,
-                        week_label,
-                        time_delta,
-                        cost_delta,
-                        total_delta,
-                        reason,
-                    ) = rev
 
-                    # Format changes
-                    changes = []
-                    if time_delta != 0:
-                        sign = "+" if time_delta > 0 else ""
-                        changes.append(f"{sign}{time_delta} weeks")
-                    if cost_delta != 0:
-                        sign = "+" if cost_delta > 0 else ""
-                        changes.append(f"{sign}{currency_symbol}{cost_delta:.0f}/week")
-                    if total_delta != 0:
-                        sign = "+" if total_delta > 0 else ""
-                        changes.append(
-                            f"{sign}{currency_symbol}{total_delta:,.0f} total"
-                        )
+            # Use helper function to create paginated table
+            page = current_page if current_page else 1
+            table, _, _, _, _ = _create_revision_history_table(
+                revisions, currency_symbol, page=page
+            )
 
-                    change_text = ", ".join(changes) if changes else "No changes"
-
-                    revision_items.append(
-                        html.Div(
-                            [
-                                html.Div(
-                                    [
-                                        html.Strong(
-                                            f"Week {week_label}",
-                                            className="text-primary",
-                                        ),
-                                        html.Small(
-                                            f" ({rev_date[:10]})",
-                                            className="text-muted ms-2",
-                                        ),
-                                    ],
-                                    className="mb-1",
-                                ),
-                                html.Div(
-                                    [
-                                        html.I(
-                                            className="fas fa-arrow-right text-muted me-2"
-                                        ),
-                                        html.Span(change_text, className="fw-medium"),
-                                    ],
-                                    className="mb-1",
-                                ),
-                                (
-                                    html.Div(
-                                        [
-                                            html.I(
-                                                className="fas fa-comment-dots text-muted me-2"
-                                            ),
-                                            html.Span(
-                                                reason or "No reason provided",
-                                                className="text-muted small fst-italic",
-                                            ),
-                                        ]
-                                    )
-                                    if reason
-                                    else None
-                                ),
-                            ],
-                            className="border-start border-3 border-primary ps-3 mb-3",
-                        )
-                    )
-
-                return revision_items
-            else:
-                return [
-                    html.P(
-                        "No revisions yet. Budget changes will appear here after you update the budget.",
-                        className="text-muted small",
-                    )
-                ]
+            return [table]
 
     except Exception as e:
         logger.error(f"Failed to refresh budget revision history: {e}")
@@ -857,22 +920,22 @@ def toggle_budget_alert_details(n_clicks, is_open):
 
 
 # ============================================================================
-# Revision History Toggle
+# Danger Zone Toggle & Revision History Pagination
 # ============================================================================
 
 
 @callback(
     [
-        Output("budget-revision-history-collapse", "is_open"),
-        Output("budget-revision-history-chevron", "className"),
+        Output("budget-danger-zone-collapse", "is_open"),
+        Output("budget-danger-zone-chevron", "className"),
     ],
-    Input("budget-revision-history-toggle", "n_clicks"),
-    State("budget-revision-history-collapse", "is_open"),
+    Input("budget-danger-zone-toggle", "n_clicks"),
+    State("budget-danger-zone-collapse", "is_open"),
     prevent_initial_call=True,
 )
-def toggle_revision_history(n_clicks, is_open):
+def toggle_danger_zone(n_clicks, is_open):
     """
-    Toggle revision history collapse.
+    Toggle danger zone collapse.
 
     Args:
         n_clicks: Button click count
@@ -888,6 +951,106 @@ def toggle_revision_history(n_clicks, is_open):
         )
         return new_state, chevron_class
     return is_open, "fas fa-chevron-down ms-auto"
+
+
+@callback(
+    Output("budget-revision-history-page", "data"),
+    [
+        Input("budget-revision-history-prev", "n_clicks"),
+        Input("budget-revision-history-next", "n_clicks"),
+    ],
+    State("budget-revision-history-page", "data"),
+    prevent_initial_call=True,
+)
+def handle_revision_pagination(prev_clicks, next_clicks, current_page):
+    """
+    Handle revision history pagination button clicks.
+
+    Args:
+        prev_clicks: Previous button click count
+        next_clicks: Next button click count
+        current_page: Current page number (1-indexed)
+
+    Returns:
+        int: New page number
+    """
+    if not ctx.triggered:
+        return current_page or 1
+
+    button_id = ctx.triggered[0]["prop_id"].split(".")[0]
+
+    page = current_page or 1
+
+    if button_id == "budget-revision-history-prev" and page > 1:
+        return page - 1
+    elif button_id == "budget-revision-history-next":
+        return page + 1
+
+    return page
+
+
+@callback(
+    [
+        Output("budget-revision-history", "children", allow_duplicate=True),
+        Output("budget-revision-history-page-info", "children", allow_duplicate=True),
+        Output("budget-revision-history-prev", "disabled", allow_duplicate=True),
+        Output("budget-revision-history-next", "disabled", allow_duplicate=True),
+    ],
+    [
+        Input("budget-revision-history-page", "data"),
+        Input("budget-settings-store", "data"),
+    ],
+    State("profile-selector", "value"),
+    prevent_initial_call=True,
+)
+def update_revision_history_page(page, store_data, profile_id):
+    """
+    Update revision history table when page changes.
+
+    Args:
+        page: Current page number
+        store_data: Budget settings store
+        profile_id: Active profile identifier
+
+    Returns:
+        Tuple of (table, page_info, prev_disabled, next_disabled)
+    """
+    if not profile_id or not store_data:
+        return no_update, no_update, no_update, no_update
+
+    try:
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+
+            # Get currency symbol
+            currency_symbol = store_data.get("currency_symbol", "€")
+
+            # Load all revisions
+            cursor.execute(
+                """
+                SELECT revision_date, week_label, time_allocated_weeks_delta,
+                       team_cost_delta, budget_total_delta, revision_reason
+                FROM budget_revisions
+                WHERE profile_id = ?
+                ORDER BY revision_date DESC
+            """,
+                (profile_id,),
+            )
+
+            revisions = cursor.fetchall()
+
+            # Use helper to create paginated table
+            table, page_info, prev_disabled, next_disabled, _ = (
+                _create_revision_history_table(
+                    revisions, currency_symbol, page=page or 1
+                )
+            )
+
+            return [table], page_info, prev_disabled, next_disabled
+
+    except Exception as e:
+        logger.error(f"Failed to update revision history page: {e}")
+        return no_update, no_update, no_update, no_update
 
 
 # ============================================================================
