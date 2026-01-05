@@ -209,12 +209,10 @@ def _create_revision_history_table(
     [
         Output("budget-settings-store", "data"),
         Output("budget-time-allocated-input", "value"),
-        Output("budget-total-manual-input", "value"),
         Output("budget-currency-symbol-input", "value"),
         Output("budget-team-cost-input", "value"),
         Output("budget-effective-date-picker", "date"),
         Output("budget-revision-history", "children"),
-        Output("budget-total-mode", "value"),
         Output("budget-time-current-value", "children"),
         Output("budget-cost-current-value", "children"),
         Output("budget-revision-history-page-info", "children"),
@@ -236,14 +234,13 @@ def load_budget_settings(profile_id, active_tab):
         active_tab: Currently active settings tab
 
     Returns:
-        Tuple of (store_data, status_indicator, time_input, total_input,
-                  currency_input, cost_input, rate_type)
+        Tuple of (store_data, time_input, currency_input, cost_input,
+                  effective_date, revision_history, time_current, cost_current,
+                  page_info, prev_disabled, next_disabled)
     """
     # Only skip if we don't have a profile_id
     if not profile_id:
         return (
-            no_update,
-            no_update,
             no_update,
             no_update,
             no_update,
@@ -294,14 +291,10 @@ def load_budget_settings(profile_id, active_tab):
                         no_update,
                         no_update,
                         no_update,
-                        no_update,
-                        no_update,
                     )
         except Exception:
             pass
         return (
-            no_update,
-            no_update,
             no_update,
             no_update,
             no_update,
@@ -343,12 +336,10 @@ def load_budget_settings(profile_id, active_tab):
                 return (
                     {},
                     None,
-                    None,
                     "€",
                     None,
                     None,
                     empty_history,
-                    "auto",  # Default to auto mode
                     "Current: Not set",
                     "Current: Not set",
                     "Page 1 of 1",
@@ -373,14 +364,6 @@ def load_budget_settings(profile_id, active_tab):
                 "created_at": created_at,
                 "updated_at": updated_at,
             }
-
-            # Determine budget total mode
-            # If budget_total equals time * team_cost, it's auto mode, otherwise manual
-            auto_calculated = time_allocated * team_cost
-            if budget_total and abs(budget_total - auto_calculated) > 0.01:
-                budget_mode = "manual"
-            else:
-                budget_mode = "auto"
 
             # Load budget revisions for history display (paginate with helper)
             cursor.execute(
@@ -409,12 +392,10 @@ def load_budget_settings(profile_id, active_tab):
             return (
                 store_data,
                 time_allocated,
-                budget_total if budget_mode == "manual" else None,
                 currency_symbol,
                 team_cost,
                 None,  # Reset effective date picker
                 revision_history,
-                budget_mode,
                 f"Current: {time_allocated} weeks",
                 f"Current: {currency_symbol}{team_cost:,.2f}/week",
                 page_info,
@@ -434,12 +415,10 @@ def load_budget_settings(profile_id, active_tab):
         return (
             {},
             None,
-            None,
             "€",
             None,
             None,
             error_history,
-            "auto",
             f"Error: {str(e)}",
             f"Error: {str(e)}",
             "Page 1 of 1",
@@ -449,55 +428,38 @@ def load_budget_settings(profile_id, active_tab):
 
 
 # ============================================================================
-# Budget Total Mode Toggle
+# Budget Total Display Update
 # ============================================================================
 
 
 @callback(
+    Output("budget-total-display-value", "children"),
     [
-        Output("budget-total-auto-container", "style"),
-        Output("budget-total-manual-container", "style"),
+        Input("budget-time-allocated-input", "value"),
+        Input("budget-team-cost-input", "value"),
+        Input("budget-currency-symbol-input", "value"),
     ],
-    Input("budget-total-mode", "value"),
-    prevent_initial_call=True,
-)
-def toggle_budget_total_mode(mode):
-    """
-    Show/hide budget total input containers based on selected mode.
-
-    Args:
-        mode: "auto" or "manual"
-
-    Returns:
-        Tuple of (auto_container_style, manual_container_style)
-    """
-    if mode == "auto":
-        return {"display": "block"}, {"display": "none"}
-    else:
-        return {"display": "none"}, {"display": "block"}
-
-
-# ============================================================================
-# Currency Symbol Update
-# ============================================================================
-
-
-@callback(
-    Output("budget-total-manual-currency", "children"),
-    Input("budget-currency-symbol-input", "value"),
     prevent_initial_call=False,
 )
-def update_currency_displays(currency_symbol):
+def update_budget_total_display(time_allocated, team_cost, currency_symbol):
     """
-    Update manual budget currency display when currency symbol changes.
+    Update budget total display when time or cost inputs change.
 
     Args:
-        currency_symbol: Currency symbol
+        time_allocated: Time allocated in weeks
+        team_cost: Team cost per week
+        currency_symbol: Currency symbol for display
 
     Returns:
-        str: Currency symbol for manual budget input
+        str: Formatted budget total string
     """
-    return currency_symbol or "€"
+    currency = currency_symbol or "€"
+
+    if time_allocated and team_cost and time_allocated > 0 and team_cost > 0:
+        total = time_allocated * team_cost
+        return f"{currency}{total:,.2f}"
+    else:
+        return f"{currency}0.00"
 
 
 # ============================================================================
@@ -513,9 +475,7 @@ def update_currency_displays(currency_symbol):
     Input("save-budget-button", "n_clicks"),
     [
         State("profile-selector", "value"),
-        State("budget-total-mode", "value"),
         State("budget-time-allocated-input", "value"),
-        State("budget-total-manual-input", "value"),
         State("budget-currency-symbol-input", "value"),
         State("budget-team-cost-input", "value"),
         State("budget-revision-reason-input", "value"),
@@ -527,9 +487,7 @@ def update_currency_displays(currency_symbol):
 def save_budget_settings(
     n_clicks,
     profile_id,
-    budget_mode,
     time_allocated,
-    budget_total_manual,
     currency_symbol,
     team_cost,
     revision_reason,
@@ -542,7 +500,6 @@ def save_budget_settings(
     Args:
         n_clicks: Button click count
         profile_id: Active profile identifier
-        budget_mode: "auto" or "manual" (for budget total calculation)
         time_allocated: Time allocated in weeks
         budget_total_manual: Manual budget total (only used if budget_mode is "manual")
         currency_symbol: Currency symbol
@@ -559,44 +516,27 @@ def save_budget_settings(
 
     from ui.toast_notifications import create_toast
 
-    # Validate inputs based on mode
-    if budget_mode == "auto":
-        # Auto mode requires time and cost for calculation
-        if not time_allocated or time_allocated < 1:
-            error = create_toast(
-                "Time allocated must be at least 1 week",
-                toast_type="danger",
-                header="Validation Error",
-                duration=4000,
-            )
-            return error, no_update
+    # Validate inputs - always require time and cost
+    if not time_allocated or time_allocated < 1:
+        error = create_toast(
+            "Time allocated must be at least 1 week",
+            toast_type="danger",
+            header="Validation Error",
+            duration=4000,
+        )
+        return error, no_update
 
-        if not team_cost or team_cost <= 0:
-            error = create_toast(
-                "Team cost must be greater than 0",
-                toast_type="danger",
-                header="Validation Error",
-                duration=4000,
-            )
-            return error, no_update
+    if not team_cost or team_cost <= 0:
+        error = create_toast(
+            "Team cost must be greater than 0",
+            toast_type="danger",
+            header="Validation Error",
+            duration=4000,
+        )
+        return error, no_update
 
-        budget_total = team_cost * time_allocated
-
-    else:  # manual mode
-        # Manual mode only requires manual budget total
-        if not budget_total_manual or budget_total_manual <= 0:
-            error = create_toast(
-                "Manual budget total must be greater than 0",
-                toast_type="danger",
-                header="Validation Error",
-                duration=4000,
-            )
-            return error, no_update
-
-        budget_total = budget_total_manual
-        # Set defaults for optional fields in manual mode
-        time_allocated = time_allocated or 0
-        team_cost = team_cost or 0
+    # Calculate budget total from time × cost
+    budget_total = team_cost * time_allocated
 
     try:
         now_iso = datetime.now(timezone.utc).isoformat()
@@ -1227,7 +1167,6 @@ def enable_delete_complete_button(confirmation_text):
         Output("budget-delete-complete-modal", "is_open", allow_duplicate=True),
         Output("budget-revision-history", "children", allow_duplicate=True),
         Output("budget-time-allocated-input", "value", allow_duplicate=True),
-        Output("budget-total-manual-input", "value", allow_duplicate=True),
         Output("budget-team-cost-input", "value", allow_duplicate=True),
     ],
     Input("budget-delete-complete-confirm-button", "n_clicks"),
@@ -1243,11 +1182,10 @@ def confirm_delete_complete_budget(n_clicks, profile_id):
         profile_id: Active profile identifier
 
     Returns:
-        Tuple of (notification, updated_store, modal_state, history, time_input, total_input, cost_input)
+        Tuple of (notification, updated_store, modal_state, history, time_input, cost_input)
     """
     if not n_clicks or not profile_id:
         return (
-            no_update,
             no_update,
             no_update,
             no_update,
@@ -1296,7 +1234,7 @@ def confirm_delete_complete_budget(n_clicks, profile_id):
             )
         ]
 
-        return success, {}, False, empty_history, None, None, None
+        return success, {}, False, empty_history, None, None
 
     except Exception as e:
         logger.error(f"Failed to delete budget: {e}")
@@ -1310,7 +1248,6 @@ def confirm_delete_complete_budget(n_clicks, profile_id):
             error,
             no_update,
             False,
-            no_update,
             no_update,
             no_update,
             no_update,

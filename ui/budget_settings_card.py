@@ -300,138 +300,56 @@ def _create_current_budget_card(
     )
 
 
-def _create_budget_total_mode_selector(
-    current_mode: str = "auto",
+def _create_budget_total_display(
     time_allocated: Optional[int] = None,
     team_cost: Optional[float] = None,
     currency_symbol: str = "€",
 ) -> html.Div:
     """
-    Create radio buttons for explicit Budget Total calculation mode.
+    Create calculated budget total display (Time × Cost).
 
     Args:
-        current_mode: "auto" or "manual" - default calculation mode
-        time_allocated: Current time allocated in weeks (for auto-calc preview)
-        team_cost: Current team cost per week (for auto-calc preview)
+        time_allocated: Current time allocated in weeks
+        team_cost: Current team cost per week
         currency_symbol: Currency symbol for display
 
     Returns:
-        html.Div: Budget total mode selector with preview
+        html.Div: Budget total calculation display with reactive update
 
     Component IDs:
-        - budget-total-mode: RadioItems ("auto" | "manual")
-        - budget-total-auto-preview: Preview of calculated value
-        - budget-total-manual-input: Input for manual override
-        - budget-currency-symbol-input: Currency symbol input
+        - budget-total-display-value: Span for calculated total (updated by callback)
     """
-    # Calculate auto value for preview
-    auto_value = 0
+    # Calculate total budget
+    total_budget = 0
     if time_allocated and team_cost:
-        auto_value = time_allocated * team_cost
+        total_budget = time_allocated * team_cost
 
     return html.Div(
         [
             dbc.Label(
-                [
-                    "Total Budget Calculation ",
-                    html.I(
-                        className="fas fa-info-circle text-muted ms-1",
-                        id="budget-total-mode-tooltip",
-                        style={"cursor": "pointer"},
-                    ),
-                ],
+                "Total Budget (Time × Cost)",
                 className="mb-1",
                 style={"fontSize": "0.875rem", "fontWeight": "600"},
             ),
-            dbc.Tooltip(
-                "Choose how to calculate Total Budget. Auto mode derives from Time × Team Cost. "
-                "Manual mode lets you specify exact amount (e.g., for non-team costs like contractors, licenses).",
-                target="budget-total-mode-tooltip",
-                placement="right",
-            ),
-            dbc.RadioItems(
-                id="budget-total-mode",
-                options=[
-                    {
-                        "label": "Auto (Time × Cost)",
-                        "value": "auto",
-                    },
-                    {
-                        "label": "Manual override",
-                        "value": "manual",
-                    },
-                ],
-                value=current_mode,
-                inline=True,
-                className="mb-2",
-                style={"fontSize": "0.875rem"},
-            ),
-            # Auto-calculate preview (shown when auto mode selected)
             html.Div(
                 [
                     html.Span(
                         [
                             html.I(
-                                className="fas fa-arrow-right text-primary me-2",
-                                style={"fontSize": "0.75rem"},
+                                className="fas fa-calculator text-primary me-2",
+                                style={"fontSize": "0.875rem"},
                             ),
-                            "Calculated: ",
                             html.Span(
-                                id="budget-total-auto-preview",
-                                children=f"{currency_symbol}{auto_value:,.2f}",
+                                f"{currency_symbol}{total_budget:,.2f}",
+                                id="budget-total-display-value",
                                 className="fw-bold",
+                                style={"fontSize": "0.875rem"},
                             ),
                         ],
                         style={"fontSize": "0.875rem"},
                     ),
                 ],
-                id="budget-total-auto-container",
-                className="ms-3 mb-2",
-                style={"display": "block" if current_mode == "auto" else "none"},
-            ),
-            # Manual input (shown when manual mode selected)
-            html.Div(
-                [
-                    html.Div(
-                        [
-                            dbc.InputGroup(
-                                [
-                                    dbc.InputGroupText(
-                                        id="budget-total-manual-currency",
-                                        children=currency_symbol,
-                                        style={"padding": "0.25rem 0.5rem"},
-                                    ),
-                                    dbc.Input(
-                                        id="budget-total-manual-input",
-                                        type="number",
-                                        min=0,
-                                        step=10,
-                                        placeholder="e.g., 60000",
-                                        className="text-end",
-                                        style={"maxWidth": "150px"},
-                                        size="sm",
-                                    ),
-                                ],
-                                size="sm",
-                                style={"maxWidth": "220px", "display": "inline-flex"},
-                            ),
-                            html.Small(
-                                [
-                                    html.I(
-                                        className="fas fa-exclamation-triangle me-1"
-                                    ),
-                                    "Overrides auto-calculation above",
-                                ],
-                                className="text-warning ms-1",
-                                style={"fontSize": "0.75rem"},
-                            ),
-                        ],
-                        className="d-flex align-items-center",
-                    ),
-                ],
-                id="budget-total-manual-container",
                 className="mb-2",
-                style={"display": "none" if current_mode == "auto" else "block"},
             ),
         ],
         className="mb-2",
@@ -899,8 +817,8 @@ def create_budget_settings_card() -> html.Div:
                     ),
                 ],
             ),
-            # Budget Total Calculation Mode Selector (Row 2)
-            _create_budget_total_mode_selector(current_mode="auto"),
+            # Budget Total Display (calculated from Time × Cost)
+            _create_budget_total_display(),
             # Action button
             html.Div(
                 dbc.Button(
