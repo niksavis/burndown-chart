@@ -361,17 +361,25 @@ def create_budget_forecast_card(
     forecast_value: float,
     confidence_low: float,
     confidence_high: float,
+    consumed_pct: float,
+    consumed_eur: float,
+    budget_total: float,
     confidence_level: str = "established",
     currency_symbol: str = "€",
     card_id: Optional[str] = None,
 ) -> dbc.Card:
     """
-    Create Budget Forecast card with PERT confidence intervals.
+    Create Budget Status card with consumed/remaining progress and forecast.
+
+    Compact layout with horizontal progress bar and inline metrics.
 
     Args:
         forecast_value: Forecasted total budget needed
         confidence_low: Lower confidence bound (pessimistic)
         confidence_high: Upper confidence bound (optimistic)
+        consumed_pct: Percentage of budget consumed
+        consumed_eur: Absolute amount consumed
+        budget_total: Total budget amount
         confidence_level: "established" or "building"
         currency_symbol: Currency symbol for display
         card_id: Optional HTML ID for the card
@@ -381,24 +389,211 @@ def create_budget_forecast_card(
 
     Example:
         >>> card = create_budget_forecast_card(
-        ...     48500, 45000, 52000, "established", "€"
+        ...     48500, 45000, 52000, 75.5, 37750, 50000, "established", "€"
         ... )
     """
-    metric_data = {
-        "metric_name": "budget_forecast",
-        "value": forecast_value,
-        "unit": currency_symbol,
-        "performance_tier": None,
-        "performance_tier_color": "secondary",
-        "error_state": "success",
-        "total_issue_count": 0,
-        "details": {
-            "confidence_range": f"{currency_symbol}{confidence_low:,.0f} - {currency_symbol}{confidence_high:,.0f}",
-            "confidence_level": confidence_level.title(),
-        },
-    }
+    from ui.tooltip_utils import create_info_tooltip
 
-    return create_metric_card(metric_data, card_id, show_details_button=False)
+    # Determine health zone for color
+    if consumed_pct < 70:
+        tier_color = "#198754"  # Green
+        tier_label = "Healthy"
+        progress_class = "bg-success"
+    elif consumed_pct < 85:
+        tier_color = "#ffc107"  # Yellow
+        tier_label = "Warning"
+        progress_class = "bg-warning"
+    elif consumed_pct < 95:
+        tier_color = "#fd7e14"  # Orange
+        tier_label = "High"
+        progress_class = "bg-warning"
+    else:
+        tier_color = "#dc3545"  # Red
+        tier_label = "Critical"
+        progress_class = "bg-danger"
+
+    remaining_eur = budget_total - consumed_eur
+
+    card = dbc.Card(
+        [
+            dbc.CardHeader(
+                [
+                    html.Span(
+                        "Budget Status",
+                        className="fw-bold",
+                    ),
+                    " ",
+                    create_info_tooltip(
+                        help_text="Budget consumption status showing consumed vs remaining budget. "
+                        "Progress bar indicates current utilization. "
+                        "Forecast shows projected total budget needed based on PERT estimation.",
+                        id_suffix="metric-budget_status",
+                        placement="top",
+                        variant="dark",
+                    ),
+                ],
+            ),
+            dbc.CardBody(
+                [
+                    # Progress bar with percentage
+                    html.Div(
+                        [
+                            html.Div(
+                                [
+                                    html.Span(
+                                        f"{consumed_pct:.0f}%",
+                                        className="text-muted",
+                                        style={
+                                            "fontSize": "0.85rem",
+                                            "fontWeight": "600",
+                                        },
+                                    ),
+                                    html.Span(
+                                        tier_label,
+                                        className="badge ms-2",
+                                        style={
+                                            "backgroundColor": tier_color,
+                                            "fontSize": "0.75rem",
+                                        },
+                                    ),
+                                ],
+                                className="d-flex justify-content-between align-items-center mb-2",
+                            ),
+                            html.Div(
+                                html.Div(
+                                    f"{consumed_pct:.1f}%",
+                                    className=f"progress-bar {progress_class}",
+                                    style={"width": f"{min(consumed_pct, 100)}%"},
+                                    role="progressbar",
+                                ),
+                                className="progress",
+                                style={"height": "20px"},
+                            ),
+                        ],
+                        className="mb-3",
+                    ),
+                    # Compact 3-column layout for desktop, stacked for mobile
+                    dbc.Row(
+                        [
+                            dbc.Col(
+                                [
+                                    html.Div(
+                                        [
+                                            html.I(
+                                                className="fas fa-check-circle me-1",
+                                                style={
+                                                    "color": tier_color,
+                                                    "fontSize": "0.9rem",
+                                                },
+                                            ),
+                                            html.Span(
+                                                "Consumed",
+                                                className="text-muted",
+                                                style={"fontSize": "0.75rem"},
+                                            ),
+                                        ],
+                                        className="mb-1",
+                                    ),
+                                    html.Div(
+                                        f"{currency_symbol}{consumed_eur:,.0f}",
+                                        style={
+                                            "fontWeight": "bold",
+                                            "fontSize": "1rem",
+                                        },
+                                    ),
+                                ],
+                                xs=12,
+                                md=4,
+                                className="text-center mb-2 mb-md-0",
+                            ),
+                            dbc.Col(
+                                [
+                                    html.Div(
+                                        [
+                                            html.I(
+                                                className="fas fa-hourglass-half me-1",
+                                                style={
+                                                    "color": "#6c757d",
+                                                    "fontSize": "0.9rem",
+                                                },
+                                            ),
+                                            html.Span(
+                                                "Remaining",
+                                                className="text-muted",
+                                                style={"fontSize": "0.75rem"},
+                                            ),
+                                        ],
+                                        className="mb-1",
+                                    ),
+                                    html.Div(
+                                        f"{currency_symbol}{remaining_eur:,.0f}",
+                                        style={
+                                            "fontWeight": "bold",
+                                            "fontSize": "1rem",
+                                        },
+                                    ),
+                                ],
+                                xs=12,
+                                md=4,
+                                className="text-center mb-2 mb-md-0",
+                            ),
+                            dbc.Col(
+                                [
+                                    html.Div(
+                                        [
+                                            html.I(
+                                                className="fas fa-wallet me-1",
+                                                style={
+                                                    "color": "#0d6efd",
+                                                    "fontSize": "0.9rem",
+                                                },
+                                            ),
+                                            html.Span(
+                                                "Total",
+                                                className="text-muted",
+                                                style={"fontSize": "0.75rem"},
+                                            ),
+                                        ],
+                                        className="mb-1",
+                                    ),
+                                    html.Div(
+                                        f"{currency_symbol}{budget_total:,.0f}",
+                                        style={
+                                            "fontWeight": "bold",
+                                            "fontSize": "1rem",
+                                            "color": "#0d6efd",
+                                        },
+                                    ),
+                                ],
+                                xs=12,
+                                md=4,
+                                className="text-center",
+                            ),
+                        ],
+                        className="g-2",
+                    ),
+                ],
+            ),
+            dbc.CardFooter(
+                html.Small(
+                    [
+                        html.I(className="fas fa-chart-line me-1"),
+                        f"Forecast: {currency_symbol}{forecast_value:,.0f} ",
+                        html.Span(
+                            f"({currency_symbol}{confidence_low:,.0f}-{currency_symbol}{confidence_high:,.0f})",
+                            className="text-muted",
+                        ),
+                    ],
+                    className="text-muted",
+                ),
+                className="text-center bg-light border-top py-2",
+            ),
+        ],
+        id=card_id,
+        className="metric-card mb-3 h-100",
+    )
+
+    return card
 
 
 def create_cost_breakdown_card(

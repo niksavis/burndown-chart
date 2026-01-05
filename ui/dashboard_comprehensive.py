@@ -303,7 +303,7 @@ def _create_metric_card(
         metric_data["error_state"] = "building_baseline"
         metric_data["error_message"] = trend.get("message", "Building baseline")
 
-    return create_professional_metric_card(metric_data)
+    return create_professional_metric_card(metric_data, show_details_button=False)
 
 
 def _create_mini_sparkline(data, color, height=20):
@@ -1535,46 +1535,63 @@ def _create_forecast_section(
                             html.Div(
                                 [
                                     html.I(
-                                        className="fas fa-tasks me-2",
+                                        className="fas fa-tasks me-1",
                                         style={
                                             "color": COLOR_PALETTE["items"],
-                                            "fontSize": "1rem",
+                                            "fontSize": "0.9rem",
                                         },
                                     ),
                                     html.Span(
                                         "Items-based",
                                         className="text-muted",
-                                        style={"fontSize": "0.85rem"},
+                                        style={"fontSize": "0.75rem"},
                                     ),
                                 ],
-                                className="mb-2",
-                            ),
-                            html.Div(
-                                _create_progress_ring(
-                                    deadline_prob_items, items_prob_color, 60
-                                ),
-                                className="d-flex justify-content-center mb-2",
+                                className="mb-1",
                             ),
                             html.Div(
                                 [
-                                    html.Span(
-                                        items_prob_tier,
-                                        className="badge",
-                                        style={
-                                            "backgroundColor": items_prob_color,
-                                            "fontSize": "0.85rem",
-                                            "padding": "0.4rem 1rem",
-                                            "color": "white",
-                                        },
+                                    html.Div(
+                                        [
+                                            html.Span(
+                                                f"{deadline_prob_items:.0f}%",
+                                                className="text-muted",
+                                                style={
+                                                    "fontSize": "0.85rem",
+                                                    "fontWeight": "600",
+                                                },
+                                            ),
+                                            html.Span(
+                                                items_prob_tier,
+                                                className="badge ms-2",
+                                                style={
+                                                    "backgroundColor": items_prob_color,
+                                                    "fontSize": "0.75rem",
+                                                },
+                                            ),
+                                        ],
+                                        className="d-flex justify-content-between align-items-center mb-2",
+                                    ),
+                                    html.Div(
+                                        html.Div(
+                                            f"{deadline_prob_items:.1f}%",
+                                            className="progress-bar",
+                                            style={
+                                                "width": f"{min(deadline_prob_items, 100)}%",
+                                                "backgroundColor": items_prob_color,
+                                            },
+                                            role="progressbar",
+                                        ),
+                                        className="progress",
+                                        style={"height": "20px"},
                                     ),
                                 ],
-                                className="text-center",
                             ),
                         ],
-                        className="text-center pb-3",
+                        className="pb-3 mb-3",
                         style={"borderBottom": "1px solid #e9ecef"}
                         if show_points
-                        else {},
+                        else {"marginBottom": "0"},
                     ),
                     # Points-based probability (always show, with placeholder when disabled)
                     html.Div(
@@ -1582,86 +1599,87 @@ def _create_forecast_section(
                             html.Div(
                                 [
                                     html.I(
-                                        className="fas fa-chart-bar me-2",
+                                        className="fas fa-chart-bar me-1",
                                         style={
                                             "color": COLOR_PALETTE["points"]
                                             if show_points
                                             else "#6c757d",
-                                            "fontSize": "1rem",
+                                            "fontSize": "0.9rem",
                                         },
                                     ),
                                     html.Span(
                                         "Points-based",
                                         className="text-muted",
-                                        style={"fontSize": "0.85rem"},
+                                        style={"fontSize": "0.75rem"},
                                     ),
                                 ],
-                                className="mb-2 mt-3",
-                            ),
-                            html.Div(
-                                _create_progress_ring(
-                                    deadline_prob_points
-                                    if (
-                                        show_points and deadline_prob_points is not None
-                                    )
-                                    else 0,
-                                    prob_color
-                                    if (
-                                        show_points and deadline_prob_points is not None
-                                    )
-                                    else "#6c757d",
-                                    60,
-                                ),
-                                className="d-flex justify-content-center mb-2",
-                            )
-                            if (show_points and deadline_prob_points is not None)
-                            else html.Div(
-                                "Not available",
-                                className="h5 mb-2",
-                                style={
-                                    "fontWeight": "bold",
-                                    "color": "#adb5bd",
-                                },
+                                className="mb-1",
                             ),
                             html.Div(
                                 [
-                                    html.Span(
-                                        prob_tier
-                                        if (
-                                            show_points
-                                            and deadline_prob_points is not None
-                                        )
-                                        else "N/A",
-                                        className="badge",
+                                    html.Div(
+                                        [
+                                            html.Span(
+                                                f"{deadline_prob_points:.0f}%",
+                                                className="text-muted",
+                                                style={
+                                                    "fontSize": "0.85rem",
+                                                    "fontWeight": "600",
+                                                },
+                                            ),
+                                            html.Span(
+                                                prob_tier,
+                                                className="badge ms-2",
+                                                style={
+                                                    "backgroundColor": prob_color,
+                                                    "fontSize": "0.75rem",
+                                                },
+                                            ),
+                                        ],
+                                        className="d-flex justify-content-between align-items-center mb-2",
+                                    ),
+                                    html.Div(
+                                        html.Div(
+                                            f"{deadline_prob_points:.1f}%",
+                                            className="progress-bar",
+                                            style={
+                                                "width": f"{min(deadline_prob_points, 100)}%",
+                                                "backgroundColor": prob_color,
+                                            },
+                                            role="progressbar",
+                                        ),
+                                        className="progress",
+                                        style={"height": "20px"},
+                                    ),
+                                ],
+                            )
+                            if (show_points and deadline_prob_points is not None)
+                            else html.Div(
+                                [
+                                    html.Div(
+                                        "Not available",
+                                        className="text-center",
                                         style={
-                                            "backgroundColor": prob_color
-                                            if (
-                                                show_points
-                                                and deadline_prob_points is not None
-                                            )
-                                            else "#6c757d",
-                                            "fontSize": "0.85rem",
-                                            "padding": "0.4rem 1rem",
-                                            "color": "white",
+                                            "fontSize": "0.9rem",
+                                            "color": "#adb5bd",
+                                            "padding": "0.5rem 0",
+                                        },
+                                    ),
+                                    html.Small(
+                                        "Enable Points Tracking in Parameters",
+                                        className="text-muted d-block text-center",
+                                        style={
+                                            "fontSize": "0.7rem",
+                                            "fontStyle": "italic",
                                         },
                                     ),
                                 ],
-                                className="text-center mb-2",
-                            )
-                            if (show_points and deadline_prob_points is not None)
-                            else None,
-                            html.Small(
-                                "Enable Points Tracking in Parameters",
-                                className="text-muted d-block mt-2",
-                                style={"fontSize": "0.75rem", "fontStyle": "italic"},
-                            )
-                            if not (show_points and deadline_prob_points is not None)
-                            else None,
+                            ),
                         ],
-                        className="text-center",
-                    ),
+                    )
+                    if show_points or (not show_points and deadline_prob_points is None)
+                    else None,
                 ],
-                className="text-center py-3",
             ),
             dbc.CardFooter(
                 html.Small(

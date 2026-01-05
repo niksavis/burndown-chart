@@ -201,6 +201,9 @@ def _create_budget_section(
         forecast_value=budget_data.get("forecast_total", 0),
         confidence_low=budget_data.get("forecast_low", 0),
         confidence_high=budget_data.get("forecast_high", 0),
+        consumed_pct=budget_data.get("consumed_pct", 0),
+        consumed_eur=budget_data.get("consumed_eur", 0),
+        budget_total=budget_data.get("budget_total", 0),
         confidence_level="established",
         currency_symbol=currency_symbol,
         card_id="budget-forecast-card",
@@ -222,7 +225,7 @@ def _create_budget_section(
             dbc.Col(card_1, xs=12, md=6, lg=4, className="mb-3"),
             dbc.Col(card_2, xs=12, md=6, lg=4, className="mb-3"),
             dbc.Col(card_3, xs=12, md=6, lg=4, className="mb-3"),
-            # Row 2: Cost per Item, Cost per Point, Forecast
+            # Row 2: Cost per Item, Cost per Point, Budget Status
             dbc.Col(card_4, xs=12, md=6, lg=4, className="mb-3"),
             dbc.Col(card_5, xs=12, md=6, lg=4, className="mb-3"),
             dbc.Col(card_6, xs=12, md=6, lg=4, className="mb-3"),

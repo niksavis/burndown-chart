@@ -469,7 +469,8 @@ def _calculate_dashboard_metrics(
 
     data_points_count = settings.get("data_points_count", weeks_count)
 
-    # CRITICAL FIX: Filter by actual date range, not row count
+    # CRITICAL FIX: Filter by week labels (same as dashboard) to ensure exact N weeks
+    # This prevents date range filtering from including partial weeks or off-by-one errors
     df_for_velocity = df_windowed
     if (
         data_points_count > 0
@@ -484,9 +485,35 @@ def _calculate_dashboard_metrics(
             "date", ascending=True
         )
 
-        latest_date = df_windowed_temp["date"].max()
-        cutoff_date = latest_date - timedelta(weeks=data_points_count)
-        df_for_velocity = df_windowed_temp[df_windowed_temp["date"] >= cutoff_date]
+        # Generate the same week labels that the dashboard uses
+        from data.time_period_calculator import get_iso_week, format_year_week
+
+        weeks = []
+        current_date = df_windowed_temp["date"].max()
+        for i in range(data_points_count):
+            year, week = get_iso_week(current_date)
+            week_label = format_year_week(year, week)
+            weeks.append(week_label)
+            current_date = current_date - timedelta(days=7)
+
+        week_labels = set(reversed(weeks))  # Convert to set for fast lookup
+
+        # Filter by week_label if available, otherwise fall back to date range
+        if "week_label" in df_windowed_temp.columns:
+            df_for_velocity = df_windowed_temp[
+                df_windowed_temp["week_label"].isin(week_labels)
+            ]
+            logger.info(
+                f"[REPORT FILTER] Filtered to {len(df_for_velocity)} rows using week_label matching (requested {data_points_count} weeks)"
+            )
+        else:
+            # Fallback: date range filtering (old behavior for backward compatibility)
+            latest_date = df_windowed_temp["date"].max()
+            cutoff_date = latest_date - timedelta(weeks=data_points_count)
+            df_for_velocity = df_windowed_temp[df_windowed_temp["date"] >= cutoff_date]
+            logger.warning(
+                f"[REPORT FILTER] No week_label column - using date range filtering (less accurate): {len(df_for_velocity)} rows"
+            )
 
     # Use the same function as app (returns items PER WEEK, not per day)
     velocity_items = calculate_velocity_from_dataframe(
@@ -520,11 +547,12 @@ def _calculate_dashboard_metrics(
     forecast_date_items = None
     forecast_date_points = None
 
-    # Compute weekly throughput from windowed statistics (same as app)
-    grouped = compute_weekly_throughput(df_windowed)
+    # CRITICAL: Compute weekly throughput from FILTERED statistics (same as app)
+    # Use df_for_velocity which respects data_points_count, not df_windowed
+    grouped = compute_weekly_throughput(df_for_velocity)
 
     logger.info(
-        f"[REPORT DATA] df_windowed rows={len(df_windowed)}, grouped weeks={len(grouped)}, "
+        f"[REPORT DATA] df_for_velocity rows={len(df_for_velocity)}, grouped weeks={len(grouped)}, "
         f"data_points_count={data_points_count}"
     )
 
@@ -553,13 +581,16 @@ def _calculate_dashboard_metrics(
     # CRITICAL: Statistics are weekly-based (Mondays), so we must use the last Monday data point
     # NOT datetime.now() which could be any day of the week
     # This aligns with burndown chart which uses df_calc["date"].iloc[-1]
+    # IMPORTANT: Use df_for_velocity (filtered data) to match dashboard behavior
     last_date = (
-        df_windowed["date"].iloc[-1] if not df_windowed.empty else datetime.now()
+        df_for_velocity["date"].iloc[-1]
+        if not df_for_velocity.empty
+        else datetime.now()
     )
 
     logger.info(
         f"[REPORT FORECAST] last_date={last_date.strftime('%Y-%m-%d') if hasattr(last_date, 'strftime') else last_date}, "
-        f"pert_days={pert_days}, df_windowed_rows={len(df_windowed)}, "
+        f"pert_days={pert_days}, df_for_velocity_rows={len(df_for_velocity)}, "
         f"completion_date={(last_date + timedelta(days=pert_days)).strftime('%Y-%m-%d') if pert_days and pert_days > 0 else 'None'}"
     )
 
