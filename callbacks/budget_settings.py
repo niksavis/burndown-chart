@@ -1,17 +1,17 @@
 """
 Callbacks for budget configuration UI.
 
-Handles budget settings load/save/update/reconfigure operations with
+Handles budget settings load/save/update operations with
 revision tracking and modal interactions.
 """
 
 import logging
 from datetime import datetime, timezone
 from dash import callback, Output, Input, State, no_update, ctx, html
-import dash_bootstrap_components as dbc
 
 from data.database import get_db_connection
 from data.iso_week_bucketing import get_week_label
+from ui.budget_settings_card import _create_current_budget_card_content
 
 logger = logging.getLogger(__name__)
 
@@ -24,16 +24,17 @@ logger = logging.getLogger(__name__)
 @callback(
     [
         Output("budget-settings-store", "data"),
-        Output("budget-config-status-indicator", "children"),
+        Output("budget-current-card", "children"),
         Output("budget-time-allocated-input", "value"),
-        Output("budget-total-input", "value"),
+        Output("budget-total-manual-input", "value"),
         Output("budget-currency-symbol-input", "value"),
         Output("budget-team-cost-input", "value"),
         Output("budget-cost-rate-type", "value"),
         Output("budget-effective-date-picker", "date"),
         Output("budget-revision-history", "children"),
-        Output("budget-current-summary", "children"),
-        Output("budget-summary-card", "style"),
+        Output("budget-total-mode", "value"),
+        Output("budget-time-current-value", "children"),
+        Output("budget-cost-current-value", "children"),
     ],
     [
         Input("profile-selector", "value"),
@@ -66,7 +67,8 @@ def load_budget_settings(profile_id, active_tab):
             no_update,
             no_update,
             no_update,
-            {"display": "none"},
+            no_update,
+            no_update,
         )
 
     # If not on budget tab, only update the store (for other components to use)
@@ -105,10 +107,12 @@ def load_budget_settings(profile_id, active_tab):
                         no_update,
                         no_update,
                         no_update,
+                        no_update,
                     )
         except Exception:
             pass
         return (
+            no_update,
             no_update,
             no_update,
             no_update,
@@ -140,11 +144,11 @@ def load_budget_settings(profile_id, active_tab):
             result = cursor.fetchone()
 
             if not result:
-                # No budget configured
-                status = [
-                    dbc.Badge("Not Configured", color="secondary", className="me-2"),
-                    "Configure budget to enable tracking",
-                ]
+                # No budget configured - return placeholder content
+                current_card_content = _create_current_budget_card_content(
+                    budget_data=None, show_placeholder=True
+                )
+
                 empty_history = [
                     html.P(
                         "No budget configured yet.",
@@ -153,7 +157,7 @@ def load_budget_settings(profile_id, active_tab):
                 ]
                 return (
                     {},
-                    status,
+                    current_card_content,
                     None,
                     None,
                     "€",
@@ -161,8 +165,9 @@ def load_budget_settings(profile_id, active_tab):
                     "weekly",
                     None,
                     empty_history,
-                    [],
-                    {"display": "none"},
+                    "auto",  # Default to auto mode
+                    "Current: Not set",
+                    "Current: Not set",
                 )
 
             # Budget exists
@@ -183,10 +188,37 @@ def load_budget_settings(profile_id, active_tab):
                 "updated_at": updated_at,
             }
 
-            status = [
-                dbc.Badge("Configured", color="success", className="me-2"),
-                f"Last updated: {updated_at[:10] if updated_at else 'Unknown'}",
-            ]
+            # Get week label for updated_at
+            try:
+                from datetime import datetime
+
+                dt = datetime.fromisoformat(updated_at.replace("Z", "+00:00"))
+                week_label = get_week_label(dt)
+            except Exception:
+                week_label = ""
+
+            # Prepare budget data for current card
+            budget_card_data = {
+                "time_allocated_weeks": time_allocated,
+                "budget_total_eur": budget_total,
+                "team_cost_per_week_eur": team_cost,
+                "currency_symbol": currency_symbol,
+                "updated_at": updated_at,
+                "week_label": week_label,
+            }
+
+            # Create current budget card content
+            current_card_content = _create_current_budget_card_content(
+                budget_data=budget_card_data, live_metrics=None, show_placeholder=False
+            )
+
+            # Determine budget total mode
+            # If budget_total equals time * team_cost, it's auto mode, otherwise manual
+            auto_calculated = time_allocated * team_cost
+            if budget_total and abs(budget_total - auto_calculated) > 0.01:
+                budget_mode = "manual"
+            else:
+                budget_mode = "auto"
 
             # Load budget revisions for history display
             cursor.execute(
@@ -207,7 +239,7 @@ def load_budget_settings(profile_id, active_tab):
                 for rev in revisions:
                     (
                         rev_date,
-                        week_label,
+                        week_label_rev,
                         time_delta,
                         cost_delta,
                         total_delta,
@@ -236,7 +268,7 @@ def load_budget_settings(profile_id, active_tab):
                                 html.Div(
                                     [
                                         html.Strong(
-                                            f"Week {week_label}",
+                                            f"Week {week_label_rev}",
                                             className="text-primary",
                                         ),
                                         html.Small(
@@ -282,56 +314,28 @@ def load_budget_settings(profile_id, active_tab):
                     )
                 ]
 
-            # Create current budget summary
-            summary = [
-                html.Div(
-                    [
-                        html.I(className="fas fa-calendar-alt me-2"),
-                        html.Strong("Time Allocated: "),
-                        f"{time_allocated} weeks",
-                    ],
-                    className="mb-2",
-                ),
-                html.Div(
-                    [
-                        html.I(className="fas fa-dollar-sign me-2"),
-                        html.Strong("Team Cost Rate: "),
-                        f"{currency_symbol}{team_cost:,.0f}/{cost_rate_type}",
-                    ],
-                    className="mb-2",
-                ),
-                html.Div(
-                    [
-                        html.I(className="fas fa-piggy-bank me-2"),
-                        html.Strong("Total Budget: "),
-                        f"{currency_symbol}{budget_total:,.0f}"
-                        if budget_total
-                        else "Not specified",
-                    ],
-                    className="mb-0",
-                ),
-            ]
-
             return (
                 store_data,
-                status,
+                current_card_content,
                 time_allocated,
-                budget_total,
+                budget_total if budget_mode == "manual" else None,
                 currency_symbol,
                 team_cost,
                 cost_rate_type,
                 None,  # Reset effective date picker
                 revision_history,
-                summary,
-                {"display": "block"},  # Show summary card
+                budget_mode,
+                f"Current: {time_allocated} weeks",
+                f"Current: {currency_symbol}{team_cost:,.2f}/week",
             )
 
     except Exception as e:
         logger.error(f"Failed to load budget settings: {e}")
-        error_status = [
-            dbc.Badge("Error", color="danger", className="me-2"),
-            f"Failed to load settings: {str(e)}",
-        ]
+
+        current_card_content = _create_current_budget_card_content(
+            budget_data=None, show_placeholder=True
+        )
+
         error_history = [
             html.P(
                 f"Error loading revision history: {str(e)}",
@@ -340,7 +344,7 @@ def load_budget_settings(profile_id, active_tab):
         ]
         return (
             {},
-            error_status,
+            current_card_content,
             None,
             None,
             "€",
@@ -348,67 +352,39 @@ def load_budget_settings(profile_id, active_tab):
             "weekly",
             None,
             error_history,
-            [],
-            {"display": "none"},
+            "auto",
+            f"Error: {str(e)}",
+            f"Error: {str(e)}",
         )
 
 
 # ============================================================================
-# Budget Mode Toggle
+# Budget Total Mode Toggle
 # ============================================================================
 
 
 @callback(
     [
-        Output("revision-history-collapse", "is_open"),
-        Output("revision-history-chevron", "className"),
+        Output("budget-total-auto-container", "style"),
+        Output("budget-total-manual-container", "style"),
     ],
-    Input("revision-history-toggle", "n_clicks"),
-    State("revision-history-collapse", "is_open"),
+    Input("budget-total-mode", "value"),
     prevent_initial_call=True,
 )
-def toggle_revision_history(n_clicks, is_open):
+def toggle_budget_total_mode(mode):
     """
-    Toggle budget revision history collapse.
+    Show/hide budget total input containers based on selected mode.
 
     Args:
-        n_clicks: Button click count
-        is_open: Current collapse state
+        mode: "auto" or "manual"
 
     Returns:
-        Tuple of (is_open, chevron_class)
+        Tuple of (auto_container_style, manual_container_style)
     """
-    if n_clicks:
-        new_state = not is_open
-        chevron_class = (
-            "fas fa-chevron-up ms-auto" if new_state else "fas fa-chevron-down ms-auto"
-        )
-        return new_state, chevron_class
-    return is_open, "fas fa-chevron-down ms-auto"
-
-
-@callback(
-    [
-        Output("budget-reconfigure-warning", "is_open"),
-        Output("budget-revision-reason-container", "style"),
-    ],
-    Input("budget-mode-selector", "value"),
-    prevent_initial_call=True,
-)
-def toggle_budget_mode(mode):
-    """
-    Show/hide warnings and inputs based on selected mode.
-
-    Args:
-        mode: "update" or "reconfigure"
-
-    Returns:
-        Tuple of (warning_is_open, revision_container_style)
-    """
-    if mode == "reconfigure":
-        return True, {"display": "none"}
+    if mode == "auto":
+        return {"display": "block"}, {"display": "none"}
     else:
-        return False, {"display": "block"}
+        return {"display": "none"}, {"display": "block"}
 
 
 # ============================================================================
@@ -460,14 +436,13 @@ def update_cost_rate_helper(rate_type, currency_symbol):
     [
         Output("app-notifications", "children", allow_duplicate=True),
         Output("budget-settings-store", "data", allow_duplicate=True),
-        Output("budget-reconfigure-modal", "is_open"),
     ],
     Input("save-budget-button", "n_clicks"),
     [
         State("profile-selector", "value"),
-        State("budget-mode-selector", "value"),
+        State("budget-total-mode", "value"),
         State("budget-time-allocated-input", "value"),
-        State("budget-total-input", "value"),
+        State("budget-total-manual-input", "value"),
         State("budget-currency-symbol-input", "value"),
         State("budget-team-cost-input", "value"),
         State("budget-cost-rate-type", "value"),
@@ -480,9 +455,9 @@ def update_cost_rate_helper(rate_type, currency_symbol):
 def save_budget_settings(
     n_clicks,
     profile_id,
-    mode,
+    budget_mode,
     time_allocated,
-    budget_total,
+    budget_total_manual,
     currency_symbol,
     team_cost,
     cost_rate_type,
@@ -496,20 +471,21 @@ def save_budget_settings(
     Args:
         n_clicks: Button click count
         profile_id: Active profile identifier
-        mode: "update" or "reconfigure"
+        budget_mode: "auto" or "manual" (for budget total calculation)
         time_allocated: Time allocated in weeks
-        budget_total: Total budget amount (optional)
+        budget_total_manual: Manual budget total (only used if budget_mode is "manual")
         currency_symbol: Currency symbol
         team_cost: Team cost per period
         cost_rate_type: "weekly", "daily", or "hourly"
         revision_reason: Reason for budget change
         current_settings: Current budget settings from store
+        effective_date: Effective date for retroactive budget entry
 
     Returns:
-        Tuple of (status_message, updated_store_data, modal_is_open)
+        Tuple of (status_message, updated_store_data)
     """
     if not n_clicks or not profile_id:
-        return no_update, no_update, no_update
+        return no_update, no_update
 
     from ui.toast_notifications import create_toast
 
@@ -521,7 +497,7 @@ def save_budget_settings(
             header="Validation Error",
             duration=4000,
         )
-        return error, no_update, no_update
+        return error, no_update
 
     if not team_cost or team_cost <= 0:
         error = create_toast(
@@ -530,11 +506,7 @@ def save_budget_settings(
             header="Validation Error",
             duration=4000,
         )
-        return error, no_update, no_update
-
-    # Check if reconfigure mode - show modal for confirmation
-    if mode == "reconfigure" and current_settings:
-        return no_update, no_update, True
+        return error, no_update
 
     try:
         # Convert team cost to weekly rate
@@ -545,9 +517,19 @@ def save_budget_settings(
         else:
             team_cost_weekly = team_cost
 
-        # Calculate budget_total if not provided
-        if not budget_total:
+        # Calculate or use budget_total based on mode
+        if budget_mode == "auto":
             budget_total = team_cost_weekly * time_allocated
+        else:  # manual mode
+            if not budget_total_manual or budget_total_manual <= 0:
+                error = create_toast(
+                    "Manual budget total must be greater than 0",
+                    toast_type="danger",
+                    header="Validation Error",
+                    duration=4000,
+                )
+                return error, no_update
+            budget_total = budget_total_manual
 
         now_iso = datetime.now(timezone.utc).isoformat()
 
@@ -568,7 +550,7 @@ def save_budget_settings(
         with get_db_connection() as conn:
             cursor = conn.cursor()
 
-            if mode == "update" and current_settings:
+            if current_settings:
                 # Update mode: Calculate deltas and insert revision
                 old_time = current_settings.get("time_allocated_weeks", 0)
                 old_cost = current_settings.get("team_cost_per_week_eur", 0)
@@ -626,7 +608,7 @@ def save_budget_settings(
                 success_msg = "Budget updated successfully"
 
             else:
-                # Create new budget settings (or reconfigure handled by modal)
+                # Create new budget settings
                 cursor.execute(
                     """
                     INSERT OR REPLACE INTO budget_settings (
@@ -667,7 +649,7 @@ def save_budget_settings(
                 header="Budget Saved",
                 duration=4000,
             )
-            return success, new_store, False
+            return success, new_store
 
     except Exception as e:
         logger.error(f"Failed to save budget settings: {e}")
@@ -677,7 +659,7 @@ def save_budget_settings(
             header="Save Failed",
             duration=4000,
         )
-        return error, no_update, False
+        return error, no_update
 
 
 # ============================================================================
@@ -821,162 +803,37 @@ def refresh_budget_revision_history(store_data, profile_id):
 
 
 # ============================================================================
-# Reconfigure Confirmation Modal
+# Revision History Toggle (in Advanced Options)
 # ============================================================================
 
 
 @callback(
-    Output("budget-reconfigure-confirm-button", "disabled"),
-    Input("budget-reconfigure-confirm-checkbox", "value"),
+    [
+        Output("budget-revision-history-collapse", "is_open"),
+        Output("budget-revision-history-chevron", "className"),
+    ],
+    Input("budget-revision-history-toggle", "n_clicks"),
+    State("budget-revision-history-collapse", "is_open"),
     prevent_initial_call=True,
 )
-def enable_reconfigure_button(checkbox_value):
+def toggle_revision_history_in_advanced(n_clicks, is_open):
     """
-    Enable confirm button only when checkbox is checked.
+    Toggle budget revision history collapse within advanced options.
 
     Args:
-        checkbox_value: List of checked values
+        n_clicks: Button click count
+        is_open: Current collapse state
 
     Returns:
-        bool: Button disabled state
+        Tuple of (is_open, chevron_class)
     """
-    return "confirmed" not in (checkbox_value or [])
-
-
-@callback(
-    [
-        Output("budget-reconfigure-modal", "is_open", allow_duplicate=True),
-        Output("app-notifications", "children", allow_duplicate=True),
-        Output("budget-settings-store", "data", allow_duplicate=True),
-        Output("budget-reconfigure-confirm-checkbox", "value"),
-    ],
-    [
-        Input("budget-reconfigure-cancel-button", "n_clicks"),
-        Input("budget-reconfigure-confirm-button", "n_clicks"),
-    ],
-    [
-        State("profile-selector", "value"),
-        State("budget-time-allocated-input", "value"),
-        State("budget-total-input", "value"),
-        State("budget-currency-symbol-input", "value"),
-        State("budget-team-cost-input", "value"),
-        State("budget-cost-rate-type", "value"),
-    ],
-    prevent_initial_call=True,
-)
-def handle_reconfigure_modal(
-    cancel_clicks,
-    confirm_clicks,
-    profile_id,
-    time_allocated,
-    budget_total,
-    currency_symbol,
-    team_cost,
-    cost_rate_type,
-):
-    """
-    Handle reconfigure confirmation modal interactions.
-
-    Args:
-        cancel_clicks: Cancel button clicks
-        confirm_clicks: Confirm button clicks
-        profile_id: Active profile identifier
-        time_allocated: Time allocated in weeks
-        budget_total: Total budget amount
-        currency_symbol: Currency symbol
-        team_cost: Team cost per period
-        cost_rate_type: Cost rate type
-
-    Returns:
-        Tuple of (modal_is_open, status_message, store_data, checkbox_value)
-    """
-    trigger = ctx.triggered_id
-
-    if trigger == "budget-reconfigure-cancel-button":
-        # Close modal without action
-        return False, no_update, no_update, []
-
-    elif trigger == "budget-reconfigure-confirm-button":
-        # Reconfigure budget (delete revisions and reset baseline)
-        from ui.toast_notifications import create_toast
-
-        try:
-            # Convert team cost to weekly rate
-            if cost_rate_type == "daily":
-                team_cost_weekly = team_cost * 5
-            elif cost_rate_type == "hourly":
-                team_cost_weekly = team_cost * 40
-            else:
-                team_cost_weekly = team_cost
-
-            if not budget_total:
-                budget_total = team_cost_weekly * time_allocated
-
-            now_iso = datetime.now(timezone.utc).isoformat()
-
-            with get_db_connection() as conn:
-                cursor = conn.cursor()
-
-                # Delete all revisions for this profile
-                cursor.execute(
-                    """
-                    DELETE FROM budget_revisions WHERE profile_id = ?
-                """,
-                    (profile_id,),
-                )
-
-                # Reset budget_settings as fresh baseline
-                cursor.execute(
-                    """
-                    INSERT OR REPLACE INTO budget_settings (
-                        profile_id, time_allocated_weeks, team_cost_per_week_eur,
-                        budget_total_eur, currency_symbol, cost_rate_type,
-                        created_at, updated_at
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                """,
-                    (
-                        profile_id,
-                        time_allocated,
-                        team_cost_weekly,
-                        budget_total,
-                        currency_symbol,
-                        cost_rate_type,
-                        now_iso,
-                        now_iso,
-                    ),
-                )
-
-                conn.commit()
-
-            new_store = {
-                "time_allocated_weeks": time_allocated,
-                "budget_total_eur": budget_total,
-                "currency_symbol": currency_symbol,
-                "team_cost_per_week_eur": team_cost_weekly,
-                "cost_rate_type": cost_rate_type,
-                "updated_at": now_iso,
-            }
-
-            success = create_toast(
-                "Budget reconfigured successfully. All revision history deleted.",
-                toast_type="success",
-                header="Budget Reconfigured",
-                duration=4000,
-            )
-
-            return False, success, new_store, []
-
-        except Exception as e:
-            logger.error(f"Failed to reconfigure budget: {e}")
-            error = create_toast(
-                f"Failed to reconfigure: {str(e)}",
-                toast_type="danger",
-                header="Reconfigure Failed",
-                duration=4000,
-            )
-            return False, error, no_update, []
-
-    return no_update, no_update, no_update, no_update
+    if n_clicks:
+        new_state = not is_open
+        chevron_class = (
+            "fas fa-chevron-up ms-auto" if new_state else "fas fa-chevron-down ms-auto"
+        )
+        return new_state, chevron_class
+    return is_open, "fas fa-chevron-down ms-auto"
 
 
 # ============================================================================
@@ -987,7 +844,7 @@ def handle_reconfigure_modal(
 @callback(
     [
         Output("budget-time-allocated-input", "value", allow_duplicate=True),
-        Output("budget-total-input", "value", allow_duplicate=True),
+        Output("budget-total-manual-input", "value", allow_duplicate=True),
         Output("budget-team-cost-input", "value", allow_duplicate=True),
         Output("budget-revision-reason-input", "value"),
     ],
@@ -1004,14 +861,15 @@ def cancel_budget_changes(n_clicks, current_settings):
         current_settings: Current budget settings from store
 
     Returns:
-        Tuple of (time_input, total_input, cost_input, reason_input)
+        Tuple of (time_input, manual_total_input, cost_input, reason_input)
     """
     if not n_clicks or not current_settings:
         return no_update, no_update, no_update, no_update
 
+    budget_total = current_settings.get("budget_total_eur")
     return (
         current_settings.get("time_allocated_weeks"),
-        current_settings.get("budget_total_eur"),
+        budget_total,
         current_settings.get("team_cost_per_week_eur"),
         "",
     )
@@ -1042,3 +900,195 @@ def toggle_budget_alert_details(n_clicks, is_open):
     if n_clicks:
         return not is_open
     return is_open
+
+
+# ============================================================================
+# Advanced Options Toggle
+# ============================================================================
+
+
+@callback(
+    [
+        Output("advanced-options-collapse", "is_open"),
+        Output("advanced-options-chevron", "className"),
+    ],
+    Input("advanced-options-toggle", "n_clicks"),
+    State("advanced-options-collapse", "is_open"),
+    prevent_initial_call=True,
+)
+def toggle_advanced_options(n_clicks, is_open):
+    """
+    Toggle advanced options collapse.
+
+    Args:
+        n_clicks: Button click count
+        is_open: Current collapse state
+
+    Returns:
+        Tuple of (is_open, chevron_class)
+    """
+    if n_clicks:
+        new_state = not is_open
+        chevron_class = (
+            "fas fa-chevron-up ms-auto" if new_state else "fas fa-chevron-down ms-auto"
+        )
+        return new_state, chevron_class
+    return is_open, "fas fa-chevron-down ms-auto"
+
+
+# ============================================================================
+# Budget Total Auto Preview
+# ============================================================================
+
+
+@callback(
+    Output("budget-total-auto-preview", "children"),
+    [
+        Input("budget-time-allocated-input", "value"),
+        Input("budget-team-cost-input", "value"),
+        Input("budget-cost-rate-type", "value"),
+        Input("budget-currency-symbol-input", "value"),
+    ],
+    prevent_initial_call=False,
+)
+def update_budget_total_preview(time_allocated, team_cost, cost_rate_type, currency):
+    """
+    Update auto-calculated budget total preview.
+
+    Args:
+        time_allocated: Time allocated in weeks
+        team_cost: Team cost input
+        cost_rate_type: "weekly", "daily", or "hourly"
+        currency: Currency symbol
+
+    Returns:
+        str: Formatted budget total preview
+    """
+    if not time_allocated or not team_cost:
+        return f"{currency or '€'}0.00"
+
+    # Convert to weekly
+    if cost_rate_type == "daily":
+        team_cost_weekly = team_cost * 5
+    elif cost_rate_type == "hourly":
+        team_cost_weekly = team_cost * 40
+    else:
+        team_cost_weekly = team_cost
+
+    total = time_allocated * team_cost_weekly
+    return f"{currency or '€'}{total:,.2f}"
+
+
+# ============================================================================
+# Delete History Modal Control
+# ============================================================================
+
+
+@callback(
+    Output("budget-delete-history-modal", "is_open"),
+    [
+        Input("budget-delete-history-button", "n_clicks"),
+        Input("budget-delete-history-cancel-button", "n_clicks"),
+        Input("budget-delete-history-confirm-button", "n_clicks"),
+    ],
+    State("budget-delete-history-modal", "is_open"),
+    prevent_initial_call=True,
+)
+def toggle_delete_history_modal(delete_clicks, cancel_clicks, confirm_clicks, is_open):
+    """
+    Toggle delete history modal.
+
+    Args:
+        delete_clicks: Delete button clicks
+        cancel_clicks: Cancel button clicks
+        confirm_clicks: Confirm button clicks
+        is_open: Current modal state
+
+    Returns:
+        bool: New modal state
+    """
+    if not ctx.triggered:
+        return is_open
+
+    button_id = ctx.triggered[0]["prop_id"].split(".")[0]
+
+    if button_id == "budget-delete-history-button":
+        return True
+    else:  # cancel or confirm
+        return False
+
+
+@callback(
+    Output("budget-delete-history-confirm-button", "disabled"),
+    Input("budget-delete-history-confirm-checkbox", "value"),
+    prevent_initial_call=True,
+)
+def enable_delete_confirm_button(checkbox_values):
+    """
+    Enable confirm button only when checkbox is checked.
+
+    Args:
+        checkbox_values: List of checked values
+
+    Returns:
+        bool: Button disabled state
+    """
+    return "confirmed" not in (checkbox_values or [])
+
+
+@callback(
+    [
+        Output("app-notifications", "children", allow_duplicate=True),
+        Output("budget-settings-store", "data", allow_duplicate=True),
+        Output("budget-delete-history-modal", "is_open", allow_duplicate=True),
+    ],
+    Input("budget-delete-history-confirm-button", "n_clicks"),
+    State("profile-selector", "value"),
+    prevent_initial_call=True,
+)
+def confirm_delete_budget_history(n_clicks, profile_id):
+    """
+    Delete all budget revision history (danger zone action).
+
+    Args:
+        n_clicks: Confirm button clicks
+        profile_id: Active profile identifier
+
+    Returns:
+        Tuple of (notification, updated_store, modal_state)
+    """
+    if not n_clicks or not profile_id:
+        return no_update, no_update, no_update
+
+    from ui.toast_notifications import create_toast
+
+    try:
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                DELETE FROM budget_revisions
+                WHERE profile_id = ?
+                """,
+                (profile_id,),
+            )
+            conn.commit()
+
+        success = create_toast(
+            "Budget revision history deleted successfully. Budget baseline has been reset.",
+            toast_type="success",
+            header="History Deleted",
+            duration=4000,
+        )
+
+        return success, no_update, False
+
+    except Exception as e:
+        logger.error(f"Failed to delete budget history: {e}")
+        error = create_toast(
+            f"Failed to delete budget history: {str(e)}",
+            toast_type="danger",
+            header="Error",
+            duration=5000,
+        )
+        return error, no_update, False
