@@ -866,6 +866,7 @@ def register(app):
             Input(
                 "budget-settings-store", "data"
             ),  # Trigger refresh when budget changes
+            Input("metrics-refresh-trigger", "data"),  # Trigger refresh after import
         ],
         [
             State("current-settings", "data"),
@@ -883,6 +884,7 @@ def register(app):
         date_range_weeks,
         show_points,  # Added parameter
         budget_store,  # Added parameter
+        import_trigger,  # Added parameter
         settings,
         statistics,
         chart_cache,
@@ -983,6 +985,11 @@ def register(app):
                 "[CTO DEBUG] Budget change detected - CLEARING ALL CACHE to refresh budget cards"
             )
             chart_cache = {}
+        elif "metrics-refresh-trigger" in trigger_info:
+            logger.debug(
+                "[CTO DEBUG] Import/refresh detected - CLEARING ALL CACHE to reload data"
+            )
+            chart_cache = {}
         elif len(chart_cache) > 5:
             oldest_keys = list(chart_cache.keys())[:-5]
             for old_key in oldest_keys:
@@ -991,7 +998,11 @@ def register(app):
 
         # Create simplified cache key - only essential data for chart generation
         data_hash = hash(
-            str(statistics) + str(settings) + str(show_points) + str(budget_store)
+            str(statistics)
+            + str(settings)
+            + str(show_points)
+            + str(budget_store)
+            + str(import_trigger)
         )
         cache_key = f"{active_tab}_{data_hash}"
         logger.debug(f"[CTO DEBUG] Cache key generated: {cache_key}")
