@@ -103,6 +103,7 @@ from ui.layout import USE_ACCORDION_SETTINGS
 from callbacks import (
     app_update,  # Application auto-update callbacks (auto-registers via @callback)  # noqa: F401
     banner_status_icons,  # Banner icon animations during operations (auto-registers via @callback)  # noqa: F401
+    budget_settings,  # Budget configuration callbacks (auto-registers via @callback)  # noqa: F401
     bug_analysis,  # Bug analysis metrics callbacks (Feature 004)
     # dashboard,  # REMOVED - Dead code: callbacks reference non-existent UI components (ui/dashboard.py never imported)
     dora_flow_metrics,  # DORA/Flow metrics callbacks (Feature 007, auto-registers via @callback)  # noqa: F401

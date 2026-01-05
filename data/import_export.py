@@ -556,7 +556,11 @@ def _export_profile_cache(profile_id: str, export_dir: Path) -> bool:
 
 
 def export_profile_with_mode(
-    profile_id: str, query_id: str, export_mode: str, include_token: bool = False
+    profile_id: str,
+    query_id: str,
+    export_mode: str,
+    include_token: bool = False,
+    include_budget: bool = False,
 ) -> Dict[str, Any]:
     """Export FULL profile with ALL queries and their data.
 
@@ -565,6 +569,7 @@ def export_profile_with_mode(
         query_id: Active query identifier (used for manifest metadata, but all queries exported)
         export_mode: One of "CONFIG_ONLY", "FULL_DATA"
         include_token: Whether to include JIRA token (default: False)
+        include_budget: Whether to include budget data (default: False)
 
     Returns:
         Export package dictionary with structure:
@@ -669,6 +674,27 @@ def export_profile_with_mode(
         all_queries_data[current_query_id] = query_data
         exported_query_count += 1
 
+    # Export budget settings and revisions (profile-level data) - only if explicitly requested
+    if include_budget:
+        budget_data = {}
+        budget_settings = backend.get_budget_settings(profile_id)
+        if budget_settings:
+            budget_data["budget_settings"] = budget_settings
+            logger.info(f"Exported budget settings for profile '{profile_id}'")
+
+        budget_revisions = backend.get_budget_revisions(profile_id)
+        if budget_revisions:
+            budget_data["budget_revisions"] = budget_revisions
+            logger.info(
+                f"Exported {len(budget_revisions)} budget revisions for profile '{profile_id}'"
+            )
+
+        if budget_data:
+            export_package["budget_data"] = budget_data
+            logger.info("Budget data included in export (user opted-in)")
+    else:
+        logger.info("Budget data excluded from export (default)")
+
     if exported_query_count == 0:
         logger.warning(f"No queries found to export for profile '{profile_id}'")
         export_package["query_data"] = None
@@ -680,7 +706,7 @@ def export_profile_with_mode(
 
     logger.info(
         f"Exported profile '{profile_id}' with {exported_query_count} queries, "
-        f"mode='{export_mode}', token={include_token}"
+        f"mode='{export_mode}', token={include_token}, budget={include_budget}"
     )
 
     return export_package
@@ -735,6 +761,10 @@ def import_profile_enhanced(
             with open(profile_file) as f:
                 profile_data = json.load(f)
 
+            # Note: Budget data is not in ZIP-based exports
+            # Use the callback-based import (perform_import) for budget support
+            budget_data = None
+
             # Generate target profile ID if not provided
             if not target_profile_id:
                 base_name = profile_data.get("name", "Imported Profile")
@@ -750,7 +780,7 @@ def import_profile_enhanced(
 
             # Create profile
             success, new_profile_id = _create_profile_from_import(
-                profile_data, target_profile_id, temp_path
+                profile_data, target_profile_id, temp_path, budget_data
             )
 
             if not success:
@@ -822,7 +852,10 @@ def _migrate_imported_setup_status(
 
 
 def _create_profile_from_import(
-    profile_data: Dict[str, Any], profile_id: str, import_path: Path
+    profile_data: Dict[str, Any],
+    profile_id: str,
+    import_path: Path,
+    budget_data: Optional[Dict[str, Any]] = None,
 ) -> Tuple[bool, str]:
     """Create profile from imported data."""
     try:
@@ -832,6 +865,7 @@ def _create_profile_from_import(
             load_profiles_metadata,
             save_profiles_metadata,
         )
+        from data.persistence.factory import get_backend
 
         # Extract profile name for creation
         profile_name = profile_data.get("name", f"Imported Profile {profile_id}")
@@ -874,6 +908,27 @@ def _create_profile_from_import(
         cache_dir = import_path / "cache"
         if cache_dir.exists():
             _import_profile_cache(profile_id, cache_dir)
+
+        # Import budget data if available
+        if budget_data:
+            backend = get_backend()
+
+            # Import budget settings
+            if "budget_settings" in budget_data:
+                settings = budget_data["budget_settings"]
+                # Update timestamps for import
+                settings["created_at"] = datetime.now(timezone.utc).isoformat()
+                settings["updated_at"] = datetime.now(timezone.utc).isoformat()
+                backend.save_budget_settings(profile_id, settings)
+                logger.info(f"Imported budget settings for profile '{profile_id}'")
+
+            # Import budget revisions
+            if "budget_revisions" in budget_data:
+                revisions = budget_data["budget_revisions"]
+                backend.save_budget_revisions(profile_id, revisions)
+                logger.info(
+                    f"Imported {len(revisions)} budget revisions for profile '{profile_id}'"
+                )
 
         return True, profile_id
 

@@ -28,6 +28,41 @@ import logging
 logger = logging.getLogger(__name__)
 
 
+def _get_completed_date_field():
+    """Get the completed_date field mapping with backwards compatibility.
+
+    Checks general mappings first (new location), falls back to flow mappings (old location).
+
+    Returns:
+        str: Field name to use for completion date (e.g., "resolutiondate" or "resolved")
+    """
+    from data.persistence import load_app_settings
+
+    settings = load_app_settings()
+    field_mappings = settings.get("field_mappings", {})
+
+    # New location: general.completed_date
+    general_mappings = field_mappings.get("general", {})
+    completed_date_field = general_mappings.get("completed_date")
+
+    if completed_date_field:
+        return completed_date_field
+
+    # Backwards compatibility: check old location in flow.completed_date
+    flow_mappings = field_mappings.get("flow", {})
+    completed_date_field = flow_mappings.get("completed_date")
+
+    if completed_date_field:
+        logger.warning(
+            "completed_date found in flow mappings (deprecated location). "
+            "Please move to General Fields section in field mapping UI."
+        )
+        return completed_date_field
+
+    # Default fallback for JIRA Cloud (most common)
+    return "resolutiondate"
+
+
 def _get_field_mappings():
     """Load field mappings and project classification from app settings.
 
@@ -108,9 +143,21 @@ def _extract_datetime_from_field_mapping(
                     return history.get("created")
         return None
 
-    # Handle simple field paths
+    # Handle simple and nested field paths (e.g., "resolutiondate" or "resolved.resolutiondate")
     fields = issue.get("fields", {})
-    return fields.get(field_mapping)
+    if "." in field_mapping:
+        # Nested field like "resolved.resolutiondate" (Apache JIRA)
+        parts = field_mapping.split(".")
+        value = fields
+        for part in parts:
+            if isinstance(value, dict):
+                value = value.get(part)
+            else:
+                return None
+        return value if isinstance(value, str) else None
+    else:
+        # Simple field like "created", "resolutiondate"
+        return fields.get(field_mapping)
 
 
 def _find_first_transition_to_statuses(
@@ -334,9 +381,11 @@ def calculate_flow_velocity(
     flow_mappings, project_classification = _get_field_mappings()
     from data.persistence import load_app_settings
 
-    flow_type_mappings = load_app_settings().get("flow_type_mappings", {})
+    settings = load_app_settings()
+    flow_type_mappings = settings.get("flow_type_mappings", {})
 
-    completed_date_field = flow_mappings.get("completed_date", "resolutiondate")
+    # Get completed_date field (checks general mappings, falls back to flow for compatibility)
+    completed_date_field = _get_completed_date_field()
 
     # Extract completion status and work type from issues
     completed_issues = []
@@ -454,7 +503,7 @@ def calculate_flow_time(
 
     flow_start_statuses = project_classification.get("flow_start_statuses", [])
     flow_end_statuses = project_classification.get("flow_end_statuses", [])
-    completed_date_field = flow_mappings.get("completed_date", "resolutiondate")
+    completed_date_field = _get_completed_date_field()
 
     # Validate required configuration
     if not flow_start_statuses:
@@ -676,7 +725,7 @@ def calculate_flow_efficiency(
 
     active_statuses = project_classification.get("active_statuses", [])
     wip_statuses = project_classification.get("wip_statuses", [])
-    completed_date_field = flow_mappings.get("completed_date", "resolutiondate")
+    completed_date_field = _get_completed_date_field()
 
     if not active_statuses or not wip_statuses:
         logger.warning(
@@ -860,7 +909,7 @@ def calculate_flow_distribution(
 
     flow_type_mappings = load_app_settings().get("flow_type_mappings", {})
 
-    completed_date_field = flow_mappings.get("completed_date", "resolutiondate")
+    completed_date_field = _get_completed_date_field()
 
     # Initialize distribution counts from configured flow types
     distribution_counts = {key: 0 for key in flow_type_mappings.keys()}

@@ -26,6 +26,7 @@ from configuration.settings import (
     PROJECT_HELP_TEXTS,
     VELOCITY_HELP_TEXTS,
 )
+from ui.budget_settings_card import create_budget_settings_card
 from ui.button_utils import create_button
 from ui.icon_utils import create_icon_text
 from ui.style_constants import get_spacing, get_color
@@ -3501,6 +3502,18 @@ def create_parameter_panel_expanded(
                                                 ],
                                             ),
                                         ],
+                                        className="settings-tab-content",
+                                    )
+                                ],
+                            ),
+                            # Budget Tab
+                            dbc.Tab(
+                                label="Budget",
+                                tab_id="budget-tab",
+                                label_style={"width": "100%"},
+                                children=[
+                                    html.Div(
+                                        [create_budget_settings_card()],
                                         className="settings-tab-content",
                                     )
                                 ],

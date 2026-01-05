@@ -40,9 +40,16 @@ from data import (
     generate_weekly_forecast,
 )
 from data.schema import DEFAULT_SETTINGS
+from data.budget_calculator import (
+    get_budget_at_week,
+    calculate_budget_consumed,
+    calculate_runway,
+    calculate_cost_breakdown_by_type,
+)
+from data.persistence.factory import get_backend
+from data.iso_week_bucketing import get_week_label
 from ui import (
     create_compact_trend_indicator,
-    create_pert_info_table,
 )
 from ui.loading_utils import (
     create_content_placeholder,
@@ -738,7 +745,6 @@ def register(app):
         # Calculate baseline values using the correct method (same as report)
         # Baseline = current remaining + total completed in filtered period
         # This gives us the initial backlog at the start of the data window
-        from data.scope_metrics import calculate_total_project_scope
 
         # CRITICAL FIX: Filter by actual date range, not row count
         df_filtered = df
@@ -857,6 +863,10 @@ def register(app):
             Input("calculation-results", "data"),
             Input("date-range-weeks", "data"),
             Input("points-toggle", "value"),  # Updated to new parameter panel component
+            Input(
+                "budget-settings-store", "data"
+            ),  # Trigger refresh when budget changes
+            Input("metrics-refresh-trigger", "data"),  # Trigger refresh after import
         ],
         [
             State("current-settings", "data"),
@@ -873,6 +883,8 @@ def register(app):
         calc_results,
         date_range_weeks,
         show_points,  # Added parameter
+        budget_store,  # Added parameter
+        import_trigger,  # Added parameter
         settings,
         statistics,
         chart_cache,
@@ -961,10 +973,21 @@ def register(app):
         # CTO FIX: Clear old cache entries to prevent memory bloat (keep last 5)
         # BUT: If we're switching tabs (trigger is from chart-tabs), clear ALL cache
         # to prevent any possibility of cross-tab contamination
+        # ALSO: Clear ALL cache when budget changes to ensure fresh render
         trigger_info = ctx.triggered[0]["prop_id"] if ctx.triggered else ""
         if "chart-tabs" in trigger_info:
             logger.debug(
                 "[CTO DEBUG] Tab switch detected - CLEARING ALL CACHE to prevent contamination"
+            )
+            chart_cache = {}
+        elif "budget-settings-store" in trigger_info:
+            logger.debug(
+                "[CTO DEBUG] Budget change detected - CLEARING ALL CACHE to refresh budget cards"
+            )
+            chart_cache = {}
+        elif "metrics-refresh-trigger" in trigger_info:
+            logger.debug(
+                "[CTO DEBUG] Import/refresh detected - CLEARING ALL CACHE to reload data"
             )
             chart_cache = {}
         elif len(chart_cache) > 5:
@@ -974,7 +997,13 @@ def register(app):
                     del chart_cache[old_key]
 
         # Create simplified cache key - only essential data for chart generation
-        data_hash = hash(str(statistics) + str(settings) + str(show_points))
+        data_hash = hash(
+            str(statistics)
+            + str(settings)
+            + str(show_points)
+            + str(budget_store)
+            + str(import_trigger)
+        )
         cache_key = f"{active_tab}_{data_hash}"
         logger.debug(f"[CTO DEBUG] Cache key generated: {cache_key}")
 
@@ -1039,7 +1068,17 @@ def register(app):
                         )
 
                         weeks = []
-                        current_date = datetime.now()
+                        # CRITICAL: Start from last statistics date, not today
+                        # Statistics are weekly (Mondays), so starting from "now" may include
+                        # incomplete current week with no data
+                        if not df.empty and "date" in df.columns:
+                            df["date"] = pd.to_datetime(
+                                df["date"], format="mixed", errors="coerce"
+                            )
+                            current_date = df["date"].max()
+                        else:
+                            current_date = datetime.now()
+
                         for i in range(data_points_count):
                             year, week = get_iso_week(current_date)
                             week_label = format_year_week(year, week)
@@ -1053,6 +1092,9 @@ def register(app):
                         # Filter by week_label if available, otherwise fall back to date range
                         if "week_label" in df.columns:
                             df = df[df["week_label"].isin(week_labels)]
+                            # CRITICAL: Sort after filtering to ensure .iloc[-1] gets the chronologically last date
+                            # This matches report_generator.py logic and ensures forecast dates align
+                            df = df.sort_values("date", ascending=True)
                             logger.info(
                                 f"Filtered to {len(df)} rows using week_label matching"
                             )
@@ -1112,6 +1154,160 @@ def register(app):
                 except Exception:
                     days_to_deadline = 0
 
+                # Calculate budget data for dashboard
+                budget_data = None
+                profile_id = ""
+                query_id = ""
+                current_week_label = ""
+                try:
+                    backend = get_backend()
+                    profile_id = backend.get_app_state("active_profile_id") or ""
+                    query_id = backend.get_app_state("active_query_id") or ""
+                    current_week_label = get_week_label(datetime.now())
+
+                    logger.info(
+                        f"[BUDGET DEBUG] profile_id={profile_id}, query_id={query_id}, "
+                        f"week={current_week_label}"
+                    )
+
+                    if profile_id and query_id:
+                        # Check if budget is configured
+                        budget_config = get_budget_at_week(
+                            profile_id, current_week_label
+                        )
+                        logger.info(f"[BUDGET DEBUG] budget_config={budget_config}")
+
+                        if budget_config:
+                            # Calculate budget metrics
+                            consumed_eur, budget_total, consumed_pct = (
+                                calculate_budget_consumed(
+                                    profile_id, query_id, current_week_label
+                                )
+                            )
+                            logger.info(
+                                f"[BUDGET DEBUG] consumed={consumed_eur}, total={budget_total}, "
+                                f"pct={consumed_pct}"
+                            )
+                            runway_weeks, burn_rate = calculate_runway(
+                                profile_id,
+                                query_id,
+                                current_week_label,
+                                data_points_count,
+                            )
+                            logger.info(
+                                f"[BUDGET DEBUG] runway={runway_weeks}, burn_rate={burn_rate}"
+                            )
+                            cost_breakdown = calculate_cost_breakdown_by_type(
+                                profile_id, query_id, current_week_label
+                            )
+                            logger.info(f"[BUDGET DEBUG] breakdown={cost_breakdown}")
+
+                            # Calculate additional budget metrics for UI cards
+                            from data.budget_calculator import _get_velocity
+                            from data.iso_week_bucketing import get_last_n_weeks
+
+                            # Get cost per item/point
+                            velocity_items = _get_velocity(
+                                profile_id, query_id, current_week_label
+                            )
+                            cost_per_item = (
+                                (
+                                    budget_config["team_cost_per_week_eur"]
+                                    / velocity_items
+                                )
+                                if velocity_items > 0
+                                else 0
+                            )
+                            cost_per_point = 0  # TODO: Add points velocity calculation
+
+                            # Get weekly burn rates for sparkline
+                            weekly_burn_rates = []
+                            weekly_labels = []
+                            weeks = get_last_n_weeks(min(data_points_count, 12))
+
+                            from data.database import get_db_connection
+
+                            conn_context = get_db_connection()
+                            with conn_context as conn:
+                                cursor = conn.cursor()
+                                for week_info in weeks:
+                                    wk_label = week_info[0]
+                                    weekly_labels.append(wk_label)
+
+                                    # Get completed items for this week
+                                    cursor.execute(
+                                        """
+                                        SELECT completed_items
+                                        FROM project_statistics
+                                        WHERE profile_id = ? AND query_id = ? AND week_label = ?
+                                        """,
+                                        (profile_id, query_id, wk_label),
+                                    )
+                                    result = cursor.fetchone()
+                                    completed = result[0] if result and result[0] else 0
+
+                                    # Calculate weekly cost
+                                    velocity = _get_velocity(
+                                        profile_id, query_id, wk_label
+                                    )
+                                    if velocity > 0:
+                                        weekly_cost = completed * (
+                                            budget_config["team_cost_per_week_eur"]
+                                            / velocity
+                                        )
+                                    else:
+                                        weekly_cost = 0
+                                    weekly_burn_rates.append(weekly_cost)
+
+                            budget_data = {
+                                "configured": True,
+                                "currency_symbol": budget_config.get(
+                                    "currency_symbol", "€"
+                                ),
+                                "consumed_pct": consumed_pct,
+                                "consumed_eur": consumed_eur,
+                                "budget_total": budget_total,
+                                "burn_rate": burn_rate,
+                                "runway_weeks": runway_weeks,
+                                "breakdown": cost_breakdown,
+                                # Additional fields for budget cards
+                                "cost_per_item": cost_per_item,
+                                "cost_per_point": cost_per_point,
+                                "weekly_burn_rates": weekly_burn_rates,
+                                "weekly_labels": weekly_labels,
+                                "burn_trend_pct": 0,  # TODO: Calculate trend
+                                "pert_cost_avg_item": None,  # TODO: Add PERT cost calculation
+                                "pert_cost_avg_point": None,
+                                "forecast_total": budget_total,  # TODO: Add forecast calculation
+                                "forecast_low": budget_total * 0.9,
+                                "forecast_high": budget_total * 1.1,
+                                "pert_forecast_weeks": pert_data.get(
+                                    "pert_time_items", 0
+                                )
+                                / 7
+                                if pert_data
+                                else 0,
+                            }
+                            # Format runway for logging (handle inf and negative)
+                            import math
+
+                            if math.isinf(runway_weeks):
+                                runway_str = "inf"
+                            else:
+                                runway_str = f"{runway_weeks:.1f}"
+
+                            logger.info(
+                                f"Budget data calculated: {consumed_pct:.1f}% consumed, "
+                                f"runway={runway_str} weeks, cost_per_item={cost_per_item:.2f}"
+                            )
+                        else:
+                            logger.debug(
+                                f"No budget configured for profile {profile_id}"
+                            )
+                except Exception as e:
+                    logger.error(f"Failed to calculate budget data: {e}", exc_info=True)
+                    budget_data = None
+
                 # Import and use comprehensive dashboard
                 from ui.dashboard_comprehensive import create_comprehensive_dashboard
 
@@ -1131,6 +1327,14 @@ def register(app):
                     data_points_count=data_points_count,  # Pass for metric snapshot lookup
                     deadline_str=deadline,
                     show_points=show_points,
+                    additional_context={
+                        "profile_id": profile_id,
+                        "query_id": query_id,
+                        "current_week_label": current_week_label,
+                        "budget_data": budget_data,
+                    }
+                    if budget_data
+                    else None,
                 )
 
                 # Cache the result for next time

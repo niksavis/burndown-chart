@@ -3,6 +3,7 @@
 from datetime import datetime
 import json
 import logging
+import time
 from dash import (
     callback,
     Output,
@@ -25,9 +26,10 @@ logger = logging.getLogger(__name__)
     Input("export-profile-button", "n_clicks"),
     State("export-mode-radio", "value"),
     State("include-token-checkbox", "value"),
+    State("include-budget-checkbox", "value"),
     prevent_initial_call=True,
 )
-def export_full_profile(n_clicks, export_mode, include_token):
+def export_full_profile(n_clicks, export_mode, include_token, include_budget):
     """Export profile with mode selection and optional token inclusion (T013)."""
     from ui.toast_notifications import create_toast
 
@@ -52,6 +54,7 @@ def export_full_profile(n_clicks, export_mode, include_token):
             query_id=query_id,
             export_mode=export_mode or "CONFIG_ONLY",
             include_token=bool(include_token),
+            include_budget=bool(include_budget),
         )
 
         # Generate filename (matches report format for easy archiving)
@@ -137,12 +140,18 @@ def detect_import_conflict(contents, filename):
 
         if existing_profile:
             # Conflict detected - show modal with profile name
+            logger.info(
+                f"Import conflict detected: Profile '{profile_id}' already exists"
+            )
             # Suggest a default name for rename option
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             suggested_name = f"{profile_id}_{timestamp}"
             return True, profile_name, import_data, suggested_name
         else:
             # No conflict - proceed with import directly
+            logger.info(
+                f"No conflict detected for profile '{profile_id}' - proceeding with import"
+            )
             return False, "", import_data, no_update
 
     except Exception as e:
@@ -153,6 +162,7 @@ def detect_import_conflict(contents, filename):
 @callback(
     Output("app-notifications", "children", allow_duplicate=True),
     Output("metrics-refresh-trigger", "data", allow_duplicate=True),
+    Output("profile-switch-trigger", "data", allow_duplicate=True),
     Output("upload-data", "contents", allow_duplicate=True),
     Input("import-data-store", "data"),
     State("conflict-resolution-modal", "is_open"),
@@ -162,15 +172,16 @@ def import_without_conflict(import_data, modal_is_open):
     """T051: Handle import when no conflict exists (direct import)."""
     # Only proceed if modal is NOT open (no conflict detected)
     if not import_data or modal_is_open:
-        return no_update, no_update, no_update
-    toast, refresh = perform_import(import_data)
-    return toast, refresh, None  # Clear upload contents
+        return no_update, no_update, no_update, no_update
+    toast, refresh, profile_switch = perform_import(import_data)
+    return toast, refresh, profile_switch, None  # Clear upload contents
 
 
 @callback(
     Output("app-notifications", "children", allow_duplicate=True),
     Output("conflict-resolution-modal", "is_open", allow_duplicate=True),
     Output("metrics-refresh-trigger", "data", allow_duplicate=True),
+    Output("profile-switch-trigger", "data", allow_duplicate=True),
     Output("upload-data", "contents", allow_duplicate=True),
     Input("conflict-proceed", "n_clicks"),
     Input("conflict-cancel", "n_clicks"),
@@ -187,7 +198,7 @@ def handle_conflict_resolution(
     from dash import ctx
 
     if not ctx.triggered or not import_data:
-        return no_update, no_update, no_update, no_update
+        return no_update, no_update, no_update, no_update, no_update
 
     triggered_id = ctx.triggered[0]["prop_id"].split(".")[0]
 
@@ -201,12 +212,15 @@ def handle_conflict_resolution(
             ),
             False,
             no_update,
+            no_update,
             None,  # Clear upload contents on cancel too
         )
 
     # User chose to proceed with selected strategy
-    toast, refresh_trigger = perform_import(import_data, strategy, custom_name)
-    return toast, False, refresh_trigger, None  # Clear upload contents
+    toast, refresh_trigger, profile_switch = perform_import(
+        import_data, strategy, custom_name
+    )
+    return toast, False, refresh_trigger, profile_switch, None  # Clear upload contents
 
 
 def perform_import(import_data, conflict_strategy=None, custom_name=None):
@@ -238,10 +252,35 @@ def perform_import(import_data, conflict_strategy=None, custom_name=None):
                     and custom_name
                     and custom_name.strip()
                 ):
-                    # User provided custom name - use it directly
+                    # Validate custom name doesn't already exist
                     import copy
 
                     final_profile_id = custom_name.strip()
+
+                    # Check if a profile with this name already exists
+                    all_profiles = backend.list_profiles()
+                    for profile in all_profiles:
+                        if profile["name"].lower() == final_profile_id.lower():
+                            # Name conflict - return error toast
+                            return (
+                                create_toast(
+                                    [
+                                        html.Div(
+                                            f"Import failed: Profile with name '{final_profile_id}' already exists."
+                                        ),
+                                        html.Div(
+                                            "Please choose a different name or use the Overwrite option.",
+                                            className="mt-2 text-muted",
+                                        ),
+                                    ],
+                                    toast_type="warning",
+                                    header="Duplicate Profile Name",
+                                    duration=8000,
+                                ),
+                                no_update,  # No refresh on validation error
+                                no_update,  # No profile selector refresh on validation error
+                            )
+
                     # Update profile data with new ID and name (deep copy to avoid mutations)
                     resolved_data = copy.deepcopy(profile_data)
                     resolved_data["id"] = final_profile_id
@@ -307,27 +346,47 @@ def perform_import(import_data, conflict_strategy=None, custom_name=None):
                     if "jira_cache" in query_data:
                         issues = query_data["jira_cache"].get("issues", [])
                         if issues:
-                            # Add required metadata fields
+                            # Validate issues before import - filter out invalid ones
+                            valid_issues = []
+                            invalid_count = 0
                             for issue in issues:
+                                # Check for required fields (JIRA uses 'key' not 'issue_key')
+                                if not issue.get("key"):
+                                    invalid_count += 1
+                                    logger.warning(
+                                        f"Skipping issue without 'key' field in query '{query_name}'"
+                                    )
+                                    continue
+
+                                # Add required metadata fields
                                 if "fetched_at" not in issue:
                                     issue["fetched_at"] = datetime.now().isoformat()
                                 if "version" not in issue:
                                     issue["version"] = 1
-                            # Use cache key from query ID and current timestamp for expiration
-                            cache_key = f"import_{created_query_id}"
-                            from datetime import timedelta
+                                valid_issues.append(issue)
 
-                            expires_at = datetime.now() + timedelta(days=1)
-                            backend.save_issues_batch(
-                                profile_id,
-                                created_query_id,
-                                cache_key,
-                                issues,
-                                expires_at,
-                            )
-                            logger.info(
-                                f"Imported {len(issues)} issues for query '{query_name}'"
-                            )
+                            # Only import if we have valid issues
+                            if valid_issues:
+                                # Use cache key from query ID and current timestamp for expiration
+                                cache_key = f"import_{created_query_id}"
+                                from datetime import timedelta
+
+                                expires_at = datetime.now() + timedelta(days=1)
+                                backend.save_issues_batch(
+                                    profile_id,
+                                    created_query_id,
+                                    cache_key,
+                                    valid_issues,
+                                    expires_at,
+                                )
+                                logger.info(
+                                    f"Imported {len(valid_issues)} valid issues for query '{query_name}'"
+                                    + (
+                                        f" ({invalid_count} invalid issues skipped)"
+                                        if invalid_count > 0
+                                        else ""
+                                    )
+                                )
 
                     # Import statistics (from statistics)
                     if "statistics" in query_data:
@@ -357,6 +416,26 @@ def perform_import(import_data, conflict_strategy=None, custom_name=None):
         if active_query_id:
             backend.set_app_state("active_profile_id", profile_id)
             backend.set_app_state("active_query_id", active_query_id)
+
+        # Import budget data if present
+        budget_data = import_data.get("budget_data", {})
+        if budget_data:
+            # Import budget settings
+            if "budget_settings" in budget_data:
+                settings = budget_data["budget_settings"]
+                # Update timestamps for import
+                settings["created_at"] = datetime.now().isoformat()
+                settings["updated_at"] = datetime.now().isoformat()
+                backend.save_budget_settings(profile_id, settings)
+                logger.info(f"Imported budget settings for profile '{profile_id}'")
+
+            # Import budget revisions
+            if "budget_revisions" in budget_data:
+                revisions = budget_data["budget_revisions"]
+                backend.save_budget_revisions(profile_id, revisions)
+                logger.info(
+                    f"Imported {len(revisions)} budget revisions for profile '{profile_id}'"
+                )
 
         # Log result with strategy info
         strategy_msg = f" ({conflict_strategy} strategy)" if conflict_strategy else ""
@@ -396,6 +475,23 @@ def perform_import(import_data, conflict_strategy=None, custom_name=None):
                     )
                 )
 
+            # Check if budget data was imported
+            has_budget = bool(budget_data)
+            if has_budget:
+                warning_parts.append(
+                    html.Div(
+                        "💰 Budget data included in import and has been configured.",
+                        className="mt-2 text-success",
+                    )
+                )
+            else:
+                warning_parts.append(
+                    html.Div(
+                        "💰 Budget data not included. Configure in Budget tab if needed.",
+                        className="mt-2 text-muted",
+                    )
+                )
+
             return (
                 create_toast(
                     warning_parts,
@@ -403,11 +499,11 @@ def perform_import(import_data, conflict_strategy=None, custom_name=None):
                     header="Config Import Complete",
                     duration=20000,  # Extended duration for important message
                 ),
-                no_update,  # No refresh for config-only imports
+                time.time(),  # Trigger refresh to update profile dropdown
+                time.time(),  # Trigger profile selector refresh
             )
         else:
             # Full data import - trigger refresh to reload data
-            import time
 
             # Build success message with token guidance if needed
             query_count_msg = (
@@ -434,6 +530,23 @@ def perform_import(import_data, conflict_strategy=None, custom_name=None):
                     )
                 )
 
+            # Check if budget data was imported
+            has_budget = bool(budget_data)
+            if has_budget:
+                success_parts.append(
+                    html.Div(
+                        "💰 Budget data included in import and has been configured.",
+                        className="mt-2 text-success",
+                    )
+                )
+            else:
+                success_parts.append(
+                    html.Div(
+                        "💰 Budget data not included. Configure in Budget tab if needed.",
+                        className="mt-2 text-muted",
+                    )
+                )
+
             return (
                 create_toast(
                     success_parts,
@@ -444,6 +557,7 @@ def perform_import(import_data, conflict_strategy=None, custom_name=None):
                     else 10000,  # Longer if warning present
                 ),
                 int(time.time() * 1000),  # Trigger data refresh
+                time.time(),  # Trigger profile selector refresh
             )
 
     except Exception as e:
@@ -456,6 +570,7 @@ def perform_import(import_data, conflict_strategy=None, custom_name=None):
                 duration=10000,
             ),
             no_update,  # No refresh on error
+            no_update,  # No profile selector refresh on error
         )
 
 

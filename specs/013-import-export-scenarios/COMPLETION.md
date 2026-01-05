@@ -78,7 +78,14 @@ Successfully implemented enhanced import/export functionality with configuration
 **Impact**: All queries visible in dropdown after import (not just one)  
 **Files Modified**: `callbacks/import_export.py`
 
-### 3. Consecutive Import Support
+### 3. Budget Data Support (December 2025)
+**Addition**: Export/import now includes Beyond Budgeting feature data  
+**Solution**: Added budget_data to export package (budget_settings and budget_revisions)  
+**Impact**: Budget configuration and history preserved during profile migration  
+**Files Modified**: `data/import_export.py`, `callbacks/import_export.py`, `data/persistence/sqlite_backend.py`  
+**Notes**: Budget timestamps updated to import time to maintain revision history
+
+### 4. Consecutive Import Support
 **Problem**: Second import didn't trigger (upload component not resetting)  
 **Solution**: Clear upload-data contents after import completes  
 **Impact**: Users can import multiple times without page refresh  

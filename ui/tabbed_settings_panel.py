@@ -10,6 +10,7 @@ Sections:
 3. Field Mappings (ENABLED WHEN JIRA CONNECTED)
 4. Query Management (ENABLED WHEN JIRA CONFIGURED)
 5. Data Operations (ENABLED WHEN QUERY SAVED)
+6. Budget Configuration (ENABLED WHEN PROFILE EXISTS)
 """
 
 import dash_bootstrap_components as dbc
@@ -359,9 +360,10 @@ def create_tabbed_settings_panel() -> html.Div:
     1. Profile - User profile and workspace management
     2. Connect - JIRA connection and field mapping (combined)
     3. Queries - Query management and data operations (combined)
+    4. Budget - Budget configuration and tracking
 
     Returns:
-        html.Div: Complete tabbed settings panel with 3 consolidated tabs
+        html.Div: Complete tabbed settings panel with 4 consolidated tabs
     """
     return html.Div(
         [

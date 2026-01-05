@@ -270,6 +270,13 @@ def _get_metric_explanation(metric_name: str) -> str:
         "flow_time": "Time to complete work items. Lower is better - measures cycle time.",
         "flow_efficiency": "Active work time vs. total time. 25-40% is healthy - too high indicates overload.",
         "flow_distribution": "Mix of feature vs. defect vs. risk work. Balance indicates healthy product development.",
+        "budget_utilization": "Percentage of total budget consumed. Shows how much budget has been spent based on completed work and team costs.",
+        "weekly_burn_rate": "Budget spent per week. Calculated from completed items × cost per item. Trend shows if spending is accelerating or decelerating.",
+        "budget_runway": "Weeks of budget remaining at current burn rate. Based on actual work completion, not just team cost. Critical when < 4 weeks.",
+        "cost_per_item": "Average cost to complete one work item. Calculated from team cost per week ÷ velocity. Lower indicates better efficiency.",
+        "cost_per_point": "Average cost to complete one story point. Calculated from team cost per week ÷ velocity. Tracks cost efficiency over time.",
+        "budget_forecast": "Projected final budget at completion. Uses PERT three-point estimation with optimistic, likely, and pessimistic scenarios.",
+        "cost_breakdown": "Distribution of budget across work types (Feature, Defect, Tech Debt, Risk). Shows where money is being spent.",
     }
 
     return explanations.get(
@@ -713,6 +720,7 @@ def create_metric_card(
     card_id: Optional[str] = None,
     forecast_data: Optional[Dict[str, Any]] = None,
     trend_vs_forecast: Optional[Dict[str, Any]] = None,
+    show_details_button: bool = True,
 ) -> dbc.Card:
     """Create a metric display card.
 
@@ -733,6 +741,7 @@ def create_metric_card(
         card_id: Optional HTML ID for the card
         forecast_data: Optional forecast calculation results (Feature 009)
         trend_vs_forecast: Optional trend vs forecast analysis (Feature 009)
+        show_details_button: If True, show "Show Details" button for expandable chart (default: True)
 
     Returns:
         Dash Bootstrap Card component
@@ -755,7 +764,9 @@ def create_metric_card(
     if error_state != "success":
         return _create_error_card(metric_data, card_id)
 
-    return _create_success_card(metric_data, card_id, forecast_data, trend_vs_forecast)
+    return _create_success_card(
+        metric_data, card_id, forecast_data, trend_vs_forecast, show_details_button
+    )
 
 
 def _create_success_card(
@@ -763,6 +774,7 @@ def _create_success_card(
     card_id: Optional[str],
     forecast_data: Optional[Dict[str, Any]] = None,
     trend_vs_forecast: Optional[Dict[str, Any]] = None,
+    show_details_button: bool = True,
 ) -> dbc.Card:
     """Create card for successful metric calculation.
 
@@ -1196,32 +1208,40 @@ def _create_success_card(
         # Generate unique collapse ID for this card
         collapse_id = f"{metric_name}-details-collapse"
 
+        # Build sparkline section children
+        sparkline_section_children = [
+            html.Small(
+                f"Trend (last {len(sparkline_values)} weeks):",
+                className="text-muted d-block mb-1",
+            ),
+            mini_sparkline,
+        ]
+
+        # Only add "Show Details" button if enabled
+        if show_details_button:
+            sparkline_section_children.append(
+                dbc.Button(
+                    [
+                        html.I(className="fas fa-chart-line me-2"),
+                        "Show Details",
+                    ],
+                    id=f"{metric_name}-details-btn",
+                    color="link",
+                    size="sm",
+                    className="mt-2 p-0",
+                    style={"fontSize": "0.85rem"},
+                )
+            )
+
         card_body_children.append(
             html.Div(
                 [
                     html.Hr(className="my-2"),
                     html.Div(
-                        [
-                            html.Small(
-                                f"Trend (last {len(sparkline_values)} weeks):",
-                                className="text-muted d-block mb-1",
-                            ),
-                            mini_sparkline,
-                            dbc.Button(
-                                [
-                                    html.I(className="fas fa-chart-line me-2"),
-                                    "Show Details",
-                                ],
-                                id=f"{metric_name}-details-btn",
-                                color="link",
-                                size="sm",
-                                className="mt-2 p-0",
-                                style={"fontSize": "0.85rem"},
-                            ),
-                        ],
+                        sparkline_section_children,
                         className="text-center",
                     ),
-                    # Expandable detailed chart section
+                    # Expandable detailed chart section (only shown if button exists)
                     dbc.Collapse(
                         dbc.CardBody(
                             [
@@ -1249,7 +1269,9 @@ def _create_success_card(
                         ),
                         id=collapse_id,
                         is_open=False,
-                    ),
+                    )
+                    if show_details_button
+                    else html.Div(),  # Only render Collapse if button enabled
                 ],
                 className="metric-trend-section",
             )

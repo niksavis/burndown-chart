@@ -17,21 +17,10 @@ Designed for any project management methodology (Scrum, Kanban, Waterfall, etc.)
 import dash_bootstrap_components as dbc
 from dash import html
 import pandas as pd
-import numpy as np
 from datetime import datetime, timedelta
 from scipy import stats
-from typing import Dict, List, Optional, Tuple
 
 from ui.style_constants import COLOR_PALETTE
-from data.scope_metrics import (
-    calculate_scope_change_rate,
-    calculate_scope_stability_index,
-    calculate_weekly_scope_growth,
-)
-from data.processing import (
-    calculate_performance_trend,
-    generate_weekly_forecast,
-)
 
 
 #######################################################################
@@ -1008,7 +997,12 @@ def create_enhanced_dashboard(
     - Added deadline probability calculation
     - Cleaner, more focused presentation
     """
-    current_date = datetime.now()
+    # Use last statistics date as forecast starting point (aligns with report)
+    # Statistics are weekly-based (Mondays), so forecast should start from last data point
+    # NOT datetime.now() which could be any day of the week
+    current_date = (
+        statistics_df["date"].iloc[-1] if not statistics_df.empty else datetime.now()
+    )
 
     # Calculate completed and remaining
     completed_items = (

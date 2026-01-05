@@ -308,14 +308,13 @@ def save_app_settings(
                         "pert_factor", DEFAULT_PERT_FACTOR
                     ),
                 ),
-                "deadline": settings.get(
-                    "deadline",
-                    existing_profile.get("forecast_settings", {}).get("deadline"),
-                ),
-                "milestone": settings.get(
-                    "milestone",
-                    existing_profile.get("forecast_settings", {}).get("milestone"),
-                ),
+                # Use 'in' check for deadline/milestone to allow explicit None (clearing the value)
+                "deadline": settings["deadline"]
+                if "deadline" in settings
+                else existing_profile.get("forecast_settings", {}).get("deadline"),
+                "milestone": settings["milestone"]
+                if "milestone" in settings
+                else existing_profile.get("forecast_settings", {}).get("milestone"),
                 "data_points_count": settings.get(
                     "data_points_count",
                     existing_profile.get("forecast_settings", {}).get(
@@ -718,6 +717,9 @@ def save_statistics(data: List[Dict[str, Any]]) -> None:
     Args:
         data: List of dictionaries containing statistics data
     """
+    from data.iso_week_bucketing import get_week_label
+    from datetime import datetime
+
     try:
         df = pd.DataFrame(data)
 
@@ -734,6 +736,19 @@ def save_statistics(data: List[Dict[str, Any]]) -> None:
 
         # Convert back to list of dictionaries
         statistics_data = df.to_dict("records")  # type: ignore[assignment]
+
+        # CRITICAL FIX: Ensure week_label exists for all statistics
+        # This prevents NULL week_labels in database
+        for stat in statistics_data:
+            if "week_label" not in stat or not stat["week_label"]:
+                if stat.get("date"):
+                    try:
+                        date_obj = datetime.strptime(stat["date"], "%Y-%m-%d")
+                        stat["week_label"] = get_week_label(date_obj)
+                    except (ValueError, TypeError) as e:
+                        logger.warning(
+                            f"Could not calculate week_label for date {stat.get('date')}: {e}"
+                        )
 
         # Ensure any remaining Timestamp objects are converted to strings
         statistics_data = convert_timestamps_to_strings(statistics_data)
@@ -767,6 +782,9 @@ def save_statistics_from_csv_import(data: List[Dict[str, Any]]) -> None:
     Args:
         data: List of dictionaries containing statistics data
     """
+    from data.iso_week_bucketing import get_week_label
+    from datetime import datetime as dt_module
+
     try:
         df = pd.DataFrame(data)
 
@@ -783,6 +801,19 @@ def save_statistics_from_csv_import(data: List[Dict[str, Any]]) -> None:
 
         # Convert back to list of dictionaries
         statistics_data = df.to_dict("records")  # type: ignore[assignment]
+
+        # CRITICAL FIX: Ensure week_label exists for all statistics from CSV import
+        # This prevents NULL week_labels in database
+        for stat in statistics_data:
+            if "week_label" not in stat or not stat["week_label"]:
+                if stat.get("date"):
+                    try:
+                        date_obj = dt_module.strptime(stat["date"], "%Y-%m-%d")
+                        stat["week_label"] = get_week_label(date_obj)
+                    except (ValueError, TypeError) as e:
+                        logger.warning(
+                            f"Could not calculate week_label for date {stat.get('date')}: {e}"
+                        )
 
         # Load current unified data
         unified_data = load_unified_project_data()
@@ -1749,7 +1780,7 @@ def validate_jira_config(config: Dict[str, Any]) -> tuple[bool, str]:
         return (False, "Base URL cannot be empty after removing trailing slash")
 
     # API version validation
-    api_version = config.get("api_version", "v3")
+    api_version = config.get("api_version", "v2")
     if api_version not in ["v2", "v3"]:
         return (False, "API version must be 'v2' or 'v3'")
 

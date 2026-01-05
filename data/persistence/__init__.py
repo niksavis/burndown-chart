@@ -903,6 +903,65 @@ class PersistenceBackend(ABC):
         """
         pass
 
+    # ========================================================================
+    # Budget Operations
+    # ========================================================================
+
+    @abstractmethod
+    def get_budget_settings(self, profile_id: str) -> Optional[Dict]:
+        """
+        Get budget settings for a profile.
+
+        Args:
+            profile_id: Profile identifier
+
+        Returns:
+            Dict with budget settings, or None if not configured
+        """
+        pass
+
+    @abstractmethod
+    def get_budget_revisions(self, profile_id: str) -> List[Dict]:
+        """
+        Get all budget revisions for a profile.
+
+        Args:
+            profile_id: Profile identifier
+
+        Returns:
+            List of budget revision dicts, ordered by date ascending
+        """
+        pass
+
+    @abstractmethod
+    def save_budget_settings(self, profile_id: str, budget_settings: Dict) -> None:
+        """
+        Save budget settings for a profile.
+
+        Args:
+            profile_id: Profile identifier
+            budget_settings: Budget configuration dict
+
+        Raises:
+            ValueError: If required fields missing
+            IOError: If persistence fails
+        """
+        pass
+
+    @abstractmethod
+    def save_budget_revisions(self, profile_id: str, revisions: List[Dict]) -> None:
+        """
+        Save budget revisions for a profile.
+
+        Args:
+            profile_id: Profile identifier
+            revisions: List of revision dicts
+
+        Raises:
+            IOError: If persistence fails
+        """
+        pass
+
 
 # =============================================================================
 # Error Handling Contracts

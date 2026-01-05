@@ -410,6 +410,15 @@ def run_migration_if_needed(
 
     # Check if migration needed
     if not is_migration_needed():
+        # Even if no migration needed, ensure schema exists for fresh installations
+        if not db_path.exists():
+            logger.info("Fresh installation detected - initializing empty database")
+            try:
+                initialize_schema(db_path)
+                logger.info("Database schema initialized successfully")
+            except Exception as e:
+                logger.error(f"Failed to initialize schema: {e}", exc_info=True)
+                return False
         return True
 
     logger.info("Starting JSON to SQLite migration")

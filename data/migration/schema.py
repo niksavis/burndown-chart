@@ -1,7 +1,7 @@
 """
 Database schema initialization for SQLite persistence.
 
-This module defines the 10-table normalized schema per data-model.md.
+This module defines the 12-table normalized schema per data-model.md.
 Implements all CREATE TABLE statements, indexes, and foreign key constraints.
 
 Tables:
@@ -13,8 +13,10 @@ Tables:
 6. project_statistics - Normalized weekly stats (replaces project_data.statistics array)
 7. project_scope - Project scope data (small JSON)
 8. metrics_data_points - Normalized metrics (replaces metrics_snapshots JSON blob)
-9. task_progress - Runtime task progress
-10. (future tables can be added here)
+9. budget_settings - Profile-level budget configuration
+10. budget_revisions - Budget change event log
+11. task_progress - Runtime task progress
+12. (future tables can be added here)
 
 Usage:
     from data.migration.schema import create_schema
@@ -49,7 +51,7 @@ def create_schema(conn: sqlite3.Connection) -> None:
     """
     cursor = conn.cursor()
 
-    logger.info("Creating database schema (10 normalized tables)")
+    logger.info("Creating database schema (12 normalized tables)")
 
     # Table 1: app_state (key-value for application settings)
     cursor.execute("""
@@ -315,7 +317,52 @@ def create_schema(conn: sqlite3.Connection) -> None:
         "CREATE INDEX IF NOT EXISTS idx_metrics_value ON metrics_data_points(metric_name, metric_value)"
     )
 
-    # Table 9: task_progress (runtime state)
+    # Table 9: budget_settings (profile-level budget configuration)
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS budget_settings (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            profile_id TEXT NOT NULL UNIQUE,
+            time_allocated_weeks INTEGER NOT NULL,
+            team_cost_per_week_eur REAL,
+            cost_rate_type TEXT DEFAULT 'weekly',
+            currency_symbol TEXT DEFAULT '€',
+            budget_total_eur REAL,
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL,
+            FOREIGN KEY (profile_id) REFERENCES profiles(id) ON DELETE CASCADE
+        )
+    """)
+
+    cursor.execute(
+        "CREATE INDEX IF NOT EXISTS idx_budget_settings_profile ON budget_settings(profile_id)"
+    )
+
+    # Table 10: budget_revisions (budget change event log)
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS budget_revisions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            profile_id TEXT NOT NULL,
+            revision_date TEXT NOT NULL,
+            week_label TEXT NOT NULL,
+            time_allocated_weeks_delta INTEGER DEFAULT 0,
+            team_cost_delta REAL DEFAULT 0,
+            budget_total_delta REAL DEFAULT 0,
+            revision_reason TEXT,
+            created_at TEXT NOT NULL,
+            metadata TEXT,
+            FOREIGN KEY (profile_id) REFERENCES profiles(id) ON DELETE CASCADE
+        )
+    """)
+
+    # Indexes for budget_revisions
+    cursor.execute(
+        "CREATE INDEX IF NOT EXISTS idx_budget_revisions_profile ON budget_revisions(profile_id)"
+    )
+    cursor.execute(
+        "CREATE INDEX IF NOT EXISTS idx_budget_revisions_week ON budget_revisions(profile_id, week_label)"
+    )
+
+    # Table 11: task_progress (runtime state)
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS task_progress (
             task_name TEXT PRIMARY KEY,
@@ -328,7 +375,7 @@ def create_schema(conn: sqlite3.Connection) -> None:
 
     conn.commit()
 
-    logger.info("Database schema created successfully (10 tables, 30+ indexes)")
+    logger.info("Database schema created successfully (12 tables, 35+ indexes)")
 
 
 def get_schema_version(conn: sqlite3.Connection) -> str:

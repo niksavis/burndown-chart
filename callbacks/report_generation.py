@@ -14,7 +14,9 @@ logger = logging.getLogger(__name__)
 def update_report_weeks_display(data_points):
     """Update the report weeks display to match the Data Points slider."""
     if data_points is None:
+        logger.debug("Report weeks display: data_points is None, defaulting to 12")
         return "12"
+    logger.debug(f"Report weeks display updated to: {data_points}")
     return str(data_points)
 
 
@@ -46,7 +48,7 @@ def generate_and_download_report(n_clicks, sections, data_points):
         time_period = data_points or 12
 
         logger.info(
-            f"Generating report synchronously: sections={sections}, period={time_period}w"
+            f"Generating report: sections={sections}, time_period={time_period}w (raw data_points={data_points})"
         )
 
         # Generate report (blocks until complete)
@@ -83,7 +85,7 @@ def update_report_size_estimate(sections):
     """Estimate report file size based on selected sections."""
     sections = sections or []
     base_size = 50  # KB
-    section_sizes = {"burndown": 300, "dora": 500, "flow": 500}
+    section_sizes = {"burndown": 300, "dora": 500, "flow": 500, "budget": 100}
     total_kb = base_size + sum(section_sizes.get(s, 0) for s in sections)
     size_mb = total_kb / 1024
     return f"Estimated size: ~{size_mb:.1f} MB"

@@ -172,6 +172,7 @@ def _create_import_export_tab():
                         ],
                         value="CONFIG_ONLY",  # Default to secure option
                         className="mb-2",
+                        style={"fontSize": "0.875rem"},
                     ),
                 ],
                 className="mb-2",
@@ -183,7 +184,7 @@ def _create_import_export_tab():
                         id="include-token-checkbox",
                         label="Include JIRA Token (⚠️ Security Risk)",
                         value=False,  # Default unchecked
-                        className="mb-1",
+                        style={"fontSize": "0.875rem"},
                     ),
                     dbc.Tooltip(
                         "Including token allows recipient to access your JIRA instance. Only enable for personal backups.",
@@ -191,7 +192,24 @@ def _create_import_export_tab():
                         placement="right",
                     ),
                 ],
-                className="mb-3",
+                className="mb-2",
+            ),
+            # Budget data inclusion checkbox
+            html.Div(
+                [
+                    dbc.Checkbox(
+                        id="include-budget-checkbox",
+                        label="Include Budget Data",
+                        value=False,  # Default unchecked
+                        style={"fontSize": "0.875rem"},
+                    ),
+                    dbc.Tooltip(
+                        "Budget data is project-specific. Uncheck when sharing configurations with others.",
+                        target="include-budget-checkbox",
+                        placement="right",
+                    ),
+                ],
+                className="mb-2",
             ),
             html.Div(
                 [
@@ -424,7 +442,7 @@ def _create_reports_tab():
                     dbc.Checklist(
                         id="report-sections-checklist",
                         options=[],
-                        value=["burndown", "dora", "flow"],
+                        value=["burndown", "dora", "flow", "budget"],
                         style={"display": "none"},
                     ),
                     dbc.RadioItems(

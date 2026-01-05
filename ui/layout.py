@@ -9,12 +9,14 @@ a fresh layout with the latest data from disk on each page load.
 # IMPORTS
 #######################################################################
 # Standard library imports
+import logging
 from datetime import datetime
 
 # Third-party library imports
 import dash_bootstrap_components as dbc
 from dash import dcc, html
 
+# Application imports
 # Application imports
 from configuration import __version__
 from data import (
@@ -42,6 +44,9 @@ from ui.delete_query_modal import create_delete_query_modal
 from ui.improved_settings_panel import create_improved_settings_panel
 from ui.import_export_panel import create_import_export_flyout
 
+# Initialize logger
+logger = logging.getLogger(__name__)
+
 # Feature flag for new accordion-based settings panel (Feature 011)
 USE_ACCORDION_SETTINGS = False  # Set to True to use accordion UI, False for tabbed UI
 
@@ -59,6 +64,12 @@ def serve_layout():
     """
     # Load initial data using new separated functions
     app_settings = load_app_settings()
+
+    # DEBUG: Log the show_points value being loaded
+    logger.info(
+        f"[LAYOUT DEBUG] show_points loaded from settings: {app_settings.get('show_points', 'NOT_FOUND')}"
+    )
+
     statistics, is_sample_data = load_statistics()
 
     # Get project scope and use actual remaining values (no window calculations)
