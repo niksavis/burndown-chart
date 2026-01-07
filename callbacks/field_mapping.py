@@ -1219,7 +1219,7 @@ def manage_modal_loading_state(is_open: bool, metadata: dict):
     )
 
     return (
-        "",  # Clear inline status
+        no_update,  # Don't clear status - preserve validation messages
         False,  # Enable auto-configure
         False,  # Enable save
         False,  # Enable validate
@@ -2034,11 +2034,19 @@ def _build_comprehensive_validation_alert(validation_result: Dict):
         )
 
     # Wrap all content in a single container div to ensure vertical stacking
-    return dbc.Alert(
-        html.Div(content_parts),
-        color=color,
-        dismissable=True,
-        id="validation-result-alert",
+    # Use timestamp in ID to force complete re-render each time validation runs
+    import time
+
+    timestamp = int(time.time() * 1000)  # Millisecond timestamp
+
+    return html.Div(
+        dbc.Alert(
+            html.Div(content_parts),
+            color=color,
+            dismissable=True,
+            id=f"validation-result-alert-{timestamp}",
+        ),
+        id="validation-result-container",  # Stable container ID for positioning
     )
 
 
@@ -2145,6 +2153,7 @@ def _build_no_fields_alert():
     Input("namespace-collected-values", "data"),
     State("field-mapping-state-store", "data"),
     prevent_initial_call=True,
+    priority=1,  # Higher priority ensures this runs after other status updates
 )
 def save_or_validate_mappings(namespace_values, state_data):
     """Save, validate, or update state from collected namespace values.
@@ -2205,9 +2214,20 @@ def save_or_validate_mappings(namespace_values, state_data):
     if trigger == "validate":
         # Merge collected field values into state for comprehensive validation
         state_with_fields = (state_data or {}).copy()
-        if collected_values:
-            if "field_mappings" not in state_with_fields:
-                state_with_fields["field_mappings"] = {}
+
+        # Log what we're starting with
+        logger.info(
+            f"[FieldMapping] VALIDATE - state_data field_mappings: {state_data.get('field_mappings', {}) if state_data else 'None'}"
+        )
+        logger.info(f"[FieldMapping] VALIDATE - collected_values: {collected_values}")
+
+        # Always initialize field_mappings structure
+        if "field_mappings" not in state_with_fields:
+            state_with_fields["field_mappings"] = {}
+
+        # If we have collected values from the Fields tab, use them as the source of truth
+        # Otherwise, keep existing state_data values (user might be validating from another tab)
+        if collected_values and isinstance(collected_values, dict):
             # Process ALL metric sections (dora, flow, general) to ensure cleared fields are detected
             for metric in ["dora", "flow", "general"]:
                 # Clear the metric section first
@@ -2218,6 +2238,11 @@ def save_or_validate_mappings(namespace_values, state_data):
                     for field, value in fields.items():
                         if value and str(value).strip():
                             state_with_fields["field_mappings"][metric][field] = value
+
+        # Log what we're validating with
+        logger.info(
+            f"[FieldMapping] VALIDATE - state_with_fields field_mappings after merge: {state_with_fields.get('field_mappings', {})}"
+        )
 
         # Run comprehensive validation across all tabs
         validation_result = _validate_all_tabs(state_with_fields, validation_errors)
