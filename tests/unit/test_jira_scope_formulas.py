@@ -61,19 +61,19 @@ class TestJiraScopeCalculationFormulas(unittest.TestCase):
             "Should count 3 remaining items (PROJ-2, PROJ-3, PROJ-4)",
         )
 
-        # Point calculations - includes extrapolated points for items without values
+        # Point calculations - only actual points, no fake data
         self.assertEqual(
             result["total_points"],
-            17,
-            "Total points: 8 + 5 + 3 + 1 = 17 (1 extrapolated)",
+            16,
+            "Total points: 8 + 5 + 3 = 16 (PROJ-4 has no points)",
         )
         self.assertEqual(
             result["completed_points"], 8, "Completed points: 8 from PROJ-1"
         )
         self.assertEqual(
             result["remaining_points"],
-            9,
-            "Remaining points: 5 + 3 + 1 = 9 (1 extrapolated)",
+            8,
+            "Remaining points: 5 + 3 = 8 (PROJ-4 has no points)",
         )
 
         # Estimated items and points (items with actual point values)
@@ -205,22 +205,23 @@ class TestJiraScopeCalculationFormulas(unittest.TestCase):
             issues_without_points, "customfield_10002"
         )
 
-        # When no items have points, uses fallback extrapolation (1 point per item)
+        # When no items have points, no fake data is created
         self.assertEqual(result["remaining_items"], 1, "1 remaining item")
         self.assertEqual(result["estimated_items"], 0, "No items have points")
         self.assertEqual(
             result["remaining_points"],
-            1,
-            "1 remaining point from fallback extrapolation",
+            0,
+            "No points (no fake data created)",
         )
         self.assertEqual(result["estimated_points"], 0, "No estimated points")
-
-        # Should use fallback extrapolation (10 points per item when no historical data available)
-        # With 1 remaining item, this gives 1 * 10 = 10, but since completed items had fallback of 1 point, remaining gets 1
         self.assertEqual(
             result["remaining_total_points"],
-            1.0,
-            "Uses fallback extrapolation when no actual points available",
+            0,
+            "No points when field is unavailable",
+        )
+        self.assertFalse(
+            result["points_field_available"],
+            "Points field should be marked as unavailable",
         )
 
 

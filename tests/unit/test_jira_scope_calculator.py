@@ -75,14 +75,14 @@ class TestJiraProjectScopeCalculation:
                 "key": "PROJ-1",
                 "fields": {
                     "status": {"name": "Done", "statusCategory": {"key": "done"}},
-                    "votes": None,  # No points - defaults to 1
+                    "votes": None,  # No points - no fake data created
                 },
             },
             {
                 "key": "PROJ-2",
                 "fields": {
                     "status": {"name": "To Do", "statusCategory": {"key": "new"}},
-                    "votes": None,  # No points - defaults to 1
+                    "votes": None,  # No points - no fake data created
                 },
             },
         ]
@@ -90,11 +90,12 @@ class TestJiraProjectScopeCalculation:
         result = calculate_jira_project_scope(issues, "votes")
 
         assert result["total_items"] == 2
-        assert result["total_points"] == 2  # 1 + 1 (default when no points)
+        assert result["total_points"] == 0  # No story points exist
         assert result["completed_items"] == 1
-        assert result["completed_points"] == 1  # 1 (default for completed)
+        assert result["completed_points"] == 0  # No story points
         assert result["remaining_items"] == 1
-        assert result["remaining_points"] == 1  # 1 (default for remaining)
+        assert result["remaining_points"] == 0  # No story points
+        assert result["points_field_available"] is False  # Field has no data
 
     def test_custom_status_configuration(self):
         """Test scope calculation with custom status mapping."""

@@ -82,10 +82,10 @@ def isolate_test_data(temp_database):
     Creates temporary directories and patches all data file paths to use them.
     This ensures tests NEVER modify:
     - profiles/ directory
-    - jira_cache.json
-    - project_data.json
-    - metrics_snapshots.json
-    - app_settings.json
+    - Database (uses temp_database)
+    - project_data.json (legacy)
+    - metrics_snapshots.json (legacy)
+    - app_settings.json (legacy)
     - Any other application data files
 
     **NOT autouse** - tests must explicitly request this fixture when they need
@@ -103,10 +103,11 @@ def isolate_test_data(temp_database):
     temp_profiles_dir.mkdir(parents=True, exist_ok=True)
     temp_profiles_file = temp_profiles_dir / "profiles.json"
 
-    # Temp files for various data
+    # Temp files for various data (LEGACY - most now in database)
     temp_project_data = Path(temp_root) / "project_data.json"
-    temp_jira_cache = Path(temp_root) / "jira_cache.json"
+    temp_jira_cache = Path(temp_root) / "jira_cache.json"  # LEGACY fallback only
     temp_metrics_snapshots = Path(temp_root) / "metrics_snapshots.json"
+    temp_app_settings = Path(temp_root) / "app_settings.json"
     temp_app_settings = Path(temp_root) / "app_settings.json"
 
     # Apply ALL patches to redirect data to temp locations

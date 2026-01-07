@@ -120,14 +120,17 @@ def isolated_jira_cache(initial_cache: Optional[Dict[str, Any]] = None):
     """
     Context manager that creates isolated JIRA cache for testing.
 
-    This ensures tests never modify the real jira_cache.json file.
+    DEPRECATED: This function creates temporary JSON cache files for legacy tests.
+    New tests should use the temp_database fixture which provides database isolation.
+
+    This ensures tests never modify the real database cache.
 
     Args:
         initial_cache: Optional dict to initialize the temporary cache
 
     Usage:
         with isolated_jira_cache() as temp_cache_file:
-            # Your test code here
+            # Your test code here (LEGACY - use temp_database fixture instead)
             # All JIRA cache operations will use temp_cache_file
             pass
     """
@@ -148,7 +151,7 @@ def isolated_jira_cache(initial_cache: Optional[Dict[str, Any]] = None):
         json.dump(initial_cache, f, indent=2)
 
     try:
-        # Patch the cache file path
+        # Patch the cache file path (LEGACY - for backward compatibility only)
         with patch("data.jira_simple.JIRA_CACHE_FILE", temp_file):
             yield temp_file
     finally:
