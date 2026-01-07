@@ -205,6 +205,7 @@ docs/metrics/IMPLEMENTATION_GUIDE.md
 /test_*.py
 /verify_*.py
 /analyze_*.py
+/temp_*.py
 
 # Customer-specific configuration backups (NOT committed, but backed up separately)
 config-backups/

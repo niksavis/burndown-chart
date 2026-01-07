@@ -51,6 +51,8 @@ def calculate_jira_project_scope(
         _validate_points_field_availability_with_stats(issues_data, points_field)
     )
 
+    logger.info(f"[SCOPE] Starting calculation for {len(issues_data)} issues")
+
     for issue in issues_data:
         try:
             # Extract issue data
@@ -96,6 +98,13 @@ def calculate_jira_project_scope(
 
     total_items = completed_items + remaining_items
     total_points = completed_points + remaining_points
+
+    logger.info(
+        f"[SCOPE] Calculation complete - Total: {total_items}, Completed: {completed_items}, Remaining: {remaining_items}"
+    )
+    logger.info(
+        f"[SCOPE] Points - Total: {total_points}, Completed: {completed_points}, Remaining: {remaining_points}"
+    )
 
     # Calculate remaining_total_points using the specified formula
     # Only calculate if points field is available, otherwise return 0

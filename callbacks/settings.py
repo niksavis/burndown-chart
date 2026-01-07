@@ -3028,15 +3028,16 @@ def register(app):
         logger.info("[Settings] Reloading scope data after metrics calculation")
 
         try:
-            from data.persistence import load_project_data
+            # CRITICAL: Use load_unified_project_data() to get the correct remaining_items
+            from data.persistence import load_unified_project_data
 
-            # Load scope data from database
-            project_data = load_project_data()
+            unified_data = load_unified_project_data()
+            project_scope = unified_data.get("project_scope", {})
 
-            estimated_items = project_data.get("estimated_items", 0)
-            remaining_items = project_data.get("total_items", 0)
-            estimated_points = project_data.get("estimated_points", 0)
-            remaining_points = project_data.get("total_points", 0)
+            estimated_items = project_scope.get("estimated_items", 0)
+            remaining_items = project_scope.get("remaining_items", 0)
+            estimated_points = project_scope.get("estimated_points", 0)
+            remaining_points = project_scope.get("remaining_total_points", 0)
 
             # Format points as display string
             remaining_points_display = f"{remaining_points:.0f}"

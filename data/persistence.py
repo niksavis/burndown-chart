@@ -1100,6 +1100,11 @@ def load_unified_project_data() -> Dict[str, Any]:
         scope = backend.get_scope(active_profile_id, active_query_id)
         if scope:
             data["project_scope"].update(scope)
+            logger.info(
+                f"[Cache] Loaded scope from DB - Total: {scope.get('total_items')}, "
+                f"Completed: {scope.get('completed_items')}, "
+                f"Remaining: {scope.get('remaining_items')}"
+            )
 
         # Load statistics
         stats_rows = backend.get_statistics(active_profile_id, active_query_id)
@@ -1232,8 +1237,12 @@ def _migrate_legacy_project_data(data):
                 "total_points": data.get("total_points", 0),
                 "estimated_items": data.get("estimated_items", 0),
                 "estimated_points": data.get("estimated_points", 0),
-                "remaining_items": data.get("total_items", 0),
-                "remaining_points": data.get("total_points", 0),
+                "remaining_items": data.get(
+                    "remaining_items", data.get("total_items", 0)
+                ),
+                "remaining_points": data.get(
+                    "remaining_points", data.get("total_points", 0)
+                ),
             }
         )
 
@@ -1495,6 +1504,12 @@ def save_jira_data_unified(
         # Update project scope
         unified_data["project_scope"] = project_scope_data
 
+        logger.info(
+            f"[Cache] Saving scope - Total: {project_scope_data.get('total_items')}, "
+            f"Completed: {project_scope_data.get('completed_items')}, "
+            f"Remaining: {project_scope_data.get('remaining_items')}"
+        )
+
         # Extract JQL query from config or fallback
         jql_query = ""
         if jira_config is not None:
@@ -1558,8 +1573,12 @@ def migrate_csv_to_json() -> Dict[str, Any]:
             "total_points": project_data.get("total_points", 0),
             "estimated_items": project_data.get("estimated_items", 0),
             "estimated_points": project_data.get("estimated_points", 0),
-            "remaining_items": project_data.get("total_items", 0),  # Default to total
-            "remaining_points": project_data.get("total_points", 0),
+            "remaining_items": project_data.get(
+                "remaining_items", project_data.get("total_items", 0)
+            ),
+            "remaining_points": project_data.get(
+                "remaining_points", project_data.get("total_points", 0)
+            ),
         },
         "statistics": statistics,
         "metadata": {
