@@ -2963,16 +2963,48 @@ def register(app):
             df["date"] = pd.to_datetime(df["date"], format="mixed", errors="coerce")
             df = df.sort_values("date", ascending=False)  # Most recent first
 
-            # Use actual remaining values from project scope (no window calculations)
+            # Select the data window (most recent N data points)
+            window_df = df.head(data_points_count)
+
+            # Get base values from project scope
             remaining_items = project_scope.get("remaining_items", 0)
-            remaining_points = project_scope.get("remaining_total_points", 0)
             estimated_items = project_scope.get("estimated_items", 0)
             estimated_points = project_scope.get("estimated_points", 0)
 
-            # Calculate avg points per item for calculation_results
-            avg_points_per_item = 0
-            if remaining_items > 0:
-                avg_points_per_item = remaining_points / remaining_items
+            # Calculate average points per item from the SELECTED TIME WINDOW
+            # This allows the extrapolation to adjust based on recent velocity
+            window_completed_items = window_df["completed_items"].sum()
+            window_completed_points = window_df["completed_points"].sum()
+
+            # Calculate average from window, with fallback to overall project scope
+            if window_completed_items > 0:
+                avg_points_per_item = window_completed_points / window_completed_items
+            elif estimated_items > 0:
+                # Fallback to estimated items average
+                avg_points_per_item = estimated_points / estimated_items
+            else:
+                # Last resort: use completed project data
+                completed_items_total = project_scope.get("completed_items", 0)
+                completed_points_total = project_scope.get("completed_points", 0)
+                if completed_items_total > 0:
+                    avg_points_per_item = completed_points_total / completed_items_total
+                else:
+                    avg_points_per_item = 10  # Default fallback
+
+            # Recalculate remaining_total_points using window-based average
+            # Formula: estimated_points + (avg × unestimated_items)
+            unestimated_items = max(0, remaining_items - estimated_items)
+            remaining_points = estimated_points + (
+                avg_points_per_item * unestimated_items
+            )
+
+            logger.info(
+                f"[Settings] Data Points slider calculation - Window: {data_points_count} weeks, "
+                f"Window completed: {window_completed_items} items / {window_completed_points:.1f} points, "
+                f"Avg: {avg_points_per_item:.2f}, "
+                f"Remaining: {remaining_items} items ({estimated_items} estimated, {unestimated_items} unestimated), "
+                f"Total remaining points: {remaining_points:.1f}"
+            )
 
             calc_results = {
                 "total_points": remaining_points,
@@ -3002,61 +3034,40 @@ def register(app):
             Output("total-items-input", "value", allow_duplicate=True),
             Output("estimated-points-input", "value", allow_duplicate=True),
             Output("total-points-display", "value", allow_duplicate=True),
+            Output("calculation-results", "data", allow_duplicate=True),
         ],
         [Input("metrics-refresh-trigger", "data")],
-        [State("current-statistics", "data")],
+        [State("current-statistics", "data"), State("data-points-input", "value")],
         prevent_initial_call=True,
     )
-    def reload_scope_after_metrics(refresh_trigger, statistics):
+    def reload_scope_after_metrics(refresh_trigger, statistics, data_points_count):
         """
         Reload scope data from database after metrics calculation completes.
 
         When Update Data finishes, this callback reloads the scope values
-        (estimated_items, remaining_items, estimated_points, remaining_points)
-        from the database and updates the parameter panel inputs.
+        and recalculates remaining points based on the current data points slider value.
 
         Args:
             refresh_trigger: Timestamp when metrics calculation completed
             statistics: Current statistics data
+            data_points_count: Current data points slider value
 
         Returns:
-            Tuple: (estimated_items, remaining_items, estimated_points, remaining_points_display)
+            Tuple: (estimated_items, remaining_items, estimated_points, remaining_points_display, calc_results)
         """
         if not refresh_trigger:
             raise PreventUpdate
 
-        logger.info("[Settings] Reloading scope data after metrics calculation")
+        logger.info(
+            f"[Settings] Reloading scope data after metrics calculation, data_points={data_points_count}"
+        )
 
-        try:
-            # CRITICAL: Use load_unified_project_data() to get the correct remaining_items
-            from data.persistence import load_unified_project_data
+        # Use the same calculation function as the slider callback
+        result = calculate_remaining_work_for_data_window(data_points_count, statistics)
 
-            unified_data = load_unified_project_data()
-            project_scope = unified_data.get("project_scope", {})
-
-            estimated_items = project_scope.get("estimated_items", 0)
-            remaining_items = project_scope.get("remaining_items", 0)
-            estimated_points = project_scope.get("estimated_points", 0)
-            remaining_points = project_scope.get("remaining_total_points", 0)
-
-            # Format points as display string
-            remaining_points_display = f"{remaining_points:.0f}"
-
-            logger.info(
-                f"[Settings] Scope reloaded: estimated_items={estimated_items}, "
-                f"remaining_items={remaining_items}, estimated_points={estimated_points}, "
-                f"remaining_points={remaining_points:.1f}"
-            )
-
-            return (
-                estimated_items,
-                remaining_items,
-                estimated_points,
-                remaining_points_display,
-            )
-
-        except Exception as e:
-            logger.error(f"[Settings] Error reloading scope data: {e}", exc_info=True)
+        if result:
+            return result
+        else:
             raise PreventUpdate
 
     # Callback to recalculate remaining work scope when data points slider changes
@@ -3094,6 +3105,11 @@ def register(app):
         Returns:
             Tuple: (estimated_items, remaining_items, estimated_points, remaining_points)
         """
+        logger.info(
+            f"[Settings] Data Points slider changed to {data_points_count}, "
+            f"init_complete={init_complete}, statistics count={len(statistics) if statistics else 0}"
+        )
+
         if not init_complete or not statistics or not data_points_count:
             raise PreventUpdate
 
