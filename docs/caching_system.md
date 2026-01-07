@@ -1,51 +1,82 @@
-# caching system
+# Caching System
 
 ## Overview
 
-The burndown chart app uses two complementary caching systems to optimize performance and support multi-profile workflows. This document explains how they work together.
+The burndown chart app uses a SQLite database for persistent storage and caching. This document explains how the caching system works.
+
+**Note**: This document describes the current database-based caching system. Legacy JSON file caching (`jira_cache.json`, `project_data.json`) is deprecated and documented for backward compatibility only.
 
 ---
 
-## The Two Cache Systems
+## Database Storage Architecture
 
-### 1. Profile-Specific Cache (Primary)
+### Primary Storage: SQLite Database
 
-**Location**: `profiles/{profile_id}/queries/{query_id}/jira_cache.json`
+**Location**: `burndown_chart.db`
 
-**What it does**: Stores JIRA issue data separately for each query in each profile.
+**What it does**: Stores all JIRA data, statistics, metrics, and configuration in a normalized relational database.
 
-**Why it exists**: 
-- **Isolation** - Each profile and query combination has its own data cache
-- **Simplicity** - Easy to understand: one cache file per query
-- **Debugging** - Clear file structure, easy to inspect cached data
-- **Control** - Users can manually clear cache for specific queries
+**Key Tables**:
+- `jira_issues` - Cached JIRA issue data (replaces jira_cache.json)
+- `jira_changelog` - Issue change history (replaces jira_changelog_cache.json)
+- `project_statistics` - Weekly statistics (replaces project_data.json)
+- `metrics_snapshots` - Historical metrics (replaces metrics_snapshots.json)
+- `profiles` - Profile configurations
+- `queries` - Query definitions
+- `app_state` - Application state
 
-**Example structure**:
+**Why database storage**:
+- **Performance** - Indexed queries, no full-file parsing
+- **Scalability** - Handles 100k+ issues efficiently
+- **ACID guarantees** - Transactional consistency
+- **Concurrent access** - Multiple processes can read simultaneously
+- **Query flexibility** - SQL filtering, aggregation, joins
+- **Space efficiency** - Normalized storage, no duplication
+
+**Database structure**:
 ```
+burndown_chart.db (SQLite database)
+├── profiles table
+│   ├── team-alpha (id, name, settings)
+│   └── team-beta (id, name, settings)
+├── queries table
+│   ├── sprint-backlog (profile: team-alpha, jql, name)
+│   ├── bugs-only (profile: team-alpha, jql, name)
+│   └── all-issues (profile: team-beta, jql, name)
+├── jira_issues table
+│   ├── Issues for team-alpha/sprint-backlog (profile_id, query_id, issue_key, ...)
+│   ├── Issues for team-alpha/bugs-only
+│   └── Issues for team-beta/all-issues
+└── project_statistics table
+    └── Weekly stats per profile/query combination
+
+Legacy (deprecated):
 profiles/
 ├── team-alpha/
 │   └── queries/
 │       ├── sprint-backlog/
-│       │   └── jira_cache.json  ← Cache for sprint query
+│       │   └── query.json (metadata only)
 │       └── bugs-only/
-│           └── jira_cache.json  ← Cache for bug query
+│           └── query.json (metadata only)
 └── team-beta/
     └── queries/
         └── all-issues/
-            └── jira_cache.json  ← Separate cache for different profile
+            └── query.json (metadata only)
 ```
 
-**Invalidation triggers**:
-- JQL query changes
-- Time period changes (e.g., last 12 weeks → last 8 weeks)
-- Cache age exceeds 24 hours
-- Cache version mismatch after app update
+**Cache invalidation**:
+- JQL query changes → Delete rows from `jira_issues` table for that query
+- Time period changes → Recalculate statistics, keep raw issue data
+- Cache age exceeds 24 hours → Re-fetch from JIRA API
+- Force refresh → Delete cached data for active query
 
 ---
 
-### 2. Global Hash-Based Cache (Secondary)
+### Legacy: Global Hash-Based Cache (Deprecated)
 
-**Location**: `cache/{md5_hash}.json`
+**Note**: This cache system is deprecated and being phased out. All caching now uses the SQLite database.
+
+**Location**: `cache/{md5_hash}.json` (LEGACY - no longer used)
 
 **What it does**: Provides cross-profile data reuse and background fetch optimization.
 
@@ -78,24 +109,24 @@ Example:
 
 ---
 
-## How They Work Together
+## How Database Caching Works
 
 ### Scenario 1: First Data Load
 
 ```
 1. User opens app → Profile: "Team Alpha", Query: "Sprint Backlog"
-2. Check profile cache: profiles/team-alpha/queries/sprint-backlog/jira_cache.json
-   → Does not exist
-3. Check global cache: cache/3c73ccd8.json
-   → Does not exist
-4. Fetch from JIRA API (200 issues)
-5. Save to BOTH:
-   - Profile cache: jira_cache.json (primary)
-   - Global cache: 3c73ccd8.json (secondary)
+2. Check database: SELECT * FROM jira_issues WHERE profile_id='team-alpha' AND query_id='sprint-backlog'
+   → Returns 0 rows (no cached data)
+3. Fetch from JIRA API (200 issues)
+4. Save to database:
+   - INSERT INTO jira_issues (profile_id, query_id, issue_key, ...)
+   - 200 rows inserted
+5. Calculate statistics and save:
+   - INSERT INTO project_statistics (profile_id, query_id, stat_date, ...)
 6. Display data to user
 ```
 
-**Result**: Both caches populated, future loads will be instant.
+**Result**: Database populated, future loads query from database (instant).
 
 ---
 
@@ -258,25 +289,32 @@ If you need fresh data from JIRA:
 
 ```
 Option 1 (UI): Click "Force Refresh" in Items per Week tab
+  → Deletes rows from jira_issues table for active profile/query
 
-Option 2 (Manual): Delete cache files:
-  profiles/{profile_id}/queries/{query_id}/jira_cache.json
-  profiles/{profile_id}/queries/{query_id}/jira_changelog_cache.json
+Option 2 (SQL): Manually delete from database:
+  DELETE FROM jira_issues WHERE profile_id='team-alpha' AND query_id='sprint-backlog';
+  DELETE FROM jira_changelog WHERE profile_id='team-alpha' AND query_id='sprint-backlog';
 
-Global cache will be automatically regenerated on next fetch.
+Option 3 (Legacy): Delete JSON files (if they exist):
+  profiles/{profile_id}/queries/{query_id}/jira_cache.json (deprecated)
+  profiles/{profile_id}/queries/{query_id}/jira_changelog_cache.json (deprecated)
 ```
 
 ---
 
-### "Can I delete the entire cache folder?"
+### "Can I delete the entire database?"
 
 ```
-Yes, safe to delete:
-- cache/ folder (global cache) → Will be regenerated
-- profiles/.../jira_cache.json files → Will be regenerated
+Yes, but with caution:
+- Deleting burndown_chart.db → All data lost (profiles, queries, statistics)
+- App will recreate empty database on next start
+- You'll need to reconfigure profiles and re-fetch all JIRA data
 
-Warning: Deleting cache triggers fresh JIRA API calls.
-If you have 1000+ issues, re-fetching takes 10-30 seconds.
+Better option: Use "Force Refresh" to clear cache without losing configuration.
+
+Legacy cache/ folder:
+- cache/ folder (global cache) → No longer used, safe to delete
+- profiles/.../jira_cache.json files → Deprecated, safe to delete
 ```
 
 ---
@@ -285,72 +323,92 @@ If you have 1000+ issues, re-fetching takes 10-30 seconds.
 
 ### Code Locations
 
-**Profile cache**:
-- `data/jira_simple.py` lines 1461-1464, 1507-1510, 1647-1651
-- Uses: `get_active_query_workspace() / "jira_cache.json"`
+**Database persistence**:
+- `data/persistence/sqlite_backend.py` - SQLite database backend
+- `data/database.py` - Database connection management
+- `data/migration/schema_manager.py` - Database schema and migrations
 
-**Global cache**:
-- `data/jira_simple.py` lines 361, 511, 875, 968, 1014
-- Uses: `save_cache(..., cache_dir="cache")`
-- Uses: `load_cache_with_validation(..., cache_dir="cache")`
+**JIRA data operations**:
+- `data/jira_simple.py` - JIRA API integration, saves to database
+- Uses: `backend.save_issues(profile_id, query_id, issues)`
+- Uses: `backend.get_issues(profile_id, query_id)`
 
-**Cache key generation**:
-- `data/cache_manager.py::generate_jira_data_cache_key(jql, time_period)`
-- Returns: MD5 hash string (32 characters)
+**Legacy cache operations** (deprecated):
+- `data/jira_simple.py` lines 1461-1464, 1507-1510 (legacy JSON files)
+- `data/cache_manager.py` - Legacy cache validation (being phased out)
 
 ---
 
-### Cache File Structure
+### Database Schema
 
-**Profile cache** (`jira_cache.json`):
-```json
-{
-  "issues": [...],           // Raw JIRA issues
-  "jql_query": "project = ...",
-  "fields": "key,status,...",
-  "timestamp": "2025-11-17T12:00:00Z",
-  "cache_version": "2.0"
-}
+**jira_issues table**:
+```sql
+CREATE TABLE jira_issues (
+    id INTEGER PRIMARY KEY,
+    profile_id TEXT NOT NULL,
+    query_id TEXT NOT NULL,
+    issue_key TEXT NOT NULL,
+    issue_data JSON NOT NULL,
+    cached_at TIMESTAMP,
+    UNIQUE(profile_id, query_id, issue_key)
+);
+
+CREATE INDEX idx_jira_issues_lookup ON jira_issues(profile_id, query_id);
 ```
 
-**Global cache** (`{hash}.json`):
-```json
-{
-  "metadata": {
-    "cached_at": "2025-11-17T12:00:00Z",
-    "config_hash": "a1b2c3...",
-    "cache_version": "2.0"
-  },
-  "data": [...]             // Raw JIRA issues
-}
+**project_statistics table** (replaces project_data.json):
+```sql
+CREATE TABLE project_statistics (
+    id INTEGER PRIMARY KEY,
+    profile_id TEXT NOT NULL,
+    query_id TEXT NOT NULL,
+    stat_date DATE NOT NULL,
+    completed_items INTEGER,
+    completed_points INTEGER,
+    remaining_items INTEGER,
+    remaining_points INTEGER,
+    UNIQUE(profile_id, query_id, stat_date)
+);
 ```
 
 ---
 
 ## Developer Notes
 
-### When to Use Which Cache
+### Working with Database Cache
 
-**Use profile cache when**:
-- Loading data for current active query
-- User explicitly refreshes data
-- Saving newly fetched JIRA data
-
-**Use global cache when**:
-- Background validation (check if data changed)
-- Cross-profile data lookup
-- Fast "does cache exist?" checks without profile context
-
-### Adding New Cache Validation Rules
-
+**Loading cached data**:
 ```python
-# In data/cache_manager.py::load_cache_with_validation()
+from data.persistence.factory import get_backend
 
-# Example: Add project-specific validation
-if config.get("project") != cached_config.get("project"):
-    logger.debug("[Cache] Miss: Project mismatch")
-    return False, []
+backend = get_backend()
+issues = backend.get_issues(profile_id, query_id, limit=10000)
 ```
+
+**Saving data to cache**:
+```python
+backend.save_issues(profile_id, query_id, issues)
+backend.save_statistics(profile_id, query_id, statistics)
+```
+
+**Invalidating cache**:
+```python
+# Delete cached issues for a query
+backend.delete_issues(profile_id, query_id)
+
+# Or use higher-level invalidation
+from data.cache_manager import invalidate_all_cache
+invalidate_all_cache()  # Clears database cache
+```
+
+### Migration from JSON to Database
+
+The app automatically migrates data from legacy JSON files to the database:
+1. On first run, checks for `jira_cache.json` files
+2. Imports data into SQLite database
+3. Marks JSON files as legacy (can be safely deleted)
+
+See `data/migration/json_to_db_migrator.py` for migration logic.
 
 ### Testing Cache Behavior
 
@@ -365,24 +423,27 @@ if config.get("project") != cached_config.get("project"):
 
 ## Summary
 
-**Profile cache (primary)**:
-- One cache per query per profile
-- Easy to understand and debug
-- Provides data isolation
+**SQLite Database (current)**:
+- Single source of truth for all data
+- ACID transactions and data integrity
+- Indexed queries for fast retrieval
+- Normalized schema eliminates duplication
+- Supports concurrent access
+- 10-100x faster than JSON file parsing for large datasets
 
-**Global cache (secondary)**:
-- Cross-profile optimization
-- Background fetch performance
-- Field mapping independence
+**Legacy JSON files (deprecated)**:
+- `jira_cache.json` - Replaced by `jira_issues` table
+- `project_data.json` - Replaced by `project_statistics` table
+- `metrics_snapshots.json` - Replaced by `metrics_snapshots` table
+- `cache/{hash}.json` - No longer used
 
-**Together they provide**:
-- Fast data access (95%+ hit rate)
-- Isolation between profiles
-- Efficient handling of field mapping changes
-- Background validation without blocking UI
-
-Both systems are intentionally redundant for reliability and performance. The global cache could be removed in a future simplification, but currently provides measurable benefits with minimal complexity cost.
+**Benefits of database storage**:
+- **Performance**: O(log n) indexed lookups vs O(n) file parsing
+- **Reliability**: Transactional consistency, no corruption risk
+- **Scalability**: Handles 100k+ issues efficiently
+- **Maintainability**: SQL queries easier than JSON manipulation
+- **Features**: Complex filtering, aggregation, joins
 
 ---
 
-*Document Version: 1.0 | Last Updated: December 2025*
+*Document Version: 2.0 (Database-based) | Last Updated: January 2026*

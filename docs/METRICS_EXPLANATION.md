@@ -400,9 +400,10 @@ Click any DORA metric card to view detailed weekly breakdown:
 
 ### When Metrics Are Calculated
 - **Manual Trigger**: User clicks "Calculate Metrics" button in Settings
-- **Process**: Calculates metrics for last N weeks and saves to `metrics_snapshots.json`
+- **Process**: Calculates metrics for last N weeks and saves to database (`metrics_snapshots` table)
 - **Duration**: ~2 minutes for 12 weeks of data
-- **Display**: Instant (reads from cache)
+- **Display**: Instant (reads from indexed database)
+- **Storage**: Stored in SQLite database (legacy: `metrics_snapshots.json`)
 
 ---
 
@@ -1543,17 +1544,18 @@ A: No. Dashboard uses 10-week rolling average; Flow uses per-week calculations. 
 
 ## Integration with Other App Statistics
 
-### Weekly Statistics (`project_data.json`)
+### Weekly Statistics (Database: `project_statistics` table)
 - **Burndown Metrics**: Uses same ISO week bucketing
 - **Velocity Tracking**: Completed items and story points per week
 - **Scope Changes**: Weekly additions to backlog
 - **Consistency**: All weekly metrics share same Monday-Sunday boundaries
+- **Storage**: Stored in SQLite database (legacy: `project_data.json`)
 
 ### Data Points Slider
 - **Purpose**: Control historical depth (how many weeks to display)
 - **Default**: 12 weeks
 - **Applies To**: Both DORA and Flow metrics
-- **Performance**: Reading cached snapshots is instant regardless of N
+- **Performance**: Reading from indexed database is instant regardless of N
 
 ---
 

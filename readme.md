@@ -345,22 +345,30 @@ profiles/
   profiles.json                       # Registry of all profiles and active profile
   {profile_id}/
     profile.json                      # Settings and configuration
+    database.db                       # SQLite database (primary storage)
     queries/
       {query_id}/
         query.json                    # Query definition (JQL, name, description)
-        project_data.json             # Metrics and statistics
-        jira_cache.json               # Downloaded JIRA issues
-        jira_changelog_cache.json     # Issue change history
-        metrics_snapshots.json        # Historical data
+        # Legacy JSON files (deprecated, backward compatibility only):
+        project_data.json             # LEGACY: Metrics (now in database)
+        jira_cache.json               # LEGACY: Issues (now in database)
+        jira_changelog_cache.json     # LEGACY: History (now in database)
+        metrics_snapshots.json        # LEGACY: Snapshots (now in database)
 ```
+
+**Database Tables** (primary storage):
+- `jira_issues` - Downloaded JIRA issues (replaces jira_cache.json)
+- `jira_changelog` - Issue change history (replaces jira_changelog_cache.json)
+- `project_statistics` - Metrics and statistics (replaces project_data.json)
+- `metrics_snapshots` - Historical data (replaces metrics_snapshots.json)
 
 ### Data Flow
 
 1. **JIRA Sync:** Connects to JIRA API using your token
-2. **Smart Caching:** Only downloads changed issues after first sync
+2. **Smart Caching:** Only downloads changed issues after first sync (stored in SQLite database)
 3. **Field Mapping:** Translates JIRA fields to app metrics
-4. **Calculation Engine:** Computes DORA and Flow metrics
-5. **Visualization:** Generates interactive charts
+4. **Calculation Engine:** Computes DORA and Flow metrics (stored in database)
+5. **Visualization:** Generates interactive charts (reads from indexed database)
 
 ### API Integration
 
