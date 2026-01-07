@@ -183,7 +183,9 @@ def register(app):
             Input("calculation-results", "data"),
             Input("estimated-items-input", "value"),
             Input("estimated-points-input", "value"),
-            Input("data-points-input", "value"),  # Parameter panel data points slider
+            Input(
+                "data-points-input", "value"
+            ),  # CRITICAL: Parameter panel data points slider - triggers settings update for visualizations
             Input("points-toggle", "value"),  # Parameter panel points toggle
         ],
         [
@@ -294,38 +296,33 @@ def register(app):
             # Note: JIRA configuration is now managed separately via save_jira_configuration()
         )
 
-        # Save project data using unified format
-        from data.persistence import load_unified_project_data, update_project_scope
+        # SOLUTION 1 FIX: NEVER save scope values (total_items, total_points, etc.) from UI inputs
+        # to the database. These values are DERIVED from the data points slider and should be
+        # calculated on-the-fly. Only the BASE scope (from JIRA) should be in the database.
+        #
+        # The parameter panel inputs show WINDOWED scope (based on data_points slider).
+        # The database stores BASE scope (full JIRA data without filtering).
+        # All visualizations calculate windowed values by reading current-settings store.
+        #
+        # This ensures:
+        # 1. Moving the slider immediately recalculates all displayed values
+        # 2. Database remains the source of truth for base data
+        # 3. No callback collisions overwriting calculated values
+        #
+        logger.info(
+            "[Settings] Scope values (total_items, total_points) are derived from slider - not saved to database"
+        )
+        logger.info(
+            f"[Settings] Storing windowed scope in settings store for visualization: {total_items} items, {total_points:.1f} points"
+        )
 
-        # Get current unified data to check if it's from JIRA
-        unified_data = load_unified_project_data()
-        data_source = unified_data.get("metadata", {}).get("source", "")
-
-        # Only update project scope if it's NOT from JIRA (to avoid overriding JIRA data)
-        if data_source != "jira_calculated":
-            try:
-                update_project_scope(
-                    {
-                        "total_items": total_items,
-                        "total_points": total_points,
-                        "estimated_items": estimated_items,
-                        "estimated_points": estimated_points,
-                        "remaining_items": total_items,  # Default assumption for manual data
-                        "remaining_points": total_points,
-                    }
-                )
-            except ValueError as e:
-                # Handle case where no active query exists yet (e.g., new profile with no queries)
-                logger.warning(f"[Settings] Cannot update project scope: {e}")
-        else:
-            # CRITICAL FIX: If data is from JIRA, DO NOT override any JIRA-calculated values
-            # The estimation fields should only be updated through JIRA scope calculation, not UI inputs
-            logger.info(
-                "[Settings] Preserving JIRA project scope data - UI input changes do not override JIRA calculations"
-            )
-            # JIRA project scope should ONLY be updated by JIRA operations, never by UI inputs
-
-        logger.info(f"[Settings] Updated and saved: {settings}")
+        # SOLUTION 1: Log which trigger caused the settings update for debugging
+        trigger_id = (
+            ctx.triggered[0]["prop_id"].split(".")[0] if ctx.triggered else "unknown"
+        )
+        logger.info(
+            f"[Settings] Updated settings (triggered by {trigger_id}): data_points={data_points_count}, total_items={total_items}, total_points={total_points:.1f}"
+        )
         return settings, int(datetime.now().timestamp() * 1000)
 
     # REMOVED: Legacy data points constraints callback - not needed with new parameter panel
@@ -3044,8 +3041,9 @@ def register(app):
         """
         Reload scope data from database after metrics calculation completes.
 
-        When Update Data finishes, this callback reloads the scope values
-        and recalculates remaining points based on the current data points slider value.
+        SOLUTION 1: This callback reloads the BASE scope from database (full JIRA data)
+        and then recalculates the WINDOWED scope based on the current data points slider value.
+        This ensures parameter panel shows values consistent with the selected time window.
 
         Args:
             refresh_trigger: Timestamp when metrics calculation completed
@@ -3059,15 +3057,22 @@ def register(app):
             raise PreventUpdate
 
         logger.info(
-            f"[Settings] Reloading scope data after metrics calculation, data_points={data_points_count}"
+            f"[Settings] Reloading BASE scope from database after metrics, then calculating WINDOWED scope for {data_points_count} data points"
         )
 
-        # Use the same calculation function as the slider callback
+        # SOLUTION 1: Calculate windowed scope based on current slider position
+        # This ensures the parameter panel always shows values for the selected time window
         result = calculate_remaining_work_for_data_window(data_points_count, statistics)
 
         if result:
+            logger.info(
+                f"[Settings] Scope reloaded and windowed: estimated_items={result[0]}, remaining_items={result[1]}, estimated_points={result[2]}, remaining_points={result[3]}"
+            )
             return result
         else:
+            logger.warning(
+                "[Settings] Failed to calculate windowed scope after metrics reload"
+            )
             raise PreventUpdate
 
     # Callback to recalculate remaining work scope when data points slider changes
@@ -3090,7 +3095,10 @@ def register(app):
         data_points_count, statistics, init_complete
     ):
         """
-        Recalculate remaining work scope when the Data Points slider changes.
+        SOLUTION 1: Recalculate WINDOWED remaining work scope when Data Points slider changes.
+
+        This is the PRIMARY callback that ensures parameter panel values reflect the selected
+        time window. All values are calculated on-the-fly from base statistics data.
 
         When the user adjusts the Data Points slider to use fewer historical weeks,
         the remaining work should reflect the scope at the START of that time window.
@@ -3103,10 +3111,10 @@ def register(app):
             init_complete: Whether app initialization is complete
 
         Returns:
-            Tuple: (estimated_items, remaining_items, estimated_points, remaining_points)
+            Tuple: (estimated_items, remaining_items, estimated_points, remaining_points, calc_results)
         """
         logger.info(
-            f"[Settings] Data Points slider changed to {data_points_count}, "
+            f"[Settings] Data Points slider callback fired: data_points={data_points_count}, "
             f"init_complete={init_complete}, statistics count={len(statistics) if statistics else 0}"
         )
 
