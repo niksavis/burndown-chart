@@ -421,9 +421,13 @@ def register(app):
         from dash import ctx
 
         triggered_id = ctx.triggered_id if ctx.triggered else None
+        triggered_prop = ctx.triggered[0] if ctx.triggered else None
+        logger.info("[UPDATE DATA] =========================================")
         logger.info(
             f"[UPDATE DATA] Callback triggered by: {triggered_id} - n_clicks={n_clicks}, force_refresh={force_refresh}"
         )
+        logger.info(f"[UPDATE DATA] Full trigger info: {triggered_prop}")
+        logger.info("[UPDATE DATA] =========================================")
 
         # Normal button state
         button_normal = [
@@ -790,12 +794,107 @@ def register(app):
             if force_refresh_bool:
                 logger.info("=" * 60)
                 logger.info(
-                    "[Settings] FORCE REFRESH ENABLED BY USER (long-press detected)"
+                    "[Settings] FORCE REFRESH ENABLED - COMPLETE DATA WIPE FOR THIS QUERY"
                 )
                 logger.info(
-                    "[Settings] Cache will be invalidated and fresh data fetched from JIRA"
+                    "[Settings] This is a self-repair mechanism to recover from bad data"
                 )
                 logger.info("=" * 60)
+
+                # SELF-REPAIR MECHANISM: Complete data wipe for the active query
+                # This removes ALL data associated with this query from database and cache
+                # to give the user a clean slate when they suspect data corruption
+                from data.persistence.factory import get_backend
+
+                backend = get_backend()
+                active_profile_id = backend.get_app_state("active_profile_id")
+                active_query_id = backend.get_app_state("active_query_id")
+
+                if active_profile_id and active_query_id:
+                    try:
+                        logger.info(
+                            f"[Settings] Wiping ALL data for query: {active_profile_id}/{active_query_id}"
+                        )
+
+                        # Import database connection manager
+                        from data.database import get_db_connection
+
+                        # Step 1: Delete JIRA issues for this query (CASCADE deletes changelog too)
+                        with get_db_connection() as conn:
+                            cursor = conn.cursor()
+                            cursor.execute(
+                                "DELETE FROM jira_issues WHERE profile_id = ? AND query_id = ?",
+                                (active_profile_id, active_query_id),
+                            )
+                            issues_deleted = cursor.rowcount
+                            conn.commit()
+                            logger.info(
+                                f"[Settings] ✓ Deleted {issues_deleted} JIRA issues"
+                            )
+
+                        # Step 2: Delete project statistics for this query
+                        with get_db_connection() as conn:
+                            cursor = conn.cursor()
+                            cursor.execute(
+                                "DELETE FROM project_statistics WHERE profile_id = ? AND query_id = ?",
+                                (active_profile_id, active_query_id),
+                            )
+                            stats_deleted = cursor.rowcount
+                            conn.commit()
+                            logger.info(
+                                f"[Settings] ✓ Deleted {stats_deleted} project statistics"
+                            )
+
+                        # Step 3: Delete JIRA cache for this query
+                        with get_db_connection() as conn:
+                            cursor = conn.cursor()
+                            cursor.execute(
+                                "DELETE FROM jira_cache WHERE profile_id = ? AND query_id = ?",
+                                (active_profile_id, active_query_id),
+                            )
+                            cache_deleted = cursor.rowcount
+                            conn.commit()
+                            logger.info(
+                                f"[Settings] ✓ Deleted {cache_deleted} JIRA cache entries"
+                            )
+
+                        # Step 4: Invalidate global cache files
+                        from data.cache_manager import invalidate_all_cache
+
+                        invalidate_all_cache()
+                        logger.info("[Settings] ✓ All global cache files invalidated")
+
+                        # Step 5: Delete profile-specific cache files
+                        from data.profile_manager import get_active_query_workspace
+
+                        query_workspace = get_active_query_workspace()
+                        if query_workspace and query_workspace.exists():
+                            jira_cache = query_workspace / "jira_cache.json"
+                            if jira_cache.exists():
+                                jira_cache.unlink()
+                                logger.info(
+                                    "[Settings] ✓ Deleted query workspace jira_cache.json"
+                                )
+
+                        logger.info("=" * 60)
+                        logger.info("[Settings] ✅ COMPLETE DATA WIPE SUCCESSFUL")
+                        logger.info(
+                            f"[Settings] Deleted: {issues_deleted} issues, {stats_deleted} stats, {cache_deleted} cache"
+                        )
+                        logger.info(
+                            "[Settings] All data will be re-fetched fresh from JIRA"
+                        )
+                        logger.info("=" * 60)
+
+                    except Exception as e:
+                        logger.error(
+                            f"[Settings] ❌ Data wipe error: {e}", exc_info=True
+                        )
+                        # Continue anyway - partial cleanup is better than none
+                else:
+                    logger.warning(
+                        "[Settings] No active query found - skipping data wipe"
+                    )
 
             # CRITICAL FIX: Clear changelog cache only on force refresh
             # Changelog is issue-specific (keyed by issue key), not query-specific

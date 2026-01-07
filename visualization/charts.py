@@ -2845,6 +2845,12 @@ def prepare_visualization_data(
     # CRITICAL FIX: Use date-based filtering instead of row count (.iloc)
     # data_points_count represents WEEKS, not rows. With sparse data,
     # row-based filtering gives incorrect results.
+
+    # Initialize logger early for debug logging
+    import logging
+
+    logger = logging.getLogger(__name__)
+
     if (
         data_points_count is not None
         and data_points_count > 0
@@ -2854,7 +2860,16 @@ def prepare_visualization_data(
         # Apply date-based filtering
         latest_date = df_calc["date"].max()
         cutoff_date = latest_date - timedelta(weeks=data_points_count)
+        rows_before = len(df_calc)
         df_calc = df_calc[df_calc["date"] >= cutoff_date]
+        rows_after = len(df_calc)
+
+        logger.info(
+            f"[FORECAST FILTER] data_points_count={data_points_count} weeks, "
+            f"latest_date={latest_date.strftime('%Y-%m-%d') if hasattr(latest_date, 'strftime') else latest_date}, "
+            f"cutoff_date={cutoff_date.strftime('%Y-%m-%d') if hasattr(cutoff_date, 'strftime') else cutoff_date}, "
+            f"rows: {rows_before} -> {rows_after}"
+        )
 
     # Compute weekly throughput with the filtered data
     grouped = compute_weekly_throughput(df_calc)
@@ -2862,14 +2877,11 @@ def prepare_visualization_data(
     # Ensure grouped is a DataFrame
     if not isinstance(grouped, pd.DataFrame):
         grouped = pd.DataFrame(grouped)
-
-    # Debug logging for data size
-    import logging
-
-    logger = logging.getLogger(__name__)
     logger.info(
         f"[CHART DATA] df_calc rows={len(df_calc)}, grouped weeks={len(grouped)}, "
-        f"data_points_count={data_points_count}"
+        f"data_points_count={data_points_count}, "
+        f"grouped non-zero items={len(grouped[grouped['completed_items'] > 0])}, "
+        f"grouped non-zero points={len(grouped[grouped['completed_points'] > 0])}"
     )
 
     # Filter out zero-value weeks before calculating rates
@@ -2970,39 +2982,71 @@ def prepare_visualization_data(
         last_points = last_completed_points  # This is completed points for burnup
 
     # Use completed items/points values for burnup chart
+    # PERFORMANCE: Limit forecast to 2 years (730 days) and max 100 points per line
     if is_burnup:
         # For burnup charts, start from completed values and forecast toward scope
         items_forecasts = {
             "avg": daily_forecast_burnup(
-                last_items, items_daily_rate, start_date, scope_items
+                last_items,
+                items_daily_rate,
+                start_date,
+                scope_items,
+                max_days=730,
+                max_points=100,
             ),
             "opt": daily_forecast_burnup(
-                last_items, optimistic_items_rate, start_date, scope_items
+                last_items,
+                optimistic_items_rate,
+                start_date,
+                scope_items,
+                max_days=730,
+                max_points=100,
             ),
             "pes": daily_forecast_burnup(
-                last_items, pessimistic_items_rate, start_date, scope_items
+                last_items,
+                pessimistic_items_rate,
+                start_date,
+                scope_items,
+                max_days=730,
+                max_points=100,
             ),
         }
 
         points_forecasts = {
             "avg": daily_forecast_burnup(
-                last_points, points_daily_rate, start_date, scope_points
+                last_points,
+                points_daily_rate,
+                start_date,
+                scope_points,
+                max_days=730,
+                max_points=100,
             ),
             "opt": daily_forecast_burnup(
-                last_points, optimistic_points_rate, start_date, scope_points
+                last_points,
+                optimistic_points_rate,
+                start_date,
+                scope_points,
+                max_days=730,
+                max_points=100,
             ),
             "pes": daily_forecast_burnup(
-                last_points, pessimistic_points_rate, start_date, scope_points
+                last_points,
+                pessimistic_points_rate,
+                start_date,
+                scope_points,
+                max_days=730,
+                max_points=100,
             ),
         }
     else:
         # For burndown charts, we need to ensure consistent end dates with burnup charts
         # First, calculate burnup forecasts to get end dates
+        # PERFORMANCE: Limit forecast to 2 years (730 days) and max 100 points per line
         burnup_items_avg = daily_forecast_burnup(
-            0, items_daily_rate, start_date, total_items
+            0, items_daily_rate, start_date, total_items, max_days=730, max_points=100
         )
         burnup_points_avg = daily_forecast_burnup(
-            0, points_daily_rate, start_date, total_points
+            0, points_daily_rate, start_date, total_points, max_days=730, max_points=100
         )
 
         # Get the end dates from burnup forecasts
@@ -3084,7 +3128,7 @@ def generate_burndown_forecast(
 ):
     """
     Generate burndown forecast with a fixed end date to ensure consistency with burnup charts.
-    Includes strict 10-year maximum cap for visualization performance.
+    Includes strict performance optimizations: 2-year max horizon, 100 points per line max.
 
     Args:
         last_value: Current remaining value (items or points)
@@ -3097,14 +3141,10 @@ def generate_burndown_forecast(
     Returns:
         Dictionary containing forecasts for average, optimistic, and pessimistic scenarios
     """
-    from datetime import datetime
-
-    # STRICT 10-YEAR CAP: Never forecast beyond today + 10 years
-    today = datetime.now()
-    absolute_max_date = today + timedelta(
-        days=3653
-    )  # 10 years from today (accounting for leap years)
-    MAX_FORECAST_DAYS = 3653  # Absolute maximum
+    # PERFORMANCE: Limit forecast to 2 years and max 100 points per line
+    # This prevents chart freezing with thousands of data points
+    MAX_FORECAST_DAYS = 730  # 2 years maximum
+    MAX_POINTS_PER_LINE = 100  # Maximum data points per forecast line
 
     # Calculate days between start and end
     days_span = (end_date - start_date).days
@@ -3112,7 +3152,7 @@ def generate_burndown_forecast(
         # If end date is same as or before start date, use 1 day
         days_span = 1
 
-    # Calculate days needed for each rate to reach zero, but cap at 10 years
+    # Calculate days needed for each rate to reach zero, but cap at max
     days_to_zero_avg = min(
         MAX_FORECAST_DAYS,
         int(last_value / avg_rate) if avg_rate > 0.001 else days_span * 2,
@@ -3126,48 +3166,51 @@ def generate_burndown_forecast(
         int(last_value / pes_rate) if pes_rate > 0.001 else days_span * 2,
     )
 
-    # Cap everything at maximum forecast horizon
-    max_days = min(
-        MAX_FORECAST_DAYS,
-        max(days_span, days_to_zero_avg, days_to_zero_opt, days_to_zero_pes),
+    # PERFORMANCE: Calculate sampling interval to limit data points
+    def generate_sampled_forecast(days_to_zero, rate):
+        """Generate forecast with even sampling throughout the entire forecast period."""
+        # Calculate interval to distribute points evenly across entire forecast
+        # This ensures consistent spacing from start to finish (no condensed-then-sparse appearance)
+        sample_interval = max(1, int(days_to_zero / MAX_POINTS_PER_LINE))
+
+        dates = []
+        values = []
+        day = 0
+
+        # Sample evenly across the entire forecast period
+        while day <= days_to_zero:
+            forecast_date = start_date + timedelta(days=day)
+            remaining = max(0, last_value - (rate * day))
+            dates.append(forecast_date)
+            values.append(remaining)
+
+            # Stop if we reached zero
+            if remaining <= 0:
+                break
+
+            day += sample_interval
+
+        # Always ensure we have a final point at zero for visual closure
+        if values and values[-1] > 0:
+            final_date = start_date + timedelta(days=days_to_zero)
+            dates.append(final_date)
+            values.append(0)
+
+        return dates, values
+
+    # Generate forecasts with sampling
+    dates_avg, avg_values = generate_sampled_forecast(days_to_zero_avg, avg_rate)
+    dates_opt, opt_values = generate_sampled_forecast(days_to_zero_opt, opt_rate)
+    dates_pes, pes_values = generate_sampled_forecast(days_to_zero_pes, pes_rate)
+
+    # Debug logging
+    import logging
+
+    logger = logging.getLogger(__name__)
+    logger.info(
+        f"[BURNDOWN FORECAST] Generated forecasts: avg={len(dates_avg)} points, "
+        f"opt={len(dates_opt)} points, pes={len(dates_pes)} points"
     )
-
-    # Create date ranges with strict caps for performance
-    dates_avg = [
-        start_date + timedelta(days=i)
-        for i in range(min(max_days, days_to_zero_avg) + 1)
-        if start_date + timedelta(days=i) <= absolute_max_date
-    ]
-    dates_opt = [
-        start_date + timedelta(days=i)
-        for i in range(min(max_days, days_to_zero_opt) + 1)
-        if start_date + timedelta(days=i) <= absolute_max_date
-    ]
-    dates_pes = [
-        start_date + timedelta(days=i)
-        for i in range(min(max_days, days_to_zero_pes) + 1)
-        if start_date + timedelta(days=i) <= absolute_max_date
-    ]
-
-    # Calculate decreasing values for each rate
-    avg_values = []
-    opt_values = []
-    pes_values = []
-
-    # Average rate forecast
-    for i in range(len(dates_avg)):
-        remaining_avg = max(0, last_value - (avg_rate * i))
-        avg_values.append(remaining_avg)
-
-    # Optimistic rate forecast
-    for i in range(len(dates_opt)):
-        remaining_opt = max(0, last_value - (opt_rate * i))
-        opt_values.append(remaining_opt)
-
-    # Pessimistic rate forecast
-    for i in range(len(dates_pes)):
-        remaining_pes = max(0, last_value - (pes_rate * i))
-        pes_values.append(remaining_pes)
 
     return {
         "avg": (dates_avg, avg_values),

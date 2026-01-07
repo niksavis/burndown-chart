@@ -868,9 +868,28 @@ def load_statistics() -> tuple:
         if "stat_date" in statistics_df.columns:
             statistics_df["date"] = statistics_df["stat_date"]
 
+        # Parse dates once for consistency
         statistics_df["date"] = pd.to_datetime(
             statistics_df["date"], errors="coerce", format="mixed"
         )
+
+        # CRITICAL FIX: Remove duplicate dates from legacy data
+        # Normalize dates and keep only the most recent entry per date
+        if "date" in statistics_df.columns and not statistics_df.empty:
+            # Normalize dates to YYYY-MM-DD format using apply to avoid type checker issues
+            statistics_df["date_normalized"] = statistics_df["date"].apply(
+                lambda x: x.strftime("%Y-%m-%d") if pd.notna(x) else None
+            )
+
+            # Sort by date descending and drop duplicates, keeping the first (most recent)
+            statistics_df = statistics_df.sort_values("date", ascending=False)
+            statistics_df = statistics_df.drop_duplicates(
+                subset=["date_normalized"], keep="first"
+            )
+            statistics_df = statistics_df.sort_values("date", ascending=True)
+
+            # Clean up temporary column
+            statistics_df = statistics_df.drop(columns=["date_normalized"])
         statistics_df = statistics_df.sort_values("date", ascending=True)
         statistics_df["date"] = (
             statistics_df["date"]
@@ -1145,6 +1164,29 @@ def save_unified_project_data(data: Dict[str, Any]) -> None:
                 if "date" in stat_data:
                     if "stat_date" not in stat_data or not stat_data["stat_date"]:
                         stat_data["stat_date"] = stat_data["date"]
+
+                # CRITICAL FIX: Normalize stat_date to YYYY-MM-DD format to prevent duplicates
+                # Issue: Dates with timestamps (YYYY-MM-DD-HHMMSS) vs plain dates (YYYY-MM-DD)
+                # created duplicate database entries because ON CONFLICT only works with exact string match
+                if stat_data.get("stat_date"):
+                    try:
+                        # Parse date in any format and normalize to YYYY-MM-DD
+                        parsed_date = pd.to_datetime(
+                            stat_data["stat_date"], format="mixed", errors="coerce"
+                        )
+                        if pd.notna(parsed_date):
+                            stat_data["stat_date"] = parsed_date.strftime("%Y-%m-%d")
+                        else:
+                            logger.warning(
+                                f"[Cache] Could not parse date: {stat_data['stat_date']}"
+                            )
+                            continue
+                    except Exception as e:
+                        logger.warning(
+                            f"[Cache] Error normalizing date {stat_data.get('stat_date')}: {e}"
+                        )
+                        continue
+
                 # Ensure stat_date exists (required field)
                 if not stat_data.get("stat_date"):
                     logger.warning(

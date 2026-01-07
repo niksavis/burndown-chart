@@ -2934,9 +2934,14 @@ def create_parameter_panel_expanded(
     data_points_count = settings.get("data_points_count", 10)
 
     # Calculate max data points from statistics if available
+    # CRITICAL FIX: Count unique dates, not total rows (avoids duplicate date inflation)
     max_data_points = 52  # Default max
     if statistics and len(statistics) > 0:
-        max_data_points = len(statistics)
+        # Count unique dates to get actual week count
+        unique_dates = set(
+            stat.get("date") or stat.get("stat_date") for stat in statistics
+        )
+        max_data_points = len(unique_dates) if unique_dates else len(statistics)
 
     # Calculate dynamic marks for Data Points slider
     # 5 points: min (4), 1/4, 1/2 (middle), 3/4, max
@@ -3705,9 +3710,14 @@ def create_mobile_parameter_bottom_sheet(
     data_points_count = settings.get("data_points_count", 10)
 
     # Calculate max data points from statistics if available
+    # CRITICAL FIX: Count unique dates, not total rows (avoids duplicate date inflation)
     max_data_points = 52  # Default max
     if statistics and len(statistics) > 0:
-        max_data_points = len(statistics)
+        # Count unique dates to get actual week count
+        unique_dates = set(
+            stat.get("date") or stat.get("stat_date") for stat in statistics
+        )
+        max_data_points = len(unique_dates) if unique_dates else len(statistics)
 
     # Calculate dynamic marks for Data Points slider
     # 5 points: min (4), 1/4, 1/2 (middle), 3/4, max

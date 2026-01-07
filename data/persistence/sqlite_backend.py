@@ -1601,6 +1601,10 @@ class SQLiteBackend(PersistenceBackend):
         """LEGACY: Save metrics snapshot - converts to normalized metrics."""
         metric_list = []
         for metric_name, metric_value in metrics.items():
+            # Convert dict/list values to JSON since SQLite doesn't support them
+            if isinstance(metric_value, (dict, list)):
+                metric_value = json.dumps(metric_value)
+
             metric_list.append(
                 {
                     "snapshot_date": snapshot_date,
