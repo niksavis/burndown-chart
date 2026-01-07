@@ -1,12 +1,12 @@
 """
-JSON file-based persistence backend (LEGACY).
+JSON file-based persistence backend (LEGACY - DEPRECATED).
 
-This module provides backward compatibility with the existing JSON file structure:
+This module provides backward compatibility with the old JSON file structure:
 profiles/{profile_id}/
 ├── profile.json
 └── queries/{query_id}/
     ├── project_data.json
-    └── jira_cache.json
+    └── jira_cache.json (LEGACY - now in SQLite database)
 
 WARNING: This backend is DEPRECATED and will be replaced by SQLiteBackend.
 Kept only for:

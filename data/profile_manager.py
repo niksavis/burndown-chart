@@ -16,15 +16,15 @@ Directory Structure:
     │   ├── profile.json       # Profile settings (PERT, deadline, data_points_count)
     │   └── queries/
     │       ├── main/          # Default query (migration target)
-    │       │   ├── query.json # Query metadata (JQL string)
-    │       │   ├── jira_cache.json
-    │       │   └── jira_changelog_cache.json
+    │       │   └── query.json # Query metadata (JQL string)
     │       └── bugs/          # Additional queries
-    │           ├── query.json
-    │           └── jira_cache.json
+    │           └── query.json
     └── kafka/                 # Another profile
         ├── profile.json
         └── queries/...
+
+    Note: JIRA cache, statistics, and metrics are now stored in the SQLite database.
+    Legacy JSON files (jira_cache.json, project_data.json) are deprecated.
 
 Constants:
     PROFILES_DIR: Path to profiles/ directory
@@ -37,7 +37,7 @@ Path Resolution Functions:
     get_active_query_workspace() -> Path: Current query directory
     get_profile_file_path(profile_id) -> Path: Path to profile.json
     get_query_file_path(profile_id, query_id) -> Path: Path to query.json
-    get_jira_cache_path(profile_id, query_id) -> Path: Path to jira_cache.json
+    get_jira_cache_path(profile_id, query_id) -> Path: LEGACY - Cache now in database
 
 Profile Operations:
     create_profile(name, settings) -> str: Create new profile

@@ -519,16 +519,21 @@ def _export_profile_queries(profile_id: str, export_dir: Path) -> int:
 
 
 def _export_profile_cache(profile_id: str, export_dir: Path) -> bool:
-    """Export cached data for a profile."""
+    """Export cached data for a profile (LEGACY - most data now in database).
+
+    Note: This function is primarily for backward compatibility.
+    Most cache data is now stored in SQLite database and exported separately.
+    """
     try:
         from data.profile_manager import PROFILES_DIR
 
         profile_dir = PROFILES_DIR / profile_id
+        # Legacy cache files - most data now in database
         cache_files = [
             "app_settings.json",
             "project_data.json",
-            "jira_cache.json",
-            "jira_changelog_cache.json",
+            "jira_cache.json",  # LEGACY - now in database
+            "jira_changelog_cache.json",  # LEGACY - now in database
             "metrics_snapshots.json",
         ]
 

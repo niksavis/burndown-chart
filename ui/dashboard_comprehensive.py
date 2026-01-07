@@ -392,7 +392,13 @@ def _create_progress_ring(percentage, color, size=80):
 
 
 def _create_executive_summary(statistics_df, settings, forecast_data):
-    """Create executive summary section with key project health indicators."""
+    """Create executive summary section with key project health indicators.
+
+    The Data Points slider affects historical metrics but not current remaining work:
+    - Remaining (items/points): Always shows current not-yet-done work (fixed)
+    - Completed (items/points): Shows work completed in the selected window (changes with slider)
+    - Total: Remaining + Completed (changes with slider as Completed changes)
+    """
     # Calculate completed items from the FILTERED statistics DataFrame
     completed_items = (
         statistics_df["completed_items"].sum() if not statistics_df.empty else 0
@@ -401,17 +407,13 @@ def _create_executive_summary(statistics_df, settings, forecast_data):
         statistics_df["completed_points"].sum() if not statistics_df.empty else 0
     )
 
-    # Get current remaining from project_data.json
-    from data.persistence import load_unified_project_data
+    # Use CURRENT remaining from settings (fixed, doesn't change with slider)
+    remaining_items = settings.get("total_items", 0)
+    remaining_points = settings.get("total_points", 0)
 
-    unified_data = load_unified_project_data()
-    project_scope = unified_data.get("project_scope", {})
-    current_remaining_items = project_scope.get("remaining_items", 0)
-    current_remaining_points = project_scope.get("remaining_total_points", 0)
-
-    # Calculate scope at START of time window = current remaining + completed in window
-    total_items = current_remaining_items + completed_items
-    total_points = current_remaining_points + completed_points
+    # Calculate total scope = remaining + completed in window
+    total_items = remaining_items + completed_items
+    total_points = remaining_points + completed_points
 
     deadline = settings.get("deadline")
 
@@ -676,7 +678,7 @@ def _create_executive_summary(statistics_df, settings, forecast_data):
                                                                 80,
                                                             ),
                                                             html.Div(
-                                                                f"{total_items - completed_items:,}",
+                                                                f"{remaining_items:,}",
                                                                 className="mt-3 mb-1",
                                                                 style={
                                                                     "fontSize": "1.1rem",
@@ -826,7 +828,7 @@ def _create_executive_summary(statistics_df, settings, forecast_data):
                                                                 80,
                                                             ),
                                                             html.Div(
-                                                                f"{total_points - completed_points:,.1f}",
+                                                                f"{remaining_points:,.1f}",
                                                                 className="mt-3 mb-1",
                                                                 style={
                                                                     "fontSize": "1.1rem",
@@ -2586,6 +2588,17 @@ def create_comprehensive_dashboard(
     Returns:
         html.Div: Complete dashboard layout
     """
+    # CRITICAL FIX: Dashboard shows CURRENT remaining work, not windowed scope
+    # The Data Points slider filters statistics for forecasting, but remaining is always current
+    from data.persistence import load_unified_project_data
+
+    unified_data = load_unified_project_data()
+    project_scope = unified_data.get("project_scope", {})
+
+    # Use CURRENT remaining values directly - slider doesn't affect remaining work
+    total_items = project_scope.get("remaining_items", 0)
+    total_points = project_scope.get("remaining_total_points", 0)
+
     # Prepare forecast data
     # Use points-based forecast when available, otherwise use items-based
     forecast_days = (
@@ -2595,6 +2608,12 @@ def create_comprehensive_dashboard(
     import logging
 
     logger = logging.getLogger(__name__)
+
+    logger.info("[DASHBOARD] Using current remaining work (independent of slider):")
+    logger.info(
+        f"  data_points_count={data_points_count or 'all'}, "
+        f"total_items={total_items}, total_points={total_points}"
+    )
 
     schedule_variance_calc = (
         abs(forecast_days - days_to_deadline)

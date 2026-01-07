@@ -16,18 +16,19 @@ Performance Requirements:
     - list_queries_for_profile(): <100ms (reads directory + metadata)
 
 Data Isolation:
-    Each query has dedicated directory with isolated cache:
-    - jira_cache.json (JIRA API responses)
-    - jira_changelog_cache.json (changelog data)
-    - project_data.json (statistics, scope, metadata)
-    - metrics_snapshots.json (historical metrics)
+    Each query has dedicated data in SQLite database:
+    - jira_issues table (JIRA API responses)
+    - jira_changelog table (changelog data)
+    - project_statistics table (statistics, scope, metadata)
+    - metrics_snapshots table (historical metrics)
+
+    Legacy JSON files (jira_cache.json, project_data.json) are deprecated.
 """
 
 import logging
 from typing import Dict, List, Optional
 from datetime import datetime, timezone
 
-from data.profile_manager import PROFILES_DIR
 from data.persistence.factory import get_backend
 
 logger = logging.getLogger(__name__)

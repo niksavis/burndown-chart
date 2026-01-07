@@ -59,6 +59,70 @@ def get_data_points_info(value, min_val, max_val):
         )
 
 
+def calculate_remaining_work_for_data_window(data_points_count, statistics):
+    """
+    Get current remaining work scope - this does NOT depend on the data window.
+
+    The Data Points slider filters the time window for forecasting/statistics,
+    but "Remaining" always means CURRENT remaining work (what's left to do now).
+
+    Args:
+        data_points_count: Number of data points (weeks) - used for logging only
+        statistics: List of statistics data points - not used, kept for compatibility
+
+    Returns:
+        Tuple: (estimated_items, remaining_items, estimated_points, remaining_points_str, calc_results)
+               or None if calculation cannot be performed
+    """
+    if not data_points_count:
+        return None
+
+    try:
+        from data.persistence import load_unified_project_data
+
+        # Load unified data to get current scope
+        unified_data = load_unified_project_data()
+        project_scope = unified_data.get("project_scope", {})
+
+        # CRITICAL FIX: Parameter panel shows CURRENT remaining work, NOT windowed scope
+        # The slider filters statistics for forecasting, but remaining work is always current
+        estimated_items = project_scope.get("estimated_items", 0)
+        remaining_items = project_scope.get("remaining_items", 0)
+        estimated_points = project_scope.get("estimated_points", 0)
+        remaining_points = project_scope.get("remaining_total_points", 0)
+
+        # Calculate avg points per item for calc_results
+        avg_points_per_item = 0
+        if remaining_items > 0:
+            avg_points_per_item = remaining_points / remaining_items
+
+        logger.info("[PARAM PANEL] Current remaining work (independent of slider):")
+        logger.info(
+            f"  Estimated items: {estimated_items}, Remaining items: {remaining_items}"
+        )
+        logger.info(
+            f"  Estimated points: {estimated_points:.1f}, Remaining points: {remaining_points:.1f}"
+        )
+        logger.info(f"  Avg: {avg_points_per_item:.2f} points/item")
+
+        calc_results = {
+            "total_points": remaining_points,
+            "avg_points_per_item": avg_points_per_item,
+        }
+
+        return (
+            estimated_items,
+            int(remaining_items),
+            estimated_points,
+            f"{remaining_points:.0f}",
+            calc_results,
+        )
+
+    except Exception as e:
+        logger.error(f"Error calculating remaining work for data window: {e}")
+        return None
+
+
 #######################################################################
 # CALLBACKS
 #######################################################################
@@ -180,7 +244,6 @@ def register(app):
             Input("deadline-picker", "date"),  # Parameter panel deadline
             Input("milestone-picker", "date"),  # Parameter panel milestone (no toggle)
             Input("total-items-input", "value"),
-            Input("calculation-results", "data"),
             Input("estimated-items-input", "value"),
             Input("estimated-points-input", "value"),
             Input(
@@ -190,6 +253,12 @@ def register(app):
         ],
         [
             State("app-init-complete", "data"),
+            State(
+                "current-statistics", "data"
+            ),  # CRITICAL: Need statistics to recalculate windowed scope
+            State(
+                "calculation-results", "data"
+            ),  # State, not Input - avoid race condition
             # PERFORMANCE FIX: Move JQL query to State to prevent callback on every keystroke
             State(
                 "jira-jql-query", "value"
@@ -201,13 +270,14 @@ def register(app):
         deadline,  # Parameter panel deadline
         milestone,  # Parameter panel milestone (no toggle needed)
         total_items,
-        calc_results,
         estimated_items,
         estimated_points,
         data_points_count,  # Parameter panel data points slider
         show_points,  # Parameter panel points toggle
         # State parameters (read but don't trigger callback)
         init_complete,
+        statistics,  # CRITICAL: Statistics for recalculating windowed scope
+        calc_results,  # State - read for fallback but doesn't trigger callback
         jql_query,  # PERFORMANCE FIX: JQL query moved to State to prevent keystroke lag
     ):
         """
@@ -2902,123 +2972,6 @@ def register(app):
         )
 
         return max_data_points, data_points_marks
-
-    # Helper function to calculate remaining work scope (used by multiple callbacks)
-    def calculate_remaining_work_for_data_window(data_points_count, statistics):
-        """
-        Calculate remaining work scope for a given data window.
-
-        This function calculates what the remaining work was at the START of
-        the selected time window, so burndown charts show accurate projections.
-
-        Args:
-            data_points_count: Number of data points (weeks) to include
-            statistics: List of statistics data points
-
-        Returns:
-            Tuple: (estimated_items, remaining_items, estimated_points, remaining_points_str)
-                   or None if calculation cannot be performed
-        """
-        if not statistics or not data_points_count:
-            return None
-
-        try:
-            from data.persistence import load_unified_project_data
-            import pandas as pd
-
-            # Load unified data to get current scope
-            unified_data = load_unified_project_data()
-            project_scope = unified_data.get("project_scope", {})
-
-            # If no statistics or insufficient data, use current scope values
-            if len(statistics) < data_points_count:
-                estimated_items = project_scope.get("estimated_items", 0)
-                remaining_items = project_scope.get("remaining_items", 0)
-                estimated_points = project_scope.get("estimated_points", 0)
-                remaining_points = project_scope.get("remaining_total_points", 0)
-
-                # Calculate avg points per item for calc_results
-                avg_points_per_item = 0
-                if remaining_items > 0:
-                    avg_points_per_item = remaining_points / remaining_items
-
-                calc_results = {
-                    "total_points": remaining_points,
-                    "avg_points_per_item": avg_points_per_item,
-                }
-
-                return (
-                    estimated_items,
-                    remaining_items,
-                    estimated_points,
-                    f"{remaining_points:.0f}",
-                    calc_results,
-                )
-
-            # Convert statistics to DataFrame for easier manipulation
-            df = pd.DataFrame(statistics)
-            df["date"] = pd.to_datetime(df["date"], format="mixed", errors="coerce")
-            df = df.sort_values("date", ascending=False)  # Most recent first
-
-            # Select the data window (most recent N data points)
-            window_df = df.head(data_points_count)
-
-            # Get base values from project scope
-            remaining_items = project_scope.get("remaining_items", 0)
-            estimated_items = project_scope.get("estimated_items", 0)
-            estimated_points = project_scope.get("estimated_points", 0)
-
-            # Calculate average points per item from the SELECTED TIME WINDOW
-            # This allows the extrapolation to adjust based on recent velocity
-            window_completed_items = window_df["completed_items"].sum()
-            window_completed_points = window_df["completed_points"].sum()
-
-            # Calculate average from window, with fallback to overall project scope
-            if window_completed_items > 0:
-                avg_points_per_item = window_completed_points / window_completed_items
-            elif estimated_items > 0:
-                # Fallback to estimated items average
-                avg_points_per_item = estimated_points / estimated_items
-            else:
-                # Last resort: use completed project data
-                completed_items_total = project_scope.get("completed_items", 0)
-                completed_points_total = project_scope.get("completed_points", 0)
-                if completed_items_total > 0:
-                    avg_points_per_item = completed_points_total / completed_items_total
-                else:
-                    avg_points_per_item = 10  # Default fallback
-
-            # Recalculate remaining_total_points using window-based average
-            # Formula: estimated_points + (avg × unestimated_items)
-            unestimated_items = max(0, remaining_items - estimated_items)
-            remaining_points = estimated_points + (
-                avg_points_per_item * unestimated_items
-            )
-
-            logger.info(
-                f"[Settings] Data Points slider calculation - Window: {data_points_count} weeks, "
-                f"Window completed: {window_completed_items} items / {window_completed_points:.1f} points, "
-                f"Avg: {avg_points_per_item:.2f}, "
-                f"Remaining: {remaining_items} items ({estimated_items} estimated, {unestimated_items} unestimated), "
-                f"Total remaining points: {remaining_points:.1f}"
-            )
-
-            calc_results = {
-                "total_points": remaining_points,
-                "avg_points_per_item": avg_points_per_item,
-            }
-
-            return (
-                estimated_items,
-                int(remaining_items),
-                estimated_points,
-                f"{remaining_points:.0f}",
-                calc_results,
-            )
-
-        except Exception as e:
-            logger.error(f"Error calculating remaining work for data window: {e}")
-            return None
 
     # NOTE: Initial values are now calculated directly in ui/layout.py serve_layout()
     # This ensures consistent values between app load and slider interaction

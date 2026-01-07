@@ -35,7 +35,6 @@ def calculate_and_save_weekly_metrics(
     week_label: str = "",
     progress_callback=None,
     profile_id: Optional[str] = None,
-    affected_weeks: Optional[set] = None,
 ) -> Tuple[bool, str]:
     """
     Calculate all Flow/DORA metrics for current week and save to snapshots.
@@ -90,14 +89,19 @@ def calculate_and_save_weekly_metrics(
         if not app_settings:
             return False, "Failed to load app settings"
 
-        # Load JIRA issues from cache file
-        import json
-        import os
-        from data.profile_manager import get_active_query_workspace
+        # Check if JIRA data exists in database
+        from data.persistence.factory import get_backend
 
-        query_workspace = get_active_query_workspace()
-        cache_file = str(query_workspace / "jira_cache.json")
-        if not os.path.exists(cache_file):
+        backend = get_backend()
+        active_profile_id = backend.get_app_state("active_profile_id")
+        active_query_id = backend.get_app_state("active_query_id")
+
+        if not active_profile_id or not active_query_id:
+            return False, "No active profile/query selected."
+
+        # Query database for JIRA issues
+        all_issues_raw = backend.get_issues(active_profile_id, active_query_id)
+        if not all_issues_raw:
             return False, "No JIRA data available. Please update data first."
 
         # OPTIMIZATION: Check if metrics already exist and are up-to-date
@@ -115,63 +119,33 @@ def calculate_and_save_weekly_metrics(
         if not is_current_week_check:
             existing_snapshot = get_metric_snapshot(week_label, "flow_velocity")
             if existing_snapshot:
-                # DELTA CALCULATE OPTIMIZATION: Check if this week is affected by recent changes
+                # Check if snapshot is still up-to-date by comparing timestamps
+                # For historical weeks, if metrics exist, they're usually still valid
+                # (historical data doesn't change unless full refetch)
                 try:
-                    # If affected_weeks was pre-calculated (delta fetch scenario)
-                    if affected_weeks is not None:
-                        if week_label not in affected_weeks:
-                            logger.debug(
-                                f"[OK] Week {week_label} not affected by delta changes - using cached metrics"
-                            )
-                            return (
-                                True,
-                                f"[OK] Week {week_label} not affected by changes",
-                            )
-                        else:
-                            logger.info(
-                                f"[Delta Calculate] Week {week_label} affected by changes - recalculating"
-                            )
-                    else:
-                        # No pre-calculated affected_weeks - check mtime fallback
-                        cache_mtime = os.path.getmtime(cache_file)
-                        snapshot_timestamp_str = existing_snapshot.get("timestamp")
-
-                        if snapshot_timestamp_str:
-                            snapshot_timestamp = datetime.fromisoformat(
-                                snapshot_timestamp_str.replace("Z", "+00:00")
-                            )
-                            snapshot_mtime = snapshot_timestamp.timestamp()
-
-                            if cache_mtime < snapshot_mtime:
-                                # Cache is older than snapshot - metrics are up-to-date
-                                logger.info(
-                                    f"[OK] Metrics for week {week_label} already exist and are up-to-date. Skipping recalculation."
-                                )
-                                report_progress(
-                                    f"[OK] Week {week_label} already calculated - using cached metrics"
-                                )
-                                return (
-                                    True,
-                                    f"[OK] Metrics for week {week_label} already up-to-date",
-                                )
-
+                    snapshot_timestamp_str = existing_snapshot.get("timestamp")
+                    if snapshot_timestamp_str:
+                        # Metrics exist and are valid - skip recalculation
+                        logger.info(
+                            f"[OK] Metrics for week {week_label} already exist. Skipping recalculation."
+                        )
+                        report_progress(
+                            f"[OK] Week {week_label} already calculated - using cached metrics"
+                        )
+                        return (
+                            True,
+                            f"[OK] Metrics for week {week_label} already up-to-date",
+                        )
                 except Exception as opt_error:
                     # If optimization check fails, fall through to recalculation
-                    logger.debug(
-                        f"[Delta Calculate] Optimization check failed: {opt_error}"
-                    )
+                    logger.debug(f"[Metrics] Optimization check failed: {opt_error}")
         else:
             logger.info(
                 f"[Stats] Week {week_label} is current week - will recalculate (running total)"
             )
 
-        with open(cache_file, "r", encoding="utf-8") as f:
-            cache_data = json.load(f)
-
-        all_issues_raw = cache_data.get("issues", [])
-        if not all_issues_raw:
-            return False, "No JIRA issues found in cache."
-        logger.info(f"Loaded {len(all_issues_raw)} issues from cache")
+        # all_issues_raw already loaded at the beginning of function
+        logger.info(f"Loaded {len(all_issues_raw)} issues from database")
 
         # CRITICAL: Filter out DevOps project issues and Operational Tasks
         # Flow metrics should ONLY include development project issues
@@ -191,11 +165,15 @@ def calculate_and_save_weekly_metrics(
             all_issues = all_issues_raw
             logger.info("No DevOps projects configured, using all issues")
 
-        # Check if changelog cache exists
+        # Check if changelog data exists in database
         # NOTE: Changelog is OPTIONAL - only needed for Flow Time and Flow Efficiency
         # All other metrics (Flow Velocity, Load, Distribution, ALL DORA metrics) work without it
-        changelog_cache_file = str(query_workspace / "jira_changelog_cache.json")
-        changelog_available = os.path.exists(changelog_cache_file)
+        changelog_entries = backend.get_changelog_entries(
+            active_profile_id, active_query_id
+        )
+        changelog_available = (
+            changelog_entries is not None and len(changelog_entries) > 0
+        )
 
         if not changelog_available:
             report_progress(
@@ -235,32 +213,38 @@ def calculate_and_save_weekly_metrics(
         else:
             logger.info("Changelog cache found, using existing data")
 
-        # Load changelog data and merge into issues (if available)
-        if changelog_available and os.path.exists(changelog_cache_file):
-            report_progress("[Stats] Loading changelog data...")
+        # Load changelog data from database and merge into issues (if available)
+        if changelog_available:
+            report_progress("[Stats] Loading changelog data from database...")
             try:
-                with open(changelog_cache_file, "r", encoding="utf-8") as f:
-                    changelog_cache = json.load(f)
+                # Build changelog lookup map by issue_key
+                changelog_map = {}
+                for entry in changelog_entries:
+                    issue_key = entry.get("issue_key")
+                    if issue_key:
+                        if issue_key not in changelog_map:
+                            changelog_map[issue_key] = {"histories": []}
+                        changelog_map[issue_key]["histories"].append(
+                            entry.get("entry_data", {})
+                        )
 
                 # Merge changelog into issues
                 merged_count = 0
                 for issue in all_issues:
                     issue_key = issue.get("key", "")
-                    if issue_key in changelog_cache:
-                        issue["changelog"] = changelog_cache[issue_key].get(
-                            "changelog", {}
-                        )
+                    if issue_key in changelog_map:
+                        issue["changelog"] = changelog_map[issue_key]
                         merged_count += 1
 
                 logger.info(f"Merged changelog data into {merged_count} issues")
             except Exception as e:
                 logger.warning(
-                    f"Failed to load changelog cache: {e}. Continuing without it."
+                    f"Failed to load changelog from database: {e}. Continuing without it."
                 )
                 changelog_available = False
-        elif not changelog_available:
+        else:
             logger.info(
-                "Changelog not available. Flow Time and Efficiency metrics will be skipped."
+                "Changelog not available in database. Flow Time and Efficiency metrics will be skipped."
             )
 
         # Get configuration
@@ -1305,39 +1289,7 @@ def calculate_metrics_for_last_n_weeks(
         failed_weeks = []
         skipped_weeks = []
 
-        # DELTA CALCULATE OPTIMIZATION: Calculate affected weeks once before loop
-        affected_weeks = None  # None = recalculate all (full fetch or no cache)
-        try:
-            from data.profile_manager import get_active_query_workspace
-            import json
-
-            query_workspace = get_active_query_workspace()
-            cache_file = query_workspace / "jira_cache.json"
-
-            if cache_file.exists():
-                with open(cache_file, "r", encoding="utf-8") as f:
-                    cache_metadata = json.load(f)
-
-                changed_keys = cache_metadata.get("changed_keys", [])
-
-                # Only use delta optimization if changed_keys is a non-empty list
-                if isinstance(changed_keys, list) and len(changed_keys) > 0:
-                    from data.jira_simple import get_affected_weeks_from_changed_issues
-
-                    affected_weeks = get_affected_weeks_from_changed_issues(
-                        changed_keys
-                    )
-                    logger.info(
-                        f"[Delta Calculate] {len(changed_keys)} changed issues affect {len(affected_weeks)} weeks"
-                    )
-                else:
-                    logger.info(
-                        "[Delta Calculate] No changed_keys in cache - will check mtime for each week"
-                    )
-        except Exception as opt_error:
-            logger.debug(
-                f"[Delta Calculate] Failed to pre-calculate affected weeks: {opt_error}"
-            )
+        # Note: Legacy delta optimization removed - database timestamps provide sufficient tracking
 
         # Use batch write mode to accumulate all changes and write once
         # Import TaskProgress once before loop for progress updates
@@ -1383,7 +1335,6 @@ def calculate_metrics_for_last_n_weeks(
                 success, message = calculate_and_save_weekly_metrics(
                     week_label=week_label,
                     progress_callback=progress_callback,
-                    affected_weeks=affected_weeks,
                 )
 
                 # Report calculation progress AFTER week is calculated (not before)

@@ -27,7 +27,6 @@ from configuration import (
     DEFAULT_PERT_FACTOR,
     DEFAULT_TOTAL_ITEMS,
     DEFAULT_TOTAL_POINTS,
-    PROJECT_DATA_FILE,
     logger,
 )
 
@@ -769,7 +768,7 @@ def save_statistics(data: List[Dict[str, Any]]) -> None:
         # Save the unified data
         save_unified_project_data(unified_data)
 
-        logger.info(f"[Cache] Statistics saved to {PROJECT_DATA_FILE}")
+        logger.info("[Cache] Statistics saved to database")
     except Exception as e:
         logger.error(f"[Cache] Error saving statistics: {e}")
 
@@ -833,7 +832,7 @@ def save_statistics_from_csv_import(data: List[Dict[str, Any]]) -> None:
         # Save the unified data
         save_unified_project_data(unified_data)
 
-        logger.info(f"[Cache] Statistics from CSV import saved to {PROJECT_DATA_FILE}")
+        logger.info("[Cache] Statistics from CSV import saved to database")
     except Exception as e:
         logger.error(f"[Cache] Error saving CSV import statistics: {e}")
 
@@ -1870,25 +1869,30 @@ def validate_jira_config(config: Dict[str, Any]) -> tuple[bool, str]:
     except (ValueError, TypeError):
         return (False, "Max results must be a valid integer")
 
-    # Points field validation (optional, but must match pattern if provided)
+    # Points field validation (optional, but must be valid field name if provided)
     points_field = config.get("points_field", "")
     if points_field:
-        # Basic pattern validation for JIRA custom field format
-        if not points_field.startswith("customfield_"):
+        # Allow standard JIRA fields (timeoriginalestimate, aggregatetimeoriginalestimate, etc.)
+        # and custom fields (customfield_XXXXX format)
+
+        # Basic validation: field name should be alphanumeric with underscores
+        if not points_field.replace("_", "").isalnum():
             return (
                 False,
-                "Points field must start with 'customfield_' (e.g., 'customfield_10016')",
+                "Points field must contain only letters, numbers, and underscores",
             )
 
-        # Check if the part after customfield_ is numeric
-        try:
-            field_id = points_field.replace("customfield_", "")
-            int(field_id)
-        except ValueError:
-            return (
-                False,
-                "Points field must be in format 'customfield_XXXXX' where XXXXX is numeric",
-            )
+        # If it's a custom field, validate the format
+        if points_field.startswith("customfield_"):
+            # Check if the part after customfield_ is numeric
+            try:
+                field_id = points_field.replace("customfield_", "")
+                int(field_id)
+            except ValueError:
+                return (
+                    False,
+                    "Custom field must be in format 'customfield_XXXXX' where XXXXX is numeric",
+                )
 
     return (True, "")
 

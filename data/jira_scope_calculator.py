@@ -206,7 +206,7 @@ def _extract_story_points(fields: Dict[str, Any], points_field: str) -> int:
         points_field: Field name to extract points from
 
     Returns:
-        int: Story points value (defaults to 0 if field is invalid/empty, 1 if field exists but no value)
+        int: Story points value (returns 0 if field is missing/empty/invalid)
     """
     try:
         # First check if points field is valid (not empty/whitespace)
@@ -214,39 +214,68 @@ def _extract_story_points(fields: Dict[str, Any], points_field: str) -> int:
             return 0  # No points field configured
 
         if points_field == "votes":
-            # Use votes field as fallback
+            # votes field returns dict: {"votes": 5, "hasVoted": false}
             votes_data = fields.get("votes")
             if votes_data is None:
-                return 1  # Default when no votes data
-            return votes_data.get("votes", 1)
+                return 0  # No votes data = no estimate
+            vote_count = votes_data.get("votes", 0)
+            # votes can be 0 (valid), so return actual value
+            return int(vote_count) if vote_count is not None else 0
+
         elif points_field.startswith("customfield_"):
-            # Use custom field
-            value = fields.get(points_field, 1)
+            # Custom field - no default, return 0 if missing
+            value = fields.get(points_field)
             if value is None:
-                return 1
+                return 0  # No value = no estimate
 
             # Handle different data types for custom fields
             if isinstance(value, dict):
                 # Complex object - try common keys
-                return int(
-                    value.get("value", value.get("count", value.get("total", 1)))
-                )
+                point_val = value.get("value", value.get("count", value.get("total")))
+                return int(point_val) if point_val is not None else 0
             elif isinstance(value, str):
                 # String representation
-                return int(float(value))  # Handle "8.0" -> 8
-            else:
+                try:
+                    return int(float(value))  # Handle "8.0" -> 8
+                except (ValueError, TypeError):
+                    return 0
+            elif isinstance(value, (int, float)):
                 # Direct numeric value
                 return int(value)
-        else:
-            # Try to find in other fields
-            value = fields.get(points_field, 1)
-            return int(value) if value is not None else 1
+            else:
+                # Unknown type
+                return 0
 
-    except (ValueError, TypeError, KeyError):
-        # If points value is invalid, default to 0 for empty field, 1 for valid field
-        if not points_field or points_field.strip() == "":
+        else:
+            # Handle standard JIRA fields (timeoriginalestimate, timespent, etc.)
+            value = fields.get(points_field)
+
+            # If field doesn't exist or is None, return 0 (no estimate)
+            if value is None:
+                return 0
+
+            # Time fields return integer seconds or None
+            if isinstance(value, (int, float)):
+                return int(value)
+
+            # Handle dict format (shouldn't happen for time fields, but be safe)
+            if isinstance(value, dict):
+                point_val = value.get("value", value.get("count", value.get("total")))
+                return int(point_val) if point_val is not None else 0
+
+            # Handle string representations
+            if isinstance(value, str):
+                try:
+                    return int(float(value))
+                except (ValueError, TypeError):
+                    return 0
+
+            # Unknown type
             return 0
-        return 1
+
+    except (ValueError, TypeError, KeyError) as e:
+        logger.debug(f"Error extracting points from field '{points_field}': {e}")
+        return 0
 
 
 def _validate_points_field_availability(
@@ -319,9 +348,9 @@ def _validate_points_field_availability(
         except Exception:
             continue
 
-    # Return True if the field exists in at least 50% of issues (even if values are null)
-    # This indicates the field is configured correctly in JIRA and can be used for extrapolation
-    return field_exists_count > 0 and (field_exists_count / sample_size) >= 0.5
+    # Return True if valid point values exist in at least 50% of issues
+    # This indicates meaningful data exists (not just None values)
+    return valid_points_count > 0 and (valid_points_count / sample_size) >= 0.5
 
 
 def _validate_points_field_availability_with_stats(
@@ -416,13 +445,13 @@ def _validate_points_field_availability_with_stats(
         (valid_points_count / sample_size * 100) if sample_size > 0 else 0
     )
 
-    # Check threshold - field should exist in at least 50% of issues for extrapolation
+    # Check threshold - field should have valid data in at least 50% of issues
     stats["threshold_required"] = (
-        0.5  # 50% of issues need to have the field (even if null)
+        0.5  # 50% of issues need to have valid (non-null) point values
     )
     threshold_met = (
-        field_exists_count > 0
-        and (field_exists_count / sample_size) >= stats["threshold_required"]
+        valid_points_count > 0
+        and (valid_points_count / sample_size) >= stats["threshold_required"]
     )
     stats["threshold_met"] = threshold_met
 
@@ -450,9 +479,13 @@ def _issue_has_real_points(fields: Dict[str, Any], points_field: str) -> bool:
             return False  # No points field configured
 
         if points_field == "votes":
-            # CORRECT LOGIC: Only issues with actual vote data are estimated
-            value = fields.get(points_field)
-            return value is not None  # Only non-null votes are estimated
+            # votes are engagement metrics, not estimates
+            # Only treat as "estimated" if votes > 0
+            votes_data = fields.get(points_field)
+            if votes_data is None:
+                return False  # No votes data
+            vote_count = votes_data.get("votes", 0)
+            return vote_count > 0  # Only positive votes count as "estimated"
         elif points_field.startswith("customfield_"):
             value = fields.get(points_field)
             # CORRECT LOGIC: Only non-null values are considered "estimated"
