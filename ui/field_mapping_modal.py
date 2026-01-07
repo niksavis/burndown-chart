@@ -358,12 +358,12 @@ def create_field_mapping_form(
         if opt.get("value") and not opt.get("disabled")
     }
 
-    # Collect all currently mapped field IDs from both dora and flow sections
+    # Collect all currently mapped field IDs from all field mapping sections
     all_current_field_ids = set()
     field_mappings_dict = current_mappings.get("field_mappings", {})
 
-    # Iterate through dora and flow sections
-    for section_name in ["dora", "flow"]:
+    # Iterate through all field mapping sections (dora, flow, general)
+    for section_name in ["dora", "flow", "general"]:
         section_mappings = field_mappings_dict.get(section_name, {})
         if isinstance(section_mappings, dict):
             # Add all field IDs (values) from this section
