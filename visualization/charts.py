@@ -1035,7 +1035,6 @@ def _handle_forecast_error(e):
 
 def create_weekly_items_chart(
     statistics_data,
-    date_range_weeks=12,
     pert_factor=3,
     include_forecast=True,
     data_points_count=None,
@@ -1045,7 +1044,6 @@ def create_weekly_items_chart(
 
     Args:
         statistics_data: List of dictionaries containing statistics data
-        date_range_weeks: Number of weeks to display (default: 12 weeks)
         pert_factor: PERT factor for calculations (for forecast)
         include_forecast: Whether to include forecast data (default: True)
         data_points_count: Number of data points to use for calculations (default: None, uses all data)
@@ -1102,23 +1100,16 @@ def create_weekly_items_chart(
     # Convert date to datetime and ensure proper format
     df["date"] = pd.to_datetime(df["date"], format="mixed", errors="coerce")
 
-    # Always filter by date range for better visualization
-    # Ensure date_range_weeks is not None and is a positive number
-    weeks = 12  # Default to 12 weeks
-    if (
-        date_range_weeks is not None
-        and isinstance(date_range_weeks, (int, float))
-        and date_range_weeks > 0
-    ):
-        weeks = int(date_range_weeks)
+    # Date filtering already applied via data_points_count above
+    # No additional filtering needed to avoid double-filtering bug
 
+    # Calculate date range for filling missing weeks
     latest_date = df["date"].max()
-    start_date = latest_date - timedelta(weeks=weeks)
-    df = df[df["date"] >= start_date]
+    start_date = df["date"].min()
 
     # Add week and year columns for grouping
-    df["week"] = df["date"].dt.isocalendar().week
-    df["year"] = df["date"].dt.year
+    df["week"] = df["date"].dt.isocalendar().week  # type: ignore[attr-defined]
+    df["year"] = df["date"].dt.year  # type: ignore[attr-defined]
     # Use vectorized string formatting to avoid DataFrame return issues
     df["year_week"] = (
         df["year"].astype(str) + "-W" + df["week"].astype(str).str.zfill(2)
@@ -1321,7 +1312,6 @@ def create_weekly_items_chart(
 
 def create_weekly_points_chart(
     statistics_data,
-    date_range_weeks=12,
     pert_factor=3,
     include_forecast=True,
     data_points_count=None,
@@ -1331,7 +1321,6 @@ def create_weekly_points_chart(
 
     Args:
         statistics_data: List of dictionaries containing statistics data
-        date_range_weeks: Number of weeks to display (default: 12 weeks)
         pert_factor: PERT factor for calculations (for forecast)
         include_forecast: Whether to include forecast data (default: True)
         data_points_count: Number of data points to use for calculations (default: None, uses all data)
@@ -1387,23 +1376,16 @@ def create_weekly_points_chart(
     # Convert date to datetime and ensure proper format
     df["date"] = pd.to_datetime(df["date"], format="mixed", errors="coerce")
 
-    # Always filter by date range for better visualization
-    # Ensure date_range_weeks is not None and is a positive number
-    weeks = 12  # Default to 12 weeks
-    if (
-        date_range_weeks is not None
-        and isinstance(date_range_weeks, (int, float))
-        and date_range_weeks > 0
-    ):
-        weeks = int(date_range_weeks)
+    # Date filtering already applied via data_points_count above
+    # No additional filtering needed to avoid double-filtering bug
 
+    # Calculate date range for filling missing weeks
     latest_date = df["date"].max()
-    start_date = latest_date - timedelta(weeks=weeks)
-    df = df[df["date"] >= start_date]
+    start_date = df["date"].min()
 
     # Add week and year columns for grouping
-    df["week"] = df["date"].dt.isocalendar().week
-    df["year"] = df["date"].dt.year
+    df["week"] = df["date"].dt.isocalendar().week  # type: ignore[attr-defined]
+    df["year"] = df["date"].dt.year  # type: ignore[attr-defined]
     # Use vectorized string formatting to avoid DataFrame return issues
     df["year_week"] = (
         df["year"].astype(str) + "-W" + df["week"].astype(str).str.zfill(2)
@@ -2860,13 +2842,19 @@ def prepare_visualization_data(
             df_calc["cum_points"] = total_scope_points
 
     # Filter to use only the specified number of most recent data points
+    # CRITICAL FIX: Use date-based filtering instead of row count (.iloc)
+    # data_points_count represents WEEKS, not rows. With sparse data,
+    # row-based filtering gives incorrect results.
     if (
         data_points_count is not None
         and data_points_count > 0
-        and len(df_calc) > data_points_count
+        and not df_calc.empty
+        and "date" in df_calc.columns
     ):
-        # Get the most recent data_points_count rows
-        df_calc = df_calc.iloc[-data_points_count:]
+        # Apply date-based filtering
+        latest_date = df_calc["date"].max()
+        cutoff_date = latest_date - timedelta(weeks=data_points_count)
+        df_calc = df_calc[df_calc["date"] >= cutoff_date]
 
     # Compute weekly throughput with the filtered data
     grouped = compute_weekly_throughput(df_calc)

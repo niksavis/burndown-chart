@@ -1387,7 +1387,6 @@ def register(app):
                 )
                 items_fig = create_weekly_items_chart(
                     statistics,
-                    date_range_weeks,
                     pert_factor,
                     data_points_count=data_points_count,
                 )
@@ -1412,7 +1411,6 @@ def register(app):
                     )
                     points_fig = create_weekly_points_chart(
                         statistics,
-                        date_range_weeks,
                         pert_factor,
                         data_points_count=data_points_count,
                     )
