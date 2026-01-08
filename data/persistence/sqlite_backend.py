@@ -535,13 +535,21 @@ class SQLiteBackend(PersistenceBackend):
                 cursor.execute(query, params)
                 results = cursor.fetchall()
 
-                # Parse JSON fields
+                # Parse JSON fields - return database format (flat structure)
                 issues = []
                 for row in results:
                     issue = dict(row)
-                    issue["fix_versions"] = json.loads(
+
+                    # Parse JSON fields
+                    fix_versions_data = json.loads(
                         issue.get("fix_versions", "null") or "null"
                     )
+
+                    # Store as both fix_versions AND fixVersions for compatibility
+                    # (code expects camelCase, database uses snake_case)
+                    issue["fix_versions"] = fix_versions_data
+                    issue["fixVersions"] = fix_versions_data
+
                     issue["labels"] = json.loads(issue.get("labels", "null") or "null")
                     issue["components"] = json.loads(
                         issue.get("components", "null") or "null"
@@ -1505,6 +1513,16 @@ class SQLiteBackend(PersistenceBackend):
                 metrics = []
                 for row in results:
                     metric = dict(row)
+                    # Parse metric_value if it's a JSON string
+                    metric_value = metric.get("metric_value")
+                    if isinstance(metric_value, str) and (
+                        metric_value.startswith("{") or metric_value.startswith("[")
+                    ):
+                        try:
+                            metric["metric_value"] = json.loads(metric_value)
+                        except (json.JSONDecodeError, TypeError):
+                            # Keep as string if not valid JSON
+                            pass
                     if metric.get("calculation_metadata"):
                         metric["calculation_metadata"] = json.loads(
                             metric["calculation_metadata"]
@@ -1535,6 +1553,11 @@ class SQLiteBackend(PersistenceBackend):
                 cursor = conn.cursor()
 
                 for metric in metrics:
+                    # Convert dict/list values to JSON for SQLite compatibility
+                    metric_value = metric.get("metric_value")
+                    if isinstance(metric_value, (dict, list)):
+                        metric_value = json.dumps(metric_value)
+
                     cursor.execute(
                         """
                         INSERT INTO metrics_data_points (
@@ -1558,7 +1581,7 @@ class SQLiteBackend(PersistenceBackend):
                             metric.get("snapshot_date"),
                             metric.get("metric_category"),
                             metric.get("metric_name"),
-                            metric.get("metric_value"),
+                            metric_value,
                             metric.get("metric_unit"),
                             metric.get("excluded_issue_count", 0),
                             json.dumps(metric.get("calculation_metadata"))

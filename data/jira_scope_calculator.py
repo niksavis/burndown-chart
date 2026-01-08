@@ -55,13 +55,20 @@ def calculate_jira_project_scope(
 
     for issue in issues_data:
         try:
-            # Extract issue data
-            status_name = issue["fields"]["status"]["name"]
-            status_category = issue["fields"]["status"]["statusCategory"]["key"]
-            points = _extract_story_points(issue["fields"], points_field)
-
-            # Check if this issue has meaningful points (not just default fallback)
-            has_real_points = _issue_has_real_points(issue["fields"], points_field)
+            # Extract issue data - handle both nested (JIRA API) and flat (database) formats
+            if "fields" in issue and isinstance(issue.get("fields"), dict):
+                # Nested format (JIRA API)
+                status_name = issue["fields"]["status"]["name"]
+                status_category = issue["fields"]["status"]["statusCategory"]["key"]
+                points = _extract_story_points(issue["fields"], points_field)
+                has_real_points = _issue_has_real_points(issue["fields"], points_field)
+            else:
+                # Flat format (database) - fields at root level
+                status_name = issue.get("status", "")
+                # Database stores status_category as string, not nested object
+                status_category = issue.get("status_category", "")
+                points = _extract_story_points(issue, points_field)
+                has_real_points = _issue_has_real_points(issue, points_field)
 
             # Classify status
             classification = _classify_issue_status(
@@ -223,8 +230,14 @@ def _extract_story_points(fields: Dict[str, Any], points_field: str) -> int:
             return int(vote_count) if vote_count is not None else 0
 
         elif points_field.startswith("customfield_"):
-            # Custom field - no default, return 0 if missing
-            value = fields.get(points_field)
+            # Custom field - check custom_fields dict first (flat format), then root level (nested format)
+            value = None
+            if "custom_fields" in fields and isinstance(
+                fields.get("custom_fields"), dict
+            ):
+                value = fields["custom_fields"].get(points_field)
+            if value is None:
+                value = fields.get(points_field)
             if value is None:
                 return 0  # No value = no estimate
 
@@ -391,10 +404,26 @@ def _validate_points_field_availability_with_stats(
 
     for issue in issues_data[:sample_size]:
         try:
-            fields = issue.get("fields", {})
+            # Handle both nested (JIRA API) and flat (database) formats
+            if "fields" in issue and isinstance(issue.get("fields"), dict):
+                fields = issue["fields"]
+            else:
+                # Flat format - fields at root level
+                fields = issue
 
             # Check if field exists in the data structure
-            if points_field in fields:
+            # For flat format, custom fields are in custom_fields dict
+            field_exists = False
+            if (
+                points_field.startswith("customfield_")
+                and "custom_fields" in fields
+                and isinstance(fields.get("custom_fields"), dict)
+            ):
+                field_exists = points_field in fields["custom_fields"]
+            else:
+                field_exists = points_field in fields
+
+            if field_exists:
                 field_exists_count += 1
 
                 # Also count if it has a valid value
@@ -405,7 +434,14 @@ def _validate_points_field_availability_with_stats(
                     ):  # 0 and positive votes are valid
                         valid_points_count += 1
                 elif points_field.startswith("customfield_"):
-                    value = fields.get(points_field)
+                    # Get value from custom_fields dict if available, otherwise root level
+                    value = None
+                    if "custom_fields" in fields and isinstance(
+                        fields.get("custom_fields"), dict
+                    ):
+                        value = fields["custom_fields"].get(points_field)
+                    if value is None:
+                        value = fields.get(points_field)
                     if value is not None:
                         if isinstance(value, dict):
                             point_val = value.get(
@@ -445,9 +481,9 @@ def _validate_points_field_availability_with_stats(
         (valid_points_count / sample_size * 100) if sample_size > 0 else 0
     )
 
-    # Check threshold - field should have valid data in at least 50% of issues
+    # Calculate threshold met (for informational display only - not used to disable features)
     stats["threshold_required"] = (
-        0.5  # 50% of issues need to have valid (non-null) point values
+        0.3  # 30% threshold for quality indicator (informational only)
     )
     threshold_met = (
         valid_points_count > 0
@@ -455,7 +491,11 @@ def _validate_points_field_availability_with_stats(
     )
     stats["threshold_met"] = threshold_met
 
-    return threshold_met, stats
+    # Return True if ANY issues have points (even if below threshold)
+    # This lets users decide whether to enable points tracking based on coverage stats
+    # Only return False if literally NO points exist or field isn't configured
+    has_any_points = valid_points_count > 0
+    return has_any_points, stats
 
 
 def _issue_has_real_points(fields: Dict[str, Any], points_field: str) -> bool:
@@ -487,7 +527,14 @@ def _issue_has_real_points(fields: Dict[str, Any], points_field: str) -> bool:
             vote_count = votes_data.get("votes", 0)
             return vote_count > 0  # Only positive votes count as "estimated"
         elif points_field.startswith("customfield_"):
-            value = fields.get(points_field)
+            # Check custom_fields dict first (flat format), then root level (nested format)
+            value = None
+            if "custom_fields" in fields and isinstance(
+                fields.get("custom_fields"), dict
+            ):
+                value = fields["custom_fields"].get(points_field)
+            if value is None:
+                value = fields.get(points_field)
             # CORRECT LOGIC: Only non-null values are considered "estimated"
             if value is None:
                 return False  # Null values are NOT estimated

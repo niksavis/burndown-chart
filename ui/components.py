@@ -2932,6 +2932,30 @@ def create_parameter_panel_expanded(
     estimated_points = settings.get("estimated_points", 0)
     show_points = settings.get("show_points", False)
     data_points_count = settings.get("data_points_count", 10)
+    field_stats = settings.get("field_stats", {})  # Get coverage stats for tooltip
+
+    # Generate points coverage message for tooltip
+    points_coverage_info = None
+    points_coverage_color = "#6c757d"  # Default gray
+    if field_stats:
+        valid_count = field_stats.get("valid_points_count", 0)
+        sample_size = field_stats.get("sample_size", 0)
+        # Use the already-calculated coverage percentage from the sample
+        actual_coverage = field_stats.get("valid_coverage_percent", 0)
+
+        if sample_size > 0 and valid_count > 0:
+            # Color code based on coverage
+            if actual_coverage >= 50:
+                points_coverage_color = "#28a745"  # Green - good coverage
+                icon = "✓"
+            elif actual_coverage >= 20:
+                points_coverage_color = "#ffc107"  # Yellow - moderate coverage
+                icon = "⚠"
+            else:
+                points_coverage_color = "#dc3545"  # Red - poor coverage
+                icon = "❌"
+
+            points_coverage_info = f"{icon} {valid_count} of {sample_size} sampled issues ({actual_coverage:.0f}%) have points"
 
     # Calculate max data points from statistics if available
     # CRITICAL FIX: Count unique dates, not total rows (avoids duplicate date inflation)
@@ -3257,6 +3281,18 @@ def create_parameter_panel_expanded(
                                                                             "fontSize": "0.8rem"
                                                                         },
                                                                     ),
+                                                                    # Add coverage info if available
+                                                                    html.Small(
+                                                                        points_coverage_info,
+                                                                        className="ms-2",
+                                                                        style={
+                                                                            "color": points_coverage_color,
+                                                                            "fontSize": "0.75rem",
+                                                                            "fontWeight": "500",
+                                                                        },
+                                                                    )
+                                                                    if points_coverage_info
+                                                                    else None,
                                                                 ],
                                                                 className="d-flex align-items-center",
                                                             ),

@@ -80,12 +80,17 @@ def serve_layout():
     # Use actual remaining values from project scope (no window calculations)
     settings = {**app_settings}
     if project_scope:
+        # Get field stats from calculation metadata
+        metadata = project_scope.get("calculation_metadata", {})
+        field_stats = metadata.get("field_stats", {})
+
         settings.update(
             {
                 "total_items": project_scope.get("remaining_items", 0),
                 "total_points": project_scope.get("remaining_total_points", 0),
                 "estimated_items": project_scope.get("estimated_items", 0),
                 "estimated_points": project_scope.get("estimated_points", 0),
+                "field_stats": field_stats,  # Add field stats for points coverage tooltip
             }
         )
 

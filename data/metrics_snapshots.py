@@ -34,6 +34,10 @@ logger = logging.getLogger(__name__)
 # Thread lock for file access
 _snapshots_lock = threading.Lock()
 
+# Cache for loaded snapshots to avoid repeated database queries
+_snapshots_cache: Optional[Dict[str, Dict[str, Any]]] = None
+_cache_query_id: Optional[str] = None  # Track which query the cache is for
+
 # Batch mode context - prevents writes until flush
 _batch_mode_active = False
 _batch_snapshots = None
@@ -50,10 +54,15 @@ def load_snapshots() -> Dict[str, Dict[str, Any]]:
     """
     Load all metric snapshots from database via repository pattern.
 
+    Uses a module-level cache to avoid repeated database queries.
+    Cache is cleared when query changes.
+
     Returns:
         Dictionary mapping week labels to metric snapshots
         Example: {"2025-W44": {"flow_load": {...}, "custom_metric": {...}}}
     """
+    global _snapshots_cache, _cache_query_id
+
     try:
         from data.persistence.factory import get_backend
         from data.iso_week_bucketing import get_week_label
@@ -68,6 +77,10 @@ def load_snapshots() -> Dict[str, Dict[str, Any]]:
         if not active_profile_id or not active_query_id:
             logger.info("No active profile/query, returning empty snapshots")
             return {}
+
+        # Check cache: return if query hasn't changed
+        if _snapshots_cache is not None and _cache_query_id == active_query_id:
+            return _snapshots_cache
 
         # Load from database - get_metrics_snapshots returns list of dicts
         # Each dict is a ROW with: snapshot_date, metric_category, metric_name, metric_value, etc.
@@ -104,9 +117,17 @@ def load_snapshots() -> Dict[str, Dict[str, Any]]:
                     # Merge all fields from calculation_metadata into metric_data
                     metric_data.update(row["calculation_metadata"])
 
-                # Add standard fields (these override calculation_metadata if present)
-                metric_data["value"] = row.get("metric_value")
-                metric_data["unit"] = row.get("metric_unit", "")
+                # Parse metric_value if it's a dict (saved as JSON in database)
+                metric_value = row.get("metric_value")
+                if isinstance(metric_value, dict):
+                    # metric_value is a dict (parsed JSON) - merge all fields
+                    metric_data.update(metric_value)
+                else:
+                    # Simple scalar value
+                    metric_data["value"] = metric_value
+                    metric_data["unit"] = row.get("metric_unit", "")
+
+                # Standard fields from row (these override if present)
                 metric_data["excluded_issue_count"] = row.get("excluded_issue_count", 0)
 
                 # Add forecast data if available
@@ -122,10 +143,23 @@ def load_snapshots() -> Dict[str, Dict[str, Any]]:
                 snapshots[week_label][metric_name] = metric_data
 
         logger.info(f"Loaded {len(snapshots)} weeks of metric snapshots from database")
+
+        # Update cache
+        _snapshots_cache = snapshots
+        _cache_query_id = active_query_id
+
         return snapshots
     except Exception as e:
         logger.error(f"Failed to load snapshots from database: {e}", exc_info=True)
         return {}
+
+
+def clear_snapshots_cache() -> None:
+    """Clear the snapshots cache. Call this after Force Refresh or when data changes."""
+    global _snapshots_cache, _cache_query_id
+    _snapshots_cache = None
+    _cache_query_id = None
+    logger.info("Cleared snapshots cache")
 
 
 def save_snapshots(snapshots: Dict[str, Dict[str, Any]]) -> bool:
@@ -156,12 +190,7 @@ def save_snapshots(snapshots: Dict[str, Dict[str, Any]]) -> bool:
             # Determine metric type based on metric names (simple heuristic)
             # For now, save as "metrics" category - can be refined later
             metric_type = (
-                "dora"
-                if any(
-                    k.startswith("deployment") or k.startswith("lead_time")
-                    for k in metrics.keys()
-                )
-                else "flow"
+                "dora" if any(k.startswith("dora_") for k in metrics.keys()) else "flow"
             )
             backend.save_metrics_snapshot(
                 active_profile_id,
@@ -172,6 +201,10 @@ def save_snapshots(snapshots: Dict[str, Dict[str, Any]]) -> bool:
             )
 
         logger.info(f"Saved {len(snapshots)} weeks of metric snapshots to database")
+
+        # Clear cache after saving so next load gets fresh data
+        clear_snapshots_cache()
+
         return True
     except Exception as e:
         logger.error(f"Failed to save snapshots to database: {e}")

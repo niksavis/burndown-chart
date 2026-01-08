@@ -1168,17 +1168,54 @@ def fetch_jira_issues(
             start_at += page_size
 
         # Save to cache for next time
-        save_cache(
-            cache_key=cache_key,
-            data=all_issues,
-            config_hash=config_hash,
-            cache_dir="cache",
-        )
+        # CRITICAL: Save with metadata needed for delta fetch
+        from data.profile_manager import get_active_query_workspace
+        from datetime import datetime, timezone
+        import hashlib
+        import json
+
+        query_workspace = get_active_query_workspace()
+        cache_file_path = query_workspace / "jira_cache.json"
+
+        # Generate JQL hash for delta fetch validation
+        jql_hash = hashlib.sha256(jql.encode()).hexdigest()[:16]
+
+        # Create cache with metadata including last_updated for delta fetch
+        cache_data = {
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "last_updated": datetime.now(timezone.utc).isoformat(),  # For delta fetch
+            "jql_hash": jql_hash,  # For delta fetch validation
+            "jql_query": jql,
+            "cache_key": cache_key,
+            "config_hash": config_hash,
+            "issues": all_issues,
+        }
+
+        try:
+            with open(cache_file_path, "w", encoding="utf-8") as f:
+                json.dump(cache_data, f, indent=2)
+            logger.info(
+                f"[Cache] Saved {len(all_issues)} issues with delta fetch metadata"
+            )
+        except Exception as e:
+            logger.warning(f"[Cache] Failed to save cache file: {e}")
 
         elapsed_time = time.time() - start_time
         logger.info(
             f"[JIRA] Fetch complete: {len(all_issues)} issues in {elapsed_time:.2f}s"
         )
+
+        # CRITICAL FIX: Save issues to database for standard fetch path
+        # Previously only two-phase fetch saved to DB, causing changelog fetch to fail
+        # because it couldn't find any issues in the database
+        cache_jira_response(
+            data=all_issues,
+            jql_query=jql,
+            fields_requested=fields,
+            cache_file=str(cache_file_path),
+            config=config,
+        )
+
         return True, all_issues
 
     except requests.exceptions.RequestException as e:
@@ -1647,18 +1684,46 @@ def _save_delta_fetch_result(
     merged_issues: List[Dict], changed_keys: List[str], jql: str, fields: str
 ) -> None:
     """
-    Save delta fetch results to database.
+    Save delta fetch results to cache file with updated timestamp.
 
-    This enables downstream delta calculation optimization by tracking
-    which issue keys were modified in the delta fetch.
+    This updates the cache file's last_updated timestamp so the next delta fetch
+    will only fetch issues changed since now.
 
-    Note: Issues are already saved to database by caller - this is a no-op
-    kept for backward compatibility. The changed_keys tracking happens
-    in the database layer automatically.
+    Args:
+        merged_issues: Merged issues (cached + delta)
+        changed_keys: List of issue keys that changed
+        jql: JQL query used
+        fields: Fields requested
     """
-    logger.debug(
-        f"[Delta] Delta fetch result: {len(merged_issues)} issues ({len(changed_keys)} changed) - already in database"
-    )
+    try:
+        from data.profile_manager import get_active_query_workspace
+        import hashlib
+        from datetime import timezone
+
+        query_workspace = get_active_query_workspace()
+        cache_file = query_workspace / "jira_cache.json"
+
+        # Generate JQL hash for validation
+        jql_hash = hashlib.sha256(jql.encode()).hexdigest()[:16]
+
+        # Create updated cache with new timestamp
+        cache_data = {
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "last_updated": datetime.now(timezone.utc).isoformat(),  # Updated timestamp
+            "jql_hash": jql_hash,
+            "jql_query": jql,
+            "issues": merged_issues,
+        }
+
+        with open(cache_file, "w", encoding="utf-8") as f:
+            json.dump(cache_data, f, indent=2)
+
+        logger.info(
+            f"[Delta] Updated cache: {len(merged_issues)} issues, {len(changed_keys)} changed"
+        )
+
+    except Exception as e:
+        logger.warning(f"[Delta] Failed to save cache: {e}")
 
 
 def _try_delta_fetch(
@@ -2282,10 +2347,26 @@ def jira_to_csv_format(issues: List[Dict], config: Dict) -> List[Dict]:
             created_points = 0
 
             for issue in issues:
+                # Handle both nested (JIRA API) and flat (database) formats
+                if "fields" in issue and isinstance(issue.get("fields"), dict):
+                    # Nested format
+                    resolution_date_str = issue.get("fields", {}).get("resolutiondate")
+                    created_date_str = issue.get("fields", {}).get("created")
+                    story_points_field_value = issue.get("fields", {}).get(
+                        config.get("story_points_field", "")
+                    )
+                else:
+                    # Flat format
+                    resolution_date_str = issue.get("resolved")
+                    created_date_str = issue.get("created")
+                    story_points_field_value = issue.get(
+                        config.get("story_points_field", "")
+                    )
+
                 # Check if item was completed this week
-                if issue.get("fields", {}).get("resolutiondate"):
+                if resolution_date_str:
                     resolution_date = datetime.strptime(
-                        issue["fields"]["resolutiondate"][:10], "%Y-%m-%d"
+                        resolution_date_str[:10], "%Y-%m-%d"
                     )
                     if current_date <= resolution_date <= week_end:
                         completed_items += 1
@@ -2295,19 +2376,14 @@ def jira_to_csv_format(issues: List[Dict], config: Dict) -> List[Dict]:
                             config.get("story_points_field")
                             and config["story_points_field"].strip()
                         ):
-                            story_points_value = issue.get("fields", {}).get(
-                                config["story_points_field"]
-                            )
                             story_points = extract_story_points_value(
-                                story_points_value, config["story_points_field"]
+                                story_points_field_value, config["story_points_field"]
                             )
                         completed_points += story_points
 
                 # Check if item was created this week
-                if issue.get("fields", {}).get("created"):
-                    created_date = datetime.strptime(
-                        issue["fields"]["created"][:10], "%Y-%m-%d"
-                    )
+                if created_date_str:
+                    created_date = datetime.strptime(created_date_str[:10], "%Y-%m-%d")
                     if current_date <= created_date <= week_end:
                         created_items += 1
                         # Add story points if available and field is specified
@@ -2316,21 +2392,71 @@ def jira_to_csv_format(issues: List[Dict], config: Dict) -> List[Dict]:
                             config.get("story_points_field")
                             and config["story_points_field"].strip()
                         ):
-                            story_points_value = issue.get("fields", {}).get(
-                                config["story_points_field"]
-                            )
                             story_points = extract_story_points_value(
-                                story_points_value, config["story_points_field"]
+                                story_points_field_value, config["story_points_field"]
                             )
                         created_points += story_points
 
             # Calculate week_label for this date (YYYY-Wxx format)
             week_label = get_week_label(current_date)
 
+            # Calculate remaining items/points as of this week's end date
+            # An issue is "remaining" if: created <= week_end AND (not resolved OR resolved > week_end)
+            remaining_items_count = 0
+            remaining_points_sum = 0
+
+            for issue in issues:
+                # Handle both nested (JIRA API) and flat (database) formats
+                if "fields" in issue and isinstance(issue.get("fields"), dict):
+                    # Nested format
+                    created_date_str = issue.get("fields", {}).get("created")
+                    resolution_date_str = issue.get("fields", {}).get("resolutiondate")
+                    story_points_field_value = issue.get("fields", {}).get(
+                        config.get("story_points_field", "")
+                    )
+                else:
+                    # Flat format
+                    created_date_str = issue.get("created")
+                    resolution_date_str = issue.get("resolved")
+                    story_points_field_value = issue.get(
+                        config.get("story_points_field", "")
+                    )
+
+                if not created_date_str:
+                    continue
+
+                created_date = datetime.strptime(created_date_str[:10], "%Y-%m-%d")
+                if created_date > week_end:
+                    continue  # Issue didn't exist yet
+
+                # Check if issue was resolved by this week's end
+                if resolution_date_str:
+                    resolution_date = datetime.strptime(
+                        resolution_date_str[:10], "%Y-%m-%d"
+                    )
+                    if resolution_date <= week_end:
+                        continue  # Issue was already completed
+
+                # Issue is remaining
+                remaining_items_count += 1
+
+                # Add story points if available
+                story_points = 0
+                if (
+                    config.get("story_points_field")
+                    and config["story_points_field"].strip()
+                ):
+                    story_points = extract_story_points_value(
+                        story_points_field_value, config["story_points_field"]
+                    )
+                remaining_points_sum += story_points
+
             weekly_data.append(
                 {
                     "date": current_date.strftime("%Y-%m-%d"),
                     "week_label": week_label,
+                    "remaining_items": remaining_items_count,
+                    "remaining_total_points": float(remaining_points_sum),
                     "completed_items": completed_items,
                     "completed_points": completed_points,
                     "created_items": created_items,
@@ -2436,8 +2562,6 @@ def sync_jira_scope_and_data(
         # Step 1: Check if force refresh is requested
         if force_refresh:
             logger.debug("[JIRA] Force refresh - bypassing cache and clearing database")
-            cache_loaded = False
-            issues = []
 
             # CRITICAL: Clear database cache for this query on force refresh
             # This ensures old issues that no longer match the JQL are removed
@@ -2495,102 +2619,77 @@ def sync_jira_scope_and_data(
                         )
                         changelog_deleted = cursor.rowcount
                         conn.commit()
+
+                        # Delete cached metrics for this query (force recalculation)
+                        cursor.execute(
+                            "DELETE FROM metrics_data_points WHERE profile_id = ? AND query_id = ?",
+                            (active_profile_id, active_query_id),
+                        )
+                        metrics_deleted = cursor.rowcount
+                        conn.commit()
+
+                        # Delete project scope for this query
+                        cursor.execute(
+                            "DELETE FROM project_scope WHERE profile_id = ? AND query_id = ?",
+                            (active_profile_id, active_query_id),
+                        )
+                        scope_deleted = cursor.rowcount
+                        conn.commit()
+
+                        # Delete task progress for this query
+                        cursor.execute(
+                            "DELETE FROM task_progress WHERE profile_id = ? AND query_id = ?",
+                            (active_profile_id, active_query_id),
+                        )
+                        task_deleted = cursor.rowcount
+                        conn.commit()
+
                         logger.info(
-                            f"[JIRA] Force refresh: deleted {changelog_deleted} changelog entries from database"
+                            f"[JIRA] Force refresh: deleted {changelog_deleted} changelog entries, "
+                            f"{metrics_deleted} metrics, {scope_deleted} scope, {task_deleted} tasks from database"
                         )
 
             except Exception as e:
                 logger.warning(f"[JIRA] Failed to clear database cache: {e}")
-        else:
-            # Get query-specific cache file path
-            from data.profile_manager import get_active_query_workspace
 
-            query_workspace = get_active_query_workspace()
-            jira_cache_file = str(query_workspace / "jira_cache.json")
+        # Step 2: Fetch from JIRA (includes built-in delta fetch optimization)
+        # fetch_jira_issues() handles all caching logic internally:
+        # - Loads cache and checks if data changed
+        # - Does delta fetch (fetch only updated issues) if count unchanged
+        # - Does full fetch only if cache invalid or delta fetch fails
+        logger.debug(
+            "[JIRA] Calling fetch_jira_issues (handles cache/delta internally)"
+        )
 
-            # Step 2: Try to load from cache (checks version, age, JQL, fields)
-            logger.debug("[JIRA] Attempting cache load")
-            cache_loaded, issues = load_jira_cache(
-                config["jql_query"],
-                current_fields,
-                jira_cache_file,
-                config,  # Pass config for new cache system
-            )
-            logger.debug(
-                f"[JIRA] Cache result: loaded={cache_loaded}, count={len(issues) if issues else 0}"
-            )
+        fetch_success, issues = fetch_jira_issues(config, force_refresh=force_refresh)
+        if not fetch_success:
+            return False, "Failed to fetch JIRA data", {}
 
-            # Step 3: If cache is valid, always call fetch_jira_issues to enable delta fetch
-            # This ensures delta fetch can run and populate changed_keys for delta calculate optimization
-            if cache_loaded and issues:
-                logger.debug(
-                    f"[JIRA] Cache loaded: {len(issues)} issues, calling fetch for delta check"
-                )
-                # Always call fetch_jira_issues - it will handle count check and delta fetch internally
-                cache_loaded = False  # Force call to fetch_jira_issues below
+        logger.info(f"[JIRA] Fetch complete: {len(issues)} issues")
 
-        # Step 4: Fetch from JIRA if cache is invalid or force refresh
-        if not cache_loaded or not issues:
-            # Get query-specific cache file path BEFORE fetch
-            from data.profile_manager import get_active_query_workspace
-            import os
-
-            query_workspace = get_active_query_workspace()
-            jira_cache_file = query_workspace / "jira_cache.json"
-
-            # Get cache file modification time before fetch (to detect if delta fetch saved it)
-            cache_mtime_before = (
-                os.path.getmtime(jira_cache_file) if jira_cache_file.exists() else None
-            )
-
-            # Fetch fresh data from JIRA
-            fetch_success, issues = fetch_jira_issues(
-                config, force_refresh=force_refresh
-            )
-            if not fetch_success:
-                return False, "Failed to fetch JIRA data", {}
-
-            # Check if cache was updated during fetch (delta fetch saves internally)
-            cache_mtime_after = (
-                os.path.getmtime(jira_cache_file) if jira_cache_file.exists() else None
-            )
-            cache_updated_by_fetch = (
-                cache_mtime_after is not None
-                and cache_mtime_before is not None
-                and cache_mtime_after > cache_mtime_before
-            )
-
-            # Only save cache if fetch didn't already save it (e.g., full fetch needs explicit save)
-            if not cache_updated_by_fetch:
-                logger.debug(
-                    "[JIRA] Cache not updated by fetch, saving explicitly (full fetch path)"
-                )
-                if not cache_jira_response(
-                    issues,
-                    config["jql_query"],
-                    current_fields,
-                    str(jira_cache_file),
-                    config,  # Pass config for new cache system
-                ):
-                    logger.warning("[Cache] Failed to save response")
-            else:
-                logger.debug(
-                    "[JIRA] Cache already updated by fetch (delta fetch path), skipping duplicate save"
-                )
-
-            # CRITICAL: Invalidate changelog cache ONLY when we fetch fresh data from JIRA
-            # If we used the issue cache, changelog cache is still valid
-            invalidate_changelog_cache()
-        else:
-            logger.info("[Cache] Using cached issues, changelog remains valid")
+        # CRITICAL: Invalidate changelog cache when we fetch from JIRA
+        # Changelog must stay in sync with issue cache
+        invalidate_changelog_cache()
 
         # PHASE 2: Changelog data fetch
         # Changelog is needed for Flow Time and DORA metrics
         # No need to delete file cache - using database exclusively
 
-        # Fetch it now so Calculate Metrics has the data it needs
+        # Fetch it now so metrics calculation has the data it needs
+        # CRITICAL: Get profile/query IDs before calling fetch to avoid race condition
+        from data.persistence.factory import get_backend
+
+        backend = get_backend()
+        active_profile_id = backend.get_app_state("active_profile_id")
+        active_query_id = backend.get_app_state("active_query_id")
+
         logger.info("[JIRA] Fetching changelog data for Flow/DORA metrics...")
-        changelog_success, changelog_message = fetch_changelog_on_demand(config)
+        changelog_success, changelog_message = fetch_changelog_on_demand(
+            config,
+            profile_id=active_profile_id,
+            query_id=active_query_id,
+            progress_callback=None,
+        )
         if changelog_success:
             logger.info(f"[JIRA] Changelog fetch successful: {changelog_message}")
         else:
@@ -2676,12 +2775,17 @@ def sync_jira_data(
         return False, f"JIRA sync failed: {e}"
 
 
-def fetch_changelog_on_demand(config: Dict, progress_callback=None) -> Tuple[bool, str]:
+def fetch_changelog_on_demand(
+    config: Dict,
+    profile_id: str | None = None,
+    query_id: str | None = None,
+    progress_callback=None,
+) -> Tuple[bool, str]:
     """
     Fetch changelog data separately for Flow Time and DORA metrics with incremental saving.
 
     OPTIMIZATION: Only fetches changelog for issues NOT already in cache.
-    This dramatically improves performance on subsequent "Calculate Metrics" clicks.
+    This dramatically improves performance on subsequent "Update Data" operations.
 
     RESILIENCE FEATURES:
     - Saves progress after each page (prevents data loss on timeout)
@@ -2691,6 +2795,8 @@ def fetch_changelog_on_demand(config: Dict, progress_callback=None) -> Tuple[boo
 
     Args:
         config: JIRA configuration dictionary with API endpoint, token, etc.
+        profile_id: Profile ID to fetch changelog for (if None, reads from app_state)
+        query_id: Query ID to fetch changelog for (if None, reads from app_state)
         progress_callback: Optional callback function(message: str) for progress updates
 
     Returns:
@@ -2698,19 +2804,24 @@ def fetch_changelog_on_demand(config: Dict, progress_callback=None) -> Tuple[boo
     """
     from datetime import datetime
 
+    logger.info("Fetching changelog for profile/query: %s/%s", profile_id, query_id)
+
     try:
         logger.info("[JIRA] Fetching changelog data for Flow Time and DORA metrics")
         if progress_callback:
             progress_callback("[Stats] Starting changelog download...")
 
-        # Get active profile and query from database
+        # Get active profile and query from database if not provided
         from data.persistence.factory import get_backend
 
         backend = get_backend()
-        active_profile_id = backend.get_app_state("active_profile_id")
-        active_query_id = backend.get_app_state("active_query_id")
 
-        if not active_profile_id or not active_query_id:
+        if not profile_id:
+            profile_id = backend.get_app_state("active_profile_id")
+        if not query_id:
+            query_id = backend.get_app_state("active_query_id")
+
+        if not profile_id or not query_id:
             logger.error("[Database] No active profile/query - cannot fetch changelog")
             return False, "No active profile/query"
 
@@ -2718,7 +2829,7 @@ def fetch_changelog_on_demand(config: Dict, progress_callback=None) -> Tuple[boo
         cached_issue_keys = set()
         try:
             existing_entries = backend.get_changelog_entries(
-                profile_id=active_profile_id, query_id=active_query_id
+                profile_id=profile_id, query_id=query_id
             )
             # Get unique issue keys from existing entries
             cached_issue_keys = set(
@@ -2736,9 +2847,8 @@ def fetch_changelog_on_demand(config: Dict, progress_callback=None) -> Tuple[boo
         # Get all issues from database to determine which need changelog fetching
         issues_needing_changelog: list[str] | None = []
         try:
-            all_issues = backend.get_issues(
-                profile_id=active_profile_id, query_id=active_query_id
-            )
+            all_issues = backend.get_issues(profile_id=profile_id, query_id=query_id)
+            # Database returns flat format with issue_key column
             all_issue_keys: list[str] = [
                 str(issue.get("issue_key"))
                 for issue in all_issues
@@ -2904,14 +3014,14 @@ def fetch_changelog_on_demand(config: Dict, progress_callback=None) -> Tuple[boo
                     if changelog_entries_batch:
                         # Save to database using batch insert
                         backend.save_changelog_batch(
-                            profile_id=active_profile_id,
-                            query_id=active_query_id,
+                            profile_id=profile_id,
+                            query_id=query_id,
                             entries=changelog_entries_batch,
                             expires_at=expires_at,
                         )
 
                         logger.info(
-                            f"[Database] Saved {len(changelog_entries_batch)} changelog entries to database for {active_profile_id}/{active_query_id}"
+                            f"[Database] Saved {len(changelog_entries_batch)} changelog entries to database for {profile_id}/{query_id}"
                         )
                         logger.info(
                             f"[Database] Optimized changelog: {total_histories_before} → {total_histories_after} histories ({reduction_pct:.1f}% reduction)"
