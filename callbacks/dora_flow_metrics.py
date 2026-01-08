@@ -152,8 +152,8 @@ def load_and_display_dora_metrics(
     Similar to Flow metrics, loads pre-calculated weekly snapshots from
     metrics_snapshots.json instead of recalculating on every tab visit.
 
-    Metrics are calculated when user clicks "Calculate Metrics" button in Settings,
-    and saved to cache for instant display.
+    Metrics are automatically calculated when "Update Data" (delta fetch) or "Force Refresh"
+    (full refresh) completes in Settings, and saved to cache for instant display.
 
     Args:
         jira_data_store: Cached JIRA issues from global store (used to check if data is loaded)
@@ -538,8 +538,8 @@ def calculate_and_display_flow_metrics(
     """Display Flow metrics per ISO week from snapshots.
 
     PERFORMANCE: Reads pre-calculated weekly snapshots from metrics_snapshots.json
-    instead of calculating live (2-minute operation). Metrics are refreshed manually
-    via the "Refresh Metrics" button.
+    instead of calculating live (2-minute operation). Metrics are automatically refreshed
+    when "Update Data" (delta fetch) or "Force Refresh" (full refresh) completes.
 
     Uses Data Points slider to control how many weeks of historical data to display.
     Metrics aggregated per ISO week (Monday-Sunday boundaries).
@@ -1446,11 +1446,11 @@ def toggle_mean_time_to_recovery_details(n_clicks, is_open):
     prevent_initial_call="initial_duplicate",  # Run on initial page load with duplicates
 )
 def restore_calculate_metrics_progress(pathname):
-    """Restore Calculate Metrics button state if task is in progress.
+    """Restore metrics calculation button state if task is in progress.
 
-    This callback runs on page load to check if a Calculate Metrics task
-    was in progress before the page was refreshed or app restarted.
-    If so, it restores the loading state and status message.
+    This callback runs on page load to check if a metrics calculation task
+    (triggered by Update Data or Force Refresh) was in progress before the
+    page was refreshed or app restarted. If so, it restores the loading state.
 
     Args:
         pathname: Current URL pathname (triggers on page load)
@@ -1460,12 +1460,12 @@ def restore_calculate_metrics_progress(pathname):
     """
     from data.task_progress import TaskProgress
 
-    # Check if Calculate Metrics task is active
+    # Check if metrics calculation task is active
     active_task = TaskProgress.get_active_task()
 
     if active_task and active_task.get("task_id") == "calculate_metrics":
         # Task is in progress - restore loading state
-        logger.info("Restoring Calculate Metrics progress state on page load")
+        logger.info("Restoring metrics calculation progress state on page load")
 
         button_loading = [
             html.I(className="fas fa-spinner fa-spin", style={"marginRight": "0.5rem"}),

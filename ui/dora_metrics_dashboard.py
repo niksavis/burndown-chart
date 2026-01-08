@@ -93,7 +93,7 @@ def create_dora_dashboard() -> dbc.Container:
                         [
                             html.I(className="fas fa-info-circle me-2"),
                             "Metrics calculated per ISO week. Use ",
-                            html.Strong("Calculate Metrics"),
+                            html.Strong("Update Data / Force Refresh"),
                             " button to refresh. ",
                             html.Strong("Data Points slider"),
                             " controls weeks displayed.",

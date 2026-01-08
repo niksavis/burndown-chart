@@ -589,7 +589,7 @@ def create_work_distribution_no_metrics_card(
                     [
                         html.I(className="fas fa-calculator me-2"),
                         "Click ",
-                        html.Strong("Calculate Metrics"),
+                        html.Strong("Update Data / Force Refresh"),
                         " in the Settings panel to process your JIRA data.",
                     ],
                     className="text-muted small",

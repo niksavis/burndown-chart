@@ -193,7 +193,7 @@ def create_no_metrics_state(metric_type: str = "Flow") -> html.Div:
                                     "icon": "calculator",
                                     "icon_color": "primary",
                                     "title": "Calculate Metrics",
-                                    "description": "Click the Calculate Metrics button in the Settings panel (top right) to process your JIRA data.",
+                                    "description": "Click 'Update Data' (delta fetch) or 'Force Refresh' (full refresh) in the Settings panel to calculate metrics from your JIRA data.",
                                 },
                                 {
                                     "icon": "bolt",
