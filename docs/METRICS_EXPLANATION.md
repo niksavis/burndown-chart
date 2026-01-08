@@ -399,7 +399,7 @@ Click any DORA metric card to view detailed weekly breakdown:
 - **Data Points Slider**: Controls how many historical weeks to display (default: 12 weeks)
 
 ### When Metrics Are Calculated
-- **Manual Trigger**: User clicks "Calculate Metrics" button in Settings
+- **Automatic Trigger**: Metrics are calculated automatically after "Update Data" or "Force Refresh" completes
 - **Process**: Calculates metrics for last N weeks and saves to database (`metrics_snapshots` table)
 - **Duration**: ~2 minutes for 12 weeks of data
 - **Display**: Instant (reads from indexed database)

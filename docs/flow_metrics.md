@@ -139,7 +139,7 @@ effort_category: customfield_13204  → Map effort category to custom field
 
 **Step 5: Verify Configuration**
 1. Open **Flow Metrics** tab
-2. Click **Calculate Metrics** button (Settings panel, top right)
+2. Click **Update Data** (delta fetch) or **Force Refresh** (full refresh) button in Settings panel
 3. Check for error states:
    - "Missing Required Field" → Return to Field Mappings, configure field
    - "No Data" → Check JIRA query includes issues with mapped fields
