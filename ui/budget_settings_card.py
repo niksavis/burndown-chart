@@ -79,7 +79,7 @@ def _create_current_budget_card_content(
             from datetime import datetime
 
             dt = datetime.fromisoformat(updated_at.replace("Z", "+00:00"))
-            updated_str = dt.strftime("%b %d, %Y")
+            updated_str = dt.strftime("%Y-%m-%d")
         except Exception:
             updated_str = updated_at[:10] if len(updated_at) >= 10 else updated_at
 
@@ -88,7 +88,7 @@ def _create_current_budget_card_content(
             from datetime import datetime
 
             dt = datetime.fromisoformat(created_at.replace("Z", "+00:00"))
-            created_str = dt.strftime("%b %d, %Y")
+            created_str = dt.strftime("%Y-%m-%d")
         except Exception:
             created_str = created_at[:10] if len(created_at) >= 10 else created_at
 

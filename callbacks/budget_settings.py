@@ -72,6 +72,10 @@ def _create_revision_history_table(
             reason,
         ) = rev
 
+        # Format effective date as "YYYY-Wxx (YYYY-MM-DD)"
+        effective_date_str = rev_date[:10]  # YYYY-MM-DD
+        effective_display = f"{week_label} ({effective_date_str})"
+
         # Format changes compactly
         changes = []
         if time_delta != 0:
@@ -108,12 +112,12 @@ def _create_revision_history_table(
                 [
                     html.Td(
                         html.Strong(
-                            week_label,
+                            effective_display,
                             style={"fontSize": "0.7rem"},
                         ),
                         style={
                             "verticalAlign": "top",
-                            "width": "95px",
+                            "width": "180px",
                             "padding": "0.4rem",
                             "whiteSpace": "nowrap",
                         },
@@ -161,15 +165,15 @@ def _create_revision_history_table(
                 html.Tr(
                     [
                         html.Th(
-                            "Week",
+                            "Effective",
                             style={
                                 "fontSize": "0.75rem",
-                                "width": "95px",
+                                "width": "180px",
                                 "padding": "0.4rem",
                             },
                         ),
                         html.Th(
-                            "Date",
+                            "Modified",
                             style={
                                 "fontSize": "0.75rem",
                                 "width": "90px",
@@ -546,10 +550,13 @@ def save_budget_settings(
             # Parse the date string from DatePickerSingle (format: YYYY-MM-DD)
             effective_dt = datetime.fromisoformat(effective_date)
             current_week = get_week_label(effective_dt)
+            # Use effective date as ISO timestamp for created_at
+            effective_dt_iso = effective_dt.replace(tzinfo=timezone.utc).isoformat()
             logger.info(
                 f"Using effective date {effective_date} for budget revision (week: {current_week})"
             )
         else:
+            effective_dt_iso = now_iso
             current_week = get_week_label(datetime.now())
             logger.info(
                 f"Using current date for budget revision (week: {current_week})"
@@ -591,6 +598,7 @@ def save_budget_settings(
                     )
 
                 # Update budget_settings
+                # If effective_date provided, also update created_at to reflect new effective date
                 cursor.execute(
                     """
                     UPDATE budget_settings
@@ -598,6 +606,7 @@ def save_budget_settings(
                         team_cost_per_week_eur = ?,
                         budget_total_eur = ?,
                         currency_symbol = ?,
+                        created_at = ?,
                         updated_at = ?
                     WHERE profile_id = ?
                 """,
@@ -606,6 +615,7 @@ def save_budget_settings(
                         team_cost,
                         budget_total,
                         currency_symbol,
+                        effective_dt_iso,
                         now_iso,
                         profile_id,
                     ),
@@ -615,6 +625,7 @@ def save_budget_settings(
 
             else:
                 # Create new budget settings
+                # Use effective_dt_iso for created_at to respect user's effective date
                 cursor.execute(
                     """
                     INSERT OR REPLACE INTO budget_settings (
@@ -629,7 +640,7 @@ def save_budget_settings(
                         team_cost,
                         budget_total,
                         currency_symbol,
-                        now_iso,
+                        effective_dt_iso,
                         now_iso,
                     ),
                 )
@@ -638,17 +649,14 @@ def save_budget_settings(
 
             conn.commit()
 
-            # Get created_at for store (it might be from current_settings or just created)
-            if current_settings and "created_at" in current_settings:
-                created_at = current_settings["created_at"]
-            else:
-                # Query from database if not in store
-                cursor.execute(
-                    "SELECT created_at FROM budget_settings WHERE profile_id = ?",
-                    (profile_id,),
-                )
-                result = cursor.fetchone()
-                created_at = result[0] if result else now_iso
+            # Get created_at from database to reflect any updates made
+            # (important when effective date is changed during update)
+            cursor.execute(
+                "SELECT created_at FROM budget_settings WHERE profile_id = ?",
+                (profile_id,),
+            )
+            result = cursor.fetchone()
+            created_at = result[0] if result else effective_dt_iso
 
             # Update store
             new_store = {
