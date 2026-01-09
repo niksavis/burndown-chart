@@ -70,6 +70,7 @@ def _create_revision_history_table(
             cost_delta,
             total_delta,
             reason,
+            created_at,
         ) = rev
 
         # Format effective date as "YYYY-Wxx (YYYY-MM-DD)"
@@ -124,7 +125,7 @@ def _create_revision_history_table(
                     ),
                     html.Td(
                         html.Small(
-                            rev_date[:10],
+                            created_at[:10] if created_at else rev_date[:10],
                             className="text-muted",
                             style={"fontSize": "0.7rem"},
                         ),
@@ -407,7 +408,7 @@ def load_budget_settings(profile_id, query_id, active_tab):
             cursor.execute(
                 """
                 SELECT revision_date, week_label, time_allocated_weeks_delta,
-                       team_cost_delta, budget_total_delta, revision_reason
+                       team_cost_delta, budget_total_delta, revision_reason, created_at
                 FROM budget_revisions
                 WHERE profile_id = ? AND query_id = ?
                 ORDER BY revision_date DESC
@@ -498,6 +499,62 @@ def update_budget_total_display(time_allocated, team_cost, currency_symbol):
         return f"{currency}{total:,.2f}"
     else:
         return f"{currency}0.00"
+
+
+# ============================================================================
+# Baseline Velocity Display
+# ============================================================================
+
+
+@callback(
+    Output("budget-baseline-velocity-display", "children"),
+    [
+        Input("profile-selector", "value"),
+        Input("query-selector", "value"),
+    ],
+    prevent_initial_call=False,
+)
+def update_baseline_velocity_display(profile_id, query_id):
+    """
+    Display current velocity that will be captured as baseline when budget is saved.
+
+    Args:
+        profile_id: Active profile identifier
+        query_id: Active query identifier
+
+    Returns:
+        str or html.Span: Velocity display text
+    """
+    if not profile_id or not query_id:
+        return "Will be captured from Recent Completions (Last 4 Weeks) when you save"
+
+    try:
+        from data.budget_calculator import _get_velocity, _get_velocity_points
+        from datetime import datetime
+
+        current_week = get_week_label(datetime.now())
+        velocity_items = _get_velocity(profile_id, query_id, current_week)
+        velocity_points = _get_velocity_points(profile_id, query_id, current_week)
+
+        if velocity_items > 0 or velocity_points > 0:
+            return html.Span(
+                [
+                    f"{velocity_items:.1f} items/wk",
+                    html.Span(" • ", className="text-muted mx-1"),
+                    f"{velocity_points:.1f} points/wk",
+                    html.Span(
+                        " (from Recent Completions)",
+                        className="text-muted",
+                        style={"fontSize": "0.75rem"},
+                    ),
+                ]
+            )
+        else:
+            return "No velocity data available yet - run analysis first"
+
+    except Exception as e:
+        logger.error(f"Failed to get velocity for baseline display: {e}")
+        return "Unable to calculate velocity"
 
 
 # ============================================================================
@@ -598,6 +655,17 @@ def save_budget_settings(
                 f"Using current date for budget revision (week: {current_week})"
             )
 
+        # Get current velocity from Flow metrics to use as baseline
+        from data.budget_calculator import _get_velocity, _get_velocity_points
+
+        baseline_velocity_items = _get_velocity(profile_id, query_id, current_week)
+        baseline_velocity_points = _get_velocity_points(
+            profile_id, query_id, current_week
+        )
+        logger.info(
+            f"Capturing baseline velocity: items={baseline_velocity_items:.2f}, points={baseline_velocity_points:.2f}"
+        )
+
         with get_db_connection() as conn:
             cursor = conn.cursor()
 
@@ -624,7 +692,7 @@ def save_budget_settings(
                         (
                             profile_id,
                             query_id,
-                            now_iso,
+                            effective_dt_iso,  # Use effective date, not current timestamp
                             current_week,
                             time_delta,
                             cost_delta,
@@ -643,6 +711,8 @@ def save_budget_settings(
                         team_cost_per_week_eur = ?,
                         budget_total_eur = ?,
                         currency_symbol = ?,
+                        baseline_velocity_items = ?,
+                        baseline_velocity_points = ?,
                         created_at = ?,
                         updated_at = ?
                     WHERE profile_id = ? AND query_id = ?
@@ -652,6 +722,8 @@ def save_budget_settings(
                         team_cost,
                         budget_total,
                         currency_symbol,
+                        baseline_velocity_items,
+                        baseline_velocity_points,
                         effective_dt_iso,
                         now_iso,
                         profile_id,
@@ -669,8 +741,9 @@ def save_budget_settings(
                     INSERT OR REPLACE INTO budget_settings (
                         profile_id, query_id, time_allocated_weeks, team_cost_per_week_eur,
                         budget_total_eur, currency_symbol,
+                        baseline_velocity_items, baseline_velocity_points,
                         created_at, updated_at
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                     (
                         profile_id,
@@ -679,6 +752,8 @@ def save_budget_settings(
                         team_cost,
                         budget_total,
                         currency_symbol,
+                        baseline_velocity_items,
+                        baseline_velocity_points,
                         effective_dt_iso,
                         now_iso,
                     ),
@@ -903,7 +978,7 @@ def refresh_budget_revision_history(
             cursor.execute(
                 """
                 SELECT revision_date, week_label, time_allocated_weeks_delta,
-                       team_cost_delta, budget_total_delta, revision_reason
+                       team_cost_delta, budget_total_delta, revision_reason, created_at
                 FROM budget_revisions
                 WHERE profile_id = ? AND query_id = ?
                 ORDER BY revision_date DESC
@@ -1076,7 +1151,7 @@ def update_revision_history_page(page, store_data, profile_id, query_id):
             cursor.execute(
                 """
                 SELECT revision_date, week_label, time_allocated_weeks_delta,
-                       team_cost_delta, budget_total_delta, revision_reason
+                       team_cost_delta, budget_total_delta, revision_reason, created_at
                 FROM budget_revisions
                 WHERE profile_id = ? AND query_id = ?
                 ORDER BY revision_date DESC

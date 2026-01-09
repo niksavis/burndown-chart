@@ -19,7 +19,12 @@ import logging
 from pathlib import Path
 
 from data.database import get_db_connection, check_database_integrity, database_exists
-from data.migration.schema import create_schema, get_schema_version, set_schema_version
+from data.migration.schema import (
+    create_schema,
+    get_schema_version,
+    set_schema_version,
+    ensure_budget_velocity_columns,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -81,12 +86,14 @@ def initialize_schema(db_path: Path = DEFAULT_DB_PATH, force: bool = False) -> b
                     return True
 
             else:
-                # Schema exists but version mismatch - future migration logic here
+                # Schema exists but version mismatch - run migrations
                 logger.warning(
                     f"Schema version mismatch: existing={existing_version}, current={CURRENT_SCHEMA_VERSION}"
                 )
-                logger.info("Future versions will support schema migration")
-                # For now, assume existing schema is compatible
+                logger.info("Running schema migrations")
+                ensure_budget_velocity_columns(conn)
+                set_schema_version(conn, CURRENT_SCHEMA_VERSION)
+                logger.info("Schema migrations completed")
                 return True
 
     except Exception as e:

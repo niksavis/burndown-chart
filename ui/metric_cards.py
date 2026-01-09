@@ -156,9 +156,7 @@ def create_forecast_section(
 
     # Format forecast value - standard formatting for all metrics
     if forecast_value is not None:
-        forecast_display = (
-            f"{forecast_value:.1f}" if forecast_value >= 10 else f"{forecast_value:.2f}"
-        )
+        forecast_display = f"{forecast_value:.2f}"
     else:
         forecast_display = "N/A"
 
@@ -629,7 +627,7 @@ def _create_deployment_details_table(
                         [
                             f"Total: {int(total_deployments)} deployments • ",
                             f"{int(total_releases)} releases • ",
-                            f"Ratio: {ratio:.1f}:1",
+                            f"Ratio: {ratio:.2f}:1",
                         ],
                         className="text-muted",
                     ),
@@ -666,7 +664,7 @@ def _create_deployment_details_table(
                                 style={"fontSize": "0.85rem"},
                             ),
                             html.Td(
-                                f"{week_ratio:.1f}:1",
+                                f"{week_ratio:.2f}:1",
                                 className="text-center",
                                 style={"fontSize": "0.85rem"},
                             ),
@@ -721,6 +719,7 @@ def create_metric_card(
     forecast_data: Optional[Dict[str, Any]] = None,
     trend_vs_forecast: Optional[Dict[str, Any]] = None,
     show_details_button: bool = True,
+    text_details: Optional[List[Any]] = None,
 ) -> dbc.Card:
     """Create a metric display card.
 
@@ -742,6 +741,7 @@ def create_metric_card(
         forecast_data: Optional forecast calculation results (Feature 009)
         trend_vs_forecast: Optional trend vs forecast analysis (Feature 009)
         show_details_button: If True, show "Show Details" button for expandable chart (default: True)
+        text_details: Optional list of html.Div components with rich text content to display inline
 
     Returns:
         Dash Bootstrap Card component
@@ -765,7 +765,12 @@ def create_metric_card(
         return _create_error_card(metric_data, card_id)
 
     return _create_success_card(
-        metric_data, card_id, forecast_data, trend_vs_forecast, show_details_button
+        metric_data,
+        card_id,
+        forecast_data,
+        trend_vs_forecast,
+        show_details_button,
+        text_details,
     )
 
 
@@ -775,6 +780,7 @@ def _create_success_card(
     forecast_data: Optional[Dict[str, Any]] = None,
     trend_vs_forecast: Optional[Dict[str, Any]] = None,
     show_details_button: bool = True,
+    text_details: Optional[List[Any]] = None,
 ) -> dbc.Card:
     """Create card for successful metric calculation.
 
@@ -784,6 +790,9 @@ def _create_success_card(
     - weekly_values: List of metric values for each week
 
     Feature 009: Also includes forecast display section when forecast_data is provided.
+
+    Args:
+        text_details: Optional list of html components to display inline (e.g., baseline comparisons)
     """
     # Map performance tier colors to Bootstrap/custom colors
     # Use custom 'tier-orange' class for proper visual distinction
@@ -843,10 +852,8 @@ def _create_success_card(
 
     if alternative_name:
         display_name = alternative_name
-        tooltip_text = f"Interpreted as: {alternative_name} (Standard field: {metric_name.replace('_', ' ').title()})"
     else:
         display_name = metric_name.replace("_", " ").title()
-        tooltip_text = None
 
     # Format value - special handling for deployment_frequency with release count
     value = metric_data.get("value")
@@ -856,7 +863,7 @@ def _create_success_card(
     )  # NEW: deployment count (operational tasks)
 
     if value is not None:
-        formatted_value = f"{value:.1f}" if value >= 10 else f"{value:.2f}"
+        formatted_value = f"{value:.2f}"
     else:
         formatted_value = "N/A"
 
@@ -865,9 +872,7 @@ def _create_success_card(
 
     # Format task value if present (deployment_frequency - operational task count)
     if task_value is not None:
-        formatted_task_value = (
-            f"{task_value:.1f}" if task_value >= 10 else f"{task_value:.2f}"
-        )
+        formatted_task_value = f"{task_value:.2f}"
     else:
         formatted_task_value = None
 
@@ -881,13 +886,22 @@ def _create_success_card(
 
     # Build card header with flex layout for title on left, badge on right
     if alternative_name:
+        # Use metric tooltip if provided, otherwise fall back to generic explanation
+        if metric_tooltip:
+            help_text = metric_tooltip
+        else:
+            help_text = _get_metric_explanation(metric_name)
+
         title_element = html.Span(
             [
-                html.I(
-                    className="fas fa-info-circle me-2 text-info",
-                    title=tooltip_text,
-                ),
                 display_name,
+                " ",
+                create_info_tooltip(
+                    help_text=help_text,
+                    id_suffix=f"metric-{metric_name}",
+                    placement="top",
+                    variant="dark",
+                ),
             ],
             className="metric-card-title",
         )
@@ -1148,9 +1162,7 @@ def _create_success_card(
     if metric_name == "lead_time_for_changes":
         value_hours = metric_data.get("value_hours")
         if value_hours is not None:
-            formatted_hours = (
-                f"{value_hours:.1f}" if value_hours >= 10 else f"{value_hours:.2f}"
-            )
+            formatted_hours = f"{value_hours:.2f}"
             card_body_children.append(
                 html.Div(
                     [
@@ -1163,9 +1175,7 @@ def _create_success_card(
     elif metric_name == "mean_time_to_recovery":
         value_days = metric_data.get("value_days")
         if value_days is not None:
-            formatted_days = (
-                f"{value_days:.1f}" if value_days >= 10 else f"{value_days:.2f}"
-            )
+            formatted_days = f"{value_days:.2f}"
             card_body_children.append(
                 html.Div(
                     [
@@ -1186,6 +1196,11 @@ def _create_success_card(
         )
         if forecast_section.children:  # Only add if forecast section has content
             card_body_children.append(forecast_section)
+
+    # Add optional text details (e.g., baseline comparisons for budget cards)
+    if text_details:
+        card_body_children.append(html.Hr(className="my-2"))
+        card_body_children.extend(text_details)
 
     # Add inline trend sparkline if weekly data is provided
     # Note: weekly_labels and weekly_values already fetched above for trend indicator

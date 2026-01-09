@@ -944,70 +944,69 @@ def _create_executive_summary(statistics_df, settings, forecast_data):
 
 
 def _create_throughput_section(
-    statistics_df, forecast_data, settings, data_points_count=None
+    statistics_df,
+    forecast_data,
+    settings,
+    data_points_count=None,
+    additional_context=None,
 ):
     """Create throughput analytics section.
 
-    CRITICAL: Uses metric snapshots (flow_velocity) as source of truth for items
-    to match DORA/Flow metrics tab exactly. This prevents discrepancies where
-    Dashboard shows different values than Flow Velocity.
+    CRITICAL: Project Dashboard calculates velocity ad-hoc from project_statistics
+    to work WITHOUT changelog data. This is different from DORA/Flow metrics which
+    use metric snapshots (requires changelog).
 
     Args:
-        statistics_df: DataFrame with filtered statistics (FALLBACK for points only)
+        statistics_df: DataFrame with filtered statistics (fallback only)
         forecast_data: Dictionary with forecast data
         settings: Settings dictionary containing show_points flag
-        data_points_count: Number of weeks being displayed (for metric snapshot lookup)
+        data_points_count: Number of weeks for velocity calculation
+        additional_context: Dict with profile_id, query_id, current_week_label
     """
     import logging
-    from data.metrics_snapshots import get_metric_weekly_values
-    from data.time_period_calculator import get_iso_week, format_year_week
-    from datetime import datetime, timedelta
 
     logger = logging.getLogger(__name__)
     show_points = settings.get("show_points", True)
     if statistics_df.empty:
         return html.Div()
 
-    # CRITICAL FIX: Use metric snapshots for items (same source as Flow Velocity)
-    # This ensures Dashboard and DORA tab show identical values
+    # Calculate velocity ad-hoc from project_statistics (works without changelog)
+    # This ensures Project Dashboard functions independently of DORA/Flow metrics
     avg_items = None
+    avg_points = None
 
-    if data_points_count is not None and data_points_count > 0:
-        try:
-            # Generate week labels exactly like DORA/Flow metrics do
-            weeks = []
-            current_date = datetime.now()
-            for i in range(data_points_count):
-                year, week = get_iso_week(current_date)
-                week_label = format_year_week(year, week)
-                weeks.append(week_label)
-                current_date = current_date - timedelta(days=7)
+    if (
+        additional_context
+        and additional_context.get("profile_id")
+        and additional_context.get("query_id")
+        and additional_context.get("current_week_label")
+        and data_points_count
+    ):
+        from data.budget_calculator import _get_velocity, _get_velocity_points
 
-            week_labels = list(reversed(weeks))
-
-            # Get Flow Velocity values (completed items per week)
-            velocity_items = get_metric_weekly_values(
-                week_labels, "flow_velocity", "completed_count"
-            )
-
-            if velocity_items and any(v > 0 for v in velocity_items):
-                avg_items = sum(velocity_items) / len(velocity_items)
-                logger.info(
-                    f"[DASHBOARD] Using metric snapshots for Items per Week: {avg_items:.2f} "
-                    f"(from {len(velocity_items)} weeks)"
-                )
-        except Exception as e:
-            logger.warning(
-                f"[DASHBOARD] Failed to load metric snapshots: {e}, using statistics"
-            )
-
-    # Fallback to statistics if snapshots unavailable
-    if avg_items is None:
+        avg_items = _get_velocity(
+            additional_context["profile_id"],
+            additional_context["query_id"],
+            additional_context["current_week_label"],
+            data_points_count,
+        )
+        avg_points = _get_velocity_points(
+            additional_context["profile_id"],
+            additional_context["query_id"],
+            additional_context["current_week_label"],
+            data_points_count,
+        )
+        logger.info(
+            f"[DASHBOARD] Using _get_velocity for Items per Week: {avg_items:.2f}, "
+            f"Points per Week: {avg_points:.2f} (data_points_count={data_points_count})"
+        )
+    else:
+        # Fallback to simple statistics mean
         avg_items = statistics_df["completed_items"].mean()
-        logger.info(f"[DASHBOARD] Using statistics for Items per Week: {avg_items:.2f}")
-
-    # Always use statistics for points (Flow doesn't track points separately)
-    avg_points = statistics_df["completed_points"].mean()
+        avg_points = statistics_df["completed_points"].mean()
+        logger.info(
+            f"[DASHBOARD] Using statistics fallback for Items per Week: {avg_items:.2f}"
+        )
 
     # Calculate trends by comparing older vs recent halves of filtered data
     items_trend = None
@@ -2854,7 +2853,11 @@ def create_comprehensive_dashboard(
             _create_executive_summary(statistics_df, settings, forecast_data),
             # Throughput Analytics
             _create_throughput_section(
-                statistics_df, forecast_data, settings, data_points_count
+                statistics_df,
+                forecast_data,
+                settings,
+                data_points_count,
+                additional_context,
             ),
             # Budget & Resource Tracking (conditional on budget configuration)
             _create_budget_section(

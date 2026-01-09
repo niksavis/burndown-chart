@@ -162,7 +162,9 @@ def _create_budget_section(
             className="mb-3",
         )
 
-    # Create 7 budget cards
+    # Create budget cards with baseline comparison data
+    baseline_comparison = budget_data.get("baseline_comparison")
+
     card_1 = create_budget_utilization_card(
         consumed_pct=budget_data.get("consumed_pct", 0),
         consumed_eur=budget_data.get("consumed_eur", 0),
@@ -170,6 +172,7 @@ def _create_budget_section(
         currency_symbol=currency_symbol,
         data_points_count=data_points_count,
         card_id="budget-utilization-card",
+        baseline_data=baseline_comparison,
     )
 
     card_2 = create_weekly_burn_rate_card(
@@ -180,6 +183,7 @@ def _create_budget_section(
         currency_symbol=currency_symbol,
         data_points_count=data_points_count,
         card_id="weekly-burn-rate-card",
+        baseline_data=baseline_comparison,
     )
 
     card_3 = create_budget_runway_card(
@@ -188,6 +192,7 @@ def _create_budget_section(
         currency_symbol=currency_symbol,
         data_points_count=data_points_count,
         card_id="budget-runway-card",
+        baseline_data=baseline_comparison,
     )
 
     card_4 = create_cost_per_item_card(
@@ -196,6 +201,7 @@ def _create_budget_section(
         currency_symbol=currency_symbol,
         data_points_count=data_points_count,
         card_id="cost-per-item-card",
+        baseline_data=baseline_comparison,
     )
 
     card_5 = create_cost_per_point_card(
@@ -205,6 +211,7 @@ def _create_budget_section(
         currency_symbol=currency_symbol,
         data_points_count=data_points_count,
         card_id="cost-per-point-card",
+        baseline_data=baseline_comparison,
     )
 
     card_6 = create_budget_forecast_card(
@@ -217,6 +224,7 @@ def _create_budget_section(
         confidence_level="established",
         currency_symbol=currency_symbol,
         card_id="budget-forecast-card",
+        data_points_count=data_points_count,
     )
 
     card_7 = create_cost_breakdown_card(
@@ -228,7 +236,20 @@ def _create_budget_section(
         card_id="cost-breakdown-card",
     )
 
-    # Responsive grid layout
+    # NEW: Budget Timeline card (card_8)
+    from ui.budget_cards import create_budget_timeline_card
+
+    card_8 = None
+    if baseline_comparison:
+        card_8 = create_budget_timeline_card(
+            baseline_data=baseline_comparison,
+            pert_forecast_weeks=budget_data.get("pert_forecast_weeks"),
+            card_id="budget-timeline-card",
+        )
+
+    # Responsive grid layout (updated with timeline card)
+    timeline_row = [dbc.Col(card_8, xs=12, className="mb-3")] if card_8 else []
+
     cards_grid = dbc.Row(
         [
             # Row 1: Utilization, Burn Rate, Runway
@@ -241,6 +262,8 @@ def _create_budget_section(
             dbc.Col(card_6, xs=12, md=6, lg=4, className="mb-3"),
             # Row 3: Cost Breakdown (full width)
             dbc.Col(card_7, xs=12, className="mb-3"),
+            # Row 4: Budget Timeline (full width, if available)
+            *timeline_row,
         ]
     )
 

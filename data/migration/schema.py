@@ -328,6 +328,8 @@ def create_schema(conn: sqlite3.Connection) -> None:
             cost_rate_type TEXT DEFAULT 'weekly',
             currency_symbol TEXT DEFAULT '€',
             budget_total_eur REAL,
+            baseline_velocity_items REAL,
+            baseline_velocity_points REAL,
             created_at TEXT NOT NULL,
             updated_at TEXT NOT NULL,
             UNIQUE(profile_id, query_id),
@@ -418,4 +420,44 @@ def set_schema_version(conn: sqlite3.Connection, version: str) -> None:
         (version,),
     )
     conn.commit()
-    logger.info(f"Schema version set to {version}")
+
+
+def ensure_budget_velocity_columns(conn: sqlite3.Connection) -> None:
+    """
+    Ensure budget_settings table has baseline velocity columns.
+
+    Adds baseline_velocity_items, baseline_velocity_points, and updated_at
+    columns if they don't exist. Safe to call multiple times (idempotent).
+
+    Args:
+        conn: Active database connection
+    """
+    cursor = conn.cursor()
+
+    # Get existing columns
+    cursor.execute("PRAGMA table_info(budget_settings)")
+    existing_columns = {row[1] for row in cursor.fetchall()}
+
+    # Add missing columns
+    if "baseline_velocity_items" not in existing_columns:
+        logger.info("Adding baseline_velocity_items column to budget_settings")
+        cursor.execute(
+            "ALTER TABLE budget_settings ADD COLUMN baseline_velocity_items REAL"
+        )
+
+    if "baseline_velocity_points" not in existing_columns:
+        logger.info("Adding baseline_velocity_points column to budget_settings")
+        cursor.execute(
+            "ALTER TABLE budget_settings ADD COLUMN baseline_velocity_points REAL"
+        )
+
+    if "updated_at" not in existing_columns:
+        logger.info("Adding updated_at column to budget_settings")
+        cursor.execute("ALTER TABLE budget_settings ADD COLUMN updated_at TEXT")
+        # Backfill updated_at with created_at for existing rows
+        cursor.execute(
+            "UPDATE budget_settings SET updated_at = created_at WHERE updated_at IS NULL"
+        )
+
+    conn.commit()
+    logger.info("Budget velocity columns migration completed")

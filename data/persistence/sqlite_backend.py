@@ -1899,7 +1899,8 @@ class SQLiteBackend(PersistenceBackend):
                 cursor.execute(
                     """
                     SELECT time_allocated_weeks, budget_total_eur, currency_symbol,
-                           team_cost_per_week_eur, cost_rate_type, created_at, updated_at
+                           team_cost_per_week_eur, cost_rate_type, created_at, updated_at,
+                           baseline_velocity_items, baseline_velocity_points
                     FROM budget_settings
                     WHERE profile_id = ? AND query_id = ?
                 """,
@@ -1918,6 +1919,8 @@ class SQLiteBackend(PersistenceBackend):
                     "cost_rate_type": result[4],
                     "created_at": result[5],
                     "updated_at": result[6],
+                    "baseline_velocity_items": result[7],
+                    "baseline_velocity_points": result[8],
                 }
 
         except Exception as e:
@@ -1995,8 +1998,9 @@ class SQLiteBackend(PersistenceBackend):
                     INSERT OR REPLACE INTO budget_settings (
                         profile_id, query_id, time_allocated_weeks, budget_total_eur,
                         currency_symbol, team_cost_per_week_eur, cost_rate_type,
+                        baseline_velocity_items, baseline_velocity_points,
                         created_at, updated_at
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                     (
                         profile_id,
@@ -2006,6 +2010,8 @@ class SQLiteBackend(PersistenceBackend):
                         budget_settings.get("currency_symbol", "€"),
                         budget_settings.get("team_cost_per_week_eur"),
                         budget_settings.get("cost_rate_type", "weekly"),
+                        budget_settings.get("baseline_velocity_items"),
+                        budget_settings.get("baseline_velocity_points"),
                         budget_settings["created_at"],
                         budget_settings["updated_at"],
                     ),

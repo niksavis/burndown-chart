@@ -715,7 +715,7 @@ def create_budget_settings_card() -> html.Div:
                                         id="budget-team-cost-input",
                                         type="number",
                                         min=0,
-                                        step=10,
+                                        step="any",
                                         placeholder="4000",
                                         className="text-end",
                                         size="sm",
@@ -817,8 +817,59 @@ def create_budget_settings_card() -> html.Div:
                     ),
                 ],
             ),
-            # Budget Total Display (calculated from Time × Cost)
-            _create_budget_total_display(),
+            # Combined Budget Summary: Total Budget + Baseline Velocity (compact layout)
+            html.Div(
+                [
+                    # Total Budget
+                    html.Div(
+                        [
+                            html.I(
+                                className="fas fa-coins text-success me-2",
+                                style={"fontSize": "1rem"},
+                            ),
+                            html.Span(
+                                "Total Budget: ",
+                                className="text-muted",
+                                style={"fontSize": "0.85rem"},
+                            ),
+                            html.Span(
+                                "€0.00",
+                                id="budget-total-display-value",
+                                className="fw-bold text-success",
+                                style={"fontSize": "0.90rem"},
+                            ),
+                            html.Span(
+                                " (Time × Cost)",
+                                className="text-muted",
+                                style={"fontSize": "0.75rem"},
+                            ),
+                        ],
+                        className="mb-2",
+                    ),
+                    # Baseline Velocity
+                    html.Div(
+                        [
+                            html.I(
+                                className="fas fa-tachometer-alt text-info me-2",
+                                style={"fontSize": "1rem"},
+                            ),
+                            html.Span(
+                                "Baseline Velocity: ",
+                                className="text-muted",
+                                style={"fontSize": "0.85rem"},
+                            ),
+                            html.Span(
+                                id="budget-baseline-velocity-display",
+                                children="Will be captured from Recent Completions (Last 4 Weeks) when you save",
+                                className="text-info fw-bold",
+                                style={"fontSize": "0.85rem"},
+                            ),
+                        ],
+                    ),
+                ],
+                className="mb-3 p-3 bg-light rounded border border-info",
+                style={"borderWidth": "1px", "borderStyle": "dashed"},
+            ),
             # Action button
             html.Div(
                 dbc.Button(

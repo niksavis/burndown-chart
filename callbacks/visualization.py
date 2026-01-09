@@ -40,11 +40,6 @@ from data import (
     generate_weekly_forecast,
 )
 from data.schema import DEFAULT_SETTINGS
-from data.budget_calculator import (
-    calculate_budget_consumed,
-    calculate_runway,
-    calculate_cost_breakdown_by_type,
-)
 from data.persistence.factory import get_backend
 from data.iso_week_bucketing import get_week_label
 from ui import (
@@ -1170,45 +1165,62 @@ def register(app):
                     )
 
                     if profile_id and query_id:
-                        # Check if budget is configured (directly from budget_settings, not replaying revisions)
-                        from data.budget_calculator import _get_current_budget
+                        # Check if budget is configured
+                        from data.budget_calculator import (
+                            _get_current_budget,
+                            get_budget_baseline_vs_actual,
+                            calculate_cost_breakdown_by_type,
+                            calculate_weekly_cost_breakdowns,
+                        )
 
                         budget_config = _get_current_budget(profile_id, query_id)
                         logger.info(f"[BUDGET DEBUG] budget_config={budget_config}")
 
                         if budget_config:
-                            # Calculate budget metrics
-                            consumed_eur, budget_total, consumed_pct = (
-                                calculate_budget_consumed(
-                                    profile_id, query_id, current_week_label
-                                )
-                            )
-                            logger.info(
-                                f"[BUDGET DEBUG] consumed={consumed_eur}, total={budget_total}, "
-                                f"pct={consumed_pct}"
-                            )
-                            runway_weeks, burn_rate = calculate_runway(
+                            # Calculate PERT forecast weeks for comparison
+                            pert_forecast_weeks = None
+                            if pert_data and pert_data.get("pert_time_items"):
+                                pert_time_items = pert_data["pert_time_items"]
+                                if pert_time_items and pert_time_items > 0:
+                                    pert_forecast_weeks = (
+                                        pert_time_items / 7.0
+                                    )  # Convert days to weeks
+
+                            # Get comprehensive baseline vs actual comparison (single call - DRY)
+                            baseline_comparison = get_budget_baseline_vs_actual(
                                 profile_id,
                                 query_id,
                                 current_week_label,
                                 data_points_count,
+                                pert_forecast_weeks,
                             )
                             logger.info(
-                                f"[BUDGET DEBUG] runway={runway_weeks}, burn_rate={burn_rate}"
+                                f"[BUDGET DEBUG] Baseline comparison calculated: "
+                                f"variance={baseline_comparison['variance']}"
                             )
+
+                            # Extract metrics from comprehensive data (no redundant calculations)
+                            consumed_eur = baseline_comparison["actual"]["consumed_eur"]
+                            budget_total = baseline_comparison["baseline"][
+                                "budget_total_eur"
+                            ]
+                            consumed_pct = baseline_comparison["actual"]["consumed_pct"]
+                            burn_rate = baseline_comparison["actual"]["burn_rate"]
+                            runway_weeks = baseline_comparison["actual"]["runway_weeks"]
+                            cost_per_item = baseline_comparison["actual"][
+                                "cost_per_item"
+                            ]
+                            cost_per_point = baseline_comparison["actual"][
+                                "cost_per_point"
+                            ]
+
+                            # Get cost breakdown (separate function)
                             cost_breakdown = calculate_cost_breakdown_by_type(
                                 profile_id, query_id, current_week_label
                             )
                             logger.info(f"[BUDGET DEBUG] breakdown={cost_breakdown}")
 
                             # Calculate weekly cost breakdowns for sparkline trends
-                            from data.budget_calculator import (
-                                _get_velocity,
-                                _get_velocity_points,
-                                calculate_weekly_cost_breakdowns,
-                            )
-                            from data.iso_week_bucketing import get_last_n_weeks
-
                             weekly_breakdowns, weekly_breakdown_labels = (
                                 calculate_weekly_cost_breakdowns(
                                     profile_id,
@@ -1222,70 +1234,17 @@ def register(app):
                                 f"labels={weekly_breakdown_labels}"
                             )
 
-                            # Get cost per item/point
-                            velocity_items = _get_velocity(
-                                profile_id, query_id, current_week_label
-                            )
-                            cost_per_item = (
-                                (
-                                    budget_config["team_cost_per_week_eur"]
-                                    / velocity_items
-                                )
-                                if velocity_items > 0
-                                else 0
-                            )
-
-                            # Calculate cost per point from velocity_points
-                            velocity_points = _get_velocity_points(
-                                profile_id, query_id, current_week_label
-                            )
-                            cost_per_point = (
-                                (
-                                    budget_config["team_cost_per_week_eur"]
-                                    / velocity_points
-                                )
-                                if velocity_points > 0
-                                else 0
-                            )
-
                             # Get weekly burn rates for sparkline
+                            # weekly_breakdowns is a list of dicts with breakdowns by type per week
+                            # Sum up total costs for each week
                             weekly_burn_rates = []
-                            weekly_labels = []
-                            weeks = get_last_n_weeks(min(data_points_count, 12))
-
-                            from data.database import get_db_connection
-
-                            conn_context = get_db_connection()
-                            with conn_context as conn:
-                                cursor = conn.cursor()
-                                for week_info in weeks:
-                                    wk_label = week_info[0]
-                                    weekly_labels.append(wk_label)
-
-                                    # Get completed items for this week
-                                    cursor.execute(
-                                        """
-                                        SELECT completed_items
-                                        FROM project_statistics
-                                        WHERE profile_id = ? AND query_id = ? AND week_label = ?
-                                        """,
-                                        (profile_id, query_id, wk_label),
-                                    )
-                                    result = cursor.fetchone()
-                                    completed = result[0] if result and result[0] else 0
-
-                                    # Calculate weekly cost
-                                    velocity = _get_velocity(
-                                        profile_id, query_id, wk_label
-                                    )
-                                    if velocity > 0:
-                                        weekly_cost = completed * (
-                                            budget_config["team_cost_per_week_eur"]
-                                            / velocity
-                                        )
-                                    else:
-                                        weekly_cost = 0
-                                    weekly_burn_rates.append(weekly_cost)
+                            for breakdown in weekly_breakdowns:
+                                week_total = sum(
+                                    flow_type_data.get("cost", 0)
+                                    for flow_type_data in breakdown.values()
+                                )
+                                weekly_burn_rates.append(week_total)
+                            weekly_labels = weekly_breakdown_labels
 
                             budget_data = {
                                 "configured": True,
@@ -1298,6 +1257,8 @@ def register(app):
                                 "burn_rate": burn_rate,
                                 "runway_weeks": runway_weeks,
                                 "breakdown": cost_breakdown,
+                                "baseline_comparison": baseline_comparison,  # NEW: comprehensive data
+                                "pert_forecast_weeks": pert_forecast_weeks,  # For timeline card
                                 # Weekly breakdowns for sparkline trend charts
                                 "weekly_breakdowns": weekly_breakdowns,
                                 "weekly_breakdown_labels": weekly_breakdown_labels,
@@ -1312,12 +1273,6 @@ def register(app):
                                 "forecast_total": budget_total,  # TODO: Add forecast calculation
                                 "forecast_low": budget_total * 0.9,
                                 "forecast_high": budget_total * 1.1,
-                                "pert_forecast_weeks": pert_data.get(
-                                    "pert_time_items", 0
-                                )
-                                / 7
-                                if pert_data
-                                else 0,
                             }
                             # Format runway for logging (handle inf and negative)
                             import math
