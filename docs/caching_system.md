@@ -12,18 +12,25 @@ The burndown chart app uses a SQLite database for persistent storage and caching
 
 ### Primary Storage: SQLite Database
 
-**Location**: `burndown_chart.db`
+**Location**: `profiles/burndown.db`
 
 **What it does**: Stores all JIRA data, statistics, metrics, and configuration in a normalized relational database.
 
-**Key Tables**:
-- `jira_issues` - Cached JIRA issue data (replaces jira_cache.json)
-- `jira_changelog` - Issue change history (replaces jira_changelog_cache.json)
-- `project_statistics` - Weekly statistics (replaces project_data.json)
-- `metrics_snapshots` - Historical metrics (replaces metrics_snapshots.json)
-- `profiles` - Profile configurations
-- `queries` - Query definitions
-- `app_state` - Application state
+**Note**: The `cache/` folder contains `cache.db`, which is created by Dash's diskcache library for background callback management. This is framework infrastructure and not part of the application data model.
+
+**Key Tables** (12 total):
+1. `app_state` - Application settings (key-value store)
+2. `profiles` - Profile configurations
+3. `queries` - Query definitions (JQL, name, timestamps)
+4. `jira_issues` - Normalized JIRA issue data (replaces jira_cache.json)
+5. `jira_cache` - Cache metadata (timestamps, expiry, config hashes)
+6. `jira_changelog_entries` - Issue change history (replaces jira_changelog_cache.json)
+7. `project_statistics` - Weekly statistics (replaces project_data.json statistics array)
+8. `project_scope` - Project scope data (JSON aggregate)
+9. `metrics_data_points` - Historical metrics (replaces metrics_snapshots.json)
+10. `budget_settings` - Profile-level budget configuration
+11. `budget_revisions` - Budget change event log
+12. `task_progress` - Runtime task progress tracking
 
 **Why database storage**:
 - **Performance** - Indexed queries, no full-file parsing
@@ -35,7 +42,7 @@ The burndown chart app uses a SQLite database for persistent storage and caching
 
 **Database structure**:
 ```
-burndown_chart.db (SQLite database)
+profiles/burndown.db (SQLite database)
 ├── profiles table
 │   ├── team-alpha (id, name, settings)
 │   └── team-beta (id, name, settings)
@@ -293,7 +300,7 @@ Option 1 (UI): Click "Force Refresh" in Items per Week tab
 
 Option 2 (SQL): Manually delete from database:
   DELETE FROM jira_issues WHERE profile_id='team-alpha' AND query_id='sprint-backlog';
-  DELETE FROM jira_changelog WHERE profile_id='team-alpha' AND query_id='sprint-backlog';
+  DELETE FROM jira_changelog_entries WHERE profile_id='team-alpha' AND query_id='sprint-backlog';
 
 Option 3 (Legacy): Delete JSON files (if they exist):
   profiles/{profile_id}/queries/{query_id}/jira_cache.json (deprecated)
@@ -306,14 +313,15 @@ Option 3 (Legacy): Delete JSON files (if they exist):
 
 ```
 Yes, but with caution:
-- Deleting burndown_chart.db → All data lost (profiles, queries, statistics)
+- Deleting profiles/burndown.db → All data lost (profiles, queries, statistics)
 - App will recreate empty database on next start
 - You'll need to reconfigure profiles and re-fetch all JIRA data
 
 Better option: Use "Force Refresh" to clear cache without losing configuration.
 
 Legacy cache/ folder:
-- cache/ folder (global cache) → No longer used, safe to delete
+- cache/cache.db (Dash framework cache) → Safe to delete, auto-recreated
+- cache/ folder (global cache) → No longer used for app data, safe to delete
 - profiles/.../jira_cache.json files → Deprecated, safe to delete
 ```
 
@@ -341,33 +349,255 @@ Legacy cache/ folder:
 
 ### Database Schema
 
-**jira_issues table**:
+**Complete 12-table schema** (from `data/migration/schema.py`):
+
+#### 1. app_state
 ```sql
-CREATE TABLE jira_issues (
-    id INTEGER PRIMARY KEY,
+CREATE TABLE IF NOT EXISTS app_state (
+    key TEXT PRIMARY KEY,
+    value TEXT NOT NULL
+);
+```
+
+#### 2. profiles
+```sql
+CREATE TABLE IF NOT EXISTS profiles (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL UNIQUE,
+    description TEXT DEFAULT '',
+    created_at TEXT NOT NULL,
+    last_used TEXT NOT NULL,
+    jira_config TEXT NOT NULL DEFAULT '{}',
+    field_mappings TEXT NOT NULL DEFAULT '{}',
+    forecast_settings TEXT NOT NULL DEFAULT '{"pert_factor": 1.2, "deadline": null, "data_points_count": 12}',
+    project_classification TEXT NOT NULL DEFAULT '{}',
+    flow_type_mappings TEXT NOT NULL DEFAULT '{}',
+    show_milestone INTEGER DEFAULT 0,
+    show_points INTEGER DEFAULT 0
+);
+
+CREATE INDEX idx_profiles_last_used ON profiles(last_used DESC);
+CREATE INDEX idx_profiles_name ON profiles(name);
+```
+
+#### 3. queries
+```sql
+CREATE TABLE IF NOT EXISTS queries (
+    id TEXT NOT NULL,
+    profile_id TEXT NOT NULL,
+    name TEXT NOT NULL,
+    jql TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    last_used TEXT NOT NULL,
+    PRIMARY KEY (profile_id, id),
+    FOREIGN KEY (profile_id) REFERENCES profiles(id) ON DELETE CASCADE
+);
+
+CREATE INDEX idx_queries_profile ON queries(profile_id, last_used DESC);
+CREATE INDEX idx_queries_name ON queries(profile_id, name);
+```
+
+#### 4. jira_issues (normalized - replaces jira_cache.json)
+```sql
+CREATE TABLE IF NOT EXISTS jira_issues (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
     profile_id TEXT NOT NULL,
     query_id TEXT NOT NULL,
+    cache_key TEXT NOT NULL,
     issue_key TEXT NOT NULL,
-    issue_data JSON NOT NULL,
-    cached_at TIMESTAMP,
+    summary TEXT,
+    status TEXT,
+    assignee TEXT,
+    issue_type TEXT,
+    priority TEXT,
+    resolution TEXT,
+    created TEXT,
+    updated TEXT,
+    resolved TEXT,
+    points REAL,
+    project_key TEXT,
+    project_name TEXT,
+    fix_versions TEXT,
+    labels TEXT,
+    components TEXT,
+    custom_fields TEXT,
+    expires_at TEXT NOT NULL,
+    fetched_at TEXT NOT NULL,
+    FOREIGN KEY (profile_id, query_id) REFERENCES queries(profile_id, id) ON DELETE CASCADE,
     UNIQUE(profile_id, query_id, issue_key)
 );
 
-CREATE INDEX idx_jira_issues_lookup ON jira_issues(profile_id, query_id);
+CREATE INDEX idx_jira_issues_query ON jira_issues(profile_id, query_id);
+CREATE INDEX idx_jira_issues_key ON jira_issues(profile_id, query_id, issue_key);
+CREATE INDEX idx_jira_issues_status ON jira_issues(profile_id, query_id, status);
+CREATE INDEX idx_jira_issues_assignee ON jira_issues(profile_id, query_id, assignee);
+CREATE INDEX idx_jira_issues_type ON jira_issues(profile_id, query_id, issue_type);
+CREATE INDEX idx_jira_issues_resolved ON jira_issues(resolved DESC);
+CREATE INDEX idx_jira_issues_project ON jira_issues(project_key);
+CREATE INDEX idx_jira_issues_expiry ON jira_issues(expires_at);
+CREATE INDEX idx_jira_issues_cache ON jira_issues(cache_key);
 ```
 
-**project_statistics table** (replaces project_data.json):
+#### 5. jira_cache (metadata table)
 ```sql
-CREATE TABLE project_statistics (
-    id INTEGER PRIMARY KEY,
+CREATE TABLE IF NOT EXISTS jira_cache (
     profile_id TEXT NOT NULL,
     query_id TEXT NOT NULL,
-    stat_date DATE NOT NULL,
-    completed_items INTEGER,
-    completed_points INTEGER,
+    cache_key TEXT NOT NULL,
+    timestamp TEXT NOT NULL,
+    config_hash TEXT NOT NULL,
+    issue_count INTEGER NOT NULL,
+    expires_at TEXT NOT NULL,
+    PRIMARY KEY (profile_id, query_id, cache_key),
+    FOREIGN KEY (profile_id, query_id) REFERENCES queries(profile_id, id) ON DELETE CASCADE
+);
+
+CREATE INDEX idx_jira_cache_key ON jira_cache(profile_id, query_id, cache_key);
+```
+
+#### 6. jira_changelog_entries (normalized - replaces jira_changelog_cache.json)
+```sql
+CREATE TABLE IF NOT EXISTS jira_changelog_entries (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    profile_id TEXT NOT NULL,
+    query_id TEXT NOT NULL,
+    issue_key TEXT NOT NULL,
+    change_date TEXT NOT NULL,
+    author TEXT NOT NULL,
+    field_name TEXT NOT NULL,
+    field_type TEXT DEFAULT 'jira',
+    old_value TEXT,
+    new_value TEXT,
+    expires_at TEXT NOT NULL,
+    FOREIGN KEY (profile_id, query_id) REFERENCES queries(profile_id, id) ON DELETE CASCADE,
+    FOREIGN KEY (profile_id, query_id, issue_key) REFERENCES jira_issues(profile_id, query_id, issue_key) ON DELETE CASCADE
+);
+
+CREATE INDEX idx_changelog_query ON jira_changelog_entries(profile_id, query_id);
+CREATE INDEX idx_changelog_issue ON jira_changelog_entries(profile_id, query_id, issue_key);
+CREATE INDEX idx_changelog_field ON jira_changelog_entries(field_name);
+CREATE INDEX idx_changelog_date ON jira_changelog_entries(change_date DESC);
+CREATE INDEX idx_changelog_status ON jira_changelog_entries(field_name, new_value) WHERE field_name='status';
+CREATE INDEX idx_changelog_expiry ON jira_changelog_entries(expires_at);
+```
+
+#### 7. project_statistics (normalized - replaces project_data.statistics)
+```sql
+CREATE TABLE IF NOT EXISTS project_statistics (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    profile_id TEXT NOT NULL,
+    query_id TEXT NOT NULL,
+    stat_date TEXT NOT NULL,
+    week_label TEXT,
     remaining_items INTEGER,
-    remaining_points INTEGER,
+    remaining_total_points REAL,
+    items_added INTEGER DEFAULT 0,
+    items_completed INTEGER DEFAULT 0,
+    completed_items INTEGER DEFAULT 0,
+    completed_points REAL DEFAULT 0.0,
+    created_items INTEGER DEFAULT 0,
+    created_points REAL DEFAULT 0.0,
+    velocity_items REAL DEFAULT 0.0,
+    velocity_points REAL DEFAULT 0.0,
+    recorded_at TEXT NOT NULL,
+    FOREIGN KEY (profile_id, query_id) REFERENCES queries(profile_id, id) ON DELETE CASCADE,
     UNIQUE(profile_id, query_id, stat_date)
+);
+
+CREATE INDEX idx_project_stats_query ON project_statistics(profile_id, query_id);
+CREATE INDEX idx_project_stats_date ON project_statistics(profile_id, query_id, stat_date DESC);
+CREATE INDEX idx_project_stats_week ON project_statistics(week_label);
+```
+
+#### 8. project_scope
+```sql
+CREATE TABLE IF NOT EXISTS project_scope (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    profile_id TEXT NOT NULL,
+    query_id TEXT NOT NULL,
+    scope_data TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    FOREIGN KEY (profile_id, query_id) REFERENCES queries(profile_id, id) ON DELETE CASCADE,
+    UNIQUE(profile_id, query_id)
+);
+
+CREATE INDEX idx_project_scope_query ON project_scope(profile_id, query_id);
+```
+
+#### 9. metrics_data_points (normalized - replaces metrics_snapshots.json)
+```sql
+CREATE TABLE IF NOT EXISTS metrics_data_points (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    profile_id TEXT NOT NULL,
+    query_id TEXT NOT NULL,
+    snapshot_date TEXT NOT NULL,
+    metric_category TEXT NOT NULL,
+    metric_name TEXT NOT NULL,
+    metric_value REAL NOT NULL,
+    metric_unit TEXT,
+    excluded_issue_count INTEGER DEFAULT 0,
+    calculation_metadata TEXT,
+    forecast_value REAL,
+    forecast_confidence_low REAL,
+    forecast_confidence_high REAL,
+    calculated_at TEXT NOT NULL,
+    FOREIGN KEY (profile_id, query_id) REFERENCES queries(profile_id, id) ON DELETE CASCADE,
+    UNIQUE(profile_id, query_id, snapshot_date, metric_category, metric_name)
+);
+
+CREATE INDEX idx_metrics_query ON metrics_data_points(profile_id, query_id);
+CREATE INDEX idx_metrics_date ON metrics_data_points(profile_id, query_id, snapshot_date DESC);
+CREATE INDEX idx_metrics_name ON metrics_data_points(profile_id, query_id, metric_name, snapshot_date DESC);
+CREATE INDEX idx_metrics_category ON metrics_data_points(metric_category);
+CREATE INDEX idx_metrics_value ON metrics_data_points(metric_name, metric_value);
+```
+
+#### 10. budget_settings
+```sql
+CREATE TABLE IF NOT EXISTS budget_settings (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    profile_id TEXT NOT NULL UNIQUE,
+    time_allocated_weeks INTEGER NOT NULL,
+    team_cost_per_week_eur REAL,
+    cost_rate_type TEXT DEFAULT 'weekly',
+    currency_symbol TEXT DEFAULT '€',
+    budget_total_eur REAL,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    FOREIGN KEY (profile_id) REFERENCES profiles(id) ON DELETE CASCADE
+);
+
+CREATE INDEX idx_budget_settings_profile ON budget_settings(profile_id);
+```
+
+#### 11. budget_revisions
+```sql
+CREATE TABLE IF NOT EXISTS budget_revisions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    profile_id TEXT NOT NULL,
+    revision_date TEXT NOT NULL,
+    week_label TEXT NOT NULL,
+    time_allocated_weeks_delta INTEGER DEFAULT 0,
+    team_cost_delta REAL DEFAULT 0,
+    budget_total_delta REAL DEFAULT 0,
+    revision_reason TEXT,
+    created_at TEXT NOT NULL,
+    metadata TEXT,
+    FOREIGN KEY (profile_id) REFERENCES profiles(id) ON DELETE CASCADE
+);
+
+CREATE INDEX idx_budget_revisions_profile ON budget_revisions(profile_id);
+CREATE INDEX idx_budget_revisions_week ON budget_revisions(profile_id, week_label);
+```
+
+#### 12. task_progress
+```sql
+CREATE TABLE IF NOT EXISTS task_progress (
+    task_name TEXT PRIMARY KEY,
+    progress_percent REAL NOT NULL,
+    status TEXT NOT NULL,
+    message TEXT DEFAULT '',
+    updated_at TEXT NOT NULL
 );
 ```
 
@@ -433,8 +663,9 @@ See `data/migration/json_to_db_migrator.py` for migration logic.
 
 **Legacy JSON files (deprecated)**:
 - `jira_cache.json` - Replaced by `jira_issues` table
+- `jira_changelog_cache.json` - Replaced by `jira_changelog_entries` table
 - `project_data.json` - Replaced by `project_statistics` table
-- `metrics_snapshots.json` - Replaced by `metrics_snapshots` table
+- `metrics_snapshots.json` - Replaced by `metrics_data_points` table
 - `cache/{hash}.json` - No longer used
 
 **Benefits of database storage**:
@@ -446,4 +677,4 @@ See `data/migration/json_to_db_migrator.py` for migration logic.
 
 ---
 
-*Document Version: 2.0 (Database-based) | Last Updated: January 2026*
+*Document Version: 2.1 (Corrected Schema) | Last Updated: January 2026*
