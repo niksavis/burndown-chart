@@ -10,15 +10,15 @@ Key Functions:
 - get_budget_at_week(): Replay budget revisions to get budget at specific week
 - calculate_budget_consumed(): Calculate consumption percentage
 - calculate_cost_breakdown_by_type(): Cost breakdown by Flow Distribution types
+- calculate_weekly_cost_breakdowns(): Weekly cost breakdowns for trend visualization
 - calculate_runway(): Calculate budget runway weeks
 
 Created: January 4, 2026
 """
 
 import logging
-import json
 from pathlib import Path
-from typing import Dict, Optional, Tuple, Any
+from typing import Dict, Optional, Tuple, Any, List
 
 logger = logging.getLogger(__name__)
 
@@ -515,6 +515,114 @@ def _get_velocity_points(
     except Exception as e:
         logger.error(f"Failed to get velocity_points: {e}")
         return 0.0
+
+
+def calculate_weekly_cost_breakdowns(
+    profile_id: str,
+    query_id: str,
+    week_label: str,
+    data_points_count: int = 12,
+    db_path: Optional[Path] = None,
+) -> Tuple[List[Dict[str, Dict[str, float]]], List[str]]:
+    """
+    Calculate cost breakdown by work type for each week in data_points_count window.
+
+    Uses metric snapshots to get weekly distribution data, respecting data_points_count
+    filter. Returns weekly breakdowns and corresponding week labels for sparkline charts.
+
+    Args:
+        profile_id: Profile identifier
+        query_id: Query identifier
+        week_label: Current ISO week label
+        data_points_count: Number of weeks to include (default 12)
+        db_path: Optional database path
+
+    Returns:
+        Tuple of (weekly_breakdowns, weekly_labels):
+        - weekly_breakdowns: List of dicts mapping flow types to cost details per week
+        - weekly_labels: List of ISO week labels corresponding to breakdowns
+
+    Example:
+        >>> breakdowns, labels = calculate_weekly_cost_breakdowns("profile", "query", "2025-W44", 4)
+        >>> print(labels)
+        ['2025-W41', '2025-W42', '2025-W43', '2025-W44']
+        >>> print(breakdowns[0]['Feature'])
+        {'cost': 3125.50, 'count': 8}
+    """
+    from data.metrics_snapshots import get_metric_snapshot
+    from data.iso_week_bucketing import get_last_n_weeks
+
+    try:
+        budget = get_budget_at_week(profile_id, week_label, db_path)
+        if not budget:
+            logger.info("[WEEKLY COST BREAKDOWN] No budget configured")
+            return [], []
+
+        # Get velocity and cost per item
+        velocity = _get_velocity(profile_id, query_id, week_label, db_path)
+        if velocity <= 0:
+            logger.info("[WEEKLY COST BREAKDOWN] Velocity is zero")
+            return [], []
+
+        cost_per_item = budget["team_cost_per_week_eur"] / velocity
+
+        # Get week labels using same logic as Flow Metrics
+        weeks = get_last_n_weeks(data_points_count)
+        week_labels = [w[0] for w in weeks]
+
+        weekly_breakdowns = []
+
+        for week in week_labels:
+            # Get flow velocity snapshot for this week
+            week_snapshot = get_metric_snapshot(week, "flow_velocity")
+
+            if week_snapshot:
+                week_dist = week_snapshot.get("distribution", {})
+                week_feature = week_dist.get("feature", 0)
+                week_defect = week_dist.get("defect", 0)
+                week_tech_debt = week_dist.get("tech_debt", 0)
+                week_risk = week_dist.get("risk", 0)
+
+                # Calculate costs for this week
+                breakdown = {
+                    "Feature": {
+                        "cost": week_feature * cost_per_item,
+                        "count": week_feature,
+                    },
+                    "Defect": {
+                        "cost": week_defect * cost_per_item,
+                        "count": week_defect,
+                    },
+                    "Technical Debt": {
+                        "cost": week_tech_debt * cost_per_item,
+                        "count": week_tech_debt,
+                    },
+                    "Risk": {
+                        "cost": week_risk * cost_per_item,
+                        "count": week_risk,
+                    },
+                }
+            else:
+                # No snapshot for this week - empty breakdown
+                breakdown = {
+                    "Feature": {"cost": 0.0, "count": 0},
+                    "Defect": {"cost": 0.0, "count": 0},
+                    "Technical Debt": {"cost": 0.0, "count": 0},
+                    "Risk": {"cost": 0.0, "count": 0},
+                }
+
+            weekly_breakdowns.append(breakdown)
+
+        logger.info(
+            f"[WEEKLY COST BREAKDOWN] Calculated {len(weekly_breakdowns)} weekly breakdowns "
+            f"for {data_points_count} weeks (cost_per_item={cost_per_item:.2f})"
+        )
+
+        return weekly_breakdowns, week_labels
+
+    except Exception as e:
+        logger.error(f"Failed to calculate weekly cost breakdowns: {e}", exc_info=True)
+        return [], []
 
 
 def _empty_breakdown() -> Dict[str, Dict[str, float]]:

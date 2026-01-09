@@ -743,44 +743,75 @@ def create_cost_breakdown_card(
     return card_content
 
 
-def _create_inline_sparkline(values: List[float]) -> html.Div:
+def _create_inline_sparkline(values: List[float]):
     """
-    Create inline CSS-based sparkline for cost breakdown table.
+    Create inline scatter chart sparkline for cost breakdown table.
+
+    Uses Plotly mini scatter chart to show cost trends over time,
+    similar to other metric cards but more compact for table cells.
 
     Args:
-        values: List of numeric values
+        values: List of cost values over time
 
     Returns:
-        Div containing mini bar chart
+        dcc.Graph or html.Div containing mini scatter chart or placeholder
     """
+    from dash import dcc
+    import plotly.graph_objects as go
+
     if not values or len(values) < 2:
         return html.Div("—", className="text-muted")
 
-    max_val = max(values) if max(values) > 0 else 1
-    normalized = [v / max_val for v in values]
+    # Create mini scatter chart
+    fig = go.Figure()
 
-    bars = []
-    for i, val in enumerate(normalized):
-        bar_height = max(val * 20, 2)  # Max 20px height
-        opacity = 0.5 + (i / len(normalized)) * 0.5
-
-        bars.append(
-            html.Div(
-                style={
-                    "width": "3px",
-                    "height": f"{bar_height}px",
-                    "backgroundColor": "#0d6efd",
-                    "opacity": opacity,
-                    "borderRadius": "1px",
-                    "margin": "0 1px",
-                }
-            )
+    fig.add_trace(
+        go.Scatter(
+            x=list(range(len(values))),
+            y=values,
+            mode="lines+markers",
+            line={"color": "#0d6efd", "width": 2},
+            marker={"size": 4, "color": "#0d6efd"},
+            hovertemplate="€%{y:,.0f}<extra></extra>",
+            showlegend=False,
         )
+    )
 
-    return html.Div(
-        bars,
-        className="d-flex align-items-end justify-content-center",
-        style={"height": "20px", "gap": "1px"},
+    # Determine y-axis range for better visualization
+    min_val = min(values)
+    max_val = max(values)
+    range_padding = (max_val - min_val) * 0.2 if max_val > min_val else max_val * 0.1
+    y_min = max(0, min_val - range_padding)  # Never go below 0 for costs
+    y_max = max_val + range_padding
+
+    fig.update_layout(
+        {
+            "height": 40,
+            "margin": {"t": 2, "r": 2, "b": 2, "l": 2},
+            "plot_bgcolor": "white",
+            "paper_bgcolor": "white",
+            "xaxis": {
+                "visible": False,
+                "showgrid": False,
+            },
+            "yaxis": {
+                "visible": False,
+                "showgrid": False,
+                "range": [y_min, y_max],
+            },
+            "hovermode": "closest",
+        }
+    )
+
+    return dcc.Graph(
+        figure=fig,
+        config={
+            "displayModeBar": False,
+            "staticPlot": False,
+            "responsive": True,
+        },
+        style={"height": "40px", "minWidth": "120px"},
+        className="w-100",
     )
 
 

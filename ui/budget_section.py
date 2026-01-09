@@ -222,7 +222,7 @@ def _create_budget_section(
     card_7 = create_cost_breakdown_card(
         breakdown=budget_data.get("breakdown", {}),
         weekly_breakdowns=budget_data.get("weekly_breakdowns"),
-        weekly_labels=budget_data.get("weekly_labels"),
+        weekly_labels=budget_data.get("weekly_breakdown_labels"),
         currency_symbol=currency_symbol,
         data_points_count=data_points_count,
         card_id="cost-breakdown-card",

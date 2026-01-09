@@ -1202,12 +1202,26 @@ def register(app):
                             )
                             logger.info(f"[BUDGET DEBUG] breakdown={cost_breakdown}")
 
-                            # Calculate additional budget metrics for UI cards
+                            # Calculate weekly cost breakdowns for sparkline trends
                             from data.budget_calculator import (
                                 _get_velocity,
                                 _get_velocity_points,
+                                calculate_weekly_cost_breakdowns,
                             )
                             from data.iso_week_bucketing import get_last_n_weeks
+
+                            weekly_breakdowns, weekly_breakdown_labels = (
+                                calculate_weekly_cost_breakdowns(
+                                    profile_id,
+                                    query_id,
+                                    current_week_label,
+                                    data_points_count,
+                                )
+                            )
+                            logger.info(
+                                f"[BUDGET DEBUG] weekly_breakdowns count={len(weekly_breakdowns)}, "
+                                f"labels={weekly_breakdown_labels}"
+                            )
 
                             # Get cost per item/point
                             velocity_items = _get_velocity(
@@ -1285,6 +1299,9 @@ def register(app):
                                 "burn_rate": burn_rate,
                                 "runway_weeks": runway_weeks,
                                 "breakdown": cost_breakdown,
+                                # Weekly breakdowns for sparkline trend charts
+                                "weekly_breakdowns": weekly_breakdowns,
+                                "weekly_breakdown_labels": weekly_breakdown_labels,
                                 # Additional fields for budget cards
                                 "cost_per_item": cost_per_item,
                                 "cost_per_point": cost_per_point,
