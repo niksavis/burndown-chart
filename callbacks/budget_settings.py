@@ -529,19 +529,36 @@ def update_baseline_velocity_display(profile_id, query_id):
         return "Will be captured from Recent Completions (Last 4 Weeks) when you save"
 
     try:
-        from data.budget_calculator import _get_velocity, _get_velocity_points
-        from datetime import datetime
+        from data.persistence import load_unified_project_data
+        import pandas as pd
 
-        current_week = get_week_label(datetime.now())
-        velocity_items = _get_velocity(profile_id, query_id, current_week)
-        velocity_points = _get_velocity_points(profile_id, query_id, current_week)
+        unified_data = load_unified_project_data()
+        statistics_list = unified_data.get("statistics", [])
+
+        if statistics_list:
+            statistics_df = pd.DataFrame(statistics_list)
+            # Take last 4 weeks like Recent Completions cards do
+            recent_window = min(4, len(statistics_df))
+            recent_data = statistics_df.tail(recent_window)
+
+            velocity_items = (
+                recent_data["completed_items"].mean() if not recent_data.empty else 0.0
+            )
+            velocity_points = (
+                recent_data["completed_points"].mean()
+                if not recent_data.empty and "completed_points" in recent_data.columns
+                else 0.0
+            )
+        else:
+            velocity_items = 0.0
+            velocity_points = 0.0
 
         if velocity_items > 0 or velocity_points > 0:
             return html.Span(
                 [
-                    f"{velocity_items:.1f} items/wk",
+                    f"{velocity_items:.2f} items/wk",
                     html.Span(" • ", className="text-muted mx-1"),
-                    f"{velocity_points:.1f} points/wk",
+                    f"{velocity_points:.2f} points/wk",
                     html.Span(
                         " (from Recent Completions)",
                         className="text-muted",
@@ -655,16 +672,50 @@ def save_budget_settings(
                 f"Using current date for budget revision (week: {current_week})"
             )
 
-        # Get current velocity from Flow metrics to use as baseline
-        from data.budget_calculator import _get_velocity, _get_velocity_points
+        # Only capture baseline velocities on initial budget creation
+        # For updates/revisions, preserve existing baseline
+        if current_settings:
+            # Update mode: Keep existing baseline velocities
+            baseline_velocity_items = current_settings.get("baseline_velocity_items", 0)
+            baseline_velocity_points = current_settings.get(
+                "baseline_velocity_points", 0
+            )
+            logger.info(
+                f"Budget update: Preserving existing baseline velocity: items={baseline_velocity_items:.2f}, points={baseline_velocity_points:.2f}"
+            )
+        else:
+            # Create mode: Calculate baseline velocity from Recent Completions (last 4 weeks)
+            # Use the same method as Recent Completions cards for consistency
+            from data.persistence import load_unified_project_data
+            import pandas as pd
 
-        baseline_velocity_items = _get_velocity(profile_id, query_id, current_week)
-        baseline_velocity_points = _get_velocity_points(
-            profile_id, query_id, current_week
-        )
-        logger.info(
-            f"Capturing baseline velocity: items={baseline_velocity_items:.2f}, points={baseline_velocity_points:.2f}"
-        )
+            unified_data = load_unified_project_data()
+            statistics_list = unified_data.get("statistics", [])
+
+            if statistics_list:
+                statistics_df = pd.DataFrame(statistics_list)
+                # Take last 4 weeks like Recent Completions cards do
+                recent_window = min(4, len(statistics_df))
+                recent_data = statistics_df.tail(recent_window)
+
+                baseline_velocity_items = (
+                    recent_data["completed_items"].mean()
+                    if not recent_data.empty
+                    else 0.0
+                )
+                baseline_velocity_points = (
+                    recent_data["completed_points"].mean()
+                    if not recent_data.empty
+                    and "completed_points" in recent_data.columns
+                    else 0.0
+                )
+            else:
+                baseline_velocity_items = 0.0
+                baseline_velocity_points = 0.0
+
+            logger.info(
+                f"Budget creation: Capturing baseline velocity from last 4 weeks (Recent Completions): items={baseline_velocity_items:.2f}, points={baseline_velocity_points:.2f}"
+            )
 
         with get_db_connection() as conn:
             cursor = conn.cursor()

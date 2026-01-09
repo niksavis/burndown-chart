@@ -453,7 +453,7 @@ def calculate_runway(
         )
 
         if weighted_burn_rate > 0:
-            runway_weeks = remaining / weighted_burn_rate
+            runway_weeks = max(0, remaining / weighted_burn_rate)  # Clamp to 0 minimum
         else:
             runway_weeks = float("inf")
 
