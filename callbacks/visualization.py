@@ -1203,7 +1203,10 @@ def register(app):
                             logger.info(f"[BUDGET DEBUG] breakdown={cost_breakdown}")
 
                             # Calculate additional budget metrics for UI cards
-                            from data.budget_calculator import _get_velocity
+                            from data.budget_calculator import (
+                                _get_velocity,
+                                _get_velocity_points,
+                            )
                             from data.iso_week_bucketing import get_last_n_weeks
 
                             # Get cost per item/point
@@ -1218,7 +1221,19 @@ def register(app):
                                 if velocity_items > 0
                                 else 0
                             )
-                            cost_per_point = 0  # TODO: Add points velocity calculation
+
+                            # Calculate cost per point from velocity_points
+                            velocity_points = _get_velocity_points(
+                                profile_id, query_id, current_week_label
+                            )
+                            cost_per_point = (
+                                (
+                                    budget_config["team_cost_per_week_eur"]
+                                    / velocity_points
+                                )
+                                if velocity_points > 0
+                                else 0
+                            )
 
                             # Get weekly burn rates for sparkline
                             weekly_burn_rates = []

@@ -451,6 +451,72 @@ def _get_velocity(
         return 0.0
 
 
+def _get_velocity_points(
+    profile_id: str, query_id: str, week_label: str, db_path: Optional[Path] = None
+) -> float:
+    """
+    Get velocity for story points from metrics_data_points or calculate from statistics.
+
+    Args:
+        profile_id: Profile identifier
+        query_id: Query identifier
+        week_label: ISO week label
+        db_path: Optional database path
+
+    Returns:
+        float: Velocity (points per week)
+    """
+    from data.database import get_db_connection
+
+    try:
+        conn_context = (
+            get_db_connection() if db_path is None else get_db_connection(db_path)
+        )
+        with conn_context as conn:
+            cursor = conn.cursor()
+
+            # Try cached velocity_points first
+            cursor.execute(
+                """
+                SELECT metric_value
+                FROM metrics_data_points
+                WHERE profile_id = ?
+                  AND query_id = ?
+                  AND snapshot_date = ?
+                  AND metric_name = 'velocity_points'
+            """,
+                (profile_id, query_id, week_label),
+            )
+
+            result = cursor.fetchone()
+            if result and result[0]:
+                return float(result[0])
+
+            # Fallback: calculate from project_statistics
+            cursor.execute(
+                """
+                SELECT AVG(completed_points)
+                FROM (
+                    SELECT completed_points
+                    FROM project_statistics
+                    WHERE profile_id = ?
+                      AND query_id = ?
+                      AND week_label <= ?
+                    ORDER BY week_label DESC
+                    LIMIT 4
+                )
+            """,
+                (profile_id, query_id, week_label),
+            )
+
+            result = cursor.fetchone()
+            return float(result[0]) if result and result[0] else 0.0
+
+    except Exception as e:
+        logger.error(f"Failed to get velocity_points: {e}")
+        return 0.0
+
+
 def _empty_breakdown() -> Dict[str, Dict[str, float]]:
     """Return empty cost breakdown structure."""
     return {

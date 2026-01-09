@@ -1168,11 +1168,13 @@ def _create_throughput_section(
                             create_professional_metric_card(
                                 {
                                     "metric_name": "avg_item_size",
-                                    "display_name": "Avg Item Size",
+                                    "alternative_name": "Average Item Size",
                                     "value": _safe_divide(avg_points, avg_items)
                                     if show_points
                                     else None,
-                                    "unit": "pts/item" if show_points else "disabled",
+                                    "unit": "points/item"
+                                    if show_points
+                                    else "disabled",
                                     "subtitle": "Points per item"
                                     if show_points
                                     else "Points tracking disabled",
@@ -1896,6 +1898,7 @@ def _create_recent_activity_section(statistics_df, show_points=True):
         create_professional_metric_card(
             {
                 "metric_name": "items_per_week_avg",
+                "alternative_name": "Average Items Per Week",
                 "value": avg_items_weekly,
                 "unit": "items/week",
                 "_n_weeks": recent_window,
@@ -1906,7 +1909,8 @@ def _create_recent_activity_section(statistics_df, show_points=True):
                 "weekly_labels": [
                     f"W{i + 1}" for i in range(len(items_sparkline_values))
                 ],
-            }
+            },
+            show_details_button=False,
         ),
     ]
 
@@ -1927,6 +1931,7 @@ def _create_recent_activity_section(statistics_df, show_points=True):
             create_professional_metric_card(
                 {
                     "metric_name": "points_per_week_avg",
+                    "alternative_name": "Average Points Per Week",
                     "value": avg_points_weekly,
                     "unit": "points/week",
                     "_n_weeks": recent_window,
@@ -1937,7 +1942,8 @@ def _create_recent_activity_section(statistics_df, show_points=True):
                     "weekly_labels": [
                         f"W{i + 1}" for i in range(len(points_sparkline_values))
                     ],
-                }
+                },
+                show_details_button=False,
             ),
         ]
     else:
@@ -1957,6 +1963,7 @@ def _create_recent_activity_section(statistics_df, show_points=True):
             create_professional_metric_card(
                 {
                     "metric_name": "points_per_week_avg",
+                    "alternative_name": "Average Points Per Week",
                     "value": None,
                     "unit": "points/week",
                     "error_state": "missing_mapping",
