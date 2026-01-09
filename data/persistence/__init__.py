@@ -675,6 +675,29 @@ class PersistenceBackend(ABC):
         pass
 
     @abstractmethod
+    def delete_metrics(
+        self,
+        profile_id: str,
+        query_id: str,
+    ) -> int:
+        """
+        Delete all metrics for a specific profile/query combination.
+
+        Args:
+            profile_id: Profile identifier
+            query_id: Query identifier
+
+        Returns:
+            Number of metrics deleted
+
+        Example:
+            >>> # Clear all metrics for kafka/12w before recalculation
+            >>> deleted = backend.delete_metrics("kafka", "12w")
+            >>> print(f"Deleted {deleted} metrics")
+        """
+        pass
+
+    @abstractmethod
     def save_metrics_batch(
         self,
         profile_id: str,

@@ -35,23 +35,35 @@ CURRENCY_ICON_MAP = {
 }
 
 
-def get_currency_icon(currency_symbol: str) -> str:
-    """
-    Map currency symbol to FontAwesome icon class.
+def _create_card_footer(text: str, icon: str = "fa-info-circle") -> dbc.CardFooter:
+    """Create consistent card footer with info text.
+
+    DRY helper for uniform card footers across budget and dashboard cards.
 
     Args:
-        currency_symbol: Currency symbol (e.g., "$", "€", "£", "¥")
+        text: Footer text to display
+        icon: FontAwesome icon class (default: fa-info-circle)
 
     Returns:
-        FontAwesome icon class name
+        CardFooter component with consistent styling
 
     Example:
-        >>> get_currency_icon("€")
-        "fa-euro-sign"
-        >>> get_currency_icon("₹")
-        "fa-coins"
+        >>> footer = _create_card_footer(
+        ...     "Based on last 7 weeks | Flow Distribution classification",
+        ...     "fa-chart-bar"
+        ... )
     """
-    return CURRENCY_ICON_MAP.get(currency_symbol, "fa-coins")
+    return dbc.CardFooter(
+        html.Div(
+            [
+                html.I(className=f"fas {icon} me-1"),
+                text,
+            ],
+            className="text-center text-muted py-2 px-3",
+            style={"fontSize": "0.85rem", "lineHeight": "1.4"},
+        ),
+        className="bg-light border-top",
+    )
 
 
 def create_budget_utilization_card(
@@ -62,11 +74,10 @@ def create_budget_utilization_card(
     data_points_count: int = 12,
     card_id: Optional[str] = None,
 ) -> dbc.Card:
-    """
-    Create Budget Utilization gauge card with health zones.
+    """Create Budget Utilization card showing consumption percentage.
 
-    Health zones:
-    - Green (0-70%): Healthy
+    Health zones (% consumed):
+    - Green (<70%): Healthy
     - Yellow (70-85%): Warning
     - Orange (85-95%): High
     - Red (95-100%+): Critical
@@ -76,6 +87,7 @@ def create_budget_utilization_card(
         consumed_eur: Absolute amount consumed
         budget_total: Total budget amount
         currency_symbol: Currency symbol for display
+        data_points_count: Number of weeks for context
         card_id: Optional HTML ID for the card
 
     Returns:
@@ -701,7 +713,9 @@ def create_cost_breakdown_card(
 
     card_content = dbc.Card(
         [
-            dbc.CardHeader(html.Strong("Cost Breakdown by Work Type")),
+            dbc.CardHeader(
+                html.Strong("Cost Breakdown by Work Distribution"),
+            ),
             dbc.CardBody(
                 [
                     html.Div(
@@ -715,15 +729,15 @@ def create_cost_breakdown_card(
                         className="text-center",
                     ),
                     breakdown_table,
-                    html.Small(
-                        f"Based on last {data_points_count} weeks | Flow Distribution classification",
-                        className="text-muted",
-                    ),
                 ]
+            ),
+            _create_card_footer(
+                f"Costs aggregated over {data_points_count} weeks • Categorized by Flow Distribution types",
+                "fa-chart-bar",
             ),
         ],
         id=card_id,
-        className="mb-3",
+        className="metric-card mb-3 h-100",
     )
 
     return card_content
@@ -1007,25 +1021,44 @@ def create_forecast_alignment_card(
             ),
             dbc.CardBody(
                 [
-                    alignment_table,
-                    html.P(
+                    html.Div(
                         [
-                            html.I(className="fas fa-info-circle me-1"),
-                            html.Small(
-                                "Positive gap indicates sufficient budget for forecast completion. "
-                                "Negative gap suggests budget may exhaust before project completion. "
-                                "Runway calculated from actual burn rate (completed work × cost per item).",
-                                className="text-muted",
+                            html.Div(
+                                [
+                                    html.I(
+                                        className=f"fas {health_icon} me-2",
+                                        style={"color": health_color},
+                                    ),
+                                    html.Span(
+                                        overall_health,
+                                        style={
+                                            "color": health_color,
+                                            "fontWeight": "bold",
+                                            "fontSize": "1.5rem",
+                                        },
+                                    ),
+                                ],
+                                className="d-flex align-items-center justify-content-center mb-1",
+                            ),
+                            html.P(
+                                f"Worst gap: {min_gap:+.1f} weeks",
+                                className="text-muted mb-3",
+                                style={"fontSize": "0.9rem"},
                             ),
                         ],
-                        className="mb-0 mt-2",
+                        className="text-center",
                     ),
+                    alignment_table,
                 ],
-                className="pt-3",
+                className="pt-3 pb-0 mb-0",
+            ),
+            _create_card_footer(
+                "Positive gap = sufficient budget • Negative gap = budget risk • Runway from actual burn rate",
+                "fa-balance-scale",
             ),
         ],
         id=card_id,
-        className="mb-3",
+        className="metric-card mb-3 h-100",
     )
 
     return card

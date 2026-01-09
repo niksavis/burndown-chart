@@ -1538,6 +1538,41 @@ class SQLiteBackend(PersistenceBackend):
             )
             raise
 
+    def delete_metrics(
+        self,
+        profile_id: str,
+        query_id: str,
+    ) -> int:
+        """Delete all metrics for a specific profile/query combination.
+
+        Args:
+            profile_id: Profile identifier
+            query_id: Query identifier
+
+        Returns:
+            Number of metrics deleted
+        """
+        try:
+            with get_db_connection(self.db_path) as conn:
+                cursor = conn.cursor()
+                cursor.execute(
+                    "DELETE FROM metrics_data_points WHERE profile_id = ? AND query_id = ?",
+                    (profile_id, query_id),
+                )
+                deleted_count = cursor.rowcount
+                conn.commit()
+                logger.info(
+                    f"Deleted {deleted_count} metrics for {profile_id}/{query_id}"
+                )
+                return deleted_count
+
+        except Exception as e:
+            logger.error(
+                f"Failed to delete metrics for {profile_id}/{query_id}: {e}",
+                extra={"error_type": type(e).__name__},
+            )
+            raise
+
     def save_metrics_batch(
         self,
         profile_id: str,

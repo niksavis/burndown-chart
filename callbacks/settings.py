@@ -1532,9 +1532,27 @@ def register(app):
                 "Starting metrics calculation...",
             )
 
-            # Clear metrics cache before recalculating
-            # NOTE: After database migration, metrics are in DB and cleared automatically
-            # by the backend when new metrics are saved
+            # Clear existing metrics for this query to force fresh calculation
+            # This ensures field mapping and configuration changes are reflected
+            logger.info(
+                "[Settings] Clearing existing metrics for active query to force fresh calculation"
+            )
+            from data.persistence.factory import get_backend
+
+            backend = get_backend()
+            active_profile_id = backend.get_app_state("active_profile_id")
+            active_query_id = backend.get_app_state("active_query_id")
+
+            if active_profile_id and active_query_id:
+                try:
+                    # Delete metrics for this specific profile/query combination
+                    backend.delete_metrics(active_profile_id, active_query_id)
+                    logger.info(
+                        f"[Settings] Deleted existing metrics for {active_profile_id}/{active_query_id}"
+                    )
+                except Exception as e:
+                    logger.warning(f"[Settings] Failed to clear metrics cache: {e}")
+
             logger.info("[Settings] Metrics will be recalculated and saved to database")
 
             # Statistics already validated above - proceed with calculation

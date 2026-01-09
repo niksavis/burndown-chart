@@ -310,6 +310,12 @@ class MetricsConfig:
         """
         flow_mappings = self.get_flow_type_mappings()
 
+        logger.debug(
+            f"[FLOW TYPE CLASSIFICATION] Classifying issue_type='{issue_type}', "
+            f"effort_category='{effort_category}'"
+        )
+        logger.debug(f"[FLOW TYPE CLASSIFICATION] Available mappings: {flow_mappings}")
+
         # Find ALL flow types where issue_type matches
         matching_flow_types = []
         catch_all_flow_type = None  # Flow type with empty effort_categories
@@ -318,27 +324,52 @@ class MetricsConfig:
             issue_types = mapping.get("issue_types", [])
             if issue_type in issue_types:
                 effort_categories = mapping.get("effort_categories", [])
+                logger.debug(
+                    f"[FLOW TYPE CLASSIFICATION] Found match: flow_type='{flow_type}', "
+                    f"effort_categories={effort_categories}"
+                )
                 if not effort_categories:
                     # This flow type accepts ALL issues of this type (catch-all)
                     if catch_all_flow_type is None:
                         catch_all_flow_type = flow_type
+                        logger.debug(
+                            f"[FLOW TYPE CLASSIFICATION] Set catch-all: '{catch_all_flow_type}'"
+                        )
                 else:
                     matching_flow_types.append((flow_type, effort_categories))
 
         # If effort_category is provided, try to find exact match first
         if effort_category:
+            logger.debug(
+                f"[FLOW TYPE CLASSIFICATION] Searching for exact effort match in: {matching_flow_types}"
+            )
             for flow_type, effort_categories in matching_flow_types:
                 if effort_category in effort_categories:
+                    logger.debug(
+                        f"[FLOW TYPE CLASSIFICATION] Found exact match: '{flow_type}' "
+                        f"(effort '{effort_category}' in {effort_categories})"
+                    )
                     return flow_type
 
         # Fall back to catch-all flow type (one with no effort_categories filter)
         if catch_all_flow_type:
+            logger.debug(
+                f"[FLOW TYPE CLASSIFICATION] Using catch-all: '{catch_all_flow_type}'"
+            )
             return catch_all_flow_type
 
         # If no catch-all but we have matches, return first one (for None effort_category)
         if matching_flow_types and not effort_category:
-            return matching_flow_types[0][0]
+            result = matching_flow_types[0][0]
+            logger.debug(
+                f"[FLOW TYPE CLASSIFICATION] Using first match (no effort): '{result}'"
+            )
+            return result
 
+        logger.warning(
+            f"[FLOW TYPE CLASSIFICATION] No mapping found for issue_type='{issue_type}', "
+            f"effort_category='{effort_category}'"
+        )
         return None
 
     # ========================================================================

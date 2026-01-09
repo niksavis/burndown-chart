@@ -189,14 +189,13 @@ def calculate_cost_breakdown_by_type(
     """
     Calculate cost breakdown by Flow Distribution work types.
 
-    Integrates with flow_type_classifier.get_flow_type() using exact same
-    classification logic as calculate_flow_distribution(). Unknown types
-    default to "Feature". 4-category aggregation only.
+    Uses flow_velocity metric snapshots which already contain work distribution data.
+    Aggregates counts across all weeks and multiplies by cost per item.
 
     Args:
         profile_id: Profile identifier
         query_id: Query identifier
-        week_label: ISO week label
+        week_label: ISO week label (used to get budget at specific week)
         db_path: Optional database path
 
     Returns:
@@ -213,95 +212,56 @@ def calculate_cost_breakdown_by_type(
         >>> print(f"Feature cost: €{breakdown['Feature']['cost']:.2f}")
         Feature cost: €12500.00
     """
-    from data.database import get_db_connection
-    from data.flow_type_classifier import get_flow_type
+    from data.metrics_snapshots import load_snapshots
 
     try:
         budget = get_budget_at_week(profile_id, week_label, db_path)
         if not budget:
+            logger.info("[COST BREAKDOWN] No budget configured")
             return _empty_breakdown()
 
         # Get velocity and cost per item
         velocity = _get_velocity(profile_id, query_id, week_label, db_path)
         if velocity <= 0:
+            logger.info("[COST BREAKDOWN] Velocity is zero")
             return _empty_breakdown()
 
         cost_per_item = budget["team_cost_per_week_eur"] / velocity
+        logger.info(f"[COST BREAKDOWN] Cost per item: €{cost_per_item:.2f}")
 
-        # Get completed issues with their types
-        conn_context = (
-            get_db_connection() if db_path is None else get_db_connection(db_path)
+        # Load flow_velocity snapshots which contain work distribution data
+        snapshots = load_snapshots()
+        if not snapshots:
+            logger.info("[COST BREAKDOWN] No metric snapshots found")
+            return _empty_breakdown()
+
+        # Aggregate distribution counts across all weeks
+        flow_counts = {"Feature": 0, "Defect": 0, "Technical Debt": 0, "Risk": 0}
+
+        for week, metrics in snapshots.items():
+            velocity_data = metrics.get("flow_velocity", {})
+            distribution = velocity_data.get("distribution", {})
+
+            if distribution:
+                # Map lowercase keys to proper flow type names
+                flow_counts["Feature"] += distribution.get("feature", 0)
+                flow_counts["Defect"] += distribution.get("defect", 0)
+                flow_counts["Technical Debt"] += distribution.get("tech_debt", 0)
+                flow_counts["Risk"] += distribution.get("risk", 0)
+
+        total_items = sum(flow_counts.values())
+        logger.info(
+            f"[COST BREAKDOWN] Total items across all weeks: {total_items} "
+            f"(Feature={flow_counts['Feature']}, Defect={flow_counts['Defect']}, "
+            f"Tech Debt={flow_counts['Technical Debt']}, Risk={flow_counts['Risk']})"
         )
-        with conn_context as conn:
-            cursor = conn.cursor()
 
-            # Get effort category field from profile
-            cursor.execute(
-                """
-                SELECT field_mappings FROM profiles WHERE id = ?
-            """,
-                (profile_id,),
-            )
-            result = cursor.fetchone()
-            if not result:
-                return _empty_breakdown()
-
-            field_mappings = json.loads(result[0])
-            effort_category_field = field_mappings.get("effort_category_field", "")
-
-            # Get completed issues
-            cursor.execute(
-                """
-                SELECT issue_type, custom_fields
-                FROM jira_issues
-                WHERE profile_id = ?
-                  AND query_id = ?
-                  AND status IN (
-                      SELECT json_each.value
-                      FROM profiles,
-                           json_each(json_extract(field_mappings, '$.done_statuses'))
-                      WHERE profiles.id = ?
-                  )
-            """,
-                (profile_id, query_id, profile_id),
-            )
-
-            # Count by flow type
-            flow_counts = {"Feature": 0, "Defect": 0, "Technical Debt": 0, "Risk": 0}
-
-            for row in cursor.fetchall():
-                issue_type = row[0]
-                fields = json.loads(row[1]) if row[1] else {}
-
-                # Create mock issue object for classifier
-                class MockIssue:
-                    def __init__(self, issue_type, fields):
-                        self.fields = type(
-                            "obj",
-                            (object,),
-                            {
-                                "issuetype": type(
-                                    "obj", (object,), {"name": issue_type}
-                                )(),
-                                effort_category_field: fields.get(
-                                    effort_category_field
-                                ),
-                            },
-                        )()
-
-                mock_issue = MockIssue(issue_type, fields)
-                flow_type = get_flow_type(mock_issue, effort_category_field)
-
-                # Default unknown types to Feature
-                if flow_type not in flow_counts:
-                    flow_type = "Feature"
-
-                flow_counts[flow_type] += 1
+        if total_items == 0:
+            logger.info("[COST BREAKDOWN] No completed items found in snapshots")
+            return _empty_breakdown()
 
         # Calculate costs and percentages
-        total_items = sum(flow_counts.values())
         breakdown = {}
-
         for flow_type, count in flow_counts.items():
             cost = count * cost_per_item
             percentage = (count / total_items * 100) if total_items > 0 else 0.0
@@ -310,11 +270,14 @@ def calculate_cost_breakdown_by_type(
                 "count": count,
                 "percentage": percentage,
             }
+            logger.info(
+                f"[COST BREAKDOWN] {flow_type}: {count} items, €{cost:.2f} ({percentage:.1f}%)"
+            )
 
         return breakdown
 
     except Exception as e:
-        logger.error(f"Failed to calculate cost breakdown: {e}")
+        logger.error(f"Failed to calculate cost breakdown: {e}", exc_info=True)
         return _empty_breakdown()
 
 

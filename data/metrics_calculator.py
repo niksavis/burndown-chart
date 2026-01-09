@@ -783,7 +783,14 @@ def calculate_and_save_weekly_metrics(
                 fields = issue.get("fields", {})
             else:
                 # Flat format: fields are at top level
-                fields = issue
+                fields = issue.copy()
+
+                # Merge custom_fields into fields dict (database stores them separately)
+                if "custom_fields" in issue and isinstance(
+                    issue.get("custom_fields"), dict
+                ):
+                    custom_fields = issue.get("custom_fields", {})
+                    fields.update(custom_fields)
 
             # Extract issue type
             issue_type_value = fields.get(flow_type_field)
@@ -815,12 +822,18 @@ def calculate_and_save_weekly_metrics(
                 else:
                     effort_category = str(effort_value) if effort_value else None
 
+                logger.info(
+                    f"[Work Distribution] {issue.get('key', issue.get('issue_key'))}: "
+                    f"effort_field={effort_category_field}, raw_effort={repr(effort_value)}, "
+                    f"effort_category='{effort_category}'"
+                )
+
             # Use configured classification
             flow_type = config.get_flow_type_for_issue(issue_type, effort_category)
 
             logger.info(
                 f"[Work Distribution] {issue.get('key', issue.get('issue_key'))}: "
-                f"issue_type='{issue_type}' -> flow_type='{flow_type}'"
+                f"issue_type='{issue_type}', effort='{effort_category}' -> flow_type='{flow_type}'"
             )
 
             # Map flow types to distribution keys

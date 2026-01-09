@@ -2171,6 +2171,18 @@ def _create_quality_scope_section(statistics_df, settings):
                                             )
                                         ]
                                     ),
+                                    dbc.CardFooter(
+                                        html.Small(
+                                            [
+                                                html.I(
+                                                    className="fas fa-chart-line me-1"
+                                                ),
+                                                "Tracks new items added vs completed • Monitors backlog growth over project lifecycle",
+                                            ],
+                                            className="text-muted",
+                                        ),
+                                        className="text-center bg-light border-top py-2",
+                                    ),
                                 ],
                                 className="h-100 shadow-sm border-0 metric-card",
                             )
@@ -2256,6 +2268,18 @@ def _create_quality_scope_section(statistics_df, settings):
                                                 ]
                                             )
                                         ]
+                                    ),
+                                    dbc.CardFooter(
+                                        html.Small(
+                                            [
+                                                html.I(
+                                                    className="fas fa-gauge-high me-1"
+                                                ),
+                                                "Consistency + stability metrics • High values (80%+) enable reliable forecasting",
+                                            ],
+                                            className="text-muted",
+                                        ),
+                                        className="text-center bg-light border-top py-2",
                                     ),
                                 ],
                                 className="h-100 shadow-sm border-0 metric-card",

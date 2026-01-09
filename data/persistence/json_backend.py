@@ -320,6 +320,16 @@ class JSONBackend(PersistenceBackend):
             "JSONBackend.get_metric_values - Not supported, use SQLiteBackend"
         )
 
+    def delete_metrics(
+        self,
+        profile_id: str,
+        query_id: str,
+    ) -> int:
+        """NOT SUPPORTED: JSON backend uses metrics_snapshots file."""
+        raise NotImplementedError(
+            "JSONBackend.delete_metrics - Not supported, use SQLiteBackend"
+        )
+
     def save_metrics_batch(
         self,
         profile_id: str,
