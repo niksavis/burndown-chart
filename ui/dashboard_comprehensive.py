@@ -1139,7 +1139,8 @@ def _create_throughput_section(
                                     else "orange",
                                     "error_state": "success"
                                     if show_points
-                                    else "no_data",
+                                    else "points_tracking_disabled",
+                                    "error_message": "Points tracking disabled",
                                     "_n_weeks": data_points_count,
                                     "tooltip": "Average story points completed per week. Story points represent work complexity and effort. Higher values indicate faster delivery of larger work items."
                                     if show_points
@@ -1183,7 +1184,8 @@ def _create_throughput_section(
                                     "performance_tier_color": "green",
                                     "error_state": "success"
                                     if show_points
-                                    else "no_data",
+                                    else "points_tracking_disabled",
+                                    "error_message": "Points tracking disabled",
                                     "_n_weeks": data_points_count,
                                     "tooltip": "Average story points per completed work item. Shows typical item complexity. Higher values mean larger items taking longer to complete. Use this to understand capacity: fewer large items or more small items per sprint."
                                     if show_points
@@ -1393,22 +1395,39 @@ def _create_forecast_section(
                                 className="mb-1 mt-3",
                             ),
                             html.Div(
-                                points_pert_date if show_points else "Not available",
-                                className="h3 mb-0",
+                                points_pert_date
+                                if show_points
+                                else [
+                                    html.Div(
+                                        [
+                                            html.I(
+                                                className="fas fa-toggle-off fa-2x text-secondary mb-2"
+                                            ),
+                                            html.Div(
+                                                "Points Tracking Disabled",
+                                                className="h5 mb-2",
+                                                style={
+                                                    "fontWeight": "600",
+                                                    "color": "#6c757d",
+                                                },
+                                            ),
+                                            html.Small(
+                                                "Points tracking is disabled. Enable Points Tracking in Parameters panel to view story points metrics.",
+                                                className="text-muted",
+                                                style={"fontSize": "0.75rem"},
+                                            ),
+                                        ],
+                                        className="text-center",
+                                    )
+                                ],
+                                className="h3 mb-0" if show_points else "",
                                 style={
                                     "fontWeight": "bold",
-                                    "color": COLOR_PALETTE["points"]
-                                    if show_points
-                                    else "#adb5bd",
-                                },
+                                    "color": COLOR_PALETTE["points"],
+                                }
+                                if show_points
+                                else {},
                             ),
-                            html.Small(
-                                "Enable Points Tracking in Parameters",
-                                className="text-muted d-block mt-2",
-                                style={"fontSize": "0.75rem", "fontStyle": "italic"},
-                            )
-                            if not show_points
-                            else None,
                         ],
                         className="text-center",
                     ),
@@ -1677,21 +1696,21 @@ def _create_forecast_section(
                             if (show_points and deadline_prob_points is not None)
                             else html.Div(
                                 [
+                                    html.I(
+                                        className="fas fa-toggle-off fa-2x text-secondary mb-2"
+                                    ),
                                     html.Div(
-                                        "Not available",
-                                        className="h3 mb-0",
+                                        "Points Tracking Disabled",
+                                        className="h5 mb-2",
                                         style={
-                                            "fontWeight": "bold",
-                                            "color": "#adb5bd",
+                                            "fontWeight": "600",
+                                            "color": "#6c757d",
                                         },
                                     ),
                                     html.Small(
-                                        "Enable Points Tracking in Parameters",
-                                        className="text-muted d-block mt-2",
-                                        style={
-                                            "fontSize": "0.75rem",
-                                            "fontStyle": "italic",
-                                        },
+                                        "Points tracking is disabled. Enable Points Tracking in Parameters panel to view story points metrics.",
+                                        className="text-muted",
+                                        style={"fontSize": "0.75rem"},
                                     ),
                                 ],
                                 className="text-center",
@@ -1952,7 +1971,7 @@ def _create_recent_activity_section(statistics_df, show_points=True):
                     "metric_name": "points_completed",
                     "value": None,
                     "unit": "points",
-                    "error_state": "missing_mapping",
+                    "error_state": "points_tracking_disabled",
                     "error_message": "Points tracking disabled",
                     "tooltip": "Enable Points Tracking in Parameters panel and configure the points field in JIRA Configuration to view this metric. When disabled, use Items Completed for throughput tracking.",
                     "total_issue_count": 0,
@@ -1964,7 +1983,7 @@ def _create_recent_activity_section(statistics_df, show_points=True):
                     "alternative_name": "Average Points Per Week",
                     "value": None,
                     "unit": "points/week",
-                    "error_state": "missing_mapping",
+                    "error_state": "points_tracking_disabled",
                     "error_message": "Points tracking disabled",
                     "tooltip": "Enable Points Tracking in Parameters panel and configure the points field in JIRA Configuration to view this metric. When disabled, use Items/Week Avg for velocity tracking.",
                     "total_issue_count": 0,

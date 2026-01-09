@@ -354,8 +354,8 @@ def create_cost_per_point_card(
             "metric_name": "cost_per_point",
             "value": None,
             "unit": f"{currency_symbol}/point",
-            "error_state": "missing_mapping",
-            "error_message": "Points unavailable, using item cost only",
+            "error_state": "points_tracking_disabled",
+            "error_message": "Points tracking disabled",
             "total_issue_count": 0,
             "_n_weeks": data_points_count,
         }

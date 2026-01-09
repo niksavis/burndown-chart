@@ -1329,8 +1329,12 @@ def _create_error_card(metric_data: dict, card_id: Optional[str]) -> dbc.Card:
     error_message = metric_data.get("error_message", "An error occurred")
 
     # Format metric name for display
+    # Use alternative_name if provided, otherwise convert metric_name
     metric_name = metric_data.get("metric_name", "Unknown Metric")
-    display_name = metric_name.replace("_", " ").title()
+    alternative_name = metric_data.get("alternative_name")
+    display_name = (
+        alternative_name if alternative_name else metric_name.replace("_", " ").title()
+    )
 
     # Map error states to icons and titles
     error_config = {
@@ -1355,6 +1359,14 @@ def _create_error_card(metric_data: dict, card_id: Optional[str]) -> dbc.Card:
                 "index": metric_name,
             },
             "message_override": "This metric is disabled because the required JIRA field mapping is not configured for your JIRA setup.",
+        },
+        "points_tracking_disabled": {
+            "icon": "fas fa-toggle-off",
+            "title": "Points Tracking Disabled",
+            "color": "secondary",
+            "action_text": "Enable in Parameters",
+            "action_id": "open-parameters-panel",
+            "message_override": "Points tracking is disabled. Enable Points Tracking in Parameters panel to view story points metrics.",
         },
         "no_data": {
             "icon": "fas fa-inbox",
@@ -1394,6 +1406,7 @@ def _create_error_card(metric_data: dict, card_id: Optional[str]) -> dbc.Card:
         "no_data": "No Data",
         "missing_mapping": "Setup Required",
         "field_not_configured": "Disabled",
+        "points_tracking_disabled": "Disabled",
         "calculation_error": "Error",
     }
     badge_text = badge_text_map.get(error_state, "Error")
