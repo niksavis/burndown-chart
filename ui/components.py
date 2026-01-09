@@ -2967,6 +2967,9 @@ def create_parameter_panel_expanded(
         )
         max_data_points = len(unique_dates) if unique_dates else len(statistics)
 
+    # Enforce minimum to prevent slider errors with new queries
+    max_data_points = max(4, max_data_points)
+
     # Calculate dynamic marks for Data Points slider
     # 5 points: min (4), 1/4, 1/2 (middle), 3/4, max
     import math
@@ -3754,6 +3757,9 @@ def create_mobile_parameter_bottom_sheet(
             stat.get("date") or stat.get("stat_date") for stat in statistics
         )
         max_data_points = len(unique_dates) if unique_dates else len(statistics)
+
+    # Enforce minimum to prevent slider errors with new queries
+    max_data_points = max(4, max_data_points)
 
     # Calculate dynamic marks for Data Points slider
     # 5 points: min (4), 1/4, 1/2 (middle), 3/4, max

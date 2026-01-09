@@ -306,8 +306,68 @@ def register(app):
         ):
             raise PreventUpdate
 
-        # Get total points from calculation results
-        total_points = calc_results.get("total_points", DEFAULT_TOTAL_POINTS)
+        # CRITICAL FIX: Recalculate total_items and total_points based on windowed statistics
+        # When data_points_count slider changes, scope must be recalculated from filtered data
+        data_points_count = (
+            int(data_points_count) if data_points_count is not None else 12
+        )
+
+        # Initialize with fallback values from calc_results or defaults
+        total_points = (
+            calc_results.get("total_points", DEFAULT_TOTAL_POINTS)
+            if calc_results
+            else DEFAULT_TOTAL_POINTS
+        )
+
+        # Recalculate windowed scope from statistics if available
+        if statistics and len(statistics) > 0:
+            try:
+                import pandas as pd
+                from datetime import timedelta
+
+                # Use the latest week's remaining values as total scope (from windowed data)
+                df_stats = pd.DataFrame(statistics)
+                if "date" in df_stats.columns or "stat_date" in df_stats.columns:
+                    date_col = "date" if "date" in df_stats.columns else "stat_date"
+                    df_stats[date_col] = pd.to_datetime(
+                        df_stats[date_col], errors="coerce"
+                    )
+                    df_stats = df_stats.dropna(subset=[date_col])
+                    df_stats = df_stats.sort_values(date_col, ascending=True)
+
+                    # Apply same filtering as calculate_weekly_averages
+                    actual_weeks_available = len(df_stats)
+                    effective_data_points = min(
+                        data_points_count, actual_weeks_available
+                    )
+
+                    if effective_data_points < actual_weeks_available:
+                        latest_date = df_stats[date_col].max()
+                        cutoff_date = latest_date - timedelta(
+                            weeks=effective_data_points
+                        )
+                        df_stats = df_stats[df_stats[date_col] >= cutoff_date]
+
+                    # Get earliest week's remaining values in the window
+                    if len(df_stats) > 0:
+                        earliest_week = df_stats.iloc[0]
+                        total_items = int(
+                            earliest_week.get("remaining_items", total_items)
+                            or total_items
+                        )
+                        total_points = float(
+                            earliest_week.get("remaining_total_points", total_points)
+                            or total_points
+                        )
+
+                        logger.info(
+                            f"[Settings] Recalculated windowed scope: {total_items} items, {total_points:.1f} points "
+                            f"(window: {effective_data_points}/{actual_weeks_available} weeks)"
+                        )
+            except Exception as e:
+                logger.error(
+                    f"[Settings] Error recalculating windowed scope: {e}", exc_info=True
+                )
 
         # Use consistent .get() pattern for all fallbacks - restored from previous implementation
         input_values = {
@@ -317,12 +377,6 @@ def register(app):
         estimated_items = input_values.get("estimated_items", DEFAULT_ESTIMATED_ITEMS)
         estimated_points = input_values.get(
             "estimated_points", DEFAULT_ESTIMATED_POINTS
-        )
-
-        # Create updated settings
-        # CRITICAL: Ensure data_points_count is an integer (Dash sliders can return floats)
-        data_points_count = (
-            int(data_points_count) if data_points_count is not None else 12
         )
 
         settings = {

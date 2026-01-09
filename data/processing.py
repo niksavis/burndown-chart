@@ -890,10 +890,26 @@ def calculate_weekly_averages(
                 df_temp = df_temp.dropna(subset=[date_col])
                 df_temp = df_temp.sort_values(date_col, ascending=True)
 
-                # Filter by actual date range (weeks), not row count
-                latest_date = df_temp[date_col].max()
-                cutoff_date = latest_date - timedelta(weeks=data_points_count)  # type: ignore[possibly-unbound]
-                df_temp = df_temp[df_temp[date_col] >= cutoff_date]
+                # CRITICAL FIX: Cap data_points_count to available weeks to prevent over-filtering
+                # When slider > available weeks, all data should be used (not filtered)
+                actual_weeks_available = len(df_temp)
+                effective_data_points = min(data_points_count, actual_weeks_available)
+
+                if effective_data_points < actual_weeks_available:
+                    # Filter by actual date range (weeks), not row count
+                    latest_date = df_temp[date_col].max()
+                    cutoff_date = latest_date - timedelta(weeks=effective_data_points)  # type: ignore[possibly-unbound]
+                    df_temp = df_temp[df_temp[date_col] >= cutoff_date]
+                    logger.info(
+                        f"[VELOCITY] Filtered to {effective_data_points} weeks "
+                        f"(requested {data_points_count}, available {actual_weeks_available})"
+                    )
+                else:
+                    # Using all available data - no filtering needed
+                    logger.info(
+                        f"[VELOCITY] Using all {actual_weeks_available} weeks "
+                        f"(slider set to {data_points_count}, no filtering applied)"
+                    )
 
                 # Ensure column is named "date" for consistency
                 if date_col != "date":
