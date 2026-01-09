@@ -1253,15 +1253,10 @@ def register(app):
                         "Preparing metrics calculation...",
                     )
 
-                    # Delay to ensure progress bar polls and sees the phase change (polling interval is 500ms)
-                    import time
-
-                    time.sleep(
-                        0.6
-                    )  # 600ms delay - longer than polling interval to guarantee visibility
-                    logger.info(
-                        "[Settings] Transitioned to calculate phase, waited for polling, returning to trigger metrics callback"
-                    )
+                # No delay needed - progress bar polls frequently (250ms) and will detect phase change
+                logger.info(
+                    "[Settings] Transitioned to calculate phase, returning to trigger metrics callback"
+                )
 
                 # Create success toast notification
                 success_toast = create_success_toast(

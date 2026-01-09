@@ -252,7 +252,7 @@ def create_data_operations_card() -> html.Div:
                     # Interval for polling progress
                     dcc.Interval(
                         id="progress-poll-interval",
-                        interval=500,  # Poll every 500ms
+                        interval=250,  # Poll every 250ms (smoother updates, faster phase detection)
                         disabled=True,  # Disabled by default
                     ),
                     # Status message (hidden - progress bar shows status now)

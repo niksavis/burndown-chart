@@ -2490,11 +2490,12 @@ def sync_jira_scope_and_data(
     Returns:
         Tuple of (success, message, scope_data)
     """
+    # Import TaskProgress at function level to avoid "possibly unbound" errors
+    from data.task_progress import TaskProgress
+
     try:
         # Update progress to show we're starting
         try:
-            from data.task_progress import TaskProgress
-
             TaskProgress.update_progress(
                 "update_data",
                 "fetch",
@@ -2667,6 +2668,18 @@ def sync_jira_scope_and_data(
 
         logger.info(f"[JIRA] Fetch complete: {len(issues)} issues")
 
+        # Update progress: Issues fetched, now starting changelog
+        try:
+            TaskProgress.update_progress(
+                "update_data",
+                "fetch",
+                current=len(issues),
+                total=len(issues),
+                message="Issues fetched, preparing changelog download...",
+            )
+        except Exception:
+            pass
+
         # CRITICAL: Invalidate changelog cache when we fetch from JIRA
         # Changelog must stay in sync with issue cache
         invalidate_changelog_cache()
@@ -2696,6 +2709,18 @@ def sync_jira_scope_and_data(
             logger.warning(
                 f"[JIRA] Changelog fetch failed (non-critical): {changelog_message}"
             )
+
+        # Update progress: Changelog done, now calculating scope
+        try:
+            TaskProgress.update_progress(
+                "update_data",
+                "fetch",
+                current=len(issues),
+                total=len(issues),
+                message="Processing issues and calculating scope...",
+            )
+        except Exception:
+            pass
 
         # CRITICAL: Filter out DevOps project issues for burndown/velocity/statistics
         # DevOps issues are ONLY used for DORA metrics metadata extraction
@@ -2744,6 +2769,18 @@ def sync_jira_scope_and_data(
         # Transform to CSV format for statistics (using ONLY development project issues)
         csv_data = jira_to_csv_format(issues_for_metrics, config)
         # Note: Empty list is valid when there are no issues, only None indicates error
+
+        # Update progress: Scope calculated, now saving to database
+        try:
+            TaskProgress.update_progress(
+                "update_data",
+                "fetch",
+                current=len(issues),
+                total=len(issues),
+                message="Saving data to database...",
+            )
+        except Exception:
+            pass
 
         # Save both statistics and project scope to unified data structure
         from data.persistence import save_jira_data_unified

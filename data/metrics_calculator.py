@@ -806,11 +806,6 @@ def calculate_and_save_weekly_metrics(
             else:
                 issue_type = str(issue_type_value) if issue_type_value else ""
 
-            logger.info(
-                f"[Work Distribution] {issue.get('key', issue.get('issue_key'))}: "
-                f"type_field={flow_type_field}, raw_value={repr(issue_type_value)}, issue_type='{issue_type}'"
-            )
-
             # Extract effort category (optional)
             effort_category = None
             if effort_category_field:
@@ -822,19 +817,8 @@ def calculate_and_save_weekly_metrics(
                 else:
                     effort_category = str(effort_value) if effort_value else None
 
-                logger.info(
-                    f"[Work Distribution] {issue.get('key', issue.get('issue_key'))}: "
-                    f"effort_field={effort_category_field}, raw_effort={repr(effort_value)}, "
-                    f"effort_category='{effort_category}'"
-                )
-
             # Use configured classification
             flow_type = config.get_flow_type_for_issue(issue_type, effort_category)
-
-            logger.info(
-                f"[Work Distribution] {issue.get('key', issue.get('issue_key'))}: "
-                f"issue_type='{issue_type}', effort='{effort_category}' -> flow_type='{flow_type}'"
-            )
 
             # Map flow types to distribution keys
             if flow_type == "Feature":
@@ -846,9 +830,9 @@ def calculate_and_save_weekly_metrics(
             elif flow_type == "Technical Debt":
                 distribution["tech_debt"] += 1
             else:
-                # Unknown types - don't count (or could default to feature)
+                # Unknown types - log warning only (no per-issue logging)
                 logger.warning(
-                    f"[Work Distribution] Issue {issue.get('key', issue.get('issue_key'))} has unknown flow type: '{flow_type}' (from issue_type='{issue_type}')"
+                    f"[Work Distribution] Unknown flow type '{flow_type}' for issue {issue.get('key', issue.get('issue_key'))} (issue_type='{issue_type}')"
                 )
 
         logger.info(
@@ -1492,6 +1476,15 @@ def calculate_metrics_for_last_n_weeks(
         # Import TaskProgress once before loop for progress updates
         from data.task_progress import TaskProgress
 
+        # Calculate progress update interval: every 5 weeks or every 2%, whichever is more frequent
+        # This balances UI smoothness with reduced database writes (80% reduction for large datasets)
+        progress_update_interval = min(
+            5, max(1, n_weeks // 50)
+        )  # Update every 2% or every 5 weeks
+        logger.info(
+            f"Progress will update every {progress_update_interval} week(s) (~{100 * progress_update_interval / max(n_weeks, 1):.1f}% increments)"
+        )
+
         with batch_write_mode():
             week_number = 0
             for week_label, monday, sunday in weeks:
@@ -1536,23 +1529,28 @@ def calculate_metrics_for_last_n_weeks(
 
                 # Report calculation progress AFTER week is calculated (not before)
                 # This ensures 100% means "all work done", not "starting last week"
-                try:
-                    TaskProgress.update_progress(
-                        "update_data",
-                        "calculate",
-                        current=week_number,
-                        total=n_weeks,
-                        message=f"Week {week_label}",
-                    )
-                    # Log every 10th week to avoid log spam
-                    if week_number % 10 == 0 or week_number == n_weeks:
+                # Only update at intervals to reduce database writes (Phase 1 optimization)
+                should_update_progress = (
+                    week_number % progress_update_interval == 0
+                    or week_number == n_weeks  # Always update on completion
+                )
+
+                if should_update_progress:
+                    try:
+                        TaskProgress.update_progress(
+                            "update_data",
+                            "calculate",
+                            current=week_number,
+                            total=n_weeks,
+                            message=f"Week {week_label}",
+                        )
                         logger.info(
                             f"[Progress] Calculation progress: {week_number}/{n_weeks} weeks ({week_number / n_weeks * 100:.0f}%)"
                         )
-                except Exception as e:
-                    logger.warning(
-                        f"[Progress] Failed to update progress for week {week_label}: {e}"
-                    )
+                    except Exception as e:
+                        logger.warning(
+                            f"[Progress] Failed to update progress for week {week_label}: {e}"
+                        )
 
                 # Yield control to allow other Dash callbacks (like progress bar polling) to execute
                 # This prevents the long-running calculation from blocking the UI
