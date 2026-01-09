@@ -45,6 +45,16 @@ def test_budget_settings_export_import(temp_db):
     }
     backend.save_profile(profile)
 
+    # Create a test query
+    query = {
+        "id": "test_query",
+        "name": "Test Query",
+        "jql": "project = TEST",
+        "created_at": datetime.now().isoformat(),
+        "last_used": datetime.now().isoformat(),
+    }
+    backend.save_query("test_profile", query)
+
     # Save budget settings
     budget_settings = {
         "time_allocated_weeks": 12,
@@ -55,10 +65,10 @@ def test_budget_settings_export_import(temp_db):
         "created_at": datetime.now().isoformat(),
         "updated_at": datetime.now().isoformat(),
     }
-    backend.save_budget_settings("test_profile", budget_settings)
+    backend.save_budget_settings("test_profile", "test_query", budget_settings)
 
     # Export budget settings
-    exported_settings = backend.get_budget_settings("test_profile")
+    exported_settings = backend.get_budget_settings("test_profile", "test_query")
 
     # Verify export
     assert exported_settings is not None
@@ -79,10 +89,21 @@ def test_budget_settings_export_import(temp_db):
         "flow_type_mappings": {},
     }
     backend.save_profile(profile2)
-    backend.save_budget_settings("test_profile_2", exported_settings)
+
+    # Create a query for the second profile
+    query2 = {
+        "id": "test_query_2",
+        "name": "Test Query 2",
+        "jql": "project = TEST2",
+        "created_at": datetime.now().isoformat(),
+        "last_used": datetime.now().isoformat(),
+    }
+    backend.save_query("test_profile_2", query2)
+
+    backend.save_budget_settings("test_profile_2", "test_query_2", exported_settings)
 
     # Verify import
-    imported_settings = backend.get_budget_settings("test_profile_2")
+    imported_settings = backend.get_budget_settings("test_profile_2", "test_query_2")
     assert imported_settings is not None
     assert imported_settings["time_allocated_weeks"] == 12
     assert imported_settings["budget_total_eur"] == 50000.0
@@ -105,6 +126,16 @@ def test_budget_revisions_export_import(temp_db):
         "flow_type_mappings": {},
     }
     backend.save_profile(profile)
+
+    # Create a test query
+    query = {
+        "id": "test_query",
+        "name": "Test Query",
+        "jql": "project = TEST",
+        "created_at": datetime.now().isoformat(),
+        "last_used": datetime.now().isoformat(),
+    }
+    backend.save_query("test_profile", query)
 
     # Save budget revisions
     revisions = [
@@ -129,10 +160,10 @@ def test_budget_revisions_export_import(temp_db):
             "metadata": None,
         },
     ]
-    backend.save_budget_revisions("test_profile", revisions)
+    backend.save_budget_revisions("test_profile", "test_query", revisions)
 
     # Export budget revisions
-    exported_revisions = backend.get_budget_revisions("test_profile")
+    exported_revisions = backend.get_budget_revisions("test_profile", "test_query")
 
     # Verify export
     assert len(exported_revisions) == 2
@@ -153,14 +184,24 @@ def test_budget_revisions_export_import(temp_db):
     }
     backend.save_profile(profile2)
 
+    # Create a query for the second profile
+    query2 = {
+        "id": "test_query_2",
+        "name": "Test Query 2",
+        "jql": "project = TEST2",
+        "created_at": datetime.now().isoformat(),
+        "last_used": datetime.now().isoformat(),
+    }
+    backend.save_query("test_profile_2", query2)
+
     # Remove 'id' field from exported revisions (auto-generated on import)
     for revision in exported_revisions:
         revision.pop("id", None)
 
-    backend.save_budget_revisions("test_profile_2", exported_revisions)
+    backend.save_budget_revisions("test_profile_2", "test_query_2", exported_revisions)
 
     # Verify import
-    imported_revisions = backend.get_budget_revisions("test_profile_2")
+    imported_revisions = backend.get_budget_revisions("test_profile_2", "test_query_2")
     assert len(imported_revisions) == 2
     assert imported_revisions[0]["week_label"] == "2026-W01"
     assert imported_revisions[1]["week_label"] == "2026-W02"

@@ -1881,11 +1881,14 @@ class SQLiteBackend(PersistenceBackend):
     # Budget Operations
     # ========================================================================
 
-    def get_budget_settings(self, profile_id: str) -> Optional[Dict[str, Any]]:
-        """Get budget settings for a profile.
+    def get_budget_settings(
+        self, profile_id: str, query_id: str
+    ) -> Optional[Dict[str, Any]]:
+        """Get budget settings for a query.
 
         Args:
             profile_id: Profile identifier
+            query_id: Query identifier
 
         Returns:
             Dict with budget settings, or None if not configured
@@ -1898,9 +1901,9 @@ class SQLiteBackend(PersistenceBackend):
                     SELECT time_allocated_weeks, budget_total_eur, currency_symbol,
                            team_cost_per_week_eur, cost_rate_type, created_at, updated_at
                     FROM budget_settings
-                    WHERE profile_id = ?
+                    WHERE profile_id = ? AND query_id = ?
                 """,
-                    (profile_id,),
+                    (profile_id, query_id),
                 )
                 result = cursor.fetchone()
 
@@ -1921,11 +1924,14 @@ class SQLiteBackend(PersistenceBackend):
             logger.error(f"Failed to get budget settings for '{profile_id}': {e}")
             return None
 
-    def get_budget_revisions(self, profile_id: str) -> List[Dict[str, Any]]:
-        """Get all budget revisions for a profile.
+    def get_budget_revisions(
+        self, profile_id: str, query_id: str
+    ) -> List[Dict[str, Any]]:
+        """Get all budget revisions for a query.
 
         Args:
             profile_id: Profile identifier
+            query_id: Query identifier
 
         Returns:
             List of budget revision dicts
@@ -1939,10 +1945,10 @@ class SQLiteBackend(PersistenceBackend):
                            team_cost_delta, budget_total_delta, revision_reason,
                            created_at, metadata
                     FROM budget_revisions
-                    WHERE profile_id = ?
+                    WHERE profile_id = ? AND query_id = ?
                     ORDER BY revision_date ASC
                 """,
-                    (profile_id,),
+                    (profile_id, query_id),
                 )
                 results = cursor.fetchall()
 
@@ -1965,17 +1971,20 @@ class SQLiteBackend(PersistenceBackend):
                 return revisions
 
         except Exception as e:
-            logger.error(f"Failed to get budget revisions for '{profile_id}': {e}")
+            logger.error(
+                f"Failed to get budget revisions for profile '{profile_id}', query '{query_id}': {e}"
+            )
             return []
 
     @retry_on_db_lock(max_retries=3, base_delay=0.1)
     def save_budget_settings(
-        self, profile_id: str, budget_settings: Dict[str, Any]
+        self, profile_id: str, query_id: str, budget_settings: Dict[str, Any]
     ) -> None:
-        """Save budget settings for a profile.
+        """Save budget settings for a query.
 
         Args:
             profile_id: Profile identifier
+            query_id: Query identifier
             budget_settings: Budget configuration dict
         """
         try:
@@ -1984,13 +1993,14 @@ class SQLiteBackend(PersistenceBackend):
                 cursor.execute(
                     """
                     INSERT OR REPLACE INTO budget_settings (
-                        profile_id, time_allocated_weeks, budget_total_eur,
+                        profile_id, query_id, time_allocated_weeks, budget_total_eur,
                         currency_symbol, team_cost_per_week_eur, cost_rate_type,
                         created_at, updated_at
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                     (
                         profile_id,
+                        query_id,
                         budget_settings["time_allocated_weeks"],
                         budget_settings.get("budget_total_eur"),
                         budget_settings.get("currency_symbol", "€"),
@@ -2001,20 +2011,25 @@ class SQLiteBackend(PersistenceBackend):
                     ),
                 )
                 conn.commit()
-                logger.info(f"Saved budget settings for profile '{profile_id}'")
+                logger.info(
+                    f"Saved budget settings for profile '{profile_id}', query '{query_id}'"
+                )
 
         except Exception as e:
-            logger.error(f"Failed to save budget settings for '{profile_id}': {e}")
+            logger.error(
+                f"Failed to save budget settings for profile '{profile_id}', query '{query_id}': {e}"
+            )
             raise
 
     @retry_on_db_lock(max_retries=3, base_delay=0.1)
     def save_budget_revisions(
-        self, profile_id: str, revisions: List[Dict[str, Any]]
+        self, profile_id: str, query_id: str, revisions: List[Dict[str, Any]]
     ) -> None:
-        """Save budget revisions for a profile.
+        """Save budget revisions for a query.
 
         Args:
             profile_id: Profile identifier
+            query_id: Query identifier
             revisions: List of revision dicts
         """
         try:
@@ -2025,14 +2040,15 @@ class SQLiteBackend(PersistenceBackend):
                     cursor.execute(
                         """
                         INSERT INTO budget_revisions (
-                            profile_id, revision_date, week_label,
+                            profile_id, query_id, revision_date, week_label,
                             time_allocated_weeks_delta, team_cost_delta,
                             budget_total_delta, revision_reason,
                             created_at, metadata
-                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """,
                         (
                             profile_id,
+                            query_id,
                             revision["revision_date"],
                             revision["week_label"],
                             revision.get("time_allocated_weeks_delta", 0),
@@ -2046,9 +2062,11 @@ class SQLiteBackend(PersistenceBackend):
 
                 conn.commit()
                 logger.info(
-                    f"Saved {len(revisions)} budget revisions for profile '{profile_id}'"
+                    f"Saved {len(revisions)} budget revisions for profile '{profile_id}', query '{query_id}'"
                 )
 
         except Exception as e:
-            logger.error(f"Failed to save budget revisions for '{profile_id}': {e}")
+            logger.error(
+                f"Failed to save budget revisions for profile '{profile_id}', query '{query_id}': {e}"
+            )
             raise

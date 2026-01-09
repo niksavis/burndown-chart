@@ -23,17 +23,67 @@ from typing import Dict, Optional, Tuple, Any, List
 logger = logging.getLogger(__name__)
 
 
+def _get_current_budget(
+    profile_id: str, query_id: str, db_path: Optional[Path] = None
+) -> Optional[Dict[str, Any]]:
+    """
+    Get current budget from budget_settings (already includes revisions).
+
+    NOTE: budget_settings is always up-to-date after revisions. Do NOT replay revisions.
+
+    Args:
+        profile_id: Profile identifier
+        query_id: Query identifier
+        db_path: Optional database path
+
+    Returns:
+        Dict with current budget or None if not configured
+    """
+    from data.database import get_db_connection
+
+    try:
+        conn_context = (
+            get_db_connection() if db_path is None else get_db_connection(db_path)
+        )
+        with conn_context as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                SELECT time_allocated_weeks, team_cost_per_week_eur,
+                       budget_total_eur, currency_symbol, cost_rate_type
+                FROM budget_settings
+                WHERE profile_id = ? AND query_id = ?
+            """,
+                (profile_id, query_id),
+            )
+
+            result = cursor.fetchone()
+            if not result:
+                return None
+
+            return {
+                "time_allocated_weeks": result[0] or 0,
+                "team_cost_per_week_eur": result[1] or 0.0,
+                "budget_total_eur": result[2] or 0.0,
+                "currency_symbol": result[3] or "€",
+                "cost_rate_type": result[4] or "weekly",
+            }
+    except Exception as e:
+        logger.error(f"Failed to get current budget: {e}")
+        return None
+
+
 def get_budget_at_week(
-    profile_id: str, week_label: str, db_path: Optional[Path] = None
+    profile_id: str, query_id: str, week_label: str, db_path: Optional[Path] = None
 ) -> Optional[Dict[str, Any]]:
     """
     Get budget configuration at specific week by replaying revisions.
 
     Queries budget_settings and replays budget_revisions using cumulative delta logic.
-    Caches result in metrics_data_points table to avoid repeated replay.
 
     Args:
         profile_id: Profile identifier
+        query_id: Query identifier
         week_label: ISO week label (e.g., "2025-W44")
         db_path: Optional database path (defaults to active profile)
 
@@ -48,7 +98,7 @@ def get_budget_at_week(
         }
 
     Example:
-        >>> budget = get_budget_at_week("my_profile", "2025-W44")
+        >>> budget = get_budget_at_week("my_profile", "my_query", "2025-W44")
         >>> print(budget["budget_total_eur"])
         50000.0
     """
@@ -68,14 +118,16 @@ def get_budget_at_week(
                 SELECT time_allocated_weeks, team_cost_per_week_eur,
                        budget_total_eur, currency_symbol, cost_rate_type
                 FROM budget_settings
-                WHERE profile_id = ?
+                WHERE profile_id = ? AND query_id = ?
             """,
-                (profile_id,),
+                (profile_id, query_id),
             )
 
             result = cursor.fetchone()
             if not result:
-                logger.debug(f"No budget configured for profile {profile_id}")
+                logger.debug(
+                    f"No budget configured for profile {profile_id}, query {query_id}"
+                )
                 return None
 
             # Start with base settings
@@ -92,11 +144,11 @@ def get_budget_at_week(
                 """
                 SELECT time_allocated_weeks_delta, team_cost_delta, budget_total_delta
                 FROM budget_revisions
-                WHERE profile_id = ?
+                WHERE profile_id = ? AND query_id = ?
                   AND week_label <= ?
                 ORDER BY week_label ASC
             """,
-                (profile_id, week_label),
+                (profile_id, query_id, week_label),
             )
 
             for row in cursor.fetchall():
@@ -104,12 +156,8 @@ def get_budget_at_week(
                 budget["team_cost_per_week_eur"] += row[1] or 0.0
                 budget["budget_total_eur"] += row[2] or 0.0
 
-            # Note: Budget snapshots are profile-level, not cached in metrics_data_points
-            # because metrics_data_points requires a query_id foreign key.
-            # Budget calculation is fast enough without caching.
-
             logger.info(
-                f"Calculated budget for {profile_id} at {week_label}: {budget['budget_total_eur']:.2f}"
+                f"Calculated budget for {profile_id}/{query_id} at {week_label}: {budget['budget_total_eur']:.2f}"
             )
             return budget
 
@@ -122,7 +170,10 @@ def calculate_budget_consumed(
     profile_id: str, query_id: str, week_label: str, db_path: Optional[Path] = None
 ) -> Tuple[float, float, float]:
     """
-    Calculate budget consumption percentage using cached active budget.
+    Calculate budget consumption percentage using current budget from budget_settings.
+
+    NOTE: budget_settings always contains the CURRENT budget after revisions are applied.
+    We do NOT replay revisions here - that would double-count deltas.
 
     Args:
         profile_id: Profile identifier
@@ -141,16 +192,36 @@ def calculate_budget_consumed(
     from data.database import get_db_connection
 
     try:
-        budget = get_budget_at_week(profile_id, week_label, db_path)
-        if not budget:
-            return 0.0, 0.0, 0.0
-
-        # Get completed work from project_statistics
+        # Load budget directly from budget_settings (already contains current budget after revisions)
         conn_context = (
             get_db_connection() if db_path is None else get_db_connection(db_path)
         )
         with conn_context as conn:
             cursor = conn.cursor()
+
+            # Get current budget from budget_settings
+            cursor.execute(
+                """
+                SELECT time_allocated_weeks, team_cost_per_week_eur,
+                       budget_total_eur, currency_symbol
+                FROM budget_settings
+                WHERE profile_id = ? AND query_id = ?
+            """,
+                (profile_id, query_id),
+            )
+
+            result = cursor.fetchone()
+            if not result:
+                return 0.0, 0.0, 0.0
+
+            budget = {
+                "time_allocated_weeks": result[0] or 0,
+                "team_cost_per_week_eur": result[1] or 0.0,
+                "budget_total_eur": result[2] or 0.0,
+                "currency_symbol": result[3] or "€",
+            }
+
+            # Get completed work from project_statistics
             cursor.execute(
                 """
                 SELECT SUM(completed_items)
@@ -215,7 +286,7 @@ def calculate_cost_breakdown_by_type(
     from data.metrics_snapshots import load_snapshots
 
     try:
-        budget = get_budget_at_week(profile_id, week_label, db_path)
+        budget = _get_current_budget(profile_id, query_id, db_path)
         if not budget:
             logger.info("[COST BREAKDOWN] No budget configured")
             return _empty_breakdown()
@@ -313,7 +384,7 @@ def calculate_runway(
     from data.iso_week_bucketing import get_last_n_weeks
 
     try:
-        budget = get_budget_at_week(profile_id, week_label, db_path)
+        budget = _get_current_budget(profile_id, query_id, db_path)
         if not budget or budget["budget_total_eur"] <= 0:
             return 0.0, 0.0
 
@@ -553,7 +624,7 @@ def calculate_weekly_cost_breakdowns(
     from data.iso_week_bucketing import get_last_n_weeks
 
     try:
-        budget = get_budget_at_week(profile_id, week_label, db_path)
+        budget = _get_current_budget(profile_id, query_id, db_path)
         if not budget:
             logger.info("[WEEKLY COST BREAKDOWN] No budget configured")
             return [], []

@@ -25,6 +25,7 @@ def test_save_requires_time_allocated(mock_db_connection):
     result_notification, result_store = save_budget_settings(
         n_clicks=1,
         profile_id="test_profile",
+        query_id="test_query",
         time_allocated=None,
         currency_symbol="€",
         team_cost=2500,
@@ -47,6 +48,7 @@ def test_save_requires_team_cost(mock_db_connection):
     result_notification, result_store = save_budget_settings(
         n_clicks=1,
         profile_id="test_profile",
+        query_id="test_query",
         time_allocated=20,
         currency_symbol="€",
         team_cost=None,
@@ -69,6 +71,7 @@ def test_budget_calculates_from_time_and_cost(mock_db_connection):
     result_notification, result_store = save_budget_settings(
         n_clicks=1,
         profile_id="test_profile",
+        query_id="test_query",
         time_allocated=10,
         currency_symbol="€",
         team_cost=3000,
@@ -85,8 +88,8 @@ def test_budget_calculates_from_time_and_cost(mock_db_connection):
     # Verify budget was calculated as time × cost = 10 × 3000 = 30000
     insert_call = mock_cursor.execute.call_args_list[0]
     insert_values = insert_call[0][1]
-    # Values are: profile_id, time, cost, total, currency, created, updated
-    assert insert_values[3] == 30000  # budget_total_eur
+    # Values are: profile_id, query_id, time, cost, total, currency, created, updated
+    assert insert_values[4] == 30000  # budget_total_eur
 
 
 def test_budget_update_with_optional_fields(mock_db_connection):
@@ -97,6 +100,7 @@ def test_budget_update_with_optional_fields(mock_db_connection):
     result_notification, result_store = save_budget_settings(
         n_clicks=1,
         profile_id="test_profile",
+        query_id="test_query",
         time_allocated=20,
         currency_symbol="$",
         team_cost=3500,
@@ -113,4 +117,4 @@ def test_budget_update_with_optional_fields(mock_db_connection):
     # Verify budget calculation
     insert_call = mock_cursor.execute.call_args_list[0]
     insert_values = insert_call[0][1]
-    assert insert_values[3] == 70000  # budget_total_eur (20 × 3500)
+    assert insert_values[4] == 70000  # budget_total_eur (20 × 3500)

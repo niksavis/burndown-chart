@@ -308,6 +308,7 @@ def perform_import(import_data, conflict_strategy=None, custom_name=None):
         query_data_dict = import_data.get("query_data", {})
         imported_query_count = 0
         first_imported_query_id = None
+        budget_imported = False  # Track if any budget data was imported
 
         if query_data_dict:
             for exported_query_id, query_data in query_data_dict.items():
@@ -399,6 +400,28 @@ def perform_import(import_data, conflict_strategy=None, custom_name=None):
                                 f"Imported {len(statistics)} statistics for query '{query_name}'"
                             )
 
+                # Import budget data if present in query (query-level budget)
+                if "budget_settings" in query_data:
+                    budget_settings = query_data["budget_settings"]
+                    # Update timestamps for import
+                    budget_settings["created_at"] = datetime.now().isoformat()
+                    budget_settings["updated_at"] = datetime.now().isoformat()
+                    backend.save_budget_settings(
+                        profile_id, created_query_id, budget_settings
+                    )
+                    budget_imported = True  # Mark that budget was imported
+                    logger.info(f"Imported budget settings for query '{query_name}'")
+
+                if "budget_revisions" in query_data:
+                    budget_revisions = query_data["budget_revisions"]
+                    if budget_revisions:
+                        backend.save_budget_revisions(
+                            profile_id, created_query_id, budget_revisions
+                        )
+                        logger.info(
+                            f"Imported {len(budget_revisions)} budget revisions for query '{query_name}'"
+                        )
+
                 imported_query_count += 1
                 logger.info(f"Imported query '{query_name}' as {created_query_id}")
 
@@ -417,25 +440,8 @@ def perform_import(import_data, conflict_strategy=None, custom_name=None):
             backend.set_app_state("active_profile_id", profile_id)
             backend.set_app_state("active_query_id", active_query_id)
 
-        # Import budget data if present
-        budget_data = import_data.get("budget_data", {})
-        if budget_data:
-            # Import budget settings
-            if "budget_settings" in budget_data:
-                settings = budget_data["budget_settings"]
-                # Update timestamps for import
-                settings["created_at"] = datetime.now().isoformat()
-                settings["updated_at"] = datetime.now().isoformat()
-                backend.save_budget_settings(profile_id, settings)
-                logger.info(f"Imported budget settings for profile '{profile_id}'")
-
-            # Import budget revisions
-            if "budget_revisions" in budget_data:
-                revisions = budget_data["budget_revisions"]
-                backend.save_budget_revisions(profile_id, revisions)
-                logger.info(
-                    f"Imported {len(revisions)} budget revisions for profile '{profile_id}'"
-                )
+        # Budget data is now imported per-query (see query import loop above)
+        # Legacy profile-level budget_data in import_data is ignored
 
         # Log result with strategy info
         strategy_msg = f" ({conflict_strategy} strategy)" if conflict_strategy else ""
@@ -476,8 +482,7 @@ def perform_import(import_data, conflict_strategy=None, custom_name=None):
                 )
 
             # Check if budget data was imported
-            has_budget = bool(budget_data)
-            if has_budget:
+            if budget_imported:
                 warning_parts.append(
                     html.Div(
                         "💰 Budget data included in import and has been configured.",
@@ -531,8 +536,7 @@ def perform_import(import_data, conflict_strategy=None, custom_name=None):
                 )
 
             # Check if budget data was imported
-            has_budget = bool(budget_data)
-            if has_budget:
+            if budget_imported:
                 success_parts.append(
                     html.Div(
                         "💰 Budget data included in import and has been configured.",

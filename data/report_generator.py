@@ -1314,14 +1314,14 @@ def _calculate_budget_metrics(
     logger.info(f"Calculating budget metrics for {profile_id}/{query_id}")
 
     backend = get_backend()
-    budget_settings = backend.get_budget_settings(profile_id)
+    budget_settings = backend.get_budget_settings(profile_id, query_id)
 
     if not budget_settings:
-        logger.info("No budget configured for profile")
+        logger.info("No budget configured for query")
         return {"has_data": False}
 
     # Get budget revisions for history
-    revisions = backend.get_budget_revisions(profile_id) or []
+    revisions = backend.get_budget_revisions(profile_id, query_id) or []
 
     # Calculate latest budget state
     time_allocated = budget_settings.get("time_allocated_weeks", 0)

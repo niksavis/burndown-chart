@@ -931,12 +931,13 @@ class PersistenceBackend(ABC):
     # ========================================================================
 
     @abstractmethod
-    def get_budget_settings(self, profile_id: str) -> Optional[Dict]:
+    def get_budget_settings(self, profile_id: str, query_id: str) -> Optional[Dict]:
         """
-        Get budget settings for a profile.
+        Get budget settings for a query.
 
         Args:
             profile_id: Profile identifier
+            query_id: Query identifier
 
         Returns:
             Dict with budget settings, or None if not configured
@@ -944,12 +945,13 @@ class PersistenceBackend(ABC):
         pass
 
     @abstractmethod
-    def get_budget_revisions(self, profile_id: str) -> List[Dict]:
+    def get_budget_revisions(self, profile_id: str, query_id: str) -> List[Dict]:
         """
-        Get all budget revisions for a profile.
+        Get all budget revisions for a query.
 
         Args:
             profile_id: Profile identifier
+            query_id: Query identifier
 
         Returns:
             List of budget revision dicts, ordered by date ascending
@@ -957,12 +959,15 @@ class PersistenceBackend(ABC):
         pass
 
     @abstractmethod
-    def save_budget_settings(self, profile_id: str, budget_settings: Dict) -> None:
+    def save_budget_settings(
+        self, profile_id: str, query_id: str, budget_settings: Dict
+    ) -> None:
         """
-        Save budget settings for a profile.
+        Save budget settings for a query.
 
         Args:
             profile_id: Profile identifier
+            query_id: Query identifier
             budget_settings: Budget configuration dict
 
         Raises:
@@ -972,12 +977,15 @@ class PersistenceBackend(ABC):
         pass
 
     @abstractmethod
-    def save_budget_revisions(self, profile_id: str, revisions: List[Dict]) -> None:
+    def save_budget_revisions(
+        self, profile_id: str, query_id: str, revisions: List[Dict]
+    ) -> None:
         """
-        Save budget revisions for a profile.
+        Save budget revisions for a query.
 
         Args:
             profile_id: Profile identifier
+            query_id: Query identifier
             revisions: List of revision dicts
 
         Raises:

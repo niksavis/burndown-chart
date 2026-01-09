@@ -41,7 +41,6 @@ from data import (
 )
 from data.schema import DEFAULT_SETTINGS
 from data.budget_calculator import (
-    get_budget_at_week,
     calculate_budget_consumed,
     calculate_runway,
     calculate_cost_breakdown_by_type,
@@ -1171,10 +1170,10 @@ def register(app):
                     )
 
                     if profile_id and query_id:
-                        # Check if budget is configured
-                        budget_config = get_budget_at_week(
-                            profile_id, current_week_label
-                        )
+                        # Check if budget is configured (directly from budget_settings, not replaying revisions)
+                        from data.budget_calculator import _get_current_budget
+
+                        budget_config = _get_current_budget(profile_id, query_id)
                         logger.info(f"[BUDGET DEBUG] budget_config={budget_config}")
 
                         if budget_config:

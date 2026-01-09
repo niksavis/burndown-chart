@@ -46,6 +46,16 @@ def test_budget_metrics_calculation_with_data(temp_db):
     }
     backend.save_profile(profile)
 
+    # Create a test query
+    query = {
+        "id": "test_query",
+        "name": "Test Query",
+        "jql": "project = TEST",
+        "created_at": datetime.now().isoformat(),
+        "last_used": datetime.now().isoformat(),
+    }
+    backend.save_query("test_profile", query)
+
     # Save budget settings
     budget_settings = {
         "time_allocated_weeks": 52,
@@ -56,7 +66,7 @@ def test_budget_metrics_calculation_with_data(temp_db):
         "created_at": datetime.now().isoformat(),
         "updated_at": datetime.now().isoformat(),
     }
-    backend.save_budget_settings("test_profile", budget_settings)
+    backend.save_budget_settings("test_profile", "test_query", budget_settings)
 
     # Calculate metrics with mocked backend
     with patch("data.persistence.factory.get_backend", return_value=backend):

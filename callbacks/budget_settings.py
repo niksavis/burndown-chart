@@ -225,16 +225,18 @@ def _create_revision_history_table(
     ],
     [
         Input("profile-selector", "value"),
-        Input("settings-tabs", "active_tab"),
+        Input("query-selector", "value"),
+        Input("parameter-tabs", "active_tab"),
     ],
     prevent_initial_call=False,
 )
-def load_budget_settings(profile_id, active_tab):
+def load_budget_settings(profile_id, query_id, active_tab):
     """
-    Load budget settings when profile changes or Budget tab is opened.
+    Load budget settings when profile/query changes or Budget tab is opened.
 
     Args:
         profile_id: Active profile identifier
+        query_id: Active query identifier
         active_tab: Currently active settings tab
 
     Returns:
@@ -242,8 +244,15 @@ def load_budget_settings(profile_id, active_tab):
                   effective_date, revision_history, time_current, cost_current,
                   page_info, prev_disabled, next_disabled)
     """
-    # Only skip if we don't have a profile_id
-    if not profile_id:
+    logger.info(
+        f"[BUDGET LOAD] Called with profile_id={profile_id}, query_id={query_id}, active_tab={active_tab}"
+    )
+
+    # Only skip if we don't have both profile_id and query_id
+    if not profile_id or not query_id:
+        logger.warning(
+            "[BUDGET LOAD] Missing profile_id or query_id, returning no_update"
+        )
         return (
             no_update,
             no_update,
@@ -262,40 +271,65 @@ def load_budget_settings(profile_id, active_tab):
     # but skip updating the UI inputs
     if active_tab != "budget-tab":
         try:
-            with get_db_connection() as conn:
-                cursor = conn.cursor()
-                cursor.execute(
-                    """
-                    SELECT time_allocated_weeks, team_cost_per_week_eur,
-                           budget_total_eur, currency_symbol, created_at, updated_at
-                    FROM budget_settings
-                    WHERE profile_id = ?
-                """,
-                    (profile_id,),
-                )
-                result = cursor.fetchone()
-                if result:
-                    store_data = {
-                        "time_allocated_weeks": result[0],
-                        "budget_total_eur": result[2],
-                        "currency_symbol": result[3] or "€",
-                        "team_cost_per_week_eur": result[1],
-                        "created_at": result[4],
-                        "updated_at": result[5],
-                    }
-                    return (
-                        store_data,
-                        no_update,
-                        no_update,
-                        no_update,
-                        no_update,
-                        no_update,
-                        no_update,
-                        no_update,
-                        no_update,
-                        no_update,
-                        no_update,
+            from data.budget_calculator import get_budget_at_week
+            from data.iso_week_bucketing import get_week_label
+            from datetime import datetime
+
+            # Get current week to apply revisions up to now
+            current_week = get_week_label(datetime.now())
+
+            # Get budget with revisions applied (not just base settings)
+            budget_with_revisions = get_budget_at_week(
+                profile_id, query_id, current_week
+            )
+
+            if budget_with_revisions:
+                # Also get created_at and updated_at from budget_settings
+                with get_db_connection() as conn:
+                    cursor = conn.cursor()
+                    cursor.execute(
+                        "SELECT created_at, updated_at FROM budget_settings WHERE profile_id = ? AND query_id = ?",
+                        (profile_id, query_id),
                     )
+                    timestamps = cursor.fetchone()
+
+                store_data = {
+                    "time_allocated_weeks": budget_with_revisions[
+                        "time_allocated_weeks"
+                    ],
+                    "budget_total_eur": budget_with_revisions["budget_total_eur"],
+                    "currency_symbol": budget_with_revisions.get(
+                        "currency_symbol", "€"
+                    ),
+                    "team_cost_per_week_eur": budget_with_revisions[
+                        "team_cost_per_week_eur"
+                    ],
+                    "created_at": timestamps[0] if timestamps else "",
+                    "updated_at": timestamps[1] if timestamps else "",
+                }
+                logger.info(
+                    f"[BUDGET LOAD] Not on budget-tab, populating store only: time={store_data['time_allocated_weeks']}, cost={store_data['team_cost_per_week_eur']}"
+                )
+            else:
+                # No budget for this query - clear store
+                store_data = {}
+                logger.warning(
+                    "[BUDGET LOAD] No budget found, clearing store and returning no_update"
+                )
+
+                return (
+                    store_data,
+                    no_update,
+                    no_update,
+                    no_update,
+                    no_update,
+                    no_update,
+                    no_update,
+                    no_update,
+                    no_update,
+                    no_update,
+                    no_update,
+                )
         except Exception:
             pass
         return (
@@ -322,9 +356,9 @@ def load_budget_settings(profile_id, active_tab):
                 SELECT time_allocated_weeks, budget_total_eur, currency_symbol,
                        team_cost_per_week_eur, created_at, updated_at
                 FROM budget_settings
-                WHERE profile_id = ?
+                WHERE profile_id = ? AND query_id = ?
             """,
-                (profile_id,),
+                (profile_id, query_id),
             )
 
             result = cursor.fetchone()
@@ -375,10 +409,10 @@ def load_budget_settings(profile_id, active_tab):
                 SELECT revision_date, week_label, time_allocated_weeks_delta,
                        team_cost_delta, budget_total_delta, revision_reason
                 FROM budget_revisions
-                WHERE profile_id = ?
+                WHERE profile_id = ? AND query_id = ?
                 ORDER BY revision_date DESC
             """,
-                (profile_id,),
+                (profile_id, query_id),
             )
 
             revisions = cursor.fetchall()
@@ -479,6 +513,7 @@ def update_budget_total_display(time_allocated, team_cost, currency_symbol):
     Input("save-budget-button", "n_clicks"),
     [
         State("profile-selector", "value"),
+        State("query-selector", "value"),
         State("budget-time-allocated-input", "value"),
         State("budget-currency-symbol-input", "value"),
         State("budget-team-cost-input", "value"),
@@ -491,6 +526,7 @@ def update_budget_total_display(time_allocated, team_cost, currency_symbol):
 def save_budget_settings(
     n_clicks,
     profile_id,
+    query_id,
     time_allocated,
     currency_symbol,
     team_cost,
@@ -504,8 +540,8 @@ def save_budget_settings(
     Args:
         n_clicks: Button click count
         profile_id: Active profile identifier
+        query_id: Active query identifier
         time_allocated: Time allocated in weeks
-        budget_total_manual: Manual budget total (only used if budget_mode is "manual")
         currency_symbol: Currency symbol
         team_cost: Team cost per week (weekly rate)
         revision_reason: Reason for budget change
@@ -515,7 +551,7 @@ def save_budget_settings(
     Returns:
         Tuple of (status_message, updated_store_data)
     """
-    if not n_clicks or not profile_id:
+    if not n_clicks or not profile_id or not query_id:
         return no_update, no_update
 
     from ui.toast_notifications import create_toast
@@ -580,13 +616,14 @@ def save_budget_settings(
                     cursor.execute(
                         """
                         INSERT INTO budget_revisions (
-                            profile_id, revision_date, week_label,
+                            profile_id, query_id, revision_date, week_label,
                             time_allocated_weeks_delta, team_cost_delta, budget_total_delta,
                             revision_reason, created_at
-                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """,
                         (
                             profile_id,
+                            query_id,
                             now_iso,
                             current_week,
                             time_delta,
@@ -608,7 +645,7 @@ def save_budget_settings(
                         currency_symbol = ?,
                         created_at = ?,
                         updated_at = ?
-                    WHERE profile_id = ?
+                    WHERE profile_id = ? AND query_id = ?
                 """,
                     (
                         time_allocated,
@@ -618,6 +655,7 @@ def save_budget_settings(
                         effective_dt_iso,
                         now_iso,
                         profile_id,
+                        query_id,
                     ),
                 )
 
@@ -629,13 +667,14 @@ def save_budget_settings(
                 cursor.execute(
                     """
                     INSERT OR REPLACE INTO budget_settings (
-                        profile_id, time_allocated_weeks, team_cost_per_week_eur,
+                        profile_id, query_id, time_allocated_weeks, team_cost_per_week_eur,
                         budget_total_eur, currency_symbol,
                         created_at, updated_at
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                     (
                         profile_id,
+                        query_id,
                         time_allocated,
                         team_cost,
                         budget_total,
@@ -652,8 +691,8 @@ def save_budget_settings(
             # Get created_at from database to reflect any updates made
             # (important when effective date is changed during update)
             cursor.execute(
-                "SELECT created_at FROM budget_settings WHERE profile_id = ?",
-                (profile_id,),
+                "SELECT created_at FROM budget_settings WHERE profile_id = ? AND query_id = ?",
+                (profile_id, query_id),
             )
             result = cursor.fetchone()
             created_at = result[0] if result else effective_dt_iso
@@ -694,14 +733,21 @@ def save_budget_settings(
 
 @callback(
     Output("budget-current-card-body", "children", allow_duplicate=True),
-    Input("budget-settings-store", "data"),
+    [
+        Input("budget-settings-store", "data"),
+        Input("parameter-tabs", "active_tab"),
+    ],
     prevent_initial_call="initial_duplicate",
 )
-def refresh_current_budget_card(store_data):
+def refresh_current_budget_card(store_data, active_tab):
     """
-    Refresh current budget card when store updates (after save).
+    Refresh current budget card when store updates or when Budget tab becomes active.
 
     Args:
+        store_data: Budget settings store
+        active_tab: Currently active settings tab
+
+    Returns:
         store_data: Updated budget settings store
 
     Returns:
@@ -713,6 +759,7 @@ def refresh_current_budget_card(store_data):
         return _create_current_budget_card_content(
             budget_data=None, show_placeholder=True
         )
+
     # Get week label from created_at (budget start date)
     week_label = ""
     if "created_at" in store_data:
@@ -740,6 +787,77 @@ def refresh_current_budget_card(store_data):
 
 
 # ============================================================================
+# Load Budget Input Fields When Tab Becomes Active
+# ============================================================================
+
+
+@callback(
+    [
+        Output("budget-time-allocated-input", "value", allow_duplicate=True),
+        Output("budget-currency-symbol-input", "value", allow_duplicate=True),
+        Output("budget-team-cost-input", "value", allow_duplicate=True),
+        Output("budget-effective-date-picker", "date", allow_duplicate=True),
+    ],
+    [
+        Input("parameter-tabs", "active_tab"),
+        Input("budget-settings-store", "data"),
+    ],
+    prevent_initial_call=True,
+)
+def populate_inputs_on_tab_switch(active_tab, store_data):
+    """
+    Populate budget input fields when Budget tab becomes active.
+
+    This handles the case where the app starts on a different tab,
+    so inputs weren't populated by load_budget_settings.
+
+    Args:
+        active_tab: Currently active settings tab
+        store_data: Budget settings from store
+
+    Returns:
+        Tuple of (time_input, currency_input, cost_input, effective_date)
+    """
+    logger.info(
+        f"[POPULATE INPUTS] Called with active_tab={active_tab}, store_data={'present' if store_data else 'None'}"
+    )
+
+    # Only populate when switching TO budget tab
+    if active_tab != "budget-tab":
+        logger.info("[POPULATE INPUTS] Not on budget-tab, returning no_update")
+        return no_update, no_update, no_update, no_update
+
+    # If no budget data, clear inputs
+    if not store_data or not store_data.get("time_allocated_weeks"):
+        logger.warning(
+            "[POPULATE INPUTS] No budget data in store, returning empty inputs"
+        )
+        return None, "€", None, None
+
+    logger.info(
+        f"[POPULATE INPUTS] Populating inputs: time={store_data.get('time_allocated_weeks')}, cost={store_data.get('team_cost_per_week_eur')}"
+    )
+
+    # Get effective date from created_at
+    effective_date = None
+    if "created_at" in store_data:
+        try:
+            created_dt = datetime.fromisoformat(
+                store_data["created_at"].replace("Z", "+00:00")
+            )
+            effective_date = created_dt.date().isoformat()
+        except Exception:
+            pass
+
+    return (
+        store_data.get("time_allocated_weeks"),
+        store_data.get("currency_symbol", "€"),
+        store_data.get("team_cost_per_week_eur"),
+        effective_date,
+    )
+
+
+# ============================================================================
 # Refresh Budget Revision History After Save
 # ============================================================================
 
@@ -749,23 +867,29 @@ def refresh_current_budget_card(store_data):
     [
         Input("budget-settings-store", "data"),
         Input("profile-selector", "value"),
+        Input("query-selector", "value"),
         Input("budget-revision-history-page", "data"),
+        Input("parameter-tabs", "active_tab"),
     ],
     prevent_initial_call=True,
 )
-def refresh_budget_revision_history(store_data, profile_id, current_page):
+def refresh_budget_revision_history(
+    store_data, profile_id, query_id, current_page, active_tab
+):
     """
-    Refresh budget revision history when store updates (after save).
+    Refresh budget revision history when store updates or when Budget tab becomes active.
 
     Args:
         store_data: Updated budget settings store
         profile_id: Active profile identifier
+        query_id: Active query identifier
         current_page: Current pagination page
+        active_tab: Currently active settings tab
 
     Returns:
         List of revision history UI elements
     """
-    if not profile_id or not store_data:
+    if not profile_id or not query_id or not store_data:
         return no_update
 
     try:
@@ -781,10 +905,10 @@ def refresh_budget_revision_history(store_data, profile_id, current_page):
                 SELECT revision_date, week_label, time_allocated_weeks_delta,
                        team_cost_delta, budget_total_delta, revision_reason
                 FROM budget_revisions
-                WHERE profile_id = ?
+                WHERE profile_id = ? AND query_id = ?
                 ORDER BY revision_date DESC
             """,
-                (profile_id,),
+                (profile_id, query_id),
             )
 
             revisions = cursor.fetchall()
@@ -919,10 +1043,13 @@ def handle_revision_pagination(prev_clicks, next_clicks, current_page):
         Input("budget-revision-history-page", "data"),
         Input("budget-settings-store", "data"),
     ],
-    State("profile-selector", "value"),
+    [
+        State("profile-selector", "value"),
+        State("query-selector", "value"),
+    ],
     prevent_initial_call=True,
 )
-def update_revision_history_page(page, store_data, profile_id):
+def update_revision_history_page(page, store_data, profile_id, query_id):
     """
     Update revision history table when page changes.
 
@@ -930,11 +1057,12 @@ def update_revision_history_page(page, store_data, profile_id):
         page: Current page number
         store_data: Budget settings store
         profile_id: Active profile identifier
+        query_id: Active query identifier
 
     Returns:
         Tuple of (table, page_info, prev_disabled, next_disabled)
     """
-    if not profile_id or not store_data:
+    if not profile_id or not query_id or not store_data:
         return no_update, no_update, no_update, no_update
 
     try:
@@ -950,10 +1078,10 @@ def update_revision_history_page(page, store_data, profile_id):
                 SELECT revision_date, week_label, time_allocated_weeks_delta,
                        team_cost_delta, budget_total_delta, revision_reason
                 FROM budget_revisions
-                WHERE profile_id = ?
+                WHERE profile_id = ? AND query_id = ?
                 ORDER BY revision_date DESC
             """,
-                (profile_id,),
+                (profile_id, query_id),
             )
 
             revisions = cursor.fetchall()
@@ -1052,21 +1180,25 @@ def toggle_delete_history_modal(delete_clicks, cancel_clicks, confirm_clicks, is
         Output("budget-revision-history", "children", allow_duplicate=True),
     ],
     Input("budget-delete-history-confirm-button", "n_clicks"),
-    State("profile-selector", "value"),
+    [
+        State("profile-selector", "value"),
+        State("query-selector", "value"),
+    ],
     prevent_initial_call=True,
 )
-def confirm_delete_budget_history(n_clicks, profile_id):
+def confirm_delete_budget_history(n_clicks, profile_id, query_id):
     """
     Delete all budget revision history (danger zone action).
 
     Args:
         n_clicks: Confirm button clicks
         profile_id: Active profile identifier
+        query_id: Active query identifier
 
     Returns:
         Tuple of (notification, updated_store, modal_state, revision_history)
     """
-    if not n_clicks or not profile_id:
+    if not n_clicks or not profile_id or not query_id:
         return no_update, no_update, no_update, no_update
 
     from ui.toast_notifications import create_toast
@@ -1077,9 +1209,9 @@ def confirm_delete_budget_history(n_clicks, profile_id):
             cursor.execute(
                 """
                 DELETE FROM budget_revisions
-                WHERE profile_id = ?
+                WHERE profile_id = ? AND query_id = ?
                 """,
-                (profile_id,),
+                (profile_id, query_id),
             )
             conn.commit()
 
@@ -1178,21 +1310,25 @@ def enable_delete_complete_button(confirmation_text):
         Output("budget-team-cost-input", "value", allow_duplicate=True),
     ],
     Input("budget-delete-complete-confirm-button", "n_clicks"),
-    State("profile-selector", "value"),
+    [
+        State("profile-selector", "value"),
+        State("query-selector", "value"),
+    ],
     prevent_initial_call=True,
 )
-def confirm_delete_complete_budget(n_clicks, profile_id):
+def confirm_delete_complete_budget(n_clicks, profile_id, query_id):
     """
     Delete complete budget configuration including all history (danger zone action).
 
     Args:
         n_clicks: Confirm button clicks
         profile_id: Active profile identifier
+        query_id: Active query identifier
 
     Returns:
         Tuple of (notification, updated_store, modal_state, history, time_input, cost_input)
     """
-    if not n_clicks or not profile_id:
+    if not n_clicks or not profile_id or not query_id:
         return (
             no_update,
             no_update,
@@ -1212,18 +1348,18 @@ def confirm_delete_complete_budget(n_clicks, profile_id):
             cursor.execute(
                 """
                 DELETE FROM budget_revisions
-                WHERE profile_id = ?
+                WHERE profile_id = ? AND query_id = ?
                 """,
-                (profile_id,),
+                (profile_id, query_id),
             )
 
             # Delete budget settings
             cursor.execute(
                 """
                 DELETE FROM budget_settings
-                WHERE profile_id = ?
+                WHERE profile_id = ? AND query_id = ?
                 """,
-                (profile_id,),
+                (profile_id, query_id),
             )
             conn.commit()
 

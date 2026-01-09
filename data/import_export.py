@@ -609,9 +609,9 @@ def export_profile_with_mode(
         )
 
     # Load profile data from database
-    from data.persistence.factory import get_backend
+    from data.persistence import factory
 
-    backend = get_backend()
+    backend = factory.get_backend()
     profile_data = backend.get_profile(profile_id)
 
     if not profile_data:
@@ -676,29 +676,24 @@ def export_profile_with_mode(
             if statistics:
                 query_data["statistics"] = statistics
 
+        # Export budget settings and revisions (query-level data) - only if explicitly requested
+        if include_budget:
+            budget_settings = backend.get_budget_settings(profile_id, current_query_id)
+            if budget_settings:
+                query_data["budget_settings"] = budget_settings
+                logger.info(f"Exported budget settings for query '{current_query_id}'")
+
+            budget_revisions = backend.get_budget_revisions(
+                profile_id, current_query_id
+            )
+            if budget_revisions:
+                query_data["budget_revisions"] = budget_revisions
+                logger.info(
+                    f"Exported {len(budget_revisions)} budget revisions for query '{current_query_id}'"
+                )
+
         all_queries_data[current_query_id] = query_data
         exported_query_count += 1
-
-    # Export budget settings and revisions (profile-level data) - only if explicitly requested
-    if include_budget:
-        budget_data = {}
-        budget_settings = backend.get_budget_settings(profile_id)
-        if budget_settings:
-            budget_data["budget_settings"] = budget_settings
-            logger.info(f"Exported budget settings for profile '{profile_id}'")
-
-        budget_revisions = backend.get_budget_revisions(profile_id)
-        if budget_revisions:
-            budget_data["budget_revisions"] = budget_revisions
-            logger.info(
-                f"Exported {len(budget_revisions)} budget revisions for profile '{profile_id}'"
-            )
-
-        if budget_data:
-            export_package["budget_data"] = budget_data
-            logger.info("Budget data included in export (user opted-in)")
-    else:
-        logger.info("Budget data excluded from export (default)")
 
     if exported_query_count == 0:
         logger.warning(f"No queries found to export for profile '{profile_id}'")
@@ -870,7 +865,6 @@ def _create_profile_from_import(
             load_profiles_metadata,
             save_profiles_metadata,
         )
-        from data.persistence.factory import get_backend
 
         # Extract profile name for creation
         profile_name = profile_data.get("name", f"Imported Profile {profile_id}")
@@ -914,26 +908,9 @@ def _create_profile_from_import(
         if cache_dir.exists():
             _import_profile_cache(profile_id, cache_dir)
 
-        # Import budget data if available
-        if budget_data:
-            backend = get_backend()
-
-            # Import budget settings
-            if "budget_settings" in budget_data:
-                settings = budget_data["budget_settings"]
-                # Update timestamps for import
-                settings["created_at"] = datetime.now(timezone.utc).isoformat()
-                settings["updated_at"] = datetime.now(timezone.utc).isoformat()
-                backend.save_budget_settings(profile_id, settings)
-                logger.info(f"Imported budget settings for profile '{profile_id}'")
-
-            # Import budget revisions
-            if "budget_revisions" in budget_data:
-                revisions = budget_data["budget_revisions"]
-                backend.save_budget_revisions(profile_id, revisions)
-                logger.info(
-                    f"Imported {len(revisions)} budget revisions for profile '{profile_id}'"
-                )
+        # Note: Budget data is now per-query (not profile-level)
+        # Budget import is handled within query import flow
+        # Legacy profile-level budget_data parameter is deprecated
 
         return True, profile_id
 
