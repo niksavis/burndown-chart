@@ -29,15 +29,15 @@
                       │ - jql        │   
                       └──────┬───────┘   
                              │ 1:N       
-                             ├───────────────────────────────┬────────────────────┬───────────────────┐
-                             │                               │                    │                   │
-                             ▼                               ▼                    ▼                   ▼
-                      ┌────────────────┐          ┌────────────────────┐  ┌──────────────┐  ┌──────────────────────┐
-                      │  jira_issues   │          │  project_statistics│  │ project_scope│  │  metrics_data_points │
-                      │                │          │                    │  │              │  │                      │
-                      │ - id (PK)      │          │ - id (PK)          │  │ - id (PK)    │  │ - id (PK)            │
-                      │ - profile_id   │ (FK)     │ - profile_id       │  │ - profile_id │  │ - profile_id         │ (FK)
-                      │ - query_id     │ (FK)     │ - query_id         │  │ - query_id   │  │ - query_id           │ (FK)
+                             ├───────────────────────────────┬────────────────────┬───────────────────┬───────────────────┐
+                             │                               │                    │                   │                   │
+                             ▼                               ▼                    ▼                   ▼                   ▼
+                      ┌────────────────┐          ┌────────────────────┐  ┌──────────────┐  ┌──────────────────────┐  ┌──────────────────┐
+                      │  jira_issues   │          │  project_statistics│  │ project_scope│  │  metrics_data_points │  │ budget_settings  │
+                      │                │          │                    │  │              │  │                      │  │                  │
+                      │ - id (PK)      │          │ - id (PK)          │  │ - id (PK)    │  │ - id (PK)            │  │ - id (PK)        │
+                      │ - profile_id   │ (FK)     │ - profile_id       │  │ - profile_id │  │ - profile_id         │  │ - profile_id     │ (FK)
+                      │ - query_id     │ (FK)     │ - query_id         │  │ - query_id   │  │ - query_id           │  │ - query_id       │ (FK)
                       │ - cache_key    │          │ - stat_date        │  │ - scope_data │  │ - snapshot_date      │ (ISO week)
                       │ - issue_key    │          │ - week_label       │  │ - updated_at │  │ - metric_category    │ (dora|flow)
                       │ - summary      │          │ - completed_items  │  └──────────────┘  │ - metric_name        │ (deployment_freq|...)
@@ -95,9 +95,12 @@
 - 1:N = One-to-Many Relationship
 - ◄── = Foreign Key Reference
 
-**Table Count**: 10 tables (normalized from original 8-table design)
+**Table Count**: 12 tables (normalized from original 8-table design)
 - **Core**: app_state, profiles, queries
-- **JIRA data (normalized)**: jira_issues, jira_changelog_entries
+- **JIRA data (normalized)**: jira_issues, jira_cache, jira_changelog_entries
+- **Analytics (normalized)**: project_statistics, project_scope, metrics_data_points
+- **Budget (query-level)**: budget_settings, budget_revisions
+- **Runtime**: task_progress
 - **Project data (normalized)**: project_statistics, project_scope
 - **Metrics (normalized)**: metrics_data_points
 - **Runtime**: task_progress
@@ -661,6 +664,120 @@ VALUES ('calculate_metrics', 100.0, 'completed', 'Metrics calculation complete',
 
 ---
 
+### 9. budget_settings (Query-Level Budget Configuration)
+
+**Purpose**: Store budget configuration per query (NOT per profile)
+
+**Design Decision**: Budget is **query-level** to avoid confusion when switching queries. Each query can have its own budget, time allocation, and cost tracking. This enables:
+- Different budgets for "Sprint Backlog" vs "All Issues" queries
+- Query-specific time allocation and cost rates
+- Data isolation between queries within same profile
+
+```sql
+CREATE TABLE budget_settings (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    profile_id TEXT NOT NULL,
+    query_id TEXT NOT NULL,
+    
+    -- Budget configuration
+    time_allocated_weeks INTEGER NOT NULL,  -- Total weeks allocated
+    team_cost_per_week_eur REAL,           -- Weekly team cost (nullable)
+    cost_rate_type TEXT DEFAULT 'weekly',   -- 'weekly' or 'total'
+    currency_symbol TEXT DEFAULT '€',       -- Display currency
+    budget_total_eur REAL,                  -- Total budget (nullable)
+    
+    -- Timestamps
+    created_at TEXT NOT NULL,               -- ISO 8601: Budget creation
+    updated_at TEXT NOT NULL,               -- ISO 8601: Last update
+    
+    -- Composite unique constraint (one budget per query)
+    UNIQUE(profile_id, query_id),
+    
+    -- Foreign key with cascade delete
+    FOREIGN KEY (profile_id, query_id) 
+        REFERENCES queries(profile_id, id) ON DELETE CASCADE
+);
+
+CREATE INDEX idx_budget_settings_profile_query ON budget_settings(profile_id, query_id);
+```
+
+**Example Row**:
+```sql
+INSERT INTO budget_settings VALUES 
+(1, 'kafka', 'sprint-backlog', 12, 5000.00, 'weekly', '€', 60000.00, 
+ '2025-12-23T10:00:00Z', '2025-12-23T10:00:00Z');
+```
+
+**Query Patterns**:
+```sql
+-- Get budget for active query
+SELECT * FROM budget_settings 
+WHERE profile_id='kafka' AND query_id='sprint-backlog';
+
+-- Check if query has budget
+SELECT COUNT(*) FROM budget_settings 
+WHERE profile_id='kafka' AND query_id='new-query';
+```
+
+---
+
+### 10. budget_revisions (Budget Change Event Log)
+
+**Purpose**: Track budget changes over time (per query)
+
+**Mapping**: New feature (no JSON equivalent)
+
+```sql
+CREATE TABLE budget_revisions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    profile_id TEXT NOT NULL,
+    query_id TEXT NOT NULL,
+    
+    -- Revision details
+    revision_date TEXT NOT NULL,               -- ISO 8601: When change was made
+    week_label TEXT NOT NULL,                  -- Week label (e.g., "2025-W48")
+    time_allocated_weeks_delta INTEGER DEFAULT 0,  -- Change in weeks (+2, -1)
+    team_cost_delta REAL DEFAULT 0,            -- Change in weekly cost
+    budget_total_delta REAL DEFAULT 0,         -- Change in total budget
+    revision_reason TEXT,                      -- Optional explanation
+    
+    -- Metadata
+    created_at TEXT NOT NULL,                  -- ISO 8601: Record creation
+    metadata TEXT,                             -- JSON: Additional context (optional)
+    
+    -- Foreign key with cascade delete
+    FOREIGN KEY (profile_id, query_id) 
+        REFERENCES queries(profile_id, id) ON DELETE CASCADE
+);
+
+CREATE INDEX idx_budget_revisions_profile_query ON budget_revisions(profile_id, query_id);
+CREATE INDEX idx_budget_revisions_week ON budget_revisions(profile_id, query_id, week_label);
+```
+
+**Example Row**:
+```sql
+INSERT INTO budget_revisions VALUES 
+(1, 'kafka', 'sprint-backlog', '2025-12-20T14:30:00Z', '2025-W51', 
+ 2, 0.00, 10000.00, 'Extended deadline by 2 weeks', 
+ '2025-12-20T14:30:00Z', NULL);
+```
+
+**Query Patterns**:
+```sql
+-- Get all budget revisions for query
+SELECT revision_date, week_label, budget_total_delta, revision_reason
+FROM budget_revisions
+WHERE profile_id='kafka' AND query_id='sprint-backlog'
+ORDER BY revision_date DESC;
+
+-- Get budget changes for specific week
+SELECT * FROM budget_revisions
+WHERE profile_id='kafka' AND query_id='sprint-backlog' 
+  AND week_label='2025-W51';
+```
+
+---
+
 ## Data Migration Mapping
 
 ### JSON → SQLite Conversion
@@ -1093,7 +1210,8 @@ def upgrade_schema():
 
 ## Summary
 
-- **10 tables**: profiles, queries, app_state, jira_issues, jira_changelog_entries, project_statistics, project_scope, metrics_data_points, task_progress (normalized from original 8-table design)
+- **12 tables**: profiles, queries, app_state, jira_issues, jira_cache, jira_changelog_entries, project_statistics, project_scope, metrics_data_points, budget_settings, budget_revisions, task_progress (normalized from original 8-table design)
+- **Budget architecture**: Query-level (not profile-level) to enable per-query budget isolation
 - **Normalized large collections**: Issues, changelog entries, weekly statistics, and metric data points stored as individual rows instead of JSON blobs
 - **Strategic JSON usage**: Small nested data (<1KB) kept as JSON (fix_versions, labels, components, custom_fields, scope_data)
 - **Foreign keys enforce hierarchy**: Profile → Query → Data with CASCADE DELETE for referential integrity

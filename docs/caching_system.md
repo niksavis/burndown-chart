@@ -552,11 +552,12 @@ CREATE INDEX idx_metrics_category ON metrics_data_points(metric_category);
 CREATE INDEX idx_metrics_value ON metrics_data_points(metric_name, metric_value);
 ```
 
-#### 10. budget_settings
+#### 10. budget_settings (query-level budget configuration)
 ```sql
 CREATE TABLE IF NOT EXISTS budget_settings (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    profile_id TEXT NOT NULL UNIQUE,
+    profile_id TEXT NOT NULL,
+    query_id TEXT NOT NULL,
     time_allocated_weeks INTEGER NOT NULL,
     team_cost_per_week_eur REAL,
     cost_rate_type TEXT DEFAULT 'weekly',
@@ -564,17 +565,19 @@ CREATE TABLE IF NOT EXISTS budget_settings (
     budget_total_eur REAL,
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL,
-    FOREIGN KEY (profile_id) REFERENCES profiles(id) ON DELETE CASCADE
+    UNIQUE(profile_id, query_id),
+    FOREIGN KEY (profile_id, query_id) REFERENCES queries(profile_id, id) ON DELETE CASCADE
 );
 
-CREATE INDEX idx_budget_settings_profile ON budget_settings(profile_id);
+CREATE INDEX idx_budget_settings_profile_query ON budget_settings(profile_id, query_id);
 ```
 
-#### 11. budget_revisions
+#### 11. budget_revisions (budget change event log)
 ```sql
 CREATE TABLE IF NOT EXISTS budget_revisions (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     profile_id TEXT NOT NULL,
+    query_id TEXT NOT NULL,
     revision_date TEXT NOT NULL,
     week_label TEXT NOT NULL,
     time_allocated_weeks_delta INTEGER DEFAULT 0,
@@ -583,11 +586,11 @@ CREATE TABLE IF NOT EXISTS budget_revisions (
     revision_reason TEXT,
     created_at TEXT NOT NULL,
     metadata TEXT,
-    FOREIGN KEY (profile_id) REFERENCES profiles(id) ON DELETE CASCADE
+    FOREIGN KEY (profile_id, query_id) REFERENCES queries(profile_id, id) ON DELETE CASCADE
 );
 
-CREATE INDEX idx_budget_revisions_profile ON budget_revisions(profile_id);
-CREATE INDEX idx_budget_revisions_week ON budget_revisions(profile_id, week_label);
+CREATE INDEX idx_budget_revisions_profile_query ON budget_revisions(profile_id, query_id);
+CREATE INDEX idx_budget_revisions_week ON budget_revisions(profile_id, query_id, week_label);
 ```
 
 #### 12. task_progress
