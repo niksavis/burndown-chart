@@ -1080,6 +1080,7 @@ def _create_throughput_section(
                                     if avg_items > 5
                                     else "orange",
                                     "error_state": "success",
+                                    "_n_weeks": data_points_count,
                                     "tooltip": "Average number of work items completed per week. Calculated using the corrected velocity method that counts actual weeks with data (not date range spans).",
                                     "weekly_values": list(
                                         statistics_df["completed_items"]
@@ -1125,6 +1126,7 @@ def _create_throughput_section(
                                     "error_state": "success"
                                     if show_points
                                     else "no_data",
+                                    "_n_weeks": data_points_count,
                                     "tooltip": "Average story points completed per week. Story points represent work complexity and effort. Higher values indicate faster delivery of larger work items."
                                     if show_points
                                     else "Enable Points Tracking in Parameters panel and configure the points field in JIRA Configuration to view this metric. When disabled, forecasts use item counts instead.",
@@ -1166,6 +1168,7 @@ def _create_throughput_section(
                                     "error_state": "success"
                                     if show_points
                                     else "no_data",
+                                    "_n_weeks": data_points_count,
                                     "tooltip": "Average story points per completed work item. Shows typical item complexity. Higher values mean larger items taking longer to complete. Use this to understand capacity: fewer large items or more small items per sprint."
                                     if show_points
                                     else "Enable Points Tracking in Parameters panel and configure the points field in JIRA Configuration to view this metric. When disabled, forecasts use item counts instead.",
@@ -1870,6 +1873,7 @@ def _create_recent_activity_section(statistics_df, show_points=True):
                 "metric_name": "items_completed",
                 "value": total_items_completed,
                 "unit": "items",
+                "_n_weeks": recent_window,
                 "tooltip": f"Total items completed in the last {recent_window} weeks. This metric shows recent delivery throughput regardless of the data points filter.",
                 "error_state": "success",
                 "total_issue_count": 0,
@@ -1880,6 +1884,7 @@ def _create_recent_activity_section(statistics_df, show_points=True):
                 "metric_name": "items_per_week_avg",
                 "value": avg_items_weekly,
                 "unit": "items/week",
+                "_n_weeks": recent_window,
                 "tooltip": f"Average items completed per week over the last {recent_window} weeks. Indicates current team velocity.",
                 "error_state": "success",
                 "total_issue_count": 0,
@@ -1899,6 +1904,7 @@ def _create_recent_activity_section(statistics_df, show_points=True):
                     "metric_name": "points_completed",
                     "value": total_points_completed,
                     "unit": "points",
+                    "_n_weeks": recent_window,
                     "tooltip": f"Total story points completed in the last {recent_window} weeks. This metric shows recent delivery throughput in terms of story points.",
                     "error_state": "success",
                     "total_issue_count": 0,
@@ -1909,6 +1915,7 @@ def _create_recent_activity_section(statistics_df, show_points=True):
                     "metric_name": "points_per_week_avg",
                     "value": avg_points_weekly,
                     "unit": "points/week",
+                    "_n_weeks": recent_window,
                     "tooltip": f"Average story points completed per week over the last {recent_window} weeks. Indicates current team velocity in terms of story points.",
                     "error_state": "success",
                     "total_issue_count": 0,

@@ -59,6 +59,7 @@ def create_budget_utilization_card(
     consumed_eur: float,
     budget_total: float,
     currency_symbol: str = "€",
+    data_points_count: int = 12,
     card_id: Optional[str] = None,
 ) -> dbc.Card:
     """
@@ -105,6 +106,7 @@ def create_budget_utilization_card(
         "performance_tier_color": tier_color,
         "error_state": "success",
         "total_issue_count": 0,
+        "_n_weeks": data_points_count,
         "details": {
             "consumed": f"{currency_symbol}{consumed_eur:,.2f}",
             "total": f"{currency_symbol}{budget_total:,.2f}",
@@ -164,12 +166,12 @@ def create_weekly_burn_rate_card(
         "performance_tier_color": "secondary",
         "error_state": "success",
         "total_issue_count": 0,
+        "_n_weeks": data_points_count,
         "weekly_values": weekly_values[-data_points_count:],
         "weekly_labels": weekly_labels[-data_points_count:],
         "details": {
             "trend": f"{trend_arrow} {abs(trend_pct):.1f}%",
             "trend_color": trend_color,
-            "_n_weeks": data_points_count,
         },
     }
 
@@ -180,6 +182,7 @@ def create_budget_runway_card(
     runway_weeks: float,
     pert_forecast_weeks: Optional[float] = None,
     currency_symbol: str = "€",
+    data_points_count: int = 12,
     card_id: Optional[str] = None,
 ) -> dbc.Card:
     """
@@ -209,6 +212,7 @@ def create_budget_runway_card(
             "performance_tier_color": "blue",
             "error_state": "info",
             "total_issue_count": 0,
+            "_n_weeks": data_points_count,
             "details": {
                 "status": "Waiting for work completion to calculate burn rate. "
                 "Budget runway is calculated from ACTUAL completed items, not just team cost."
@@ -226,6 +230,7 @@ def create_budget_runway_card(
             "performance_tier_color": "red",
             "error_state": "success",  # Must be "success" to render as metric card, not error card
             "total_issue_count": 0,
+            "_n_weeks": data_points_count,
             "details": {
                 "status": "Budget exceeded. Immediate action required: Review scope, increase budget, or reduce team costs."
             },
@@ -259,6 +264,7 @@ def create_budget_runway_card(
         "performance_tier_color": tier_color,
         "error_state": "success",
         "total_issue_count": 0,
+        "_n_weeks": data_points_count,
         "details": details,
     }
 
@@ -269,6 +275,7 @@ def create_cost_per_item_card(
     cost_per_item: float,
     pert_weighted_avg: Optional[float] = None,
     currency_symbol: str = "€",
+    data_points_count: int = 12,
     card_id: Optional[str] = None,
 ) -> dbc.Card:
     """
@@ -298,6 +305,7 @@ def create_cost_per_item_card(
         "performance_tier_color": "secondary",
         "error_state": "success",
         "total_issue_count": 0,
+        "_n_weeks": data_points_count,
         "details": details,
     }
 
@@ -309,6 +317,7 @@ def create_cost_per_point_card(
     pert_weighted_avg: Optional[float] = None,
     points_available: bool = True,
     currency_symbol: str = "€",
+    data_points_count: int = 12,
     card_id: Optional[str] = None,
 ) -> dbc.Card:
     """
@@ -336,6 +345,7 @@ def create_cost_per_point_card(
             "error_state": "missing_mapping",
             "error_message": "Points unavailable, using item cost only",
             "total_issue_count": 0,
+            "_n_weeks": data_points_count,
         }
         return create_metric_card(metric_data, card_id, show_details_button=False)
 
@@ -351,6 +361,7 @@ def create_cost_per_point_card(
         "performance_tier_color": "secondary",
         "error_state": "success",
         "total_issue_count": 0,
+        "_n_weeks": data_points_count,
         "details": details,
     }
 

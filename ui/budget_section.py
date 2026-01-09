@@ -162,6 +162,7 @@ def _create_budget_section(
         consumed_eur=budget_data.get("consumed_eur", 0),
         budget_total=budget_data.get("budget_total", 0),
         currency_symbol=currency_symbol,
+        data_points_count=data_points_count,
         card_id="budget-utilization-card",
     )
 
@@ -179,6 +180,7 @@ def _create_budget_section(
         runway_weeks=budget_data.get("runway_weeks", 0),
         pert_forecast_weeks=budget_data.get("pert_forecast_weeks"),
         currency_symbol=currency_symbol,
+        data_points_count=data_points_count,
         card_id="budget-runway-card",
     )
 
@@ -186,6 +188,7 @@ def _create_budget_section(
         cost_per_item=budget_data.get("cost_per_item", 0),
         pert_weighted_avg=budget_data.get("pert_cost_avg_item"),
         currency_symbol=currency_symbol,
+        data_points_count=data_points_count,
         card_id="cost-per-item-card",
     )
 
@@ -194,6 +197,7 @@ def _create_budget_section(
         pert_weighted_avg=budget_data.get("pert_cost_avg_point"),
         points_available=points_available,
         currency_symbol=currency_symbol,
+        data_points_count=data_points_count,
         card_id="cost-per-point-card",
     )
 
