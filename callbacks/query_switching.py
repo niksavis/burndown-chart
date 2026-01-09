@@ -656,20 +656,12 @@ def load_query_cached_data(n_clicks, selected_query_id):
         # Format total_points for display field
         total_points_display = f"{total_points:.0f}"
 
-        # Load settings
+        # Load settings (already contains correct total_items/total_points)
         settings = load_app_settings()
 
-        # BUGFIX: Update settings with actual values from project_scope
-        # so that visualization callbacks use the correct data
-        settings = {**settings}
-        settings.update(
-            {
-                "total_items": total_items,
-                "total_points": total_points,
-                "estimated_items": estimated_items,
-                "estimated_points": estimated_points,
-            }
-        )
+        # NOTE: Do NOT overwrite settings.total_items/total_points with project_scope values
+        # Settings contain the correct current remaining work, while project_scope may have
+        # outdated cached values. Overwriting causes health calculation mismatches.
 
         # Create success message
         data_points_count = len(statistics)

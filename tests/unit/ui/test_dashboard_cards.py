@@ -71,11 +71,12 @@ class TestHealthScore:
         health = _calculate_health_score(metrics)
 
         # Then: Schedule component should reduce overall score (behind schedule penalty)
-        # With 50% completion, behind schedule, stable velocity, 75% confidence
-        # Score will be moderate but not critically low
+        # With small schedule variance (5 days), stable velocity, the new continuous formula
+        # produces a moderate score around 72 (velocity: 30*0.5=15, schedule: 25*0.92=23,
+        # scope: 20, trend: 10, recent: ~4 = ~72)
         assert (
-            health < 70
-        )  # Lower health due to schedule risk (adjusted threshold)    def test_velocity_component_increasing(self):
+            health == 72
+        )  # Continuous formula gives moderate score for small variance    def test_velocity_component_increasing(self):
         """Test velocity component with increasing trend (25% weight, bonus points)."""
         # Given: Increasing velocity trend (team accelerating)
         metrics = {
@@ -140,54 +141,57 @@ class TestHealthScore:
 
     def test_health_score_composite_excellent(self):
         """Test composite health score for excellent project (>80 = excellent)."""
-        # Given: 80% complete, ahead of schedule, increasing velocity, high confidence
+        # Given: Low velocity CV, on schedule, low scope growth, improving trend, positive recent change
         metrics = {
-            "completion_percentage": 80.0,
-            "days_to_completion": 20,
-            "days_to_deadline": 60,  # 40 day buffer
-            "velocity_trend": "increasing",
-            "completion_confidence": 90,
+            "velocity_cv": 15,  # Consistent velocity (30 * 0.7 = 21 points)
+            "schedule_variance_days": 0,  # On time (25 points)
+            "scope_change_rate": 5,  # Low scope growth (20 * 0.875 = 17.5 points)
+            "trend_direction": "improving",  # Improving trend (15 points)
+            "recent_velocity_change": 10,  # Positive momentum (7.5 points)
         }
 
         # When: Calculate composite health
         health = _calculate_health_score(metrics)
 
         # Then: Health score should be >=80 (excellent tier)
+        # Expected: 21 + 25 + 17.5 + 15 + 7.5 = 86 points
         assert health >= 80
         assert health <= 100  # Never exceed 100
 
     def test_health_score_composite_fair(self):
         """Test composite health score for fair project (40-59 = fair)."""
-        # Given: 40% complete, slightly behind, stable velocity, medium confidence
+        # Given: Moderate velocity CV, moderate schedule variance, some scope growth
         metrics = {
-            "completion_percentage": 40.0,
-            "days_to_completion": 50,
-            "days_to_deadline": 45,  # 5 days behind
-            "velocity_trend": "stable",
-            "completion_confidence": 50,
+            "velocity_cv": 35,  # Moderate consistency (30 * 0.3 = 9 points)
+            "schedule_variance_days": 25,  # Moderate delay (25 * 0.58 = 14.5 points)
+            "scope_change_rate": 20,  # Moderate scope growth (20 * 0.5 = 10 points)
+            "trend_direction": "stable",  # Stable trend (10 points)
+            "recent_velocity_change": 0,  # No change (5 points)
         }
 
         # When: Calculate composite health
         health = _calculate_health_score(metrics)
 
         # Then: Health score should be in fair range (40-59)
+        # Expected: 9 + 14.5 + 10 + 10 + 5 = 48.5 points
         assert 40 <= health < 60
 
     def test_health_score_composite_needs_attention(self):
         """Test composite health score for at-risk project (<40 = needs attention)."""
-        # Given: 20% complete, behind schedule, decreasing velocity, low confidence
+        # Given: High velocity CV, significantly behind schedule, high scope growth, declining trend
         metrics = {
-            "completion_percentage": 20.0,
-            "days_to_completion": 80,
-            "days_to_deadline": 45,  # 35 days behind
-            "velocity_trend": "decreasing",
-            "completion_confidence": 30,
+            "velocity_cv": 60,  # Poor consistency (0 points - capped at 50)
+            "schedule_variance_days": 50,  # Significantly behind (25 * 0.17 = 4.2 points)
+            "scope_change_rate": 35,  # High scope growth (20 * 0.125 = 2.5 points)
+            "trend_direction": "declining",  # Declining trend (0 points)
+            "recent_velocity_change": -25,  # Negative momentum (0 points)
         }
 
         # When: Calculate composite health
         health = _calculate_health_score(metrics)
 
         # Then: Health score should be <40 (needs attention)
+        # Expected: 0 + 4.2 + 2.5 + 0 + 0 = ~7 points
         assert health < 40
         assert health >= 0  # Never negative
 

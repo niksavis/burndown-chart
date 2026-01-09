@@ -469,14 +469,17 @@ def create_dashboard_overview_content(metrics: Dict[str, Any]) -> html.Div:
 
 
 def _calculate_health_score(metrics: Dict[str, Any]) -> int:
-    """Calculate overall project health score (0-100) using deduction-based formula.
+    """Calculate overall project health score (0-100) using continuous/proportional scoring.
 
-    Starts at 100 and deducts points based on project issues:
-    - Velocity consistency (30% weight): Penalize high coefficient of variation
-    - Schedule performance (25% weight): Penalize schedule variance
-    - Scope stability (20% weight): Penalize scope change rate
-    - Quality trends (15% weight): Reward improving trends, penalize declining
-    - Recent performance (10% weight): Reward strong performance, penalize weak
+    This function uses the SAME formula as dashboard_comprehensive._calculate_project_health_score()
+    to ensure consistency across all dashboard components.
+
+    Weights:
+    - Velocity consistency: 30% (lower CV = better)
+    - Schedule performance: 25% (on-time or early = better)
+    - Scope stability: 20% (low growth rate = better)
+    - Quality trends: 15% (improving = better)
+    - Recent performance: 10% (positive change = better)
 
     Args:
         metrics: Dashboard metrics dictionary
@@ -484,73 +487,85 @@ def _calculate_health_score(metrics: Dict[str, Any]) -> int:
     Returns:
         Health score from 0-100
     """
-    score = 100
+    # Extract or calculate velocity CV
+    velocity_cv = metrics.get("velocity_cv", 0)
+    if not velocity_cv:
+        # Map velocity trend to CV approximation for backward compatibility
+        velocity_trend = metrics.get("velocity_trend", "stable")
+        velocity_cv_map = {
+            "increasing": 20,  # Good consistency with improvement
+            "stable": 25,  # Normal consistency
+            "decreasing": 40,  # Higher variation when declining
+            "unknown": 30,  # Assume moderate variation
+        }
+        velocity_cv = velocity_cv_map.get(velocity_trend, 30)
 
-    # Calculate velocity coefficient of variation (CV)
-    velocity_trend = metrics.get("velocity_trend", "stable")
-    # Map velocity trend to CV approximation for backward compatibility
-    velocity_cv_map = {
-        "increasing": 20,  # Good consistency with improvement
-        "stable": 25,  # Normal consistency
-        "decreasing": 40,  # Higher variation when declining
-        "unknown": 30,  # Assume moderate variation
-    }
-    velocity_cv = velocity_cv_map.get(velocity_trend, 30)
+    # Velocity consistency (30 points max)
+    # CV of 0% = full points, CV of 50%+ = 0 points, linear in between
+    velocity_score = max(0, 30 * (1 - min(velocity_cv / 50, 1)))
 
-    # Velocity consistency (30% weight)
-    if velocity_cv > 50:
-        score -= 30
-    elif velocity_cv > 30:
-        score -= 15
-
-    # Schedule performance (25% weight)
+    # Schedule performance (25 points max)
+    # On-time or early = full points, 60+ days late = 0 points, linear penalty
     days_to_completion = metrics.get("days_to_completion", 0)
     days_to_deadline = metrics.get("days_to_deadline", 0)
-    schedule_variance_days = (
+    schedule_variance_days = metrics.get(
+        "schedule_variance_days",
         abs(days_to_completion - days_to_deadline)
         if days_to_completion and days_to_deadline
-        else 0
+        else 0,
+    )
+    schedule_score = max(0, 25 * (1 - min(schedule_variance_days / 60, 1)))
+
+    # Scope stability (20 points max)
+    # 0% growth = full points, 40%+ growth = 0 points, linear penalty
+    scope_change_rate = metrics.get("scope_change_rate", 0)
+    scope_score = max(0, 20 * (1 - min(scope_change_rate / 40, 1)))
+
+    # Quality trends (15 points max)
+    # Improving = 15, stable = 10, declining = 0
+    trend_direction = metrics.get("trend_direction", "stable")
+    if not trend_direction or trend_direction == "unknown":
+        velocity_trend = metrics.get("velocity_trend", "stable")
+        if velocity_trend == "increasing":
+            trend_direction = "improving"
+        elif velocity_trend == "decreasing":
+            trend_direction = "declining"
+        else:
+            trend_direction = "stable"
+
+    if trend_direction == "improving":
+        trend_score = 15
+    elif trend_direction == "stable":
+        trend_score = 10
+    else:  # declining
+        trend_score = 0
+
+    # Recent performance (10 points max)
+    # +20% change = 10 points, 0% = 5 points, -20% = 0 points, linear
+    recent_velocity_change = metrics.get("recent_velocity_change", 0)
+    if not recent_velocity_change:
+        # Use confidence as proxy if recent_velocity_change not available
+        completion_confidence = metrics.get("completion_confidence") or 50
+        if completion_confidence > 80:
+            recent_velocity_change = 15
+        elif completion_confidence < 40:
+            recent_velocity_change = -25
+        else:
+            recent_velocity_change = 0
+
+    if recent_velocity_change >= 0:
+        # Positive change: 5 base + up to 5 bonus for improvement
+        recent_score = 5 + min(5, 5 * (recent_velocity_change / 20))
+    else:
+        # Negative change: linear penalty from 5 down to 0
+        recent_score = max(0, 5 * (1 + recent_velocity_change / 20))
+
+    # Calculate total score (sum of all components)
+    total_score = (
+        velocity_score + schedule_score + scope_score + trend_score + recent_score
     )
 
-    if schedule_variance_days > 30:
-        score -= 25
-    elif schedule_variance_days > 14:
-        score -= 12
-
-    # Scope stability (20% weight) - assume stable if no data
-    scope_change_rate = 0  # Would need to be passed in metrics for real calculation
-
-    if scope_change_rate > 20:
-        score -= 20
-    elif scope_change_rate > 10:
-        score -= 10
-
-    # Quality trends (15% weight)
-    trend_direction = "stable"
-    if velocity_trend == "increasing":
-        trend_direction = "improving"
-    elif velocity_trend == "decreasing":
-        trend_direction = "declining"
-
-    if trend_direction == "declining":
-        score -= 15
-    elif trend_direction == "improving":
-        score += 5
-
-    # Recent performance (10% weight) - use confidence as proxy
-    completion_confidence = metrics.get("completion_confidence") or 0
-    recent_velocity_change = 0
-    if completion_confidence > 80:
-        recent_velocity_change = 15  # High confidence = strong performance
-    elif completion_confidence < 40:
-        recent_velocity_change = -25  # Low confidence = weak performance
-
-    if recent_velocity_change < -20:
-        score -= 10
-    elif recent_velocity_change > 20:
-        score += 5
-
-    return max(0, min(100, int(score)))
+    return max(0, min(100, int(total_score)))
 
 
 def _get_health_color_and_label(score: int) -> tuple[str, str]:

@@ -470,7 +470,21 @@ def _create_executive_summary(statistics_df, settings, forecast_data):
         "recent_velocity_change": recent_velocity_change,
     }
 
+    # DEBUG: Log health metrics to trace 18% vs 13% discrepancy
+    import logging
+
+    logger = logging.getLogger(__name__)
+    logger.info(
+        f"[HEALTH CALC] Input metrics: velocity_cv={velocity_cv:.2f}, "
+        f"schedule_variance={schedule_variance:.2f}, scope_change_rate={scope_change_rate:.2f}, "
+        f"trend_direction={trend_direction}, recent_velocity_change={recent_velocity_change:.2f}, "
+        f"statistics_rows={len(statistics_df)}"
+    )
+
     health_score = _calculate_project_health_score(health_metrics)
+
+    logger.info(f"[HEALTH CALC] Calculated health_score={health_score}%")
+
     health_status = _get_health_status(health_score)
     health_reason = _get_brief_health_reason(health_metrics)
 
@@ -2646,12 +2660,18 @@ def create_comprehensive_dashboard(
         f"total_items={total_items}, total_points={total_points}"
     )
 
+    logger.info(
+        f"[DASHBOARD PERT] Input PERT values: pert_time_items={pert_time_items}, "
+        f"pert_time_points={pert_time_points}, show_points={show_points}, "
+        f"chosen forecast_days={forecast_days}"
+    )
+
     schedule_variance_calc = (
         abs(forecast_days - days_to_deadline)
         if (forecast_days and days_to_deadline)
         else 0
     )
-    logger.debug(
+    logger.info(
         f"[APP SCHEDULE] forecast_days={forecast_days}, days_to_deadline={days_to_deadline}, schedule_variance={schedule_variance_calc}"
     )
 
@@ -2694,6 +2714,11 @@ def create_comprehensive_dashboard(
         velocity_mean = statistics_df["completed_items"].mean()
         if velocity_mean > 0:
             forecast_data["velocity_cv"] = (velocity_std / velocity_mean) * 100
+            logger.info(
+                f"[HEALTH DEBUG] Velocity CV calculation: std={velocity_std:.2f}, "
+                f"mean={velocity_mean:.2f}, CV={forecast_data['velocity_cv']:.2f}%, "
+                f"statistics_rows={len(statistics_df)}"
+            )
 
     # Calculate statistically-based confidence intervals
     # Using Monte Carlo-inspired approach: forecast uncertainty grows with remaining work

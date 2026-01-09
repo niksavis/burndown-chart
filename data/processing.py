@@ -487,6 +487,24 @@ def calculate_rates(
         optimistic_time_points + 4 * most_likely_time_points + pessimistic_time_points
     ) / 6
 
+    # DEBUG: Log PERT calculation details
+    import logging
+
+    logger = logging.getLogger(__name__)
+    logger.info(
+        f"[PERT CALC] Inputs: total_items={total_items}, total_points={total_points}, "
+        f"valid_data_weeks={len(grouped_items_filtered) if has_items_data else 0}"
+    )
+    logger.info(
+        f"[PERT CALC] Rates - Items: opt={optimistic_items_rate:.4f}, likely={most_likely_items_rate:.4f}, pes={pessimistic_items_rate:.4f}"
+    )
+    logger.info(
+        f"[PERT CALC] Rates - Points: opt={optimistic_points_rate:.4f}, likely={most_likely_points_rate:.4f}, pes={pessimistic_points_rate:.4f}"
+    )
+    logger.info(
+        f"[PERT CALC] Results: pert_time_items={pert_time_items:.2f}, pert_time_points={pert_time_points:.2f}"
+    )
+
     # Cap estimated time to reasonable maximum to prevent performance issues
     # Use configurable maximum from performance settings
     #
