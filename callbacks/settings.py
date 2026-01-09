@@ -2960,22 +2960,26 @@ def register(app):
         [
             Output("data-points-input", "max"),
             Output("data-points-input", "marks"),
+            Output("data-points-input", "value"),
         ],
         [Input("current-statistics", "data")],
+        [State("data-points-input", "value")],
         prevent_initial_call=False,
     )
-    def update_data_points_slider_marks(statistics):
+    def update_data_points_slider_marks(statistics, current_value):
         """
-        Update Data Points slider max and marks when statistics data changes.
+        Update Data Points slider max, marks, and value when statistics data changes.
 
         This ensures the slider reflects the current data size after fetching
-        new data from JIRA or importing data.
+        new data from JIRA or importing data. The slider value is clamped to the
+        new maximum to prevent invalid states when switching between queries.
 
         Args:
             statistics: List of statistics data points
+            current_value: Current slider value (to be clamped if needed)
 
         Returns:
-            Tuple: (max_value, marks_dict) for the data points slider
+            Tuple: (max_value, marks_dict, clamped_value) for the data points slider
         """
         # Calculate max data points from statistics
         max_data_points = 52  # Default max
@@ -3013,11 +3017,21 @@ def register(app):
             )
             data_points_marks = {val: {"label": str(val)} for val in mark_values}
 
+        # Clamp current value to new maximum
+        # This prevents the slider value from being higher than the available data
+        # when switching from a query with more weeks to one with fewer weeks
+        clamped_value = current_value if current_value else max_data_points
+        if clamped_value > max_data_points:
+            clamped_value = max_data_points
+            logger.info(
+                f"Data Points slider value clamped from {current_value} to {clamped_value} (max={max_data_points})"
+            )
+
         logger.info(
-            f"Data Points slider updated: max={max_data_points}, marks={list(data_points_marks.keys())}"
+            f"Data Points slider updated: max={max_data_points}, marks={list(data_points_marks.keys())}, value={clamped_value}"
         )
 
-        return max_data_points, data_points_marks
+        return max_data_points, data_points_marks, clamped_value
 
     # NOTE: Initial values are now calculated directly in ui/layout.py serve_layout()
     # This ensures consistent values between app load and slider interaction
