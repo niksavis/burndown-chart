@@ -1679,27 +1679,25 @@ def _create_forecast_section(
                                 [
                                     html.Div(
                                         "Not available",
-                                        className="text-center",
+                                        className="h3 mb-0",
                                         style={
-                                            "fontSize": "0.9rem",
+                                            "fontWeight": "bold",
                                             "color": "#adb5bd",
-                                            "padding": "0.5rem 0",
                                         },
                                     ),
                                     html.Small(
                                         "Enable Points Tracking in Parameters",
-                                        className="text-muted d-block text-center",
+                                        className="text-muted d-block mt-2",
                                         style={
-                                            "fontSize": "0.7rem",
+                                            "fontSize": "0.75rem",
                                             "fontStyle": "italic",
                                         },
                                     ),
                                 ],
+                                className="text-center",
                             ),
                         ],
-                    )
-                    if show_points or (not show_points and deadline_prob_points is None)
-                    else None,
+                    ),
                 ],
             ),
             dbc.CardFooter(

@@ -97,11 +97,17 @@ def _create_budget_section(
     currency_symbol = budget_data.get("currency_symbol", "€")
     exhaustion_alert = budget_data.get("exhaustion_alert", {})
 
-    # Section header (no currency icon to reduce visual clutter)
+    # Section header
     section_header = html.Div(
         [
             html.H5(
-                "Budget & Resource Tracking",
+                [
+                    html.I(
+                        className="fas fa-wallet me-2",
+                        style={"color": "#6f42c1"},
+                    ),
+                    "Budget & Resource Tracking",
+                ],
                 className="mb-3 mt-4",
             )
         ]
