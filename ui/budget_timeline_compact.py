@@ -39,7 +39,7 @@ def create_budget_timeline_card(
     Example:
         >>> card = create_budget_timeline_card(baseline_data, 15.0)
     """
-    from datetime import datetime, timedelta
+    from datetime import datetime
     from ui.budget_cards import _create_card_footer
 
     # Extract dates
@@ -52,12 +52,6 @@ def create_budget_timeline_card(
         start_date = datetime.fromisoformat(start_date_str)
         allocated_end = datetime.fromisoformat(allocated_end_str)
         current_date = datetime.now()
-
-        # Calculate forecast end date
-        if pert_forecast_weeks:
-            forecast_end = current_date + timedelta(weeks=pert_forecast_weeks)
-        else:
-            forecast_end = None
 
         # Parse runway end (handle special cases)
         if runway_end_str and runway_end_str not in [
@@ -86,7 +80,6 @@ def create_budget_timeline_card(
 
     # Calculate timeline positions
     elapsed_weeks = baseline_data["actual"]["elapsed_weeks"]
-    allocated_weeks = baseline_data["baseline"]["time_allocated_weeks"]
     runway_vs_baseline_weeks = baseline_data["variance"]["runway_vs_baseline_weeks"]
 
     # Calculate weeks from start for each milestone

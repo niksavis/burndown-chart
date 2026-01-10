@@ -1179,8 +1179,12 @@ def register(app):
                         if budget_config:
                             # Calculate PERT forecast weeks for comparison
                             pert_forecast_weeks = None
+                            last_date = None
                             if pert_data and pert_data.get("pert_time_items"):
                                 pert_time_items = pert_data["pert_time_items"]
+                                last_date = pert_data.get(
+                                    "last_date"
+                                )  # Get last statistics date
                                 if pert_time_items and pert_time_items > 0:
                                     pert_forecast_weeks = (
                                         pert_time_items / 7.0
@@ -1259,6 +1263,7 @@ def register(app):
                                 "breakdown": cost_breakdown,
                                 "baseline_comparison": baseline_comparison,  # NEW: comprehensive data
                                 "pert_forecast_weeks": pert_forecast_weeks,  # For timeline card
+                                "last_date": last_date,  # Last statistics date for forecast alignment
                                 # Weekly breakdowns for sparkline trend charts
                                 "weekly_breakdowns": weekly_breakdowns,
                                 "weekly_breakdown_labels": weekly_breakdown_labels,

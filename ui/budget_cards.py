@@ -16,6 +16,7 @@ Created: January 4, 2026
 """
 
 import logging
+from datetime import datetime
 from typing import Any, Dict, List, Optional
 
 import dash_bootstrap_components as dbc
@@ -1644,19 +1645,21 @@ def create_forecast_alignment_card(
     pert_time_points: Optional[float],
     runway_weeks: float,
     show_points: bool = True,
+    last_date: Optional["datetime"] = None,
     card_id: Optional[str] = None,
 ) -> dbc.Card:
     """
     Create Forecast vs Budget Alignment card showing timeline comparison.
 
     Displays gap between PERT forecast completion time and budget runway
-    for both items and points tracking. Styled as table matching Cost Breakdown card.
+    for both items and points tracking with dates. Styled as table matching Cost Breakdown card.
 
     Args:
         pert_time_items: PERT forecast days (items-based)
         pert_time_points: PERT forecast days (points-based)
         runway_weeks: Budget runway in weeks
         show_points: Whether points tracking is active
+        last_date: Last statistics date for date calculations (defaults to datetime.now())
         card_id: Optional HTML ID for the card
 
     Returns:
@@ -1672,11 +1675,26 @@ def create_forecast_alignment_card(
         >>> card = create_forecast_alignment_card(105.0, 92.4, 12.5, True)
     """
     import math
+    from datetime import datetime, timedelta
     from configuration import COLOR_PALETTE
+
+    # Use last_date for date calculations, fall back to datetime.now()
+    reference_date = last_date if last_date else datetime.now()
 
     # Convert days to weeks
     pert_weeks_items = pert_time_items / 7.0
     pert_weeks_points = pert_time_points / 7.0 if pert_time_points else pert_weeks_items
+
+    # Calculate completion dates
+    items_completion_date = reference_date + timedelta(days=pert_time_items)
+    points_completion_date = (
+        reference_date + timedelta(days=pert_time_points)
+        if pert_time_points
+        else items_completion_date
+    )
+
+    # Calculate runway end date
+    runway_end_date = reference_date + timedelta(weeks=runway_weeks)
 
     # Handle infinity runway (no budget consumption)
     if math.isinf(runway_weeks):
@@ -1750,89 +1768,337 @@ def create_forecast_alignment_card(
     gap_items_text, gap_items_color, gap_items_icon = format_gap(gap_items)
     gap_points_text, gap_points_color, gap_points_icon = format_gap(gap_points)
 
-    # Build table rows
-    table_rows = []
+    # Build content using card-based layout instead of table
+    content_items = []
 
-    # Items-based row
-    table_rows.append(
-        html.Tr(
+    # Items-based section
+    content_items.append(
+        html.Div(
             [
-                html.Td(
+                # Header row
+                html.Div(
                     [
                         html.I(
                             className="fas fa-tasks me-2",
-                            style={"color": COLOR_PALETTE["items"]},
+                            style={
+                                "color": COLOR_PALETTE["items"],
+                                "fontSize": "1.1rem",
+                            },
                         ),
-                        "Items-based",
-                    ],
-                    className="text-start fw-semibold",
-                ),
-                html.Td(f"{pert_weeks_items:.1f} weeks", className="text-end"),
-                html.Td(f"{runway_weeks:.1f} weeks", className="text-end"),
-                html.Td(
-                    [
-                        html.I(className=f"fas {gap_items_icon} me-1"),
                         html.Span(
-                            gap_items_text,
-                            style={"color": gap_items_color, "fontWeight": "bold"},
+                            "Items-based",
+                            className="fw-bold",
+                            style={"fontSize": "1.1rem"},
                         ),
                     ],
-                    className="text-end",
+                    className="mb-3",
                 ),
-            ]
+                # Content row with 3 columns
+                html.Div(
+                    [
+                        # Expected Completion
+                        html.Div(
+                            [
+                                html.Div(
+                                    "Expected Completion",
+                                    className="text-muted mb-2",
+                                    style={"fontSize": "0.85rem", "fontWeight": "600"},
+                                ),
+                                html.Div(
+                                    f"{pert_weeks_items:.1f} weeks",
+                                    className="fw-bold",
+                                    style={"fontSize": "1.3rem"},
+                                ),
+                                html.Div(
+                                    items_completion_date.strftime("%Y-%m-%d"),
+                                    className="text-muted",
+                                    style={"fontSize": "0.85rem"},
+                                ),
+                            ],
+                            className="text-center",
+                            style={"flex": "1"},
+                        ),
+                        # Budget Runway
+                        html.Div(
+                            [
+                                html.Div(
+                                    "Budget Runway",
+                                    className="text-muted mb-2",
+                                    style={"fontSize": "0.85rem", "fontWeight": "600"},
+                                ),
+                                html.Div(
+                                    f"{runway_weeks:.1f} weeks",
+                                    className="fw-bold",
+                                    style={"fontSize": "1.3rem"},
+                                ),
+                                html.Div(
+                                    runway_end_date.strftime("%Y-%m-%d"),
+                                    className="text-muted",
+                                    style={"fontSize": "0.85rem"},
+                                ),
+                            ],
+                            className="text-center",
+                            style={
+                                "flex": "1",
+                                "borderLeft": "1px solid #dee2e6",
+                                "borderRight": "1px solid #dee2e6",
+                            },
+                        ),
+                        # Gap
+                        html.Div(
+                            [
+                                html.Div(
+                                    "Gap",
+                                    className="text-muted mb-2",
+                                    style={"fontSize": "0.85rem", "fontWeight": "600"},
+                                ),
+                                html.Div(
+                                    [
+                                        html.I(className=f"fas {gap_items_icon} me-2"),
+                                        html.Span(
+                                            gap_items_text,
+                                            style={"fontWeight": "bold"},
+                                        ),
+                                    ],
+                                    style={
+                                        "fontSize": "1.1rem",
+                                        "color": gap_items_color,
+                                    },
+                                ),
+                            ],
+                            className="text-center",
+                            style={"flex": "1"},
+                        ),
+                    ],
+                    className="d-flex align-items-center",
+                    style={"gap": "1rem"},
+                ),
+            ],
+            className="p-3",
+            style={
+                "borderRadius": "0.375rem",
+                "border": "1px solid #dee2e6",
+                "backgroundColor": "#f8f9fa",
+            },
         )
     )
 
-    # Points-based row (if enabled)
-    if show_points:
-        table_rows.append(
-            html.Tr(
+    # Points-based section (conditional rendering)
+    # Case 1: Points tracking disabled - show disabled message
+    if not show_points:
+        content_items.append(
+            html.Div(
                 [
-                    html.Td(
+                    html.Div(
+                        [
+                            html.I(
+                                className="fas fa-toggle-off me-2",
+                                style={"color": "#6c757d", "fontSize": "1.1rem"},
+                            ),
+                            html.Span(
+                                "Points-based",
+                                className="fw-bold text-muted",
+                                style={"fontSize": "1.1rem"},
+                            ),
+                        ],
+                        className="mb-3",
+                    ),
+                    # Use same d-flex structure as Items-based for consistent height
+                    html.Div(
+                        [
+                            html.I(className="fas fa-toggle-off fa-lg text-secondary"),
+                            html.Div(
+                                "Points Tracking Disabled",
+                                className="fw-bold",
+                                style={"fontSize": "1rem", "color": "#6c757d"},
+                            ),
+                            html.Small(
+                                "Enable Points Tracking in Parameters panel to view story points metrics.",
+                                className="text-muted",
+                                style={"fontSize": "0.85rem"},
+                            ),
+                        ],
+                        className="d-flex align-items-center justify-content-center flex-column",
+                        style={"gap": "0.25rem"},
+                    ),
+                ],
+                className="p-3 mt-3",
+                style={
+                    "borderRadius": "0.375rem",
+                    "border": "1px solid #dee2e6",
+                    "backgroundColor": "#f8f9fa",
+                },
+            )
+        )
+    # Case 2: Points tracking enabled but no points data
+    elif pert_time_points is None or pert_time_points == 0:
+        content_items.append(
+            html.Div(
+                [
+                    html.Div(
                         [
                             html.I(
                                 className="fas fa-chart-bar me-2",
-                                style={"color": COLOR_PALETTE["points"]},
+                                style={"color": "#6c757d", "fontSize": "1.1rem"},
                             ),
-                            "Points-based",
-                        ],
-                        className="text-start fw-semibold",
-                    ),
-                    html.Td(f"{pert_weeks_points:.1f} weeks", className="text-end"),
-                    html.Td(f"{runway_weeks:.1f} weeks", className="text-end"),
-                    html.Td(
-                        [
-                            html.I(className=f"fas {gap_points_icon} me-1"),
                             html.Span(
-                                gap_points_text,
-                                style={"color": gap_points_color, "fontWeight": "bold"},
+                                "Points-based",
+                                className="fw-bold text-muted",
+                                style={"fontSize": "1.1rem"},
                             ),
                         ],
-                        className="text-end",
+                        className="mb-3",
                     ),
-                ]
+                    # Use same d-flex structure as Items-based for consistent height
+                    html.Div(
+                        [
+                            html.I(className="fas fa-database fa-lg text-secondary"),
+                            html.Div(
+                                "No Points Data",
+                                className="fw-bold",
+                                style={"fontSize": "1rem", "color": "#6c757d"},
+                            ),
+                            html.Small(
+                                "No story points data available. Configure story points field in Settings or complete items with point estimates.",
+                                className="text-muted",
+                                style={"fontSize": "0.85rem"},
+                            ),
+                        ],
+                        className="d-flex align-items-center justify-content-center flex-column",
+                        style={"gap": "0.25rem"},
+                    ),
+                ],
+                className="p-3 mt-3",
+                style={
+                    "borderRadius": "0.375rem",
+                    "border": "1px solid #dee2e6",
+                    "backgroundColor": "#f8f9fa",
+                },
             )
         )
-
-    alignment_table = dbc.Table(
-        [
-            html.Thead(
-                html.Tr(
-                    [
-                        html.Th("Metric", className="text-start"),
-                        html.Th("PERT Forecast", className="text-end"),
-                        html.Th("Budget Runway", className="text-end"),
-                        html.Th("Gap", className="text-end"),
-                    ]
-                )
-            ),
-            html.Tbody(table_rows),
-        ],
-        bordered=True,
-        hover=True,
-        responsive=True,
-        size="sm",
-    )
+    # Case 3: Points tracking enabled with data - show normal section
+    else:
+        content_items.append(
+            html.Div(
+                [
+                    # Header row
+                    html.Div(
+                        [
+                            html.I(
+                                className="fas fa-chart-bar me-2",
+                                style={
+                                    "color": COLOR_PALETTE["points"],
+                                    "fontSize": "1.1rem",
+                                },
+                            ),
+                            html.Span(
+                                "Points-based",
+                                className="fw-bold",
+                                style={"fontSize": "1.1rem"},
+                            ),
+                        ],
+                        className="mb-3",
+                    ),
+                    # Content row with 3 columns
+                    html.Div(
+                        [
+                            # Expected Completion
+                            html.Div(
+                                [
+                                    html.Div(
+                                        "Expected Completion",
+                                        className="text-muted mb-2",
+                                        style={
+                                            "fontSize": "0.85rem",
+                                            "fontWeight": "600",
+                                        },
+                                    ),
+                                    html.Div(
+                                        f"{pert_weeks_points:.1f} weeks",
+                                        className="fw-bold",
+                                        style={"fontSize": "1.3rem"},
+                                    ),
+                                    html.Div(
+                                        points_completion_date.strftime("%Y-%m-%d"),
+                                        className="text-muted",
+                                        style={"fontSize": "0.85rem"},
+                                    ),
+                                ],
+                                className="text-center",
+                                style={"flex": "1"},
+                            ),
+                            # Budget Runway
+                            html.Div(
+                                [
+                                    html.Div(
+                                        "Budget Runway",
+                                        className="text-muted mb-2",
+                                        style={
+                                            "fontSize": "0.85rem",
+                                            "fontWeight": "600",
+                                        },
+                                    ),
+                                    html.Div(
+                                        f"{runway_weeks:.1f} weeks",
+                                        className="fw-bold",
+                                        style={"fontSize": "1.3rem"},
+                                    ),
+                                    html.Div(
+                                        runway_end_date.strftime("%Y-%m-%d"),
+                                        className="text-muted",
+                                        style={"fontSize": "0.85rem"},
+                                    ),
+                                ],
+                                className="text-center",
+                                style={
+                                    "flex": "1",
+                                    "borderLeft": "1px solid #dee2e6",
+                                    "borderRight": "1px solid #dee2e6",
+                                },
+                            ),
+                            # Gap
+                            html.Div(
+                                [
+                                    html.Div(
+                                        "Gap",
+                                        className="text-muted mb-2",
+                                        style={
+                                            "fontSize": "0.85rem",
+                                            "fontWeight": "600",
+                                        },
+                                    ),
+                                    html.Div(
+                                        [
+                                            html.I(
+                                                className=f"fas {gap_points_icon} me-2"
+                                            ),
+                                            html.Span(
+                                                gap_points_text,
+                                                style={"fontWeight": "bold"},
+                                            ),
+                                        ],
+                                        style={
+                                            "fontSize": "1.1rem",
+                                            "color": gap_points_color,
+                                        },
+                                    ),
+                                ],
+                                className="text-center",
+                                style={"flex": "1"},
+                            ),
+                        ],
+                        className="d-flex align-items-center",
+                        style={"gap": "1rem"},
+                    ),
+                ],
+                className="p-3 mt-3",
+                style={
+                    "borderRadius": "0.375rem",
+                    "border": "1px solid #dee2e6",
+                    "backgroundColor": "#f8f9fa",
+                },
+            )
+        )
 
     # Create card with health status badge
     from ui.tooltip_utils import create_info_tooltip
@@ -1856,20 +2122,17 @@ def create_forecast_alignment_card(
                         variant="dark",
                     ),
                     html.Div(
-                        [
-                            html.I(className=f"fas {health_icon} me-1"),
-                            html.Span(
-                                overall_health,
-                                className="badge",
-                                style={
-                                    "backgroundColor": health_color,
-                                    "color": "white",
-                                    "fontSize": "0.85rem",
-                                    "padding": "0.35rem 0.65rem",
-                                },
-                            ),
-                        ],
-                        className="ms-auto d-flex align-items-center",
+                        html.Span(
+                            overall_health,
+                            className="badge",
+                            style={
+                                "backgroundColor": health_color,
+                                "color": "white",
+                                "fontSize": "0.85rem",
+                                "padding": "0.35rem 0.65rem",
+                            },
+                        ),
+                        className="ms-auto",
                     ),
                 ],
                 className="d-flex align-items-center",
@@ -1903,7 +2166,7 @@ def create_forecast_alignment_card(
                         ],
                         className="text-center",
                     ),
-                    alignment_table,
+                    html.Div(content_items),
                 ],
                 className="pt-3 pb-0 mb-0",
             ),
@@ -1922,6 +2185,7 @@ def create_forecast_alignment_card(
 def create_budget_timeline_card(
     baseline_data: Dict[str, Any],
     pert_forecast_weeks: Optional[float] = None,
+    last_date: Optional[datetime] = None,
     card_id: Optional[str] = None,
 ) -> dbc.Card:
     """
@@ -1935,15 +2199,16 @@ def create_budget_timeline_card(
     Args:
         baseline_data: Dict from get_budget_baseline_vs_actual()
         pert_forecast_weeks: Optional PERT forecast weeks for completion date
+        last_date: Optional last statistics date for forecast alignment (defaults to datetime.now())
         card_id: Optional HTML ID for the card
 
     Returns:
         Dash Bootstrap Card component
 
     Example:
-        >>> card = create_budget_timeline_card(baseline_data, 15.0)
+        >>> card = create_budget_timeline_card(baseline_data, 15.0, last_date=datetime(2026, 1, 6))
     """
-    from datetime import datetime, timedelta
+    from datetime import datetime
 
     # Extract data
     start_date_str = baseline_data["baseline"]["start_date"]
@@ -1958,13 +2223,6 @@ def create_budget_timeline_card(
         start_date = datetime.fromisoformat(start_date_str)
         allocated_end = datetime.fromisoformat(allocated_end_str)
         current_date = datetime.now()
-
-        # Calculate forecast end
-        forecast_end = (
-            current_date + timedelta(weeks=pert_forecast_weeks)
-            if pert_forecast_weeks
-            else None
-        )
 
         # Parse runway end
         if runway_end_str and runway_end_str not in [
@@ -2016,16 +2274,6 @@ def create_budget_timeline_card(
         },
     ]
 
-    if forecast_end:
-        timeline_markers.append(
-            {
-                "date": forecast_end,
-                "label": "Forecast Complete",
-                "color": "#17a2b8",
-                "icon": "fa-chart-line",
-            }
-        )
-
     if runway_end:
         runway_color = "#20c997" if runway_vs_baseline_weeks >= 0 else "#e83e8c"
         timeline_markers.append(
@@ -2075,10 +2323,20 @@ def create_budget_timeline_card(
             else:
                 pos = desired_pos
 
-        # Ensure not too close to right edge
-        pos = min(pos, 92)
         adjusted_positions.append(pos)
         marker["position"] = pos
+
+    # Check if any markers overflow past the right edge (92%)
+    # If so, redistribute all markers evenly to prevent overlap
+    if any(pos > 92 for pos in adjusted_positions):
+        # Redistribute evenly across available space
+        spacing = 84 / (len(timeline_markers) + 1)  # 84% = 92% - 8% (margins)
+        for i, marker in enumerate(timeline_markers):
+            marker["position"] = 8 + spacing * (i + 1)
+    else:
+        # Apply right edge constraint
+        for i, marker in enumerate(timeline_markers):
+            marker["position"] = min(marker["position"], 92)
 
     # Calculate positions (0-100%)
     def calc_position(date):
@@ -2156,7 +2414,7 @@ def create_budget_timeline_card(
                             ),
                             # Date at bottom (below icon)
                             html.Div(
-                                marker["date"].strftime("%b %d, %Y"),
+                                marker["date"].strftime("%Y-%m-%d"),
                                 style={
                                     "position": "absolute",
                                     "top": "55px",
@@ -2207,7 +2465,7 @@ def create_budget_timeline_card(
                     ],
                     style={"width": "40%"},
                 ),
-                html.Td(start_date.strftime("%b %d, %Y"), className="fw-bold"),
+                html.Td(start_date.strftime("%Y-%m-%d"), className="fw-bold"),
                 html.Td(
                     f"{allocated_weeks:.0f} weeks allocated",
                     className="text-muted text-end",
@@ -2226,7 +2484,7 @@ def create_budget_timeline_card(
                     ]
                 ),
                 html.Td(
-                    current_date.strftime("%b %d, %Y"),
+                    current_date.strftime("%Y-%m-%d"),
                     className="fw-bold",
                     style={"color": "#6f42c1"},
                 ),
@@ -2248,7 +2506,7 @@ def create_budget_timeline_card(
                         "Baseline End",
                     ]
                 ),
-                html.Td(allocated_end.strftime("%b %d, %Y"), className="fw-bold"),
+                html.Td(allocated_end.strftime("%Y-%m-%d"), className="fw-bold"),
                 html.Td(
                     f"{abs(baseline_weeks_remaining):.1f} weeks {'remaining' if baseline_weeks_remaining > 0 else 'overdue'}",
                     className="text-end",
@@ -2261,28 +2519,6 @@ def create_budget_timeline_card(
             ]
         ),
     ]
-
-    # Add forecast row if available
-    if forecast_end:
-        forecast_weeks_from_now = pert_forecast_weeks
-        timeline_rows.append(
-            html.Tr(
-                [
-                    html.Td(
-                        [
-                            html.I(className="fas fa-chart-line text-info me-2"),
-                            "Forecast Complete",
-                        ]
-                    ),
-                    html.Td(forecast_end.strftime("%b %d, %Y"), className="fw-bold"),
-                    html.Td(
-                        f"{forecast_weeks_from_now:.1f} weeks from now",
-                        className="text-end",
-                        style={"color": "#198754"},
-                    ),
-                ]
-            )
-        )
 
     # Add runway row if available
     if runway_end:
@@ -2301,7 +2537,7 @@ def create_budget_timeline_card(
                         ]
                     ),
                     html.Td(
-                        runway_end.strftime("%b %d, %Y"),
+                        runway_end.strftime("%Y-%m-%d"),
                         className="fw-bold",
                         style={"color": runway_text_color},
                     ),

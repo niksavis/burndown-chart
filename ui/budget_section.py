@@ -244,6 +244,7 @@ def _create_budget_section(
         card_8 = create_budget_timeline_card(
             baseline_data=baseline_comparison,
             pert_forecast_weeks=budget_data.get("pert_forecast_weeks"),
+            last_date=budget_data.get("last_date"),
             card_id="budget-timeline-card",
         )
 

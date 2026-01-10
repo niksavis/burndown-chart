@@ -1371,7 +1371,7 @@ def _create_forecast_section(
                         if show_points
                         else {},
                     ),
-                    # Points-based forecast (always show, with placeholder when disabled)
+                    # Points-based forecast (always show, with placeholder when disabled or no data)
                     html.Div(
                         [
                             html.Div(
@@ -1381,6 +1381,7 @@ def _create_forecast_section(
                                         style={
                                             "color": COLOR_PALETTE["points"]
                                             if show_points
+                                            and points_pert_date != "No data"
                                             else "#6c757d",
                                             "fontSize": "1rem",
                                         },
@@ -1394,37 +1395,68 @@ def _create_forecast_section(
                                 className="mb-1 mt-3",
                             ),
                             html.Div(
+                                # Case 1: Points tracking enabled with data
                                 points_pert_date
-                                if show_points
-                                else [
-                                    html.Div(
-                                        [
-                                            html.I(
-                                                className="fas fa-toggle-off fa-2x text-secondary mb-2"
-                                            ),
-                                            html.Div(
-                                                "Points Tracking Disabled",
-                                                className="h5 mb-2",
-                                                style={
-                                                    "fontWeight": "600",
-                                                    "color": "#6c757d",
-                                                },
-                                            ),
-                                            html.Small(
-                                                "Points tracking is disabled. Enable Points Tracking in Parameters panel to view story points metrics.",
-                                                className="text-muted",
-                                                style={"fontSize": "0.75rem"},
-                                            ),
-                                        ],
-                                        className="text-center",
-                                    )
-                                ],
-                                className="h3 mb-0" if show_points else "",
+                                if show_points and points_pert_date != "No data"
+                                # Case 2: Points tracking disabled
+                                else (
+                                    [
+                                        html.Div(
+                                            [
+                                                html.I(
+                                                    className="fas fa-toggle-off fa-2x text-secondary mb-2"
+                                                ),
+                                                html.Div(
+                                                    "Points Tracking Disabled",
+                                                    className="h5 mb-2",
+                                                    style={
+                                                        "fontWeight": "600",
+                                                        "color": "#6c757d",
+                                                    },
+                                                ),
+                                                html.Small(
+                                                    "Points tracking is disabled. Enable Points Tracking in Parameters panel to view story points metrics.",
+                                                    className="text-muted",
+                                                    style={"fontSize": "0.75rem"},
+                                                ),
+                                            ],
+                                            className="text-center",
+                                        )
+                                    ]
+                                    if not show_points
+                                    # Case 3: Points tracking enabled but no data
+                                    else [
+                                        html.Div(
+                                            [
+                                                html.I(
+                                                    className="fas fa-database fa-2x text-secondary mb-2"
+                                                ),
+                                                html.Div(
+                                                    "No Points Data",
+                                                    className="h5 mb-2",
+                                                    style={
+                                                        "fontWeight": "600",
+                                                        "color": "#6c757d",
+                                                    },
+                                                ),
+                                                html.Small(
+                                                    "No story points data available. Configure story points field in Settings or complete items with point estimates.",
+                                                    className="text-muted",
+                                                    style={"fontSize": "0.75rem"},
+                                                ),
+                                            ],
+                                            className="text-center",
+                                        )
+                                    ]
+                                ),
+                                className="h3 mb-0"
+                                if show_points and points_pert_date != "No data"
+                                else "",
                                 style={
                                     "fontWeight": "bold",
                                     "color": COLOR_PALETTE["points"],
                                 }
-                                if show_points
+                                if show_points and points_pert_date != "No data"
                                 else {},
                             ),
                         ],
@@ -1692,27 +1724,55 @@ def _create_forecast_section(
                                     ),
                                 ],
                             )
-                            if (show_points and deadline_prob_points is not None)
-                            else html.Div(
-                                [
-                                    html.I(
-                                        className="fas fa-toggle-off fa-2x text-secondary mb-2"
-                                    ),
-                                    html.Div(
-                                        "Points Tracking Disabled",
-                                        className="h5 mb-2",
-                                        style={
-                                            "fontWeight": "600",
-                                            "color": "#6c757d",
-                                        },
-                                    ),
-                                    html.Small(
-                                        "Points tracking is disabled. Enable Points Tracking in Parameters panel to view story points metrics.",
-                                        className="text-muted",
-                                        style={"fontSize": "0.75rem"},
-                                    ),
-                                ],
-                                className="text-center",
+                            # Case 1: Points tracking disabled
+                            if show_points
+                            and deadline_prob_points is not None
+                            and deadline_prob_points > 0
+                            else (
+                                html.Div(
+                                    [
+                                        html.I(
+                                            className="fas fa-toggle-off fa-2x text-secondary mb-2"
+                                        ),
+                                        html.Div(
+                                            "Points Tracking Disabled",
+                                            className="h5 mb-2",
+                                            style={
+                                                "fontWeight": "600",
+                                                "color": "#6c757d",
+                                            },
+                                        ),
+                                        html.Small(
+                                            "Points tracking is disabled. Enable Points Tracking in Parameters panel to view story points metrics.",
+                                            className="text-muted",
+                                            style={"fontSize": "0.75rem"},
+                                        ),
+                                    ],
+                                    className="text-center",
+                                )
+                                if not show_points
+                                # Case 2: Points tracking enabled but no data
+                                else html.Div(
+                                    [
+                                        html.I(
+                                            className="fas fa-database fa-2x text-secondary mb-2"
+                                        ),
+                                        html.Div(
+                                            "No Points Data",
+                                            className="h5 mb-2",
+                                            style={
+                                                "fontWeight": "600",
+                                                "color": "#6c757d",
+                                            },
+                                        ),
+                                        html.Small(
+                                            "No story points data available. Configure story points field in Settings or complete items with point estimates.",
+                                            className="text-muted",
+                                            style={"fontSize": "0.75rem"},
+                                        ),
+                                    ],
+                                    className="text-center",
+                                )
                             ),
                         ],
                     ),
@@ -1845,6 +1905,7 @@ def _create_forecast_section(
                                 pert_time_points=pert_data.get("pert_time_points"),
                                 runway_weeks=budget_data.get("runway_weeks", 0),
                                 show_points=show_points,
+                                last_date=pert_data.get("last_date"),
                                 card_id="forecast-alignment-card",
                             ),
                             width=12,
@@ -2861,6 +2922,13 @@ def create_comprehensive_dashboard(
             ),
             # Recent Completions Section - uses unfiltered data for consistent 4-week view
             _create_recent_activity_section(statistics_df_unfiltered, show_points),
+            # Delivery Forecast Section
+            _create_forecast_section(
+                forecast_data,
+                confidence_data,
+                budget_data=budget_data,
+                show_points=show_points,
+            ),
             # Budget & Resource Tracking (conditional on budget configuration)
             _create_budget_section(
                 profile_id=additional_context.get("profile_id", "")
@@ -2875,13 +2943,6 @@ def create_comprehensive_dashboard(
                 budget_data=budget_data,
                 points_available=show_points,
                 data_points_count=data_points_count or 12,
-            ),
-            # Forecast Section
-            _create_forecast_section(
-                forecast_data,
-                confidence_data,
-                budget_data=budget_data,
-                show_points=show_points,
             ),
             # Quality & Scope Section
             _create_quality_scope_section(statistics_df, settings),
