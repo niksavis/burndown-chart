@@ -1442,21 +1442,29 @@ def create_cost_breakdown_card(
                 for wb in weekly_breakdowns[-data_points_count:]
             ]
 
-        # Create mini sparkline
+        # Create mini sparkline with flow type for color coding
         sparkline = (
-            _create_inline_sparkline(sparkline_values)
+            _create_inline_sparkline(sparkline_values, flow_type)
             if sparkline_values
-            else html.Div()
+            else html.Div("—", className="text-muted")
         )
 
         category_rows.append(
             html.Tr(
                 [
-                    html.Td(flow_type, className="text-start"),
-                    html.Td(f"{currency_symbol}{cost:,.2f}", className="text-end"),
-                    html.Td(f"{pct:.1f}%", className="text-end"),
-                    html.Td(f"{count} items", className="text-end text-muted"),
-                    html.Td(sparkline, className="text-center"),
+                    html.Td(flow_type, className="text-start", style={"width": "20%"}),
+                    html.Td(
+                        f"{currency_symbol}{cost:,.2f}",
+                        className="text-end",
+                        style={"width": "20%"},
+                    ),
+                    html.Td(f"{pct:.1f}%", className="text-end", style={"width": "8%"}),
+                    html.Td(
+                        f"{count} items",
+                        className="text-end text-muted",
+                        style={"width": "12%"},
+                    ),
+                    html.Td(sparkline, className="text-center", style={"width": "40%"}),
                 ]
             )
         )
@@ -1466,11 +1474,15 @@ def create_cost_breakdown_card(
             html.Thead(
                 html.Tr(
                     [
-                        html.Th("Work Type", className="text-start"),
-                        html.Th("Cost", className="text-end"),
-                        html.Th("%", className="text-end"),
-                        html.Th("Count", className="text-end"),
-                        html.Th("Trend", className="text-center"),
+                        html.Th(
+                            "Work Type", className="text-start", style={"width": "20%"}
+                        ),
+                        html.Th("Cost", className="text-end", style={"width": "20%"}),
+                        html.Th("%", className="text-end", style={"width": "8%"}),
+                        html.Th("Count", className="text-end", style={"width": "12%"}),
+                        html.Th(
+                            "Trend", className="text-center", style={"width": "40%"}
+                        ),
                     ]
                 )
             ),
@@ -1485,7 +1497,7 @@ def create_cost_breakdown_card(
     card_content = dbc.Card(
         [
             dbc.CardHeader(
-                html.Strong("Cost Breakdown by Work Distribution"),
+                html.Span("Cost Breakdown by Work Distribution", className="fw-bold"),
             ),
             dbc.CardBody(
                 [
@@ -1493,7 +1505,8 @@ def create_cost_breakdown_card(
                         [
                             html.H4(
                                 f"{currency_symbol}{total_cost:,.2f}",
-                                className="text-primary mb-1",
+                                className="mb-1",
+                                style={"color": "#6f42c1"},
                             ),
                             html.P("Total Project Cost", className="text-muted mb-3"),
                         ],
@@ -1514,24 +1527,54 @@ def create_cost_breakdown_card(
     return card_content
 
 
-def _create_inline_sparkline(values: List[float]):
+def _create_inline_sparkline(values: List[float], flow_type: str = ""):
     """
     Create inline scatter chart sparkline for cost breakdown table.
 
     Uses Plotly mini scatter chart to show cost trends over time,
     similar to other metric cards but more compact for table cells.
+    Shows trend direction with arrow indicator.
 
     Args:
         values: List of cost values over time
+        flow_type: Work type for color coding
 
     Returns:
-        dcc.Graph or html.Div containing mini scatter chart or placeholder
+        html.Div containing sparkline graph and trend indicator
     """
     from dash import dcc
     import plotly.graph_objects as go
 
     if not values or len(values) < 2:
         return html.Div("—", className="text-muted")
+
+    # Color mapping by flow type (avoiding blue/yellow/orange/green/red)
+    flow_colors = {
+        "Feature": "#6f42c1",  # Purple
+        "Defect": "#e83e8c",  # Magenta
+        "Technical Debt": "#17a2b8",  # Teal
+        "Risk": "#6610f2",  # Indigo
+    }
+    color = flow_colors.get(flow_type, "#6c757d")
+
+    # Calculate trend direction
+    recent_avg = sum(values[-3:]) / min(3, len(values[-3:]))
+    older_avg = sum(values[:3]) / min(3, len(values[:3]))
+    trend_pct = ((recent_avg - older_avg) / older_avg * 100) if older_avg > 0 else 0
+
+    # Trend indicator
+    if abs(trend_pct) < 5:
+        trend_icon = "fa-minus"
+        trend_color = "#6c757d"
+        trend_title = "Stable"
+    elif trend_pct > 0:
+        trend_icon = "fa-arrow-up"
+        trend_color = "#dc3545"  # Red for increasing cost
+        trend_title = f"Up {trend_pct:.0f}%"
+    else:
+        trend_icon = "fa-arrow-down"
+        trend_color = "#198754"  # Green for decreasing cost
+        trend_title = f"Down {abs(trend_pct):.0f}%"
 
     # Create mini scatter chart
     fig = go.Figure()
@@ -1541,8 +1584,8 @@ def _create_inline_sparkline(values: List[float]):
             x=list(range(len(values))),
             y=values,
             mode="lines+markers",
-            line={"color": "#0d6efd", "width": 2},
-            marker={"size": 4, "color": "#0d6efd"},
+            line={"color": color, "width": 2},
+            marker={"size": 4, "color": color},
             hovertemplate="€%{y:,.0f}<extra></extra>",
             showlegend=False,
         )
@@ -1574,15 +1617,25 @@ def _create_inline_sparkline(values: List[float]):
         }
     )
 
-    return dcc.Graph(
-        figure=fig,
-        config={
-            "displayModeBar": False,
-            "staticPlot": False,
-            "responsive": True,
-        },
-        style={"height": "40px", "minWidth": "120px"},
-        className="w-100",
+    return html.Div(
+        [
+            dcc.Graph(
+                figure=fig,
+                config={
+                    "displayModeBar": False,
+                    "staticPlot": False,
+                    "responsive": True,
+                },
+                style={"height": "40px", "width": "100%"},
+                className="flex-grow-1",
+            ),
+            html.I(
+                className=f"fas {trend_icon} ms-1 flex-shrink-0",
+                style={"color": trend_color, "fontSize": "0.75rem"},
+                title=trend_title,
+            ),
+        ],
+        className="d-flex align-items-center justify-content-center w-100",
     )
 
 
