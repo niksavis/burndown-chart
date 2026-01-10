@@ -1872,14 +1872,12 @@ def create_budget_timeline_card(
     card_id: Optional[str] = None,
 ) -> dbc.Card:
     """
-    Create Budget Timeline card showing all critical dates.
+    Create Budget Timeline card showing key project dates.
 
-    Visual timeline with:
-    - Budget start date
-    - Current date (today)
-    - PERT forecast completion (if available)
-    - Baseline allocated end date
-    - Budget runway end date
+    Displays timeline milestones in a clear table format:
+    - Start date, current date, baseline end, forecast, runway end
+    - Shows time elapsed and remaining for each milestone
+    - Color-coded status indicators
 
     Args:
         baseline_data: Dict from get_budget_baseline_vs_actual()
@@ -1894,25 +1892,28 @@ def create_budget_timeline_card(
     """
     from datetime import datetime, timedelta
 
-    # Extract dates
+    # Extract data
     start_date_str = baseline_data["baseline"]["start_date"]
     allocated_end_str = baseline_data["baseline"]["allocated_end_date"]
     runway_end_str = baseline_data["actual"]["runway_end_date"]
+    elapsed_weeks = baseline_data["actual"]["elapsed_weeks"]
+    allocated_weeks = baseline_data["baseline"]["time_allocated_weeks"]
+    runway_vs_baseline_weeks = baseline_data["variance"]["runway_vs_baseline_weeks"]
 
     # Parse dates
     try:
+        start_date = datetime.fromisoformat(start_date_str)
         allocated_end = datetime.fromisoformat(allocated_end_str)
         current_date = datetime.now()
 
-        # Calculate forecast end date
-        if pert_forecast_weeks:
-            forecast_end = current_date + timedelta(weeks=pert_forecast_weeks)
-            forecast_end_str = forecast_end.date().isoformat()
-        else:
-            forecast_end = None
-            forecast_end_str = "N/A"
+        # Calculate forecast end
+        forecast_end = (
+            current_date + timedelta(weeks=pert_forecast_weeks)
+            if pert_forecast_weeks
+            else None
+        )
 
-        # Parse runway end (handle special cases)
+        # Parse runway end
         if runway_end_str and runway_end_str not in [
             "N/A (no consumption)",
             "Over budget",
@@ -1923,7 +1924,6 @@ def create_budget_timeline_card(
 
     except Exception as e:
         logger.error(f"Failed to parse timeline dates: {e}")
-        # Return error card
         return dbc.Card(
             dbc.CardBody(
                 [
@@ -1937,147 +1937,775 @@ def create_budget_timeline_card(
             className="metric-card mb-3 h-100",
         )
 
-    # Calculate gaps
-    elapsed_weeks = baseline_data["actual"]["elapsed_weeks"]
-    allocated_weeks = baseline_data["baseline"]["time_allocated_weeks"]
-    runway_vs_baseline_weeks = baseline_data["variance"]["runway_vs_baseline_weeks"]
-
-    # Build timeline milestones
-    milestones = []
-
-    # Budget started
-    milestones.append(
-        html.Tr(
-            [
-                html.Td(html.I(className="fas fa-play text-secondary")),
-                html.Td("Budget Started", className="fw-bold"),
-                html.Td(start_date_str, className="text-end"),
-                html.Td(
-                    f"{allocated_weeks}w allocated", className="text-muted text-end"
-                ),
-            ]
-        )
-    )
-
-    # Today
-    milestones.append(
-        html.Tr(
-            [
-                html.Td(html.I(className="fas fa-calendar-day text-primary")),
-                html.Td("Today", className="fw-bold text-primary"),
-                html.Td(current_date.date().isoformat(), className="text-end"),
-                html.Td(
-                    f"{elapsed_weeks:.1f}w elapsed", className="text-muted text-end"
-                ),
-            ]
-        )
-    )
-
-    # Forecast completion (if available)
-    if forecast_end:
-        forecast_weeks_remaining = (forecast_end - current_date).days / 7.0
-        milestones.append(
-            html.Tr(
-                [
-                    html.Td(html.I(className="fas fa-chart-line text-info")),
-                    html.Td("Forecast Complete", className="fw-bold"),
-                    html.Td(forecast_end_str, className="text-end"),
-                    html.Td(
-                        f"{forecast_weeks_remaining:.1f}w remaining",
-                        className="text-muted text-end",
-                    ),
-                ]
-            )
-        )
-
-    # Baseline end
+    # Calculate time metrics
     baseline_weeks_remaining = (allocated_end - current_date).days / 7.0
-    milestones.append(
+
+    # Build visual timeline
+    # Collect all dates with their metadata
+    timeline_markers = [
+        {
+            "date": start_date,
+            "label": "Budget Start",
+            "color": "#6610f2",
+            "icon": "fa-play",
+        },
+        {
+            "date": current_date,
+            "label": "Today",
+            "color": "#6f42c1",
+            "icon": "fa-calendar-day",
+        },
+        {
+            "date": allocated_end,
+            "label": "Baseline End",
+            "color": "#d4a017",
+            "icon": "fa-flag-checkered",
+        },
+    ]
+
+    if forecast_end:
+        timeline_markers.append(
+            {
+                "date": forecast_end,
+                "label": "Forecast Complete",
+                "color": "#17a2b8",
+                "icon": "fa-chart-line",
+            }
+        )
+
+    if runway_end:
+        runway_color = "#20c997" if runway_vs_baseline_weeks >= 0 else "#e83e8c"
+        timeline_markers.append(
+            {
+                "date": runway_end,
+                "label": "Runway End",
+                "color": runway_color,
+                "icon": "fa-money-bill-wave",
+            }
+        )
+
+    # Sort by date and find range
+    timeline_markers.sort(key=lambda x: x["date"])
+    min_date = timeline_markers[0]["date"]
+    max_date = timeline_markers[-1]["date"]
+    date_range = (max_date - min_date).days
+
+    # Calculate initial positions based on actual dates
+    if date_range > 0:
+        # Calculate raw positions
+        for marker in timeline_markers:
+            days_from_start = (marker["date"] - min_date).days
+            marker["raw_position"] = (days_from_start / date_range) * 100
+    else:
+        # All dates are the same - distribute evenly
+        spacing = 100 / (len(timeline_markers) + 1)
+        for i, marker in enumerate(timeline_markers):
+            marker["raw_position"] = spacing * (i + 1)
+
+    # Apply collision detection and adjustment
+    # Minimum spacing needed (percentage) to prevent label overlap
+    min_spacing = 12  # Approximately 12% of timeline width
+
+    adjusted_positions = []
+    for i, marker in enumerate(timeline_markers):
+        if i == 0:
+            # First marker - ensure it's not too close to edge
+            pos = max(8, marker["raw_position"])
+        else:
+            # Ensure minimum spacing from previous marker
+            prev_pos = adjusted_positions[-1]
+            desired_pos = marker["raw_position"]
+
+            if desired_pos - prev_pos < min_spacing:
+                # Too close - push it out
+                pos = prev_pos + min_spacing
+            else:
+                pos = desired_pos
+
+        # Ensure not too close to right edge
+        pos = min(pos, 92)
+        adjusted_positions.append(pos)
+        marker["position"] = pos
+
+    # Calculate positions (0-100%)
+    def calc_position(date):
+        # This function is now only used as fallback
+        if date_range > 0:
+            days_from_start = (date - min_date).days
+            return (days_from_start / date_range) * 100
+        return 50
+
+    # Build timeline visualization
+    timeline_visual = html.Div(
+        [
+            # Timeline bar with lower z-index
+            html.Div(
+                style={
+                    "position": "absolute",
+                    "top": "30px",
+                    "left": "30px",
+                    "right": "30px",
+                    "height": "4px",
+                    "backgroundColor": "#e9ecef",
+                    "borderRadius": "2px",
+                    "zIndex": "1",
+                }
+            ),
+            # Markers overlaying the timeline
+            html.Div(
+                [
+                    html.Div(
+                        [
+                            # Label overlapping timeline (above)
+                            html.Div(
+                                marker["label"],
+                                style={
+                                    "position": "absolute",
+                                    "top": "10px",
+                                    "left": "50%",
+                                    "transform": "translateX(-50%)",
+                                    "fontSize": "0.75rem",
+                                    "fontWeight": "600",
+                                    "color": marker["color"],
+                                    "whiteSpace": "nowrap",
+                                    "zIndex": "3",
+                                },
+                            ),
+                            # Dot on timeline
+                            html.Div(
+                                style={
+                                    "position": "absolute",
+                                    "top": "29px",
+                                    "left": "50%",
+                                    "transform": "translateX(-50%)",
+                                    "width": "8px",
+                                    "height": "8px",
+                                    "borderRadius": "50%",
+                                    "backgroundColor": marker["color"],
+                                    "border": "2px solid white",
+                                    "zIndex": "3",
+                                }
+                            ),
+                            # Icon below timeline
+                            html.Div(
+                                html.I(
+                                    className=f"fas {marker['icon']}",
+                                    style={"fontSize": "0.85rem"},
+                                ),
+                                style={
+                                    "position": "absolute",
+                                    "top": "36px",
+                                    "left": "50%",
+                                    "transform": "translateX(-50%)",
+                                    "color": marker["color"],
+                                    "zIndex": "3",
+                                },
+                            ),
+                            # Date at bottom (below icon)
+                            html.Div(
+                                marker["date"].strftime("%b %d, %Y"),
+                                style={
+                                    "position": "absolute",
+                                    "top": "55px",
+                                    "left": "50%",
+                                    "transform": "translateX(-50%)",
+                                    "fontSize": "0.7rem",
+                                    "color": "#6c757d",
+                                    "whiteSpace": "nowrap",
+                                    "zIndex": "3",
+                                },
+                            ),
+                        ],
+                        style={
+                            "position": "absolute",
+                            "left": f"{marker['position']}%",
+                            "top": "0",
+                            "height": "100%",
+                        },
+                    )
+                    for marker in timeline_markers
+                ],
+                style={
+                    "position": "absolute",
+                    "top": "0",
+                    "left": "0",
+                    "right": "0",
+                    "height": "100%",
+                },
+            ),
+        ],
+        style={
+            "position": "relative",
+            "height": "90px",
+            "margin": "20px 0",
+        },
+    )
+
+    # Build timeline table rows
+    timeline_rows = [
         html.Tr(
             [
-                html.Td(html.I(className="fas fa-flag-checkered text-warning")),
-                html.Td("Baseline End", className="fw-bold"),
-                html.Td(allocated_end_str, className="text-end"),
                 html.Td(
-                    f"{baseline_weeks_remaining:.1f}w remaining",
+                    [
+                        html.I(
+                            className="fas fa-play me-2", style={"color": "#6610f2"}
+                        ),
+                        "Budget Start",
+                    ],
+                    style={"width": "40%"},
+                ),
+                html.Td(start_date.strftime("%b %d, %Y"), className="fw-bold"),
+                html.Td(
+                    f"{allocated_weeks:.0f} weeks allocated",
                     className="text-muted text-end",
                 ),
             ]
+        ),
+        html.Tr(
+            [
+                html.Td(
+                    [
+                        html.I(
+                            className="fas fa-calendar-day me-2",
+                            style={"color": "#6f42c1"},
+                        ),
+                        "Today",
+                    ]
+                ),
+                html.Td(
+                    current_date.strftime("%b %d, %Y"),
+                    className="fw-bold",
+                    style={"color": "#6f42c1"},
+                ),
+                html.Td(
+                    f"{elapsed_weeks:.1f} weeks elapsed",
+                    className="text-muted text-end",
+                ),
+            ],
+            className="table-active",
+        ),
+        html.Tr(
+            [
+                html.Td(
+                    [
+                        html.I(
+                            className="fas fa-flag-checkered me-2",
+                            style={"color": "#d4a017"},
+                        ),
+                        "Baseline End",
+                    ]
+                ),
+                html.Td(allocated_end.strftime("%b %d, %Y"), className="fw-bold"),
+                html.Td(
+                    f"{abs(baseline_weeks_remaining):.1f} weeks {'remaining' if baseline_weeks_remaining > 0 else 'overdue'}",
+                    className="text-end",
+                    style={
+                        "color": "#198754"
+                        if baseline_weeks_remaining > 0
+                        else "#dc3545"
+                    },
+                ),
+            ]
+        ),
+    ]
+
+    # Add forecast row if available
+    if forecast_end:
+        forecast_weeks_from_now = pert_forecast_weeks
+        timeline_rows.append(
+            html.Tr(
+                [
+                    html.Td(
+                        [
+                            html.I(className="fas fa-chart-line text-info me-2"),
+                            "Forecast Complete",
+                        ]
+                    ),
+                    html.Td(forecast_end.strftime("%b %d, %Y"), className="fw-bold"),
+                    html.Td(
+                        f"{forecast_weeks_from_now:.1f} weeks from now",
+                        className="text-end",
+                        style={"color": "#198754"},
+                    ),
+                ]
+            )
         )
+
+    # Add runway row if available
+    if runway_end:
+        runway_color = "#20c997" if runway_vs_baseline_weeks >= 0 else "#e83e8c"
+        runway_text_color = "#198754" if runway_vs_baseline_weeks >= 0 else "#dc3545"
+        timeline_rows.append(
+            html.Tr(
+                [
+                    html.Td(
+                        [
+                            html.I(
+                                className="fas fa-money-bill-wave me-2",
+                                style={"color": runway_color},
+                            ),
+                            "Runway End",
+                        ]
+                    ),
+                    html.Td(
+                        runway_end.strftime("%b %d, %Y"),
+                        className="fw-bold",
+                        style={"color": runway_text_color},
+                    ),
+                    html.Td(
+                        f"{runway_vs_baseline_weeks:+.1f} weeks vs baseline",
+                        className="text-end",
+                        style={"color": runway_text_color},
+                    ),
+                ],
+                style={"borderTop": "2px solid #dee2e6"},
+            )
+        )
+    elif runway_end_str:
+        timeline_rows.append(
+            html.Tr(
+                [
+                    html.Td(
+                        [
+                            html.I(
+                                className="fas fa-money-bill-wave text-secondary me-2"
+                            ),
+                            "Runway End",
+                        ]
+                    ),
+                    html.Td(
+                        runway_end_str,
+                        className="text-secondary",
+                        colSpan=2,
+                        style={"fontStyle": "italic"},
+                    ),
+                ],
+                style={"borderTop": "2px solid #dee2e6"},
+            )
+        )
+
+    timeline_table = dbc.Table(
+        html.Tbody(timeline_rows),
+        bordered=False,
+        hover=True,
+        size="sm",
+        className="mb-0",
     )
 
-    # Runway end
-    if runway_end:
-        runway_weeks_remaining = (runway_end - current_date).days / 7.0
-        runway_color = (
-            "text-success"
-            if runway_weeks_remaining > baseline_weeks_remaining
-            else "text-danger"
-        )
-        milestones.append(
-            html.Tr(
+    # Build card
+    card = dbc.Card(
+        [
+            dbc.CardHeader(html.Div(html.Span("Budget Timeline", className="fw-bold"))),
+            dbc.CardBody(
+                [timeline_visual, html.Hr(className="my-3"), timeline_table],
+                className="p-3",
+            ),
+            _create_card_footer(
+                "Key project milestones • Colors indicate schedule health",
+                "fa-clock",
+            ),
+        ],
+        id=card_id,
+        className="metric-card mb-3 h-100",
+    )
+
+    return card
+
+    # Extract dates
+    start_date_str = baseline_data["baseline"]["start_date"]
+    allocated_end_str = baseline_data["baseline"]["allocated_end_date"]
+    runway_end_str = baseline_data["actual"]["runway_end_date"]
+
+    # Parse dates
+    try:
+        start_date = datetime.fromisoformat(start_date_str)
+        allocated_end = datetime.fromisoformat(allocated_end_str)
+        current_date = datetime.now()
+
+        # Parse runway end (handle special cases)
+        if runway_end_str and runway_end_str not in [
+            "N/A (no consumption)",
+            "Over budget",
+        ]:
+            runway_end = datetime.fromisoformat(runway_end_str)
+        else:
+            runway_end = None
+
+    except Exception as e:
+        logger.error(f"Failed to parse timeline dates: {e}")
+        return dbc.Card(
+            dbc.CardBody(
                 [
-                    html.Td(html.I(className=f"fas fa-money-bill-wave {runway_color}")),
-                    html.Td("Runway End", className=f"fw-bold {runway_color}"),
-                    html.Td(runway_end_str, className="text-end"),
-                    html.Td(
-                        f"{runway_weeks_remaining:.1f}w remaining",
-                        className="text-muted text-end",
+                    html.H5("Budget Timeline", className="card-title"),
+                    html.P(
+                        "Unable to calculate timeline dates", className="text-muted"
                     ),
                 ]
-            )
-        )
-    else:
-        # Special case: infinite runway or over budget
-        status_text = runway_end_str
-        milestones.append(
-            html.Tr(
-                [
-                    html.Td(html.I(className="fas fa-money-bill-wave text-secondary")),
-                    html.Td("Runway End", className="fw-bold"),
-                    html.Td(status_text, className="text-end", colSpan=2),
-                ]
-            )
+            ),
+            id=card_id,
+            className="metric-card mb-3 h-100",
         )
 
-    # Build gaps section
-    gaps = []
+    # Calculate timeline data
+    elapsed_weeks = baseline_data["actual"]["elapsed_weeks"]
+    runway_vs_baseline_weeks = baseline_data["variance"]["runway_vs_baseline_weeks"]
 
-    if forecast_end and runway_end:
-        forecast_gap = (runway_end - forecast_end).days / 7.0
-        gap_color = "success" if forecast_gap >= 0 else "danger"
-        gap_icon = "check-circle" if forecast_gap >= 0 else "exclamation-triangle"
-        gaps.append(
+    # Calculate weeks from start for each milestone
+    weeks_elapsed = (current_date - start_date).days / 7.0
+    weeks_to_baseline = (allocated_end - start_date).days / 7.0
+    weeks_to_forecast = (
+        weeks_elapsed + pert_forecast_weeks if pert_forecast_weeks else None
+    )
+    weeks_to_runway = (runway_end - start_date).days / 7.0 if runway_end else None
+
+    # Determine timeline range (start to furthest date)
+    timeline_dates = [weeks_elapsed, weeks_to_baseline]
+    if weeks_to_forecast:
+        timeline_dates.append(weeks_to_forecast)
+    if weeks_to_runway:
+        timeline_dates.append(weeks_to_runway)
+    timeline_max = max(timeline_dates) * 1.05  # Add 5% padding
+
+    # Helper to calculate position percentage
+    def calc_pos(weeks: float) -> float:
+        return (weeks / timeline_max * 100) if timeline_max > 0 else 0
+
+    # Build compact horizontal timeline bar
+    timeline_bar = html.Div(
+        [
+            # Elapsed portion (filled purple)
+            html.Div(
+                style={
+                    "position": "absolute",
+                    "left": "0",
+                    "width": f"{calc_pos(weeks_elapsed)}%",
+                    "height": "12px",
+                    "backgroundColor": "#6f42c1",
+                    "borderRadius": "6px 0 0 6px",
+                    "zIndex": "1",
+                }
+            ),
+            # Baseline portion (outlined yellow)
+            html.Div(
+                style={
+                    "position": "absolute",
+                    "left": f"{calc_pos(weeks_elapsed)}%",
+                    "width": f"{calc_pos(weeks_to_baseline - weeks_elapsed)}%",
+                    "height": "12px",
+                    "backgroundColor": "transparent",
+                    "border": "2px solid #ffc107",
+                    "borderLeft": "none",
+                    "borderRadius": "0 6px 6px 0",
+                    "zIndex": "1",
+                }
+            ),
+            # TODAY marker
             html.Div(
                 [
-                    html.I(className=f"fas fa-{gap_icon} text-{gap_color} me-2"),
-                    html.Span("Runway vs Forecast: ", className="text-muted"),
-                    html.Strong(
-                        f"{'+' if forecast_gap >= 0 else ''}{forecast_gap:.1f} weeks",
-                        className=f"text-{gap_color}",
+                    html.Div(
+                        style={
+                            "position": "absolute",
+                            "top": "-8px",
+                            "left": "-1px",
+                            "width": "2px",
+                            "height": "28px",
+                            "backgroundColor": "#0d6efd",
+                            "zIndex": "3",
+                        }
+                    ),
+                    html.Div(
+                        html.I(
+                            className="fas fa-caret-down text-primary",
+                            style={"fontSize": "1.2rem"},
+                        ),
+                        style={
+                            "position": "absolute",
+                            "top": "-28px",
+                            "left": "50%",
+                            "transform": "translateX(-50%)",
+                            "zIndex": "4",
+                        },
+                    ),
+                    html.Div(
+                        "TODAY",
+                        style={
+                            "position": "absolute",
+                            "top": "-48px",
+                            "left": "50%",
+                            "transform": "translateX(-50%)",
+                            "fontSize": "0.7rem",
+                            "fontWeight": "bold",
+                            "color": "#0d6efd",
+                            "whiteSpace": "nowrap",
+                        },
                     ),
                 ],
-                className="mb-2",
+                style={
+                    "position": "absolute",
+                    "left": f"{calc_pos(weeks_elapsed)}%",
+                    "top": "0",
+                    "height": "100%",
+                },
+            ),
+            # BASELINE marker
+            html.Div(
+                [
+                    html.Div(
+                        style={
+                            "position": "absolute",
+                            "top": "8px",
+                            "left": "-1px",
+                            "width": "2px",
+                            "height": "20px",
+                            "backgroundColor": "#ffc107",
+                            "zIndex": "2",
+                        }
+                    ),
+                    html.Div(
+                        html.I(
+                            className="fas fa-caret-up text-warning",
+                            style={"fontSize": "1.2rem"},
+                        ),
+                        style={
+                            "position": "absolute",
+                            "top": "28px",
+                            "left": "50%",
+                            "transform": "translateX(-50%)",
+                            "zIndex": "4",
+                        },
+                    ),
+                    html.Div(
+                        "BASELINE",
+                        style={
+                            "position": "absolute",
+                            "top": "40px",
+                            "left": "50%",
+                            "transform": "translateX(-50%)",
+                            "fontSize": "0.7rem",
+                            "fontWeight": "bold",
+                            "color": "#ffc107",
+                            "whiteSpace": "nowrap",
+                        },
+                    ),
+                ],
+                style={
+                    "position": "absolute",
+                    "left": f"{calc_pos(weeks_to_baseline)}%",
+                    "top": "0",
+                    "height": "100%",
+                },
+            ),
+        ]
+        + (
+            [
+                # FORECAST marker (if available)
+                html.Div(
+                    [
+                        html.Div(
+                            style={
+                                "position": "absolute",
+                                "top": "-8px",
+                                "left": "-1px",
+                                "width": "2px",
+                                "height": "28px",
+                                "backgroundColor": "#198754",
+                                "zIndex": "2",
+                            }
+                        ),
+                        html.Div(
+                            html.I(
+                                className="fas fa-caret-down text-success",
+                                style={"fontSize": "1rem"},
+                            ),
+                            style={
+                                "position": "absolute",
+                                "top": "-24px",
+                                "left": "50%",
+                                "transform": "translateX(-50%)",
+                                "zIndex": "4",
+                            },
+                        ),
+                        html.Div(
+                            "FORECAST",
+                            style={
+                                "position": "absolute",
+                                "top": "-44px",
+                                "left": "50%",
+                                "transform": "translateX(-50%)",
+                                "fontSize": "0.65rem",
+                                "fontWeight": "bold",
+                                "color": "#198754",
+                                "whiteSpace": "nowrap",
+                            },
+                        ),
+                    ],
+                    style={
+                        "position": "absolute",
+                        "left": f"{calc_pos(weeks_to_forecast)}%",
+                        "top": "0",
+                        "height": "100%",
+                    },
+                ),
+            ]
+            if weeks_to_forecast
+            else []
+        )
+        + (
+            [
+                # RUNWAY marker (if available)
+                html.Div(
+                    [
+                        html.Div(
+                            style={
+                                "position": "absolute",
+                                "top": "8px",
+                                "left": "-1px",
+                                "width": "2px",
+                                "height": "20px",
+                                "backgroundColor": "#198754"
+                                if weeks_to_runway > weeks_to_baseline
+                                else "#dc3545",
+                                "zIndex": "2",
+                            }
+                        ),
+                        html.Div(
+                            html.I(
+                                className=f"fas fa-caret-up {'text-success' if weeks_to_runway > weeks_to_baseline else 'text-danger'}",
+                                style={"fontSize": "1rem"},
+                            ),
+                            style={
+                                "position": "absolute",
+                                "top": "28px",
+                                "left": "50%",
+                                "transform": "translateX(-50%)",
+                                "zIndex": "4",
+                            },
+                        ),
+                        html.Div(
+                            "RUNWAY",
+                            style={
+                                "position": "absolute",
+                                "top": "40px",
+                                "left": "50%",
+                                "transform": "translateX(-50%)",
+                                "fontSize": "0.65rem",
+                                "fontWeight": "bold",
+                                "color": "#198754"
+                                if weeks_to_runway > weeks_to_baseline
+                                else "#dc3545",
+                                "whiteSpace": "nowrap",
+                            },
+                        ),
+                    ],
+                    style={
+                        "position": "absolute",
+                        "left": f"{calc_pos(weeks_to_runway)}%",
+                        "top": "0",
+                        "height": "100%",
+                    },
+                ),
+            ]
+            if weeks_to_runway
+            else []
+        ),
+        style={
+            "position": "relative",
+            "height": "12px",
+            "margin": "60px 20px 50px 20px",
+            "backgroundColor": "#e9ecef",
+            "borderRadius": "6px",
+        },
+        className="budget-timeline-bar",
+    )
+
+    # Compact metrics row
+    baseline_weeks_remaining = (allocated_end - current_date).days / 7.0
+    metrics_cols = [
+        dbc.Col(
+            [
+                html.Small(
+                    "Elapsed",
+                    className="text-muted d-block text-center",
+                    style={"fontSize": "0.7rem"},
+                ),
+                html.Strong(
+                    f"{elapsed_weeks:.1f}w",
+                    className="d-block text-center",
+                    style={"fontSize": "0.9rem"},
+                ),
+            ],
+            width="auto",
+        ),
+        dbc.Col(
+            [
+                html.Small(
+                    "To Baseline",
+                    className="text-muted d-block text-center",
+                    style={"fontSize": "0.7rem"},
+                ),
+                html.Strong(
+                    f"{baseline_weeks_remaining:+.1f}w",
+                    className="d-block text-center",
+                    style={
+                        "fontSize": "0.9rem",
+                        "color": "#198754"
+                        if baseline_weeks_remaining > 0
+                        else "#dc3545",
+                    },
+                ),
+            ],
+            width="auto",
+        ),
+    ]
+
+    if weeks_to_forecast and weeks_to_runway:
+        forecast_gap = weeks_to_runway - weeks_to_forecast
+        metrics_cols.append(
+            dbc.Col(
+                [
+                    html.Small(
+                        "Runway vs Forecast",
+                        className="text-muted d-block text-center",
+                        style={"fontSize": "0.7rem"},
+                    ),
+                    html.Strong(
+                        f"{forecast_gap:+.1f}w",
+                        className="d-block text-center",
+                        style={
+                            "fontSize": "0.9rem",
+                            "color": "#198754" if forecast_gap >= 0 else "#dc3545",
+                        },
+                    ),
+                ],
+                width="auto",
             )
         )
 
-    if runway_end:
-        baseline_gap = runway_vs_baseline_weeks
-        gap_color = "success" if baseline_gap >= 0 else "danger"
-        gap_icon = "check-circle" if baseline_gap >= 0 else "exclamation-triangle"
-        gaps.append(
-            html.Div(
+    if weeks_to_runway:
+        metrics_cols.append(
+            dbc.Col(
                 [
-                    html.I(className=f"fas fa-{gap_icon} text-{gap_color} me-2"),
-                    html.Span("Runway vs Baseline: ", className="text-muted"),
+                    html.Small(
+                        "Runway vs Baseline",
+                        className="text-muted d-block text-center",
+                        style={"fontSize": "0.7rem"},
+                    ),
                     html.Strong(
-                        f"{'+' if baseline_gap >= 0 else ''}{baseline_gap:.1f} weeks",
-                        className=f"text-{gap_color}",
+                        f"{runway_vs_baseline_weeks:+.1f}w",
+                        className="d-block text-center",
+                        style={
+                            "fontSize": "0.9rem",
+                            "color": "#198754"
+                            if runway_vs_baseline_weeks >= 0
+                            else "#dc3545",
+                        },
                     ),
                 ],
-                className="mb-2",
+                width="auto",
             )
         )
+
+    metrics_row = dbc.Row(metrics_cols, className="g-3 justify-content-center")
 
     # Build card
     card = dbc.Card(
@@ -2090,25 +2718,9 @@ def create_budget_timeline_card(
                     ]
                 )
             ),
-            dbc.CardBody(
-                [
-                    html.Div(
-                        [
-                            html.Table(
-                                html.Tbody(milestones), className="table table-sm mb-3"
-                            )
-                        ]
-                    ),
-                    html.Hr(),
-                    html.Div(
-                        [html.H6("Timeline Gaps", className="text-muted mb-2"), *gaps]
-                    )
-                    if gaps
-                    else html.Div(),
-                ]
-            ),
+            dbc.CardBody([timeline_bar, metrics_row], className="pb-3"),
             _create_card_footer(
-                "All dates based on actual burn rate • Gaps show buffer or risk",
+                "Purple: elapsed • Yellow: baseline remaining • Green/Red: forecast/runway markers",
                 "fa-clock",
             ),
         ],
