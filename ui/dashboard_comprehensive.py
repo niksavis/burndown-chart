@@ -938,8 +938,14 @@ def _create_executive_summary(statistics_df, settings, forecast_data):
                 ]
             )
         ],
-        className="mb-4 shadow-sm border-0",
-        style={"background": health_status["bg_color"]},
+        className="mb-4 shadow-sm",
+        style={
+            "background": health_status["bg_color"],
+            "border": f"2px solid {health_status['color']}",
+            "borderRadius": "0.375rem",
+            "transition": "all 0.2s ease-in-out",
+        },
+        id="project-health-overview-card",
     )
 
 
