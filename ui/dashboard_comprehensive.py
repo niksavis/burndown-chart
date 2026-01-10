@@ -2859,6 +2859,8 @@ def create_comprehensive_dashboard(
                 data_points_count,
                 additional_context,
             ),
+            # Recent Completions Section - uses unfiltered data for consistent 4-week view
+            _create_recent_activity_section(statistics_df_unfiltered, show_points),
             # Budget & Resource Tracking (conditional on budget configuration)
             _create_budget_section(
                 profile_id=additional_context.get("profile_id", "")
@@ -2881,8 +2883,6 @@ def create_comprehensive_dashboard(
                 budget_data=budget_data,
                 show_points=show_points,
             ),
-            # Recent Activity Section - uses unfiltered data for consistent 4-week view
-            _create_recent_activity_section(statistics_df_unfiltered, show_points),
             # Quality & Scope Section
             _create_quality_scope_section(statistics_df, settings),
             # Insights Section
