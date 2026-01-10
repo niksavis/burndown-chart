@@ -261,12 +261,14 @@ def _calculate_all_metrics(
         from data.query_manager import get_active_query_id
 
         query_id = get_active_query_id() or ""
-        # Pass velocity_points from dashboard for cost_per_point calculation
+        # Pass velocity from dashboard for accurate cost per item/point calculation
+        velocity_items = metrics["dashboard"].get("velocity_items", 0.0)
         velocity_points = metrics["dashboard"].get("velocity_points", 0.0)
         metrics["budget"] = _calculate_budget_metrics(
             report_data["profile_id"],
             query_id,
             report_data["weeks_count"],
+            velocity_items,
             velocity_points,
         )
 
@@ -1288,7 +1290,11 @@ def _calculate_weekly_breakdown(statistics: List[Dict]) -> List[Dict]:
 
 
 def _calculate_budget_metrics(
-    profile_id: str, query_id: str, weeks_count: int, velocity_points: float = 0.0
+    profile_id: str,
+    query_id: str,
+    weeks_count: int,
+    velocity_items: float = 0.0,
+    velocity_points: float = 0.0,
 ) -> Dict[str, Any]:
     """
     Calculate budget metrics for report using proper budget calculator functions.
@@ -1297,7 +1303,8 @@ def _calculate_budget_metrics(
         profile_id: Profile identifier
         query_id: Query identifier
         weeks_count: Number of weeks in analysis period
-        velocity_points: Story points velocity for cost_per_point calculation
+        velocity_items: Items velocity for cost_per_item calculation (from dashboard)
+        velocity_points: Story points velocity for cost_per_point calculation (from dashboard)
 
     Returns:
         Dictionary with budget metrics and weekly tracking data including cost breakdown
@@ -1349,10 +1356,8 @@ def _calculate_budget_metrics(
             profile_id, query_id, current_week
         )
 
-        # Get cost per item/point from velocity
-        from data.budget_calculator import _get_velocity
-
-        velocity_items = _get_velocity(profile_id, query_id, current_week)
+        # Use velocity from dashboard (already calculated in report) for accurate cost per item/point
+        # This ensures consistency with the velocity shown in the dashboard section
         cost_per_item = cost_per_week / velocity_items if velocity_items > 0 else 0
         cost_per_point = cost_per_week / velocity_points if velocity_points > 0 else 0
 
