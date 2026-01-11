@@ -676,6 +676,12 @@ def export_profile_with_mode(
             if statistics:
                 query_data["statistics"] = statistics
 
+            # Get project scope (for forecasting context in AI prompts)
+            project_scope = backend.get_scope(profile_id, current_query_id)
+            if project_scope:
+                query_data["project_scope"] = project_scope
+                logger.info(f"Exported project scope for query '{current_query_id}'")
+
         # Export budget settings and revisions (query-level data) - only if explicitly requested
         if include_budget:
             budget_settings = backend.get_budget_settings(profile_id, current_query_id)

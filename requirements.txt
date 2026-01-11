@@ -84,6 +84,8 @@ pydantic-core==2.41.5
     # via pydantic
 pyee==13.0.0
     # via playwright
+pyperclip==1.8.2
+    # via -r requirements.in
 pytest==8.3.5
     # via
     #   -r requirements.in
