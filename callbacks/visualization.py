@@ -1575,8 +1575,19 @@ def register(app):
                 logger.debug(
                     f"[CTO DEBUG] Creating NEW scope tracking content, cache_key={cache_key}"
                 )
+
+                # Check if points data exists in the filtered time period (respects Data Points slider)
+                has_points_data = False
+                if show_points:
+                    has_points_data = _check_has_points_in_period(
+                        statistics, data_points_count
+                    )
+
+                # Only show points in charts if tracking is enabled AND data exists in filtered period
+                effective_show_points = show_points and has_points_data
+
                 scope_tab_content = _create_scope_tracking_tab_content(
-                    df, settings, show_points
+                    df, settings, effective_show_points
                 )
                 # Cache the result for next time
                 chart_cache[cache_key] = scope_tab_content
