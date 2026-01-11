@@ -1384,12 +1384,11 @@ def _create_error_card(metric_data: dict, card_id: Optional[str]) -> dbc.Card:
             "message_override": "Points tracking is disabled. Enable Points Tracking in Parameters panel to view story points metrics.",
         },
         "no_data": {
-            "icon": "fas fa-inbox",
+            "icon": "fas fa-database",
             "title": "No Data Available",
             "color": "secondary",
             "action_text": "Recalculate Metrics",
             "action_id": "open-time-period-selector",
-            "message_override": "No matching issues found for this metric. This may be normal if your JIRA setup doesn't track this data (e.g., deployment tracking for open-source projects).",
         },
         "calculation_error": {
             "icon": "fas fa-exclamation-triangle",

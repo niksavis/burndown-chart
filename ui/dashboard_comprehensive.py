@@ -773,6 +773,7 @@ def _create_executive_summary(statistics_df, settings, forecast_data):
                                                 "color": COLOR_PALETTE["points"],
                                             },
                                         ),
+                                        # Case 1: Points tracking enabled with data
                                         dbc.Row(
                                             [
                                                 dbc.Col(
@@ -796,33 +797,6 @@ def _create_executive_summary(statistics_df, settings, forecast_data):
                                                             ),
                                                             html.Div(
                                                                 "Completed",
-                                                                className="text-muted",
-                                                                style={
-                                                                    "fontSize": "0.85rem"
-                                                                },
-                                                            ),
-                                                        ],
-                                                        className="text-center",
-                                                    )
-                                                    if (
-                                                        total_points > 0
-                                                        and settings.get(
-                                                            "show_points", True
-                                                        )
-                                                    )
-                                                    else html.Div(
-                                                        [
-                                                            html.Div(
-                                                                "--",
-                                                                style={
-                                                                    "fontSize": "2rem",
-                                                                    "color": "#adb5bd",
-                                                                    "marginTop": "20px",
-                                                                    "marginBottom": "20px",
-                                                                },
-                                                            ),
-                                                            html.Div(
-                                                                "Disabled",
                                                                 className="text-muted",
                                                                 style={
                                                                     "fontSize": "0.85rem"
@@ -861,37 +835,67 @@ def _create_executive_summary(statistics_df, settings, forecast_data):
                                                             ),
                                                         ],
                                                         className="text-center",
-                                                    )
-                                                    if (
-                                                        total_points > 0
-                                                        and settings.get(
-                                                            "show_points", True
-                                                        )
-                                                    )
-                                                    else html.Div(
-                                                        [
-                                                            html.Div(
-                                                                "--",
-                                                                style={
-                                                                    "fontSize": "2rem",
-                                                                    "color": "#adb5bd",
-                                                                    "marginTop": "20px",
-                                                                    "marginBottom": "20px",
-                                                                },
-                                                            ),
-                                                            html.Div(
-                                                                "Disabled",
-                                                                style={
-                                                                    "fontSize": "0.85rem",
-                                                                    "color": "#6c757d",
-                                                                },
-                                                            ),
-                                                        ],
-                                                        className="text-center",
                                                     ),
                                                     width=6,
                                                 ),
                                             ],
+                                        )
+                                        if (
+                                            total_points > 0
+                                            and settings.get("show_points", True)
+                                        )
+                                        # Case 2: Points tracking disabled
+                                        else (
+                                            html.Div(
+                                                [
+                                                    html.I(
+                                                        className="fas fa-toggle-off fa-2x text-secondary mb-2"
+                                                    ),
+                                                    html.Div(
+                                                        "Points Tracking Disabled",
+                                                        className="h5 mb-2",
+                                                        style={
+                                                            "fontWeight": "600",
+                                                            "color": "#6c757d",
+                                                        },
+                                                    ),
+                                                    html.Small(
+                                                        "Points tracking is disabled. Enable Points Tracking in Parameters panel to view story points metrics.",
+                                                        className="text-muted",
+                                                        style={"fontSize": "0.75rem"},
+                                                    ),
+                                                ],
+                                                className="text-center",
+                                                style={
+                                                    "padding": "20px 10px",
+                                                },
+                                            )
+                                            if not settings.get("show_points", True)
+                                            # Case 3: Points tracking enabled but no data
+                                            else html.Div(
+                                                [
+                                                    html.I(
+                                                        className="fas fa-database fa-2x text-secondary mb-2"
+                                                    ),
+                                                    html.Div(
+                                                        "No Points Data",
+                                                        className="h5 mb-2",
+                                                        style={
+                                                            "fontWeight": "600",
+                                                            "color": "#6c757d",
+                                                        },
+                                                    ),
+                                                    html.Small(
+                                                        "No story points data available. Configure story points field in Settings or complete items with point estimates.",
+                                                        className="text-muted",
+                                                        style={"fontSize": "0.75rem"},
+                                                    ),
+                                                ],
+                                                className="text-center",
+                                                style={
+                                                    "padding": "20px 10px",
+                                                },
+                                            )
                                         ),
                                         html.Hr(
                                             className="my-2",
@@ -1126,40 +1130,57 @@ def _create_throughput_section(
                                 {
                                     "metric_name": "points_per_week",
                                     "display_name": "Points per Week",
-                                    "value": avg_points if show_points else None,
+                                    "value": avg_points
+                                    if (show_points and avg_points and avg_points > 0)
+                                    else None,
                                     "unit": "points/week"
-                                    if show_points
-                                    else "disabled",
+                                    if (show_points and avg_points and avg_points > 0)
+                                    else "",
                                     "subtitle": "Average story points"
-                                    if show_points
-                                    else "Points tracking disabled",
+                                    if (show_points and avg_points and avg_points > 0)
+                                    else "",
                                     "icon": "fa-chart-bar",
                                     "color": COLOR_PALETTE["points"]
-                                    if show_points
+                                    if (show_points and avg_points and avg_points > 0)
                                     else "#6c757d",
                                     "performance_tier_color": "green"
-                                    if show_points and avg_points > 20
+                                    if show_points and avg_points and avg_points > 20
                                     else "yellow"
-                                    if show_points and avg_points > 10
+                                    if show_points and avg_points and avg_points > 10
                                     else "orange",
                                     "error_state": "success"
-                                    if show_points
-                                    else "points_tracking_disabled",
-                                    "error_message": "Points tracking disabled",
+                                    if (show_points and avg_points and avg_points > 0)
+                                    else "points_tracking_disabled"
+                                    if not show_points
+                                    else "no_data",
+                                    "error_message": "Points tracking is disabled. Enable Points Tracking in Parameters panel to view story points metrics."
+                                    if not show_points
+                                    else "No story points data available. Configure story points field in Settings or complete items with point estimates.",
                                     "_n_weeks": data_points_count,
                                     "tooltip": "Average story points completed per week. Story points represent work complexity and effort. Higher values indicate faster delivery of larger work items."
-                                    if show_points
-                                    else "Enable Points Tracking in Parameters panel and configure the points field in JIRA Configuration to view this metric. When disabled, forecasts use item counts instead.",
+                                    if (show_points and avg_points and avg_points > 0)
+                                    else "Enable Points Tracking in Parameters panel and configure the points field in JIRA Configuration to view this metric. When disabled, forecasts use item counts instead."
+                                    if not show_points
+                                    else "No story points data available for the selected time period.",
                                     "weekly_values": list(
                                         statistics_df["completed_points"]
                                     )
-                                    if show_points and not statistics_df.empty
+                                    if show_points
+                                    and avg_points
+                                    and avg_points > 0
+                                    and not statistics_df.empty
                                     else [],
                                     "trend_direction": points_trend.get("direction")
-                                    if points_trend and show_points
+                                    if points_trend
+                                    and show_points
+                                    and avg_points
+                                    and avg_points > 0
                                     else "stable",
                                     "trend_percent": points_trend.get("percent", 0)
-                                    if points_trend and show_points
+                                    if points_trend
+                                    and show_points
+                                    and avg_points
+                                    and avg_points > 0
                                     else 0,
                                 }
                             )
@@ -1176,25 +1197,33 @@ def _create_throughput_section(
                                     "metric_name": "avg_item_size",
                                     "alternative_name": "Average Item Size",
                                     "value": _safe_divide(avg_points, avg_items)
-                                    if show_points
+                                    if (show_points and avg_points and avg_points > 0)
                                     else None,
                                     "unit": "points/item"
-                                    if show_points
-                                    else "disabled",
+                                    if (show_points and avg_points and avg_points > 0)
+                                    else "",
                                     "subtitle": "Points per item"
-                                    if show_points
-                                    else "Points tracking disabled",
+                                    if (show_points and avg_points and avg_points > 0)
+                                    else "",
                                     "icon": "fa-weight-hanging",
-                                    "color": "#17a2b8" if show_points else "#6c757d",
+                                    "color": "#17a2b8"
+                                    if (show_points and avg_points and avg_points > 0)
+                                    else "#6c757d",
                                     "performance_tier_color": "green",
                                     "error_state": "success"
-                                    if show_points
-                                    else "points_tracking_disabled",
-                                    "error_message": "Points tracking disabled",
+                                    if (show_points and avg_points and avg_points > 0)
+                                    else "points_tracking_disabled"
+                                    if not show_points
+                                    else "no_data",
+                                    "error_message": "Points tracking is disabled. Enable Points Tracking in Parameters panel to view story points metrics."
+                                    if not show_points
+                                    else "No story points data available. Configure story points field in Settings or complete items with point estimates.",
                                     "_n_weeks": data_points_count,
                                     "tooltip": "Average story points per completed work item. Shows typical item complexity. Higher values mean larger items taking longer to complete. Use this to understand capacity: fewer large items or more small items per sprint."
-                                    if show_points
-                                    else "Enable Points Tracking in Parameters panel and configure the points field in JIRA Configuration to view this metric. When disabled, forecasts use item counts instead.",
+                                    if (show_points and avg_points and avg_points > 0)
+                                    else "Enable Points Tracking in Parameters panel and configure the points field in JIRA Configuration to view this metric. When disabled, forecasts use item counts instead."
+                                    if not show_points
+                                    else "No story points data available for the selected time period.",
                                     "weekly_values": [],
                                     "trend_direction": "stable",
                                     "trend_percent": 0,
@@ -1997,8 +2026,9 @@ def _create_recent_activity_section(statistics_df, show_points=True):
         ),
     ]
 
-    # Always show points cards - use placeholder when disabled
-    if has_points_data and show_points:
+    # Always show points cards - distinguish between disabled and no data
+    if has_points_data and show_points and total_points_completed > 0:
+        # Case 1: Points tracking enabled with data
         points_cards = [
             create_professional_metric_card(
                 {
@@ -2029,16 +2059,16 @@ def _create_recent_activity_section(statistics_df, show_points=True):
                 show_details_button=False,
             ),
         ]
-    else:
-        # Show placeholder cards when points tracking is disabled
+    elif not show_points:
+        # Case 2: Points tracking disabled
         points_cards = [
             create_professional_metric_card(
                 {
                     "metric_name": "points_completed",
                     "value": None,
-                    "unit": "points",
+                    "unit": "",
                     "error_state": "points_tracking_disabled",
-                    "error_message": "Points tracking disabled",
+                    "error_message": "Points tracking is disabled. Enable Points Tracking in Parameters panel to view story points metrics.",
                     "tooltip": "Enable Points Tracking in Parameters panel and configure the points field in JIRA Configuration to view this metric. When disabled, use Items Completed for throughput tracking.",
                     "total_issue_count": 0,
                 }
@@ -2048,10 +2078,37 @@ def _create_recent_activity_section(statistics_df, show_points=True):
                     "metric_name": "points_per_week_avg",
                     "alternative_name": "Average Points Per Week",
                     "value": None,
-                    "unit": "points/week",
+                    "unit": "",
                     "error_state": "points_tracking_disabled",
-                    "error_message": "Points tracking disabled",
+                    "error_message": "Points tracking is disabled. Enable Points Tracking in Parameters panel to view story points metrics.",
                     "tooltip": "Enable Points Tracking in Parameters panel and configure the points field in JIRA Configuration to view this metric. When disabled, use Items/Week Avg for velocity tracking.",
+                    "total_issue_count": 0,
+                }
+            ),
+        ]
+    else:
+        # Case 3: Points tracking enabled but no data (0 points)
+        points_cards = [
+            create_professional_metric_card(
+                {
+                    "metric_name": "points_completed",
+                    "value": None,
+                    "unit": "",
+                    "error_state": "no_data",
+                    "error_message": "No story points data available. Configure story points field in Settings or complete items with point estimates.",
+                    "tooltip": f"No story points completed in the last {recent_window} weeks. This may indicate that story points are not configured or no items with point estimates have been completed.",
+                    "total_issue_count": 0,
+                }
+            ),
+            create_professional_metric_card(
+                {
+                    "metric_name": "points_per_week_avg",
+                    "alternative_name": "Average Points Per Week",
+                    "value": None,
+                    "unit": "",
+                    "error_state": "no_data",
+                    "error_message": "No story points data available. Configure story points field in Settings or complete items with point estimates.",
+                    "tooltip": f"No story points data available for the last {recent_window} weeks. Configure story points field in Settings or complete items with point estimates.",
                     "total_issue_count": 0,
                 }
             ),

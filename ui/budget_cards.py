@@ -1012,17 +1012,36 @@ def create_cost_per_point_card(
         # Return placeholder card when points are not configured
         metric_data = {
             "metric_name": "cost_per_point",
+            "alternative_name": "Cost Per Point",
             "value": None,
             "unit": "",
             "performance_tier": "Not Configured",
             "performance_tier_color": "secondary",
-            "error_state": "info",
+            "error_state": "points_tracking_disabled",
+            "error_message": "Points tracking is disabled. Enable Points Tracking in Parameters panel to view story points metrics.",
             "total_issue_count": 0,
             "_n_weeks": data_points_count,
             "details": {
                 "status": "Story points field not configured. "
                 "Set up points field in Settings → Field Mapping to enable."
             },
+        }
+        return create_metric_card(metric_data, card_id, show_details_button=False)
+
+    # Check if points tracking is enabled but no data available
+    if cost_per_point is None or cost_per_point == 0:
+        metric_data = {
+            "metric_name": "cost_per_point",
+            "alternative_name": "Cost Per Point",
+            "value": None,
+            "unit": "",
+            "performance_tier": "No Data",
+            "performance_tier_color": "secondary",
+            "error_state": "no_data",
+            "error_message": "No story points data available. Configure story points field in Settings or complete items with point estimates.",
+            "total_issue_count": 0,
+            "_n_weeks": data_points_count,
+            "details": {"status": "No story points data available."},
         }
         return create_metric_card(metric_data, card_id, show_details_button=False)
 
