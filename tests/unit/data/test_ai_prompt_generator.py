@@ -335,23 +335,21 @@ def test_calculate_trend_zero_baseline():
 
 
 def test_format_prompt_includes_all_sections(sample_summary):
-    """Verify all 8 required sections are present."""
+    """Verify all key sections are present in improved format."""
     prompt = _format_ai_prompt(sample_summary, time_period_weeks=12)
 
-    # Check for all 8 section headers
-    assert "## Context" in prompt
-    assert "## Project Metrics Summary" in prompt
-    assert "## Analysis Tasks" in prompt
-    assert "## REQUIRED OUTPUT FORMAT" in prompt
-    assert "### 1. EXECUTIVE SUMMARY" in prompt
-    assert "### 2. PROJECT HEALTH ASSESSMENT" in prompt
-    assert "### 3. VELOCITY ANALYSIS" in prompt
-    assert "### 4. COMPLETION FORECAST" in prompt
-    assert "### 5. SCOPE MANAGEMENT" in prompt
-    assert "### 6. RISK ANALYSIS" in prompt
-    assert "### 7. ACTIONABLE RECOMMENDATIONS" in prompt
-    assert "### 8. ADDITIONAL INSIGHTS" in prompt
-    assert "## OPTIONAL CONTEXT" in prompt
+    # Check for key section headers (flexible format)
+    assert "## Project Data" in prompt
+    assert "## Analysis Objectives" in prompt
+    assert "### 1. Executive Summary" in prompt
+    assert "### 2. Velocity & Performance Analysis" in prompt
+    assert "### 3. Scope Management Assessment" in prompt
+    assert "### 4. Delivery Forecast" in prompt
+    assert "### 5. Risk Identification" in prompt
+    assert "### 6. Actionable Recommendations" in prompt
+    assert "### 7. Key Questions for Stakeholders" in prompt
+    assert "## Analysis Guidelines" in prompt
+    assert "## Optional Context" in prompt
 
 
 def test_format_prompt_includes_metrics_json(sample_summary):
@@ -371,7 +369,8 @@ def test_format_prompt_includes_time_period(sample_summary):
     """Verify time period is prominently displayed."""
     prompt = _format_ai_prompt(sample_summary, time_period_weeks=12)
 
-    assert "Last 12 weeks" in prompt
+    # New format uses "12-week analysis window"
+    assert "12-week analysis window" in prompt
 
 
 def test_format_prompt_includes_project_scope():
@@ -400,13 +399,11 @@ def test_format_prompt_includes_project_scope():
 
     # Check project scope section exists
     assert "## Project Scope & Progress" in prompt
-    assert "Completion" in prompt
-    assert "Remaining Work" in prompt
-    assert "50 items" in prompt  # remaining_items
-    assert "150 items" in prompt  # total_items
-    assert "Points Completion" in prompt
-    assert "Estimated Completion" in prompt
-    assert "3.2 weeks" in prompt
+    assert "Progress:" in prompt
+    assert "Remaining: 50 items" in prompt
+    assert "66.7% complete" in prompt
+    assert "Story Points:" in prompt  # Points included
+    assert "Projected Completion: ~3.2 weeks" in prompt
 
 
 def test_format_prompt_scope_without_points():
@@ -431,19 +428,19 @@ def test_format_prompt_scope_without_points():
 
     # Check project scope section exists but without points
     assert "## Project Scope & Progress" in prompt
-    assert "Completion" in prompt
-    assert "Points Completion" not in prompt  # Should not mention points
+    assert "Progress:" in prompt
+    assert "Story Points:" not in prompt  # Should not mention points
 
 
 def test_format_prompt_includes_structured_output_spec(sample_summary):
-    """Verify structured output format specification is present."""
+    """Verify analysis guidance is present (flexible format)."""
     prompt = _format_ai_prompt(sample_summary, time_period_weeks=12)
 
-    # Check for output format components
-    assert "Health Score" in prompt
-    assert "IMMEDIATE ACTIONS" in prompt
-    assert "Confidence Intervals" in prompt
-    assert "TOP 3 RISKS" in prompt
+    # Check for analysis guidance components (not rigid structure)
+    assert "Immediate Actions" in prompt
+    assert "confidence intervals" in prompt
+    assert "Risk Identification" in prompt
+    assert "Be Data-Driven" in prompt  # Analysis guidelines
 
 
 def test_format_prompt_includes_footer(sample_summary):
@@ -494,7 +491,7 @@ def test_generate_prompt_full_flow(
 
     # Verify prompt was generated
     assert len(prompt) > 1000
-    assert "Project Metrics Summary" in prompt
+    assert "Project Data" in prompt  # New format
 
 
 @patch("data.query_manager.get_active_profile_id")

@@ -338,13 +338,13 @@ def _calculate_trend(series: pd.Series) -> str:
 
 def _format_ai_prompt(summary: Dict[str, Any], time_period_weeks: int) -> str:
     """
-    Format summary into AI-ready prompt with structured output specification.
+    Format summary into AI-ready prompt with flexible structure.
 
     Creates comprehensive prompt with:
     - Context section
     - Data section (JSON summary)
-    - Questions/tasks section
-    - Structured output format specification (ensures consistent responses)
+    - Analysis guidance (not rigid format)
+    - Actionable focus
 
     Args:
         summary: Condensed statistics dictionary
@@ -362,235 +362,174 @@ def _format_ai_prompt(summary: Dict[str, Any], time_period_weeks: int) -> str:
         version = "2.4.4"
 
     metrics_json = json.dumps(summary.get("metrics", {}), indent=2)
-    generated_at = summary.get("generated_at", datetime.now().isoformat())
+    metrics = summary.get("metrics", {})
 
     # Build project scope section if available
     scope_section = ""
     if "project_scope" in summary:
-        scope_json = json.dumps(summary.get("project_scope", {}), indent=2)
+        scope = summary["project_scope"]
         scope_section = f"""
 ## Project Scope & Progress
 
-```json
-{scope_json}
-```
+**Current State**:
+- Progress: {scope.get("completion_pct", 0):.1f}% complete ({scope.get("completed_items", 0)}/{scope.get("total_items", 0)} items)
+- Remaining: {scope.get("remaining_items", 0)} items"""
 
-**Key Metrics**:
-- **Completion**: {summary["project_scope"].get("completion_pct", 0):.1f}% ({summary["project_scope"].get("completed_items", 0)} of {summary["project_scope"].get("total_items", 0)} items)
-- **Remaining Work**: {summary["project_scope"].get("remaining_items", 0)} items
-"""
-        # Add points info only if project uses them
-        if "total_points" in summary["project_scope"]:
-            scope_section += f"""- **Points Completion**: {summary["project_scope"].get("points_completion_pct", 0):.1f}% ({summary["project_scope"].get("completed_points", 0)} of {summary["project_scope"].get("total_points", 0)} points)
-- **Remaining Points**: {summary["project_scope"].get("remaining_points", 0)} points
-"""
+        # Add points if project uses them
+        if "total_points" in scope:
+            scope_section += f"""
+- Story Points: {scope.get("points_completion_pct", 0):.1f}% complete ({scope.get("completed_points", 0)}/{scope.get("total_points", 0)} points)"""
 
-        # Add forecast if available
-        if "estimated_weeks_remaining" in summary["project_scope"]:
-            scope_section += f"""- **Estimated Completion**: ~{summary["project_scope"].get("estimated_weeks_remaining", 0):.1f} weeks remaining at current velocity
-"""
+        # Add forecast
+        if "estimated_weeks_remaining" in scope:
+            scope_section += f"""
+- Projected Completion: ~{scope.get("estimated_weeks_remaining", 0):.1f} weeks at current velocity"""
 
-        scope_section += "\n---\n"
+        scope_section += "\n\n---\n"
 
-    prompt = f"""# Project Analysis Request
+    # Build velocity insights
+    velocity_items = metrics.get("avg_velocity_items", 0)
+    velocity_trend = metrics.get("velocity_trend", "unknown")
+    velocity_cv = metrics.get("velocity_coefficient_of_variation", 0)
 
-## Context
-I'm managing an agile project and need analysis, forecasting, and recommendations based on historical data.
+    # Interpret velocity consistency
+    consistency_label = (
+        "high" if velocity_cv < 20 else "moderate" if velocity_cv < 40 else "low"
+    )
 
-**Time Period**: Last {time_period_weeks} weeks  
-**Data Generated**: {generated_at}  
-**Data Source**: Burndown Chart Generator (sanitized export)
+    # Build scope change insights
+    scope_rate = metrics.get("scope_change_rate_pct", 0)
+    scope_assessment = (
+        "healthy" if scope_rate < 110 else "moderate" if scope_rate < 150 else "high"
+    )
+
+    prompt = f"""# Agile Project Analysis Request
+
+You are an expert agile project manager analyzing project health and forecasting outcomes. Provide data-driven insights with specific, actionable recommendations.
+
+## Project Data ({time_period_weeks}-week analysis window)
+
+**Velocity Metrics**:
+- Average: {velocity_items:.1f} items/week
+- Trend: {velocity_trend}
+- Consistency: {consistency_label} (CV: {velocity_cv:.1f}%)
+- Total completed: {metrics.get("total_completed_items", 0)} items
+
+**Scope Dynamics**:
+- Scope change rate: {scope_rate:.1f}%
+- New items created: {metrics.get("total_created_items", 0)}
+- Items completed: {metrics.get("total_completed_items", 0)}
+- Assessment: {scope_assessment} scope volatility
+{scope_section}
+---
+
+## Analysis Objectives
+
+Provide a comprehensive project assessment covering:
+
+### 1. Executive Summary (2-3 sentences)
+- Overall project health (Green/Yellow/Red status)
+- Most critical insight requiring immediate attention
+- Confidence level in current trajectory
+
+### 2. Velocity & Performance Analysis
+- Evaluate velocity trend and what's driving it
+- Assess velocity consistency ({consistency_label} CV of {velocity_cv:.1f}%)
+- Identify patterns or anomalies in delivery performance
+- Compare recent performance to historical baseline
+
+### 3. Scope Management Assessment
+- Analyze scope change rate of {scope_rate:.1f}% (items created vs. completed)
+- Determine if scope volatility is healthy or problematic
+- Identify risks from scope creep or under-planning
+- Recommend scope management adjustments if needed
+
+### 4. Delivery Forecast
+Based on current velocity ({velocity_items:.1f} items/week) and remaining work:
+- Provide realistic completion date with confidence intervals (P20/P50/P80)
+- State key assumptions underlying the forecast
+- Identify factors that could accelerate or delay completion
+- Calculate schedule variance if a deadline is specified
+
+### 5. Risk Identification
+Identify top 3-5 data-driven risks, prioritized by impact:
+- Each risk should reference specific metrics (velocity trend, scope rate, etc.)
+- Assess likelihood (High/Medium/Low) and impact (High/Medium/Low)
+- Propose concrete mitigation strategies with effort estimates
+
+### 6. Actionable Recommendations
+Provide 3-5 prioritized recommendations in three tiers:
+
+**Immediate Actions** (next 1-2 weeks):
+- Critical interventions to address urgent issues
+- Quick wins to improve trajectory
+
+**Short-term Improvements** (next 4-6 weeks):
+- Process improvements to stabilize performance
+- Proactive risk mitigation
+
+**Strategic Initiatives** (long-term):
+- Structural changes for sustained improvement
+- Capability building
+
+For each recommendation, specify:
+- What: Specific action to take
+- Why: Expected benefit (quantify if possible)
+- Who: Suggested owner (role/team)
+- Effort: Low/Medium/High estimate
+
+### 7. Key Questions for Stakeholders
+Identify 2-3 critical questions that require leadership discussion or clarification to improve accuracy of analysis.
 
 ---
 
-## Project Metrics Summary
+## Analysis Guidelines
 
+**Be Data-Driven**: Ground all insights in the provided metrics. Avoid generic advice.
+
+**Be Specific**: Use actual numbers from the data (e.g., "velocity declined 15% in last 4 weeks" not "velocity is declining").
+
+**Be Actionable**: Every recommendation should be implementable within the specified timeframe.
+
+**Consider Context**: Acknowledge that metrics don't tell the whole story. Flag where additional context would improve analysis.
+
+**Prioritize Ruthlessly**: Focus on the 20% of actions that will deliver 80% of impact.
+
+**Use Agile Terminology**: Reference sprints, iterations, backlogs, ceremonies as appropriate for agile teams.
+
+---
+
+## Optional Context (add if available for better insights)
+
+**Team Context**:
+- Team size: [specify if known]
+- Sprint/iteration length: [specify if known]
+- Team maturity: [new/established/high-performing]
+
+**Project Constraints**:
+- Hard deadline: [YYYY-MM-DD if applicable]
+- Budget limits: [hours/week if applicable]
+- Regulatory/compliance requirements: [if applicable]
+
+**Recent Events** (explain anomalies in data):
+- [e.g., "Holiday break Dec 20-Jan 3 reduced velocity"]
+- [e.g., "Major technical spike in week of Dec 15"]
+- [e.g., "3 team members onboarded Jan 6"]
+
+**Specific Questions**:
+- [Add any specific questions for targeted analysis]
+
+---
+
+**Full Metrics Export** (for reference):
 ```json
 {metrics_json}
 ```
 
 ---
-{scope_section}
-## Analysis Tasks
 
-Please analyze this data and provide insights in the **EXACT FORMAT** specified below.
-
----
-
-## REQUIRED OUTPUT FORMAT
-
-### 1. EXECUTIVE SUMMARY
-**Current Status**: [One sentence: Green/Yellow/Red with primary reason]  
-**Key Insight**: [One actionable insight in 1-2 sentences]
-
----
-
-### 2. PROJECT HEALTH ASSESSMENT
-
-**Overall Health Score**: [X/100]
-
-**Component Breakdown**:
-- Velocity Consistency: [Score/30] - [Brief assessment]
-- Schedule Performance: [Score/25] - [Brief assessment]  
-- Scope Stability: [Score/20] - [Brief assessment]
-- Quality Trends: [Score/15] - [Brief assessment]
-- Recent Performance: [Score/10] - [Brief assessment]
-
-**Health Trend**: [Improving ↗ | Stable → | Declining ↘]
-
----
-
-### 3. VELOCITY ANALYSIS
-
-**Current Velocity**:
-- Items: [X.X items/week]
-- Story Points: [X.X points/week] (if applicable)
-
-**Velocity Trend**: [Improving ↗ | Stable → | Declining ↘] ([+/- X%] change)
-
-**Trend Analysis**:
-- **What's happening**: [Describe the trend in 1-2 sentences]
-- **Why it matters**: [Explain impact on delivery]
-- **Contributing factors**: [List 2-3 likely causes]
-
----
-
-### 4. COMPLETION FORECAST
-
-**Realistic Completion Date**: [YYYY-MM-DD]
-
-**Confidence Intervals**:
-- Best case (80% confidence): [YYYY-MM-DD]
-- Most likely (50% confidence): [YYYY-MM-DD]
-- Worst case (20% confidence): [YYYY-MM-DD]
-
-**Assumptions**:
-- Current velocity remains stable
-- No major scope changes
-- Team capacity unchanged
-- [Add any other assumptions]
-
-**If deadline is provided**: 
-- Target deadline: [YYYY-MM-DD]
-- Schedule variance: [On track ✓ | X weeks ahead | X weeks behind]
-- Probability of meeting deadline: [X%]
-
----
-
-### 5. SCOPE MANAGEMENT
-
-**Scope Change Rate**: [X.X%]
-- New items created: [X items]
-- Items completed: [X items]
-- Net change: [+/- X items]
-
-**Assessment**: [Healthy ✓ | Moderate ⚠ | Concerning ⚠⚠]
-
-**Recommendation**: [One sentence action item]
-
----
-
-### 6. RISK ANALYSIS
-
-**TOP 3 RISKS** (Prioritized by Impact × Probability):
-
-**Risk 1: [Risk Name]**
-- **Likelihood**: [High/Medium/Low]
-- **Impact**: [High/Medium/Low]
-- **Description**: [1-2 sentences]
-- **Mitigation**: [Specific action to reduce risk]
-
-**Risk 2: [Risk Name]**
-- **Likelihood**: [High/Medium/Low]
-- **Impact**: [High/Medium/Low]
-- **Description**: [1-2 sentences]
-- **Mitigation**: [Specific action to reduce risk]
-
-**Risk 3: [Risk Name]**
-- **Likelihood**: [High/Medium/Low]
-- **Impact**: [High/Medium/Low]
-- **Description**: [1-2 sentences]
-- **Mitigation**: [Specific action to reduce risk]
-
----
-
-### 7. ACTIONABLE RECOMMENDATIONS
-
-**IMMEDIATE ACTIONS** (Next 1-2 weeks):
-
-1. **[Action Title]**
-   - **What**: [Specific action to take]
-   - **Why**: [Expected benefit]
-   - **Owner**: [Suggested role/person]
-   - **Effort**: [Low/Medium/High]
-
-2. **[Action Title]**
-   - **What**: [Specific action to take]
-   - **Why**: [Expected benefit]
-   - **Owner**: [Suggested role/person]
-   - **Effort**: [Low/Medium/High]
-
-**SHORT-TERM IMPROVEMENTS** (Next 4-6 weeks):
-
-3. **[Action Title]**
-   - **What**: [Specific action to take]
-   - **Why**: [Expected benefit]
-   - **Owner**: [Suggested role/person]
-   - **Effort**: [Low/Medium/High]
-
-4. **[Action Title]**
-   - **What**: [Specific action to take]
-   - **Why**: [Expected benefit]
-   - **Owner**: [Suggested role/person]
-   - **Effort**: [Low/Medium/High]
-
-**STRATEGIC INITIATIVES** (Long-term):
-
-5. **[Action Title]**
-   - **What**: [Specific action to take]
-   - **Why**: [Expected benefit]
-   - **Owner**: [Suggested role/person]
-   - **Effort**: [Low/Medium/High]
-
----
-
-### 8. ADDITIONAL INSIGHTS
-
-**Patterns Observed**:
-- [Insight 1]
-- [Insight 2]
-- [Insight 3]
-
-**Questions to Consider**:
-- [Question 1 for team discussion]
-- [Question 2 for team discussion]
-
----
-
-## OPTIONAL CONTEXT (Fill in for better analysis)
-
-**Team Details**:
-- Team size: [X developers]
-- Sprint length: [X weeks]
-- Experience level: [Junior/Mid/Senior mix]
-
-**Recent Events**:
-- [e.g., Holiday break Dec 20-Jan 3]
-- [e.g., New team member joined Jan 6]
-- [e.g., Tech debt sprint completed]
-
-**Project Constraints**:
-- Hard deadline: [YYYY-MM-DD] (if applicable)
-- Budget constraint: [X hours/week]
-- Regulatory requirements: [Yes/No - describe if yes]
-
-**Specific Questions**:
-- [Add any specific questions you want answered]
-
----
-
-*Generated by Burndown Chart Generator v{version} - AI Prompt Feature*  
-*Data sanitized for privacy - no customer-identifying information included*
+*Generated by Burndown Chart Generator v{version}*  
+*Data sanitized for privacy - no customer-identifying information*
 """
 
     return prompt
