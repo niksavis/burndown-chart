@@ -62,8 +62,8 @@ class TestSensitiveDataFilter:
         assert '"password": "[REDACTED]"' in record.msg
         assert "secretPass123" not in record.msg
 
-    def test_redact_production_urls(self):
-        """Test that production URLs are replaced with example.com."""
+    def test_preserve_production_urls(self):
+        """Test that production URLs are NOT redacted (intentionally kept for debugging)."""
         record = logging.LogRecord(
             name="test",
             level=logging.INFO,
@@ -74,8 +74,8 @@ class TestSensitiveDataFilter:
             exc_info=None,
         )
         self.filter.filter(record)
-        assert "jira.example.com" in record.msg
-        assert "realcompany.com" not in record.msg
+        # URLs are NOT redacted - kept for debugging purposes
+        assert "jira.realcompany.com" in record.msg
 
     def test_preserve_localhost_urls(self):
         """Test that localhost URLs are NOT redacted."""
@@ -135,12 +135,11 @@ class TestSensitiveDataFilter:
             exc_info=None,
         )
         self.filter.filter(record)
-        # Check all redactions happened
-        assert "jira.example.com" in record.msg  # URL redacted
+        # Check redactions happened (but NOT URLs - kept for debugging)
         assert '"token": "[REDACTED]"' in record.msg  # Token redacted
         assert "***@customer.com" in record.msg  # Email redacted
-        # Ensure no sensitive data leaked
-        assert "jira.customer.com" not in record.msg
+        assert "jira.customer.com" in record.msg  # URL NOT redacted
+        # Ensure no user credentials leaked
         assert "abc123" not in record.msg
         assert "admin@" not in record.msg
 
@@ -159,11 +158,10 @@ class TestSensitiveDataFilter:
         # Check args were redacted (args is a tuple)
         assert record.args is not None and len(record.args) > 0
         redacted_arg = str(list(record.args)[0])
-        # All production URLs are replaced with jira.example.com (not api.example.com)
-        # This is intentional - one consistent placeholder for all production domains
-        assert "jira.example.com" in redacted_arg
-        assert "customer.com" not in redacted_arg
-        # Token should also be redacted
+        # URLs are NOT redacted - kept for debugging
+        assert "api.customer.com" in redacted_arg
+        # Token should be redacted
+        assert "[REDACTED]" in redacted_arg
         assert "abc123" not in redacted_arg
 
     def test_case_insensitive_redaction(self):

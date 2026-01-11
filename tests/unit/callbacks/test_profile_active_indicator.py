@@ -2,13 +2,10 @@
 Unit tests for profile Active indicator in dropdown.
 
 Tests that the "(Active)" indicator is correctly applied and refreshed.
+Uses SQLite database backend via temp_database fixture.
 """
 
 import pytest
-import tempfile
-import json
-from pathlib import Path
-from unittest.mock import patch
 from data.profile_manager import (
     create_profile,
     switch_profile,
@@ -20,31 +17,7 @@ from data.profile_manager import (
 class TestProfileActiveIndicator:
     """Test Active indicator in profile dropdown."""
 
-    @pytest.fixture
-    def temp_profiles_dir(self):
-        """Create temporary profiles directory for testing."""
-        with tempfile.TemporaryDirectory() as temp_dir:
-            profiles_dir = Path(temp_dir) / "profiles"
-            profiles_dir.mkdir(parents=True, exist_ok=True)
-
-            # Create profiles.json
-            profiles_file = profiles_dir / "profiles.json"
-            profiles_file.write_text(
-                json.dumps(
-                    {
-                        "active_profile_id": None,
-                        "active_query_id": None,
-                        "profiles": {},
-                    },
-                    indent=2,
-                )
-            )
-
-            with patch("data.profile_manager.PROFILES_DIR", profiles_dir):
-                with patch("data.profile_manager.PROFILES_FILE", profiles_file):
-                    yield profiles_dir
-
-    def test_active_profile_shows_active_indicator(self, temp_profiles_dir):
+    def test_active_profile_shows_active_indicator(self, temp_database):
         """Verify active profile has (Active) indicator in dropdown."""
         # Create two profiles
         profile1_id = create_profile("Profile One", {"description": "First"})
@@ -64,7 +37,7 @@ class TestProfileActiveIndicator:
         assert len(profiles) == 2
         assert any(p["id"] == profile2_id for p in profiles)
 
-    def test_switching_profiles_updates_active_indicator(self, temp_profiles_dir):
+    def test_switching_profiles_updates_active_indicator(self, temp_database):
         """Verify switching profiles updates which one shows Active."""
         # Create two profiles
         profile1_id = create_profile("Alpha", {"description": "First"})
@@ -89,7 +62,7 @@ class TestProfileActiveIndicator:
         beta_profile = next(p for p in profiles if p["id"] == profile2_id)
         assert beta_profile["id"] == profile2_id
 
-    def test_only_one_profile_active_at_a_time(self, temp_profiles_dir):
+    def test_only_one_profile_active_at_a_time(self, temp_database):
         """Verify only one profile can be active at a time."""
         # Create three profiles
         p1_id = create_profile("P1", {"description": "One"})
@@ -119,7 +92,7 @@ class TestProfileActiveIndicator:
         assert p2_id in profile_ids
         assert p3_id in profile_ids
 
-    def test_renamed_profile_remains_active(self, temp_profiles_dir):
+    def test_renamed_profile_remains_active(self, temp_database):
         """Verify renaming a profile doesn't change active status."""
         from data.profile_manager import rename_profile
 
@@ -142,7 +115,7 @@ class TestProfileActiveIndicator:
         assert active_after.id == profile_id  # Same ID
         assert active_after.name == "New Name"  # New name
 
-    def test_duplicated_profile_becomes_active(self, temp_profiles_dir):
+    def test_duplicated_profile_becomes_active(self, temp_database):
         """Verify duplicating a profile and switching makes it active."""
         from data.profile_manager import duplicate_profile
 
@@ -162,7 +135,7 @@ class TestProfileActiveIndicator:
         assert active.id == duplicate_id
         assert active.name == "Copy of Original"
 
-    def test_deleted_profile_not_in_list(self, temp_profiles_dir):
+    def test_deleted_profile_not_in_list(self, temp_database):
         """Verify deleted profile is removed from list."""
         from data.profile_manager import delete_profile
 
