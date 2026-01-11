@@ -75,11 +75,27 @@ def mock_profile_config() -> Dict[str, Any]:
 
 
 @pytest.fixture
-def mock_load_app_settings(mock_profile_config):
-    """Patch load_app_settings to return mock profile config."""
-    with patch("data.persistence.load_app_settings") as mock:
-        mock.return_value = mock_profile_config
-        yield mock
+def mock_load_app_settings(temp_database, mock_profile_config):
+    """Patch load_app_settings to return mock profile config AND mock get_metrics_config.
+
+    Args:
+        temp_database: Ensures database is initialized before tests run
+        mock_profile_config: Profile configuration to return
+    """
+    from configuration.metrics_config import MetricsConfig
+
+    # Create a mock MetricsConfig instance with the test configuration
+    mock_config = MetricsConfig.__new__(MetricsConfig)
+    mock_config.profile_id = "test_profile"
+    mock_config.profile_config = mock_profile_config
+
+    with (
+        patch("data.persistence.load_app_settings") as mock_settings,
+        patch("configuration.metrics_config.get_metrics_config") as mock_get_config,
+    ):
+        mock_settings.return_value = mock_profile_config
+        mock_get_config.return_value = mock_config
+        yield mock_settings
 
 
 #######################################################################
