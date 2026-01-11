@@ -1395,7 +1395,17 @@ def register(app):
                 return items_tab_content, chart_cache, ui_state
 
             elif active_tab == "tab-points":
-                if show_points:
+                # Check if points data exists (not just if tracking is enabled)
+                has_points_data = False
+                if show_points and statistics:
+                    # Check if there's any completed points data
+                    df_check = pd.DataFrame(statistics)
+                    if not df_check.empty and "completed_points" in df_check.columns:
+                        total_completed_points = df_check["completed_points"].sum()
+                        has_points_data = total_completed_points > 0
+
+                if show_points and has_points_data:
+                    # Case 1: Points tracking enabled with data
                     # Generate trend data and weekly points chart only when needed
                     items_trend, points_trend = _prepare_trend_data(
                         statistics, pert_factor, data_points_count
@@ -1419,29 +1429,60 @@ def register(app):
                     chart_cache[cache_key] = points_tab_content
                     ui_state["loading"] = False
                     return points_tab_content, chart_cache, ui_state
-                else:
-                    # Points tracking disabled content
+                elif not show_points:
+                    # Case 2: Points tracking disabled - use consistent template
                     points_disabled_content = html.Div(
-                        [
-                            html.Div(
-                                [
-                                    html.H4(
-                                        "Points Tracking Disabled",
-                                        className="text-muted",
-                                    ),
-                                    html.P(
-                                        "Enable the Points Tracking toggle in the Project Timeline form to view points forecasts.",
-                                        className="text-muted",
-                                    ),
-                                ],
-                                className="alert alert-info text-center",
-                            )
-                        ]
+                        html.Div(
+                            [
+                                html.I(
+                                    className="fas fa-toggle-off fa-2x text-secondary mb-3"
+                                ),
+                                html.Div(
+                                    "Points Tracking Disabled",
+                                    className="fw-bold mb-2",
+                                    style={"fontSize": "1.2rem", "color": "#6c757d"},
+                                ),
+                                html.Small(
+                                    "Enable Points Tracking in Parameters panel to view story points metrics.",
+                                    className="text-muted",
+                                    style={"fontSize": "0.9rem"},
+                                ),
+                            ],
+                            className="d-flex align-items-center justify-content-center flex-column",
+                            style={"gap": "0.25rem", "padding": "80px 20px"},
+                        )
                     )
                     # Cache the result for next time
                     chart_cache[cache_key] = points_disabled_content
                     ui_state["loading"] = False
                     return points_disabled_content, chart_cache, ui_state
+                else:
+                    # Case 3: Points tracking enabled but no data (0 points)
+                    points_no_data_content = html.Div(
+                        html.Div(
+                            [
+                                html.I(
+                                    className="fas fa-database fa-2x text-secondary mb-3"
+                                ),
+                                html.Div(
+                                    "No Points Data",
+                                    className="fw-bold mb-2",
+                                    style={"fontSize": "1.2rem", "color": "#6c757d"},
+                                ),
+                                html.Small(
+                                    "No story points data available. Configure story points field in Settings or complete items with point estimates.",
+                                    className="text-muted",
+                                    style={"fontSize": "0.9rem"},
+                                ),
+                            ],
+                            className="d-flex align-items-center justify-content-center flex-column",
+                            style={"gap": "0.25rem", "padding": "80px 20px"},
+                        )
+                    )
+                    # Cache the result for next time
+                    chart_cache[cache_key] = points_no_data_content
+                    ui_state["loading"] = False
+                    return points_no_data_content, chart_cache, ui_state
 
             elif active_tab == "tab-scope-tracking":
                 # Generate scope tracking content only when needed
