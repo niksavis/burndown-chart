@@ -1604,8 +1604,17 @@ def register(app):
                     settings.get("data_points_count", 12)
                 )  # Ensure int
 
+                # Check if points data exists in the filtered time period
+                has_points_data = False
+                if show_points:
+                    has_points_data = _check_has_points_in_period(
+                        statistics, data_points_count
+                    )
+
                 # Render the actual content immediately
-                bug_analysis_content = _render_bug_analysis_content(data_points_count)
+                bug_analysis_content = _render_bug_analysis_content(
+                    data_points_count, show_points, has_points_data
+                )
 
                 # Cache the result for next time
                 chart_cache[cache_key] = bug_analysis_content

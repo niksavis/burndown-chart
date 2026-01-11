@@ -38,7 +38,9 @@ logger = logging.getLogger(__name__)
 #######################################################################
 
 
-def _render_bug_analysis_content(data_points_count: int):
+def _render_bug_analysis_content(
+    data_points_count: int, show_points: bool = True, has_points_data: bool = False
+):
     """
     Render bug analysis tab content.
 
@@ -48,6 +50,8 @@ def _render_bug_analysis_content(data_points_count: int):
 
     Args:
         data_points_count: Number of weeks to include (from timeline filter)
+        show_points: Whether points tracking is enabled
+        has_points_data: Whether points data exists in the filtered time period
 
     Returns:
         Complete bug analysis tab content (html.Div)
@@ -253,32 +257,90 @@ def _render_bug_analysis_content(data_points_count: int):
             if weekly_stats:
                 logger.debug(f"[BUG ANALYSIS] Sample stat: {weekly_stats[0]}")
 
-            if has_story_points:
+            # Bug Investment Chart - only show when points tracking is enabled AND has data
+            if show_points and has_points_data and has_story_points:
                 investment_chart = BugInvestmentChart(
                     weekly_stats, viewport_size="mobile"
                 )
-            else:
-                # T057: Show message when no story points
+            elif not show_points:
+                # Points tracking disabled
                 investment_chart = dbc.Card(
                     dbc.CardBody(
                         [
                             html.H5(
                                 "Bug Investment Chart",
-                                className="card-title",
+                                className="card-title mb-3",
                             ),
                             html.Div(
                                 [
-                                    html.I(className="fas fa-info-circle me-2"),
-                                    html.Span(
-                                        "Story points data not available for this project. "
-                                        "Only bug item counts are being tracked."
+                                    html.I(
+                                        className="fas fa-toggle-off fa-lg text-secondary"
+                                    ),
+                                    html.Div(
+                                        "Points Tracking Disabled",
+                                        className="fw-bold",
+                                        style={
+                                            "fontSize": "1rem",
+                                            "color": "#6c757d",
+                                        },
+                                    ),
+                                    html.Small(
+                                        "Enable points tracking in Settings to view bug investment by story points.",
+                                        className="text-muted",
+                                        style={"fontSize": "0.85rem"},
                                     ),
                                 ],
-                                className="alert alert-info",
+                                className="d-flex align-items-center justify-content-center flex-column",
+                                style={"gap": "0.25rem"},
                             ),
-                        ]
+                        ],
                     ),
                     className="mb-3",
+                    style={
+                        "borderRadius": "0.375rem",
+                        "border": "1px solid #dee2e6",
+                        "backgroundColor": "#f8f9fa",
+                    },
+                )
+            else:
+                # Points tracking enabled but no data in filtered period
+                investment_chart = dbc.Card(
+                    dbc.CardBody(
+                        [
+                            html.H5(
+                                "Bug Investment Chart",
+                                className="card-title mb-3",
+                            ),
+                            html.Div(
+                                [
+                                    html.I(
+                                        className="fas fa-database fa-lg text-secondary"
+                                    ),
+                                    html.Div(
+                                        "No Points Data",
+                                        className="fw-bold",
+                                        style={
+                                            "fontSize": "1rem",
+                                            "color": "#6c757d",
+                                        },
+                                    ),
+                                    html.Small(
+                                        "No story points data available in the selected time period. Configure story points field in Settings or complete bug items with point estimates.",
+                                        className="text-muted",
+                                        style={"fontSize": "0.85rem"},
+                                    ),
+                                ],
+                                className="d-flex align-items-center justify-content-center flex-column",
+                                style={"gap": "0.25rem"},
+                            ),
+                        ],
+                    ),
+                    className="mb-3",
+                    style={
+                        "borderRadius": "0.375rem",
+                        "border": "1px solid #dee2e6",
+                        "backgroundColor": "#f8f9fa",
+                    },
                 )
         except ValueError as ve:
             # Handle edge case: not enough bugs for statistics
