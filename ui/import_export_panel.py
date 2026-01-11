@@ -460,6 +460,71 @@ def _create_reports_tab():
     )
 
 
+def _create_ai_prompt_tab():
+    """Create AI Prompt Generator tab."""
+    return html.Div(
+        [
+            # Header
+            html.Div(
+                [
+                    html.I(className="fas fa-robot me-2 text-primary"),
+                    html.Span("AI Analysis Prompt Generator", className="fw-bold"),
+                ],
+                className="d-flex align-items-center mb-2",
+            ),
+            html.P(
+                "Generate privacy-safe prompt for AI analysis (works with any AI agent)",
+                className="text-muted small mb-2",
+                style={"fontSize": "0.8rem"},
+            ),
+            # Info about time period (mirrors Reports tab)
+            html.Div(
+                [
+                    html.I(className="fas fa-info-circle me-2"),
+                    html.Span(
+                        [
+                            "AI analysis will include data from the ",
+                            html.Strong(id="ai-prompt-weeks-display", children="12"),
+                            " weeks shown in your current Data Points view",
+                        ],
+                        style={"fontSize": "0.85rem"},
+                    ),
+                ],
+                className="alert alert-info py-2 mb-3",
+                style={"fontSize": "0.8rem"},
+            ),
+            # Privacy notice
+            html.Div(
+                [
+                    html.I(className="fas fa-shield-alt me-2"),
+                    html.Span(
+                        "All customer-identifying data is automatically sanitized before prompt generation.",
+                        style={"fontSize": "0.85rem"},
+                    ),
+                ],
+                className="alert alert-secondary py-2 mb-3",
+                style={"fontSize": "0.8rem"},
+            ),
+            # Generate button (matches other action buttons)
+            html.Div(
+                [
+                    dbc.Button(
+                        [
+                            html.I(className="fas fa-robot"),
+                            html.Span("Generate AI Prompt"),
+                        ],
+                        id="generate-ai-prompt-button",
+                        color="primary",
+                        className="action-button",
+                    ),
+                ],
+                style={"marginBottom": "0.5rem"},
+            ),
+        ],
+        className="p-3",
+    )
+
+
 def create_import_export_flyout(is_open: bool = False):
     """
     Create a flyout panel for import/export functionality.
@@ -491,6 +556,11 @@ def create_import_export_flyout(is_open: bool = False):
                                     label="Import/Export",
                                     tab_id="import-export-tab",
                                     children=_create_import_export_tab(),
+                                ),
+                                dbc.Tab(
+                                    label="AI Prompt",
+                                    tab_id="ai-prompt-tab",
+                                    children=_create_ai_prompt_tab(),
                                 ),
                             ],
                             id="data-tabs",

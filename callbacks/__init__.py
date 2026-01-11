@@ -101,6 +101,7 @@ Example - Correct callback pattern:
 from ui.layout import USE_ACCORDION_SETTINGS
 
 from callbacks import (
+    ai_prompt_generation,  # AI prompt generation callbacks (Feature 017, auto-registers via @callback)  # noqa: F401
     app_update,  # Application auto-update callbacks (auto-registers via @callback)  # noqa: F401
     banner_status_icons,  # Banner icon animations during operations (auto-registers via @callback)  # noqa: F401
     budget_settings,  # Budget configuration callbacks (auto-registers via @callback)  # noqa: F401

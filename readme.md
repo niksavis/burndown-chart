@@ -14,6 +14,7 @@
 - **📈 Is Our Team Healthy?** - Track velocity, spot bottlenecks, see trend warnings
 - **🔌 Works With JIRA** - Connects directly to your JIRA projects
 - **📋 Shareable Reports** - Generate HTML reports for stakeholders in seconds
+- **🤖 AI Analysis Prompts** - One-click generation of privacy-safe prompts for ChatGPT, Claude, or any AI agent
 - **🔒 Multiple Projects** - Switch between different teams/projects instantly
 
 ## Installation
@@ -295,6 +296,42 @@ Create standalone HTML reports with all your metrics:
 - Choose how to handle conflicts: Overwrite, Merge, or Rename
 
 ## Advanced Features
+
+### AI Analysis Prompts
+
+Get expert insights from any AI agent (ChatGPT, Claude, GitHub Copilot, etc.) without exposing customer data:
+
+**How it works:**
+1. Click **Import/Export** button (top right)
+2. Navigate to **AI Prompt** tab
+3. Click **Generate AI Prompt** button
+4. Paste into your AI agent chat
+5. Get structured analysis with forecasts, risks, and recommendations
+
+**What's included in the prompt:**
+- Project health summary (last 12 weeks by default, matches Data Points slider)
+- Velocity trends and performance metrics
+- Scope change analysis
+- Budget utilization (if configured)
+- Structured output format specification (ensures consistent AI responses)
+
+**Privacy-safe:** All customer-identifying information is automatically sanitized:
+- Profile names → "Project Alpha"
+- JIRA URLs → "https://jira.example.com"
+- Email addresses → "user@example.com"
+- Real company names removed
+
+**AI Response Format:** The prompt includes instructions for AI to return analysis in 8 standardized sections:
+1. Executive Summary (status and key insight)
+2. Project Health Assessment (scored breakdown)
+3. Velocity Analysis (trends and contributing factors)
+4. Completion Forecast (with confidence intervals)
+5. Scope Management (change rate assessment)
+6. Risk Analysis (top 3 risks with mitigations)
+7. Actionable Recommendations (immediate, short-term, strategic)
+8. Additional Insights (patterns and discussion questions)
+
+**Use case:** Generate weekly prompts to track how AI recommendations change over time, identify recurring risks, or share structured analyses with stakeholders.
 
 ### Multiple Projects (Profiles)
 
