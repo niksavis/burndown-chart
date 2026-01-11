@@ -518,10 +518,10 @@ def _create_ai_prompt_tab():
                         className="action-button",
                     ),
                 ],
-                style={"marginBottom": "0.5rem"},
+                style={"marginBottom": "1rem"},
             ),
         ],
-        className="p-3",
+        className="settings-tab-content",
     )
 
 
