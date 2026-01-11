@@ -343,6 +343,50 @@ def register(app):
     #
     #     return project_dashboard_pert_info
 
+    def _check_has_points_in_period(statistics, data_points_count=None):
+        """
+        Check if there's any points data in the filtered time period.
+
+        This respects the data_points_count slider to check only the selected time period,
+        not the entire dataset. This ensures consistency with dashboard cards.
+
+        Args:
+            statistics: Statistics data (list or DataFrame)
+            data_points_count: Number of weeks to check (None = all data)
+
+        Returns:
+            bool: True if there are any completed points > 0 in the period
+        """
+        if not statistics:
+            return False
+
+        df_check = (
+            pd.DataFrame(statistics)
+            if isinstance(statistics, list)
+            else statistics.copy()
+        )
+
+        if df_check.empty or "completed_points" not in df_check.columns:
+            return False
+
+        # Apply same filtering logic as charts to respect data_points_count
+        if data_points_count is not None and data_points_count > 0:
+            if "date" in df_check.columns:
+                df_check["date"] = pd.to_datetime(
+                    df_check["date"], format="mixed", errors="coerce"
+                )
+                df_check = df_check.dropna(subset=["date"]).sort_values(
+                    "date", ascending=True
+                )
+
+                if not df_check.empty:
+                    latest_date = df_check["date"].max()
+                    cutoff_date = latest_date - timedelta(weeks=data_points_count)
+                    df_check = df_check[df_check["date"] >= cutoff_date]
+
+        # Check if any points in the filtered period
+        return df_check["completed_points"].sum() > 0
+
     def _prepare_trend_data(statistics, pert_factor, data_points_count=None):
         """
         Prepare trend and forecast data for visualizations.
@@ -1340,6 +1384,17 @@ def register(app):
                     statistics, pert_factor, data_points_count
                 )
 
+                # Check if points data exists in the filtered time period (treat no data same as disabled)
+                # This respects the Data Points slider to only check the selected weeks
+                effective_show_points = show_points
+                if show_points:
+                    has_points_data = _check_has_points_in_period(
+                        statistics, data_points_count
+                    )
+                    if not has_points_data:
+                        # No points data in filtered period - hide points traces like when disabled
+                        effective_show_points = False
+
                 # Generate burndown chart only when needed
                 # NOTE: Don't pre-compute cumulative values - let create_forecast_plot handle it
                 # to avoid redundant DataFrame operations that slow down rendering
@@ -1351,7 +1406,7 @@ def register(app):
                     deadline_str=deadline,
                     milestone_str=milestone,
                     data_points_count=data_points_count,
-                    show_points=show_points,
+                    show_points=effective_show_points,  # Use effective flag
                 )
 
                 # Create burndown tab content with all required data
@@ -1361,7 +1416,7 @@ def register(app):
                     points_trend,
                     burndown_fig,
                     settings,
-                    show_points,
+                    effective_show_points,  # Use effective flag
                 )
                 # Cache the result for next time
                 logger.debug(
@@ -1395,14 +1450,13 @@ def register(app):
                 return items_tab_content, chart_cache, ui_state
 
             elif active_tab == "tab-points":
-                # Check if points data exists (not just if tracking is enabled)
+                # Check if points data exists in the filtered time period (not just if tracking is enabled)
+                # This respects the Data Points slider to only check the selected weeks
                 has_points_data = False
-                if show_points and statistics:
-                    # Check if there's any completed points data
-                    df_check = pd.DataFrame(statistics)
-                    if not df_check.empty and "completed_points" in df_check.columns:
-                        total_completed_points = df_check["completed_points"].sum()
-                        has_points_data = total_completed_points > 0
+                if show_points:
+                    has_points_data = _check_has_points_in_period(
+                        statistics, data_points_count
+                    )
 
                 if show_points and has_points_data:
                     # Case 1: Points tracking enabled with data
@@ -1458,26 +1512,58 @@ def register(app):
                     return points_disabled_content, chart_cache, ui_state
                 else:
                     # Case 3: Points tracking enabled but no data (0 points)
+                    # Show message with styled container matching other cards
                     points_no_data_content = html.Div(
                         html.Div(
                             [
-                                html.I(
-                                    className="fas fa-database fa-2x text-secondary mb-3"
+                                html.Div(
+                                    [
+                                        html.I(
+                                            className="fas fa-chart-bar me-2",
+                                            style={
+                                                "color": "#6c757d",
+                                                "fontSize": "1.1rem",
+                                            },
+                                        ),
+                                        html.Span(
+                                            "Points-based",
+                                            className="fw-bold text-muted",
+                                            style={"fontSize": "1.1rem"},
+                                        ),
+                                    ],
+                                    className="mb-3",
                                 ),
                                 html.Div(
-                                    "No Points Data",
-                                    className="fw-bold mb-2",
-                                    style={"fontSize": "1.2rem", "color": "#6c757d"},
-                                ),
-                                html.Small(
-                                    "No story points data available. Configure story points field in Settings or complete items with point estimates.",
-                                    className="text-muted",
-                                    style={"fontSize": "0.9rem"},
+                                    [
+                                        html.I(
+                                            className="fas fa-database fa-lg text-secondary"
+                                        ),
+                                        html.Div(
+                                            "No Points Data",
+                                            className="fw-bold",
+                                            style={
+                                                "fontSize": "1rem",
+                                                "color": "#6c757d",
+                                            },
+                                        ),
+                                        html.Small(
+                                            "No story points data available. Configure story points field in Settings or complete items with point estimates.",
+                                            className="text-muted",
+                                            style={"fontSize": "0.85rem"},
+                                        ),
+                                    ],
+                                    className="d-flex align-items-center justify-content-center flex-column",
+                                    style={"gap": "0.25rem"},
                                 ),
                             ],
-                            className="d-flex align-items-center justify-content-center flex-column",
-                            style={"gap": "0.25rem", "padding": "80px 20px"},
-                        )
+                            className="p-3 mt-3",
+                            style={
+                                "borderRadius": "0.375rem",
+                                "border": "1px solid #dee2e6",
+                                "backgroundColor": "#f8f9fa",
+                            },
+                        ),
+                        style={"padding": "40px 20px"},
                     )
                     # Cache the result for next time
                     chart_cache[cache_key] = points_no_data_content
