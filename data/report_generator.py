@@ -616,7 +616,7 @@ def _calculate_dashboard_metrics(
             # Fallback: date range filtering (old behavior for backward compatibility)
             latest_date = df_windowed_temp["date"].max()
             cutoff_date = latest_date - timedelta(weeks=data_points_count)
-            df_for_velocity = df_windowed_temp[df_windowed_temp["date"] >= cutoff_date]
+            df_for_velocity = df_windowed_temp[df_windowed_temp["date"] > cutoff_date]
             logger.warning(
                 f"[REPORT FILTER] No week_label column - using date range filtering (less accurate): {len(df_for_velocity)} rows"
             )
@@ -767,10 +767,13 @@ def _calculate_dashboard_metrics(
         )
 
         # Calculate confidence based on schedule buffer (same logic as dashboard)
+        # Calculate completion confidence from schedule variance buffer
+        # CRITICAL: Must match ui/dashboard_comprehensive.py lines 592-601 EXACTLY
+        # Any difference in thresholds causes health score divergence
         # Positive buffer (ahead of schedule) = higher confidence
         # Negative buffer (behind schedule) = lower confidence
         buffer_days = days_to_deadline - pert_days
-        if buffer_days >= 30:
+        if buffer_days >= 28:  # Match app threshold (was 30)
             completion_confidence = 95  # Very high confidence
         elif buffer_days >= 14:
             completion_confidence = 80  # High confidence

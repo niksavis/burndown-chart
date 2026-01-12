@@ -84,9 +84,9 @@ class TestVelocityCalculationCorrectness:
 
         velocity = calculate_velocity_from_dataframe(df, "completed_items")
 
-        # Should be 65 items / 4 weeks = 16.2 items/week (rounded to 16.2)
+        # Should be 65 items / 4 weeks = 16.25 items/week (raw value)
         # OLD BUG: Would calculate 65 items / 7 weeks = 9.3 items/week
-        assert velocity == 16.2
+        assert velocity == 16.25
 
     def test_single_data_point(self):
         """Test velocity with only one data point."""
@@ -157,7 +157,7 @@ class TestVelocityCalculationEdgeCases:
             calculate_velocity_from_dataframe(df, "completed_items")
 
     def test_rounding_behavior(self):
-        """Test that velocity is rounded to 1 decimal place."""
+        """Test that velocity returns raw value (no rounding)."""
         df = pd.DataFrame(
             {
                 "date": pd.to_datetime(["2025-01-06", "2025-01-13", "2025-01-20"]),
@@ -167,8 +167,8 @@ class TestVelocityCalculationEdgeCases:
 
         velocity = calculate_velocity_from_dataframe(df, "completed_items")
 
-        # 31 items / 3 weeks = 10.333... → should round to 10.3
-        assert velocity == 10.3
+        # 31 items / 3 weeks = 10.333... (raw value, rounding at display layer)
+        assert velocity == pytest.approx(10.333333, rel=1e-5)
 
 
 class TestVelocityCalculationComparisonWithOldMethod:
@@ -268,8 +268,8 @@ class TestVelocityCalculationRealWorldScenarios:
 
         velocity = calculate_velocity_from_dataframe(df, "completed_items")
 
-        # 94 items / 9 weeks = 10.4 items/week
-        assert velocity == 10.4
+        # 94 items / 9 weeks = 10.444... items/week (raw value)
+        assert velocity == pytest.approx(10.444444, rel=1e-5)
 
     def test_project_with_irregular_updates(self):
         """Test project with irregular update frequency."""

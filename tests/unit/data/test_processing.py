@@ -10,6 +10,7 @@ import pandas as pd
 from datetime import datetime
 import sys
 from pathlib import Path
+from unittest.mock import patch
 
 # Add the project root to the Python path so we can import the application modules
 sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent))
@@ -1067,15 +1068,18 @@ class TestCalculateWeeklyAveragesDataPointsFiltering(unittest.TestCase):
             self.assertIsInstance(value, (int, float))
             self.assertGreaterEqual(value, 0)
 
-    def test_data_points_count_larger_than_available(self):
+    @patch("data.metrics_snapshots.get_metric_weekly_values", return_value=[])
+    def test_data_points_count_larger_than_available(self, mock_snapshots):
         """Test when data_points_count is larger than available data."""
-        # Request more data points than available
+        # Request more data points than available (8 weeks in test data)
         result_large = calculate_weekly_averages(
             self.statistics_data, data_points_count=20
         )
         result_all = calculate_weekly_averages(self.statistics_data)
 
         # Should return same result as using all data
+        # Note: The test data has 8 weeks spanning from 2024-12-01 to 2025-01-19
+        # With the corrected >= to > cutoff_date fix, both should use all available data
         self.assertEqual(result_large, result_all)
 
     def test_data_points_count_zero_and_negative(self):
@@ -1117,7 +1121,8 @@ class TestCalculateWeeklyAveragesDataPointsFiltering(unittest.TestCase):
         # Results should be different
         self.assertNotEqual(result_all, result_filtered)
 
-    def test_data_points_count_single_value(self):
+    @patch("data.metrics_snapshots.get_metric_weekly_values", return_value=[])
+    def test_data_points_count_single_value(self, mock_snapshots):
         """Test data_points_count with single data point."""
         single_data = [self.statistics_data[0]]  # Just the first entry
 
@@ -1125,7 +1130,7 @@ class TestCalculateWeeklyAveragesDataPointsFiltering(unittest.TestCase):
 
         # Should return reasonable values
         self.assertEqual(len(result), 4)
-        # First entry: 5 items, 25 points
+        # First entry: 5 items, 25 points (from 2024-12-01)
         self.assertEqual(result[0], 5.0)  # avg_items
         self.assertEqual(result[1], 25.0)  # avg_points
         self.assertEqual(result[2], 5.0)  # med_items (same as avg for single point)
@@ -1138,16 +1143,18 @@ class TestCalculateWeeklyAveragesDataPointsFiltering(unittest.TestCase):
         # Should return zeros
         self.assertEqual(result, (0, 0, 0, 0))
 
-    def test_data_points_count_specific_values(self):
+    @patch("data.metrics_snapshots.get_metric_weekly_values", return_value=[])
+    def test_data_points_count_specific_values(self, mock_snapshots):
         """Test that filtering produces expected results with known data."""
         # Use only the last 2 weeks of data
         result_filtered = calculate_weekly_averages(
             self.statistics_data, data_points_count=2
         )
 
-        # Last 2 weeks: 9 items/45 points and 11 items/55 points
+        # Last 2 weeks (after > cutoff_date fix): 2025-01-12 and 2025-01-19
+        # Data: 9 items/45 points (2025-01-12) and 11 items/55 points (2025-01-19)
         # Expected: avg_items = (9+11)/2 = 10, avg_points = (45+55)/2 = 50
-        # Expected: med_items = 10, med_points = 50 (average of two middle values)
+        # Expected: med_items = (9+11)/2 = 10, med_points = (45+55)/2 = 50
         self.assertAlmostEqual(result_filtered[0], 10.0, places=1)  # avg_items
         self.assertAlmostEqual(result_filtered[1], 50.0, places=1)  # avg_points
         self.assertAlmostEqual(result_filtered[2], 10.0, places=1)  # med_items

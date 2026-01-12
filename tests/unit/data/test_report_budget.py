@@ -116,7 +116,7 @@ def test_budget_metrics_calculation_no_budget(temp_db):
     assert metrics["has_data"] is False
 
 
-def test_budget_in_report_sections():
+def test_budget_in_report_sections(temp_database):
     """Test that budget section is included in report when requested."""
     from data.report_generator import _calculate_all_metrics
 

@@ -135,7 +135,7 @@ class TestMobileNavigation:
         assert "fas fa-bars" in controls_str  # Hamburger icon
         assert "Swipe to navigate" in controls_str
 
-    def test_mobile_navigation_system_integration(self):
+    def test_mobile_navigation_system_integration(self, temp_database):
         """Test complete mobile navigation system integration."""
         from ui.mobile_navigation import create_mobile_navigation_system
         from ui.layout import serve_layout

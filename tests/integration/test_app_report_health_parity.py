@@ -3,6 +3,12 @@ Integration test to expose health calculation divergence between app and report.
 
 This test runs the ACTUAL data preparation paths for both app and report
 with identical mock data to identify where they diverge.
+
+CRITICAL: Health scores depend on deadline/milestone settings!
+- completion_confidence is calculated from schedule_variance_days
+- schedule_variance_days = days_to_deadline - pert_forecast_days
+- If deadline is None or different between app/report, health scores will differ
+- This test ensures settings are identical for both paths
 """
 
 import pytest

@@ -203,16 +203,26 @@ def _create_summary_statistics(
         points_field_available = project_scope.get("points_field_available", False)
         if points_field_available:
             total_points = project_scope.get("total_points", 0)
-            completed_points = (
-                total_points - remaining_points if total_points > 0 else 0
+
+            # Use actual completed points from statistics (not derived from remaining)
+            # This prevents negative values when scope grows beyond initial estimate
+            completed_points_from_stats = summary["metrics"].get(
+                "total_completed_points", 0
             )
+
+            # Fallback: derive from total - remaining if stats not available
+            if completed_points_from_stats == 0 and total_points > 0:
+                completed_points = max(0, total_points - remaining_points)
+            else:
+                completed_points = completed_points_from_stats
+
             points_completion_pct = (
                 (completed_points / total_points * 100) if total_points > 0 else 0
             )
 
             summary["project_scope"]["total_points"] = total_points
-            summary["project_scope"]["remaining_points"] = remaining_points
-            summary["project_scope"]["completed_points"] = completed_points
+            summary["project_scope"]["remaining_points"] = round(remaining_points, 1)
+            summary["project_scope"]["completed_points"] = round(completed_points, 1)
             summary["project_scope"]["points_completion_pct"] = round(
                 points_completion_pct, 1
             )
@@ -270,14 +280,19 @@ def _aggregate_statistics(statistics: List[Dict], weeks: int) -> Dict[str, Any]:
     # Filter to requested time period
     df["date"] = pd.to_datetime(df["date"])
     cutoff = df["date"].max() - timedelta(weeks=weeks)
-    df_windowed = df[df["date"] >= cutoff]
+    df_windowed = df[df["date"] > cutoff]
 
     if df_windowed.empty:
         return {"error": "No data in requested time window"}
 
-    # Calculate aggregates
+    # Calculate aggregates (convert to native Python types for JSON serialization)
     total_completed_items = int(df_windowed["completed_items"].sum())
     total_created_items = int(df_windowed["created_items"].sum())
+    total_completed_points = (
+        float(df_windowed["completed_points"].sum())
+        if "completed_points" in df_windowed.columns
+        else 0.0
+    )
 
     return {
         "weeks_analyzed": len(df_windowed),
@@ -286,6 +301,7 @@ def _aggregate_statistics(statistics: List[Dict], weeks: int) -> Dict[str, Any]:
             df_windowed.get("completed_points", pd.Series([0])).mean(), 1
         ),
         "total_completed_items": total_completed_items,
+        "total_completed_points": round(total_completed_points, 1),
         "total_created_items": total_created_items,
         "scope_change_rate_pct": round(
             (total_created_items / total_completed_items * 100)
@@ -371,7 +387,7 @@ def _format_ai_prompt(summary: Dict[str, Any], time_period_weeks: int) -> str:
         scope_section = f"""
 ## Project Scope & Progress
 
-**Current State**:
+**Current State** (lifetime totals):
 - Progress: {scope.get("completion_pct", 0):.1f}% complete ({scope.get("completed_items", 0)}/{scope.get("total_items", 0)} items)
 - Remaining: {scope.get("remaining_items", 0)} items"""
 
@@ -392,10 +408,16 @@ def _format_ai_prompt(summary: Dict[str, Any], time_period_weeks: int) -> str:
     velocity_trend = metrics.get("velocity_trend", "unknown")
     velocity_cv = metrics.get("velocity_coefficient_of_variation", 0)
 
-    # Interpret velocity consistency
-    consistency_label = (
-        "high" if velocity_cv < 20 else "moderate" if velocity_cv < 40 else "low"
-    )
+    # Interpret velocity consistency (inverse of CV: low CV = high consistency)
+    if velocity_cv < 20:
+        consistency_label = "high"
+        variability_label = "low"
+    elif velocity_cv < 40:
+        consistency_label = "moderate"
+        variability_label = "moderate"
+    else:
+        consistency_label = "low"
+        variability_label = "high"
 
     # Build scope change insights
     scope_rate = metrics.get("scope_change_rate_pct", 0)
@@ -412,8 +434,8 @@ You are an expert agile project manager analyzing project health and forecasting
 **Velocity Metrics**:
 - Average: {velocity_items:.1f} items/week
 - Trend: {velocity_trend}
-- Consistency: {consistency_label} (CV: {velocity_cv:.1f}%)
-- Total completed: {metrics.get("total_completed_items", 0)} items
+- Consistency: {consistency_label} ({variability_label} variability, CV: {velocity_cv:.1f}%)
+- Total completed: {metrics.get("total_completed_items", 0)} items (in analysis window)
 
 **Scope Dynamics**:
 - Scope change rate: {scope_rate:.1f}%
@@ -434,7 +456,7 @@ Provide a comprehensive project assessment covering:
 
 ### 2. Velocity & Performance Analysis
 - Evaluate velocity trend and what's driving it
-- Assess velocity consistency ({consistency_label} CV of {velocity_cv:.1f}%)
+- Assess velocity consistency ({consistency_label}, with {variability_label} variability: CV {velocity_cv:.1f}%)
 - Identify patterns or anomalies in delivery performance
 - Compare recent performance to historical baseline
 

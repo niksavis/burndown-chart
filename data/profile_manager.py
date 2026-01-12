@@ -11,20 +11,18 @@ Architecture:
 
 Directory Structure:
     profiles/
-    ├── profiles.json          # Registry: active profile/query IDs, profile metadata
-    ├── default/               # Default profile (migration target)
-    │   ├── profile.json       # Profile settings (PERT, deadline, data_points_count)
+    ├── burndown.db            # SQLite database (single source of truth)
+    │                          # Contains: profiles, queries, app_state, jira_cache,
+    │                          # statistics, metrics_snapshots, and all other data
+    ├── default/               # Profile directories (for file system organization)
     │   └── queries/
-    │       ├── main/          # Default query (migration target)
-    │       │   └── query.json # Query metadata (JQL string)
-    │       └── bugs/          # Additional queries
-    │           └── query.json
-    └── kafka/                 # Another profile
-        ├── profile.json
+    │       ├── main/          # Query directories (for file system organization)
+    │       └── bugs/
+    └── kafka/                 # Another profile directory
         └── queries/...
 
-    Note: JIRA cache, statistics, and metrics are now stored in the SQLite database.
-    Legacy JSON files (jira_cache.json, project_data.json) are deprecated.
+    Note: All data is stored in burndown.db. Profile/query directories exist only
+    for organization. JSON files are only used for exports and reports.
 
 Constants:
     PROFILES_DIR: Path to profiles/ directory
@@ -60,8 +58,6 @@ Test Support:
     PROFILES_DIR is a module-level constant that can be patched in tests
 """
 
-import json
-import shutil
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, List, Optional
@@ -274,6 +270,9 @@ def get_profile_file_path(profile_id: str) -> Path:
     """
     Get the path to profile.json for a specific profile.
 
+    DEPRECATED: Profile data is now stored in database. This function remains
+    for backward compatibility and export functionality only.
+
     Args:
         profile_id: Profile identifier (e.g., "default", "kafka")
 
@@ -281,9 +280,7 @@ def get_profile_file_path(profile_id: str) -> Path:
         Path: Absolute path to profile.json (e.g., profiles/kafka/profile.json)
 
     Example:
-        >>> path = get_profile_file_path("kafka")
-        >>> with open(path) as f:
-        ...     settings = json.load(f)
+        >>> path = get_profile_file_path("kafka")  # For exports only
     """
     return PROFILES_DIR / profile_id / "profile.json"
 
@@ -291,6 +288,9 @@ def get_profile_file_path(profile_id: str) -> Path:
 def get_query_file_path(profile_id: str, query_id: str) -> Path:
     """
     Get the path to query.json for a specific query.
+
+    DEPRECATED: Query data is now stored in database. This function remains
+    for backward compatibility and export functionality only.
 
     Args:
         profile_id: Profile identifier
@@ -300,9 +300,7 @@ def get_query_file_path(profile_id: str, query_id: str) -> Path:
         Path: Absolute path to query.json (e.g., profiles/kafka/queries/bugs/query.json)
 
     Example:
-        >>> path = get_query_file_path("kafka", "12w")
-        >>> with open(path) as f:
-        ...     query = json.load(f)
+        >>> path = get_query_file_path("kafka", "12w")  # For exports only
     """
     return PROFILES_DIR / profile_id / "queries" / query_id / "query.json"
 
@@ -310,6 +308,9 @@ def get_query_file_path(profile_id: str, query_id: str) -> Path:
 def get_jira_cache_path(profile_id: str, query_id: str) -> Path:
     """
     Get the path to jira_cache.json for a specific query.
+
+    DEPRECATED: JIRA cache is now stored in database. This function remains
+    for backward compatibility and export functionality only.
 
     Args:
         profile_id: Profile identifier
@@ -319,10 +320,7 @@ def get_jira_cache_path(profile_id: str, query_id: str) -> Path:
         Path: Absolute path to jira_cache.json (e.g., profiles/kafka/queries/bugs/jira_cache.json)
 
     Example:
-        >>> cache_path = get_jira_cache_path("kafka", "main")
-        >>> if cache_path.exists():
-        ...     with open(cache_path) as f:
-        ...         cache = json.load(f)
+        >>> cache_path = get_jira_cache_path("kafka", "main")  # For exports only
     """
     return PROFILES_DIR / profile_id / "queries" / query_id / "jira_cache.json"
 
@@ -602,30 +600,25 @@ def create_profile(name: str, settings: Dict) -> str:
     if len(name) > 100:
         raise ValueError("Profile name cannot exceed 100 characters")
 
-    # Load current metadata
-    metadata = load_profiles_metadata()
+    # Get backend for validation
+    from data.persistence.factory import get_backend
+
+    backend = get_backend()
 
     # Check for duplicate names (case-insensitive)
-    profiles_dict = metadata.get("profiles", {})
-    existing_names = [p["name"].lower() for p in profiles_dict.values()]
+    all_profiles = backend.list_profiles()
+    existing_names = [p["name"].lower() for p in all_profiles]
     if name.lower() in existing_names:
         raise ValueError(f"Profile name '{name}' already exists")
 
     # Check max profiles limit
-    if len(profiles_dict) >= MAX_PROFILES:
+    if len(all_profiles) >= MAX_PROFILES:
         raise ValueError(f"Maximum {MAX_PROFILES} profiles allowed")
 
     # Generate unique profile ID using UUID
     profile_id = _generate_unique_profile_id()
 
-    # Create profile directory structure
-    profile_dir = PROFILES_DIR / profile_id
-    queries_dir = profile_dir / "queries"
-
     try:
-        profile_dir.mkdir(parents=True, exist_ok=True)
-        queries_dir.mkdir(exist_ok=True)
-
         # Create profile object with all settings
         profile = Profile(
             id=profile_id,
@@ -645,25 +638,18 @@ def create_profile(name: str, settings: Dict) -> str:
             show_points=settings.get("show_points", False),
         )
 
-        # Save profile.json
-        profile_config_file = profile_dir / "profile.json"
-        with open(profile_config_file, "w", encoding="utf-8") as f:
-            json.dump(profile.to_dict(), f, indent=2, ensure_ascii=False)
-
-        # Add to profiles registry
-        metadata["profiles"][profile_id] = profile.to_dict()
-
-        # Save updated metadata
-        if not save_profiles_metadata(metadata):
-            raise OSError("Failed to update profiles registry")
+        # Save profile to database (single source of truth)
+        backend.save_profile(profile.to_dict())
 
         logger.info(f"[Profiles] Created profile: {name} ({profile_id})")
         return profile_id
 
     except Exception as e:
-        # Cleanup on failure
-        if profile_dir.exists():
-            shutil.rmtree(profile_dir, ignore_errors=True)
+        # Cleanup on failure - rollback database
+        try:
+            backend.delete_profile(profile_id)
+        except Exception:
+            pass
         logger.error(f"[Profiles] Error creating profile '{name}': {e}")
         raise OSError(f"Failed to create profile: {e}") from e
 
@@ -836,12 +822,12 @@ def duplicate_profile(
     source_profile_id: str, new_name: str, description: str = ""
 ) -> str:
     """
-    Duplicate a profile with all its settings, queries, and data files.
+    Duplicate a profile with all its settings and queries from database.
 
     Creates a complete copy of the source profile including:
-    - profile.json (JIRA config, field mappings, forecast settings, etc.)
-    - All queries with their query.json files
-    - All query data files (jira_cache.json, project_data.json, metrics_snapshots.json, etc.)
+    - All profile settings (JIRA config, field mappings, forecast settings, etc.)
+    - All queries with their metadata and JQL strings
+    - All query data (JIRA cache, statistics, metrics snapshots, etc.)
 
     Args:
         source_profile_id: Profile ID to duplicate
@@ -853,13 +839,13 @@ def duplicate_profile(
 
     Raises:
         ValueError: If source profile doesn't exist, name is invalid/duplicate, or max profiles reached
-        OSError: If file operations fail
+        OSError: If database operations fail
 
     Example:
         >>> new_id = duplicate_profile("p_abc123", "Production Copy", "Backup of production")
         >>> # Creates complete copy with new ID and timestamps
     """
-    from data.query_manager import _generate_unique_query_id
+    from data.persistence.factory import get_backend
 
     # Validate inputs
     if not new_name or not new_name.strip():
@@ -869,126 +855,60 @@ def duplicate_profile(
     if len(new_name) > 100:
         raise ValueError("Profile name cannot exceed 100 characters")
 
-    # Load current metadata
-    metadata = load_profiles_metadata()
+    backend = get_backend()
 
     # Validate source profile exists
-    profiles_dict = metadata.get("profiles", {})
-    if source_profile_id not in profiles_dict:
+    source_profile = backend.get_profile(source_profile_id)
+    if not source_profile:
         raise ValueError(f"Source profile '{source_profile_id}' does not exist")
 
     # Check for duplicate names (case-insensitive)
-    existing_names = [p["name"].lower() for p in profiles_dict.values()]
+    all_profiles = backend.list_profiles()
+    existing_names = [p["name"].lower() for p in all_profiles]
     if new_name.lower() in existing_names:
         raise ValueError(f"Profile name '{new_name}' already exists")
 
     # Check max profiles limit
-    if len(profiles_dict) >= MAX_PROFILES:
+    if len(all_profiles) >= MAX_PROFILES:
         raise ValueError(f"Maximum {MAX_PROFILES} profiles allowed")
 
     # Generate unique profile ID
     new_profile_id = _generate_unique_profile_id()
 
-    # Source and destination directories
-    source_profile_dir = PROFILES_DIR / source_profile_id
-    new_profile_dir = PROFILES_DIR / new_profile_id
-
-    # Initialize variables that will be set from profile.json
-    profile_data: Dict = {}
-    new_query_ids: List[str] = []
-
     try:
-        # Step 1: Copy entire profile directory tree
-        shutil.copytree(source_profile_dir, new_profile_dir)
-        logger.info(
-            f"[Profiles] Copied directory tree from '{source_profile_id}' to '{new_profile_id}'"
-        )
+        # Step 1: Copy profile data from database
+        now = datetime.now(timezone.utc).isoformat()
+        new_profile_data = source_profile.copy()
+        new_profile_data["id"] = new_profile_id
+        new_profile_data["name"] = new_name
+        new_profile_data["description"] = description
+        new_profile_data["created_at"] = now
+        new_profile_data["last_used"] = now
 
-        # Step 2: Update profile.json with new ID, name, description, timestamps
-        new_profile_config_file = new_profile_dir / "profile.json"
-        if new_profile_config_file.exists():
-            with open(new_profile_config_file, "r", encoding="utf-8") as f:
-                profile_data = json.load(f)
+        # Save new profile to database
+        backend.save_profile(new_profile_data)
 
-            # Update profile metadata
-            now = datetime.now(timezone.utc).isoformat()
-            profile_data["id"] = new_profile_id
-            profile_data["name"] = new_name
-            profile_data["description"] = description
-            profile_data["created_at"] = now
-            profile_data["last_used"] = now
+        # Step 2: Duplicate all queries from source profile
+        source_queries = backend.list_queries(source_profile_id)
+        new_query_ids = []
 
-            # Step 3: Rename query directories and update query.json files
-            queries_dir = new_profile_dir / "queries"
-            if queries_dir.exists():
-                for old_query_dir in list(queries_dir.iterdir()):
-                    if old_query_dir.is_dir():
-                        old_query_id = old_query_dir.name
+        for source_query in source_queries:
+            # Manual query duplication
+            from data.query_manager import _generate_unique_query_id
 
-                        # Generate new query ID
-                        new_query_id = _generate_unique_query_id()
+            new_query_id = _generate_unique_query_id()
 
-                        # Rename directory
-                        new_query_dir = queries_dir / new_query_id
-                        old_query_dir.rename(new_query_dir)
+            query_data = backend.get_query(source_profile_id, source_query["id"])
+            if query_data:
+                query_data["id"] = new_query_id
+                query_data["created_at"] = now
+                query_data["last_used"] = now
+                backend.save_query(new_profile_id, query_data)
 
-                        # Update query.json with new ID and timestamps
-                        query_file = new_query_dir / "query.json"
-                        if query_file.exists():
-                            with open(query_file, "r", encoding="utf-8") as f:
-                                query_data = json.load(f)
-
-                            query_data["id"] = new_query_id
-                            query_data["created_at"] = now
-                            query_data["last_used"] = now
-
-                            with open(query_file, "w", encoding="utf-8") as f:
-                                json.dump(query_data, f, indent=2, ensure_ascii=False)
-
-                        new_query_ids.append(new_query_id)
-                        logger.debug(
-                            f"[Profiles] Renamed query '{old_query_id}' to '{new_query_id}'"
-                        )
-
-            profile_data["queries"] = new_query_ids
-            profile_data["active_query_id"] = (
-                new_query_ids[0] if new_query_ids else None
+            new_query_ids.append(new_query_id)
+            logger.debug(
+                f"[Profiles] Duplicated query '{source_query['id']}' to '{new_query_id}'"
             )
-
-            # Save updated profile.json
-            with open(new_profile_config_file, "w", encoding="utf-8") as f:
-                json.dump(profile_data, f, indent=2, ensure_ascii=False)
-
-        # Step 4: Add to profiles registry
-        # Create registry entry from profile data
-        registry_entry = {
-            "id": new_profile_id,
-            "name": new_name,
-            "description": description,
-            "created_at": datetime.now(timezone.utc).isoformat(),
-            "last_used": datetime.now(timezone.utc).isoformat(),
-            "jira_config": {},  # Summary only - full config in profile.json
-            "field_mappings": {},  # Summary only - full mappings in profile.json
-            "forecast_settings": profile_data.get(
-                "forecast_settings",
-                {
-                    "pert_factor": 1.2,
-                    "deadline": "",
-                    "data_points_count": 20,
-                },
-            ),
-            "project_classification": {},
-            "flow_type_mappings": {},
-            "queries": new_query_ids,
-            "show_milestone": profile_data.get("show_milestone", False),
-            "show_points": profile_data.get("show_points", False),
-        }
-
-        metadata["profiles"][new_profile_id] = registry_entry
-
-        # Save updated metadata
-        if not save_profiles_metadata(metadata):
-            raise OSError("Failed to update profiles registry")
 
         logger.info(
             f"[Profiles] Duplicated profile '{source_profile_id}' to '{new_name}' ({new_profile_id}) with {len(new_query_ids)} queries"
@@ -997,8 +917,10 @@ def duplicate_profile(
 
     except Exception as e:
         # Cleanup on failure
-        if new_profile_dir.exists():
-            shutil.rmtree(new_profile_dir, ignore_errors=True)
+        try:
+            backend.delete_profile(new_profile_id)
+        except Exception:
+            pass
         logger.error(f"[Profiles] Error duplicating profile: {e}")
         raise OSError(f"Failed to duplicate profile: {e}") from e
 

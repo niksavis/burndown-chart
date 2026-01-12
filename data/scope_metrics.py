@@ -113,7 +113,7 @@ def calculate_scope_change_rate(
 
         latest_date = df["date"].max()
         cutoff_date = latest_date - timedelta(weeks=data_points_count)
-        df = df[df["date"] >= cutoff_date]
+        df = df[df["date"] > cutoff_date]
 
     # Get total created and completed items/points
     if df.empty:
@@ -258,7 +258,7 @@ def calculate_weekly_scope_growth(
 
         latest_date = df["date"].max()
         cutoff_date = latest_date - timedelta(weeks=data_points_count)
-        df = df[df["date"] >= cutoff_date]
+        df = df[df["date"] > cutoff_date]
 
     if df.empty:
         return pd.DataFrame(columns=["week", "items_growth", "points_growth"])
@@ -372,7 +372,7 @@ def calculate_scope_stability_index(
 
         latest_date = df["date"].max()
         cutoff_date = latest_date - timedelta(weeks=data_points_count)
-        df = df[df["date"] >= cutoff_date]
+        df = df[df["date"] > cutoff_date]
 
     if df.empty or baseline_items == 0 or baseline_points == 0:
         return {"items_stability": 1.0, "points_stability": 1.0}

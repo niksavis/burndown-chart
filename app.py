@@ -166,8 +166,10 @@ app = dash.Dash(
     background_callback_manager=background_callback_manager,  # Enable background callbacks
     external_stylesheets=[
         dbc.themes.FLATLY,
-        # SECURITY: Switched from use.fontawesome.com (injects tracking/checkout code) to cdnjs (clean)
-        "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css",  # Font Awesome for icons (cdnjs mirror - no tracking)
+        # SECURITY: Font Awesome 6.x from cdnjs (no tracking, no checkout popup injection)
+        # Using free version CSS-only (no kit system) to prevent checkout code injection
+        "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/fontawesome.min.css",  # Font Awesome core (CSS only)
+        "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/solid.min.css",  # Solid icons
         "https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css",  # CodeMirror base styles
         "/assets/custom.css",  # Our custom CSS for standardized styling (includes CodeMirror theme overrides)
         "/assets/help_system.css",  # Help system CSS for progressive disclosure
@@ -209,6 +211,19 @@ app = dash.Dash(
         {
             "property": "og:description",
             "content": "Modern mobile-first agile project forecasting with JIRA integration",
+        },
+        # SECURITY: Content Security Policy to prevent unauthorized script injection
+        # Prevents Font Awesome and other CDNs from injecting tracking/checkout scripts
+        {
+            "http-equiv": "Content-Security-Policy",
+            "content": (
+                "default-src 'self'; "
+                "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; "
+                "style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://fonts.googleapis.com; "
+                "font-src 'self' https://cdnjs.cloudflare.com https://fonts.gstatic.com data:; "
+                "img-src 'self' data: https:; "
+                "connect-src 'self' https://cdn.jsdelivr.net"
+            ),
         },
     ],
 )

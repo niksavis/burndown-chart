@@ -516,7 +516,7 @@ def _calculate_health_score(metrics: Dict[str, Any]) -> int:
         scope_metrics={"scope_change_rate": scope_change_rate},
     )
 
-    return int(health_result["overall_score"])
+    return health_result["overall_score"]
 
 
 def _get_health_color_and_label(score: int) -> tuple[str, str]:

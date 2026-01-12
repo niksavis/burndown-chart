@@ -594,11 +594,11 @@
                 'health-status-at-risk' %} {% endif %}
                 <div
                   class="health-gauge"
-                  style="--gauge-percent: {{ metrics.dashboard.health_score|int }}; --gauge-color: {{ gauge_color }};"
+                  style="--gauge-percent: {{ metrics.dashboard.health_score|round|int }}; --gauge-color: {{ gauge_color }};"
                 >
                   <div class="health-gauge-inner">
                     <div class="health-gauge-text">
-                      {{ metrics.dashboard.health_score|int }}%
+                      {{ metrics.dashboard.health_score|round|int }}%
                     </div>
                     <div class="health-gauge-label">HEALTH</div>
                   </div>

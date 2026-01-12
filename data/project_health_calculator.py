@@ -159,7 +159,8 @@ def calculate_comprehensive_project_health(
 
     # Calculate weighted score: sum(score × weight/100)
     overall_score = sum(d["score"] * d["weight"] / 100 for d in dimensions.values())
-    overall_score = int(max(0, min(100, overall_score)))
+    # Use round() instead of int() for consistency with display formatting (.0f rounds to nearest)
+    overall_score = round(max(0, min(100, overall_score)))
 
     # Log results
     logger.info(

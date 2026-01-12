@@ -149,7 +149,10 @@ def create_forecast_section(
 
     forecast_value = forecast_data.get("forecast_value")
     confidence = forecast_data.get("confidence", "building")
-    weeks_with_data = forecast_data.get("weeks_with_data")  # Actual weeks used
+    # Support both keys for backwards compatibility (weeks_with_data is preferred, weeks_available is fallback)
+    weeks_with_data = forecast_data.get("weeks_with_data") or forecast_data.get(
+        "weeks_available"
+    )
     used_non_zero_filter = forecast_data.get(
         "used_non_zero_filter", False
     )  # Whether zeros were filtered

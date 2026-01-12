@@ -380,7 +380,8 @@ def calculate_rates(
             pessimistic_items_rate = most_likely_items_rate
         else:
             # Normal case with sufficient data (4+ weeks)
-            valid_pert_factor = min(pert_factor, max(1, valid_items_count // 3))
+            # CRITICAL: Ensure valid_pert_factor is integer for .nlargest()/.nsmallest() operations
+            valid_pert_factor = int(min(pert_factor, max(1, valid_items_count // 3)))
             valid_pert_factor = max(valid_pert_factor, 1)
 
             optimistic_items_rate = (
@@ -420,7 +421,8 @@ def calculate_rates(
             optimistic_points_rate = most_likely_points_rate
             pessimistic_points_rate = most_likely_points_rate
         else:
-            valid_pert_factor = min(pert_factor, max(1, valid_points_count // 3))
+            # CRITICAL: Ensure valid_pert_factor is integer for .nlargest()/.nsmallest() operations
+            valid_pert_factor = int(min(pert_factor, max(1, valid_points_count // 3)))
             valid_pert_factor = max(valid_pert_factor, 1)
 
             optimistic_points_rate = (
@@ -917,7 +919,7 @@ def calculate_weekly_averages(
                     # Filter by actual date range (weeks), not row count
                     latest_date = df_temp[date_col].max()
                     cutoff_date = latest_date - timedelta(weeks=effective_data_points)  # type: ignore[possibly-unbound]
-                    df_temp = df_temp[df_temp[date_col] >= cutoff_date]
+                    df_temp = df_temp[df_temp[date_col] > cutoff_date]
                     logger.info(
                         f"[VELOCITY] Filtered to {effective_data_points} weeks "
                         f"(requested {data_points_count}, available {actual_weeks_available})"
@@ -1060,7 +1062,7 @@ def generate_weekly_forecast(
 
                 latest_date = df_temp["date"].max()
                 cutoff_date = latest_date - timedelta(weeks=data_points_count)
-                df_temp = df_temp[df_temp["date"] >= cutoff_date]
+                df_temp = df_temp[df_temp["date"] > cutoff_date]
 
                 statistics_data = df_temp.to_dict("records")
         elif isinstance(statistics_data, pd.DataFrame):
@@ -1074,7 +1076,7 @@ def generate_weekly_forecast(
 
                 latest_date = df_temp["date"].max()
                 cutoff_date = latest_date - timedelta(weeks=data_points_count)
-                statistics_data = df_temp[df_temp["date"] >= cutoff_date]
+                statistics_data = df_temp[df_temp["date"] > cutoff_date]
 
     # Create DataFrame from statistics data
     df = pd.DataFrame(statistics_data).copy()
@@ -1292,7 +1294,7 @@ def calculate_performance_trend(
 
                 latest_date = df_temp["date"].max()
                 cutoff_date = latest_date - timedelta(weeks=data_points_count)
-                df_temp = df_temp[df_temp["date"] >= cutoff_date]
+                df_temp = df_temp[df_temp["date"] > cutoff_date]
 
                 statistics_data = df_temp.to_dict("records")
         elif isinstance(statistics_data, pd.DataFrame):
@@ -1306,7 +1308,7 @@ def calculate_performance_trend(
 
                 latest_date = df_temp["date"].max()
                 cutoff_date = latest_date - timedelta(weeks=data_points_count)
-                statistics_data = df_temp[df_temp["date"] >= cutoff_date]
+                statistics_data = df_temp[df_temp["date"] > cutoff_date]
 
     # Check if statistics_data is empty or None
     if (
@@ -1587,7 +1589,7 @@ def calculate_dashboard_metrics(statistics: list, settings: dict) -> dict:
     if data_points_count > 0 and not df.empty:
         latest_date = df["date"].max()
         cutoff_date = latest_date - timedelta(weeks=data_points_count)
-        recent_data = df[df["date"] >= cutoff_date]
+        recent_data = df[df["date"] > cutoff_date]
     else:
         recent_data = df
 

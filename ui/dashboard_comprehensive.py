@@ -138,7 +138,7 @@ def _calculate_project_health_score(
         f"(formula_version={health_result['formula_version']})"
     )
 
-    return int(health_result["overall_score"])
+    return health_result["overall_score"]
 
 
 def _calculate_project_health_score_v2(metrics):
