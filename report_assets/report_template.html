@@ -1505,7 +1505,7 @@
                     != metrics.dora.deployment_frequency %} <br /><small
                       class="text-muted"
                       >({{ metrics.dora.deployment_frequency_tasks|round(2) }}
-                      tasks/week)</small
+                      deployments/week)</small
                     >
                     {% endif %}
                   </td>
@@ -1520,7 +1520,7 @@
                       >{{ metrics.dora.lead_time_days|round(1) }}</strong
                     >
                     days <br /><small class="text-muted"
-                      >({{ metrics.dora.lead_time_hours|round(0) }}
+                      >({{ metrics.dora.lead_time_hours|round(2) }}
                       hours)</small
                     >
                     {% else %}

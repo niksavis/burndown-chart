@@ -112,73 +112,133 @@ def _load_report_data(profile_id: str, weeks: int) -> Dict[str, Any]:
     """
     from data.persistence import load_unified_project_data, load_app_settings
     from data.metrics_snapshots import load_snapshots
-    from data.profile_manager import get_active_query_workspace
+    from data.query_manager import get_active_query_id
+    from data.persistence.factory import get_backend
 
     # Load core data
     project_data = load_unified_project_data()
     all_snapshots = load_snapshots()
     settings = load_app_settings()
 
-    # Load JIRA issues from cache
+    # Load JIRA issues from database for the specific profile
     jira_issues = []
     try:
-        query_workspace = get_active_query_workspace()
-        cache_file = query_workspace / "jira_cache.json"
-        if cache_file.exists():
-            with open(cache_file, "r", encoding="utf-8") as f:
-                cache_data = json.load(f)
-                jira_issues = cache_data.get("issues", [])
-        logger.info(f"Loaded {len(jira_issues)} JIRA issues for report")
+        backend = get_backend()
+        query_id = get_active_query_id()
+        if query_id and profile_id:
+            # Load all issues from database (no filters)
+            jira_issues = backend.get_issues(profile_id, query_id)
+            logger.info(
+                f"[REPORT JIRA] Loaded {len(jira_issues)} JIRA issues from database "
+                f"(profile={profile_id}, query={query_id})"
+            )
+        else:
+            logger.warning(
+                f"[REPORT JIRA] Missing profile_id={profile_id} or query_id={query_id}"
+            )
     except Exception as e:
-        logger.warning(f"Could not load JIRA issues: {e}")
+        logger.warning(
+            f"[REPORT JIRA] Could not load JIRA issues from database: {e}",
+            exc_info=True,
+        )
 
-    # Calculate time period boundaries
-    # CRITICAL: Use last statistics date as reference, not datetime.now()
-    # Statistics are weekly (Mondays), so using "now" may exclude valid weeks
+    # Calculate time period boundaries using EXACT SAME METHOD as UI dashboard
+    # CRITICAL: Use week label matching, not date range filtering
+    # This ensures report and UI include exactly the same data points
     all_stats = project_data.get("statistics", [])
 
-    # Find the last statistics date to use as reference
-    last_stat_date = None
-    if all_stats:
-        for stat in all_stats:
-            stat_date = datetime.fromisoformat(stat["date"].replace("Z", "+00:00"))
-            if last_stat_date is None or stat_date > last_stat_date:
-                last_stat_date = stat_date
+    if not all_stats:
+        logger.warning("No statistics data available")
+        return {
+            "project_scope": project_data.get("project_scope", {}),
+            "statistics": [],
+            "all_statistics": [],
+            "snapshots": {},
+            "settings": settings,
+            "jira_issues": [],
+            "weeks_count": 0,
+        }
 
-    # Use last stat date if available, otherwise fall back to now
-    reference_date = last_stat_date if last_stat_date else datetime.now()
-    cutoff_date = reference_date - timedelta(weeks=weeks)
+    # Convert to DataFrame for consistent processing (same as UI)
+    df_all = pd.DataFrame(all_stats)
+    df_all["date"] = pd.to_datetime(df_all["date"], format="mixed", errors="coerce")
+    df_all = df_all.dropna(subset=["date"]).sort_values("date", ascending=True)
 
-    # Use ISO week format (%V) to match app and metrics snapshots (Monday-based weeks)
+    # Get reference date (last statistics date, not today)
+    reference_date = df_all["date"].max()
     current_week = reference_date.strftime("%G-W%V")
 
-    # Filter statistics to time period (get last N weeks from reference date)
-    filtered_stats = []
-    if all_stats:
-        for stat in all_stats:
-            stat_date = datetime.fromisoformat(stat["date"].replace("Z", "+00:00"))
-            # Include if within the time window (last N weeks from reference date)
-            if stat_date >= cutoff_date and stat_date <= reference_date:
-                filtered_stats.append(stat)
+    # Generate week labels to include (SAME AS UI)
+    from data.time_period_calculator import get_iso_week, format_year_week
 
-    # Filter snapshots to time period (exclude current incomplete week)
+    week_labels_list = []
+    current_date = reference_date
+    for i in range(weeks):
+        year, week = get_iso_week(current_date)
+        week_label = format_year_week(year, week)
+        week_labels_list.append(week_label)
+        current_date = current_date - timedelta(days=7)
+
+    week_labels = set(reversed(week_labels_list))  # Convert to set for fast lookup
+
+    logger.info(
+        f"[REPORT FILTER] Filtering to last {weeks} weeks from {reference_date.strftime('%Y-%m-%d')}: {sorted(week_labels)}"
+    )
+
+    # Filter using week labels (SAME AS UI)
+    if "week_label" in df_all.columns:
+        df_filtered = df_all[df_all["week_label"].isin(week_labels)]
+        logger.info(
+            f"[REPORT FILTER] Filtered to {len(df_filtered)} rows using week_label matching (requested {weeks} weeks)"
+        )
+    else:
+        # Should not happen - week_label is backfilled by persistence layer
+        logger.error(
+            "[REPORT FILTER] CRITICAL: week_label column missing from statistics! "
+            "Using date range filtering as fallback (less accurate)."
+        )
+        cutoff_date = reference_date - timedelta(weeks=weeks)
+        df_filtered = df_all[df_all["date"] >= cutoff_date]
+        logger.warning(
+            f"[REPORT FILTER] Fallback date range filtering: {len(df_filtered)} rows"
+        )
+
+    # Convert back to list of dicts
+    filtered_stats = df_filtered.to_dict("records")
+
+    # Filter snapshots to time period using week labels (exclude current incomplete week)
     filtered_snapshots = {}
     if all_snapshots:
-        for week_label, snapshot_data in all_snapshots.items():
-            week_date = _parse_week_label(week_label)
-            # Include if >= cutoff AND not current week
-            if week_date >= cutoff_date and week_label != current_week:
-                filtered_snapshots[week_label] = snapshot_data
+        for week_label_key, snapshot_data in all_snapshots.items():
+            # Include if in the requested week labels AND not current week
+            if week_label_key in week_labels and week_label_key != current_week:
+                filtered_snapshots[week_label_key] = snapshot_data
+        logger.info(
+            f"[REPORT FILTER] Filtered snapshots: {len(filtered_snapshots)} weeks (excluded current week {current_week})"
+        )
 
     # Use REQUESTED weeks, not snapshot count
     # The velocity calculation groups statistics by ISO week, so it doesn't need to match snapshot count
     # CRITICAL: This must match the user's selected data window in the app (data_points_count)
     weeks_count = weeks
 
+    # Log comprehensive filtering summary
     logger.info(
-        f"Loaded data: {len(filtered_stats)} statistics, "
-        f"{len(filtered_snapshots)} snapshot weeks (using requested weeks={weeks_count})"
+        f"[REPORT DATA] Loaded data summary:\n"
+        f"  - Total statistics: {len(all_stats)}\n"
+        f"  - Filtered statistics: {len(filtered_stats)} (requested {weeks_count} weeks)\n"
+        f"  - Snapshot weeks: {len(filtered_snapshots)}\n"
+        f"  - Reference date: {reference_date.strftime('%Y-%m-%d') if isinstance(reference_date, datetime) else reference_date}\n"
+        f"  - Week labels included: {sorted(week_labels)}"
     )
+
+    # Log the actual data for debugging
+    if filtered_stats:
+        completed_items_sum = sum(s.get("completed_items", 0) for s in filtered_stats)
+        completed_points_sum = sum(s.get("completed_points", 0) for s in filtered_stats)
+        logger.info(
+            f"[REPORT DATA] Filtered data summary: {completed_items_sum} items, {completed_points_sum:.1f} points completed"
+        )
 
     return {
         "project_scope": project_data.get("project_scope", {}),
@@ -414,21 +474,30 @@ def _calculate_dashboard_metrics(
     import logging
 
     logger = logging.getLogger(__name__)
-    logger.debug(
-        f"[REPORT HEALTH] velocity_cv={velocity_cv}, schedule_variance_days={schedule_variance_days}, scope_change_rate={scope_change_rate}, trend_direction={trend_direction}, recent_velocity_change={recent_velocity_change}"
+    logger.info(
+        f"[REPORT HEALTH] Input metrics: velocity_cv={velocity_cv:.2f}, "
+        f"schedule_variance_days={schedule_variance_days:.2f}, scope_change_rate={scope_change_rate:.2f}, "
+        f"trend_direction={trend_direction}, recent_velocity_change={recent_velocity_change:.2f}, "
+        f"statistics_rows={len(df_windowed)}"
     )
 
     # Velocity consistency (30 points max)
     velocity_score = max(0, 30 * (1 - min(velocity_cv / 50, 1)))
-    logger.debug(f"[REPORT HEALTH] velocity_score={velocity_score:.2f}")
+    logger.info(
+        f"[REPORT HEALTH] velocity_score={velocity_score:.2f} (from CV={velocity_cv:.2f}%)"
+    )
 
     # Schedule performance (25 points max) - will be updated after forecast
     schedule_score = max(0, 25 * (1 - min(schedule_variance_days / 60, 1)))
-    logger.debug(f"[REPORT HEALTH] schedule_score={schedule_score:.2f}")
+    logger.info(
+        f"[REPORT HEALTH] schedule_score={schedule_score:.2f} (from variance={schedule_variance_days:.2f} days)"
+    )
 
     # Scope stability (20 points max)
     scope_score = max(0, 20 * (1 - min(scope_change_rate / 40, 1)))
-    logger.debug(f"[REPORT HEALTH] scope_score={scope_score:.2f}")
+    logger.info(
+        f"[REPORT HEALTH] scope_score={scope_score:.2f} (from change_rate={scope_change_rate:.2f}%)"
+    )
 
     # Quality trends (15 points max)
     if trend_direction == "improving":
@@ -437,21 +506,25 @@ def _calculate_dashboard_metrics(
         trend_score = 10
     else:  # declining
         trend_score = 0
-    logger.debug(f"[REPORT HEALTH] trend_score={trend_score}")
+    logger.info(
+        f"[REPORT HEALTH] trend_score={trend_score} (direction={trend_direction})"
+    )
 
     # Recent performance (10 points max)
     if recent_velocity_change >= 0:
         recent_score = 5 + min(5, 5 * (recent_velocity_change / 20))
     else:
         recent_score = max(0, 5 * (1 + recent_velocity_change / 20))
-    logger.debug(f"[REPORT HEALTH] recent_score={recent_score:.2f}")
+    logger.info(
+        f"[REPORT HEALTH] recent_score={recent_score:.2f} (change={recent_velocity_change:.2f}%)"
+    )
 
     health_score = int(
         velocity_score + schedule_score + scope_score + trend_score + recent_score
     )
     health_score = max(0, min(100, health_score))
-    logger.debug(
-        f"[REPORT HEALTH] INITIAL health_score={health_score} (before schedule recalc)"
+    logger.info(
+        f"[REPORT HEALTH] INITIAL health_score={health_score}% (before schedule recalc)"
     )
 
     # Determine health status (same as app)
@@ -641,8 +714,9 @@ def _calculate_dashboard_metrics(
     # Recalculate schedule variance now that forecast is complete
     if pert_days and days_to_deadline:
         schedule_variance_days = abs(pert_days - days_to_deadline)
-        logger.debug(
-            f"[REPORT HEALTH] RECALC: schedule_variance_days={schedule_variance_days} (pert_days={pert_days}, days_to_deadline={days_to_deadline})"
+        logger.info(
+            f"[REPORT HEALTH] RECALC: schedule_variance_days={schedule_variance_days:.2f} "
+            f"(pert_days={pert_days:.2f}, days_to_deadline={days_to_deadline})"
         )
 
         # Recalculate health score with schedule variance (same as app)
@@ -651,7 +725,9 @@ def _calculate_dashboard_metrics(
 
         # Schedule performance (25 points max)
         schedule_score = max(0, 25 * (1 - min(schedule_variance_days / 60, 1)))
-        logger.debug(f"[REPORT HEALTH] RECALC: schedule_score={schedule_score:.2f}")
+        logger.info(
+            f"[REPORT HEALTH] RECALC: schedule_score={schedule_score:.2f} (updated)"
+        )
 
         # Scope stability (20 points max)
         scope_score = max(0, 20 * (1 - min(scope_change_rate / 40, 1)))
@@ -674,8 +750,10 @@ def _calculate_dashboard_metrics(
             velocity_score + schedule_score + scope_score + trend_score + recent_score
         )
         health_score = max(0, min(100, health_score))
-        logger.debug(
-            f"[REPORT HEALTH] FINAL health_score={health_score} (after schedule recalc)"
+        logger.info(
+            f"[REPORT HEALTH] FINAL health_score={health_score}% "
+            f"(velocity={velocity_score:.1f} + schedule={schedule_score:.1f} + "
+            f"scope={scope_score:.1f} + trend={trend_score} + recent={recent_score:.1f})"
         )
 
         # Update health status
@@ -805,11 +883,15 @@ def _calculate_bug_metrics(
     )
 
     if not jira_issues:
+        logger.warning("[REPORT BUG] No JIRA issues available for bug analysis")
         return {"has_data": False}
 
     try:
         # Get bug type mappings
         bug_types = settings.get("bug_types", {})
+        logger.info(
+            f"[REPORT BUG] Processing {len(jira_issues)} JIRA issues with bug_types={bug_types}"
+        )
 
         # Calculate date range
         date_to = datetime.now()
@@ -836,6 +918,10 @@ def _calculate_bug_metrics(
         )
 
         if not all_bug_issues and not timeline_filtered_bugs:
+            logger.warning(
+                f"[REPORT BUG] No bugs found matching configured types. "
+                f"Total JIRA issues: {len(jira_issues)}, bug_types={bug_types}"
+            )
             return {"has_data": False}
 
         # Calculate weekly bug statistics using timeline-filtered bugs
