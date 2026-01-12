@@ -1232,6 +1232,20 @@ def _calculate_flow_metrics(
         f"Flow Time={median_flow_time:.1f}d, Efficiency={avg_efficiency:.1f}%, WIP={wip_count}"
     )
 
+    # Check if there's any meaningful data (not all zeros)
+    # has_data should be True only if at least ONE metric has real values
+    has_meaningful_data = (
+        (avg_velocity > 0)  # At least some velocity
+        or (median_flow_time > 0)  # Flow time exists
+        or (avg_efficiency > 0)  # Efficiency exists
+        or (wip_count > 0)  # WIP exists
+        or (total_completed > 0)  # Any completed work in distribution
+    )
+
+    if not has_meaningful_data:
+        logger.info("No meaningful Flow data - all metrics are zero")
+        return {"has_data": False, "weeks_count": weeks_count}
+
     return {
         "has_data": True,
         "velocity": avg_velocity,  # Average items/week
@@ -1306,6 +1320,20 @@ def _calculate_dora_metrics(profile_id: str, weeks_count: int) -> Dict[str, Any]
         f"DORA metrics loaded: DF={deployment_freq} releases/week, "
         f"LT={lead_time_days}d, CFR={change_failure_rate}%, MTTR={mttr_days}d"
     )
+
+    # Check if there's any meaningful data (not all zeros/None)
+    # has_data should be True only if at least ONE metric has real values
+    has_meaningful_data = (
+        (deployment_freq > 0)  # At least one deployment
+        or (lead_time_days is not None and lead_time_days > 0)  # Lead time exists
+        or (mttr_days is not None and mttr_days > 0)  # MTTR exists
+        # CFR can be legitimately 0% (no failures), so we check if deployment count exists
+        or (deployment_freq_tasks > 0)  # Has tasks for CFR calculation
+    )
+
+    if not has_meaningful_data:
+        logger.info("No meaningful DORA data - all metrics are zero or None")
+        return {"has_data": False, "weeks_count": weeks_count}
 
     return {
         "has_data": True,
@@ -2274,6 +2302,39 @@ def _render_template(
     # Get weeks count from metrics (actual weeks with data)
     weeks_count = metrics.get("dashboard", {}).get("weeks_count", time_period_weeks)
 
+    # Calculate date range for the report period
+    from data.iso_week_bucketing import get_iso_week_bounds
+    from data.time_period_calculator import get_iso_week, format_year_week
+
+    # Calculate start date (Monday of the oldest week)
+    current_date = datetime.now()
+    weeks_list = []
+    for i in range(weeks_count):
+        year, week = get_iso_week(current_date)
+        week_label = format_year_week(year, week)
+        weeks_list.append(week_label)
+        current_date = current_date - timedelta(days=7)
+
+    if weeks_list:
+        # Get the oldest week (start of period)
+        oldest_week = weeks_list[-1]
+        # Parse week label to datetime, then get Monday of that week
+        oldest_week_date = _parse_week_label(oldest_week)
+        start_monday, _ = get_iso_week_bounds(oldest_week_date)
+        start_date = start_monday.strftime("%Y-%m-%d")
+
+        # End date is today
+        end_date = datetime.now().strftime("%Y-%m-%d")
+
+        # Get first and last week numbers for display
+        first_week = weeks_list[-1]  # Oldest
+        last_week = weeks_list[0]  # Newest (current)
+    else:
+        start_date = ""
+        end_date = ""
+        first_week = ""
+        last_week = ""
+
     # Load and embed external dependencies for offline reports
     from data.report_assets_embedder import embed_report_dependencies
 
@@ -2285,6 +2346,10 @@ def _render_template(
         generated_at=generated_at,
         time_period_weeks=time_period_weeks,
         weeks_count=weeks_count,
+        start_date=start_date,
+        end_date=end_date,
+        first_week=first_week,
+        last_week=last_week,
         sections=sections,
         metrics=metrics,
         chart_script=chart_script,
