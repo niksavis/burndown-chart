@@ -35,7 +35,6 @@ from ui.tabs import create_tabs
 from ui.jira_config_modal import create_jira_config_modal
 from ui.query_creation_modal import create_query_creation_modal
 from ui.field_mapping_modal import create_field_mapping_modal
-from ui.update_modal import create_update_modal
 
 # Integrated query management modals (Feature 011 - replaces legacy settings_modal query functions)
 from ui.save_query_modal import create_save_query_modal
@@ -165,8 +164,6 @@ def create_app_layout(settings, statistics, is_sample_data):
             create_jira_config_modal(),
             # Field Mapping Modal (Feature 007-dora-flow-metrics Phase 4)
             create_field_mapping_modal(),
-            # Application Update Modal
-            create_update_modal(),
             # Integrated Query Management Modals (Feature 011)
             create_save_query_modal(),
             create_unsaved_changes_modal(),
