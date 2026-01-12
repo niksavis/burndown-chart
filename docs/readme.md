@@ -1,4 +1,4 @@
-# Burndown Chart Generator - Documentation
+# Burndown Chart 🔥 - Documentation
 
 ## 📚 Documentation Overview
 
@@ -11,7 +11,7 @@ This documentation is organized into two main sections:
 
 ## 👤 User Documentation
 
-Documentation for project managers, team leads, and users who want to understand how metrics work and how to interpret them.
+Documentation for project managers, team leads, and users who want to understand how metrics work and interpret results.
 
 ### Getting Started
 
@@ -58,18 +58,17 @@ For detailed implementation guides, see:
 
 ## 📖 Quick Navigation
 
-| I want to...                  | Go to                                                          |
-| ----------------------------- | -------------------------------------------------------------- |
-| Learn metrics basics          | [Metrics Index](metrics_index.md)                              |
-| Understand health score       | [Project Health Formula](health_formula.md)                    |
-| Configure DORA metrics        | [DORA Metrics Guide - Field Configuration](dora_metrics.md)    |
-| Configure Flow metrics        | [Flow Metrics Guide - Field Configuration](flow_metrics.md)    |
-| Validate metric relationships | [Metrics Correlation Guide](metrics_correlation_guide.md)      |
-| Map custom JIRA fields        | [Namespace Syntax](namespace_syntax.md)                        |
-| Understand caching behavior   | [Caching System](caching_system.md)                            |
-| Add logging to new features   | [Logging Standards](logging_standards.md)                      |
-| Remove unused code safely     | [Defensive Refactoring Guide](defensive_refactoring_guide.md)  |
-| Implement a new metric        | [Namespace Syntax](namespace_syntax.md) + Calculator reference |
+| I want to...                  | Go to                                                         |
+| ----------------------------- | ------------------------------------------------------------- |
+| Learn metrics basics          | [Metrics Index](metrics_index.md)                             |
+| Understand health score       | [Project Health Formula](health_formula.md)                   |
+| Configure DORA metrics        | [DORA Metrics Guide - Field Configuration](dora_metrics.md)   |
+| Configure Flow metrics        | [Flow Metrics Guide - Field Configuration](flow_metrics.md)   |
+| Validate metric relationships | [Metrics Correlation Guide](metrics_correlation_guide.md)     |
+| Map custom JIRA fields        | [Namespace Syntax](namespace_syntax.md)                       |
+| Understand caching behavior   | [Caching System](caching_system.md)                           |
+| Add logging to new features   | [Logging Standards](logging_standards.md)                     |
+| Remove unused code safely     | [Defensive Refactoring Guide](defensive_refactoring_guide.md) |
 
 ---
 
