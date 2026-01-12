@@ -40,7 +40,6 @@ from data import (
     generate_weekly_forecast,
 )
 from data.schema import DEFAULT_SETTINGS
-from data.persistence.factory import get_backend
 from data.iso_week_bucketing import get_week_label
 from ui import (
     create_compact_trend_indicator,
@@ -1178,6 +1177,19 @@ def register(app):
                     statistics, data_points_count=data_points_count
                 )
 
+                # CRITICAL: Calculate velocity for health using same method as report
+                # calculate_velocity_from_dataframe() counts actual weeks with data (5.06)
+                # calculate_weekly_averages() uses Flow metrics snapshots (4.94)
+                # Report uses calculate_velocity_from_dataframe(), so app must match
+                from data.processing import calculate_velocity_from_dataframe
+
+                velocity_for_health_items = calculate_velocity_from_dataframe(
+                    df, "completed_items"
+                )
+                velocity_for_health_points = calculate_velocity_from_dataframe(
+                    df, "completed_points"
+                )
+
                 # Calculate days to deadline
                 try:
                     deadline_date = pd.to_datetime(deadline)
@@ -1198,6 +1210,8 @@ def register(app):
                 query_id = ""
                 current_week_label = ""
                 try:
+                    from data.persistence.factory import get_backend
+
                     backend = get_backend()
                     profile_id = backend.get_app_state("active_profile_id") or ""
                     query_id = backend.get_app_state("active_query_id") or ""
@@ -1343,6 +1357,294 @@ def register(app):
                     logger.error(f"Failed to calculate budget data: {e}", exc_info=True)
                     budget_data = None
 
+                # Calculate extended metrics for comprehensive health formula (v3.0)
+                # These enhance health score accuracy when available
+                extended_metrics = {}
+
+                if profile_id and query_id:
+                    # DORA Metrics - Load from cache (same as report)
+                    try:
+                        from data.dora_metrics_calculator import (
+                            load_dora_metrics_from_cache,
+                        )
+
+                        cached_metrics = load_dora_metrics_from_cache(
+                            n_weeks=data_points_count or 12
+                        )
+
+                        if cached_metrics:
+                            # Extract values matching app structure (same as report logic)
+                            deploy_data = cached_metrics.get("deployment_frequency", {})
+                            deployment_freq = deploy_data.get(
+                                "release_value", 0
+                            )  # Primary: unique releases
+
+                            lead_time_data = cached_metrics.get(
+                                "lead_time_for_changes", {}
+                            )
+                            lead_time_days = lead_time_data.get(
+                                "value"
+                            )  # Already in days
+
+                            cfr_data = cached_metrics.get("change_failure_rate", {})
+                            change_failure_rate = cfr_data.get("value", 0)  # Percentage
+
+                            mttr_data = cached_metrics.get("mean_time_to_recovery", {})
+                            mttr_hours = mttr_data.get("value")  # Already in hours
+
+                            # Check if there's any meaningful data (same logic as report)
+                            has_meaningful_data = (
+                                (deployment_freq > 0)
+                                or (lead_time_days is not None and lead_time_days > 0)
+                                or (mttr_hours is not None and mttr_hours > 0)
+                            )
+
+                            if has_meaningful_data:
+                                extended_metrics["dora"] = {
+                                    "has_data": True,
+                                    "deployment_frequency": deployment_freq,
+                                    "lead_time": lead_time_days or 0,
+                                    "change_failure_rate": change_failure_rate,
+                                    "mttr_hours": mttr_hours or 0,
+                                }
+                                logger.info(
+                                    f"[HEALTH v3.0] DORA metrics loaded: "
+                                    f"DF={deployment_freq:.2f}, LT={lead_time_days:.1f}d, "
+                                    f"CFR={change_failure_rate:.1f}%, MTTR={mttr_hours:.1f}h"
+                                )
+                    except Exception as e:
+                        logger.warning(f"[HEALTH v3.0] DORA metrics unavailable: {e}")
+
+                    # Flow Metrics - Load from snapshots (same as report)
+                    try:
+                        from data.metrics_snapshots import (
+                            get_metric_weekly_values,
+                            get_metric_snapshot,
+                            get_available_weeks,
+                        )
+                        from data.time_period_calculator import (
+                            get_iso_week,
+                            format_year_week,
+                        )
+
+                        # Generate week labels (same as report)
+                        weeks = []
+                        current_date = datetime.now()
+                        for i in range(data_points_count or 12):
+                            year, week = get_iso_week(current_date)
+                            week_label = format_year_week(year, week)
+                            weeks.append(week_label)
+                            current_date = current_date - timedelta(days=7)
+
+                        week_labels = list(reversed(weeks))  # Oldest to newest
+                        current_week_label = week_labels[-1] if week_labels else ""
+
+                        # Check if any data exists
+                        available_weeks = get_available_weeks()
+                        has_any_data = any(
+                            week in available_weeks for week in week_labels
+                        )
+
+                        if has_any_data:
+                            # Load weekly values from snapshots
+                            flow_time_values = get_metric_weekly_values(
+                                week_labels, "flow_time", "median_days"
+                            )
+                            flow_efficiency_values = get_metric_weekly_values(
+                                week_labels, "flow_efficiency", "overall_pct"
+                            )
+                            velocity_values = get_metric_weekly_values(
+                                week_labels, "flow_velocity", "completed_count"
+                            )
+
+                            # AGGREGATE metrics (same as report)
+                            avg_velocity = (
+                                sum(velocity_values) / len(velocity_values)
+                                if velocity_values
+                                else 0
+                            )
+
+                            # Flow Time: Median of weekly medians (exclude zeros)
+                            non_zero_flow_times = [v for v in flow_time_values if v > 0]
+                            if non_zero_flow_times:
+                                sorted_times = sorted(non_zero_flow_times)
+                                mid = len(sorted_times) // 2
+                                median_flow_time = (
+                                    sorted_times[mid]
+                                    if len(sorted_times) % 2 == 1
+                                    else (sorted_times[mid - 1] + sorted_times[mid]) / 2
+                                )
+                            else:
+                                median_flow_time = 0
+
+                            # Flow Efficiency: Average efficiency (exclude zeros)
+                            non_zero_efficiency = [
+                                v for v in flow_efficiency_values if v > 0
+                            ]
+                            avg_efficiency = (
+                                sum(non_zero_efficiency) / len(non_zero_efficiency)
+                                if non_zero_efficiency
+                                else 0
+                            )
+
+                            # Flow Load (WIP): Current week snapshot
+                            flow_load_snapshot = get_metric_snapshot(
+                                current_week_label, "flow_load"
+                            )
+                            wip = (
+                                flow_load_snapshot.get("wip_count", 0)
+                                if flow_load_snapshot
+                                else 0
+                            )
+
+                            # Work Distribution: Sum across all weeks (for Sustainability dimension)
+                            total_feature = 0
+                            total_defect = 0
+                            total_tech_debt = 0
+                            total_risk = 0
+                            total_completed = 0
+
+                            for week in week_labels:
+                                week_snapshot = get_metric_snapshot(
+                                    week, "flow_velocity"
+                                )
+                                if week_snapshot:
+                                    week_dist = week_snapshot.get("distribution", {})
+                                    total_feature += week_dist.get("feature", 0)
+                                    total_defect += week_dist.get("defect", 0)
+                                    total_tech_debt += week_dist.get("tech_debt", 0)
+                                    total_risk += week_dist.get("risk", 0)
+                                    total_completed += week_snapshot.get(
+                                        "completed_count", 0
+                                    )
+
+                            if avg_velocity > 0:  # Has meaningful data
+                                extended_metrics["flow"] = {
+                                    "has_data": True,
+                                    "velocity": avg_velocity,
+                                    "flow_time": median_flow_time,
+                                    "efficiency": avg_efficiency,
+                                    "wip": wip,
+                                    "work_distribution": {
+                                        "feature": total_feature,
+                                        "defect": total_defect,
+                                        "tech_debt": total_tech_debt,
+                                        "risk": total_risk,
+                                        "total": total_completed,
+                                    },
+                                }
+                                logger.info(
+                                    f"[HEALTH v3.0] Flow metrics loaded: "
+                                    f"Velocity={avg_velocity:.1f}, Efficiency={avg_efficiency:.1f}%, "
+                                    f"Flow Time={median_flow_time:.1f}d"
+                                )
+                    except Exception as e:
+                        logger.warning(f"[HEALTH v3.0] Flow metrics unavailable: {e}")
+
+                    # Bug Metrics (~10-20ms from cache)
+                    try:
+                        from data.bug_processing import (
+                            calculate_bug_metrics_summary,
+                            filter_bug_issues,
+                        )
+                        from data.persistence.factory import get_backend
+                        from data.query_manager import get_active_query_id
+
+                        # Load issues from backend for bug metrics
+                        backend = get_backend()
+                        query_id_active = get_active_query_id()
+                        bug_data = None
+
+                        if query_id_active and profile_id:
+                            issues = backend.get_issues(profile_id, query_id_active)
+
+                            # Filter to get ONLY bugs (same as report)
+                            from data.persistence import load_app_settings
+
+                            settings = load_app_settings()
+                            bug_types = settings.get("bug_types", {})
+
+                            # Calculate date range for timeline filtering
+                            date_to = datetime.now()
+                            date_from = date_to - timedelta(
+                                weeks=data_points_count or 12
+                            )
+
+                            # Filter bugs WITHOUT date filter for current state metrics
+                            all_bug_issues = filter_bug_issues(
+                                issues,
+                                bug_type_mappings=bug_types,
+                                date_from=None,
+                                date_to=None,
+                            )
+
+                            # Filter bugs WITH date filter for historical metrics
+                            timeline_filtered_bugs = filter_bug_issues(
+                                issues,
+                                bug_type_mappings=bug_types,
+                                date_from=date_from,
+                                date_to=date_to,
+                            )
+
+                            # Get weekly stats - calculate from project data
+                            from data.persistence import load_unified_project_data
+
+                            project_data = load_unified_project_data()
+                            weekly_stats = project_data.get("statistics", [])
+
+                            bug_data = calculate_bug_metrics_summary(
+                                all_bug_issues=all_bug_issues,
+                                timeline_filtered_bugs=timeline_filtered_bugs,
+                                weekly_stats=weekly_stats,
+                            )
+
+                            if bug_data and bug_data.get("total_bugs", 0) > 0:
+                                # Convert resolution rate from decimal (0-1) to percentage (0-100) like report does
+                                resolution_rate_pct = (
+                                    bug_data.get("resolution_rate", 0) * 100
+                                )
+
+                                logger.info(
+                                    f"[BUG METRICS] Passing to health: resolution_rate={resolution_rate_pct:.2f}%, "
+                                    f"total_bugs={bug_data.get('total_bugs', 0)}, "
+                                    f"avg_age_days={bug_data.get('avg_age_days', 0):.1f}d, "
+                                    f"all_bug_issues_count={len(all_bug_issues)}, "
+                                    f"timeline_bugs_count={len(timeline_filtered_bugs)}"
+                                )
+                                extended_metrics["bug_analysis"] = {
+                                    "has_data": True,
+                                    "resolution_rate": resolution_rate_pct,  # Already converted to percentage
+                                    "avg_resolution_time_days": bug_data.get(
+                                        "avg_resolution_time_days", 0
+                                    ),
+                                    "avg_age_days": bug_data.get(
+                                        "avg_age_days", 0
+                                    ),  # Add avg_age_days for Bug Health calculation
+                                    "capacity_consumed_by_bugs": bug_data.get(
+                                        "capacity_consumed_by_bugs", 0
+                                    )
+                                    / 100
+                                    if bug_data.get("capacity_consumed_by_bugs")
+                                    else 0,  # Convert % to decimal
+                                    "open_bugs": bug_data.get("open_bugs", 0),
+                                }
+                                logger.info(
+                                    f"[HEALTH v3.0] Bug metrics available: "
+                                    f"Resolution={extended_metrics['bug_analysis']['resolution_rate']:.1f}%, "
+                                    f"Capacity={extended_metrics['bug_analysis']['capacity_consumed_by_bugs'] * 100:.1f}%"
+                                )
+                    except Exception as e:
+                        logger.warning(f"[HEALTH v3.0] Bug metrics unavailable: {e}")
+
+                    # Log extended metrics summary with ACTUAL VALUES for health debugging
+                    logger.info(
+                        f"[HEALTH v3.0] Extended metrics summary: "
+                        f"DORA={'✓' if 'dora' in extended_metrics else '✗'}, "
+                        f"Flow={'✓' if 'flow' in extended_metrics else '✗'}, "
+                        f"Bug={'✓' if 'bug_analysis' in extended_metrics else '✗'}, "
+                        f"Budget={'✓' if budget_data else '✗'}"
+                    )
+
                 # Import and use comprehensive dashboard
                 from ui.dashboard_comprehensive import create_comprehensive_dashboard
 
@@ -1352,8 +1654,8 @@ def register(app):
                     statistics_df_unfiltered=df_unfiltered,  # For Recent Completions (always last 4 weeks)
                     pert_time_items=pert_data["pert_time_items"],
                     pert_time_points=pert_data["pert_time_points"],
-                    avg_weekly_items=avg_weekly_items,
-                    avg_weekly_points=avg_weekly_points,
+                    avg_weekly_items=velocity_for_health_items,  # CRITICAL: Use report's velocity calculation for health (not Flow metrics)
+                    avg_weekly_points=velocity_for_health_points,  # CRITICAL: Use report's velocity calculation for health (not Flow metrics)
                     med_weekly_items=med_weekly_items,
                     med_weekly_points=med_weekly_points,
                     days_to_deadline=days_to_deadline,
@@ -1367,9 +1669,8 @@ def register(app):
                         "query_id": query_id,
                         "current_week_label": current_week_label,
                         "budget_data": budget_data,
-                    }
-                    if budget_data
-                    else None,
+                        "extended_metrics": extended_metrics,  # v3.0 comprehensive health data
+                    },
                 )
 
                 # Cache the result for next time

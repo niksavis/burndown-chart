@@ -469,17 +469,18 @@ def create_dashboard_overview_content(metrics: Dict[str, Any]) -> html.Div:
 
 
 def _calculate_health_score(metrics: Dict[str, Any]) -> int:
-    """Calculate overall project health score (0-100) using continuous/proportional scoring.
+    """Calculate overall project health score (0-100) using comprehensive health formula v3.0.
 
-    This function uses the SAME formula as dashboard_comprehensive._calculate_project_health_score()
-    to ensure consistency across all dashboard components.
+    This function uses the comprehensive health calculator (6 dimensions) to ensure
+    consistency with dashboard and reports.
 
-    Weights:
-    - Velocity consistency: 30% (lower CV = better)
-    - Schedule performance: 25% (on-time or early = better)
-    - Scope stability: 20% (low growth rate = better)
-    - Quality trends: 15% (improving = better)
-    - Recent performance: 10% (positive change = better)
+    Formula v3.0 - 6 Dimensions:
+    - Delivery (25%): Progress, trend, throughput
+    - Predictability (20%): CV, schedule, confidence
+    - Quality (20%): Bug resolution, DORA CFR/MTTR
+    - Efficiency (15%): Flow efficiency, flow time
+    - Sustainability (10%): Scope (context-aware), WIP, distribution
+    - Financial (10%): Budget adherence, runway
 
     Args:
         metrics: Dashboard metrics dictionary
@@ -487,85 +488,35 @@ def _calculate_health_score(metrics: Dict[str, Any]) -> int:
     Returns:
         Health score from 0-100
     """
-    # Extract or calculate velocity CV
+    from data.project_health_calculator import calculate_comprehensive_project_health
+
+    # Prepare dashboard metrics for health calculator
+    completion_pct = metrics.get("completion_percentage", 0)
     velocity_cv = metrics.get("velocity_cv", 0)
-    if not velocity_cv:
-        # Map velocity trend to CV approximation for backward compatibility
-        velocity_trend = metrics.get("velocity_trend", "stable")
-        velocity_cv_map = {
-            "increasing": 20,  # Good consistency with improvement
-            "stable": 25,  # Normal consistency
-            "decreasing": 40,  # Higher variation when declining
-            "unknown": 30,  # Assume moderate variation
-        }
-        velocity_cv = velocity_cv_map.get(velocity_trend, 30)
-
-    # Velocity consistency (30 points max)
-    # CV of 0% = full points, CV of 50%+ = 0 points, linear in between
-    velocity_score = max(0, 30 * (1 - min(velocity_cv / 50, 1)))
-
-    # Schedule performance (25 points max)
-    # On-time or early = full points, 60+ days late = 0 points, linear penalty
-    days_to_completion = metrics.get("days_to_completion", 0)
-    days_to_deadline = metrics.get("days_to_deadline", 0)
-    schedule_variance_days = metrics.get(
-        "schedule_variance_days",
-        abs(days_to_completion - days_to_deadline)
-        if days_to_completion and days_to_deadline
-        else 0,
-    )
-    schedule_score = max(0, 25 * (1 - min(schedule_variance_days / 60, 1)))
-
-    # Scope stability (20 points max)
-    # 0% growth = full points, 40%+ growth = 0 points, linear penalty
-    scope_change_rate = metrics.get("scope_change_rate", 0)
-    scope_score = max(0, 20 * (1 - min(scope_change_rate / 40, 1)))
-
-    # Quality trends (15 points max)
-    # Improving = 15, stable = 10, declining = 0
     trend_direction = metrics.get("trend_direction", "stable")
-    if not trend_direction or trend_direction == "unknown":
-        velocity_trend = metrics.get("velocity_trend", "stable")
-        if velocity_trend == "increasing":
-            trend_direction = "improving"
-        elif velocity_trend == "decreasing":
-            trend_direction = "declining"
-        else:
-            trend_direction = "stable"
+    schedule_variance_days = metrics.get("schedule_variance_days", 0)
+    scope_change_rate = metrics.get("scope_change_rate", 0)
 
-    if trend_direction == "improving":
-        trend_score = 15
-    elif trend_direction == "stable":
-        trend_score = 10
-    else:  # declining
-        trend_score = 0
+    dashboard_metrics_for_health = {
+        "items_completion_pct": completion_pct,
+        "points_completion_pct": completion_pct,
+        "velocity_cv": velocity_cv,
+        "trend_direction": trend_direction,
+        "schedule_variance_days": schedule_variance_days,
+        "scope_change_rate": scope_change_rate,
+    }
 
-    # Recent performance (10 points max)
-    # +20% change = 10 points, 0% = 5 points, -20% = 0 points, linear
-    recent_velocity_change = metrics.get("recent_velocity_change", 0)
-    if not recent_velocity_change:
-        # Use confidence as proxy if recent_velocity_change not available
-        completion_confidence = metrics.get("completion_confidence") or 50
-        if completion_confidence > 80:
-            recent_velocity_change = 15
-        elif completion_confidence < 40:
-            recent_velocity_change = -25
-        else:
-            recent_velocity_change = 0
-
-    if recent_velocity_change >= 0:
-        # Positive change: 5 base + up to 5 bonus for improvement
-        recent_score = 5 + min(5, 5 * (recent_velocity_change / 20))
-    else:
-        # Negative change: linear penalty from 5 down to 0
-        recent_score = max(0, 5 * (1 + recent_velocity_change / 20))
-
-    # Calculate total score (sum of all components)
-    total_score = (
-        velocity_score + schedule_score + scope_score + trend_score + recent_score
+    # Calculate comprehensive health (extended metrics will be None for dashboard-only)
+    health_result = calculate_comprehensive_project_health(
+        dashboard_metrics=dashboard_metrics_for_health,
+        dora_metrics=None,
+        flow_metrics=None,
+        bug_metrics=None,
+        budget_metrics=None,
+        scope_metrics={"scope_change_rate": scope_change_rate},
     )
 
-    return max(0, min(100, int(total_score)))
+    return int(health_result["overall_score"])
 
 
 def _get_health_color_and_label(score: int) -> tuple[str, str]:
@@ -577,14 +528,14 @@ def _get_health_color_and_label(score: int) -> tuple[str, str]:
     Returns:
         Tuple of (color_hex, label_text)
     """
-    if score >= 80:
-        return "#198754", "Excellent"  # Green
-    elif score >= 60:
-        return "#0dcaf0", "Good"  # Cyan
-    elif score >= 40:
-        return "#ffc107", "Fair"  # Yellow
+    if score >= 70:
+        return "#198754", "Good"  # Green
+    elif score >= 50:
+        return "#ffc107", "Caution"  # Yellow
+    elif score >= 30:
+        return "#fd7e14", "At Risk"  # Orange
     else:
-        return "#fd7e14", "Needs Attention"  # Orange
+        return "#dc3545", "Critical"  # Red
 
 
 def _create_key_insights(metrics: Dict[str, Any]) -> html.Div:

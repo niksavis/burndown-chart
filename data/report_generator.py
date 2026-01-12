@@ -270,7 +270,40 @@ def _calculate_all_metrics(
     # Extract show_points from settings (whether to use points or items for forecasting)
     show_points = report_data["settings"].get("show_points", False)
 
+    # Calculate extended metrics first (needed for comprehensive health calculation)
+    extended_metrics: Dict[str, Any] = {}
+
+    # Bug Analysis metrics
+    if "burndown" in sections:
+        extended_metrics["bug_analysis"] = _calculate_bug_metrics(
+            report_data["jira_issues"],
+            report_data["statistics"],
+            report_data["settings"],
+            report_data["weeks_count"],
+        )
+
+    # Flow metrics
+    if "flow" in sections:
+        extended_metrics["flow"] = _calculate_flow_metrics(
+            report_data["snapshots"], report_data["weeks_count"]
+        )
+
+    # DORA metrics
+    if "dora" in sections:
+        extended_metrics["dora"] = _calculate_dora_metrics(
+            report_data["profile_id"], report_data["weeks_count"]
+        )
+
+    # Budget metrics (calculated early for health score)
+    if "budget" in sections:
+        from data.query_manager import get_active_query_id
+
+        # Note: Budget needs velocity which we calculate in dashboard, so we'll add it later
+        # For now, mark that it's needed
+        extended_metrics["budget_needed"] = True
+
     # Dashboard metrics (always calculated, shows summary)
+    # Pass extended metrics for comprehensive health calculation
     metrics["dashboard"] = _calculate_dashboard_metrics(
         report_data["all_statistics"],  # Use ALL stats for lifetime metrics
         report_data["statistics"],  # Windowed stats for velocity
@@ -278,7 +311,25 @@ def _calculate_all_metrics(
         report_data["settings"],
         report_data["weeks_count"],
         show_points,
+        extended_metrics,  # Pass extended metrics for health calculation
     )
+
+    # Now calculate budget with velocity from dashboard
+    if extended_metrics.get("budget_needed"):
+        from data.query_manager import get_active_query_id
+
+        query_id = get_active_query_id() or ""
+        # Pass velocity from dashboard for accurate cost per item/point calculation
+        velocity_items = metrics["dashboard"].get("velocity_items", 0.0)
+        velocity_points = metrics["dashboard"].get("velocity_points", 0.0)
+        extended_metrics["budget"] = _calculate_budget_metrics(
+            report_data["profile_id"],
+            query_id,
+            report_data["weeks_count"],
+            velocity_items,
+            velocity_points,
+        )
+        extended_metrics.pop("budget_needed")
 
     # Burndown metrics
     if "burndown" in sections:
@@ -288,13 +339,8 @@ def _calculate_all_metrics(
             report_data["weeks_count"],
         )
 
-        # Bug Analysis (sub-section of burndown)
-        metrics["bug_analysis"] = _calculate_bug_metrics(
-            report_data["jira_issues"],
-            report_data["statistics"],
-            report_data["settings"],
-            report_data["weeks_count"],
-        )
+        # Bug Analysis (already calculated above for health)
+        metrics["bug_analysis"] = extended_metrics.get("bug_analysis", {})
 
     # Scope metrics
     if "burndown" in sections:
@@ -304,33 +350,17 @@ def _calculate_all_metrics(
             report_data["weeks_count"],
         )
 
-    # Flow metrics
+    # Flow metrics (already calculated above for health)
     if "flow" in sections:
-        metrics["flow"] = _calculate_flow_metrics(
-            report_data["snapshots"], report_data["weeks_count"]
-        )
+        metrics["flow"] = extended_metrics.get("flow", {})
 
-    # DORA metrics
+    # DORA metrics (already calculated above for health)
     if "dora" in sections:
-        metrics["dora"] = _calculate_dora_metrics(
-            report_data["profile_id"], report_data["weeks_count"]
-        )
+        metrics["dora"] = extended_metrics.get("dora", {})
 
-    # Budget metrics
+    # Budget metrics (already calculated above)
     if "budget" in sections:
-        from data.query_manager import get_active_query_id
-
-        query_id = get_active_query_id() or ""
-        # Pass velocity from dashboard for accurate cost per item/point calculation
-        velocity_items = metrics["dashboard"].get("velocity_items", 0.0)
-        velocity_points = metrics["dashboard"].get("velocity_points", 0.0)
-        metrics["budget"] = _calculate_budget_metrics(
-            report_data["profile_id"],
-            query_id,
-            report_data["weeks_count"],
-            velocity_items,
-            velocity_points,
-        )
+        metrics["budget"] = extended_metrics.get("budget", {})
 
     return metrics
 
@@ -342,6 +372,7 @@ def _calculate_dashboard_metrics(
     settings: Dict,
     weeks_count: int,
     show_points: bool = False,
+    extended_metrics: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
     """
     Calculate dashboard summary metrics using LIFETIME-based calculations (same as app).
@@ -352,7 +383,7 @@ def _calculate_dashboard_metrics(
     3. Total comes from settings.estimated_total_items (NOT calculated)
     4. Remaining = total - completed (same as app)
     5. Completion % = completed / total (LIFETIME, same as app)
-    6. Health score uses weighted formula (progress 25%, schedule 30%, velocity 25%, confidence 20%)
+    6. Health score uses comprehensive formula v3.0 (6 dimensions: Delivery, Predictability, Quality, Efficiency, Sustainability, Financial)
 
     Args:
         all_statistics: ALL statistics for lifetime completion calculation
@@ -361,6 +392,7 @@ def _calculate_dashboard_metrics(
         settings: App settings with deadline and milestone
         weeks_count: Actual number of weeks with data
         show_points: Whether to use points-based (True) or items-based (False) forecasting
+        extended_metrics: Optional extended metrics (DORA, Flow, Bug, Budget) for comprehensive health calculation
 
     Returns:
         Dictionary with dashboard metrics
@@ -420,6 +452,11 @@ def _calculate_dashboard_metrics(
         (completed_points / total_points) * 100 if total_points > 0 else 0
     )
 
+    logger.info(
+        f"[REPORT COMPLETION] completed_items={completed_items}, remaining_items={remaining_items}, "
+        f"total_items={total_items}, completion_pct={items_completion_pct:.2f}%"
+    )
+
     # Calculate health metrics (same as app's dashboard_comprehensive.py)
     # Health score uses deduction-based formula starting at 100
 
@@ -460,82 +497,76 @@ def _calculate_dashboard_metrics(
                 elif recent_velocity_change < -10:
                     trend_direction = "declining"
 
-    # Calculate scope change rate
-    scope_change_rate = 0
-    if not df_windowed.empty and "created_items" in df_windowed.columns:
-        total_created = df_windowed["created_items"].sum()
-        if total_items > 0:
-            scope_change_rate = (total_created / total_items) * 100
-
     # Schedule variance will be calculated after forecast (placeholder for now)
     schedule_variance_days = 0
 
-    # Calculate health score using continuous proportional formula (same as app)
-    import logging
+    # Calculate basic velocity early for health calculation
+    # This will be recalculated more precisely later with data_points_count filtering
+    from data.processing import calculate_velocity_from_dataframe
 
-    logger = logging.getLogger(__name__)
+    velocity_items_early = calculate_velocity_from_dataframe(
+        df_windowed, "completed_items"
+    )
+
+    # Calculate comprehensive health score using v3.0 formula (6 dimensions)
+    # Prepare dashboard metrics for health calculator using shared function (DRY)
+    from data.project_health_calculator import (
+        calculate_comprehensive_project_health,
+        prepare_dashboard_metrics_for_health,
+    )
+
+    dashboard_metrics_for_health = prepare_dashboard_metrics_for_health(
+        completion_percentage=items_completion_pct
+        if not show_points
+        else points_completion_pct,
+        current_velocity_items=velocity_items_early,
+        velocity_cv=velocity_cv,
+        trend_direction=trend_direction,
+        recent_velocity_change=recent_velocity_change,
+        schedule_variance_days=schedule_variance_days,
+        completion_confidence=50,  # Default, will be updated after PERT forecast
+    )
+
     logger.info(
-        f"[REPORT HEALTH] Input metrics: velocity_cv={velocity_cv:.2f}, "
-        f"schedule_variance_days={schedule_variance_days:.2f}, scope_change_rate={scope_change_rate:.2f}, "
-        f"trend_direction={trend_direction}, recent_velocity_change={recent_velocity_change:.2f}, "
-        f"statistics_rows={len(df_windowed)}"
+        f"[REPORT HEALTH FIRST] Input: completion_pct={items_completion_pct if not show_points else points_completion_pct:.2f}, "
+        f"velocity_items={velocity_items_early:.2f}, velocity_cv={velocity_cv:.2f}, "
+        f"trend={trend_direction}, recent_change={recent_velocity_change:.2f}, "
+        f"schedule_var={schedule_variance_days:.2f}, confidence=50"
     )
 
-    # Velocity consistency (30 points max)
-    velocity_score = max(0, 30 * (1 - min(velocity_cv / 50, 1)))
-    logger.info(
-        f"[REPORT HEALTH] velocity_score={velocity_score:.2f} (from CV={velocity_cv:.2f}%)"
+    # Add extended metrics if available
+    if extended_metrics is None:
+        extended_metrics = {}
+
+    # Calculate comprehensive health using same calculator as dashboard
+    # Note: Using placeholder scope_change_rate=0 for initial calculation
+    # Will be recalculated with correct value after df_for_velocity is created
+    health_result = calculate_comprehensive_project_health(
+        dashboard_metrics=dashboard_metrics_for_health,
+        dora_metrics=extended_metrics.get("dora"),
+        flow_metrics=extended_metrics.get("flow"),
+        bug_metrics=extended_metrics.get("bug_analysis"),
+        budget_metrics=extended_metrics.get("budget"),
+        scope_metrics={"scope_change_rate": 0},  # Placeholder, recalculated later
     )
 
-    # Schedule performance (25 points max) - will be updated after forecast
-    schedule_score = max(0, 25 * (1 - min(schedule_variance_days / 60, 1)))
-    logger.info(
-        f"[REPORT HEALTH] schedule_score={schedule_score:.2f} (from variance={schedule_variance_days:.2f} days)"
-    )
+    health_score = health_result["overall_score"]
 
-    # Scope stability (20 points max)
-    scope_score = max(0, 20 * (1 - min(scope_change_rate / 40, 1)))
-    logger.info(
-        f"[REPORT HEALTH] scope_score={scope_score:.2f} (from change_rate={scope_change_rate:.2f}%)"
-    )
-
-    # Quality trends (15 points max)
-    if trend_direction == "improving":
-        trend_score = 15
-    elif trend_direction == "stable":
-        trend_score = 10
-    else:  # declining
-        trend_score = 0
-    logger.info(
-        f"[REPORT HEALTH] trend_score={trend_score} (direction={trend_direction})"
-    )
-
-    # Recent performance (10 points max)
-    if recent_velocity_change >= 0:
-        recent_score = 5 + min(5, 5 * (recent_velocity_change / 20))
-    else:
-        recent_score = max(0, 5 * (1 + recent_velocity_change / 20))
-    logger.info(
-        f"[REPORT HEALTH] recent_score={recent_score:.2f} (change={recent_velocity_change:.2f}%)"
-    )
-
-    health_score = int(
-        velocity_score + schedule_score + scope_score + trend_score + recent_score
-    )
-    health_score = max(0, min(100, health_score))
-    logger.info(
-        f"[REPORT HEALTH] INITIAL health_score={health_score}% (before schedule recalc)"
-    )
-
-    # Determine health status (same as app)
-    if health_score >= 80:
-        health_status = "EXCELLENT"
-    elif health_score >= 60:
+    # Determine health status using v3.0 thresholds
+    if health_score >= 70:
         health_status = "GOOD"
-    elif health_score >= 40:
-        health_status = "MODERATE"
-    else:
+    elif health_score >= 50:
+        health_status = "CAUTION"
+    elif health_score >= 30:
         health_status = "AT RISK"
+    else:
+        health_status = "CRITICAL"
+
+    logger.info(
+        f"[REPORT HEALTH] Comprehensive health_score={health_score}% status={health_status} "
+        f"formula_version={health_result.get('formula_version')} "
+        f"dimensions={len(health_result.get('dimensions', {}))}"
+    )
 
     # Calculate velocity using EXACT SAME method as app dashboard
     # App uses calculate_velocity_from_dataframe() which returns WEEKLY velocity (items per week)
@@ -603,6 +634,18 @@ def _calculate_dashboard_metrics(
     )
     logger.debug(
         f"[REPORT VELOCITY] velocity_items={velocity_items:.2f} items/week, velocity_points={velocity_points:.2f} points/week"
+    )
+
+    # Calculate scope change rate from FILTERED data (same as app)
+    # This must match the app's calculation in dashboard_comprehensive.py
+    scope_change_rate = 0
+    if not df_for_velocity.empty and "created_items" in df_for_velocity.columns:
+        total_created = df_for_velocity["created_items"].sum()
+        if total_items > 0:
+            scope_change_rate = (total_created / total_items) * 100
+
+    logger.debug(
+        f"[REPORT SCOPE] scope_change_rate={scope_change_rate:.2f}% (from {len(df_for_velocity)} rows)"
     )
 
     # Get deadline and milestone from settings
@@ -713,58 +756,76 @@ def _calculate_dashboard_metrics(
 
     # Recalculate schedule variance now that forecast is complete
     if pert_days and days_to_deadline:
-        schedule_variance_days = abs(pert_days - days_to_deadline)
+        # CRITICAL: Preserve sign for health calculation
+        # Negative = behind schedule (bad), Positive = ahead of schedule (good)
+        # App: schedule_var = -(pert_days - days_to_deadline)
+        # Simplified: schedule_var = days_to_deadline - pert_days
+        schedule_variance_days = days_to_deadline - pert_days
         logger.info(
             f"[REPORT HEALTH] RECALC: schedule_variance_days={schedule_variance_days:.2f} "
             f"(pert_days={pert_days:.2f}, days_to_deadline={days_to_deadline})"
         )
 
-        # Recalculate health score with schedule variance (same as app)
-        # Velocity consistency (30 points max)
-        velocity_score = max(0, 30 * (1 - min(velocity_cv / 50, 1)))
-
-        # Schedule performance (25 points max)
-        schedule_score = max(0, 25 * (1 - min(schedule_variance_days / 60, 1)))
-        logger.info(
-            f"[REPORT HEALTH] RECALC: schedule_score={schedule_score:.2f} (updated)"
-        )
-
-        # Scope stability (20 points max)
-        scope_score = max(0, 20 * (1 - min(scope_change_rate / 40, 1)))
-
-        # Quality trends (15 points max)
-        if trend_direction == "improving":
-            trend_score = 15
-        elif trend_direction == "stable":
-            trend_score = 10
-        else:  # declining
-            trend_score = 0
-
-        # Recent performance (10 points max)
-        if recent_velocity_change >= 0:
-            recent_score = 5 + min(5, 5 * (recent_velocity_change / 20))
+        # Calculate confidence based on schedule buffer (same logic as dashboard)
+        # Positive buffer (ahead of schedule) = higher confidence
+        # Negative buffer (behind schedule) = lower confidence
+        buffer_days = days_to_deadline - pert_days
+        if buffer_days >= 30:
+            completion_confidence = 95  # Very high confidence
+        elif buffer_days >= 14:
+            completion_confidence = 80  # High confidence
+        elif buffer_days >= 0:
+            completion_confidence = 65  # Moderate confidence
+        elif buffer_days >= -14:
+            completion_confidence = 45  # Low confidence
         else:
-            recent_score = max(0, 5 * (1 + recent_velocity_change / 20))
+            completion_confidence = 25  # Very low confidence
 
-        health_score = int(
-            velocity_score + schedule_score + scope_score + trend_score + recent_score
+        # Recalculate comprehensive health score with updated schedule variance and confidence
+        # ALWAYS use items_completion_pct for health (consistent with app)
+        dashboard_metrics_for_health = prepare_dashboard_metrics_for_health(
+            completion_percentage=items_completion_pct,  # Always items, not points
+            current_velocity_items=velocity_items,
+            velocity_cv=velocity_cv,
+            trend_direction=trend_direction,
+            recent_velocity_change=recent_velocity_change,
+            schedule_variance_days=schedule_variance_days,  # Updated value
+            completion_confidence=completion_confidence,  # Updated value
         )
-        health_score = max(0, min(100, health_score))
+
         logger.info(
-            f"[REPORT HEALTH] FINAL health_score={health_score}% "
-            f"(velocity={velocity_score:.1f} + schedule={schedule_score:.1f} + "
-            f"scope={scope_score:.1f} + trend={trend_score} + recent={recent_score:.1f})"
+            f"[REPORT HEALTH] Input: completion_pct={items_completion_pct:.2f}, "
+            f"velocity_items={velocity_items:.2f}, velocity_cv={velocity_cv:.2f}, "
+            f"trend={trend_direction}, recent_change={recent_velocity_change:.2f}, "
+            f"schedule_var={schedule_variance_days:.2f}, confidence={completion_confidence}, "
+            f"scope_change_rate={scope_change_rate:.2f}"
         )
 
-        # Update health status
-        if health_score >= 80:
-            health_status = "EXCELLENT"
-        elif health_score >= 60:
+        health_result = calculate_comprehensive_project_health(
+            dashboard_metrics=dashboard_metrics_for_health,
+            dora_metrics=extended_metrics.get("dora"),
+            flow_metrics=extended_metrics.get("flow"),
+            bug_metrics=extended_metrics.get("bug_analysis"),
+            budget_metrics=extended_metrics.get("budget"),
+            scope_metrics={"scope_change_rate": scope_change_rate},
+        )
+
+        health_score = health_result["overall_score"]
+
+        # Determine health status using v3.0 thresholds
+        if health_score >= 70:
             health_status = "GOOD"
-        elif health_score >= 40:
-            health_status = "MODERATE"
-        else:
+        elif health_score >= 50:
+            health_status = "CAUTION"
+        elif health_score >= 30:
             health_status = "AT RISK"
+        else:
+            health_status = "CRITICAL"
+
+        logger.info(
+            f"[REPORT HEALTH] FINAL health_score={health_score}% status={health_status} "
+            f"(recalculated with schedule_variance_days={schedule_variance_days:.2f})"
+        )
 
     return {
         "has_data": True,
@@ -1329,11 +1390,14 @@ def _calculate_dora_metrics(profile_id: str, weeks_count: int) -> Dict[str, Any]
         "has_data": True,
         "deployment_frequency": deployment_freq,  # Releases per week
         "deployment_frequency_tasks": deployment_freq_tasks,  # Tasks per week
-        "lead_time_days": lead_time_days,  # Days (None if no data)
+        "lead_time": lead_time_days
+        or 0,  # CRITICAL: Map to 'lead_time' for health calculator (app uses this key)
+        "lead_time_days": lead_time_days,  # Days (None if no data) - keep for report charts
         "lead_time_hours": lead_time_hours,  # Hours (None if no data)
         "change_failure_rate": change_failure_rate,  # Percentage
-        "mttr_days": mttr_days,  # Days (None if no data)
-        "mttr_hours": mttr_hours,  # Hours (None if no data)
+        "mttr_hours": mttr_hours
+        or 0,  # CRITICAL: Health calculator expects hours, not days
+        "mttr_days": mttr_days,  # Days (None if no data) - keep for report charts
         "weekly_labels": weekly_labels,  # For charts
         "weeks_count": weeks_count,
         # Include full cached data for detailed reporting

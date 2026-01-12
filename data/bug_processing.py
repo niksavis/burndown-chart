@@ -239,6 +239,7 @@ def calculate_bug_metrics_summary(
     # This gives the true current state of open/closed bugs
     open_bugs = 0
     open_bug_points = 0
+    open_bug_ages = []  # Track ages of open bugs
 
     for issue in all_bug_issues:
         # Handle both JIRA API format and database format
@@ -247,14 +248,35 @@ def calculate_bug_metrics_summary(
             fields = issue.get("fields", {})
             resolution_date = fields.get("resolutiondate")
             points = fields.get("customfield_10016") or 0
+            created_str = fields.get("created", "")
         else:
             # Database format: {"resolved": "...", "points": ...}
             resolution_date = issue.get("resolved")
             points = issue.get("points") or 0
+            created_str = issue.get("created", "")
 
         if not resolution_date:
             open_bugs += 1
             open_bug_points += points
+
+            # Calculate age of open bug
+            if created_str:
+                try:
+                    created = datetime.strptime(created_str[:19], "%Y-%m-%dT%H:%M:%S")
+                    age_days = (datetime.now() - created).days
+                    open_bug_ages.append(age_days)
+                except ValueError:
+                    pass
+
+    # Calculate average age of open bugs
+    avg_age_days = sum(open_bug_ages) / len(open_bug_ages) if open_bug_ages else 0
+
+    import logging
+
+    logger = logging.getLogger(__name__)
+    logger.info(
+        f"[BUG CALC] Open bugs: count={open_bugs}, ages={len(open_bug_ages)}, avg_age={avg_age_days:.1f}d"
+    )
 
     # Count historical metrics from timeline-filtered bugs
     # This gives resolution rate and trends for the selected period
@@ -262,6 +284,14 @@ def calculate_bug_metrics_summary(
     closed_bugs = 0
     total_bug_points = 0
     resolution_times = []
+
+    import logging
+
+    logger = logging.getLogger(__name__)
+    logger.info(
+        f"[BUG CALC] Calculating resolution from timeline_filtered_bugs: "
+        f"count={total_bugs}, all_bugs={len(all_bug_issues)}"
+    )
 
     for issue in timeline_filtered_bugs:
         # Handle both JIRA API format and database format
@@ -297,6 +327,19 @@ def calculate_bug_metrics_summary(
 
     # Calculate resolution rate from timeline-filtered bugs
     resolution_rate = closed_bugs / total_bugs if total_bugs > 0 else 0.0
+
+    logger.info(
+        f"[BUG CALC] Resolution rate: {closed_bugs}/{total_bugs} = {resolution_rate:.4f} ({resolution_rate * 100:.2f}%)"
+    )
+
+    # DEBUG: Log resolution rate calculation
+    import logging
+
+    logger = logging.getLogger(__name__)
+    logger.info(
+        f"[BUG CALC] Resolution rate: closed={closed_bugs}, total={total_bugs}, "
+        f"rate={resolution_rate * 100:.2f}%, all_bugs={len(all_bug_issues)}, timeline_bugs={len(timeline_filtered_bugs)}"
+    )
 
     # Calculate average resolution time
     avg_resolution_time_days = (
@@ -349,6 +392,7 @@ def calculate_bug_metrics_summary(
         "closed_bugs": closed_bugs,
         "resolution_rate": resolution_rate,
         "avg_resolution_time_days": avg_resolution_time_days,
+        "avg_age_days": avg_age_days,  # Average age of OPEN bugs (for Bug Health score)
         "bugs_created_last_4_weeks": bugs_created_last_4_weeks,
         "bugs_resolved_last_4_weeks": bugs_resolved_last_4_weeks,
         "trend_direction": trend_direction,

@@ -68,109 +68,219 @@ def _format_date_relative(date_str, reference_date=None):
         return str(date_str)
 
 
-def _calculate_project_health_score(metrics):
-    """Calculate overall project health score (0-100) using continuous/proportional scoring.
+def _calculate_project_health_score(
+    metrics,
+    dora_metrics=None,
+    flow_metrics=None,
+    bug_metrics=None,
+    budget_metrics=None,
+    scope_metrics=None,
+):
+    """Calculate overall project health score (0-100) using comprehensive multi-dimensional analysis.
 
-    Weights:
-    - Velocity consistency: 30% (lower CV = better)
-    - Schedule performance: 25% (on-time or early = better)
-    - Scope stability: 20% (low growth rate = better)
-    - Quality trends: 15% (improving = better)
-    - Recent performance: 10% (positive change = better)
+    Formula v3.0 - Comprehensive with dynamic weighting:
+    Calculates health across 6 dimensions with dynamic weight redistribution when metrics are unavailable:
+    - Delivery Performance (25% max): velocity, throughput, completion rate
+    - Predictability (20% max): velocity CV, forecast confidence, schedule adherence
+    - Quality (20% max): bug density, DORA CFR, bug resolution, MTTR
+    - Efficiency (15% max): flow efficiency, flow time, resource utilization
+    - Sustainability (10% max): scope stability, WIP management, flow distribution
+    - Financial Health (10% max): budget adherence, burn rate, runway
+
+    When extended metrics (DORA, Flow, Bug, Budget) are unavailable, the v3.0 calculator
+    redistributes weights dynamically to available dimensions, ensuring consistent scoring.
     """
     import logging
 
     logger = logging.getLogger(__name__)
 
-    # Velocity consistency (30 points max)
-    # CV of 0% = full points, CV of 50%+ = 0 points, linear in between
-    velocity_cv = metrics.get("velocity_cv", 0)
-    velocity_score = max(0, 30 * (1 - min(velocity_cv / 50, 1)))
-    logger.debug(
-        f"[APP HEALTH] velocity_cv={velocity_cv}, velocity_score={velocity_score:.2f}"
+    # Always use comprehensive v3.0 calculator with dynamic weighting
+    logger.info("[HEALTH v3.0] Using comprehensive multi-dimensional health formula")
+
+    from data.project_health_calculator import (
+        calculate_comprehensive_project_health,
+        prepare_dashboard_metrics_for_health,
     )
 
-    # Schedule performance (25 points max)
-    # On-time or early = full points, 60+ days late = 0 points, linear penalty
-    schedule_variance = metrics.get("schedule_variance_days", 0)
-    schedule_score = max(0, 25 * (1 - min(schedule_variance / 60, 1)))
-    logger.debug(
-        f"[APP HEALTH] schedule_variance_days={schedule_variance}, schedule_score={schedule_score:.2f}"
+    # Prepare metrics for comprehensive calculator using shared function (DRY)
+    dashboard_metrics = prepare_dashboard_metrics_for_health(
+        completion_percentage=metrics.get("completion_percentage", 0),
+        current_velocity_items=metrics.get("current_velocity_items", 0),
+        velocity_cv=metrics.get("velocity_cv", 0),
+        trend_direction=metrics.get("trend_direction", "stable"),
+        recent_velocity_change=metrics.get("recent_velocity_change", 0),
+        schedule_variance_days=metrics.get("schedule_variance_days", 0),
+        completion_confidence=metrics.get("completion_confidence", 50),
     )
 
-    # Scope stability (20 points max)
-    # 0% growth = full points, 40%+ growth = 0 points, linear penalty
-    scope_change_rate = metrics.get("scope_change_rate", 0)
-    scope_score = max(0, 20 * (1 - min(scope_change_rate / 40, 1)))
-    logger.debug(
-        f"[APP HEALTH] scope_change_rate={scope_change_rate}, scope_score={scope_score:.2f}"
+    logger.info(
+        f"[APP HEALTH] Input: completion_pct={metrics.get('completion_percentage', 0):.2f}, "
+        f"velocity_items={metrics.get('current_velocity_items', 0):.2f}, "
+        f"velocity_cv={metrics.get('velocity_cv', 0):.2f}, "
+        f"trend={metrics.get('trend_direction', 'stable')}, "
+        f"recent_change={metrics.get('recent_velocity_change', 0):.2f}, "
+        f"schedule_var={metrics.get('schedule_variance_days', 0):.2f}, "
+        f"confidence={metrics.get('completion_confidence', 50)}"
     )
 
-    # Quality trends (15 points max)
-    # Improving = 15, stable = 10, declining = 0
+    # Call comprehensive calculator
+    health_result = calculate_comprehensive_project_health(
+        dashboard_metrics=dashboard_metrics,
+        dora_metrics=dora_metrics,
+        flow_metrics=flow_metrics,
+        bug_metrics=bug_metrics,
+        budget_metrics=budget_metrics,
+        scope_metrics=scope_metrics,
+    )
+
+    logger.info(
+        f"[HEALTH v3.0] Overall Score: {health_result['overall_score']}/100 "
+        f"(formula_version={health_result['formula_version']})"
+    )
+
+    return int(health_result["overall_score"])
+
+
+def _calculate_project_health_score_v2(metrics):
+    """Legacy v2.2 health calculation (DEPRECATED - kept for reference only).
+
+    This function is no longer used. All health calculations now use the v3.0
+    comprehensive formula which handles missing extended metrics via dynamic weighting.
+
+    Formula v2.2 - Balanced and context-aware (fallback when extended metrics unavailable):
+    - Progress: 30% (actual completion drives confidence)
+    - Velocity trend: 20% (improving/stable trend is critical)
+    - Consistency: 20% (lower CV = better predictability)
+    - Schedule: 20% (on-time or early = better)
+    - Scope stability: 10% (context-aware penalties for early-stage projects)
+    """
+    import logging
+    import math
+
+    logger = logging.getLogger(__name__)
+    logger.info("[HEALTH v2.2] Using legacy dashboard-only formula (fallback mode)")
+
+    # Get completion percentage (used for context-aware adjustments)
+    completion_pct = metrics.get("completion_percentage", 0)
+
+    # 1. Progress Component (30 points max)
+    # Linear: 0% complete = 0 pts, 100% complete = 30 pts
+    progress_score = (completion_pct / 100) * 30
+    logger.debug(
+        f"[APP HEALTH] completion_pct={completion_pct:.1f}%, progress_score={progress_score:.2f}"
+    )
+
+    # 2. Velocity Trend Component (20 points max)
+    # Improving = 20, stable = 15, declining = 8 (give credit for delivery even when slowing)
     trend_direction = metrics.get("trend_direction", "stable")
-    if trend_direction == "improving":
+    recent_change = metrics.get("recent_velocity_change", 0)
+
+    if trend_direction == "improving" or recent_change > 10:
+        trend_score = 20
+    elif trend_direction == "stable" or abs(recent_change) <= 10:
         trend_score = 15
-    elif trend_direction == "stable":
-        trend_score = 10
     else:  # declining
-        trend_score = 0
+        # Even declining projects get 8 base points if still delivering
+        trend_score = 8
     logger.debug(
-        f"[APP HEALTH] trend_direction={trend_direction}, trend_score={trend_score}"
+        f"[APP HEALTH] trend_direction={trend_direction}, recent_change={recent_change:.1f}%, trend_score={trend_score}"
     )
 
-    # Recent performance (10 points max)
-    # +20% change = 10 points, 0% = 5 points, -20% = 0 points, linear
-    recent_change = metrics.get("recent_velocity_change", 0)
-    if recent_change >= 0:
-        # Positive change: 5 base + up to 5 bonus for improvement
-        recent_score = 5 + min(5, 5 * (recent_change / 20))
-    else:
-        # Negative change: linear penalty from 5 down to 0
-        recent_score = max(0, 5 * (1 + recent_change / 20))
+    # 3. Velocity Consistency Component (20 points max)
+    # CV of 0% = 20 pts, CV of 100%+ = 3 pts minimum (give credit for delivery even if erratic)
+    # Gentler curve: high CV projects still get partial credit
+    velocity_cv = metrics.get("velocity_cv", 0)
+    # Use sigmoid: 1 / (1 + e^((cv-70)/20)) scaled to 0-17, plus 3 point floor
+    # This ensures even 139% CV gets ~3-4 points instead of near-zero
+    consistency_factor = 1 / (1 + math.exp((velocity_cv - 70) / 20))
+    consistency_score = (consistency_factor * 17) + 3  # 3-20 point range
     logger.debug(
-        f"[APP HEALTH] recent_velocity_change={recent_change}, recent_score={recent_score:.2f}"
+        f"[APP HEALTH] velocity_cv={velocity_cv:.1f}%, consistency_score={consistency_score:.2f}"
+    )
+
+    # 4. Schedule Component (20 points max)
+    # Buffer-based sigmoid: ahead = full points, on-time = ~15 pts, late = penalty
+    schedule_variance = metrics.get("schedule_variance_days", 0)
+    # Sigmoid: tanh(buffer/20) scaled from -1 to +1, then map to 0-20
+    # buffer = deadline - forecast (positive = ahead, negative = behind)
+    buffer_days = -schedule_variance  # Invert: positive buffer is good
+    schedule_factor = (math.tanh(buffer_days / 20) + 1) / 2  # Map to 0-1
+    schedule_score = schedule_factor * 20
+    logger.debug(
+        f"[APP HEALTH] schedule_variance_days={schedule_variance:.1f}, buffer_days={buffer_days:.1f}, schedule_score={schedule_score:.2f}"
+    )
+
+    # 5. Scope Stability Component (10 points max) - CONTEXT-AWARE
+    # Early projects (<50% complete): reduced penalty (high scope change is normal)
+    # Later projects (>50% complete): standard penalty (scope should stabilize)
+    scope_change_rate = metrics.get("scope_change_rate", 0)
+
+    # Context factor: early projects get 70% penalty reduction
+    context_factor = 1.0
+    if completion_pct < 50:
+        # Early stage: reduce penalty significantly
+        context_factor = 0.3  # Only 30% of normal penalty
+    elif completion_pct < 75:
+        # Mid stage: moderate penalty
+        context_factor = 0.6  # 60% of normal penalty
+
+    # Penalty curve: 0-200% change maps to 10 -> 0 points (more forgiving)
+    # Use logarithmic curve to be less aggressive
+    if scope_change_rate <= 100:
+        # Below 100%: minimal penalty
+        scope_penalty = (scope_change_rate / 100) * 3 * context_factor
+    else:
+        # Above 100%: logarithmic penalty
+        scope_penalty = (3 + math.log10(scope_change_rate / 100) * 7) * context_factor
+
+    scope_score = max(0, 10 - scope_penalty)
+    logger.debug(
+        f"[APP HEALTH] scope_change_rate={scope_change_rate:.1f}%, context_factor={context_factor:.2f}, scope_score={scope_score:.2f}"
     )
 
     # Calculate total score (sum of all components)
     total_score = (
-        velocity_score + schedule_score + scope_score + trend_score + recent_score
+        progress_score + trend_score + consistency_score + schedule_score + scope_score
     )
 
     final_score = max(0, min(100, int(total_score)))
-    logger.debug(f"[APP HEALTH] FINAL health_score={final_score}")
+    logger.info(
+        f"[APP HEALTH] FINAL health_score={final_score} "
+        f"(progress={progress_score:.1f} + trend={trend_score:.1f} + "
+        f"consistency={consistency_score:.1f} + schedule={schedule_score:.1f} + scope={scope_score:.1f})"
+    )
 
     return final_score
 
 
 def _get_health_status(score):
     """Get health status configuration based on score."""
-    if score >= 80:
-        return {
-            "label": "EXCELLENT",
-            "color": "#28a745",
-            "icon": "fa-check-circle",
-            "bg_color": "rgba(40, 167, 69, 0.1)",
-        }
-    elif score >= 60:
+    if score >= 70:
         return {
             "label": "GOOD",
             "color": "#28a745",
             "icon": "fa-check-circle",
             "bg_color": "rgba(40, 167, 69, 0.1)",
         }
-    elif score >= 40:
+    elif score >= 50:
         return {
-            "label": "MODERATE",
+            "label": "CAUTION",
             "color": "#ffc107",
             "icon": "fa-exclamation-triangle",
             "bg_color": "rgba(255, 193, 7, 0.1)",
         }
-    else:
+    elif score >= 30:
         return {
             "label": "AT RISK",
-            "color": "#dc3545",
+            "color": "#fd7e14",
             "icon": "fa-exclamation-triangle",
+            "bg_color": "rgba(253, 126, 20, 0.1)",
+        }
+    else:
+        return {
+            "label": "CRITICAL",
+            "color": "#dc3545",
+            "icon": "fa-times-circle",
             "bg_color": "rgba(220, 53, 69, 0.1)",
         }
 
@@ -391,7 +501,9 @@ def _create_progress_ring(percentage, color, size=80):
 #######################################################################
 
 
-def _create_executive_summary(statistics_df, settings, forecast_data):
+def _create_executive_summary(
+    statistics_df, settings, forecast_data, avg_weekly_items=0
+):
     """Create executive summary section with key project health indicators.
 
     The Data Points slider affects historical metrics but not current remaining work:
@@ -420,6 +532,15 @@ def _create_executive_summary(statistics_df, settings, forecast_data):
     completion_percentage = _safe_divide(completed_items, total_items) * 100
     points_percentage = (
         _safe_divide(completed_points, total_points) * 100 if total_points > 0 else 0
+    )
+
+    # DEBUG: Log completion calculation
+    import logging
+
+    logger = logging.getLogger(__name__)
+    logger.info(
+        f"[APP COMPLETION] completed_items={completed_items}, remaining_items={remaining_items}, "
+        f"total_items={total_items}, completion_pct={completion_percentage:.2f}%"
     )
 
     # Calculate project health score with DYNAMIC metrics from filtered data
@@ -462,12 +583,32 @@ def _create_executive_summary(statistics_df, settings, forecast_data):
         if total_items > 0:
             scope_change_rate = (total_created / total_items) * 100
 
+    # Calculate completion confidence from schedule variance (same as report)
+    # Positive schedule_variance = ahead of schedule (buffer days)
+    # Negative schedule_variance = behind schedule
+    buffer_days = (
+        schedule_variance  # schedule_variance is forecast_days - days_to_deadline
+    )
+    if buffer_days >= 28:
+        completion_confidence = 95  # Very high confidence
+    elif buffer_days >= 14:
+        completion_confidence = 80  # High confidence
+    elif buffer_days >= 0:
+        completion_confidence = 65  # Moderate confidence
+    elif buffer_days >= -14:
+        completion_confidence = 45  # Low confidence
+    else:
+        completion_confidence = 25  # Very low confidence
+
     health_metrics = {
+        "completion_percentage": completion_percentage,
+        "current_velocity_items": avg_weekly_items,  # Items per week from filtered statistics
         "velocity_cv": velocity_cv,
         "schedule_variance_days": schedule_variance,
         "scope_change_rate": scope_change_rate,
         "trend_direction": trend_direction,
         "recent_velocity_change": recent_velocity_change,
+        "completion_confidence": completion_confidence,  # Calculated from schedule variance
     }
 
     # DEBUG: Log health metrics to trace 18% vs 13% discrepancy
@@ -481,7 +622,33 @@ def _create_executive_summary(statistics_df, settings, forecast_data):
         f"statistics_rows={len(statistics_df)}"
     )
 
-    health_score = _calculate_project_health_score(health_metrics)
+    # Extract extended metrics from additional_context (calculated in callback)
+    # These are optional - if not available, falls back to v2.2 formula
+    extended_metrics = settings.get("extended_metrics", {})
+
+    dora_metrics = extended_metrics.get("dora")
+    flow_metrics = extended_metrics.get("flow")
+    bug_metrics = extended_metrics.get("bug_analysis")
+    budget_metrics = settings.get("budget_data")  # Budget data passed separately
+    scope_metrics = {"scope_change_rate": scope_change_rate}
+
+    # Log available extended metrics for v3.0 comprehensive formula
+    logger.info(
+        f"[HEALTH v3.0] Available extended metrics: "
+        f"DORA={'✓' if dora_metrics else '✗'}, "
+        f"Flow={'✓' if flow_metrics else '✗'}, "
+        f"Bug={'✓' if bug_metrics else '✗'}, "
+        f"Budget={'✓' if budget_metrics else '✗'}"
+    )
+
+    health_score = _calculate_project_health_score(
+        health_metrics,
+        dora_metrics=dora_metrics,
+        flow_metrics=flow_metrics,
+        bug_metrics=bug_metrics,
+        budget_metrics=budget_metrics,
+        scope_metrics=scope_metrics,
+    )
 
     logger.info(f"[HEALTH CALC] Calculated health_score={health_score}%")
 
@@ -3238,7 +3405,9 @@ def create_comprehensive_dashboard(
     )
 
     schedule_variance_calc = (
-        abs(forecast_days - days_to_deadline)
+        (
+            days_to_deadline - forecast_days
+        )  # Positive = ahead of schedule (buffer), negative = behind
         if (forecast_days and days_to_deadline)
         else 0
     )
@@ -3389,6 +3558,9 @@ def create_comprehensive_dashboard(
         "total_points": total_points,
         "deadline": deadline_str,
         "show_points": show_points,
+        "extended_metrics": additional_context.get("extended_metrics", {})
+        if additional_context
+        else {},
     }
 
     # Extract budget data from additional_context for insights
@@ -3424,7 +3596,9 @@ def create_comprehensive_dashboard(
         [
             # Page header
             # Executive Summary
-            _create_executive_summary(statistics_df, settings, forecast_data),
+            _create_executive_summary(
+                statistics_df, settings, forecast_data, avg_weekly_items
+            ),
             # Throughput Analytics
             _create_throughput_section(
                 statistics_df,

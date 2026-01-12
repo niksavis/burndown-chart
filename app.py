@@ -166,7 +166,8 @@ app = dash.Dash(
     background_callback_manager=background_callback_manager,  # Enable background callbacks
     external_stylesheets=[
         dbc.themes.FLATLY,
-        "https://use.fontawesome.com/releases/v5.15.4/css/all.css",  # Font Awesome for icons
+        # SECURITY: Switched from use.fontawesome.com (injects tracking/checkout code) to cdnjs (clean)
+        "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css",  # Font Awesome for icons (cdnjs mirror - no tracking)
         "https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css",  # CodeMirror base styles
         "/assets/custom.css",  # Our custom CSS for standardized styling (includes CodeMirror theme overrides)
         "/assets/help_system.css",  # Help system CSS for progressive disclosure
