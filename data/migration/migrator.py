@@ -519,6 +519,10 @@ def run_migration_if_needed(
         sqlite_backend.set_app_state("migration_complete", "true")
         sqlite_backend.set_app_state("migration_timestamp", datetime.now().isoformat())
 
+        # Step 6: Clean up JSON files (data is now in database and backed up)
+        logger.info("Cleaning up legacy JSON files after successful migration")
+        cleanup_json_files(profiles_path)
+
         # Calculate duration
         duration = (datetime.now() - start_time).total_seconds()
         logger.info(
@@ -587,3 +591,74 @@ def rollback_migration(
     except Exception as e:
         logger.error(f"Rollback failed: {e}", extra={"error_type": type(e).__name__})
         raise IOError(f"Migration rollback failed: {e}") from e
+
+
+def cleanup_json_files(profiles_path: Path = DEFAULT_PROFILES_PATH) -> None:
+    """
+    Clean up legacy JSON files after successful migration.
+
+    Removes all profile directories and JSON files, keeping only:
+    - burndown.db (database file)
+    - burndown.db-shm (database shared memory)
+    - burndown.db-wal (database write-ahead log)
+
+    All JSON data is already backed up in backups/migration-{timestamp}/ directory.
+
+    Args:
+        profiles_path: Path to profiles directory to clean
+
+    Example:
+        >>> from data.migration.migrator import cleanup_json_files
+        >>> cleanup_json_files(Path("profiles"))
+    """
+    logger.info(f"Starting cleanup of legacy JSON files in {profiles_path}")
+
+    if not profiles_path.exists():
+        logger.warning(
+            f"Profiles path {profiles_path} does not exist - nothing to clean"
+        )
+        return
+
+    try:
+        import shutil
+
+        removed_count = 0
+        skipped_count = 0
+
+        # Iterate through profiles directory
+        for item in profiles_path.iterdir():
+            # Keep database files
+            if item.name in ["burndown.db", "burndown.db-shm", "burndown.db-wal"]:
+                logger.info(f"Keeping database file: {item.name}")
+                skipped_count += 1
+                continue
+
+            # Remove profile directories (p_*/
+            if item.is_dir() and item.name.startswith("p_"):
+                logger.info(f"Removing profile directory: {item.name}")
+                shutil.rmtree(item)
+                removed_count += 1
+                continue
+
+            # Remove JSON files (profiles.json, etc.)
+            if item.is_file() and item.suffix == ".json":
+                logger.info(f"Removing JSON file: {item.name}")
+                item.unlink()
+                removed_count += 1
+                continue
+
+            # Log any other files/directories (shouldn't normally exist)
+            logger.debug(f"Skipping unknown item: {item.name}")
+            skipped_count += 1
+
+        logger.info(
+            f"Cleanup complete: removed {removed_count} items, kept {skipped_count} database files"
+        )
+
+    except Exception as e:
+        logger.error(
+            f"Cleanup failed: {e}",
+            extra={"error_type": type(e).__name__, "profiles_path": str(profiles_path)},
+        )
+        # Don't raise - cleanup failure shouldn't fail the entire migration
+        # Data is still in database and backed up, just extra files remain
