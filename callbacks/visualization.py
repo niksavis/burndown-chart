@@ -784,13 +784,10 @@ def register(app):
         # Baseline = current remaining + total completed in filtered period
         # This gives us the initial backlog at the start of the data window
 
-        # CRITICAL FIX: Filter by actual date range, not row count
+        # CRITICAL FIX: Do NOT re-filter here! Data is already filtered in the callback
+        # to ensure consistency with Dashboard's Actionable Insights (T073 fix)
+        # The df parameter is already filtered by data_points_count using week_label matching
         df_filtered = df
-        if data_points_count and data_points_count > 0:
-            if not df.empty and "date" in df.columns:
-                latest_date = df["date"].max()
-                cutoff_date = latest_date - timedelta(weeks=data_points_count)
-                df_filtered = df[df["date"] >= cutoff_date]
 
         # Get current remaining from project_data.json (not from settings)
         from data.persistence import load_project_data
@@ -1576,6 +1573,64 @@ def register(app):
                     f"[CTO DEBUG] Creating NEW scope tracking content, cache_key={cache_key}"
                 )
 
+                # CRITICAL FIX: Apply SAME filtering as Dashboard to ensure consistency
+                # The Scope Analysis tab must use the same filtered time window as Dashboard's Actionable Insights
+                # Otherwise they show different numbers for the same metrics (T073 bug)
+                df_for_scope = df.copy()
+                if (
+                    data_points_count is not None
+                    and data_points_count > 0
+                    and not df_for_scope.empty
+                ):
+                    logger.info(
+                        f"[SCOPE FILTER] Filtering scope data by {data_points_count} weeks using week_label matching"
+                    )
+
+                    # Generate the same week labels that Dashboard uses
+                    from data.time_period_calculator import (
+                        get_iso_week,
+                        format_year_week,
+                    )
+
+                    weeks = []
+                    # Start from last statistics date, not today
+                    if "date" in df_for_scope.columns:
+                        df_for_scope["date"] = pd.to_datetime(
+                            df_for_scope["date"], format="mixed", errors="coerce"
+                        )
+                        current_date = df_for_scope["date"].max()
+                    else:
+                        current_date = datetime.now()
+
+                    for i in range(data_points_count):
+                        year, week = get_iso_week(current_date)
+                        week_label = format_year_week(year, week)
+                        weeks.append(week_label)
+                        current_date = current_date - timedelta(days=7)
+
+                    week_labels = set(reversed(weeks))  # Convert to set for fast lookup
+
+                    # Filter by week_label if available, otherwise fall back to date range
+                    if "week_label" in df_for_scope.columns:
+                        df_for_scope = df_for_scope[
+                            df_for_scope["week_label"].isin(week_labels)
+                        ]
+                        df_for_scope = df_for_scope.sort_values("date", ascending=True)
+                        logger.info(
+                            f"[SCOPE FILTER] Filtered to {len(df_for_scope)} rows using week_label matching"
+                        )
+                    else:
+                        # Fallback: date range filtering
+                        df_for_scope = df_for_scope.dropna(subset=["date"]).sort_values(
+                            "date", ascending=True
+                        )
+                        latest_date = df_for_scope["date"].max()
+                        cutoff_date = latest_date - timedelta(weeks=data_points_count)
+                        df_for_scope = df_for_scope[df_for_scope["date"] >= cutoff_date]
+                        logger.warning(
+                            "[SCOPE FILTER] No week_label column - using date range filtering"
+                        )
+
                 # Check if points data exists in the filtered time period (respects Data Points slider)
                 has_points_data = False
                 if show_points:
@@ -1587,7 +1642,7 @@ def register(app):
                 effective_show_points = show_points and has_points_data
 
                 scope_tab_content = _create_scope_tracking_tab_content(
-                    df, settings, effective_show_points
+                    df_for_scope, settings, effective_show_points
                 )
                 # Cache the result for next time
                 chart_cache[cache_key] = scope_tab_content

@@ -2473,6 +2473,12 @@ def _create_insights_section(
     For velocity comparison, we split the filtered data into two halves:
     - First half: "historical" baseline velocity
     - Second half: "recent" velocity trend
+
+    IMPORTANT: Scope growth calculations here use the SAME filtered time window as the
+    Scope Analysis tab. Both calculate from the same statistics_df filtered by the
+    Data Points slider. The numbers should always match. If they don't match:
+    - Check if viewing stale/cached data (refresh the page)
+    - Verify both tabs are using the same data_points_count setting
     """
     insights = []
 
@@ -2493,7 +2499,7 @@ def _create_insights_section(
             insights.append(
                 {
                     "severity": "success",
-                    "message": f"Accelerating Delivery - Team velocity increased {((recent_velocity / historical_velocity - 1) * 100):.2f}% in recent weeks",
+                    "message": f"Accelerating Delivery - Team velocity increased {((recent_velocity / historical_velocity - 1) * 100):.2f}% in recent weeks ({recent_velocity:.1f} vs {historical_velocity:.1f} items/week)",
                     "recommendation": "Consider taking on additional scope or bringing forward deliverables to capitalize on this momentum.",
                 }
             )
@@ -2501,7 +2507,7 @@ def _create_insights_section(
             insights.append(
                 {
                     "severity": "warning",
-                    "message": f"Velocity Decline - Team velocity decreased {((1 - recent_velocity / historical_velocity) * 100):.2f}% recently",
+                    "message": f"Velocity Decline - Team velocity decreased {((1 - recent_velocity / historical_velocity) * 100):.2f}% recently ({recent_velocity:.1f} vs {historical_velocity:.1f} items/week)",
                     "recommendation": "Review team capacity, identify blockers, and assess scope complexity. Consider retrospectives to understand root causes.",
                 }
             )
@@ -2562,19 +2568,28 @@ def _create_insights_section(
             scope_growth = statistics_df["created_items"].sum()
             scope_completion = statistics_df["completed_items"].sum()
 
+            # Calculate time window info for clarity
+            time_window_desc = ""
+            if len(statistics_df) > 0:
+                weeks_count = len(statistics_df)
+                time_window_desc = f" over {weeks_count} weeks"
+
             if scope_growth > scope_completion * 0.2:
+                # Calculate ratio for clarity
+                ratio = scope_growth / scope_completion if scope_completion > 0 else 0
                 insights.append(
                     {
                         "severity": "warning",
-                        "message": f"High Scope Growth - New items ({scope_growth}) represent {(scope_growth / scope_completion * 100):.2f}% of completed work",
+                        "message": f"High Scope Growth{time_window_desc} - For every completed item, {ratio:.2f} new items are being created ({scope_growth} created vs {scope_completion} completed)",
                         "recommendation": "Consider scope prioritization and implement change management processes. Assess if continuous scope growth impacts delivery predictability.",
                     }
                 )
             elif scope_growth > 0:
+                ratio = scope_growth / scope_completion if scope_completion > 0 else 0
                 insights.append(
                     {
                         "severity": "info",
-                        "message": f"Active Scope Management - Moderate scope growth ({scope_growth} new items) indicates healthy project evolution",
+                        "message": f"Active Scope Management{time_window_desc} - Moderate scope growth with {ratio:.2f} new items created per completed item ({scope_growth} created vs {scope_completion} completed)",
                         "recommendation": "Continue monitoring scope changes and maintaining stakeholder feedback loops to ensure alignment.",
                     }
                 )
@@ -2617,7 +2632,7 @@ def _create_insights_section(
                 insights.append(
                     {
                         "severity": "success",
-                        "message": f"Increasing Throughput - Recent 4-week throughput ({recent_items} items) exceeded previous period by {((recent_items / prev_items - 1) * 100):.2f}%",
+                        "message": f"Increasing Throughput - Recent period delivered {recent_items} items, exceeding previous period by {((recent_items / prev_items - 1) * 100):.2f}% ({recent_items} vs {prev_items} items)",
                         "recommendation": "Analyze what's working well and consider scaling successful practices across the team or to other projects.",
                     }
                 )
@@ -2829,7 +2844,7 @@ def _create_insights_section(
                     insights.append(
                         {
                             "severity": "warning",
-                            "message": f"Accelerating Scope Creep - New items added faster than completion rate for {weeks_over} consecutive weeks ({excess_pct:.2f}% excess)",
+                            "message": f"Accelerating Scope Creep - New items added faster than completion rate for {weeks_over} consecutive weeks (backlog growing by {excess_pct:.2f}%)",
                             "recommendation": "Implement change control immediately: (1) Temporary freeze on new items to stabilize backlog, (2) Require stakeholder approval for all additions, (3) Establish scope change budget/buffer in forecast, (4) Review and prioritize existing backlog before accepting new work.",
                         }
                     )
