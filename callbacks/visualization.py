@@ -1184,8 +1184,11 @@ def register(app):
                     if pd.isna(deadline_date):
                         days_to_deadline = 0
                     else:
-                        current_date = datetime.now()
-                        days_to_deadline = max(0, (deadline_date - current_date).days)
+                        # Use date() to strip time component for consistency with report calculation
+                        current_date = datetime.now().date()
+                        days_to_deadline = max(
+                            0, (deadline_date.date() - current_date).days
+                        )
                 except Exception:
                     days_to_deadline = 0
 
