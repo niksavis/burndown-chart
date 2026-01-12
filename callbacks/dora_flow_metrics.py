@@ -9,7 +9,6 @@ All field mappings and configuration values come from app_settings.json - no har
 
 from dash import callback, Output, Input, State, html
 from dash.exceptions import PreventUpdate
-import dash_bootstrap_components as dbc
 from datetime import datetime, timedelta
 from typing import Dict, Any, Optional, List
 import logging
@@ -629,7 +628,6 @@ def calculate_and_display_flow_metrics(
 
         # Generate week labels for display
         from data.time_period_calculator import get_iso_week, format_year_week
-        from data.metrics_snapshots import has_metric_snapshot
 
         weeks = []
         current_date = datetime.now()
@@ -688,7 +686,6 @@ def calculate_and_display_flow_metrics(
 
         # AGGREGATE Flow metrics across selected period (like DORA)
         # Flow Velocity: Average items/week across period
-        non_zero_velocity = [v for v in velocity_values if v > 0]
         avg_velocity = (
             sum(velocity_values) / len(velocity_values) if velocity_values else 0
         )
@@ -785,8 +782,8 @@ def calculate_and_display_flow_metrics(
 
         logger.info(
             f"Flow metrics AGGREGATED over {n_weeks} weeks: "
-            f"Velocity={avg_velocity:.1f} items/week (total {total_completed}), "
-            f"Flow Time={median_flow_time:.1f}d (median), Efficiency={avg_efficiency:.1f}% (avg), "
+            f"Velocity={avg_velocity:.2f} items/week (total {total_completed}), "
+            f"Flow Time={median_flow_time:.2f}d (median), Efficiency={avg_efficiency:.2f}% (avg), "
             f"WIP={wip_count} (current week {current_week_label})"
         )
 
@@ -902,7 +899,7 @@ def calculate_and_display_flow_metrics(
         metrics_data = {
             "flow_velocity": {
                 "metric_name": "flow_velocity",
-                "value": round(avg_velocity, 1),  # Average items/week over period
+                "value": avg_velocity,  # Average items/week over period (full precision)
                 "_n_weeks": n_weeks,  # For card footer display
                 "unit": "items/week",  # Footer shows aggregation method and time period
                 "error_state": "success"
@@ -926,9 +923,7 @@ def calculate_and_display_flow_metrics(
             },
             "flow_time": {
                 "metric_name": "flow_time",
-                "value": round(median_flow_time, 1)
-                if median_flow_time is not None
-                else 0,
+                "value": median_flow_time if median_flow_time is not None else 0,
                 "_n_weeks": n_weeks,  # For card footer display
                 "unit": "days",  # Footer shows aggregation method and time period
                 "error_state": "success"
@@ -946,7 +941,7 @@ def calculate_and_display_flow_metrics(
             },
             "flow_efficiency": {
                 "metric_name": "flow_efficiency",
-                "value": round(avg_efficiency, 1) if avg_efficiency is not None else 0,
+                "value": avg_efficiency if avg_efficiency is not None else 0,
                 "_n_weeks": n_weeks,  # For card footer display
                 "unit": "%",  # Footer shows aggregation method and time period
                 "error_state": "success"

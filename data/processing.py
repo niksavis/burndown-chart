@@ -211,7 +211,7 @@ def calculate_velocity_from_dataframe(
         return 0.0
 
     total = df[column].sum()
-    return round(total / unique_weeks, 1)
+    return total / unique_weeks
 
 
 def compute_weekly_throughput(df: pd.DataFrame) -> pd.DataFrame:

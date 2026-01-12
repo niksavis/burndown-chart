@@ -26,7 +26,6 @@ def create_flow_dashboard() -> dbc.Container:
         dbc.Container with Flow metrics dashboard components
     """
     # Check if JIRA data exists AND if metrics are calculated
-    from data.profile_manager import get_data_file_path
     from data.cache_manager import has_jira_data_for_query
     from data.query_manager import get_active_profile_id, get_active_query_id
 
@@ -146,7 +145,7 @@ def create_flow_metric_card(
 
     # Format value display
     if isinstance(value, float):
-        value_display = f"{value:.1f}"
+        value_display = f"{value:.2f}"
     else:
         value_display = str(value)
 

@@ -496,7 +496,7 @@ def calculate_flow_velocity(
     )
 
     return {
-        "value": round(velocity, 1),
+        "value": velocity,
         "unit": "items/week",
         "breakdown": breakdown,
         "trend_direction": trend["trend_direction"],
@@ -692,14 +692,14 @@ def calculate_flow_time(
     )
 
     return {
-        "value": round(median_flow_time, 1),
+        "value": median_flow_time,
         "unit": "days",
         "trend_direction": trend["trend_direction"],
         "trend_percentage": trend["trend_percentage"],
         "error_state": None,
         "error_message": None,
         # Additional statistics for analysis
-        "mean_days": round(mean_flow_time, 1),
+        "mean_days": mean_flow_time,
     }
 
 
@@ -885,7 +885,7 @@ def calculate_flow_efficiency(
     )
 
     return {
-        "value": round(average_efficiency, 1),
+        "value": average_efficiency,
         "unit": "%",
         "trend_direction": trend["trend_direction"],
         "trend_percentage": trend["trend_percentage"],
@@ -1073,7 +1073,7 @@ def calculate_flow_distribution(
 
     # Calculate percentages
     distribution_percentages = {
-        work_type: round((count / total_completed) * 100, 1)
+        work_type: (count / total_completed) * 100
         for work_type, count in distribution_counts.items()
     }
 

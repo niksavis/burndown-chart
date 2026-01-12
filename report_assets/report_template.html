@@ -702,19 +702,19 @@
                   <div class="progress-detail-item">
                     <span class="progress-detail-label">Completed: </span>
                     <span class="progress-detail-value"
-                      >{{ metrics.dashboard.completed_points|dec1 }}</span
+                      >{{ metrics.dashboard.completed_points|dec2 }}</span
                     >
                   </div>
                   <div class="progress-detail-item">
                     <span class="progress-detail-label">Remaining: </span>
                     <span class="progress-detail-value"
-                      >{{ metrics.dashboard.remaining_points|dec1 }}</span
+                      >{{ metrics.dashboard.remaining_points|dec2 }}</span
                     >
                   </div>
                   <div class="progress-detail-item">
                     <span class="progress-detail-label">Total: </span>
                     <span class="progress-detail-value"
-                      >{{ metrics.dashboard.total_points|dec1 }}</span
+                      >{{ metrics.dashboard.total_points|dec2 }}</span
                     >
                   </div>
                 </div>
@@ -731,7 +731,7 @@
               <i class="fas fa-tachometer-alt"></i> Velocity (Items)
             </div>
             <div class="velocity-card-value">
-              {{ metrics.dashboard.velocity_items|dec1 }}
+              {{ metrics.dashboard.velocity_items|dec2 }}
               <span class="velocity-card-unit">items/week</span>
             </div>
           </div>
@@ -741,7 +741,7 @@
               <i class="fas fa-tachometer-alt"></i> Velocity (Points)
             </div>
             <div class="velocity-card-value">
-              {{ metrics.dashboard.velocity_points|dec1 }}
+              {{ metrics.dashboard.velocity_points|dec2 }}
               <span class="velocity-card-unit">points/week</span>
             </div>
           </div>
@@ -943,7 +943,7 @@
                     style="border-top: none; padding-top: 0.5rem"
                   >
                     <span class="text-primary"
-                      >+{{ metrics.scope.created_points|dec1 }}</span
+                      >+{{ metrics.scope.created_points|dec2 }}</span
                     >
                   </td>
                 </tr>
@@ -963,7 +963,7 @@
                   </td>
                   <td class="text-end" style="padding-bottom: 0.75rem">
                     <span class="text-success"
-                      >-{{ metrics.scope.completed_points|dec1 }}</span
+                      >-{{ metrics.scope.completed_points|dec2 }}</span
                     >
                   </td>
                 </tr>
@@ -1037,7 +1037,7 @@
               <i class="fas fa-check-circle"></i> Resolution Rate
             </div>
             <div class="metric-card-value" style="color: var(--color-green)">
-              {{ metrics.bug_analysis.resolution_rate|dec1 }}%
+              {{ metrics.bug_analysis.resolution_rate|dec2 }}%
             </div>
             <div class="metric-card-sublabel">
               {{ metrics.bug_analysis.closed_bugs|int }} closed / {{
@@ -1055,7 +1055,7 @@
           {% if metrics.bug_analysis.forecast_date %} by {{
           metrics.bug_analysis.forecast_date }} {% endif %} {% if
           metrics.bug_analysis.avg_closure_rate %} • {{
-          metrics.bug_analysis.avg_closure_rate|dec1 }} bugs/week {% endif %}
+          metrics.bug_analysis.avg_closure_rate|dec2 }} bugs/week {% endif %}
           <br />
           <small class="text-muted">
             {% if metrics.bug_analysis.weeks_analyzed %} Based on {{
@@ -1139,7 +1139,7 @@
                 <span
                   ><strong
                     style="color: {% if metrics.budget.consumed_percentage > 90 %}#dc3545{% elif metrics.budget.consumed_percentage > 75 %}#fd7e14{% else %}#198754{% endif %};"
-                    >{{ metrics.budget.consumed_percentage|round(1) }}%</strong
+                    >{{ metrics.budget.consumed_percentage|dec2 }}%</strong
                   ></span
                 >
               </div>
@@ -1191,7 +1191,7 @@
                   <td class="text-end">
                     <strong
                       >{% if metrics.budget.runway_weeks > 999990 %}Unlimited{%
-                      else %}{{ metrics.budget.runway_weeks|round(1) }} weeks{%
+                      else %}{{ metrics.budget.runway_weeks|dec2 }} weeks{%
                       endif %}</strong
                     >
                   </td>
@@ -1214,7 +1214,7 @@
                   <td class="text-end">
                     <strong
                       >{{ metrics.budget.currency_symbol }}{{
-                      metrics.budget.cost_per_item|round(2) }}</strong
+                      metrics.budget.cost_per_item|dec2 }}</strong
                     >
                   </td>
                 </tr>
@@ -1226,7 +1226,7 @@
                   <td class="text-end">
                     <strong
                       >{{ metrics.budget.currency_symbol }}{{
-                      metrics.budget.cost_per_point|round(2) }}</strong
+                      metrics.budget.cost_per_point|dec2 }}</strong
                     >
                   </td>
                 </tr>
@@ -1268,7 +1268,7 @@
                   </td>
                   <td class="text-end">{{ data.count }}</td>
                   <td class="text-end">{{ metrics.budget.currency_symbol }}{{ data.cost|round(0)|int }}</td>
-                  <td class="text-end">{{ data.percentage|round(1) }}%</td>
+                  <td class="text-end">{{ data.percentage|dec2 }}%</td>
                 </tr>
                 {% endfor %}
               </tbody>
@@ -1305,20 +1305,20 @@
                       <strong>Items</strong>
                     </td>
                     <td class="text-center">
-                      {{ metrics.dashboard.pert_time_items_weeks|round(1) }}
+                      {{ metrics.dashboard.pert_time_items_weeks|dec2 }}
                     </td>
                     <td class="text-center">
-                      {{ metrics.budget.runway_weeks|round(1) }}
+                      {{ metrics.budget.runway_weeks|dec2 }}
                     </td>
                     <td class="text-center">
                       {% set gap_items = metrics.budget.runway_weeks - metrics.dashboard.pert_time_items_weeks %}
                       {% if gap_items >= 0 %}
                         <span style="color: #198754">
-                          <i class="fas fa-check-circle"></i> +{{ gap_items|round(1) }} weeks
+                          <i class="fas fa-check-circle"></i> +{{ gap_items|dec2 }} weeks
                         </span>
                       {% else %}
                         <span style="color: #dc3545">
-                          <i class="fas fa-exclamation-triangle"></i> {{ gap_items|round(1) }} weeks
+                          <i class="fas fa-exclamation-triangle"></i> {{ gap_items|dec2 }} weeks
                         </span>
                       {% endif %}
                     </td>
@@ -1331,20 +1331,20 @@
                       <strong>Story Points</strong>
                     </td>
                     <td class="text-center">
-                      {{ metrics.dashboard.pert_time_points_weeks|round(1) }}
+                      {{ metrics.dashboard.pert_time_points_weeks|dec2 }}
                     </td>
                     <td class="text-center">
-                      {{ metrics.budget.runway_weeks|round(1) }}
+                      {{ metrics.budget.runway_weeks|dec2 }}
                     </td>
                     <td class="text-center">
                       {% set gap_points = metrics.budget.runway_weeks - metrics.dashboard.pert_time_points_weeks %}
                       {% if gap_points >= 0 %}
                         <span style="color: #198754">
-                          <i class="fas fa-check-circle"></i> +{{ gap_points|round(1) }} weeks
+                          <i class="fas fa-check-circle"></i> +{{ gap_points|dec2 }} weeks
                         </span>
                       {% else %}
                         <span style="color: #dc3545">
-                          <i class="fas fa-exclamation-triangle"></i> {{ gap_points|round(1) }} weeks
+                          <i class="fas fa-exclamation-triangle"></i> {{ gap_points|dec2 }} weeks
                         </span>
                       {% endif %}
                     </td>
@@ -1399,7 +1399,7 @@
                   </td>
                   <td class="text-end">
                     <strong style="color: #0d6efd"
-                      >{{ metrics.flow.velocity|round(2) }}</strong
+                      >{{ metrics.flow.velocity|dec2 }}</strong
                     >
                     items/week
                   </td>
@@ -1410,7 +1410,7 @@
                   </td>
                   <td class="text-end">
                     <strong style="color: #fd7e14"
-                      >{{ metrics.flow.flow_time|round(2) }}</strong
+                      >{{ metrics.flow.flow_time|dec2 }}</strong
                     >
                     days (median)
                   </td>
@@ -1421,7 +1421,7 @@
                   </td>
                   <td class="text-end">
                     <strong style="color: #198754"
-                      >{{ metrics.flow.efficiency|round(1) }}</strong
+                      >{{ metrics.flow.efficiency|dec2 }}</strong
                     >%
                   </td>
                 </tr>
@@ -1557,12 +1557,12 @@
                   </td>
                   <td class="text-end">
                     <strong style="color: #0d6efd"
-                      >{{ metrics.dora.deployment_frequency|round(2) }}</strong
+                      >{{ metrics.dora.deployment_frequency|dec2 }}</strong
                     >
                     releases/week {% if metrics.dora.deployment_frequency_tasks
                     != metrics.dora.deployment_frequency %} <br /><small
                       class="text-muted"
-                      >({{ metrics.dora.deployment_frequency_tasks|round(2) }}
+                      >({{ metrics.dora.deployment_frequency_tasks|dec2 }}
                       deployments/week)</small
                     >
                     {% endif %}
@@ -1575,10 +1575,10 @@
                   <td class="text-end">
                     {% if metrics.dora.lead_time_days %}
                     <strong style="color: #198754"
-                      >{{ metrics.dora.lead_time_days|round(2) }}</strong
+                      >{{ metrics.dora.lead_time_days|dec2 }}</strong
                     >
                     days <br /><small class="text-muted"
-                      >({{ metrics.dora.lead_time_hours|round(2) }}
+                      >({{ metrics.dora.lead_time_hours|dec2 }}
                       hours)</small
                     >
                     {% else %}
@@ -1593,7 +1593,7 @@
                   </td>
                   <td class="text-end">
                     <strong style="color: #fd7e14"
-                      >{{ metrics.dora.change_failure_rate|round(2) }}</strong
+                      >{{ metrics.dora.change_failure_rate|dec2 }}</strong
                     >%
                   </td>
                 </tr>
@@ -1604,10 +1604,10 @@
                   <td class="text-end">
                     {% if metrics.dora.mttr_hours %}
                     <strong style="color: #dc3545"
-                      >{{ metrics.dora.mttr_hours|round(2) }}</strong
+                      >{{ metrics.dora.mttr_hours|dec2 }}</strong
                     >
                     hours <br /><small class="text-muted"
-                      >({{ metrics.dora.mttr_days|round(2) }} days)</small
+                      >({{ metrics.dora.mttr_days|dec2 }} days)</small
                     >
                     {% else %}
                     <span class="text-muted">No data</span>

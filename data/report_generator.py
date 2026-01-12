@@ -401,7 +401,7 @@ def _calculate_dashboard_metrics(
         int(df_windowed["completed_items"].sum()) if not df_windowed.empty else 0
     )
     completed_points = (
-        round(df_windowed["completed_points"].sum(), 1) if not df_windowed.empty else 0
+        df_windowed["completed_points"].sum() if not df_windowed.empty else 0
     )
 
     # Get CURRENT remaining from project_scope (same as app)
@@ -414,10 +414,10 @@ def _calculate_dashboard_metrics(
 
     # Calculate WINDOW-BASED completion percentages (same as app)
     items_completion_pct = (
-        round((completed_items / total_items) * 100, 1) if total_items > 0 else 0
+        (completed_items / total_items) * 100 if total_items > 0 else 0
     )
     points_completion_pct = (
-        round((completed_points / total_points) * 100, 1) if total_points > 0 else 0
+        (completed_points / total_points) * 100 if total_points > 0 else 0
     )
 
     # Calculate health metrics (same as app's dashboard_comprehensive.py)
@@ -827,14 +827,10 @@ def _calculate_burndown_metrics(
 
     # Calculate weeks to completion
     weeks_remaining_items = (
-        round(remaining_items / velocity_items, 1)
-        if velocity_items > 0
-        else float("inf")
+        remaining_items / velocity_items if velocity_items > 0 else float("inf")
     )
     weeks_remaining_points = (
-        round(remaining_points / velocity_points, 1)
-        if velocity_points > 0
-        else float("inf")
+        remaining_points / velocity_points if velocity_points > 0 else float("inf")
     )
 
     # Calculate weekly breakdown for chart
@@ -967,17 +963,15 @@ def _calculate_bug_metrics(
         total_completed = sum(s.get("completed_items", 0) for s in statistics)
         total_bugs_resolved = sum(s.get("bugs_resolved", 0) for s in weekly_stats)
         bug_investment_pct = (
-            round((total_bugs_resolved / total_completed) * 100, 1)
-            if total_completed > 0
-            else 0
+            (total_bugs_resolved / total_completed) * 100 if total_completed > 0 else 0
         )
 
         # Convert resolution rate from decimal to percentage
         resolution_rate = bug_summary.get("resolution_rate", 0)
-        resolution_rate_pct = round(resolution_rate * 100, 1)
+        resolution_rate_pct = resolution_rate * 100
 
         # Round average age
-        avg_age_days = round(bug_summary.get("avg_age_days", 0), 1)
+        avg_age_days = bug_summary.get("avg_age_days", 0)
 
         # Count closed bugs from timeline-filtered bugs
         closed_bugs = bug_summary.get("closed_bugs", 0)
@@ -1024,21 +1018,19 @@ def _calculate_scope_metrics(
 
     # Calculate creation/completion totals for the period
     total_created_items = int(df["created_items"].sum())
-    total_created_points = round(df["created_points"].sum(), 1)
+    total_created_points = df["created_points"].sum()
     total_completed_items = int(df["completed_items"].sum())
-    total_completed_points = round(df["completed_points"].sum(), 1)
+    total_completed_points = df["completed_points"].sum()
 
     # Current scope from project_scope (remaining work)
     current_items = project_scope.get("remaining_items", 0)
-    current_points = round(project_scope.get("remaining_total_points", 0), 1)
+    current_points = project_scope.get("remaining_total_points", 0)
 
     # Calculate initial scope at window start
     # Work backwards from current: Initial = Current + Completed - Created
     # This accounts for both work completed and new work added during the period
     initial_items = current_items + total_completed_items - total_created_items
-    initial_points = round(
-        current_points + total_completed_points - total_created_points, 1
-    )
+    initial_points = current_points + total_completed_points - total_created_points
 
     logger.debug(
         f"[SCOPE BASELINE] Current: {current_items} items, {current_points:.2f} points"
@@ -1055,7 +1047,7 @@ def _calculate_scope_metrics(
 
     # Calculate net change: Current - Initial = (Current) - (Current + Completed - Created) = Created - Completed
     items_change = current_items - initial_items
-    points_change = round(current_points - initial_points, 1)
+    points_change = current_points - initial_points
 
     # Calculate creation/completion ratios
     items_ratio = (
@@ -1142,9 +1134,7 @@ def _calculate_flow_metrics(
 
     # AGGREGATE metrics across period (same as app)
     # Flow Velocity: Average items/week
-    avg_velocity = (
-        round(sum(velocity_values) / len(velocity_values), 1) if velocity_values else 0
-    )
+    avg_velocity = sum(velocity_values) / len(velocity_values) if velocity_values else 0
 
     # Flow Time: Median of weekly medians (exclude zeros = weeks with no completions)
     non_zero_flow_times = [v for v in flow_time_values if v > 0]
@@ -1162,7 +1152,7 @@ def _calculate_flow_metrics(
     # Flow Efficiency: Average efficiency across period (exclude zeros)
     non_zero_efficiency = [v for v in flow_efficiency_values if v > 0]
     avg_efficiency = (
-        round(sum(non_zero_efficiency) / len(non_zero_efficiency), 1)
+        sum(non_zero_efficiency) / len(non_zero_efficiency)
         if non_zero_efficiency
         else 0
     )
@@ -1228,8 +1218,8 @@ def _calculate_flow_metrics(
             )
 
     logger.info(
-        f"Flow metrics loaded: Velocity={avg_velocity:.1f} items/week, "
-        f"Flow Time={median_flow_time:.1f}d, Efficiency={avg_efficiency:.1f}%, WIP={wip_count}"
+        f"Flow metrics loaded: Velocity={avg_velocity:.2f} items/week, "
+        f"Flow Time={median_flow_time:.2f}d, Efficiency={avg_efficiency:.2f}%, WIP={wip_count}"
     )
 
     # Check if there's any meaningful data (not all zeros)
@@ -1311,7 +1301,7 @@ def _calculate_dora_metrics(profile_id: str, weeks_count: int) -> Dict[str, Any]
     # MTTR: value is already in hours (median of weekly medians), convert to days
     mttr_data = cached_metrics.get("mean_time_to_recovery", {})
     mttr_hours = mttr_data.get("value")  # Already in hours (median of weekly medians)
-    mttr_days = round(mttr_hours / 24, 1) if mttr_hours else None
+    mttr_days = mttr_hours / 24 if mttr_hours else None
 
     # Get weekly values for trend analysis
     weekly_labels = deploy_data.get("weekly_labels", [])
