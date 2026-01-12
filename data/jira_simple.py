@@ -2576,78 +2576,63 @@ def sync_jira_scope_and_data(
                 active_query_id = backend.get_app_state("active_query_id")
 
                 if active_profile_id and active_query_id:
-                    # Delete all issues for this query
-                    # Get database path - SQLiteBackend has db_path attribute
+                    # Delete all data for this query ATOMICALLY (single transaction)
+                    # This prevents intermediate states where UI reads partial data
                     db_path = getattr(backend, "db_path", Path("profiles/burndown.db"))
                     with get_db_connection(Path(db_path)) as conn:
                         cursor = conn.cursor()
+
+                        # Execute all deletions in one transaction
                         cursor.execute(
                             "DELETE FROM jira_issues WHERE profile_id = ? AND query_id = ?",
                             (active_profile_id, active_query_id),
                         )
                         deleted_count = cursor.rowcount
-                        conn.commit()
-                        logger.info(
-                            f"[JIRA] Force refresh: deleted {deleted_count} cached issues from database"
-                        )
 
-                        # Delete all statistics for this query
                         cursor.execute(
                             "DELETE FROM project_statistics WHERE profile_id = ? AND query_id = ?",
                             (active_profile_id, active_query_id),
                         )
                         stats_deleted = cursor.rowcount
-                        conn.commit()
-                        logger.info(
-                            f"[JIRA] Force refresh: deleted {stats_deleted} statistics from database"
-                        )
 
-                        # Delete JIRA cache metadata for this query
                         cursor.execute(
                             "DELETE FROM jira_cache WHERE profile_id = ? AND query_id = ?",
                             (active_profile_id, active_query_id),
                         )
                         cache_deleted = cursor.rowcount
-                        conn.commit()
-                        logger.info(
-                            f"[JIRA] Force refresh: deleted {cache_deleted} jira_cache entries from database"
-                        )
 
-                        # Delete JIRA changelog cache for this query
                         cursor.execute(
                             "DELETE FROM jira_changelog_entries WHERE profile_id = ? AND query_id = ?",
                             (active_profile_id, active_query_id),
                         )
                         changelog_deleted = cursor.rowcount
-                        conn.commit()
 
-                        # Delete cached metrics for this query (force recalculation)
                         cursor.execute(
                             "DELETE FROM metrics_data_points WHERE profile_id = ? AND query_id = ?",
                             (active_profile_id, active_query_id),
                         )
                         metrics_deleted = cursor.rowcount
-                        conn.commit()
 
-                        # Delete project scope for this query
                         cursor.execute(
                             "DELETE FROM project_scope WHERE profile_id = ? AND query_id = ?",
                             (active_profile_id, active_query_id),
                         )
                         scope_deleted = cursor.rowcount
-                        conn.commit()
 
-                        # Delete task progress for this query
                         cursor.execute(
                             "DELETE FROM task_progress WHERE profile_id = ? AND query_id = ?",
                             (active_profile_id, active_query_id),
                         )
                         task_deleted = cursor.rowcount
+
+                        # Single commit for all deletions (atomic operation)
                         conn.commit()
 
                         logger.info(
-                            f"[JIRA] Force refresh: deleted {changelog_deleted} changelog entries, "
-                            f"{metrics_deleted} metrics, {scope_deleted} scope, {task_deleted} tasks from database"
+                            f"[JIRA] Force refresh atomically deleted: {deleted_count} issues, "
+                            f"{stats_deleted} statistics, {cache_deleted} cache entries, "
+                            f"{changelog_deleted} changelog entries, {metrics_deleted} metrics, "
+                            f"{scope_deleted} scope, {task_deleted} tasks from database"
                         )
 
             except Exception as e:

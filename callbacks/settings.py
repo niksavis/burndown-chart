@@ -488,6 +488,9 @@ def register(app):
             Output(
                 "progress-poll-interval", "disabled", allow_duplicate=True
             ),  # Enable polling for banner icons
+            Output(
+                "current-statistics", "data", allow_duplicate=True
+            ),  # CRITICAL: Clear statistics on force refresh to prevent stale data display
         ],
         [
             Input("update-data-unified", "n_clicks"),
@@ -558,6 +561,7 @@ def register(app):
                 "",  # toast notification (empty)
                 None,  # metrics trigger
                 True,  # progress-poll-interval disabled (no task)
+                no_update,  # current-statistics
             )
 
         try:
@@ -599,6 +603,7 @@ def register(app):
                     "",  # app-notifications (no toast)
                     None,  # trigger-auto-metrics-calc
                     True,  # progress-poll-interval disabled (already running)
+                    no_update,  # current-statistics
                 )
 
             # Start the task - returns False if can't start
@@ -633,6 +638,7 @@ def register(app):
                     "",  # app-notifications (no toast)
                     None,  # trigger-auto-metrics-calc
                     True,  # progress-poll-interval disabled (failed to start)
+                    no_update,  # current-statistics
                 )
 
             # Handle JIRA data import (settings panel only uses JIRA)
@@ -699,6 +705,8 @@ def register(app):
                     "",  # Toast notification (empty)
                     None,  # metrics trigger
                     False,  # progress-poll-interval enabled (task completed with error)
+                    no_update,  # current-statistics
+                    no_update,  # current-statistics
                 )
 
             # Use JQL query from input or fall back to active query's JQL
@@ -1091,6 +1099,9 @@ def register(app):
                 "",  # app-notifications
                 None,  # trigger-auto-metrics-calc
                 False,  # progress-poll-interval enabled (start polling)
+                []
+                if force_refresh_bool
+                else no_update,  # current-statistics: CLEAR on force refresh to prevent stale data display
             )
 
             # OLD SYNCHRONOUS CODE BELOW - NOT REACHED
@@ -1268,6 +1279,7 @@ def register(app):
                     success_toast,  # Toast notification
                     metrics_trigger,  # Trigger separate metrics calculation
                     False,  # progress-poll-interval enabled (metrics will run)
+                    no_update,  # current-statistics
                 )
             else:
                 # Create detailed error message
@@ -1312,6 +1324,7 @@ def register(app):
                     "",  # Toast notification (empty)
                     None,  # trigger-auto-metrics-calc
                     False,  # progress-poll-interval enabled (task completed with error)
+                    no_update,  # current-statistics
                 )
 
         except ImportError:
@@ -1391,6 +1404,7 @@ def register(app):
                 "",  # Toast notification (empty)
                 None,  # metrics trigger
                 False,  # progress-poll-interval enabled (task completed with error)
+                no_update,  # current-statistics
             )
 
     #######################################################################
