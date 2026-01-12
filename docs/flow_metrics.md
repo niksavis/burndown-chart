@@ -1,5 +1,6 @@
 # Flow Metrics Guide
-  
+
+**Audience**: Teams optimizing work processes and managing work-in-progress
 **Part of**: [Metrics Documentation Index](./metrics_index.md)
 
 ## What Are Flow Metrics?

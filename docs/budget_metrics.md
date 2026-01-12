@@ -1,5 +1,6 @@
 # Budget Metrics Guide
 
+**Audience**: Project managers and finance stakeholders tracking project costs
 **Part of**: [Metrics Documentation Index](./metrics_index.md)
 
 ## What Are Budget Metrics?

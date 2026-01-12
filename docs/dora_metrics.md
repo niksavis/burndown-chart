@@ -1,5 +1,6 @@
 # DORA Metrics Guide
 
+**Audience**: Engineering teams and DevOps practitioners optimizing deployment performance
 **Part of**: [Metrics Documentation Index](./metrics_index.md)
 
 ## What Are DORA Metrics?

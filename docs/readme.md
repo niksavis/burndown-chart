@@ -1,24 +1,76 @@
 # Burndown Chart Generator - Documentation
 
-## 📚 Documentation Index
+## 📚 Documentation Overview
 
-### Operational Guides
+This documentation is organized into two main sections:
 
-- **[Defensive Refactoring Guide](defensive_refactoring_guide.md)** - Safely removing unused code and dependencies
-- **[Logging Standards](logging_standards.md)** - Logging conventions and best practices
-
-### Configuration Guides
-
-- **[Namespace Syntax](namespace_syntax.md)** - JIRA field mapping syntax reference
-
-### Metrics Documentation
-
-- **[Metrics Index](metrics_index.md)** - Navigation hub with quick start guide
-- **[Dashboard Metrics](dashboard_metrics.md)** - Health score, velocity, forecasting
-- **[DORA Metrics](dora_metrics.md)** - Deployment frequency, lead time, CFR, MTTR (includes field configuration)
-- **[Flow Metrics](flow_metrics.md)** - Velocity, time, efficiency, load, distribution (includes field configuration)
-- **[Caching System](caching_system.md)** - Multi-layer caching architecture
+- **[User Documentation](#-user-documentation)** - Understanding metrics, calculations, and using the application
+- **[Developer Documentation](#-developer-documentation)** - Implementation details, architecture, and extending the system
 
 ---
 
-*Document Version: 1.0 | Last Updated: December 2025*
+## 👤 User Documentation
+
+Documentation for project managers, team leads, and users who want to understand how metrics work and how to interpret them.
+
+### Getting Started
+
+- **[Metrics Index](metrics_index.md)** ⭐ **START HERE** - Navigation hub with quick start guide and progressive learning path
+
+### Understanding Metrics
+
+**Dashboard Metrics** (Project Tracking):
+- **[Dashboard Metrics Guide](dashboard_metrics.md)** - Health score, completion forecast, velocity, remaining work
+- **[Project Health Formula](health_formula.md)** - Comprehensive 6-dimensional health assessment (20+ signals)
+
+**Process Performance Metrics**:
+- **[DORA Metrics Guide](dora_metrics.md)** - DevOps performance: deployment frequency, lead time, change failure rate, MTTR
+- **[Flow Metrics Guide](flow_metrics.md)** - Work process health: velocity, flow time, efficiency, WIP, distribution
+- **[Budget Metrics Guide](budget_metrics.md)** - Financial tracking: budget consumption, burn rate, runway, cost per item
+
+**Advanced Topics**:
+- **[Metrics Correlation Guide](metrics_correlation_guide.md)** - How metrics relate to each other and validation rules
+
+---
+
+## 👨‍💻 Developer Documentation
+
+Documentation for developers extending the application, implementing new metrics, or understanding the technical architecture.
+
+### Configuration & Integration
+
+- **[Namespace Syntax](namespace_syntax.md)** - JIRA field mapping syntax for implementing custom metrics
+- **[Caching System](caching_system.md)** - Database architecture and caching strategy
+
+### Code Standards & Practices
+
+- **[Logging Standards](logging_standards.md)** - Logging conventions, levels, and security practices
+- **[Defensive Refactoring Guide](defensive_refactoring_guide.md)** - Safely removing unused code and dependencies
+
+### Architecture Reference
+
+For detailed implementation guides, see:
+- **Field mapping implementation**: `data/field_mapper.py`, `data/field_detector.py`
+- **Metrics calculators**: `data/dora_calculator.py`, `data/flow_calculator.py`, `data/health_calculator.py`
+- **Database schema**: `data/database.py` (12 tables: profiles, queries, jira_issues, project_statistics, etc.)
+
+---
+
+## 📖 Quick Navigation
+
+| I want to...                  | Go to                                                          |
+| ----------------------------- | -------------------------------------------------------------- |
+| Learn metrics basics          | [Metrics Index](metrics_index.md)                              |
+| Understand health score       | [Project Health Formula](health_formula.md)                    |
+| Configure DORA metrics        | [DORA Metrics Guide - Field Configuration](dora_metrics.md)    |
+| Configure Flow metrics        | [Flow Metrics Guide - Field Configuration](flow_metrics.md)    |
+| Validate metric relationships | [Metrics Correlation Guide](metrics_correlation_guide.md)      |
+| Map custom JIRA fields        | [Namespace Syntax](namespace_syntax.md)                        |
+| Understand caching behavior   | [Caching System](caching_system.md)                            |
+| Add logging to new features   | [Logging Standards](logging_standards.md)                      |
+| Remove unused code safely     | [Defensive Refactoring Guide](defensive_refactoring_guide.md)  |
+| Implement a new metric        | [Namespace Syntax](namespace_syntax.md) + Calculator reference |
+
+---
+
+*Document Version: 2.0 | Last Updated: January 2026*
