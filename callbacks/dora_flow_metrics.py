@@ -326,7 +326,7 @@ def load_and_display_dora_metrics(
                 ),
                 "_n_weeks": n_weeks_display,  # For card footer display
                 "unit": "releases/week",  # Footer shows aggregation method and time period
-                "error_state": "success",
+                "error_state": "success" if deployment_freq_value > 0 else "no_data",
                 "performance_tier": deployment_freq_tier["tier"],
                 "performance_tier_color": deployment_freq_tier["color"],
                 "total_issue_count": cached_metrics.get("deployment_frequency", {}).get(
@@ -388,7 +388,9 @@ def load_and_display_dora_metrics(
                 ),  # NEW: Release-based CFR
                 "_n_weeks": n_weeks_display,  # For card footer display
                 "unit": "%",  # Footer shows aggregation method and time period
-                "error_state": "success",
+                "error_state": "success"
+                if deployment_freq_value > 0 or task_count_value > 0
+                else "no_data",
                 "performance_tier": cfr_tier["tier"],
                 "performance_tier_color": cfr_tier["color"],
                 "total_issue_count": cached_metrics.get("change_failure_rate", {}).get(
@@ -903,7 +905,9 @@ def calculate_and_display_flow_metrics(
                 "value": round(avg_velocity, 1),  # Average items/week over period
                 "_n_weeks": n_weeks,  # For card footer display
                 "unit": "items/week",  # Footer shows aggregation method and time period
-                "error_state": "success",  # Always valid - 0 velocity is acceptable
+                "error_state": "success"
+                if avg_velocity > 0 or issues_in_period_count > 0
+                else "no_data",
                 "performance_tier": _get_flow_performance_tier(
                     "flow_velocity", avg_velocity
                 ),
@@ -927,7 +931,9 @@ def calculate_and_display_flow_metrics(
                 else 0,
                 "_n_weeks": n_weeks,  # For card footer display
                 "unit": "days",  # Footer shows aggregation method and time period
-                "error_state": "success",  # Always success - 0 is valid for weeks with no completions
+                "error_state": "success"
+                if median_flow_time > 0 or issues_in_period_count > 0
+                else "no_data",
                 "performance_tier": _get_flow_performance_tier(
                     "flow_time", median_flow_time if median_flow_time is not None else 0
                 ),
@@ -943,7 +949,9 @@ def calculate_and_display_flow_metrics(
                 "value": round(avg_efficiency, 1) if avg_efficiency is not None else 0,
                 "_n_weeks": n_weeks,  # For card footer display
                 "unit": "%",  # Footer shows aggregation method and time period
-                "error_state": "success",  # Always success - 0 is valid for weeks with no completions
+                "error_state": "success"
+                if avg_efficiency > 0 or issues_in_period_count > 0
+                else "no_data",
                 "performance_tier": _get_flow_performance_tier(
                     "flow_efficiency",
                     avg_efficiency if avg_efficiency is not None else 0,

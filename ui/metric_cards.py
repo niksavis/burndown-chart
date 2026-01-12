@@ -1389,6 +1389,7 @@ def _create_error_card(metric_data: dict, card_id: Optional[str]) -> dbc.Card:
             "color": "secondary",
             "action_text": "Recalculate Metrics",
             "action_id": "open-time-period-selector",
+            "message_override": "No data available for the selected time period. Adjust the Data Points slider or refresh metrics.",
         },
         "calculation_error": {
             "icon": "fas fa-exclamation-triangle",
