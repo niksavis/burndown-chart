@@ -8,9 +8,10 @@ This directory contains utilities for safe testing that prevent tests from modif
 
 Provides context managers and utilities to ensure tests never modify real app files:
 
+- `temp_database()` - Creates temporary SQLite database for testing (PREFERRED)
 - `isolated_app_settings()` - Creates temporary `app_settings.json` for testing
-- `isolated_project_data()` - Creates temporary `project_data.json` for testing  
-- `isolated_jira_cache()` - Creates temporary `jira_cache.json` for testing
+- `isolated_project_data()` - Creates temporary `project_data.json` for testing (DEPRECATED - use temp_database)
+- `isolated_jira_cache()` - Creates temporary `jira_cache.json` for testing (DEPRECATED - use temp_database)
 - `mock_jira_api_calls()` - Mocks JIRA API calls to prevent external requests
 
 ### Usage Example

@@ -282,7 +282,19 @@ def save_field_mappings(mappings: Dict) -> bool:
         True if save successful, False otherwise
     """
     try:
-        settings = load_app_settings()
+        # Use repository pattern - get backend and save via database
+        from data.persistence.factory import get_backend
+
+        backend = get_backend()
+
+        # Get active profile
+        active_profile_id = backend.get_app_state("active_profile_id")
+        if not active_profile_id:
+            logger.error("No active profile to save field mappings to")
+            return False
+
+        # Load existing profile data
+        settings = backend.get_profile(active_profile_id) or {}
 
         # Save to flat field_mappings structure (not nested dora_flow_config)
         if "field_mappings" in mappings:
@@ -292,14 +304,12 @@ def save_field_mappings(mappings: Dict) -> bool:
         if "field_metadata" in mappings:
             settings["field_metadata"] = mappings["field_metadata"]
 
-        # Get profile-level path (field mappings shared across all queries)
-        workspace = get_active_profile_workspace()
-        settings_file = workspace / "profile.json"
+        # Ensure id is in settings dict
+        settings["id"] = active_profile_id
 
-        with open(str(settings_file), "w") as f:
-            json.dump(settings, f, indent=2)
-
-        logger.info("Successfully saved field mappings to profile.json")
+        # Save via backend
+        backend.save_profile(settings)
+        logger.info("Successfully saved field mappings to database")
         return True
 
     except Exception as e:

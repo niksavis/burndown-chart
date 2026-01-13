@@ -9,7 +9,6 @@ All field mappings and configuration values come from app_settings.json - no har
 
 from dash import callback, Output, Input, State, html
 from dash.exceptions import PreventUpdate
-import dash_bootstrap_components as dbc
 from datetime import datetime, timedelta
 from typing import Dict, Any, Optional, List
 import logging
@@ -152,8 +151,8 @@ def load_and_display_dora_metrics(
     Similar to Flow metrics, loads pre-calculated weekly snapshots from
     metrics_snapshots.json instead of recalculating on every tab visit.
 
-    Metrics are calculated when user clicks "Calculate Metrics" button in Settings,
-    and saved to cache for instant display.
+    Metrics are automatically calculated when "Update Data" (delta fetch) or "Force Refresh"
+    (full refresh) completes in Settings, and saved to cache for instant display.
 
     Args:
         jira_data_store: Cached JIRA issues from global store (used to check if data is loaded)
@@ -165,11 +164,61 @@ def load_and_display_dora_metrics(
         Metrics cards HTML (no toast messages, consistent with Flow Metrics)
     """
     try:
-        # Check if JIRA data is loaded FIRST (before checking for metrics)
-        if not jira_data_store or not jira_data_store.get("issues"):
+        import dash_bootstrap_components as dbc
+        from ui.loading_utils import create_skeleton_loader
+
+        # DEBUG: Log the exact state of jira_data_store
+        logger.info(
+            f"DORA CALLBACK START: jira_data_store type={type(jira_data_store)}"
+        )
+        logger.info(
+            f"DORA CALLBACK START: jira_data_store is None = {jira_data_store is None}"
+        )
+        logger.info(
+            f"DORA CALLBACK START: bool(jira_data_store) = {bool(jira_data_store)}"
+        )
+        logger.info(f"DORA CALLBACK START: active_tab = {active_tab}")
+        if jira_data_store is not None:
+            logger.info(
+                f"DORA CALLBACK START: jira_data_store.keys() = {jira_data_store.keys() if isinstance(jira_data_store, dict) else 'NOT A DICT'}"
+            )
+            if isinstance(jira_data_store, dict):
+                logger.info(
+                    f"DORA CALLBACK START: len(issues) = {len(jira_data_store.get('issues', []))}"
+                )
+
+        # CRITICAL: Only render if on DORA tab
+        # This prevents stale "No Data" content from initial load flashing when switching tabs
+        if active_tab != "tab-dora-metrics":
+            from dash import no_update
+
+            logger.info("DORA: Not on DORA tab, skipping render")
+            return no_update
+
+        # Check if data is being loaded (None or empty = initial load, show skeleton)
+        # Only show "No Data" if we have a populated jira_data_store with no issues
+        if jira_data_store is None or not jira_data_store:
+            logger.info("DORA: Initial load, showing skeleton cards")
+            # Return skeleton cards for all 4 DORA metrics
+            return dbc.Row(
+                [
+                    dbc.Col(
+                        create_skeleton_loader(type="card", height="200px"),
+                        xs=12,
+                        sm=6,
+                        lg=3,
+                        className="mb-4",
+                    )
+                    for _ in range(4)
+                ],
+                className="g-4",
+            )
+
+        # Check if JIRA data has been loaded but is empty
+        if not jira_data_store.get("issues"):
             from ui.empty_states import create_no_data_state
 
-            logger.info("DORA: No JIRA data loaded, showing 'No Data' state")
+            logger.info("DORA: No JIRA issues in loaded data, showing 'No Data' state")
             return create_no_data_state()
 
         # Get number of weeks to display (default 12 if not set)
@@ -276,7 +325,7 @@ def load_and_display_dora_metrics(
                 ),
                 "_n_weeks": n_weeks_display,  # For card footer display
                 "unit": "releases/week",  # Footer shows aggregation method and time period
-                "error_state": "success",
+                "error_state": "success" if deployment_freq_value > 0 else "no_data",
                 "performance_tier": deployment_freq_tier["tier"],
                 "performance_tier_color": deployment_freq_tier["color"],
                 "total_issue_count": cached_metrics.get("deployment_frequency", {}).get(
@@ -338,7 +387,9 @@ def load_and_display_dora_metrics(
                 ),  # NEW: Release-based CFR
                 "_n_weeks": n_weeks_display,  # For card footer display
                 "unit": "%",  # Footer shows aggregation method and time period
-                "error_state": "success",
+                "error_state": "success"
+                if deployment_freq_value > 0 or task_count_value > 0
+                else "no_data",
                 "performance_tier": cfr_tier["tier"],
                 "performance_tier_color": cfr_tier["color"],
                 "total_issue_count": cached_metrics.get("change_failure_rate", {}).get(
@@ -469,6 +520,7 @@ def load_and_display_dora_metrics(
     Output("flow-metrics-cards-container", "children"),
     [
         Input("jira-issues-store", "data"),
+        Input("chart-tabs", "active_tab"),  # Check which tab is active
         Input("data-points-input", "value"),
         Input("metrics-refresh-trigger", "data"),  # NEW: Trigger from Refresh button
     ],
@@ -479,6 +531,7 @@ def load_and_display_dora_metrics(
 )
 def calculate_and_display_flow_metrics(
     jira_data_store: Optional[Dict[str, Any]],
+    active_tab: Optional[str],
     data_points: int,
     metrics_refresh_trigger: Optional[int],
     app_settings: Optional[Dict[str, Any]],
@@ -486,14 +539,15 @@ def calculate_and_display_flow_metrics(
     """Display Flow metrics per ISO week from snapshots.
 
     PERFORMANCE: Reads pre-calculated weekly snapshots from metrics_snapshots.json
-    instead of calculating live (2-minute operation). Metrics are refreshed manually
-    via the "Refresh Metrics" button.
+    instead of calculating live (2-minute operation). Metrics are automatically refreshed
+    when "Update Data" (delta fetch) or "Force Refresh" (full refresh) completes.
 
     Uses Data Points slider to control how many weeks of historical data to display.
     Metrics aggregated per ISO week (Monday-Sunday boundaries).
 
     Args:
         jira_data_store: Cached JIRA issues from global store (used for context)
+        active_tab: Currently active tab (only render if on Flow tab)
         data_points: Number of weeks to display (from Data Points slider)
         metrics_refresh_trigger: Timestamp of last metrics refresh (triggers update)
         app_settings: Application settings including field mappings
@@ -502,8 +556,58 @@ def calculate_and_display_flow_metrics(
         Tuple of (metrics_cards_html, distribution_chart_html)
     """
     try:
-        # Validate inputs
-        if not jira_data_store or not jira_data_store.get("issues"):
+        import dash_bootstrap_components as dbc
+        from ui.loading_utils import create_skeleton_loader
+
+        # DEBUG: Log the exact state of jira_data_store
+        logger.info(
+            f"FLOW CALLBACK START: jira_data_store type={type(jira_data_store)}"
+        )
+        logger.info(
+            f"FLOW CALLBACK START: jira_data_store is None = {jira_data_store is None}"
+        )
+        logger.info(
+            f"FLOW CALLBACK START: bool(jira_data_store) = {bool(jira_data_store)}"
+        )
+        logger.info(f"FLOW CALLBACK START: active_tab = {active_tab}")
+        if jira_data_store is not None:
+            logger.info(
+                f"FLOW CALLBACK START: jira_data_store.keys() = {jira_data_store.keys() if isinstance(jira_data_store, dict) else 'NOT A DICT'}"
+            )
+            if isinstance(jira_data_store, dict):
+                logger.info(
+                    f"FLOW CALLBACK START: len(issues) = {len(jira_data_store.get('issues', []))}"
+                )
+
+        # CRITICAL: Only render if on Flow tab
+        # This prevents stale "No Data" content from initial load flashing when switching tabs
+        if active_tab != "tab-flow-metrics":
+            from dash import no_update
+
+            logger.info("FLOW: Not on Flow tab, skipping render")
+            return no_update
+
+        # Check if data is being loaded (None or empty = initial load, show skeleton)
+        # Only show "No Data" if we have a populated jira_data_store with no issues
+        if jira_data_store is None or not jira_data_store:
+            logger.info("Flow: Initial load, showing skeleton cards")
+            # Return skeleton cards for all 4 Flow metrics
+            return dbc.Row(
+                [
+                    dbc.Col(
+                        create_skeleton_loader(type="card", height="200px"),
+                        xs=12,
+                        sm=6,
+                        lg=3,
+                        className="mb-4",
+                    )
+                    for _ in range(4)
+                ],
+                className="g-4",
+            )
+
+        # Validate inputs - if store is populated but has no issues
+        if not jira_data_store.get("issues"):
             from ui.empty_states import create_no_data_state
 
             # Return no_data state for all metrics (Work Distribution included in same container)
@@ -524,7 +628,6 @@ def calculate_and_display_flow_metrics(
 
         # Generate week labels for display
         from data.time_period_calculator import get_iso_week, format_year_week
-        from data.metrics_snapshots import has_metric_snapshot
 
         weeks = []
         current_date = datetime.now()
@@ -583,7 +686,6 @@ def calculate_and_display_flow_metrics(
 
         # AGGREGATE Flow metrics across selected period (like DORA)
         # Flow Velocity: Average items/week across period
-        non_zero_velocity = [v for v in velocity_values if v > 0]
         avg_velocity = (
             sum(velocity_values) / len(velocity_values) if velocity_values else 0
         )
@@ -680,8 +782,8 @@ def calculate_and_display_flow_metrics(
 
         logger.info(
             f"Flow metrics AGGREGATED over {n_weeks} weeks: "
-            f"Velocity={avg_velocity:.1f} items/week (total {total_completed}), "
-            f"Flow Time={median_flow_time:.1f}d (median), Efficiency={avg_efficiency:.1f}% (avg), "
+            f"Velocity={avg_velocity:.2f} items/week (total {total_completed}), "
+            f"Flow Time={median_flow_time:.2f}d (median), Efficiency={avg_efficiency:.2f}% (avg), "
             f"WIP={wip_count} (current week {current_week_label})"
         )
 
@@ -797,10 +899,12 @@ def calculate_and_display_flow_metrics(
         metrics_data = {
             "flow_velocity": {
                 "metric_name": "flow_velocity",
-                "value": round(avg_velocity, 1),  # Average items/week over period
+                "value": avg_velocity,  # Average items/week over period (full precision)
                 "_n_weeks": n_weeks,  # For card footer display
                 "unit": "items/week",  # Footer shows aggregation method and time period
-                "error_state": "success",  # Always valid - 0 velocity is acceptable
+                "error_state": "success"
+                if avg_velocity > 0 or issues_in_period_count > 0
+                else "no_data",
                 "performance_tier": _get_flow_performance_tier(
                     "flow_velocity", avg_velocity
                 ),
@@ -819,12 +923,12 @@ def calculate_and_display_flow_metrics(
             },
             "flow_time": {
                 "metric_name": "flow_time",
-                "value": round(median_flow_time, 1)
-                if median_flow_time is not None
-                else 0,
+                "value": median_flow_time if median_flow_time is not None else 0,
                 "_n_weeks": n_weeks,  # For card footer display
                 "unit": "days",  # Footer shows aggregation method and time period
-                "error_state": "success",  # Always success - 0 is valid for weeks with no completions
+                "error_state": "success"
+                if median_flow_time > 0 or issues_in_period_count > 0
+                else "no_data",
                 "performance_tier": _get_flow_performance_tier(
                     "flow_time", median_flow_time if median_flow_time is not None else 0
                 ),
@@ -837,10 +941,12 @@ def calculate_and_display_flow_metrics(
             },
             "flow_efficiency": {
                 "metric_name": "flow_efficiency",
-                "value": round(avg_efficiency, 1) if avg_efficiency is not None else 0,
+                "value": avg_efficiency if avg_efficiency is not None else 0,
                 "_n_weeks": n_weeks,  # For card footer display
                 "unit": "%",  # Footer shows aggregation method and time period
-                "error_state": "success",  # Always success - 0 is valid for weeks with no completions
+                "error_state": "success"
+                if avg_efficiency > 0 or issues_in_period_count > 0
+                else "no_data",
                 "performance_tier": _get_flow_performance_tier(
                     "flow_efficiency",
                     avg_efficiency if avg_efficiency is not None else 0,
@@ -1343,11 +1449,11 @@ def toggle_mean_time_to_recovery_details(n_clicks, is_open):
     prevent_initial_call="initial_duplicate",  # Run on initial page load with duplicates
 )
 def restore_calculate_metrics_progress(pathname):
-    """Restore Calculate Metrics button state if task is in progress.
+    """Restore metrics calculation button state if task is in progress.
 
-    This callback runs on page load to check if a Calculate Metrics task
-    was in progress before the page was refreshed or app restarted.
-    If so, it restores the loading state and status message.
+    This callback runs on page load to check if a metrics calculation task
+    (triggered by Update Data or Force Refresh) was in progress before the
+    page was refreshed or app restarted. If so, it restores the loading state.
 
     Args:
         pathname: Current URL pathname (triggers on page load)
@@ -1357,12 +1463,12 @@ def restore_calculate_metrics_progress(pathname):
     """
     from data.task_progress import TaskProgress
 
-    # Check if Calculate Metrics task is active
+    # Check if metrics calculation task is active
     active_task = TaskProgress.get_active_task()
 
     if active_task and active_task.get("task_id") == "calculate_metrics":
         # Task is in progress - restore loading state
-        logger.info("Restoring Calculate Metrics progress state on page load")
+        logger.info("Restoring metrics calculation progress state on page load")
 
         button_loading = [
             html.I(className="fas fa-spinner fa-spin", style={"marginRight": "0.5rem"}),

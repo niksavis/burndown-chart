@@ -27,25 +27,24 @@ def create_dora_dashboard() -> dbc.Container:
     # Check if JIRA data exists AND if metrics are calculated
     from data.profile_manager import get_data_file_path
     from data.dora_metrics_calculator import load_dora_metrics_from_cache
-    import json
-    import os
+    from data.cache_manager import has_jira_data_for_query
+    from data.query_manager import get_active_profile_id, get_active_query_id
 
     has_jira_data = False
     has_metrics = False
 
     try:
-        # Load JIRA cache from query workspace
-        cache_file = get_data_file_path("jira_cache.json")
-        if os.path.exists(cache_file):
-            with open(cache_file, "r", encoding="utf-8") as f:
-                cache_data = json.load(f)
-                cached_issues = cache_data.get("issues", [])
-                has_jira_data = len(cached_issues) > 0
+        # Check if JIRA data exists in database for active query
+        active_profile_id = get_active_profile_id()
+        active_query_id = get_active_query_id()
 
-        # Check if metrics are calculated
-        if has_jira_data:
-            cached_metrics = load_dora_metrics_from_cache(n_weeks=12)
-            has_metrics = bool(cached_metrics)
+        if active_profile_id and active_query_id:
+            has_jira_data = has_jira_data_for_query(active_profile_id, active_query_id)
+
+            # Check if metrics are calculated
+            if has_jira_data:
+                cached_metrics = load_dora_metrics_from_cache(n_weeks=12)
+                has_metrics = bool(cached_metrics)
     except Exception:
         pass  # No data available
 
@@ -94,7 +93,7 @@ def create_dora_dashboard() -> dbc.Container:
                         [
                             html.I(className="fas fa-info-circle me-2"),
                             "Metrics calculated per ISO week. Use ",
-                            html.Strong("Calculate Metrics"),
+                            html.Strong("Update Data / Force Refresh"),
                             " button to refresh. ",
                             html.Strong("Data Points slider"),
                             " controls weeks displayed.",

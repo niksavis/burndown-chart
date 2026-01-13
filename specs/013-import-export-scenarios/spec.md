@@ -93,9 +93,9 @@ A power user managing multiple environments wants to export their complete setup
 - **FR-003**: System MUST strip JIRA token from exported file when "Include JIRA Token" is unchecked
 - **FR-004**: System MUST include JIRA token in exported file when "Include JIRA Token" is checked
 - **FR-005**: System MUST display security warning near "Include JIRA Token" checkbox explaining credential exposure risk
-- **FR-006**: Configuration-only export MUST include profile settings, query definitions, field mappings, and JQL queries
+- **FR-006**: Configuration-only export MUST include profile settings, query definitions, field mappings, JQL queries, and budget data (if present)
 - **FR-007**: Configuration-only export MUST exclude all cached JIRA data (jira_cache.json, project_data.json)
-- **FR-008**: Full profile export MUST include profile settings, query configuration, and cached data for currently selected query only
+- **FR-008**: Full profile export MUST include profile settings, query configuration, budget data (if present), and cached data for currently selected query only
 - **FR-009**: System MUST prompt for JIRA token during import when imported file lacks token
 - **FR-010**: System MUST preserve all query definitions, field mappings, and settings exactly during configuration import
 - **FR-011**: Import process MUST validate file structure before applying changes

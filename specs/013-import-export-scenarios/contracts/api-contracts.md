@@ -73,7 +73,8 @@ def export_profile_with_mode(
         {
             "manifest": ExportManifest,
             "profile_data": dict,
-            "query_data": dict or None  # None if CONFIG_ONLY
+            "query_data": dict or None,  # None if CONFIG_ONLY
+            "budget_data": dict or None  # Budget settings and revisions
         }
         
     Raises:
@@ -98,6 +99,7 @@ def export_profile_with_mode(
 - MUST call `strip_credentials()` if `include_token=False`
 - MUST exclude query_data if `export_mode="CONFIG_ONLY"`
 - MUST include query_data if `export_mode="FULL_DATA"`
+- MUST include budget_data (budget_settings and budget_revisions) if present
 - MUST set manifest flags consistent with mode:
   - `CONFIG_ONLY` → `includes_cache=False, includes_token=False`
   - `FULL_DATA` → `includes_cache=True, includes_token=include_token`

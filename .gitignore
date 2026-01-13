@@ -185,6 +185,9 @@ metrics_snapshots.json
 # Profile & Query workspace data (Feature 011 - contains customer data)
 # Directory created automatically by migration/profile manager on first run
 profiles/
+profiles/burndown.db
+profiles/burndown.db-shm
+profiles/burndown.db-wal
 
 # Log files directory (Feature 008 - runtime logging output)
 # Directory created automatically by logging system on first run
@@ -202,9 +205,10 @@ docs/metrics/IMPLEMENTATION_GUIDE.md
 /test_*.py
 /verify_*.py
 /analyze_*.py
+/temp_*.py
 
-# Customer-specific configuration backups (NOT committed, but backed up separately)
-config-backups/
+# Migration backup directory (contains pre-migration customer data snapshots)
+backups/
 
 # Backup files and restore points
 *_backup.json

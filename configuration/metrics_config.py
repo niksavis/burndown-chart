@@ -10,10 +10,8 @@ It loads customer-specific configuration from profiles/{profile_id}/profile.json
 Reference: docs/metrics/IMPLEMENTATION_GUIDE.md
 """
 
-import json
 import logging
 from typing import Dict, List, Optional, Any
-from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
@@ -41,69 +39,61 @@ class MetricsConfig:
         self.profile_config = self._load_profile_config()
 
     def _get_active_profile_id(self) -> str:
-        """Get active profile ID from profiles/profiles.json.
+        """Get active profile ID from database backend.
 
         Returns:
             Active profile ID
 
         Raises:
-            FileNotFoundError: If profiles.json doesn't exist
+            RuntimeError: If no active profile configured
         """
-        profiles_path = Path("profiles/profiles.json")
-
-        if not profiles_path.exists():
-            logger.error(
-                "profiles/profiles.json not found. Cannot load profile configuration."
-            )
-            raise FileNotFoundError(
-                "profiles/profiles.json not found. "
-                "Create a profile via UI before calculating metrics."
-            )
-
         try:
-            with open(profiles_path, "r", encoding="utf-8") as f:
-                profiles_data = json.load(f)
-                active_profile_id = profiles_data.get("active_profile_id")
+            from data.persistence.factory import get_backend
 
-                if not active_profile_id:
-                    logger.error("No active_profile_id in profiles.json")
-                    raise ValueError("No active profile configured in profiles.json")
+            backend = get_backend()
+            active_profile_id = backend.get_app_state("active_profile_id")
 
-                logger.info(f"Loaded active profile ID: {active_profile_id}")
-                return active_profile_id
-        except json.JSONDecodeError as e:
-            logger.error(f"Invalid JSON in profiles/profiles.json: {e}")
-            raise
+            if not active_profile_id:
+                logger.error("No active_profile_id in database")
+                raise RuntimeError(
+                    "No active profile configured. Create a profile via UI before calculating metrics."
+                )
+
+            logger.info(f"Loaded active profile ID from database: {active_profile_id}")
+            return active_profile_id
+        except Exception as e:
+            logger.error(f"Failed to load active profile ID: {e}")
+            raise RuntimeError(f"Cannot load profile configuration: {e}")
 
     def _load_profile_config(self) -> Dict[str, Any]:
-        """Load configuration from profiles/{profile_id}/profile.json.
+        """Load configuration from database backend.
 
         Returns:
             Profile configuration dictionary
 
         Raises:
-            FileNotFoundError: If profile doesn't exist
-            json.JSONDecodeError: If profile is invalid JSON
+            RuntimeError: If profile doesn't exist or cannot be loaded
         """
-        # Normalize profile_id to handle any escaped backslashes
-        normalized_profile_id = self.profile_id.replace("\\\\", "\\")
-        profile_path = Path(f"profiles/{normalized_profile_id}/profile.json")
-
-        if not profile_path.exists():
-            logger.warning(
-                f"Profile {self.profile_id} not found at {profile_path}. "
-                "Using default empty configuration."
-            )
-            return self._get_default_profile_config()
-
         try:
-            with open(profile_path, "r", encoding="utf-8") as f:
-                config = json.load(f)
-                logger.info(f"Loaded profile configuration from {profile_path}")
-                return config
-        except json.JSONDecodeError as e:
-            logger.error(f"Invalid JSON in {profile_path}: {e}")
-            raise
+            from data.persistence.factory import get_backend
+
+            backend = get_backend()
+            profile_data = backend.get_profile(self.profile_id)
+
+            if not profile_data:
+                logger.warning(
+                    f"Profile {self.profile_id} not found in database. "
+                    "Using default empty configuration."
+                )
+                return self._get_default_profile_config()
+
+            logger.info(
+                f"Loaded profile configuration for {self.profile_id} from database"
+            )
+            return profile_data
+        except Exception as e:
+            logger.error(f"Failed to load profile configuration: {e}")
+            return self._get_default_profile_config()
 
     def _get_default_profile_config(self) -> Dict[str, Any]:
         """Get default empty profile configuration when profile doesn't exist.
@@ -320,6 +310,12 @@ class MetricsConfig:
         """
         flow_mappings = self.get_flow_type_mappings()
 
+        logger.debug(
+            f"[FLOW TYPE CLASSIFICATION] Classifying issue_type='{issue_type}', "
+            f"effort_category='{effort_category}'"
+        )
+        logger.debug(f"[FLOW TYPE CLASSIFICATION] Available mappings: {flow_mappings}")
+
         # Find ALL flow types where issue_type matches
         matching_flow_types = []
         catch_all_flow_type = None  # Flow type with empty effort_categories
@@ -328,27 +324,52 @@ class MetricsConfig:
             issue_types = mapping.get("issue_types", [])
             if issue_type in issue_types:
                 effort_categories = mapping.get("effort_categories", [])
+                logger.debug(
+                    f"[FLOW TYPE CLASSIFICATION] Found match: flow_type='{flow_type}', "
+                    f"effort_categories={effort_categories}"
+                )
                 if not effort_categories:
                     # This flow type accepts ALL issues of this type (catch-all)
                     if catch_all_flow_type is None:
                         catch_all_flow_type = flow_type
+                        logger.debug(
+                            f"[FLOW TYPE CLASSIFICATION] Set catch-all: '{catch_all_flow_type}'"
+                        )
                 else:
                     matching_flow_types.append((flow_type, effort_categories))
 
         # If effort_category is provided, try to find exact match first
         if effort_category:
+            logger.debug(
+                f"[FLOW TYPE CLASSIFICATION] Searching for exact effort match in: {matching_flow_types}"
+            )
             for flow_type, effort_categories in matching_flow_types:
                 if effort_category in effort_categories:
+                    logger.debug(
+                        f"[FLOW TYPE CLASSIFICATION] Found exact match: '{flow_type}' "
+                        f"(effort '{effort_category}' in {effort_categories})"
+                    )
                     return flow_type
 
         # Fall back to catch-all flow type (one with no effort_categories filter)
         if catch_all_flow_type:
+            logger.debug(
+                f"[FLOW TYPE CLASSIFICATION] Using catch-all: '{catch_all_flow_type}'"
+            )
             return catch_all_flow_type
 
         # If no catch-all but we have matches, return first one (for None effort_category)
         if matching_flow_types and not effort_category:
-            return matching_flow_types[0][0]
+            result = matching_flow_types[0][0]
+            logger.debug(
+                f"[FLOW TYPE CLASSIFICATION] Using first match (no effort): '{result}'"
+            )
+            return result
 
+        logger.warning(
+            f"[FLOW TYPE CLASSIFICATION] No mapping found for issue_type='{issue_type}', "
+            f"effort_category='{effort_category}'"
+        )
         return None
 
     # ========================================================================

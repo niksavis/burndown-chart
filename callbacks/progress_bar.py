@@ -1,8 +1,6 @@
 """Progress bar callback for tracking Update Data operations."""
 
 import logging
-import json
-from pathlib import Path
 from dash import callback, Output, Input, no_update
 from dash.exceptions import PreventUpdate
 
@@ -28,7 +26,7 @@ logger = logging.getLogger(__name__)
 )
 def update_progress_bars(n_intervals):
     """
-    Poll task_progress.json and update progress bar.
+    Poll task progress database and update progress bar.
 
     Args:
         n_intervals: Number of intervals elapsed (polling trigger)
@@ -36,28 +34,28 @@ def update_progress_bars(n_intervals):
     Returns:
         Tuple of (container_style, label, value, color, animated, interval_disabled)
     """
-    # Read task progress file
-    progress_file = Path("task_progress.json")
-
-    if not progress_file.exists():
-        # No progress file - hide progress bar and disable polling
-        return (
-            {"display": "none"},
-            "Processing: 0%",
-            0,
-            "primary",
-            True,
-            True,
-            {},  # Show Update Data button
-            False,  # Enable Update Data button
-            {"display": "none"},  # Hide Cancel button
-            no_update,  # No metrics trigger
-            no_update,  # No metrics refresh
-        )
+    from data.persistence.factory import get_backend
 
     try:
-        with open(progress_file, "r", encoding="utf-8") as f:
-            progress_data = json.load(f)
+        # Read task progress from database
+        backend = get_backend()
+        progress_data = backend.get_task_state()
+
+        if progress_data is None:
+            # No progress data - hide progress bar and disable polling
+            return (
+                {"display": "none"},
+                "Processing: 0%",
+                0,
+                "primary",
+                True,
+                True,
+                {},  # Show Update Data button
+                False,  # Enable Update Data button
+                {"display": "none"},  # Hide Cancel button
+                no_update,  # No metrics trigger
+                no_update,  # No metrics refresh
+            )
 
         task_id = progress_data.get("task_id")
 
@@ -255,6 +253,7 @@ def update_progress_bars(n_intervals):
                         False,  # Enable Update Data button
                         {"display": "none"},  # Hide Cancel button
                         no_update,  # No metrics trigger
+                        no_update,  # No metrics refresh
                     )
                 else:
                     # Show error message
@@ -369,15 +368,8 @@ def update_progress_bars(n_intervals):
             no_update,  # No metrics refresh during progress
         )
 
-    except json.JSONDecodeError as e:
-        logger.warning(
-            f"[Progress] JSON parse error (file may be mid-write): {e} - keeping progress visible"
-        )
-        # Don't hide progress bar on JSON errors - file is being written
-        # Return a generic "Processing..." state to avoid flickering
-        raise PreventUpdate
     except Exception as e:
-        logger.error(f"[Progress] Error reading progress file: {e}")
+        logger.error(f"[Progress] Error reading progress from database: {e}")
         return (
             {"display": "none"},
             "Processing: 0%",
@@ -543,16 +535,15 @@ def cleanup_stale_tasks_on_load(pathname):
         bool: False to enable polling if stale task exists, True to keep disabled
     """
     from datetime import datetime
-
-    progress_file = Path("task_progress.json")
-
-    if not progress_file.exists():
-        # No task file, keep polling disabled
-        return True
+    from data.persistence.factory import get_backend
 
     try:
-        with open(progress_file, "r", encoding="utf-8") as f:
-            state = json.load(f)
+        backend = get_backend()
+        state = backend.get_task_state()
+
+        if state is None:
+            # No task state, keep polling disabled
+            return True
 
         status = state.get("status", "idle")
 
@@ -567,11 +558,11 @@ def cleanup_stale_tasks_on_load(pathname):
                 ).total_seconds()
 
                 if elapsed > 10:
-                    # Very stale task - delete file immediately
+                    # Very stale task - clear state immediately
                     logger.info(
-                        f"[Progress] Deleting stale {status} task file ({elapsed:.0f}s old)"
+                        f"[Progress] Clearing stale {status} task state ({elapsed:.0f}s old)"
                     )
-                    progress_file.unlink()
+                    backend.clear_task_state()
                     return True  # Keep polling disabled
                 else:
                     # Recent error/complete - enable polling to show and auto-hide
@@ -580,9 +571,11 @@ def cleanup_stale_tasks_on_load(pathname):
                     )
                     return False  # Enable polling
             else:
-                # No timestamp - delete stale file
-                logger.info(f"[Progress] Deleting {status} task file with no timestamp")
-                progress_file.unlink()
+                # No timestamp - clear stale state
+                logger.info(
+                    f"[Progress] Clearing {status} task state with no timestamp"
+                )
+                backend.clear_task_state()
                 return True
 
         # Task is in_progress or idle - enable polling to update UI
@@ -592,10 +585,10 @@ def cleanup_stale_tasks_on_load(pathname):
             )
             return False  # Enable polling
 
-        # Idle status - delete file
+        # Idle status - clear state
         if status == "idle":
-            logger.info("[Progress] Deleting idle task file")
-            progress_file.unlink()
+            logger.info("[Progress] Clearing idle task state")
+            backend.clear_task_state()
             return True
 
         return True  # Keep polling disabled by default

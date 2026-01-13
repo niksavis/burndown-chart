@@ -34,29 +34,24 @@ class SensitiveDataFilter(logging.Filter):
     """
     Logging filter that redacts sensitive patterns before writing to file.
 
-    This filter automatically redacts:
+    This filter automatically redacts ONLY USER DATA:
     - Bearer tokens (Authorization: Bearer ...)
     - API tokens (in JSON: "token": "...")
     - Passwords (in JSON: "password": "...")
     - API keys (in JSON: "api_key": "sk-...")
-    - Production URLs (replaces real domains with example.com)
     - Email addresses (user@domain → ***@domain)
 
+    Technical data (URLs, endpoints, domains) is NOT redacted to enable debugging.
+
     The filter is applied to all log handlers to ensure no sensitive
-    data appears in log files.
+    user data appears in log files.
     """
 
     # Sensitive patterns to redact (pattern, replacement)
     # Patterns are applied in order, so more specific patterns should come first
+    # NOTE: Only user data is redacted (tokens, passwords, emails)
+    #       Technical data (URLs, endpoints) is NOT redacted to enable debugging
     SENSITIVE_PATTERNS = [
-        # Production URLs - replace real domains with example.com
-        # Matches: https://jira.company.com/... → https://jira.example.com/...
-        # Must come FIRST to avoid conflicts with Authorization header patterns
-        # Preserves protocol and path for debugging context
-        (
-            r"https?://(?!(?:localhost|127\.0\.0\.1|example\.com|test\.))[a-zA-Z0-9][-a-zA-Z0-9.]*\.[a-zA-Z]{2,}",
-            "https://jira.example.com",
-        ),
         # Authorization header with Bearer token - matches the entire header
         # Captures: Authorization: Bearer abc123... → Authorization: Bearer [REDACTED]
         # This must come BEFORE the generic Authorization pattern to preserve "Bearer" keyword

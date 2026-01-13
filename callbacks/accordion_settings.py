@@ -25,10 +25,13 @@ logger = logging.getLogger(__name__)
         Input("profile-selector", "value"),
         Input("jira-config-status-indicator", "children"),
         Input("save-query-btn", "n_clicks"),
+        Input("query-selector", "value"),  # Track when query is selected
     ],
     prevent_initial_call=False,
 )
-def update_configuration_status(profile_id, jira_status, save_query_clicks):
+def update_configuration_status(
+    profile_id, jira_status, save_query_clicks, selected_query
+):
     """
     Track configuration completion status for dependency chain.
 
@@ -45,6 +48,7 @@ def update_configuration_status(profile_id, jira_status, save_query_clicks):
         profile_id: Currently active profile ID
         jira_status: JIRA connection status indicator content
         save_query_clicks: Number of times save query button clicked
+        selected_query: Currently selected query ID from dropdown
 
     Returns:
         dict: Configuration status with enabled/complete flags for each section
@@ -59,8 +63,14 @@ def update_configuration_status(profile_id, jira_status, save_query_clicks):
         )
 
     # Determine if query is saved
-    # If save button has been clicked at least once, query is saved
-    query_saved = save_query_clicks is not None and save_query_clicks > 0
+    # Query is considered saved if:
+    # 1. Save button has been clicked at least once, OR
+    # 2. An existing query is selected from dropdown (not "Create New")
+    query_saved = (save_query_clicks is not None and save_query_clicks > 0) or (
+        selected_query is not None
+        and selected_query != ""
+        and selected_query != "__create_new__"
+    )
 
     status = {
         "profile": {
@@ -355,18 +365,16 @@ def load_query_jql(query_id):
         return ""
 
     try:
-        from data.query_manager import get_active_profile_id, PROFILES_DIR
-        import json
+        from data.query_manager import get_active_profile_id
+        from data.persistence.factory import get_backend
 
         profile_id = get_active_profile_id()
-        query_file = PROFILES_DIR / profile_id / "queries" / query_id / "query.json"
+        backend = get_backend()
+        query_data = backend.get_query(profile_id, query_id)
 
-        if not query_file.exists():
-            logger.warning(f"[Query Load] Query file not found: {query_file}")
+        if not query_data:
+            logger.warning(f"[Query Load] Query not found in database: {query_id}")
             return ""
-
-        with open(query_file, "r", encoding="utf-8") as f:
-            query_data = json.load(f)
 
         jql = query_data.get("jql", "")
         logger.info(f"[Query Load] Loaded JQL for query '{query_id}': {jql[:50]}...")
@@ -490,18 +498,16 @@ def cancel_query_edit(n_clicks, query_id):
         return no_update
 
     try:
-        from data.query_manager import get_active_profile_id, PROFILES_DIR
-        import json
+        from data.query_manager import get_active_profile_id
+        from data.persistence.factory import get_backend
 
         profile_id = get_active_profile_id()
-        query_file = PROFILES_DIR / profile_id / "queries" / query_id / "query.json"
+        backend = get_backend()
+        query_data = backend.get_query(profile_id, query_id)
 
-        if not query_file.exists():
-            logger.warning(f"[Query Cancel] Query file not found: {query_file}")
+        if not query_data:
+            logger.warning(f"[Query Cancel] Query not found in database: {query_id}")
             return no_update
-
-        with open(query_file, "r", encoding="utf-8") as f:
-            query_data = json.load(f)
 
         jql = query_data.get("jql", "")
         logger.info(f"[Query Cancel] Reloaded original JQL for query '{query_id}'")

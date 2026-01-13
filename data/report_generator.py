@@ -112,59 +112,133 @@ def _load_report_data(profile_id: str, weeks: int) -> Dict[str, Any]:
     """
     from data.persistence import load_unified_project_data, load_app_settings
     from data.metrics_snapshots import load_snapshots
-    from data.profile_manager import get_active_query_workspace
+    from data.query_manager import get_active_query_id
+    from data.persistence.factory import get_backend
 
     # Load core data
     project_data = load_unified_project_data()
     all_snapshots = load_snapshots()
     settings = load_app_settings()
 
-    # Load JIRA issues from cache
+    # Load JIRA issues from database for the specific profile
     jira_issues = []
     try:
-        query_workspace = get_active_query_workspace()
-        cache_file = query_workspace / "jira_cache.json"
-        if cache_file.exists():
-            with open(cache_file, "r", encoding="utf-8") as f:
-                cache_data = json.load(f)
-                jira_issues = cache_data.get("issues", [])
-        logger.info(f"Loaded {len(jira_issues)} JIRA issues for report")
+        backend = get_backend()
+        query_id = get_active_query_id()
+        if query_id and profile_id:
+            # Load all issues from database (no filters)
+            jira_issues = backend.get_issues(profile_id, query_id)
+            logger.info(
+                f"[REPORT JIRA] Loaded {len(jira_issues)} JIRA issues from database "
+                f"(profile={profile_id}, query={query_id})"
+            )
+        else:
+            logger.warning(
+                f"[REPORT JIRA] Missing profile_id={profile_id} or query_id={query_id}"
+            )
     except Exception as e:
-        logger.warning(f"Could not load JIRA issues: {e}")
+        logger.warning(
+            f"[REPORT JIRA] Could not load JIRA issues from database: {e}",
+            exc_info=True,
+        )
 
-    # Calculate time period boundaries
-    cutoff_date = datetime.now() - timedelta(weeks=weeks)
-    # Use ISO week format (%V) to match app and metrics snapshots (Monday-based weeks)
-    current_week = datetime.now().strftime("%G-W%V")
-
-    # Filter statistics to time period
+    # Calculate time period boundaries using EXACT SAME METHOD as UI dashboard
+    # CRITICAL: Use week label matching, not date range filtering
+    # This ensures report and UI include exactly the same data points
     all_stats = project_data.get("statistics", [])
-    filtered_stats = []
-    if all_stats:
-        for stat in all_stats:
-            stat_date = datetime.fromisoformat(stat["date"].replace("Z", "+00:00"))
-            # Include if within period AND not today (current incomplete data)
-            if stat_date >= cutoff_date and stat_date.date() < datetime.now().date():
-                filtered_stats.append(stat)
 
-    # Filter snapshots to time period (exclude current incomplete week)
+    if not all_stats:
+        logger.warning("No statistics data available")
+        return {
+            "project_scope": project_data.get("project_scope", {}),
+            "statistics": [],
+            "all_statistics": [],
+            "snapshots": {},
+            "settings": settings,
+            "jira_issues": [],
+            "weeks_count": 0,
+        }
+
+    # Convert to DataFrame for consistent processing (same as UI)
+    df_all = pd.DataFrame(all_stats)
+    df_all["date"] = pd.to_datetime(df_all["date"], format="mixed", errors="coerce")
+    df_all = df_all.dropna(subset=["date"]).sort_values("date", ascending=True)
+
+    # Get reference date (last statistics date, not today)
+    reference_date = df_all["date"].max()
+    current_week = reference_date.strftime("%G-W%V")
+
+    # Generate week labels to include (SAME AS UI)
+    from data.time_period_calculator import get_iso_week, format_year_week
+
+    week_labels_list = []
+    current_date = reference_date
+    for i in range(weeks):
+        year, week = get_iso_week(current_date)
+        week_label = format_year_week(year, week)
+        week_labels_list.append(week_label)
+        current_date = current_date - timedelta(days=7)
+
+    week_labels = set(reversed(week_labels_list))  # Convert to set for fast lookup
+
+    logger.info(
+        f"[REPORT FILTER] Filtering to last {weeks} weeks from {reference_date.strftime('%Y-%m-%d')}: {sorted(week_labels)}"
+    )
+
+    # Filter using week labels (SAME AS UI)
+    if "week_label" in df_all.columns:
+        df_filtered = df_all[df_all["week_label"].isin(week_labels)]
+        logger.info(
+            f"[REPORT FILTER] Filtered to {len(df_filtered)} rows using week_label matching (requested {weeks} weeks)"
+        )
+    else:
+        # Should not happen - week_label is backfilled by persistence layer
+        logger.error(
+            "[REPORT FILTER] CRITICAL: week_label column missing from statistics! "
+            "Using date range filtering as fallback (less accurate)."
+        )
+        cutoff_date = reference_date - timedelta(weeks=weeks)
+        df_filtered = df_all[df_all["date"] >= cutoff_date]
+        logger.warning(
+            f"[REPORT FILTER] Fallback date range filtering: {len(df_filtered)} rows"
+        )
+
+    # Convert back to list of dicts
+    filtered_stats = df_filtered.to_dict("records")
+
+    # Filter snapshots to time period using week labels (exclude current incomplete week)
     filtered_snapshots = {}
     if all_snapshots:
-        for week_label, snapshot_data in all_snapshots.items():
-            week_date = _parse_week_label(week_label)
-            # Include if >= cutoff AND not current week
-            if week_date >= cutoff_date and week_label != current_week:
-                filtered_snapshots[week_label] = snapshot_data
+        for week_label_key, snapshot_data in all_snapshots.items():
+            # Include if in the requested week labels AND not current week
+            if week_label_key in week_labels and week_label_key != current_week:
+                filtered_snapshots[week_label_key] = snapshot_data
+        logger.info(
+            f"[REPORT FILTER] Filtered snapshots: {len(filtered_snapshots)} weeks (excluded current week {current_week})"
+        )
 
     # Use REQUESTED weeks, not snapshot count
     # The velocity calculation groups statistics by ISO week, so it doesn't need to match snapshot count
     # CRITICAL: This must match the user's selected data window in the app (data_points_count)
     weeks_count = weeks
 
+    # Log comprehensive filtering summary
     logger.info(
-        f"Loaded data: {len(filtered_stats)} statistics, "
-        f"{len(filtered_snapshots)} snapshot weeks (using requested weeks={weeks_count})"
+        f"[REPORT DATA] Loaded data summary:\n"
+        f"  - Total statistics: {len(all_stats)}\n"
+        f"  - Filtered statistics: {len(filtered_stats)} (requested {weeks_count} weeks)\n"
+        f"  - Snapshot weeks: {len(filtered_snapshots)}\n"
+        f"  - Reference date: {reference_date.strftime('%Y-%m-%d') if isinstance(reference_date, datetime) else reference_date}\n"
+        f"  - Week labels included: {sorted(week_labels)}"
     )
+
+    # Log the actual data for debugging
+    if filtered_stats:
+        completed_items_sum = sum(s.get("completed_items", 0) for s in filtered_stats)
+        completed_points_sum = sum(s.get("completed_points", 0) for s in filtered_stats)
+        logger.info(
+            f"[REPORT DATA] Filtered data summary: {completed_items_sum} items, {completed_points_sum:.1f} points completed"
+        )
 
     return {
         "project_scope": project_data.get("project_scope", {}),
@@ -196,7 +270,40 @@ def _calculate_all_metrics(
     # Extract show_points from settings (whether to use points or items for forecasting)
     show_points = report_data["settings"].get("show_points", False)
 
+    # Calculate extended metrics first (needed for comprehensive health calculation)
+    extended_metrics: Dict[str, Any] = {}
+
+    # Bug Analysis metrics
+    if "burndown" in sections:
+        extended_metrics["bug_analysis"] = _calculate_bug_metrics(
+            report_data["jira_issues"],
+            report_data["statistics"],
+            report_data["settings"],
+            report_data["weeks_count"],
+        )
+
+    # Flow metrics
+    if "flow" in sections:
+        extended_metrics["flow"] = _calculate_flow_metrics(
+            report_data["snapshots"], report_data["weeks_count"]
+        )
+
+    # DORA metrics
+    if "dora" in sections:
+        extended_metrics["dora"] = _calculate_dora_metrics(
+            report_data["profile_id"], report_data["weeks_count"]
+        )
+
+    # Budget metrics (calculated early for health score)
+    if "budget" in sections:
+        from data.query_manager import get_active_query_id
+
+        # Note: Budget needs velocity which we calculate in dashboard, so we'll add it later
+        # For now, mark that it's needed
+        extended_metrics["budget_needed"] = True
+
     # Dashboard metrics (always calculated, shows summary)
+    # Pass extended metrics for comprehensive health calculation
     metrics["dashboard"] = _calculate_dashboard_metrics(
         report_data["all_statistics"],  # Use ALL stats for lifetime metrics
         report_data["statistics"],  # Windowed stats for velocity
@@ -204,7 +311,25 @@ def _calculate_all_metrics(
         report_data["settings"],
         report_data["weeks_count"],
         show_points,
+        extended_metrics,  # Pass extended metrics for health calculation
     )
+
+    # Now calculate budget with velocity from dashboard
+    if extended_metrics.get("budget_needed"):
+        from data.query_manager import get_active_query_id
+
+        query_id = get_active_query_id() or ""
+        # Pass velocity from dashboard for accurate cost per item/point calculation
+        velocity_items = metrics["dashboard"].get("velocity_items", 0.0)
+        velocity_points = metrics["dashboard"].get("velocity_points", 0.0)
+        extended_metrics["budget"] = _calculate_budget_metrics(
+            report_data["profile_id"],
+            query_id,
+            report_data["weeks_count"],
+            velocity_items,
+            velocity_points,
+        )
+        extended_metrics.pop("budget_needed")
 
     # Burndown metrics
     if "burndown" in sections:
@@ -214,13 +339,8 @@ def _calculate_all_metrics(
             report_data["weeks_count"],
         )
 
-        # Bug Analysis (sub-section of burndown)
-        metrics["bug_analysis"] = _calculate_bug_metrics(
-            report_data["jira_issues"],
-            report_data["statistics"],
-            report_data["settings"],
-            report_data["weeks_count"],
-        )
+        # Bug Analysis (already calculated above for health)
+        metrics["bug_analysis"] = extended_metrics.get("bug_analysis", {})
 
     # Scope metrics
     if "burndown" in sections:
@@ -230,17 +350,17 @@ def _calculate_all_metrics(
             report_data["weeks_count"],
         )
 
-    # Flow metrics
+    # Flow metrics (already calculated above for health)
     if "flow" in sections:
-        metrics["flow"] = _calculate_flow_metrics(
-            report_data["snapshots"], report_data["weeks_count"]
-        )
+        metrics["flow"] = extended_metrics.get("flow", {})
 
-    # DORA metrics
+    # DORA metrics (already calculated above for health)
     if "dora" in sections:
-        metrics["dora"] = _calculate_dora_metrics(
-            report_data["profile_id"], report_data["weeks_count"]
-        )
+        metrics["dora"] = extended_metrics.get("dora", {})
+
+    # Budget metrics (already calculated above)
+    if "budget" in sections:
+        metrics["budget"] = extended_metrics.get("budget", {})
 
     return metrics
 
@@ -252,6 +372,7 @@ def _calculate_dashboard_metrics(
     settings: Dict,
     weeks_count: int,
     show_points: bool = False,
+    extended_metrics: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
     """
     Calculate dashboard summary metrics using LIFETIME-based calculations (same as app).
@@ -262,7 +383,7 @@ def _calculate_dashboard_metrics(
     3. Total comes from settings.estimated_total_items (NOT calculated)
     4. Remaining = total - completed (same as app)
     5. Completion % = completed / total (LIFETIME, same as app)
-    6. Health score uses weighted formula (progress 25%, schedule 30%, velocity 25%, confidence 20%)
+    6. Health score uses comprehensive formula (6 dimensions: Delivery, Predictability, Quality, Efficiency, Sustainability, Financial)
 
     Args:
         all_statistics: ALL statistics for lifetime completion calculation
@@ -271,6 +392,7 @@ def _calculate_dashboard_metrics(
         settings: App settings with deadline and milestone
         weeks_count: Actual number of weeks with data
         show_points: Whether to use points-based (True) or items-based (False) forecasting
+        extended_metrics: Optional extended metrics (DORA, Flow, Bug, Budget) for comprehensive health calculation
 
     Returns:
         Dictionary with dashboard metrics
@@ -298,18 +420,20 @@ def _calculate_dashboard_metrics(
     df_windowed = pd.DataFrame(windowed_statistics)
     # Convert date column to datetime for proper date arithmetic
     if not df_windowed.empty and "date" in df_windowed.columns:
-        df_windowed["date"] = pd.to_datetime(df_windowed["date"])
+        df_windowed["date"] = pd.to_datetime(
+            df_windowed["date"], format="mixed", errors="coerce"
+        )
 
     # Create dataframe from ALL statistics for last date (same as app in processing.py)
     df_all = pd.DataFrame(all_statistics)
     if not df_all.empty and "date" in df_all.columns:
-        df_all["date"] = pd.to_datetime(df_all["date"])
+        df_all["date"] = pd.to_datetime(df_all["date"], format="mixed", errors="coerce")
 
     completed_items = (
         int(df_windowed["completed_items"].sum()) if not df_windowed.empty else 0
     )
     completed_points = (
-        round(df_windowed["completed_points"].sum(), 1) if not df_windowed.empty else 0
+        df_windowed["completed_points"].sum() if not df_windowed.empty else 0
     )
 
     # Get CURRENT remaining from project_scope (same as app)
@@ -322,10 +446,15 @@ def _calculate_dashboard_metrics(
 
     # Calculate WINDOW-BASED completion percentages (same as app)
     items_completion_pct = (
-        round((completed_items / total_items) * 100, 1) if total_items > 0 else 0
+        (completed_items / total_items) * 100 if total_items > 0 else 0
     )
     points_completion_pct = (
-        round((completed_points / total_points) * 100, 1) if total_points > 0 else 0
+        (completed_points / total_points) * 100 if total_points > 0 else 0
+    )
+
+    logger.info(
+        f"[REPORT COMPLETION] completed_items={completed_items}, remaining_items={remaining_items}, "
+        f"total_items={total_items}, completion_pct={items_completion_pct:.2f}%"
     )
 
     # Calculate health metrics (same as app's dashboard_comprehensive.py)
@@ -368,69 +497,76 @@ def _calculate_dashboard_metrics(
                 elif recent_velocity_change < -10:
                     trend_direction = "declining"
 
-    # Calculate scope change rate
-    scope_change_rate = 0
-    if not df_windowed.empty and "created_items" in df_windowed.columns:
-        total_created = df_windowed["created_items"].sum()
-        if total_items > 0:
-            scope_change_rate = (total_created / total_items) * 100
-
     # Schedule variance will be calculated after forecast (placeholder for now)
     schedule_variance_days = 0
 
-    # Calculate health score using continuous proportional formula (same as app)
-    import logging
+    # Calculate basic velocity early for health calculation
+    # This will be recalculated more precisely later with data_points_count filtering
+    from data.processing import calculate_velocity_from_dataframe
 
-    logger = logging.getLogger(__name__)
-    logger.debug(
-        f"[REPORT HEALTH] velocity_cv={velocity_cv}, schedule_variance_days={schedule_variance_days}, scope_change_rate={scope_change_rate}, trend_direction={trend_direction}, recent_velocity_change={recent_velocity_change}"
+    velocity_items_early = calculate_velocity_from_dataframe(
+        df_windowed, "completed_items"
     )
 
-    # Velocity consistency (30 points max)
-    velocity_score = max(0, 30 * (1 - min(velocity_cv / 50, 1)))
-    logger.debug(f"[REPORT HEALTH] velocity_score={velocity_score:.2f}")
-
-    # Schedule performance (25 points max) - will be updated after forecast
-    schedule_score = max(0, 25 * (1 - min(schedule_variance_days / 60, 1)))
-    logger.debug(f"[REPORT HEALTH] schedule_score={schedule_score:.2f}")
-
-    # Scope stability (20 points max)
-    scope_score = max(0, 20 * (1 - min(scope_change_rate / 40, 1)))
-    logger.debug(f"[REPORT HEALTH] scope_score={scope_score:.2f}")
-
-    # Quality trends (15 points max)
-    if trend_direction == "improving":
-        trend_score = 15
-    elif trend_direction == "stable":
-        trend_score = 10
-    else:  # declining
-        trend_score = 0
-    logger.debug(f"[REPORT HEALTH] trend_score={trend_score}")
-
-    # Recent performance (10 points max)
-    if recent_velocity_change >= 0:
-        recent_score = 5 + min(5, 5 * (recent_velocity_change / 20))
-    else:
-        recent_score = max(0, 5 * (1 + recent_velocity_change / 20))
-    logger.debug(f"[REPORT HEALTH] recent_score={recent_score:.2f}")
-
-    health_score = int(
-        velocity_score + schedule_score + scope_score + trend_score + recent_score
-    )
-    health_score = max(0, min(100, health_score))
-    logger.debug(
-        f"[REPORT HEALTH] INITIAL health_score={health_score} (before schedule recalc)"
+    # Calculate comprehensive health score using v3.0 formula (6 dimensions)
+    # Prepare dashboard metrics for health calculator using shared function (DRY)
+    from data.project_health_calculator import (
+        calculate_comprehensive_project_health,
+        prepare_dashboard_metrics_for_health,
     )
 
-    # Determine health status (same as app)
-    if health_score >= 80:
-        health_status = "EXCELLENT"
-    elif health_score >= 60:
+    dashboard_metrics_for_health = prepare_dashboard_metrics_for_health(
+        completion_percentage=items_completion_pct
+        if not show_points
+        else points_completion_pct,
+        current_velocity_items=velocity_items_early,
+        velocity_cv=velocity_cv,
+        trend_direction=trend_direction,
+        recent_velocity_change=recent_velocity_change,
+        schedule_variance_days=schedule_variance_days,
+        completion_confidence=50,  # Default, will be updated after PERT forecast
+    )
+
+    logger.info(
+        f"[REPORT HEALTH FIRST] Input: completion_pct={items_completion_pct if not show_points else points_completion_pct:.2f}, "
+        f"velocity_items={velocity_items_early:.2f}, velocity_cv={velocity_cv:.2f}, "
+        f"trend={trend_direction}, recent_change={recent_velocity_change:.2f}, "
+        f"schedule_var={schedule_variance_days:.2f}, confidence=50"
+    )
+
+    # Add extended metrics if available
+    if extended_metrics is None:
+        extended_metrics = {}
+
+    # Calculate comprehensive health using same calculator as dashboard
+    # Note: Using placeholder scope_change_rate=0 for initial calculation
+    # Will be recalculated with correct value after df_for_velocity is created
+    health_result = calculate_comprehensive_project_health(
+        dashboard_metrics=dashboard_metrics_for_health,
+        dora_metrics=extended_metrics.get("dora"),
+        flow_metrics=extended_metrics.get("flow"),
+        bug_metrics=extended_metrics.get("bug_analysis"),
+        budget_metrics=extended_metrics.get("budget"),
+        scope_metrics={"scope_change_rate": 0},  # Placeholder, recalculated later
+    )
+
+    health_score = health_result["overall_score"]
+
+    # Determine health status using v3.0 thresholds
+    if health_score >= 70:
         health_status = "GOOD"
-    elif health_score >= 40:
-        health_status = "MODERATE"
-    else:
+    elif health_score >= 50:
+        health_status = "CAUTION"
+    elif health_score >= 30:
         health_status = "AT RISK"
+    else:
+        health_status = "CRITICAL"
+
+    logger.info(
+        f"[REPORT HEALTH] Comprehensive health_score={health_score}% status={health_status} "
+        f"formula_version={health_result.get('formula_version')} "
+        f"dimensions={len(health_result.get('dimensions', {}))}"
+    )
 
     # Calculate velocity using EXACT SAME method as app dashboard
     # App uses calculate_velocity_from_dataframe() which returns WEEKLY velocity (items per week)
@@ -438,11 +574,52 @@ def _calculate_dashboard_metrics(
     from data.processing import calculate_velocity_from_dataframe
 
     data_points_count = settings.get("data_points_count", weeks_count)
-    df_for_velocity = (
-        df_windowed.tail(data_points_count)
-        if len(df_windowed) > data_points_count
-        else df_windowed
-    )
+
+    # CRITICAL FIX: Filter by week labels (same as dashboard) to ensure exact N weeks
+    # This prevents date range filtering from including partial weeks or off-by-one errors
+    df_for_velocity = df_windowed
+    if (
+        data_points_count > 0
+        and not df_windowed.empty
+        and "date" in df_windowed.columns
+    ):
+        df_windowed_temp = df_windowed.copy()
+        df_windowed_temp["date"] = pd.to_datetime(
+            df_windowed_temp["date"], format="mixed", errors="coerce"
+        )
+        df_windowed_temp = df_windowed_temp.dropna(subset=["date"]).sort_values(
+            "date", ascending=True
+        )
+
+        # Generate the same week labels that the dashboard uses
+        from data.time_period_calculator import get_iso_week, format_year_week
+
+        weeks = []
+        current_date = df_windowed_temp["date"].max()
+        for i in range(data_points_count):
+            year, week = get_iso_week(current_date)
+            week_label = format_year_week(year, week)
+            weeks.append(week_label)
+            current_date = current_date - timedelta(days=7)
+
+        week_labels = set(reversed(weeks))  # Convert to set for fast lookup
+
+        # Filter by week_label if available, otherwise fall back to date range
+        if "week_label" in df_windowed_temp.columns:
+            df_for_velocity = df_windowed_temp[
+                df_windowed_temp["week_label"].isin(week_labels)
+            ]
+            logger.info(
+                f"[REPORT FILTER] Filtered to {len(df_for_velocity)} rows using week_label matching (requested {data_points_count} weeks)"
+            )
+        else:
+            # Fallback: date range filtering (old behavior for backward compatibility)
+            latest_date = df_windowed_temp["date"].max()
+            cutoff_date = latest_date - timedelta(weeks=data_points_count)
+            df_for_velocity = df_windowed_temp[df_windowed_temp["date"] > cutoff_date]
+            logger.warning(
+                f"[REPORT FILTER] No week_label column - using date range filtering (less accurate): {len(df_for_velocity)} rows"
+            )
 
     # Use the same function as app (returns items PER WEEK, not per day)
     velocity_items = calculate_velocity_from_dataframe(
@@ -459,6 +636,18 @@ def _calculate_dashboard_metrics(
         f"[REPORT VELOCITY] velocity_items={velocity_items:.2f} items/week, velocity_points={velocity_points:.2f} points/week"
     )
 
+    # Calculate scope change rate from FILTERED data (same as app)
+    # This must match the app's calculation in dashboard_comprehensive.py
+    scope_change_rate = 0
+    if not df_for_velocity.empty and "created_items" in df_for_velocity.columns:
+        total_created = df_for_velocity["created_items"].sum()
+        if total_items > 0:
+            scope_change_rate = (total_created / total_items) * 100
+
+    logger.debug(
+        f"[REPORT SCOPE] scope_change_rate={scope_change_rate:.2f}% (from {len(df_for_velocity)} rows)"
+    )
+
     # Get deadline and milestone from settings
     deadline = settings.get("deadline")
     milestone = settings.get("milestone")
@@ -473,9 +662,17 @@ def _calculate_dashboard_metrics(
     forecast_months = None
     forecast_metric = "story points" if show_points else "items"
     pert_days = None
+    forecast_date_items = None
+    forecast_date_points = None
 
-    # Compute weekly throughput from windowed statistics (same as app)
-    grouped = compute_weekly_throughput(df_windowed)
+    # CRITICAL: Compute weekly throughput from FILTERED statistics (same as app)
+    # Use df_for_velocity which respects data_points_count, not df_windowed
+    grouped = compute_weekly_throughput(df_for_velocity)
+
+    logger.info(
+        f"[REPORT DATA] df_for_velocity rows={len(df_for_velocity)}, grouped weeks={len(grouped)}, "
+        f"data_points_count={data_points_count}"
+    )
 
     # Get PERT times using same function as app (empirical best/worst)
     pert_time_items, _, _, pert_time_points, _, _ = calculate_rates(
@@ -498,77 +695,140 @@ def _calculate_dashboard_metrics(
         f"pert_time_points={pert_time_points:.2f}, show_points={show_points}"
     )
 
+    # Get last statistics date for forecast starting point
+    # CRITICAL: Statistics are weekly-based (Mondays), so we must use the last Monday data point
+    # NOT datetime.now() which could be any day of the week
+    # This aligns with burndown chart which uses df_calc["date"].iloc[-1]
+    # IMPORTANT: Use df_for_velocity (filtered data) to match dashboard behavior
+    last_date = (
+        df_for_velocity["date"].iloc[-1]
+        if not df_for_velocity.empty
+        else datetime.now()
+    )
+
+    logger.info(
+        f"[REPORT FORECAST] last_date={last_date.strftime('%Y-%m-%d') if hasattr(last_date, 'strftime') else last_date}, "
+        f"pert_days={pert_days}, df_for_velocity_rows={len(df_for_velocity)}, "
+        f"completion_date={(last_date + timedelta(days=pert_days)).strftime('%Y-%m-%d') if pert_days and pert_days > 0 else 'None'}"
+    )
+
     if pert_days and pert_days > 0:
-        # CRITICAL: App uses datetime.now() as starting point, NOT last_date from data
-        # This is in ui/dashboard_comprehensive.py line 2102:
-        # "completion_date": (datetime.now() + timedelta(days=forecast_days))
-        # The PERT calculation already accounts for time elapsed, so we start from now
-        forecast_date_obj = datetime.now() + timedelta(days=pert_days)
+        # Start forecast from last statistics date (last Monday), not today
+        # This aligns with weekly data aggregation structure
+        forecast_date_obj = last_date + timedelta(days=pert_days)
         forecast_date = forecast_date_obj.strftime("%Y-%m-%d")
 
-        # Calculate months to forecast from now
+        # Calculate months to forecast from last date
         forecast_months = round(pert_days / 30.44)  # Average days per month
 
-    # Calculate months to deadline
+    # Calculate both items and points forecast dates for display (matching dashboard logic)
+    # Only show if pert time is positive (not 0 which means no data or already complete)
+    if pert_time_items and pert_time_items > 0:
+        forecast_date_items_obj = last_date + timedelta(days=pert_time_items)
+        forecast_date_items = forecast_date_items_obj.strftime("%Y-%m-%d")
+        logger.info(
+            f"[REPORT] Calculated forecast_date_items: {forecast_date_items} (pert_time_items={pert_time_items:.2f} days from {last_date.strftime('%Y-%m-%d')})"
+        )
+
+    if pert_time_points and pert_time_points > 0:
+        forecast_date_points_obj = last_date + timedelta(days=pert_time_points)
+        forecast_date_points = forecast_date_points_obj.strftime("%Y-%m-%d")
+        logger.info(
+            f"[REPORT] Calculated forecast_date_points: {forecast_date_points} (pert_time_points={pert_time_points:.2f} days from {last_date.strftime('%Y-%m-%d')})"
+        )
+
+    logger.info(
+        f"[REPORT] Final forecast values: forecast_date={forecast_date}, "
+        f"forecast_date_items={forecast_date_items}, forecast_date_points={forecast_date_points}"
+    )
+
+    # Calculate months to deadline (from last statistics date, not today)
     deadline_months = None
     days_to_deadline = None
     if deadline:
         try:
             deadline_obj = datetime.strptime(deadline, "%Y-%m-%d")
-            days_to_deadline = (deadline_obj - datetime.now()).days
+            # Use last_date for consistency with weekly data structure
+            days_to_deadline = (deadline_obj - last_date).days
             deadline_months = round(days_to_deadline / 30.44)
         except ValueError:
             pass
 
     # Recalculate schedule variance now that forecast is complete
     if pert_days and days_to_deadline:
-        schedule_variance_days = abs(pert_days - days_to_deadline)
-        logger.debug(
-            f"[REPORT HEALTH] RECALC: schedule_variance_days={schedule_variance_days} (pert_days={pert_days}, days_to_deadline={days_to_deadline})"
+        # CRITICAL: Preserve sign for health calculation
+        # Negative = behind schedule (bad), Positive = ahead of schedule (good)
+        # App: schedule_var = -(pert_days - days_to_deadline)
+        # Simplified: schedule_var = days_to_deadline - pert_days
+        schedule_variance_days = days_to_deadline - pert_days
+        logger.info(
+            f"[REPORT HEALTH] RECALC: schedule_variance_days={schedule_variance_days:.2f} "
+            f"(pert_days={pert_days:.2f}, days_to_deadline={days_to_deadline})"
         )
 
-        # Recalculate health score with schedule variance (same as app)
-        # Velocity consistency (30 points max)
-        velocity_score = max(0, 30 * (1 - min(velocity_cv / 50, 1)))
-
-        # Schedule performance (25 points max)
-        schedule_score = max(0, 25 * (1 - min(schedule_variance_days / 60, 1)))
-        logger.debug(f"[REPORT HEALTH] RECALC: schedule_score={schedule_score:.2f}")
-
-        # Scope stability (20 points max)
-        scope_score = max(0, 20 * (1 - min(scope_change_rate / 40, 1)))
-
-        # Quality trends (15 points max)
-        if trend_direction == "improving":
-            trend_score = 15
-        elif trend_direction == "stable":
-            trend_score = 10
-        else:  # declining
-            trend_score = 0
-
-        # Recent performance (10 points max)
-        if recent_velocity_change >= 0:
-            recent_score = 5 + min(5, 5 * (recent_velocity_change / 20))
+        # Calculate confidence based on schedule buffer (same logic as dashboard)
+        # Calculate completion confidence from schedule variance buffer
+        # CRITICAL: Must match ui/dashboard_comprehensive.py lines 592-601 EXACTLY
+        # Any difference in thresholds causes health score divergence
+        # Positive buffer (ahead of schedule) = higher confidence
+        # Negative buffer (behind schedule) = lower confidence
+        buffer_days = days_to_deadline - pert_days
+        if buffer_days >= 28:  # Match app threshold (was 30)
+            completion_confidence = 95  # Very high confidence
+        elif buffer_days >= 14:
+            completion_confidence = 80  # High confidence
+        elif buffer_days >= 0:
+            completion_confidence = 65  # Moderate confidence
+        elif buffer_days >= -14:
+            completion_confidence = 45  # Low confidence
         else:
-            recent_score = max(0, 5 * (1 + recent_velocity_change / 20))
+            completion_confidence = 25  # Very low confidence
 
-        health_score = int(
-            velocity_score + schedule_score + scope_score + trend_score + recent_score
-        )
-        health_score = max(0, min(100, health_score))
-        logger.debug(
-            f"[REPORT HEALTH] FINAL health_score={health_score} (after schedule recalc)"
+        # Recalculate comprehensive health score with updated schedule variance and confidence
+        # ALWAYS use items_completion_pct for health (consistent with app)
+        dashboard_metrics_for_health = prepare_dashboard_metrics_for_health(
+            completion_percentage=items_completion_pct,  # Always items, not points
+            current_velocity_items=velocity_items,
+            velocity_cv=velocity_cv,
+            trend_direction=trend_direction,
+            recent_velocity_change=recent_velocity_change,
+            schedule_variance_days=schedule_variance_days,  # Updated value
+            completion_confidence=completion_confidence,  # Updated value
         )
 
-        # Update health status
-        if health_score >= 80:
-            health_status = "EXCELLENT"
-        elif health_score >= 60:
+        logger.info(
+            f"[REPORT HEALTH] Input: completion_pct={items_completion_pct:.2f}, "
+            f"velocity_items={velocity_items:.2f}, velocity_cv={velocity_cv:.2f}, "
+            f"trend={trend_direction}, recent_change={recent_velocity_change:.2f}, "
+            f"schedule_var={schedule_variance_days:.2f}, confidence={completion_confidence}, "
+            f"scope_change_rate={scope_change_rate:.2f}"
+        )
+
+        health_result = calculate_comprehensive_project_health(
+            dashboard_metrics=dashboard_metrics_for_health,
+            dora_metrics=extended_metrics.get("dora"),
+            flow_metrics=extended_metrics.get("flow"),
+            bug_metrics=extended_metrics.get("bug_analysis"),
+            budget_metrics=extended_metrics.get("budget"),
+            scope_metrics={"scope_change_rate": scope_change_rate},
+        )
+
+        health_score = health_result["overall_score"]
+
+        # Determine health status using v3.0 thresholds
+        if health_score >= 70:
             health_status = "GOOD"
-        elif health_score >= 40:
-            health_status = "MODERATE"
-        else:
+        elif health_score >= 50:
+            health_status = "CAUTION"
+        elif health_score >= 30:
             health_status = "AT RISK"
+        else:
+            health_status = "CRITICAL"
+
+        logger.info(
+            f"[REPORT HEALTH] FINAL health_score={health_score}% status={health_status} "
+            f"(recalculated with schedule_variance_days={schedule_variance_days:.2f})"
+        )
 
     return {
         "has_data": True,
@@ -586,11 +846,16 @@ def _calculate_dashboard_metrics(
         "deadline_months": deadline_months,
         "milestone": milestone,
         "forecast_date": forecast_date,
+        "forecast_date_items": forecast_date_items,
+        "forecast_date_points": forecast_date_points,
         "forecast_months": forecast_months,
         "forecast_metric": forecast_metric,
         "velocity_items": velocity_items,
         "velocity_points": velocity_points,
         "weeks_count": weeks_count,
+        "pert_time_items_weeks": (pert_time_items / 7.0) if pert_time_items else 0,
+        "pert_time_points_weeks": (pert_time_points / 7.0) if pert_time_points else 0,
+        "show_points": show_points,  # Pass show_points flag for template
     }
 
 
@@ -614,7 +879,7 @@ def _calculate_burndown_metrics(
         return {"has_data": False, "weeks_count": weeks_count}
 
     df = pd.DataFrame(statistics)
-    df["date"] = pd.to_datetime(df["date"])  # type: ignore
+    df["date"] = pd.to_datetime(df["date"], format="mixed", errors="coerce")  # type: ignore
 
     # Calculate velocity using proper week counting
     velocity_items = calculate_velocity_from_dataframe(df, "completed_items")
@@ -626,14 +891,10 @@ def _calculate_burndown_metrics(
 
     # Calculate weeks to completion
     weeks_remaining_items = (
-        round(remaining_items / velocity_items, 1)
-        if velocity_items > 0
-        else float("inf")
+        remaining_items / velocity_items if velocity_items > 0 else float("inf")
     )
     weeks_remaining_points = (
-        round(remaining_points / velocity_points, 1)
-        if velocity_points > 0
-        else float("inf")
+        remaining_points / velocity_points if velocity_points > 0 else float("inf")
     )
 
     # Calculate weekly breakdown for chart
@@ -682,11 +943,15 @@ def _calculate_bug_metrics(
     )
 
     if not jira_issues:
+        logger.warning("[REPORT BUG] No JIRA issues available for bug analysis")
         return {"has_data": False}
 
     try:
         # Get bug type mappings
         bug_types = settings.get("bug_types", {})
+        logger.info(
+            f"[REPORT BUG] Processing {len(jira_issues)} JIRA issues with bug_types={bug_types}"
+        )
 
         # Calculate date range
         date_to = datetime.now()
@@ -713,6 +978,10 @@ def _calculate_bug_metrics(
         )
 
         if not all_bug_issues and not timeline_filtered_bugs:
+            logger.warning(
+                f"[REPORT BUG] No bugs found matching configured types. "
+                f"Total JIRA issues: {len(jira_issues)}, bug_types={bug_types}"
+            )
             return {"has_data": False}
 
         # Calculate weekly bug statistics using timeline-filtered bugs
@@ -758,17 +1027,15 @@ def _calculate_bug_metrics(
         total_completed = sum(s.get("completed_items", 0) for s in statistics)
         total_bugs_resolved = sum(s.get("bugs_resolved", 0) for s in weekly_stats)
         bug_investment_pct = (
-            round((total_bugs_resolved / total_completed) * 100, 1)
-            if total_completed > 0
-            else 0
+            (total_bugs_resolved / total_completed) * 100 if total_completed > 0 else 0
         )
 
         # Convert resolution rate from decimal to percentage
         resolution_rate = bug_summary.get("resolution_rate", 0)
-        resolution_rate_pct = round(resolution_rate * 100, 1)
+        resolution_rate_pct = resolution_rate * 100
 
         # Round average age
-        avg_age_days = round(bug_summary.get("avg_age_days", 0), 1)
+        avg_age_days = bug_summary.get("avg_age_days", 0)
 
         # Count closed bugs from timeline-filtered bugs
         closed_bugs = bug_summary.get("closed_bugs", 0)
@@ -815,21 +1082,19 @@ def _calculate_scope_metrics(
 
     # Calculate creation/completion totals for the period
     total_created_items = int(df["created_items"].sum())
-    total_created_points = round(df["created_points"].sum(), 1)
+    total_created_points = df["created_points"].sum()
     total_completed_items = int(df["completed_items"].sum())
-    total_completed_points = round(df["completed_points"].sum(), 1)
+    total_completed_points = df["completed_points"].sum()
 
     # Current scope from project_scope (remaining work)
     current_items = project_scope.get("remaining_items", 0)
-    current_points = round(project_scope.get("remaining_total_points", 0), 1)
+    current_points = project_scope.get("remaining_total_points", 0)
 
     # Calculate initial scope at window start
     # Work backwards from current: Initial = Current + Completed - Created
     # This accounts for both work completed and new work added during the period
     initial_items = current_items + total_completed_items - total_created_items
-    initial_points = round(
-        current_points + total_completed_points - total_created_points, 1
-    )
+    initial_points = current_points + total_completed_points - total_created_points
 
     logger.debug(
         f"[SCOPE BASELINE] Current: {current_items} items, {current_points:.2f} points"
@@ -846,7 +1111,7 @@ def _calculate_scope_metrics(
 
     # Calculate net change: Current - Initial = (Current) - (Current + Completed - Created) = Created - Completed
     items_change = current_items - initial_items
-    points_change = round(current_points - initial_points, 1)
+    points_change = current_points - initial_points
 
     # Calculate creation/completion ratios
     items_ratio = (
@@ -933,9 +1198,7 @@ def _calculate_flow_metrics(
 
     # AGGREGATE metrics across period (same as app)
     # Flow Velocity: Average items/week
-    avg_velocity = (
-        round(sum(velocity_values) / len(velocity_values), 1) if velocity_values else 0
-    )
+    avg_velocity = sum(velocity_values) / len(velocity_values) if velocity_values else 0
 
     # Flow Time: Median of weekly medians (exclude zeros = weeks with no completions)
     non_zero_flow_times = [v for v in flow_time_values if v > 0]
@@ -953,7 +1216,7 @@ def _calculate_flow_metrics(
     # Flow Efficiency: Average efficiency across period (exclude zeros)
     non_zero_efficiency = [v for v in flow_efficiency_values if v > 0]
     avg_efficiency = (
-        round(sum(non_zero_efficiency) / len(non_zero_efficiency), 1)
+        sum(non_zero_efficiency) / len(non_zero_efficiency)
         if non_zero_efficiency
         else 0
     )
@@ -1019,9 +1282,23 @@ def _calculate_flow_metrics(
             )
 
     logger.info(
-        f"Flow metrics loaded: Velocity={avg_velocity:.1f} items/week, "
-        f"Flow Time={median_flow_time:.1f}d, Efficiency={avg_efficiency:.1f}%, WIP={wip_count}"
+        f"Flow metrics loaded: Velocity={avg_velocity:.2f} items/week, "
+        f"Flow Time={median_flow_time:.2f}d, Efficiency={avg_efficiency:.2f}%, WIP={wip_count}"
     )
+
+    # Check if there's any meaningful data (not all zeros)
+    # has_data should be True only if at least ONE metric has real values
+    has_meaningful_data = (
+        (avg_velocity > 0)  # At least some velocity
+        or (median_flow_time > 0)  # Flow time exists
+        or (avg_efficiency > 0)  # Efficiency exists
+        or (wip_count > 0)  # WIP exists
+        or (total_completed > 0)  # Any completed work in distribution
+    )
+
+    if not has_meaningful_data:
+        logger.info("No meaningful Flow data - all metrics are zero")
+        return {"has_data": False, "weeks_count": weeks_count}
 
     return {
         "has_data": True,
@@ -1088,7 +1365,7 @@ def _calculate_dora_metrics(profile_id: str, weeks_count: int) -> Dict[str, Any]
     # MTTR: value is already in hours (median of weekly medians), convert to days
     mttr_data = cached_metrics.get("mean_time_to_recovery", {})
     mttr_hours = mttr_data.get("value")  # Already in hours (median of weekly medians)
-    mttr_days = round(mttr_hours / 24, 1) if mttr_hours else None
+    mttr_days = mttr_hours / 24 if mttr_hours else None
 
     # Get weekly values for trend analysis
     weekly_labels = deploy_data.get("weekly_labels", [])
@@ -1098,15 +1375,32 @@ def _calculate_dora_metrics(profile_id: str, weeks_count: int) -> Dict[str, Any]
         f"LT={lead_time_days}d, CFR={change_failure_rate}%, MTTR={mttr_days}d"
     )
 
+    # Check if there's any meaningful data (not all zeros/None)
+    # has_data should be True only if at least ONE metric has real values
+    has_meaningful_data = (
+        (deployment_freq > 0)  # At least one deployment
+        or (lead_time_days is not None and lead_time_days > 0)  # Lead time exists
+        or (mttr_days is not None and mttr_days > 0)  # MTTR exists
+        # CFR can be legitimately 0% (no failures), so we check if deployment count exists
+        or (deployment_freq_tasks > 0)  # Has tasks for CFR calculation
+    )
+
+    if not has_meaningful_data:
+        logger.info("No meaningful DORA data - all metrics are zero or None")
+        return {"has_data": False, "weeks_count": weeks_count}
+
     return {
         "has_data": True,
         "deployment_frequency": deployment_freq,  # Releases per week
         "deployment_frequency_tasks": deployment_freq_tasks,  # Tasks per week
-        "lead_time_days": lead_time_days,  # Days (None if no data)
+        "lead_time": lead_time_days
+        or 0,  # CRITICAL: Map to 'lead_time' for health calculator (app uses this key)
+        "lead_time_days": lead_time_days,  # Days (None if no data) - keep for report charts
         "lead_time_hours": lead_time_hours,  # Hours (None if no data)
         "change_failure_rate": change_failure_rate,  # Percentage
-        "mttr_days": mttr_days,  # Days (None if no data)
-        "mttr_hours": mttr_hours,  # Hours (None if no data)
+        "mttr_hours": mttr_hours
+        or 0,  # CRITICAL: Health calculator expects hours, not days
+        "mttr_days": mttr_days,  # Days (None if no data) - keep for report charts
         "weekly_labels": weekly_labels,  # For charts
         "weeks_count": weeks_count,
         # Include full cached data for detailed reporting
@@ -1133,7 +1427,7 @@ def _calculate_weekly_breakdown(statistics: List[Dict]) -> List[Dict]:
         return []
 
     df = pd.DataFrame(statistics)
-    df["date"] = pd.to_datetime(df["date"])  # type: ignore
+    df["date"] = pd.to_datetime(df["date"], format="mixed", errors="coerce")  # type: ignore
     df["week"] = df["date"].dt.strftime("%Y-W%U")  # type: ignore
 
     # Group by week and aggregate
@@ -1166,6 +1460,116 @@ def _calculate_weekly_breakdown(statistics: List[Dict]) -> List[Dict]:
     return weekly_data
 
 
+def _calculate_budget_metrics(
+    profile_id: str,
+    query_id: str,
+    weeks_count: int,
+    velocity_items: float = 0.0,
+    velocity_points: float = 0.0,
+) -> Dict[str, Any]:
+    """
+    Calculate budget metrics for report using proper budget calculator functions.
+
+    Args:
+        profile_id: Profile identifier
+        query_id: Query identifier
+        weeks_count: Number of weeks in analysis period
+        velocity_items: Items velocity for cost_per_item calculation (from dashboard)
+        velocity_points: Story points velocity for cost_per_point calculation (from dashboard)
+
+    Returns:
+        Dictionary with budget metrics and weekly tracking data including cost breakdown
+    """
+    from data.persistence.factory import get_backend
+    from data.budget_calculator import (
+        calculate_budget_consumed,
+        calculate_runway,
+        calculate_cost_breakdown_by_type,
+    )
+    from data.iso_week_bucketing import get_week_label
+    from datetime import datetime
+
+    logger.info(f"Calculating budget metrics for {profile_id}/{query_id}")
+
+    backend = get_backend()
+    budget_settings = backend.get_budget_settings(profile_id, query_id)
+
+    if not budget_settings:
+        logger.info("No budget configured for query")
+        return {"has_data": False}
+
+    # Get budget revisions for history
+    revisions = backend.get_budget_revisions(profile_id, query_id) or []
+
+    # Calculate latest budget state
+    time_allocated = budget_settings.get("time_allocated_weeks", 0)
+    cost_per_week = budget_settings.get("team_cost_per_week_eur", 0.0)
+    budget_total = budget_settings.get("budget_total_eur", 0.0)
+    currency = budget_settings.get("currency_symbol", "€")
+
+    # Get current week for calculations
+    current_week = get_week_label(datetime.now())
+
+    # Use proper budget calculator functions (same as app)
+    try:
+        # Calculate consumption using actual budget calculator
+        consumed_eur, budget_total_calc, consumed_pct = calculate_budget_consumed(
+            profile_id, query_id, current_week
+        )
+
+        # Calculate runway using actual budget calculator
+        runway_weeks, burn_rate = calculate_runway(
+            profile_id, query_id, current_week, data_points_count=weeks_count
+        )
+
+        # Calculate cost breakdown by work type
+        cost_breakdown = calculate_cost_breakdown_by_type(
+            profile_id, query_id, current_week
+        )
+
+        # Use velocity from dashboard (already calculated in report) for accurate cost per item/point
+        # This ensures consistency with the velocity shown in the dashboard section
+        cost_per_item = cost_per_week / velocity_items if velocity_items > 0 else 0
+        cost_per_point = cost_per_week / velocity_points if velocity_points > 0 else 0
+
+        # Use 999999 as sentinel for infinity (Jinja2 compatible)
+        if runway_weeks == float("inf"):
+            runway_weeks = 999999
+
+        logger.info(
+            f"Budget metrics calculated: consumed={consumed_pct:.1f}%, "
+            f"runway={runway_weeks:.1f}w, burn_rate={burn_rate:.2f}"
+        )
+
+    except Exception as e:
+        logger.error(f"Failed to calculate budget metrics: {e}", exc_info=True)
+        # Fallback to basic calculations
+        consumed_eur = 0.0
+        consumed_pct = 0.0
+        burn_rate = cost_per_week
+        runway_weeks = 0
+        cost_breakdown = {}
+        cost_per_item = 0.0
+        cost_per_point = 0.0
+
+    return {
+        "has_data": True,
+        "time_allocated_weeks": time_allocated,
+        "cost_per_week": cost_per_week,
+        "budget_total": budget_total,
+        "currency_symbol": currency,
+        "consumed_amount": consumed_eur,
+        "consumed_percentage": consumed_pct,
+        "remaining_amount": budget_total - consumed_eur,
+        "runway_weeks": runway_weeks,
+        "revision_count": len(revisions),
+        "burn_rate": burn_rate,
+        "cost_per_item": cost_per_item,
+        "cost_per_point": cost_per_point,
+        "cost_breakdown": cost_breakdown,
+    }
+
+
 def _calculate_historical_burndown(
     statistics: List[Dict], project_scope: Dict
 ) -> Dict[str, List]:
@@ -1174,7 +1578,7 @@ def _calculate_historical_burndown(
         return {"dates": [], "remaining_items": [], "remaining_points": []}
 
     df = pd.DataFrame(statistics)
-    df["date"] = pd.to_datetime(df["date"])
+    df["date"] = pd.to_datetime(df["date"], format="mixed", errors="coerce")
     df = df.sort_values("date")
 
     current_remaining_items = project_scope.get("remaining_items", 0)
@@ -1224,13 +1628,17 @@ def _generate_chart_scripts(metrics: Dict[str, Any], sections: List[str]) -> Lis
                 dashboard_metrics.get("milestone"),
                 dashboard_metrics.get("forecast_date"),
                 dashboard_metrics.get("deadline"),
+                dashboard_metrics.get("show_points", False),
             )
         )
 
     # Weekly breakdown chart (for burndown section)
     if "burndown" in sections and metrics.get("burndown", {}).get("weekly_data"):
         scripts.append(
-            _generate_weekly_breakdown_chart(metrics["burndown"]["weekly_data"])
+            _generate_weekly_breakdown_chart(
+                metrics["burndown"]["weekly_data"],
+                metrics.get("dashboard", {}).get("show_points", False),
+            )
         )
 
     # Scope changes chart
@@ -1255,13 +1663,18 @@ def _generate_chart_scripts(metrics: Dict[str, Any], sections: List[str]) -> Lis
 
 
 def _generate_burndown_chart(
-    burndown_metrics: Dict, milestone: str, forecast_date: str, deadline: str
+    burndown_metrics: Dict,
+    milestone: str,
+    forecast_date: str,
+    deadline: str,
+    show_points: bool = False,
 ) -> str:
     """Generate Chart.js script for burndown chart with milestone/forecast/deadline lines."""
     historical = burndown_metrics.get("historical_data", {})
-    dates_js = json.dumps(historical.get("dates", []))
-    items_js = json.dumps(historical.get("remaining_items", []))
-    points_js = json.dumps(historical.get("remaining_points", []))
+    dates = historical.get("dates", [])
+    dates_js = json.dumps(dates)
+    items = historical.get("remaining_items", [])
+    points = historical.get("remaining_points", [])
 
     # Build annotations for milestone, forecast, deadline with named keys
     annotations = {}
@@ -1324,6 +1737,60 @@ def _generate_burndown_chart(
         [f"{k}: {v}" for k, v in annotations.items()]
     )
 
+    # Build datasets conditionally
+    datasets = [
+        {
+            "label": "Remaining Items",
+            "data": items,
+            "borderColor": "#0d6efd",
+            "backgroundColor": "rgba(13, 110, 253, 0.1)",
+            "tension": 0.4,
+            "borderWidth": 2,
+            "yAxisID": "y",
+        }
+    ]
+
+    if show_points:
+        datasets.append(
+            {
+                "label": "Remaining Points",
+                "data": points,
+                "borderColor": "#fd7e14",
+                "backgroundColor": "rgba(253, 126, 20, 0.1)",
+                "tension": 0.4,
+                "borderWidth": 2,
+                "yAxisID": "y1",
+            }
+        )
+
+    datasets_js = json.dumps(datasets)
+
+    # Build scales conditionally
+    scales_config = {
+        "x": {
+            "grid": {"display": False},
+            "ticks": {"maxRotation": 45, "minRotation": 45},
+        },
+        "y": {
+            "type": "linear",
+            "display": True,
+            "position": "left",
+            "title": {"display": True, "text": "Items"},
+            "grid": {"color": "#e9ecef"},
+        },
+    }
+
+    if show_points:
+        scales_config["y1"] = {
+            "type": "linear",
+            "display": True,
+            "position": "right",
+            "title": {"display": True, "text": "Points"},
+            "grid": {"drawOnChartArea": False},
+        }
+
+    scales_js = json.dumps(scales_config)
+
     return f"""
     (function() {{
         const ctx = document.getElementById('burndownChart');
@@ -1332,26 +1799,7 @@ def _generate_burndown_chart(
                 type: 'line',
                 data: {{
                     labels: {dates_js},
-                    datasets: [
-                        {{
-                            label: 'Remaining Items',
-                            data: {items_js},
-                            borderColor: '#0d6efd',
-                            backgroundColor: 'rgba(13, 110, 253, 0.1)',
-                            tension: 0.4,
-                            borderWidth: 2,
-                            yAxisID: 'y'
-                        }},
-                        {{
-                            label: 'Remaining Points',
-                            data: {points_js},
-                            borderColor: '#fd7e14',
-                            backgroundColor: 'rgba(253, 126, 20, 0.1)',
-                            tension: 0.4,
-                            borderWidth: 2,
-                            yAxisID: 'y1'
-                        }}
-                    ]
+                    datasets: {datasets_js}
                 }},
                 options: {{
                     responsive: true,
@@ -1360,35 +1808,7 @@ def _generate_burndown_chart(
                         mode: 'index',
                         intersect: false
                     }},
-                    scales: {{
-                        x: {{ 
-                            grid: {{ display: false }},
-                            ticks: {{
-                                maxRotation: 45,
-                                minRotation: 45
-                            }}
-                        }},
-                        y: {{
-                            type: 'linear',
-                            display: true,
-                            position: 'left',
-                            title: {{
-                                display: true,
-                                text: 'Items'
-                            }},
-                            grid: {{ color: '#e9ecef' }}
-                        }},
-                        y1: {{
-                            type: 'linear',
-                            display: true,
-                            position: 'right',
-                            title: {{
-                                display: true,
-                                text: 'Points'
-                            }},
-                            grid: {{ drawOnChartArea: false }}
-                        }}
-                    }},
+                    scales: {scales_js},
                     plugins: {{
                         legend: {{ display: true, position: 'top' }},
                         annotation: {{
@@ -1404,13 +1824,52 @@ def _generate_burndown_chart(
     """
 
 
-def _generate_weekly_breakdown_chart(weekly_data: List[Dict]) -> str:
+def _generate_weekly_breakdown_chart(
+    weekly_data: List[Dict], show_points: bool = False
+) -> str:
     """Generate Chart.js script for weekly breakdown chart."""
-    dates_js = json.dumps([w["date"] for w in weekly_data])
-    items_created_js = json.dumps([w["created_items"] for w in weekly_data])
-    items_closed_js = json.dumps([-w["completed_items"] for w in weekly_data])
-    points_created_js = json.dumps([w["created_points"] for w in weekly_data])
-    points_closed_js = json.dumps([-w["completed_points"] for w in weekly_data])
+    dates = [w["date"] for w in weekly_data]
+    dates_js = json.dumps(dates)
+    items_created = [w["created_items"] for w in weekly_data]
+    items_closed = [-w["completed_items"] for w in weekly_data]
+    points_created = [w["created_points"] for w in weekly_data]
+    points_closed = [-w["completed_points"] for w in weekly_data]
+
+    # Build datasets conditionally
+    datasets = [
+        {
+            "label": "Items Created",
+            "data": items_created,
+            "backgroundColor": "#0d6efd",
+            "stack": "items",
+        },
+        {
+            "label": "Items Closed",
+            "data": items_closed,
+            "backgroundColor": "#0d6efd",
+            "stack": "items",
+        },
+    ]
+
+    if show_points:
+        datasets.extend(
+            [
+                {
+                    "label": "Points Created",
+                    "data": points_created,
+                    "backgroundColor": "#fd7e14",
+                    "stack": "points",
+                },
+                {
+                    "label": "Points Closed",
+                    "data": points_closed,
+                    "backgroundColor": "#fd7e14",
+                    "stack": "points",
+                },
+            ]
+        )
+
+    datasets_js = json.dumps(datasets)
 
     return f"""
     (function() {{
@@ -1420,32 +1879,7 @@ def _generate_weekly_breakdown_chart(weekly_data: List[Dict]) -> str:
                 type: 'bar',
                 data: {{
                     labels: {dates_js},
-                    datasets: [
-                        {{
-                            label: 'Items Created',
-                            data: {items_created_js},
-                            backgroundColor: '#0d6efd',
-                            stack: 'items'
-                        }},
-                        {{
-                            label: 'Items Closed',
-                            data: {items_closed_js},
-                            backgroundColor: '#0d6efd',
-                            stack: 'items'
-                        }},
-                        {{
-                            label: 'Points Created',
-                            data: {points_created_js},
-                            backgroundColor: '#fd7e14',
-                            stack: 'points'
-                        }},
-                        {{
-                            label: 'Points Closed',
-                            data: {points_closed_js},
-                            backgroundColor: '#fd7e14',
-                            stack: 'points'
-                        }}
-                    ]
+                    datasets: {datasets_js}
                 }},
                 options: {{
                     responsive: true,
@@ -1488,10 +1922,13 @@ def _generate_scope_changes_chart(metrics: Dict[str, Any]) -> str:
     df = pd.DataFrame(statistics)
 
     # Convert date to datetime and generate week labels
-    df["date"] = pd.to_datetime(df["date"])  # type: ignore
+    df["date"] = pd.to_datetime(df["date"], format="mixed", errors="coerce")  # type: ignore
     df["week"] = df["date"].dt.isocalendar().week  # type: ignore
     df["year"] = df["date"].dt.isocalendar().year  # type: ignore
-    df["week_label"] = df.apply(lambda r: f"{r['year']}-W{r['week']:02d}", axis=1)
+    # Use vectorized string formatting to avoid DataFrame return issues
+    df["week_label"] = (
+        df["year"].astype(str) + "-W" + df["week"].astype(str).str.zfill(2)
+    )
 
     # Group by week to aggregate daily data
     weekly_df = (
@@ -1922,6 +2359,39 @@ def _render_template(
     # Get weeks count from metrics (actual weeks with data)
     weeks_count = metrics.get("dashboard", {}).get("weeks_count", time_period_weeks)
 
+    # Calculate date range for the report period
+    from data.iso_week_bucketing import get_iso_week_bounds
+    from data.time_period_calculator import get_iso_week, format_year_week
+
+    # Calculate start date (Monday of the oldest week)
+    current_date = datetime.now()
+    weeks_list = []
+    for i in range(weeks_count):
+        year, week = get_iso_week(current_date)
+        week_label = format_year_week(year, week)
+        weeks_list.append(week_label)
+        current_date = current_date - timedelta(days=7)
+
+    if weeks_list:
+        # Get the oldest week (start of period)
+        oldest_week = weeks_list[-1]
+        # Parse week label to datetime, then get Monday of that week
+        oldest_week_date = _parse_week_label(oldest_week)
+        start_monday, _ = get_iso_week_bounds(oldest_week_date)
+        start_date = start_monday.strftime("%Y-%m-%d")
+
+        # End date is today
+        end_date = datetime.now().strftime("%Y-%m-%d")
+
+        # Get first and last week numbers for display
+        first_week = weeks_list[-1]  # Oldest
+        last_week = weeks_list[0]  # Newest (current)
+    else:
+        start_date = ""
+        end_date = ""
+        first_week = ""
+        last_week = ""
+
     # Load and embed external dependencies for offline reports
     from data.report_assets_embedder import embed_report_dependencies
 
@@ -1933,9 +2403,16 @@ def _render_template(
         generated_at=generated_at,
         time_period_weeks=time_period_weeks,
         weeks_count=weeks_count,
+        start_date=start_date,
+        end_date=end_date,
+        first_week=first_week,
+        last_week=last_week,
         sections=sections,
         metrics=metrics,
         chart_script=chart_script,
+        show_points=metrics.get("dashboard", {}).get(
+            "show_points", False
+        ),  # Pass show_points flag
         # Embedded dependencies for offline use
         bootstrap_css=embedded_deps["bootstrap_css"],
         fontawesome_css=embedded_deps["fontawesome_css"],

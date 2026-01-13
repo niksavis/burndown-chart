@@ -14,100 +14,64 @@ The bug was NOT in cache invalidation (which works correctly) but in user workfl
 4. Browser/UI might show stale values until refresh
 
 This test verifies the fix works correctly.
+
+MIGRATED: Uses SQLite database backend via temp_database fixture (from conftest.py).
 """
 
-import unittest
-import tempfile
-import os
+import pytest
+import sys
 from pathlib import Path
+from datetime import datetime, timezone
 from unittest.mock import patch
-from data.persistence import (
-    update_project_scope_from_jira,
-    get_project_scope,
-    save_unified_project_data,
-)
-from data.profile_manager import (
-    create_profile,
-    switch_profile,
-    delete_profile,
-    PROFILES_DIR,
-)
+
+# Add parent to path to import data.persistence module directly
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))
+
+# Import from data module - persistence.py is a MODULE, not the package
+import data.persistence as persistence_module
+
 from data.query_manager import create_query
 
 
-class TestEmptyPointsFieldCachingWorkflow(unittest.TestCase):
-    """Test empty points field caching workflow scenarios."""
+class TestEmptyPointsFieldCachingWorkflow:
+    """Test empty points field caching workflow scenarios using database backend."""
 
-    def setUp(self):
-        """Set up temporary directories for complete test isolation."""
-        # Create temporary directories for profiles AND project data
-        self.temp_dir = tempfile.mkdtemp(prefix="empty_points_test_")
-        self.temp_profiles_dir = Path(self.temp_dir) / "profiles"
-        self.temp_profiles_dir.mkdir(parents=True, exist_ok=True)
-        self.temp_profiles_file = self.temp_profiles_dir / "profiles.json"
+    @pytest.fixture(autouse=True)
+    def setup_test_data(self, temp_database):
+        """Set up test profile and query using database backend."""
+        from data.persistence.factory import get_backend
 
-        # Create temporary project data file
-        self.temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".json")
-        self.temp_file.close()
+        self.backend = get_backend()
 
-        # Patch the profiles directory to use temp location (CRITICAL for isolation)
-        # MUST patch BOTH profile_manager AND query_manager (which imports PROFILES_DIR)
-        self.patcher_profiles_dir = patch(
-            "data.profile_manager.PROFILES_DIR", self.temp_profiles_dir
-        )
-        self.patcher_profiles_file = patch(
-            "data.profile_manager.PROFILES_FILE", self.temp_profiles_file
-        )
-        self.patcher_query_profiles_dir = patch(
-            "data.query_manager.PROFILES_DIR", self.temp_profiles_dir
-        )
-        self.patcher_query_profiles_file = patch(
-            "data.query_manager.PROFILES_FILE", self.temp_profiles_file
-        )
+        # Create test profile with JIRA configured
+        self.test_profile_id = "test_profile"
+        profile_data = {
+            "id": self.test_profile_id,
+            "name": "Empty Points Test Profile",
+            "created_at": datetime(
+                2026, 1, 1, 0, 0, 0, tzinfo=timezone.utc
+            ).isoformat(),
+            "last_used": datetime(2026, 1, 1, 0, 0, 0, tzinfo=timezone.utc).isoformat(),
+            "jira_config": {
+                "base_url": "https://test.jira.com",
+                "configured": True,
+            },
+            "field_mappings": {},
+        }
+        self.backend.save_profile(profile_data)
 
-        # Mock the project data file path
-        self.patcher_data = patch(
-            "data.persistence.PROJECT_DATA_FILE", self.temp_file.name
-        )
-
-        # Start all patchers
-        self.patcher_profiles_dir.start()
-        self.patcher_profiles_file.start()
-        self.patcher_query_profiles_dir.start()
-        self.patcher_query_profiles_file.start()
-        self.patcher_data.start()
-
-        # Create test profile and query (now uses temp profiles directory)
-        self.test_profile_id = create_profile(
-            "Empty Points Test Profile",
-            {"jira_config": {"configured": True}},  # Required for query creation
-        )
-        self.test_query_name = "main"
+        # Create test query
         self.test_query_id = create_query(
-            self.test_profile_id, self.test_query_name, "project = TEST"
+            self.test_profile_id, "Main Query", "project = TEST"
         )
 
-        # Switch to profile (automatically sets active query to the newly created one)
-        switch_profile(self.test_profile_id)
+        # Set as active profile/query
+        self.backend.set_app_state("active_profile_id", self.test_profile_id)
+        self.backend.set_app_state("active_query_id", self.test_query_id)
 
-    def tearDown(self):
-        """Clean up temporary files and directories."""
-        # Stop all patchers first
-        self.patcher_profiles_dir.stop()
-        self.patcher_profiles_file.stop()
-        self.patcher_query_profiles_dir.stop()
-        self.patcher_query_profiles_file.stop()
-        self.patcher_data.stop()
+        yield
 
-        # Clean up temp project data file
-        if os.path.exists(self.temp_file.name):
-            os.unlink(self.temp_file.name)
-
-        # Clean up entire temp directory (includes temp profiles)
-        import shutil
-
-        if os.path.exists(self.temp_dir):
-            shutil.rmtree(self.temp_dir, ignore_errors=True)
+        # Cleanup handled by temp_database fixture
 
     def test_empty_points_field_workflow_fix(self):
         """
@@ -152,16 +116,14 @@ class TestEmptyPointsFieldCachingWorkflow(unittest.TestCase):
         }
 
         # Save the problematic state
-        save_unified_project_data(problematic_state)
+        persistence_module.save_unified_project_data(problematic_state)
 
         # Verify we start with the problematic values
-        initial_scope = get_project_scope()
-        self.assertEqual(
-            initial_scope.get("remaining_total_points"), 1930.2469135802469
-        )
-        self.assertTrue(initial_scope.get("points_field_available"))
-        self.assertEqual(
-            initial_scope.get("calculation_metadata", {}).get("points_field"), "votes"
+        initial_scope = persistence_module.get_project_scope()
+        assert initial_scope.get("remaining_total_points") == 1930.2469135802469
+        assert initial_scope.get("points_field_available") is True
+        assert (
+            initial_scope.get("calculation_metadata", {}).get("points_field") == "votes"
         )
 
         # Step 2: Mock JIRA response (simulate what would come from their actual query)
@@ -225,76 +187,60 @@ class TestEmptyPointsFieldCachingWorkflow(unittest.TestCase):
             }
 
             # This should completely recalculate and fix the issue
-            success, message = update_project_scope_from_jira(
+            success, message = persistence_module.update_project_scope_from_jira(
                 ui_config["jql_query"], ui_config
             )
 
             # Verify operation succeeded
-            self.assertTrue(success, f"Update Data should succeed: {message}")
+            assert success, f"Update Data should succeed: {message}"
 
             # Step 4: Verify the fix - all point values should be 0/False
-            updated_scope = get_project_scope()
+            updated_scope = persistence_module.get_project_scope()
 
             # THE FIX: These should all be corrected now
-            self.assertEqual(
-                updated_scope.get("remaining_total_points"),
-                0.0,
-                "remaining_total_points should be 0 when points field is empty",
+            assert updated_scope.get("remaining_total_points") == 0.0, (
+                "remaining_total_points should be 0 when points field is empty"
             )
 
-            self.assertFalse(
-                updated_scope.get("points_field_available", True),
-                "points_field_available should be False when points field is empty",
+            assert updated_scope.get("points_field_available", True) is False, (
+                "points_field_available should be False when points field is empty"
             )
 
-            self.assertEqual(
-                updated_scope.get("estimated_items", -1),
-                0,
-                "estimated_items should be 0 when points field is empty",
+            assert updated_scope.get("estimated_items", -1) == 0, (
+                "estimated_items should be 0 when points field is empty"
             )
 
-            self.assertEqual(
-                updated_scope.get("estimated_points", -1),
-                0,
-                "estimated_points should be 0 when points field is empty",
+            assert updated_scope.get("estimated_points", -1) == 0, (
+                "estimated_points should be 0 when points field is empty"
             )
 
             # Metadata should reflect empty field
             metadata = updated_scope.get("calculation_metadata", {})
-            self.assertEqual(
-                metadata.get("points_field"),
-                "",
-                "metadata points_field should be empty string",
+            assert metadata.get("points_field") == "", (
+                "metadata points_field should be empty string"
             )
 
-            self.assertFalse(
-                metadata.get("points_field_valid", True),
-                "metadata points_field_valid should be False",
+            assert metadata.get("points_field_valid", True) is False, (
+                "metadata points_field_valid should be False"
             )
 
             # Item counts should be recalculated correctly
-            self.assertEqual(
-                updated_scope.get("total_items"),
-                364,
-                "total_items should match issue count",
+            assert updated_scope.get("total_items") == 364, (
+                "total_items should match issue count"
             )
 
-            self.assertEqual(
-                updated_scope.get("completed_items"),
-                69,
-                "completed_items should be recalculated",
+            assert updated_scope.get("completed_items") == 69, (
+                "completed_items should be recalculated"
             )
 
-            self.assertEqual(
-                updated_scope.get("remaining_items"),
-                295,
-                "remaining_items should be recalculated",
+            assert updated_scope.get("remaining_items") == 295, (
+                "remaining_items should be recalculated"
             )
 
             # All point-related fields should be 0
-            self.assertEqual(updated_scope.get("total_points"), 0)
-            self.assertEqual(updated_scope.get("completed_points"), 0)
-            self.assertEqual(updated_scope.get("remaining_points"), 0)
+            assert updated_scope.get("total_points") == 0
+            assert updated_scope.get("completed_points") == 0
+            assert updated_scope.get("remaining_points") == 0
 
     def test_cache_invalidation_votes_to_empty(self):
         """Test that cache is properly invalidated when switching from votes to empty."""
@@ -311,7 +257,7 @@ class TestEmptyPointsFieldCachingWorkflow(unittest.TestCase):
             "metadata": {"version": "2.0"},
         }
 
-        save_unified_project_data(initial_data)
+        persistence_module.save_unified_project_data(initial_data)
 
         mock_issues = [
             {
@@ -336,16 +282,12 @@ class TestEmptyPointsFieldCachingWorkflow(unittest.TestCase):
                 "cache_max_size_mb": 50,
             }
 
-            success, message = update_project_scope_from_jira(
+            success, message = persistence_module.update_project_scope_from_jira(
                 ui_config["jql_query"], ui_config
             )
-            self.assertTrue(success)
+            assert success
 
             # Should be completely recalculated
-            scope = get_project_scope()
-            self.assertEqual(scope.get("remaining_total_points"), 0)
-            self.assertFalse(scope.get("points_field_available"))
-
-
-if __name__ == "__main__":
-    unittest.main()
+            scope = persistence_module.get_project_scope()
+            assert scope.get("remaining_total_points") == 0
+            assert scope.get("points_field_available") is False

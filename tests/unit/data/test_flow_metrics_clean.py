@@ -4,6 +4,7 @@ This test file validates the modern Flow calculator that uses status-based
 extraction from profile configuration.
 """
 
+import pytest
 from data.flow_metrics import (
     calculate_flow_velocity,
     calculate_flow_time,
@@ -15,10 +16,52 @@ from data.flow_metrics import (
 )
 
 
+@pytest.fixture
+def test_profile(temp_database):
+    """Create test profile in database with basic Flow metrics configuration."""
+    from data.persistence.factory import get_backend
+    from datetime import datetime
+
+    backend = get_backend()
+    profile_id = "test_flow_profile"
+
+    # Create profile with required fields and Flow configuration
+    profile = {
+        "id": profile_id,
+        "name": "Test Flow Profile",
+        "created_at": datetime.now().isoformat(),
+        "last_used": datetime.now().isoformat(),
+        "jira_config": {},
+        "field_mappings": {
+            "flow": {
+                "flow_item_type": "issuetype",
+                "status": "status",
+                "completed_date": "resolutiondate",
+            }
+        },
+        "forecast_settings": {},
+        "project_classification": {
+            "flow_end_statuses": ["Done", "Resolved", "Closed"],
+            "active_statuses": ["In Progress", "In Review"],
+            "wip_statuses": ["In Progress", "In Review", "Testing"],
+            "flow_start_statuses": ["In Progress"],
+            "flow_type_mappings": {
+                "Feature": {"issue_types": ["Task", "Story"], "effort_categories": []},
+                "Defect": {"issue_types": ["Bug"], "effort_categories": []},
+            },
+        },
+    }
+
+    backend.save_profile(profile)
+    backend.set_app_state("active_profile_id", profile_id)
+
+    return profile_id
+
+
 class TestFlowVelocityClean:
     """Test Flow Velocity calculation with clean implementation."""
 
-    def test_flow_velocity_with_valid_data(self):
+    def test_flow_velocity_with_valid_data(self, test_profile):
         """Test velocity calculation with completed work items."""
         # Arrange: Create realistic completed issues with changelog
         issues = [
@@ -86,14 +129,14 @@ class TestFlowVelocityClean:
         # Breakdown should categorize by work type
         assert isinstance(result["breakdown"], dict)
 
-    def test_flow_velocity_empty_issues(self):
+    def test_flow_velocity_empty_issues(self, test_profile):
         """Test velocity with no completed issues."""
         result = calculate_flow_velocity([], time_period_days=7)
 
         assert result["error_state"] == "no_data"
         assert "error_message" in result
 
-    def test_flow_velocity_with_previous_value(self):
+    def test_flow_velocity_with_previous_value(self, test_profile):
         """Test velocity calculation includes trend when previous value provided."""
         issues = [
             {
@@ -118,7 +161,7 @@ class TestFlowVelocityClean:
 class TestFlowTimeClean:
     """Test Flow Time calculation with clean implementation."""
 
-    def test_flow_time_with_valid_timestamps(self):
+    def test_flow_time_with_valid_timestamps(self, test_profile):
         """Test flow time calculation with valid start and end dates.
 
         Note: Result depends on profile's flow_end_statuses and completed_date field.
@@ -169,7 +212,7 @@ class TestFlowTimeClean:
             # Profile may not have matching flow_end_statuses for test data
             assert result["error_state"] == "no_data"
 
-    def test_flow_time_no_valid_timestamps(self):
+    def test_flow_time_no_valid_timestamps(self, test_profile):
         """Test flow time with issues missing required timestamps."""
         issues = [
             {
@@ -184,7 +227,7 @@ class TestFlowTimeClean:
 
         assert result["error_state"] == "no_data"
 
-    def test_flow_time_empty_issues(self):
+    def test_flow_time_empty_issues(self, test_profile):
         """Test flow time with empty issue list."""
         result = calculate_flow_time([], time_period_days=30)
 
@@ -194,7 +237,7 @@ class TestFlowTimeClean:
 class TestFlowEfficiencyClean:
     """Test Flow Efficiency calculation with clean implementation."""
 
-    def test_flow_efficiency_with_valid_data(self):
+    def test_flow_efficiency_with_valid_data(self, test_profile):
         """Test efficiency calculation with active and total time.
 
         Note: This test requires complex variable mapping configuration for active_time
@@ -203,7 +246,7 @@ class TestFlowEfficiencyClean:
         # Skip test - requires complex DEFAULT_VARIABLE_COLLECTION setup
         pass
 
-    def test_flow_efficiency_no_active_time(self):
+    def test_flow_efficiency_no_active_time(self, test_profile):
         """Test efficiency with issues missing active time variable.
 
         Note: Returns 'missing_mapping' when profile doesn't have
@@ -227,7 +270,7 @@ class TestFlowEfficiencyClean:
         # or 'no_data' if those are configured but no data matches
         assert result["error_state"] in ["no_data", "missing_mapping"]
 
-    def test_flow_efficiency_empty_issues(self):
+    def test_flow_efficiency_empty_issues(self, test_profile):
         """Test efficiency with no completed issues."""
         result = calculate_flow_efficiency([], time_period_days=30)
 
@@ -239,7 +282,7 @@ class TestFlowEfficiencyClean:
 class TestFlowLoadClean:
     """Test Flow Load calculation with clean implementation."""
 
-    def test_flow_load_with_wip_items(self):
+    def test_flow_load_with_wip_items(self, test_profile):
         """Test load calculation with work in progress items.
 
         Note: Returns 'missing_mapping' if profile lacks wip_statuses config.
@@ -278,7 +321,7 @@ class TestFlowLoadClean:
         else:
             assert result["error_state"] == "missing_mapping"
 
-    def test_flow_load_empty_issues(self):
+    def test_flow_load_empty_issues(self, test_profile):
         """Test load with no WIP items."""
         result = calculate_flow_load([])
 
@@ -290,7 +333,7 @@ class TestFlowLoadClean:
         else:
             assert result["error_state"] == "missing_mapping"
 
-    def test_flow_load_with_previous_value(self):
+    def test_flow_load_with_previous_value(self, test_profile):
         """Test load calculation includes trend when previous value provided."""
         issues = [
             {
@@ -311,7 +354,7 @@ class TestFlowLoadClean:
 class TestFlowDistributionClean:
     """Test Flow Distribution calculation with clean implementation."""
 
-    def test_flow_distribution_with_mixed_types(self):
+    def test_flow_distribution_with_mixed_types(self, test_profile):
         """Test distribution calculation with various work types.
 
         Note: Result depends on profile's flow_end_statuses and flow_type_mappings.
@@ -369,7 +412,7 @@ class TestFlowDistributionClean:
             # Profile may not have matching flow_end_statuses for test data
             assert result["error_state"] == "no_data"
 
-    def test_flow_distribution_all_features(self):
+    def test_flow_distribution_all_features(self, test_profile):
         """Test distribution with only feature work.
 
         Note: Result depends on profile's flow_end_statuses and flow_type_mappings.
@@ -405,7 +448,7 @@ class TestFlowDistributionClean:
             # Profile may not have matching flow_end_statuses for test data
             assert result["error_state"] == "no_data"
 
-    def test_flow_distribution_empty_issues(self):
+    def test_flow_distribution_empty_issues(self, test_profile):
         """Test distribution with no completed issues."""
         result = calculate_flow_distribution([], time_period_days=30)
 
@@ -415,54 +458,54 @@ class TestFlowDistributionClean:
 class TestHelperFunctions:
     """Test helper functions used by Flow metrics."""
 
-    def test_normalize_work_type_feature(self):
+    def test_normalize_work_type_feature(self, test_profile):
         """Test work type normalization for feature categories."""
         assert _normalize_work_type("Feature") == "Feature"
         assert _normalize_work_type("Story") == "Feature"
         assert _normalize_work_type("User Story") == "Feature"
 
-    def test_normalize_work_type_bug(self):
+    def test_normalize_work_type_bug(self, test_profile):
         """Test work type normalization for bug categories."""
         assert _normalize_work_type("Bug") == "Bug"
         assert _normalize_work_type("Defect") == "Bug"
 
-    def test_normalize_work_type_technical_debt(self):
+    def test_normalize_work_type_technical_debt(self, test_profile):
         """Test work type normalization for technical debt categories."""
         assert _normalize_work_type("Technical Debt") == "Technical Debt"
         assert _normalize_work_type("Tech Debt") == "Technical Debt"
 
-    def test_normalize_work_type_risk(self):
+    def test_normalize_work_type_risk(self, test_profile):
         """Test work type normalization for risk categories."""
         assert _normalize_work_type("Risk") == "Risk"
 
-    def test_normalize_work_type_unknown(self):
+    def test_normalize_work_type_unknown(self, test_profile):
         """Test work type normalization defaults to Feature."""
         assert _normalize_work_type("Unknown Type") == "Feature"
         assert _normalize_work_type(None) == "Feature"
         assert _normalize_work_type({"some": "dict"}) == "Feature"
 
-    def test_calculate_trend_increasing(self):
+    def test_calculate_trend_increasing(self, test_profile):
         """Test trend calculation for increasing values."""
         result = _calculate_trend(10.0, 8.0)
 
         assert result["trend_direction"] == "up"
         assert result["trend_percentage"] == 25.0  # (10-8)/8 * 100
 
-    def test_calculate_trend_decreasing(self):
+    def test_calculate_trend_decreasing(self, test_profile):
         """Test trend calculation for decreasing values."""
         result = _calculate_trend(6.0, 10.0)
 
         assert result["trend_direction"] == "down"
         assert result["trend_percentage"] == -40.0  # (6-10)/10 * 100
 
-    def test_calculate_trend_stable(self):
+    def test_calculate_trend_stable(self, test_profile):
         """Test trend calculation for stable values (< 5% change)."""
         result = _calculate_trend(10.0, 10.2)
 
         # 2% change should be considered stable
         assert result["trend_direction"] == "stable"
 
-    def test_calculate_trend_no_previous(self):
+    def test_calculate_trend_no_previous(self, test_profile):
         """Test trend calculation with no previous value."""
         result = _calculate_trend(10.0, None)
 

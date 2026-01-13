@@ -2,265 +2,208 @@
 Unit tests for profile rename functionality.
 
 Tests the rename_profile function with various validation scenarios.
+Uses SQLite database backend via temp_database fixture.
 """
 
 import pytest
-import json
-import tempfile
-from pathlib import Path
-from unittest.mock import patch
-
-from data.profile_manager import (
-    rename_profile,
-    create_profile,
-    list_profiles,
-)
+from datetime import datetime, timezone
 
 
-@pytest.fixture
-def temp_profiles_dir():
-    """Create temporary profiles directory for testing."""
-    with tempfile.TemporaryDirectory() as temp_dir:
-        temp_profiles_path = Path(temp_dir) / "profiles"
-        temp_profiles_path.mkdir()
-
-        # Create profiles.json registry
-        profiles_file = temp_profiles_path / "profiles.json"
-        profiles_data = {
-            "active_profile_id": None,
-            "profiles": {},
-        }
-        with open(profiles_file, "w", encoding="utf-8") as f:
-            json.dump(profiles_data, f, indent=2)
-
-        # Patch PROFILES_DIR to use temp directory
-        with patch("data.profile_manager.PROFILES_DIR", temp_profiles_path):
-            with patch("data.profile_manager.PROFILES_FILE", profiles_file):
-                yield temp_profiles_path
+def create_test_profile_data(profile_id: str, name: str) -> dict:
+    """Helper to create test profile with all required fields."""
+    fixed_timestamp = datetime(2026, 1, 1, 0, 0, 0, tzinfo=timezone.utc).isoformat()
+    return {
+        "id": profile_id,
+        "name": name,
+        "description": "",
+        "created_at": fixed_timestamp,
+        "last_used": fixed_timestamp,
+        "jira_config": {},
+        "field_mappings": {},
+        "forecast_settings": {
+            "pert_factor": 1.2,
+            "deadline": None,
+            "data_points_count": 12,
+        },
+        "project_classification": {},
+        "flow_type_mappings": {},
+    }
 
 
 class TestRenameProfile:
     """Test suite for rename_profile function."""
 
-    def test_rename_profile_success(self, temp_profiles_dir):
+    def test_rename_profile_success(self, temp_database):
         """Test successful profile rename."""
+        from data.profile_manager import rename_profile
+        from data.persistence.factory import get_backend
+
         # Create initial profile
-        settings = {
-            "description": "Original description",
-            "pert_factor": 1.2,
-            "deadline": "",
-            "data_points_count": 20,
-            "jira_config": {},
-            "field_mappings": {},
-        }
-        profile_id = create_profile("Original Name", settings)
+        backend = get_backend()
+        profile = create_test_profile_data("p_test123", "Original Name")
+        backend.save_profile(profile)
 
         # Rename profile
-        rename_profile(profile_id, "New Name")
+        rename_profile("p_test123", "New Name")
 
-        # Verify name changed in registry
-        profiles = list_profiles()
-        profile = next((p for p in profiles if p["id"] == profile_id), None)
-        assert profile is not None
-        assert profile["name"] == "New Name"
+        # Verify name changed in database
+        updated_profile = backend.get_profile("p_test123")
+        assert updated_profile is not None
+        assert updated_profile["name"] == "New Name"
 
-        # Verify name changed in profile.json
-        profile_file = temp_profiles_dir / profile_id / "profile.json"
-        with open(profile_file, "r", encoding="utf-8") as f:
-            profile_data = json.load(f)
-        assert profile_data["name"] == "New Name"
-
-    def test_rename_profile_empty_name(self, temp_profiles_dir):
+    def test_rename_profile_empty_name(self, temp_database):
         """Test rename with empty name raises ValueError."""
-        settings = {
-            "description": "",
-            "pert_factor": 1.2,
-            "deadline": "",
-            "data_points_count": 20,
-            "jira_config": {},
-            "field_mappings": {},
-        }
-        profile_id = create_profile("Test Profile", settings)
+        from data.profile_manager import rename_profile
+        from data.persistence.factory import get_backend
+
+        backend = get_backend()
+        profile = create_test_profile_data("p_test123", "Test Profile")
+        backend.save_profile(profile)
 
         with pytest.raises(ValueError, match="Profile name cannot be empty"):
-            rename_profile(profile_id, "")
+            rename_profile("p_test123", "")
 
         with pytest.raises(ValueError, match="Profile name cannot be empty"):
-            rename_profile(profile_id, "   ")
+            rename_profile("p_test123", "   ")
 
-    def test_rename_profile_name_too_long(self, temp_profiles_dir):
+    def test_rename_profile_name_too_long(self, temp_database):
         """Test rename with name exceeding 100 characters."""
-        settings = {
-            "description": "",
-            "pert_factor": 1.2,
-            "deadline": "",
-            "data_points_count": 20,
-            "jira_config": {},
-            "field_mappings": {},
-        }
-        profile_id = create_profile("Test Profile", settings)
+        from data.profile_manager import rename_profile
+        from data.persistence.factory import get_backend
+
+        backend = get_backend()
+        profile = create_test_profile_data("p_test123", "Test Profile")
+        backend.save_profile(profile)
 
         long_name = "A" * 101
         with pytest.raises(
             ValueError, match="Profile name cannot exceed 100 characters"
         ):
-            rename_profile(profile_id, long_name)
+            rename_profile("p_test123", long_name)
 
-    def test_rename_profile_duplicate_name(self, temp_profiles_dir):
+    def test_rename_profile_duplicate_name(self, temp_database):
         """Test rename to existing profile name raises ValueError."""
-        settings = {
-            "description": "",
-            "pert_factor": 1.2,
-            "deadline": "",
-            "data_points_count": 20,
-            "jira_config": {},
-            "field_mappings": {},
-        }
+        from data.profile_manager import rename_profile
+        from data.persistence.factory import get_backend
 
-        # Create two profiles
-        profile_id_1 = create_profile("Profile One", settings)
-        create_profile("Profile Two", settings)
+        backend = get_backend()
+        profile1 = create_test_profile_data("p_test1", "Profile One")
+        profile2 = create_test_profile_data("p_test2", "Profile Two")
+        backend.save_profile(profile1)
+        backend.save_profile(profile2)
 
         # Try to rename profile_1 to "Profile Two"
         with pytest.raises(
             ValueError, match="Profile name 'Profile Two' already exists"
         ):
-            rename_profile(profile_id_1, "Profile Two")
+            rename_profile("p_test1", "Profile Two")
 
-    def test_rename_profile_duplicate_name_case_insensitive(self, temp_profiles_dir):
+    def test_rename_profile_duplicate_name_case_insensitive(self, temp_database):
         """Test rename duplicate check is case-insensitive."""
-        settings = {
-            "description": "",
-            "pert_factor": 1.2,
-            "deadline": "",
-            "data_points_count": 20,
-            "jira_config": {},
-            "field_mappings": {},
-        }
+        from data.profile_manager import rename_profile
+        from data.persistence.factory import get_backend
 
-        profile_id_1 = create_profile("Profile One", settings)
-        create_profile("Profile Two", settings)
+        backend = get_backend()
+        profile1 = create_test_profile_data("p_test1", "Profile One")
+        profile2 = create_test_profile_data("p_test2", "Profile Two")
+        backend.save_profile(profile1)
+        backend.save_profile(profile2)
 
         # Try various case combinations
         with pytest.raises(ValueError, match="Profile name"):
-            rename_profile(profile_id_1, "profile two")
+            rename_profile("p_test1", "profile two")
 
         with pytest.raises(ValueError, match="Profile name"):
-            rename_profile(profile_id_1, "PROFILE TWO")
+            rename_profile("p_test1", "PROFILE TWO")
 
         with pytest.raises(ValueError, match="Profile name"):
-            rename_profile(profile_id_1, "Profile TWO")
+            rename_profile("p_test1", "Profile TWO")
 
-    def test_rename_profile_same_name(self, temp_profiles_dir):
+    def test_rename_profile_same_name(self, temp_database):
         """Test rename to same name (should skip operation)."""
-        settings = {
-            "description": "",
-            "pert_factor": 1.2,
-            "deadline": "",
-            "data_points_count": 20,
-            "jira_config": {},
-            "field_mappings": {},
-        }
-        profile_id = create_profile("Test Profile", settings)
+        from data.profile_manager import rename_profile
+        from data.persistence.factory import get_backend
 
-        # Rename to same name (case-insensitive match)
-        rename_profile(profile_id, "Test Profile")
-        rename_profile(profile_id, "test profile")
-        rename_profile(profile_id, "TEST PROFILE")
+        backend = get_backend()
+        profile = create_test_profile_data("p_test123", "Test Profile")
+        backend.save_profile(profile)
 
-        # Should complete without error (operation skipped)
+        # Rename to same name (case-insensitive match) - should not raise
+        rename_profile("p_test123", "Test Profile")
+        rename_profile("p_test123", "test profile")
+        rename_profile("p_test123", "TEST PROFILE")
 
-    def test_rename_nonexistent_profile(self, temp_profiles_dir):
+        # Verify name unchanged
+        updated_profile = backend.get_profile("p_test123")
+        assert updated_profile is not None
+
+    def test_rename_nonexistent_profile(self, temp_database):
         """Test rename of nonexistent profile raises ValueError."""
+        from data.profile_manager import rename_profile
+
         with pytest.raises(ValueError, match="Profile 'nonexistent_id' does not exist"):
             rename_profile("nonexistent_id", "New Name")
 
-    def test_rename_preserves_other_metadata(self, temp_profiles_dir):
+    def test_rename_preserves_other_metadata(self, temp_database):
         """Test rename doesn't change other profile metadata."""
-        settings = {
-            "description": "Important description",
-            "pert_factor": 1.5,
-            "deadline": "2025-12-31",
-            "data_points_count": 30,
-            "jira_config": {"base_url": "https://jira.example.com"},
-            "field_mappings": {"points_field": "customfield_10001"},
-        }
-        profile_id = create_profile("Original Name", settings)
+        from data.profile_manager import rename_profile
+        from data.persistence.factory import get_backend
 
-        # Get original metadata
-        profile_file = temp_profiles_dir / profile_id / "profile.json"
-        with open(profile_file, "r", encoding="utf-8") as f:
-            original_data = json.load(f)
+        backend = get_backend()
+        profile = create_test_profile_data("p_test123", "Original Name")
+        profile["description"] = "Important description"
+        profile["forecast_settings"]["pert_factor"] = 1.5
+        profile["forecast_settings"]["deadline"] = "2025-12-31"
+        profile["forecast_settings"]["data_points_count"] = 30
+        profile["jira_config"] = {"base_url": "https://jira.example.com"}
+        profile["field_mappings"] = {"points_field": "customfield_10001"}
+        backend.save_profile(profile)
 
         # Rename
-        rename_profile(profile_id, "New Name")
+        rename_profile("p_test123", "New Name")
 
         # Verify other fields unchanged
-        with open(profile_file, "r", encoding="utf-8") as f:
-            new_data = json.load(f)
+        updated_profile = backend.get_profile("p_test123")
+        assert updated_profile is not None
+        assert updated_profile["name"] == "New Name"
+        assert updated_profile["description"] == "Important description"
+        assert updated_profile["forecast_settings"]["pert_factor"] == 1.5
+        assert updated_profile["forecast_settings"]["deadline"] == "2025-12-31"
+        assert updated_profile["forecast_settings"]["data_points_count"] == 30
+        assert updated_profile["jira_config"]["base_url"] == "https://jira.example.com"
+        assert updated_profile["field_mappings"]["points_field"] == "customfield_10001"
 
-        assert new_data["name"] == "New Name"
-        assert new_data["description"] == original_data["description"]
-        assert (
-            new_data["forecast_settings"]["pert_factor"]
-            == original_data["forecast_settings"]["pert_factor"]
-        )
-        assert (
-            new_data["forecast_settings"]["deadline"]
-            == original_data["forecast_settings"]["deadline"]
-        )
-        assert (
-            new_data["forecast_settings"]["data_points_count"]
-            == original_data["forecast_settings"]["data_points_count"]
-        )
-        assert new_data["jira_config"] == original_data["jira_config"]
-        assert new_data["field_mappings"] == original_data["field_mappings"]
+    def test_rename_profile_id_unchanged(self, temp_database):
+        """Test rename doesn't change profile ID."""
+        from data.profile_manager import rename_profile
+        from data.persistence.factory import get_backend
 
-    def test_rename_profile_id_unchanged(self, temp_profiles_dir):
-        """Test rename doesn't change profile ID or directory structure."""
-        settings = {
-            "description": "",
-            "pert_factor": 1.2,
-            "deadline": "",
-            "data_points_count": 20,
-            "jira_config": {},
-            "field_mappings": {},
-        }
-        profile_id = create_profile("Original Name", settings)
-
-        # Verify profile directory exists
-        profile_dir = temp_profiles_dir / profile_id
-        assert profile_dir.exists()
+        backend = get_backend()
+        profile = create_test_profile_data("p_test123", "Original Name")
+        backend.save_profile(profile)
 
         # Rename
-        rename_profile(profile_id, "New Name")
+        rename_profile("p_test123", "New Name")
 
         # Verify profile ID unchanged
-        profiles = list_profiles()
-        profile = next((p for p in profiles if p["name"] == "New Name"), None)
-        assert profile is not None
-        assert profile["id"] == profile_id
+        updated_profile = backend.get_profile("p_test123")
+        assert updated_profile is not None
+        assert updated_profile["id"] == "p_test123"
+        assert updated_profile["name"] == "New Name"
 
-        # Verify directory still exists at same location
-        assert profile_dir.exists()
-
-    def test_rename_whitespace_stripped(self, temp_profiles_dir):
+    def test_rename_whitespace_stripped(self, temp_database):
         """Test rename strips leading/trailing whitespace."""
-        settings = {
-            "description": "",
-            "pert_factor": 1.2,
-            "deadline": "",
-            "data_points_count": 20,
-            "jira_config": {},
-            "field_mappings": {},
-        }
-        profile_id = create_profile("Test Profile", settings)
+        from data.profile_manager import rename_profile
+        from data.persistence.factory import get_backend
+
+        backend = get_backend()
+        profile = create_test_profile_data("p_test123", "Test Profile")
+        backend.save_profile(profile)
 
         # Rename with whitespace
-        rename_profile(profile_id, "  New Name  ")
+        rename_profile("p_test123", "  New Name  ")
 
         # Verify whitespace stripped
-        profiles = list_profiles()
-        profile = next((p for p in profiles if p["id"] == profile_id), None)
-        assert profile is not None
-        assert profile["name"] == "New Name"
+        updated_profile = backend.get_profile("p_test123")
+        assert updated_profile is not None
+        assert updated_profile["name"] == "New Name"

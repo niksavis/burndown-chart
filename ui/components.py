@@ -26,6 +26,7 @@ from configuration.settings import (
     PROJECT_HELP_TEXTS,
     VELOCITY_HELP_TEXTS,
 )
+from ui.budget_settings_card import create_budget_settings_card
 from ui.button_utils import create_button
 from ui.icon_utils import create_icon_text
 from ui.style_constants import get_spacing, get_color
@@ -1899,12 +1900,12 @@ def create_compact_trend_indicator(trend_data, metric_name="Items"):
     # Check if we're in baseline building mode (need 8 weeks: 4 recent + 4 older for comparison)
     # Two conditions indicate insufficient data:
     # 1. weeks_compared < 4 means not enough weeks after aggregation
-    # 2. Both averages are 0 and percent_change is 0 means insufficient raw data
+    # 2. total_weeks_available < 8 means insufficient total data
     total_weeks_needed = 8
     total_weeks_available = weeks_compared * 2  # Default calculation
 
-    is_insufficient_data = weeks_compared < 4 or (
-        current_avg == 0 and previous_avg == 0 and percent_change == 0
+    is_insufficient_data = (
+        weeks_compared < 4 or total_weeks_available < total_weeks_needed
     )
 
     if is_insufficient_data:
@@ -2933,9 +2934,17 @@ def create_parameter_panel_expanded(
     data_points_count = settings.get("data_points_count", 10)
 
     # Calculate max data points from statistics if available
+    # CRITICAL FIX: Count unique dates, not total rows (avoids duplicate date inflation)
     max_data_points = 52  # Default max
     if statistics and len(statistics) > 0:
-        max_data_points = len(statistics)
+        # Count unique dates to get actual week count
+        unique_dates = set(
+            stat.get("date") or stat.get("stat_date") for stat in statistics
+        )
+        max_data_points = len(unique_dates) if unique_dates else len(statistics)
+
+    # Enforce minimum to prevent slider errors with new queries
+    max_data_points = max(4, max_data_points)
 
     # Calculate dynamic marks for Data Points slider
     # 5 points: min (4), 1/4, 1/2 (middle), 3/4, max
@@ -3222,37 +3231,32 @@ def create_parameter_panel_expanded(
                                                                     "fontWeight": "600",
                                                                 },
                                                             ),
-                                                            html.Div(
-                                                                [
-                                                                    dcc.Checklist(
-                                                                        id="points-toggle",
-                                                                        options=[
-                                                                            {
-                                                                                "label": "Points Tracking",
-                                                                                "value": "show",
-                                                                            }
-                                                                        ],
-                                                                        value=["show"]
-                                                                        if show_points
-                                                                        else [],
-                                                                        className="m-0",
-                                                                        labelStyle={
-                                                                            "display": "flex",
-                                                                            "alignItems": "center",
-                                                                            "fontSize": "0.8rem",
-                                                                            "color": "#6c757d",
-                                                                            "margin": "0",
-                                                                        },
-                                                                        inputStyle={
-                                                                            "marginRight": "8px",
-                                                                            "marginTop": "0",
-                                                                        },
-                                                                        style={
-                                                                            "fontSize": "0.8rem"
-                                                                        },
-                                                                    ),
+                                                            dcc.Checklist(
+                                                                id="points-toggle",
+                                                                options=[
+                                                                    {
+                                                                        "label": "Points Tracking",
+                                                                        "value": "show",
+                                                                    }
                                                                 ],
-                                                                className="d-flex align-items-center",
+                                                                value=["show"]
+                                                                if show_points
+                                                                else [],
+                                                                className="m-0",
+                                                                labelStyle={
+                                                                    "display": "flex",
+                                                                    "alignItems": "center",
+                                                                    "fontSize": "0.8rem",
+                                                                    "color": "#6c757d",
+                                                                    "margin": "0",
+                                                                },
+                                                                inputStyle={
+                                                                    "marginRight": "8px",
+                                                                    "marginTop": "0",
+                                                                },
+                                                                style={
+                                                                    "fontSize": "0.8rem"
+                                                                },
                                                             ),
                                                         ],
                                                         className="d-flex justify-content-between align-items-center mb-3",
@@ -3505,6 +3509,18 @@ def create_parameter_panel_expanded(
                                     )
                                 ],
                             ),
+                            # Budget Tab
+                            dbc.Tab(
+                                label="Budget",
+                                tab_id="budget-tab",
+                                label_style={"width": "100%"},
+                                children=[
+                                    html.Div(
+                                        [create_budget_settings_card()],
+                                        className="settings-tab-content",
+                                    )
+                                ],
+                            ),
                         ],
                         id="parameter-tabs",
                         active_tab="parameters-tab",
@@ -3692,9 +3708,17 @@ def create_mobile_parameter_bottom_sheet(
     data_points_count = settings.get("data_points_count", 10)
 
     # Calculate max data points from statistics if available
+    # CRITICAL FIX: Count unique dates, not total rows (avoids duplicate date inflation)
     max_data_points = 52  # Default max
     if statistics and len(statistics) > 0:
-        max_data_points = len(statistics)
+        # Count unique dates to get actual week count
+        unique_dates = set(
+            stat.get("date") or stat.get("stat_date") for stat in statistics
+        )
+        max_data_points = len(unique_dates) if unique_dates else len(statistics)
+
+    # Enforce minimum to prevent slider errors with new queries
+    max_data_points = max(4, max_data_points)
 
     # Calculate dynamic marks for Data Points slider
     # 5 points: min (4), 1/4, 1/2 (middle), 3/4, max

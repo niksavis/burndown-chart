@@ -29,19 +29,90 @@ from ui.metric_cards import create_forecast_section
 
 @pytest.fixture(autouse=True)
 def isolated_metrics_snapshots():
-    """Isolate metrics snapshots tests from real data."""
-    # Create temporary directory for metrics snapshots
+    """Isolate metrics snapshots tests from real data using temp database."""
+    from data.persistence.factory import reset_backend, get_backend
+    from data.migration.schema import create_schema
+    from data.database import get_db_connection as real_get_db_connection
+    from data.persistence.sqlite_backend import SQLiteBackend
+    from data.profile_manager import PROFILES_DIR
+    from unittest.mock import patch
+
+    # Create temporary directory and database
     temp_dir = tempfile.mkdtemp(prefix="forecast_test_")
-    temp_snapshots_file = Path(temp_dir) / "metrics_snapshots.json"
+    temp_profiles_dir = Path(temp_dir) / "profiles"
+    temp_profiles_dir.mkdir(parents=True, exist_ok=True)
+    temp_db_path = Path(temp_profiles_dir / "test_burndown.db")
 
-    # Patch the function that returns the snapshots file path
-    with patch(
-        "data.metrics_snapshots._get_snapshots_file_path",
-        return_value=temp_snapshots_file,
-    ):
-        yield temp_snapshots_file
+    # Initialize temp database with schema
+    with real_get_db_connection(temp_db_path) as conn:
+        create_schema(conn)
+        conn.commit()
 
-    # Cleanup
+    # Create test backend instance
+    test_backend = SQLiteBackend(str(temp_db_path))
+    reset_backend()
+
+    # Create test profile and query
+    from data.profile_manager import Profile
+
+    test_profile = Profile(
+        id="p_test_forecast",
+        name="Test Forecast Profile",
+        description="Test profile for forecast user stories",
+        jira_config={"configured": True},
+        field_mappings={},
+        forecast_settings={},
+        project_classification={},
+        flow_type_mappings={},
+        queries=[],
+    )
+    test_backend.save_profile(test_profile.to_dict())
+
+    # Create test query with all required fields
+    from datetime import datetime, timezone
+
+    now = datetime.now(timezone.utc).isoformat()
+    test_query = {
+        "id": "q_test_forecast",
+        "name": "Test Query",
+        "jql": "project = TEST",
+        "description": "Test query",
+        "created_at": now,
+        "last_used": now,
+    }
+    test_backend.save_query("p_test_forecast", test_query)
+
+    # Set as active
+    test_backend.set_app_state("active_profile_id", "p_test_forecast")
+    test_backend.set_app_state("active_query_id", "q_test_forecast")
+
+    def mock_get_backend(*args, **kwargs):
+        return test_backend
+
+    def mock_get_db_connection(db_path=None):
+        """Always use test database."""
+        return real_get_db_connection(temp_db_path)
+
+    # Patch backend and database connection
+    patches = [
+        patch("data.persistence.factory.get_backend", side_effect=mock_get_backend),
+        patch("data.database.get_db_connection", side_effect=mock_get_db_connection),
+        patch(
+            "data.persistence.sqlite_backend.get_db_connection",
+            side_effect=mock_get_db_connection,
+        ),
+        patch("data.profile_manager.PROFILES_DIR", temp_profiles_dir),
+    ]
+
+    for p in patches:
+        p.start()
+
+    yield temp_db_path
+
+    for p in patches:
+        p.stop()
+
+    reset_backend()
     shutil.rmtree(temp_dir, ignore_errors=True)
 
 
@@ -79,7 +150,9 @@ def test_user_story_3_historical_review():
         print(f"  [OK] Weeks used: {forecast['weeks_available']}")
 
         if trend:
-            print(f"  [OK] Trend: {trend['direction']} {trend['status_text']}")
+            # Use repr() to avoid Unicode encoding issues in Windows console
+            print(f"  [OK] Trend direction: {trend.get('direction', 'N/A')}")
+            print(f"  [OK] Trend status: {trend['status_text']}")
             print(f"  [OK] Color: {trend['color_class']}")
 
         # Test: US3 requirement - forecasts persist and load correctly

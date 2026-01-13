@@ -1,6 +1,6 @@
 """JIRA Issue Adapter for Dict-to-Object conversion.
 
-Converts plain dict JIRA issues from jira_cache.json into objects
+Converts plain dict JIRA issues from database cache into objects
 that match the JIRA SDK Issue structure expected by calculator functions.
 
 This allows calculators to work with cached data without requiring
@@ -15,7 +15,7 @@ def adapt_jira_issue(issue_dict: Dict[str, Any]) -> Any:
     """Convert a dict JIRA issue to an object with .fields attribute.
 
     Args:
-        issue_dict: Dict representation of JIRA issue from jira_cache.json
+        issue_dict: Dict representation of JIRA issue from database cache
 
     Returns:
         Object with .key and .fields attributes matching JIRA SDK structure
@@ -80,7 +80,7 @@ def adapt_jira_issues(issues: List[Dict[str, Any]]) -> List[Any]:
     """Convert a list of dict JIRA issues to objects.
 
     Args:
-        issues: List of dict representations from jira_cache.json
+        issues: List of dict representations from database cache
 
     Returns:
         List of objects with .fields attributes

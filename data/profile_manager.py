@@ -11,20 +11,18 @@ Architecture:
 
 Directory Structure:
     profiles/
-    ├── profiles.json          # Registry: active profile/query IDs, profile metadata
-    ├── default/               # Default profile (migration target)
-    │   ├── profile.json       # Profile settings (PERT, deadline, data_points_count)
+    ├── burndown.db            # SQLite database (single source of truth)
+    │                          # Contains: profiles, queries, app_state, jira_cache,
+    │                          # statistics, metrics_snapshots, and all other data
+    ├── default/               # Profile directories (for file system organization)
     │   └── queries/
-    │       ├── main/          # Default query (migration target)
-    │       │   ├── query.json # Query metadata (JQL string)
-    │       │   ├── jira_cache.json
-    │       │   └── jira_changelog_cache.json
-    │       └── bugs/          # Additional queries
-    │           ├── query.json
-    │           └── jira_cache.json
-    └── kafka/                 # Another profile
-        ├── profile.json
+    │       ├── main/          # Query directories (for file system organization)
+    │       └── bugs/
+    └── kafka/                 # Another profile directory
         └── queries/...
+
+    Note: All data is stored in burndown.db. Profile/query directories exist only
+    for organization. JSON files are only used for exports and reports.
 
 Constants:
     PROFILES_DIR: Path to profiles/ directory
@@ -37,7 +35,7 @@ Path Resolution Functions:
     get_active_query_workspace() -> Path: Current query directory
     get_profile_file_path(profile_id) -> Path: Path to profile.json
     get_query_file_path(profile_id, query_id) -> Path: Path to query.json
-    get_jira_cache_path(profile_id, query_id) -> Path: Path to jira_cache.json
+    get_jira_cache_path(profile_id, query_id) -> Path: LEGACY - Cache now in database
 
 Profile Operations:
     create_profile(name, settings) -> str: Create new profile
@@ -60,8 +58,6 @@ Test Support:
     PROFILES_DIR is a module-level constant that can be patched in tests
 """
 
-import json
-import shutil
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, List, Optional
@@ -207,31 +203,25 @@ def get_active_profile_workspace() -> Path:
         Path: Absolute path to active profile directory (e.g., profiles/default/)
 
     Raises:
-        ValueError: If profiles.json missing or active_profile_id invalid
+        ValueError: If database not found or active_profile_id invalid
 
     Example:
         >>> workspace = get_active_profile_workspace()
         >>> profile_config = workspace / "profile.json"
     """
-    # Check if profiles.json exists
-    if not PROFILES_FILE.exists():
-        raise ValueError(
-            "profiles.json not found - migration may not have been completed"
-        )
+    from data.persistence.factory import get_backend
 
-    # Load profiles registry
-    with open(PROFILES_FILE, "r", encoding="utf-8") as f:
-        profiles_data = json.load(f)
+    backend = get_backend()
 
-    # Get active profile ID
-    active_profile_id = profiles_data.get("active_profile_id")
+    # Get active profile ID from app_state
+    active_profile_id = backend.get_app_state("active_profile_id")
     if not active_profile_id:
-        raise ValueError("No active_profile_id in profiles.json")
+        raise ValueError("No active_profile_id in database")
 
-    # Validate profile exists in registry
-    profiles = profiles_data.get("profiles", {})
-    if active_profile_id not in profiles:
-        raise ValueError(f"Profile '{active_profile_id}' not found in registry")
+    # Validate profile exists
+    profile = backend.get_profile(active_profile_id)
+    if not profile:
+        raise ValueError(f"Profile '{active_profile_id}' not found in database")
 
     # Return profile workspace directory
     return PROFILES_DIR / active_profile_id
@@ -245,48 +235,43 @@ def get_active_query_workspace() -> Path:
         Path: Absolute path to active query directory (e.g., profiles/default/queries/main/)
 
     Raises:
-        ValueError: If profiles.json missing or active_query_id invalid
+        ValueError: If database not found or active_query_id invalid
 
     Example:
         >>> workspace = get_active_query_workspace()
         >>> cache_file = workspace / "jira_cache.json"
     """
-    # Check if profiles.json exists
-    if not PROFILES_FILE.exists():
-        raise ValueError(
-            "profiles.json not found - migration may not have been completed"
-        )
+    from data.persistence.factory import get_backend
 
-    # Load profiles registry
-    with open(PROFILES_FILE, "r", encoding="utf-8") as f:
-        profiles_data = json.load(f)
+    backend = get_backend()
 
-    # Get active profile and query IDs
-    active_profile_id = profiles_data.get("active_profile_id")
-    active_query_id = profiles_data.get("active_query_id")
+    # Get active profile and query IDs from app_state
+    active_profile_id = backend.get_app_state("active_profile_id")
+    active_query_id = backend.get_app_state("active_query_id")
 
     if not active_profile_id:
-        raise ValueError("No active_profile_id in profiles.json")
+        raise ValueError("No active_profile_id in database")
     if not active_query_id:
-        raise ValueError("No active_query_id in profiles.json")
+        raise ValueError("No active_query_id in database")
+
+    # Validate query exists in database
+    query = backend.get_query(active_profile_id, active_query_id)
+    if not query:
+        raise ValueError(f"Query '{active_query_id}' not found in database")
 
     # Build query workspace path
     query_workspace = PROFILES_DIR / active_profile_id / "queries" / active_query_id
 
-    # Validate query directory actually exists (the only check that matters)
-    if not query_workspace.exists():
-        raise ValueError(
-            f"Query workspace not found at {query_workspace}. "
-            f"The query may have been deleted or not yet created."
-        )
-
-    # Return query workspace directory
+    # Return the path (directory may not exist yet - that's okay)
     return query_workspace
 
 
 def get_profile_file_path(profile_id: str) -> Path:
     """
     Get the path to profile.json for a specific profile.
+
+    DEPRECATED: Profile data is now stored in database. This function remains
+    for backward compatibility and export functionality only.
 
     Args:
         profile_id: Profile identifier (e.g., "default", "kafka")
@@ -295,9 +280,7 @@ def get_profile_file_path(profile_id: str) -> Path:
         Path: Absolute path to profile.json (e.g., profiles/kafka/profile.json)
 
     Example:
-        >>> path = get_profile_file_path("kafka")
-        >>> with open(path) as f:
-        ...     settings = json.load(f)
+        >>> path = get_profile_file_path("kafka")  # For exports only
     """
     return PROFILES_DIR / profile_id / "profile.json"
 
@@ -305,6 +288,9 @@ def get_profile_file_path(profile_id: str) -> Path:
 def get_query_file_path(profile_id: str, query_id: str) -> Path:
     """
     Get the path to query.json for a specific query.
+
+    DEPRECATED: Query data is now stored in database. This function remains
+    for backward compatibility and export functionality only.
 
     Args:
         profile_id: Profile identifier
@@ -314,9 +300,7 @@ def get_query_file_path(profile_id: str, query_id: str) -> Path:
         Path: Absolute path to query.json (e.g., profiles/kafka/queries/bugs/query.json)
 
     Example:
-        >>> path = get_query_file_path("kafka", "12w")
-        >>> with open(path) as f:
-        ...     query = json.load(f)
+        >>> path = get_query_file_path("kafka", "12w")  # For exports only
     """
     return PROFILES_DIR / profile_id / "queries" / query_id / "query.json"
 
@@ -324,6 +308,9 @@ def get_query_file_path(profile_id: str, query_id: str) -> Path:
 def get_jira_cache_path(profile_id: str, query_id: str) -> Path:
     """
     Get the path to jira_cache.json for a specific query.
+
+    DEPRECATED: JIRA cache is now stored in database. This function remains
+    for backward compatibility and export functionality only.
 
     Args:
         profile_id: Profile identifier
@@ -333,10 +320,7 @@ def get_jira_cache_path(profile_id: str, query_id: str) -> Path:
         Path: Absolute path to jira_cache.json (e.g., profiles/kafka/queries/bugs/jira_cache.json)
 
     Example:
-        >>> cache_path = get_jira_cache_path("kafka", "main")
-        >>> if cache_path.exists():
-        ...     with open(cache_path) as f:
-        ...         cache = json.load(f)
+        >>> cache_path = get_jira_cache_path("kafka", "main")  # For exports only
     """
     return PROFILES_DIR / profile_id / "queries" / query_id / "jira_cache.json"
 
@@ -348,7 +332,7 @@ def get_jira_cache_path(profile_id: str, query_id: str) -> Path:
 
 def load_profiles_metadata() -> Dict:
     """
-    Load profiles registry with schema validation.
+    Load profiles registry from database with schema validation.
 
     Returns:
         Dict: Profiles metadata with active_profile_id, active_query_id, profiles list
@@ -358,46 +342,46 @@ def load_profiles_metadata() -> Dict:
         >>> print(meta["active_profile_id"])  # "default"
         >>> print(len(meta["profiles"]))      # Number of profiles
     """
-    if not PROFILES_FILE.exists():
-        # Return default structure for new installations
+    from data.persistence.factory import get_backend
+
+    backend = get_backend()
+
+    try:
+        # Get active IDs from app_state
+        active_profile_id = (
+            backend.get_app_state("active_profile_id") or DEFAULT_PROFILE_ID
+        )
+        active_query_id = backend.get_app_state("active_query_id") or DEFAULT_QUERY_ID
+
+        # Get all profiles
+        profiles_list = backend.list_profiles()
+        profiles_dict = {p["profile_id"]: p for p in profiles_list}
+
+        # Build metadata structure
+        metadata = {
+            "version": "3.0",
+            "active_profile_id": active_profile_id,
+            "active_query_id": active_query_id,
+            "profiles": profiles_dict,
+        }
+
+        return metadata
+
+    except Exception as e:
+        logger.error(f"[Profiles] Error loading metadata from database: {e}")
+        # Return safe default
         return {
             "version": "3.0",
             "active_profile_id": DEFAULT_PROFILE_ID,
             "active_query_id": DEFAULT_QUERY_ID,
             "profiles": {},
-        }
-
-    try:
-        with open(PROFILES_FILE, "r", encoding="utf-8") as f:
-            metadata = json.load(f)
-
-        # Validate structure
-        if not isinstance(metadata, dict):
-            raise ValueError("profiles.json must contain a JSON object")
-
-        # Ensure required fields
-        metadata.setdefault("version", "3.0")
-        metadata.setdefault("active_profile_id", DEFAULT_PROFILE_ID)
-        metadata.setdefault("active_query_id", DEFAULT_QUERY_ID)
-        metadata.setdefault("profiles", {})
-
-        return metadata
-
-    except (json.JSONDecodeError, ValueError) as e:
-        logger.error(f"[Profiles] Corrupted profiles.json: {e}")
-        # Return safe default - don't overwrite corrupted file
-        return {
-            "version": "3.0",
-            "active_profile_id": DEFAULT_PROFILE_ID,
-            "active_query_id": DEFAULT_QUERY_ID,
-            "profiles": [],
-            "_error": f"Corrupted profiles.json: {e}",
+            "_error": f"Error loading from database: {e}",
         }
 
 
 def save_profiles_metadata(metadata: Dict) -> bool:
     """
-    Atomic write to profiles.json using temp file + rename pattern.
+    Save profiles registry to database (no longer writes profiles.json).
 
     Args:
         metadata: Profiles registry to save
@@ -410,36 +394,34 @@ def save_profiles_metadata(metadata: Dict) -> bool:
         >>> meta["active_profile_id"] = "new-profile"
         >>> save_profiles_metadata(meta)
     """
+    from data.persistence.factory import get_backend
+
+    backend = get_backend()
+
     try:
-        # Ensure profiles directory exists
-        PROFILES_DIR.mkdir(exist_ok=True)
+        # Update app state with active IDs
+        active_profile_id = metadata.get("active_profile_id")
+        active_query_id = metadata.get("active_query_id")
 
-        # Atomic write pattern: write to temp file, then rename
-        temp_file = PROFILES_FILE.with_suffix(".tmp")
+        if active_profile_id:
+            backend.set_app_state("active_profile_id", active_profile_id)
+        if active_query_id:
+            backend.set_app_state("active_query_id", active_query_id)
 
-        with open(temp_file, "w", encoding="utf-8") as f:
-            json.dump(metadata, f, indent=2, ensure_ascii=False)
+        # Note: Profiles themselves are saved via backend.save_profile()
+        # This function only updates active profile/query IDs
 
-        # Atomic rename (Windows requires removing existing file first)
-        if PROFILES_FILE.exists():
-            PROFILES_FILE.unlink()
-        temp_file.rename(PROFILES_FILE)
-
-        logger.debug(f"[Profiles] Metadata saved to {PROFILES_FILE}")
+        logger.debug("[Profiles] Metadata saved to database")
         return True
 
     except Exception as e:
-        logger.error(f"[Profiles] Error saving metadata: {e}")
-        # Clean up temp file if it exists
-        temp_file = PROFILES_FILE.with_suffix(".tmp")
-        if temp_file.exists():
-            temp_file.unlink()
+        logger.error(f"[Profiles] Error saving metadata to database: {e}")
         return False
 
 
 def get_active_profile() -> Optional[Profile]:
     """
-    Get currently active profile object.
+    Get currently active profile object from database.
 
     Returns:
         Profile object if found, None if active profile doesn't exist
@@ -449,36 +431,41 @@ def get_active_profile() -> Optional[Profile]:
         >>> if profile:
         ...     print(f"Active: {profile.name}")
     """
-    metadata = load_profiles_metadata()
-    active_id = metadata.get("active_profile_id")
+    from data.persistence.factory import get_backend
+
+    backend = get_backend()
+    active_id = backend.get_app_state("active_profile_id")
 
     if not active_id:
         return None
 
-    profiles_dict = metadata.get("profiles", {})
-    if active_id in profiles_dict:
-        profile_data = profiles_dict[active_id]
+    profile_data = backend.get_profile(active_id)
+    if profile_data:
         profile_data["id"] = active_id  # Ensure id is included
         return Profile.from_dict(profile_data)
 
-    logger.warning(f"[Profiles] Active profile '{active_id}' not found in registry")
+    logger.warning(f"[Profiles] Active profile '{active_id}' not found in database")
     return None
 
 
 def is_profiles_mode_enabled() -> bool:
     """
-    Check if profiles mode is enabled (profiles.json exists).
+    Check if profiles mode is enabled (database exists).
+
+    After database migration, we check if the SQLite database exists instead
+    of checking for profiles.json.
 
     Returns:
-        bool: True if profiles.json exists, False for legacy mode
+        bool: True if database exists, False for legacy mode
 
     Example:
         >>> if is_profiles_mode_enabled():
-        ...     path = get_active_query_workspace() / "jira_cache.json"
+        ...     # Use database backend
         ... else:
-        ...     path = Path("jira_cache.json")  # Legacy root-level
+        ...     # Legacy file-based mode
     """
-    return PROFILES_FILE.exists()
+    db_path = PROFILES_DIR / "burndown.db"
+    return db_path.exists()
 
 
 def get_data_file_path(filename: str) -> Path:
@@ -533,7 +520,7 @@ def get_settings_file_path(filename: str) -> Path:
 
 def get_active_profile_and_query_display_names() -> dict:
     """
-    Get display names for currently active profile and query.
+    Get display names for currently active profile and query via repository pattern.
 
     Returns:
         dict: Dictionary with profile_name and query_name (or None if not in profiles mode)
@@ -548,7 +535,7 @@ def get_active_profile_and_query_display_names() -> dict:
         return {"profile_name": None, "query_name": None}
 
     try:
-        # Get active profile
+        # Get active profile via backend
         profile = get_active_profile()
         profile_name = profile.name if profile else None
 
@@ -559,20 +546,14 @@ def get_active_profile_and_query_display_names() -> dict:
         query_name = None
 
         if profile and query_id:
-            # Load query metadata from query.json
-            query_dir = PROFILES_DIR / profile.id / "queries" / query_id
-            query_file = query_dir / "query.json"
+            # Load query metadata from backend
+            from data.persistence.factory import get_backend
 
-            if query_file.exists():
-                try:
-                    with open(query_file, "r", encoding="utf-8") as f:
-                        query_data = json.load(f)
-                    query_name = query_data.get(
-                        "name", query_id.replace("_", " ").title()
-                    )
-                except (json.JSONDecodeError, IOError) as e:
-                    logger.warning(f"Failed to load query name from {query_file}: {e}")
-                    query_name = query_id.replace("_", " ").title()
+            backend = get_backend()
+            query_data = backend.get_query(profile.id, query_id)
+
+            if query_data:
+                query_name = query_data.get("name", query_id.replace("_", " ").title())
             else:
                 query_name = query_id.replace("_", " ").title()
 
@@ -619,30 +600,25 @@ def create_profile(name: str, settings: Dict) -> str:
     if len(name) > 100:
         raise ValueError("Profile name cannot exceed 100 characters")
 
-    # Load current metadata
-    metadata = load_profiles_metadata()
+    # Get backend for validation
+    from data.persistence.factory import get_backend
+
+    backend = get_backend()
 
     # Check for duplicate names (case-insensitive)
-    profiles_dict = metadata.get("profiles", {})
-    existing_names = [p["name"].lower() for p in profiles_dict.values()]
+    all_profiles = backend.list_profiles()
+    existing_names = [p["name"].lower() for p in all_profiles]
     if name.lower() in existing_names:
         raise ValueError(f"Profile name '{name}' already exists")
 
     # Check max profiles limit
-    if len(profiles_dict) >= MAX_PROFILES:
+    if len(all_profiles) >= MAX_PROFILES:
         raise ValueError(f"Maximum {MAX_PROFILES} profiles allowed")
 
     # Generate unique profile ID using UUID
     profile_id = _generate_unique_profile_id()
 
-    # Create profile directory structure
-    profile_dir = PROFILES_DIR / profile_id
-    queries_dir = profile_dir / "queries"
-
     try:
-        profile_dir.mkdir(parents=True, exist_ok=True)
-        queries_dir.mkdir(exist_ok=True)
-
         # Create profile object with all settings
         profile = Profile(
             id=profile_id,
@@ -662,25 +638,18 @@ def create_profile(name: str, settings: Dict) -> str:
             show_points=settings.get("show_points", False),
         )
 
-        # Save profile.json
-        profile_config_file = profile_dir / "profile.json"
-        with open(profile_config_file, "w", encoding="utf-8") as f:
-            json.dump(profile.to_dict(), f, indent=2, ensure_ascii=False)
-
-        # Add to profiles registry
-        metadata["profiles"][profile_id] = profile.to_dict()
-
-        # Save updated metadata
-        if not save_profiles_metadata(metadata):
-            raise OSError("Failed to update profiles registry")
+        # Save profile to database (single source of truth)
+        backend.save_profile(profile.to_dict())
 
         logger.info(f"[Profiles] Created profile: {name} ({profile_id})")
         return profile_id
 
     except Exception as e:
-        # Cleanup on failure
-        if profile_dir.exists():
-            shutil.rmtree(profile_dir, ignore_errors=True)
+        # Cleanup on failure - rollback database
+        try:
+            backend.delete_profile(profile_id)
+        except Exception:
+            pass
         logger.error(f"[Profiles] Error creating profile '{name}': {e}")
         raise OSError(f"Failed to create profile: {e}") from e
 
@@ -699,75 +668,36 @@ def switch_profile(profile_id: str) -> None:
         >>> switch_profile("kafka")
         >>> # App now uses kafka profile settings and queries
     """
-    # Load metadata
-    metadata = load_profiles_metadata()
+    from data.persistence.factory import get_backend
+
+    backend = get_backend()
 
     # Validate profile exists
-    profiles_dict = metadata.get("profiles", {})
-    if profile_id not in profiles_dict:
+    profile = backend.get_profile(profile_id)
+    if not profile:
         raise ValueError(f"Profile '{profile_id}' does not exist")
 
-    # Update last_used timestamp for the profile
-    profiles_dict[profile_id]["last_used"] = datetime.now(timezone.utc).isoformat()
+    # Update last_used timestamp
+    profile["last_used"] = datetime.now(timezone.utc).isoformat()
+    backend.save_profile(profile)
 
     # Update active profile
-    old_profile_id = metadata.get("active_profile_id")
-    metadata["active_profile_id"] = profile_id
+    backend.set_app_state("active_profile_id", profile_id)
 
-    # Load most recent query from target profile
-    try:
-        profile_dir = PROFILES_DIR / profile_id
-        profile_config_file = profile_dir / "profile.json"
-
-        if profile_config_file.exists():
-            with open(profile_config_file, "r", encoding="utf-8") as f:
-                _ = json.load(f)  # Load to validate file, but don't need the content
-
-            # Set active query to most recent query in the profile
-            queries_dir = profile_dir / "queries"
-            if queries_dir.exists():
-                query_dirs = [d for d in queries_dir.iterdir() if d.is_dir()]
-                if query_dirs:
-                    # Find most recently used query
-                    most_recent_query = None
-                    most_recent_time = None
-
-                    for query_dir in query_dirs:
-                        query_file = query_dir / "query.json"
-                        if query_file.exists():
-                            try:
-                                with open(query_file, "r", encoding="utf-8") as qf:
-                                    query_data = json.load(qf)
-                                last_used = query_data.get(
-                                    "last_used", query_data.get("created_at", "")
-                                )
-                                if not most_recent_time or last_used > most_recent_time:
-                                    most_recent_time = last_used
-                                    most_recent_query = query_dir.name
-                            except (json.JSONDecodeError, FileNotFoundError):
-                                continue
-
-                    if most_recent_query:
-                        metadata["active_query_id"] = most_recent_query
-                    else:
-                        metadata["active_query_id"] = DEFAULT_QUERY_ID
-                else:
-                    metadata["active_query_id"] = DEFAULT_QUERY_ID
-            else:
-                metadata["active_query_id"] = DEFAULT_QUERY_ID
-
-    except Exception as e:
-        logger.warning(
-            f"[Profiles] Could not determine most recent query for profile '{profile_id}': {e}"
+    # Find most recently used query in this profile
+    queries = backend.list_queries(profile_id)
+    if queries:
+        # Sort by last_used descending
+        most_recent_query = max(
+            queries, key=lambda q: q.get("last_used", q.get("created_at", ""))
         )
-        metadata["active_query_id"] = DEFAULT_QUERY_ID
-
-    # Save updated metadata
-    if not save_profiles_metadata(metadata):
-        raise OSError("Failed to update profiles registry")
+        backend.set_app_state("active_query_id", most_recent_query["id"])
+    else:
+        # No queries - clear active_query_id
+        backend.set_app_state("active_query_id", "")
 
     logger.info(
-        f"[Profiles] Switched from '{old_profile_id}' to '{profile_id}', active query: '{metadata['active_query_id']}'"
+        f"[Profiles] Switched to profile: {profile.get('name', profile_id)} ({profile_id})"
     )
 
 
@@ -777,91 +707,53 @@ def delete_profile(profile_id: str) -> None:
 
     This performs cascade deletion:
     1. Deletes all queries in the profile (using allow_cascade=True)
-    2. Deletes profile directory and all remaining files
-    3. Removes profile from profiles.json registry
+    2. Removes profile from database
 
     Args:
         profile_id: Profile to delete
 
     Raises:
-        ValueError: If trying to delete active profile or last remaining profile
+        ValueError: If profile doesn't exist
         OSError: If deletion fails
 
     Example:
         >>> delete_profile("old-project")
-        >>> # Removes profiles/old-project/ directory entirely
+        >>> # Removes profile and all associated queries from database
     """
-    from data.query_manager import delete_query, list_queries_for_profile
+    from data.persistence.factory import get_backend
 
-    # Load metadata
-    metadata = load_profiles_metadata()
+    backend = get_backend()
 
     # Validate profile exists
-    profiles_dict = metadata.get("profiles", {})
-    if profile_id not in profiles_dict:
+    profile = backend.get_profile(profile_id)
+    if not profile:
         raise ValueError(f"Profile '{profile_id}' does not exist")
 
-    profile_name = profiles_dict[profile_id].get("name", profile_id)
+    profile_name = profile.get("name", profile_id)
 
-    # If deleting active profile, switch to another one first (or set to None if last profile)
-    if profile_id == metadata.get("active_profile_id"):
+    # If deleting active profile, switch to another one first
+    active_profile_id = backend.get_app_state("active_profile_id")
+    if profile_id == active_profile_id:
         # Find another profile to switch to
-        other_profile_id = next(
-            (pid for pid in profiles_dict.keys() if pid != profile_id), None
-        )
-        if other_profile_id:
+        all_profiles = backend.list_profiles()
+        other_profile = next((p for p in all_profiles if p["id"] != profile_id), None)
+        if other_profile:
             logger.info(
-                f"[Profiles] Auto-switching from '{profile_id}' to '{other_profile_id}' before deletion"
+                f"[Profiles] Auto-switching from '{profile_id}' to '{other_profile['id']}' before deletion"
             )
-            switch_profile(other_profile_id)
-            # CRITICAL: Reload metadata after switch_profile saved it
-            # Otherwise we'd overwrite the new active_profile_id when saving later
-            metadata = load_profiles_metadata()
+            switch_profile(other_profile["id"])
         else:
-            # Last profile - set active to None
+            # Last profile - set active to None (empty string in database)
             logger.info(
-                f"[Profiles] Deleting last profile '{profile_id}' - setting active_profile_id to None"
+                f"[Profiles] Deleting last profile '{profile_id}' - clearing active_profile_id"
             )
-            metadata["active_profile_id"] = None
-            save_profiles_metadata(metadata)
+            backend.set_app_state("active_profile_id", "")
 
-    try:
-        # Step 1: CASCADE DELETE all queries (best-effort - continue on errors)
-        logger.info(f"[Profiles] Cascade deleting queries for profile '{profile_id}'")
-        try:
-            queries = list_queries_for_profile(profile_id)
-            for query in queries:
-                try:
-                    # Use allow_cascade=True to bypass safety checks
-                    delete_query(profile_id, query["id"], allow_cascade=True)
-                    logger.debug(f"[Profiles] Deleted query '{query['id']}'")
-                except Exception as e:
-                    # Log error but continue deleting other queries
-                    logger.error(
-                        f"[Profiles] Error deleting query '{query['id']}': {e}"
-                    )
-        except Exception as e:
-            logger.error(f"[Profiles] Error listing queries for deletion: {e}")
-            # Continue with profile deletion even if query deletion fails
+    # CASCADE DELETE: Database backend automatically handles query deletion
+    # via foreign key constraints
+    backend.delete_profile(profile_id)
 
-        # Step 2: Delete profile directory (removes profile.json and any remaining files)
-        profile_dir = PROFILES_DIR / profile_id
-        if profile_dir.exists():
-            shutil.rmtree(profile_dir)
-            logger.info(f"[Profiles] Deleted profile directory: {profile_dir}")
-
-        # Step 3: Remove from profiles registry
-        del metadata["profiles"][profile_id]
-
-        # Save updated metadata
-        if not save_profiles_metadata(metadata):
-            raise OSError("Failed to update profiles registry")
-
-        logger.info(f"[Profiles] Deleted profile: {profile_name} ({profile_id})")
-
-    except Exception as e:
-        logger.error(f"[Profiles] Error deleting profile '{profile_id}': {e}")
-        raise OSError(f"Failed to delete profile: {e}") from e
+    logger.info(f"[Profiles] Deleted profile: {profile_name} ({profile_id})")
 
 
 def rename_profile(profile_id: str, new_name: str) -> None:
@@ -892,15 +784,17 @@ def rename_profile(profile_id: str, new_name: str) -> None:
     if len(new_name) > 100:
         raise ValueError("Profile name cannot exceed 100 characters")
 
-    # Load current metadata
-    metadata = load_profiles_metadata()
-    profiles_dict = metadata.get("profiles", {})
+    # Use repository pattern - get backend
+    from data.persistence.factory import get_backend
+
+    backend = get_backend()
 
     # Validate profile exists
-    if profile_id not in profiles_dict:
+    profile = backend.get_profile(profile_id)
+    if not profile:
         raise ValueError(f"Profile '{profile_id}' does not exist")
 
-    current_name = profiles_dict[profile_id]["name"]
+    current_name = profile["name"]
 
     # Check if name actually changed
     if new_name.lower() == current_name.lower():
@@ -910,50 +804,30 @@ def rename_profile(profile_id: str, new_name: str) -> None:
         return
 
     # Check for duplicate names (case-insensitive)
-    for pid, profile_data in profiles_dict.items():
-        if pid != profile_id and profile_data["name"].lower() == new_name.lower():
+    all_profiles = backend.list_profiles()
+    for p in all_profiles:
+        if p["id"] != profile_id and p["name"].lower() == new_name.lower():
             raise ValueError(f"Profile name '{new_name}' already exists")
 
-    try:
-        # Step 1: Update profile.json
-        profile_file = get_profile_file_path(profile_id)
-        if profile_file.exists():
-            with open(profile_file, "r", encoding="utf-8") as f:
-                profile_data = json.load(f)
+    # Update profile name in database
+    profile["name"] = new_name
+    backend.save_profile(profile)
 
-            profile_data["name"] = new_name
-
-            with open(profile_file, "w", encoding="utf-8") as f:
-                json.dump(profile_data, f, indent=2, ensure_ascii=False)
-
-            logger.info(f"[Profiles] Updated profile.json for '{profile_id}'")
-
-        # Step 2: Update profiles registry
-        metadata["profiles"][profile_id]["name"] = new_name
-
-        # Save updated metadata
-        if not save_profiles_metadata(metadata):
-            raise OSError("Failed to update profiles registry")
-
-        logger.info(
-            f"[Profiles] Renamed profile '{current_name}' to '{new_name}' ({profile_id})"
-        )
-
-    except Exception as e:
-        logger.error(f"[Profiles] Error renaming profile '{profile_id}': {e}")
-        raise OSError(f"Failed to rename profile: {e}") from e
+    logger.info(
+        f"[Profiles] Renamed profile '{current_name}' to '{new_name}' ({profile_id})"
+    )
 
 
 def duplicate_profile(
     source_profile_id: str, new_name: str, description: str = ""
 ) -> str:
     """
-    Duplicate a profile with all its settings, queries, and data files.
+    Duplicate a profile with all its settings and queries from database.
 
     Creates a complete copy of the source profile including:
-    - profile.json (JIRA config, field mappings, forecast settings, etc.)
-    - All queries with their query.json files
-    - All query data files (jira_cache.json, project_data.json, metrics_snapshots.json, etc.)
+    - All profile settings (JIRA config, field mappings, forecast settings, etc.)
+    - All queries with their metadata and JQL strings
+    - All query data (JIRA cache, statistics, metrics snapshots, etc.)
 
     Args:
         source_profile_id: Profile ID to duplicate
@@ -965,13 +839,13 @@ def duplicate_profile(
 
     Raises:
         ValueError: If source profile doesn't exist, name is invalid/duplicate, or max profiles reached
-        OSError: If file operations fail
+        OSError: If database operations fail
 
     Example:
         >>> new_id = duplicate_profile("p_abc123", "Production Copy", "Backup of production")
         >>> # Creates complete copy with new ID and timestamps
     """
-    from data.query_manager import _generate_unique_query_id
+    from data.persistence.factory import get_backend
 
     # Validate inputs
     if not new_name or not new_name.strip():
@@ -981,126 +855,60 @@ def duplicate_profile(
     if len(new_name) > 100:
         raise ValueError("Profile name cannot exceed 100 characters")
 
-    # Load current metadata
-    metadata = load_profiles_metadata()
+    backend = get_backend()
 
     # Validate source profile exists
-    profiles_dict = metadata.get("profiles", {})
-    if source_profile_id not in profiles_dict:
+    source_profile = backend.get_profile(source_profile_id)
+    if not source_profile:
         raise ValueError(f"Source profile '{source_profile_id}' does not exist")
 
     # Check for duplicate names (case-insensitive)
-    existing_names = [p["name"].lower() for p in profiles_dict.values()]
+    all_profiles = backend.list_profiles()
+    existing_names = [p["name"].lower() for p in all_profiles]
     if new_name.lower() in existing_names:
         raise ValueError(f"Profile name '{new_name}' already exists")
 
     # Check max profiles limit
-    if len(profiles_dict) >= MAX_PROFILES:
+    if len(all_profiles) >= MAX_PROFILES:
         raise ValueError(f"Maximum {MAX_PROFILES} profiles allowed")
 
     # Generate unique profile ID
     new_profile_id = _generate_unique_profile_id()
 
-    # Source and destination directories
-    source_profile_dir = PROFILES_DIR / source_profile_id
-    new_profile_dir = PROFILES_DIR / new_profile_id
-
-    # Initialize variables that will be set from profile.json
-    profile_data: Dict = {}
-    new_query_ids: List[str] = []
-
     try:
-        # Step 1: Copy entire profile directory tree
-        shutil.copytree(source_profile_dir, new_profile_dir)
-        logger.info(
-            f"[Profiles] Copied directory tree from '{source_profile_id}' to '{new_profile_id}'"
-        )
+        # Step 1: Copy profile data from database
+        now = datetime.now(timezone.utc).isoformat()
+        new_profile_data = source_profile.copy()
+        new_profile_data["id"] = new_profile_id
+        new_profile_data["name"] = new_name
+        new_profile_data["description"] = description
+        new_profile_data["created_at"] = now
+        new_profile_data["last_used"] = now
 
-        # Step 2: Update profile.json with new ID, name, description, timestamps
-        new_profile_config_file = new_profile_dir / "profile.json"
-        if new_profile_config_file.exists():
-            with open(new_profile_config_file, "r", encoding="utf-8") as f:
-                profile_data = json.load(f)
+        # Save new profile to database
+        backend.save_profile(new_profile_data)
 
-            # Update profile metadata
-            now = datetime.now(timezone.utc).isoformat()
-            profile_data["id"] = new_profile_id
-            profile_data["name"] = new_name
-            profile_data["description"] = description
-            profile_data["created_at"] = now
-            profile_data["last_used"] = now
+        # Step 2: Duplicate all queries from source profile
+        source_queries = backend.list_queries(source_profile_id)
+        new_query_ids = []
 
-            # Step 3: Rename query directories and update query.json files
-            queries_dir = new_profile_dir / "queries"
-            if queries_dir.exists():
-                for old_query_dir in list(queries_dir.iterdir()):
-                    if old_query_dir.is_dir():
-                        old_query_id = old_query_dir.name
+        for source_query in source_queries:
+            # Manual query duplication
+            from data.query_manager import _generate_unique_query_id
 
-                        # Generate new query ID
-                        new_query_id = _generate_unique_query_id()
+            new_query_id = _generate_unique_query_id()
 
-                        # Rename directory
-                        new_query_dir = queries_dir / new_query_id
-                        old_query_dir.rename(new_query_dir)
+            query_data = backend.get_query(source_profile_id, source_query["id"])
+            if query_data:
+                query_data["id"] = new_query_id
+                query_data["created_at"] = now
+                query_data["last_used"] = now
+                backend.save_query(new_profile_id, query_data)
 
-                        # Update query.json with new ID and timestamps
-                        query_file = new_query_dir / "query.json"
-                        if query_file.exists():
-                            with open(query_file, "r", encoding="utf-8") as f:
-                                query_data = json.load(f)
-
-                            query_data["id"] = new_query_id
-                            query_data["created_at"] = now
-                            query_data["last_used"] = now
-
-                            with open(query_file, "w", encoding="utf-8") as f:
-                                json.dump(query_data, f, indent=2, ensure_ascii=False)
-
-                        new_query_ids.append(new_query_id)
-                        logger.debug(
-                            f"[Profiles] Renamed query '{old_query_id}' to '{new_query_id}'"
-                        )
-
-            profile_data["queries"] = new_query_ids
-            profile_data["active_query_id"] = (
-                new_query_ids[0] if new_query_ids else None
+            new_query_ids.append(new_query_id)
+            logger.debug(
+                f"[Profiles] Duplicated query '{source_query['id']}' to '{new_query_id}'"
             )
-
-            # Save updated profile.json
-            with open(new_profile_config_file, "w", encoding="utf-8") as f:
-                json.dump(profile_data, f, indent=2, ensure_ascii=False)
-
-        # Step 4: Add to profiles registry
-        # Create registry entry from profile data
-        registry_entry = {
-            "id": new_profile_id,
-            "name": new_name,
-            "description": description,
-            "created_at": datetime.now(timezone.utc).isoformat(),
-            "last_used": datetime.now(timezone.utc).isoformat(),
-            "jira_config": {},  # Summary only - full config in profile.json
-            "field_mappings": {},  # Summary only - full mappings in profile.json
-            "forecast_settings": profile_data.get(
-                "forecast_settings",
-                {
-                    "pert_factor": 1.2,
-                    "deadline": "",
-                    "data_points_count": 20,
-                },
-            ),
-            "project_classification": {},
-            "flow_type_mappings": {},
-            "queries": new_query_ids,
-            "show_milestone": profile_data.get("show_milestone", False),
-            "show_points": profile_data.get("show_points", False),
-        }
-
-        metadata["profiles"][new_profile_id] = registry_entry
-
-        # Save updated metadata
-        if not save_profiles_metadata(metadata):
-            raise OSError("Failed to update profiles registry")
 
         logger.info(
             f"[Profiles] Duplicated profile '{source_profile_id}' to '{new_name}' ({new_profile_id}) with {len(new_query_ids)} queries"
@@ -1109,15 +917,17 @@ def duplicate_profile(
 
     except Exception as e:
         # Cleanup on failure
-        if new_profile_dir.exists():
-            shutil.rmtree(new_profile_dir, ignore_errors=True)
+        try:
+            backend.delete_profile(new_profile_id)
+        except Exception:
+            pass
         logger.error(f"[Profiles] Error duplicating profile: {e}")
         raise OSError(f"Failed to duplicate profile: {e}") from e
 
 
 def list_profiles() -> List[Dict]:
     """
-    List all available profiles.
+    List all available profiles from database.
 
     Returns:
         List[Dict]: Profile summaries with id, name, query_count, created_at
@@ -1127,31 +937,16 @@ def list_profiles() -> List[Dict]:
         >>> for p in profiles:
         ...     print(f"{p['name']} ({p['query_count']} queries)")
     """
-    metadata = load_profiles_metadata()
-    profiles = []
+    from data.persistence.factory import get_backend
 
-    # Iterate over profiles dictionary - key is profile_id, value is profile_data
-    for profile_id, profile_data in metadata.get("profiles", {}).items():
-        # Count queries in this profile
-        query_count = 0
-        queries_dir = PROFILES_DIR / profile_id / "queries"
-        if queries_dir.exists():
-            query_count = len([d for d in queries_dir.iterdir() if d.is_dir()])
+    backend = get_backend()
+    profiles = backend.list_profiles()
 
-        profiles.append(
-            {
-                "id": profile_id,
-                "name": profile_data["name"],
-                "description": profile_data.get("description", ""),
-                "query_count": query_count,
-                "created_at": profile_data.get("created_at", ""),
-                "last_used": profile_data.get("last_used", ""),
-                "jira_url": profile_data.get("jira_config", {}).get("base_url", ""),
-                "pert_factor": profile_data.get("forecast_settings", {}).get(
-                    "pert_factor", 1.2
-                ),
-            }
-        )
+    # Add query_count from backend
+    for profile in profiles:
+        profile_id = profile["id"]
+        queries = backend.list_queries(profile_id)
+        profile["query_count"] = len(queries)
 
     # Sort by last_used (most recent first)
     profiles.sort(key=lambda p: p["last_used"], reverse=True)

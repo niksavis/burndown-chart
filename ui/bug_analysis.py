@@ -5,6 +5,7 @@ Provides UI components for bug metrics display, charts, and analysis tab layout.
 
 from dash import html
 import dash_bootstrap_components as dbc
+import pandas as pd
 from typing import Dict, List, Optional
 from data.bug_insights import InsightSeverity
 from ui.tooltip_utils import create_help_icon
@@ -231,7 +232,7 @@ def create_bug_metrics_cards(bug_metrics: Dict, forecast: Dict) -> html.Div:
                                                         style={"fontSize": "0.65rem"},
                                                     ),
                                                     html.Span(
-                                                        f"{date_from.strftime('%b %d, %Y') if date_from else 'All time'} - {date_to.strftime('%b %d, %Y') if date_to else 'Now'}"
+                                                        f"{date_from.strftime('%b %d, %Y') if (date_from and pd.notna(date_from)) else 'All time'} - {date_to.strftime('%b %d, %Y') if (date_to and pd.notna(date_to)) else 'Now'}"
                                                     ),
                                                 ]
                                                 if date_from or date_to
@@ -469,7 +470,7 @@ def create_bug_metrics_cards(bug_metrics: Dict, forecast: Dict) -> html.Div:
 
 def create_quality_insights_panel(
     insights: List[Dict], weekly_stats: Optional[List[Dict]] = None
-) -> dbc.Card:
+) -> html.Div:
     """Create quality insights panel with severity icons and expandable details.
 
     Args:
@@ -481,7 +482,7 @@ def create_quality_insights_panel(
         weekly_stats: Optional list of weekly statistics for data sufficiency check
 
     Returns:
-        Dash Bootstrap Components Card with quality insights
+        Div containing title and Card with quality insights
     """
     if not insights:
         # Check if we have weekly stats to provide better feedback
@@ -517,14 +518,23 @@ def create_quality_insights_panel(
                 className="alert alert-success mb-0",
             )
 
-        return dbc.Card(
-            dbc.CardBody(
-                [
-                    html.H4("Quality Insights", className="card-title"),
-                    message,
-                ]
-            ),
-            className="mb-3",
+        return html.Div(
+            [
+                html.H5(
+                    [
+                        html.I(
+                            className="fas fa-lightbulb me-2",
+                            style={"color": "#ffc107"},
+                        ),
+                        "Quality Insights",
+                    ],
+                    className="mb-3 mt-2",
+                ),
+                dbc.Card(
+                    dbc.CardBody(message),
+                    className="mb-3",
+                ),
+            ]
         )
 
     def get_severity_config(severity: InsightSeverity) -> Dict:
@@ -618,20 +628,22 @@ def create_quality_insights_panel(
         )
         insight_items.append(insight_item)
 
-    return dbc.Card(
-        dbc.CardBody(
-            [
-                html.H4(
-                    [
-                        html.I(className="fas fa-lightbulb me-2"),
-                        "Quality Insights",
-                    ],
-                    className="card-title mb-3",
-                ),
-                html.Div(insight_items),
-            ]
-        ),
-        className="mb-3",
+    return html.Div(
+        [
+            html.H5(
+                [
+                    html.I(
+                        className="fas fa-lightbulb me-2", style={"color": "#ffc107"}
+                    ),
+                    "Quality Insights",
+                ],
+                className="mb-3 mt-2",
+            ),
+            dbc.Card(
+                dbc.CardBody(html.Div(insight_items)),
+                className="mb-3",
+            ),
+        ]
     )
 
 

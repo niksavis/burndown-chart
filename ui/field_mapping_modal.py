@@ -358,12 +358,12 @@ def create_field_mapping_form(
         if opt.get("value") and not opt.get("disabled")
     }
 
-    # Collect all currently mapped field IDs from both dora and flow sections
+    # Collect all currently mapped field IDs from all field mapping sections
     all_current_field_ids = set()
     field_mappings_dict = current_mappings.get("field_mappings", {})
 
-    # Iterate through dora and flow sections
-    for section_name in ["dora", "flow"]:
+    # Iterate through all field mapping sections (dora, flow, general)
+    for section_name in ["dora", "flow", "general"]:
         section_mappings = field_mappings_dict.get(section_name, {})
         if isinstance(section_mappings, dict):
             # Add all field IDs (values) from this section
@@ -453,6 +453,34 @@ def create_field_mapping_form(
         current_mappings.get("field_mappings", {}).get("dora", {}),  # type: ignore
     )
 
+    # General fields used across all features (velocity, budget, flow metrics, bug analysis)
+    general_section = create_metric_section(
+        "General Fields",
+        "general",
+        [
+            (
+                "completed_date",
+                "Completion Date",
+                "datetime",
+                "When issue was completed/resolved | REQUIRED for Velocity, Budget, Flow Velocity | Supports nested fields: field.subfield | Type: datetime",
+            ),
+            (
+                "created_date",
+                "Creation Date",
+                "datetime",
+                "When issue was created | REQUIRED for Scope Tracking, Created Items | Standard field: created | Type: datetime",
+            ),
+            (
+                "updated_date",
+                "Updated Date",
+                "datetime",
+                "When issue was last modified | OPTIONAL for Delta Calculations | Standard field: updated | Type: datetime",
+            ),
+        ],
+        field_options,
+        current_mappings.get("field_mappings", {}).get("general", {}),  # type: ignore
+    )
+
     # Flow metrics field mappings
     flow_section = create_metric_section(
         "Flow Metrics",
@@ -478,9 +506,10 @@ def create_field_mapping_form(
             ),
             # NOTE: Estimate/Story Points field is configured in JIRA Connection modal, not here
             # This avoids duplicate configuration and confusion
-            # NOTE: work_started_date and work_completed_date are obsolete.
+            # NOTE: work_started_date is obsolete.
             # Flow Time now uses flow_start_statuses and flow_end_statuses lists
             # from Project Classification to find status transitions in changelog.
+            # NOTE: completed_date moved to General Fields section (used by multiple features)
         ],
         field_options,
         current_mappings.get("field_mappings", {}).get("flow", {}),  # type: ignore
@@ -488,6 +517,8 @@ def create_field_mapping_form(
 
     return html.Div(
         [
+            general_section,
+            html.Hr(className="my-4"),
             dora_section,
             html.Hr(className="my-4"),
             flow_section,

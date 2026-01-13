@@ -64,8 +64,8 @@ IMPLICATIONS FOR DECISION-MAKING
 """
 
 import pandas as pd
-from datetime import datetime
-from typing import Dict, Any
+from datetime import datetime, timedelta
+from typing import Dict, Any, Optional
 
 
 def calculate_scope_change_rate(
@@ -101,13 +101,19 @@ def calculate_scope_change_rate(
     if data_points_count is not None:
         data_points_count = int(data_points_count)
 
-    # Apply data points filtering
+    # CRITICAL FIX: Apply data points filtering by DATE RANGE, not row count
     if (
         data_points_count is not None
         and data_points_count > 0
-        and len(df) > data_points_count
+        and not df.empty
+        and "date" in df.columns
     ):
-        df = df.tail(data_points_count)
+        df["date"] = pd.to_datetime(df["date"], format="mixed", errors="coerce")
+        df = df.dropna(subset=["date"]).sort_values("date", ascending=True)
+
+        latest_date = df["date"].max()
+        cutoff_date = latest_date - timedelta(weeks=data_points_count)
+        df = df[df["date"] > cutoff_date]
 
     # Get total created and completed items/points
     if df.empty:
@@ -225,7 +231,7 @@ def calculate_total_project_scope(
 
 
 def calculate_weekly_scope_growth(
-    df: pd.DataFrame, data_points_count: int = None
+    df: pd.DataFrame, data_points_count: Optional[int] = None
 ) -> pd.DataFrame:
     """
     Calculate weekly scope growth (created - completed).
@@ -240,24 +246,30 @@ def calculate_weekly_scope_growth(
     if data_points_count is not None:
         data_points_count = int(data_points_count)
 
-    # Apply data points filtering
+    # CRITICAL FIX: Apply data points filtering by DATE RANGE, not row count
     if (
         data_points_count is not None
         and data_points_count > 0
-        and len(df) > data_points_count
+        and not df.empty
+        and "date" in df.columns
     ):
-        df = df.tail(data_points_count)
+        df["date"] = pd.to_datetime(df["date"], format="mixed", errors="coerce")
+        df = df.dropna(subset=["date"]).sort_values("date", ascending=True)
+
+        latest_date = df["date"].max()
+        cutoff_date = latest_date - timedelta(weeks=data_points_count)
+        df = df[df["date"] > cutoff_date]
 
     if df.empty:
         return pd.DataFrame(columns=["week", "items_growth", "points_growth"])
 
     # Ensure date column is datetime
     df = df.copy()
-    df["date"] = pd.to_datetime(df["date"])
+    df["date"] = pd.to_datetime(df["date"], format="mixed", errors="coerce")
 
     # Add week number column
-    df["week"] = df["date"].dt.isocalendar().week
-    df["year"] = df["date"].dt.isocalendar().year
+    df["week"] = df["date"].dt.isocalendar().week  # type: ignore[attr-defined]
+    df["year"] = df["date"].dt.isocalendar().year  # type: ignore[attr-defined]
 
     # Group by week and calculate weekly totals
     weekly = (
@@ -348,13 +360,19 @@ def calculate_scope_stability_index(
     if data_points_count is not None:
         data_points_count = int(data_points_count)
 
-    # Apply data points filtering
+    # CRITICAL FIX: Apply data points filtering by DATE RANGE, not row count
     if (
         data_points_count is not None
         and data_points_count > 0
-        and len(df) > data_points_count
+        and not df.empty
+        and "date" in df.columns
     ):
-        df = df.tail(data_points_count)
+        df["date"] = pd.to_datetime(df["date"], format="mixed", errors="coerce")
+        df = df.dropna(subset=["date"]).sort_values("date", ascending=True)
+
+        latest_date = df["date"].max()
+        cutoff_date = latest_date - timedelta(weeks=data_points_count)
+        df = df[df["date"] > cutoff_date]
 
     if df.empty or baseline_items == 0 or baseline_points == 0:
         return {"items_stability": 1.0, "points_stability": 1.0}

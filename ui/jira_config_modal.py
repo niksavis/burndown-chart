@@ -68,10 +68,10 @@ def create_jira_config_modal():
                                     dbc.Select(
                                         id="jira-api-version-select",
                                         options=[
-                                            {"label": "v3", "value": "v3"},
                                             {"label": "v2", "value": "v2"},
+                                            {"label": "v3", "value": "v3"},
                                         ],
-                                        value="v3",
+                                        value="v2",
                                     ),
                                 ],
                                 width=4,

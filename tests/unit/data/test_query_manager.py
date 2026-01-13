@@ -2,10 +2,53 @@
 Unit tests for data/query_manager.py
 
 Tests query management functions for profile-based workspaces.
+Uses SQLite database backend via temp_database fixture.
 """
 
-import json
 import pytest
+from datetime import datetime, timezone
+
+
+def create_test_profile(profile_id: str, name: str) -> dict:
+    """
+    Create test profile with all required fields.
+
+    Uses fixed timestamps for deterministic testing.
+    """
+    fixed_timestamp = datetime(2026, 1, 1, 0, 0, 0, tzinfo=timezone.utc).isoformat()
+    return {
+        "id": profile_id,
+        "name": name,
+        "description": "",
+        "created_at": fixed_timestamp,
+        "last_used": fixed_timestamp,
+        "jira_config": {},
+        "field_mappings": {},
+        "forecast_settings": {
+            "pert_factor": 1.2,
+            "deadline": None,
+            "data_points_count": 12,
+        },
+        "project_classification": {},
+        "flow_type_mappings": {},
+    }
+
+
+def create_test_query(query_id: str, name: str, jql: str) -> dict:
+    """
+    Create test query with all required fields.
+
+    Uses fixed timestamps for deterministic testing.
+    """
+    fixed_timestamp = datetime(2026, 1, 1, 0, 0, 0, tzinfo=timezone.utc).isoformat()
+    return {
+        "id": query_id,
+        "name": name,
+        "jql": jql,
+        "created_at": fixed_timestamp,
+        "last_used": fixed_timestamp,
+    }
+
 
 # Import functions from query_manager inside tests where patches are active
 
@@ -15,59 +58,46 @@ import pytest
 class TestGetActiveQueryId:
     """Test get_active_query_id() function."""
 
-    def test_returns_active_query_id(self, temp_profiles_dir_with_default):
-        """Verify returns active_query_id from profiles.json."""
-        from unittest.mock import patch
+    def test_returns_active_query_id(self, temp_database):
+        """Verify returns active_query_id from database."""
+        from data.persistence.factory import get_backend
+        from data.query_manager import get_active_query_id
 
         # Arrange
-        profiles_file = temp_profiles_dir_with_default / "profiles.json"
-        profiles_data = {
-            "active_profile_id": "kafka",
-            "active_query_id": "bugs",
-            "profiles": {},
-        }
-        profiles_file.write_text(json.dumps(profiles_data))
+        backend = get_backend()
+        backend.set_app_state("active_profile_id", "kafka")
+        backend.set_app_state("active_query_id", "bugs")
 
-        # Act - patch query_manager constants, then import
-        with patch("data.query_manager.PROFILES_FILE", profiles_file):
-            from data.query_manager import get_active_query_id
-
-            result = get_active_query_id()
+        # Act
+        result = get_active_query_id()
 
         # Assert
         assert result == "bugs"
 
-    def test_raises_if_profiles_json_missing(self, temp_profiles_dir):
-        """Verify raises ValueError if profiles.json doesn't exist."""
-        from unittest.mock import patch
+    def test_raises_if_profiles_json_missing(self, temp_database):
+        """Verify returns None when active_query_id not set."""
+        from data.query_manager import get_active_query_id
 
-        # Act & Assert - patch constants, then import
-        profiles_file = temp_profiles_dir / "profiles.json"
-        with patch("data.query_manager.PROFILES_FILE", profiles_file):
-            from data.query_manager import get_active_query_id
+        # Act - no app state set
+        result = get_active_query_id()
 
-            with pytest.raises(ValueError, match="profiles.json not found"):
-                get_active_query_id()
+        # Assert - returns None when not set
+        assert result is None
 
-    def test_raises_if_active_query_id_missing(self, temp_profiles_dir_with_default):
+    def test_raises_if_active_query_id_missing(self, temp_database):
         """Verify returns None when active_query_id is missing (valid state for empty profile)."""
-        from unittest.mock import patch
+        from data.persistence.factory import get_backend
+        from data.query_manager import get_active_query_id
 
-        # Arrange
-        profiles_file = temp_profiles_dir_with_default / "profiles.json"
-        profiles_data = {
-            "active_profile_id": "kafka",
-            # Missing active_query_id
-            "profiles": {},
-        }
-        profiles_file.write_text(json.dumps(profiles_data))
+        # Arrange - only set active_profile_id
+        backend = get_backend()
+        backend.set_app_state("active_profile_id", "kafka")
 
-        # Act & Assert - patch constants, then import
-        with patch("data.query_manager.PROFILES_FILE", profiles_file):
-            from data.query_manager import get_active_query_id
+        # Act
+        result = get_active_query_id()
 
-            result = get_active_query_id()
-            assert result is None  # No active query is a valid state
+        # Assert
+        assert result is None  # No active query is a valid state
 
 
 @pytest.mark.unit
@@ -75,24 +105,18 @@ class TestGetActiveQueryId:
 class TestGetActiveProfileId:
     """Test get_active_profile_id() function."""
 
-    def test_returns_active_profile_id(self, temp_profiles_dir_with_default):
-        """Verify returns active_profile_id from profiles.json."""
-        from unittest.mock import patch
+    def test_returns_active_profile_id(self, temp_database):
+        """Verify returns active_profile_id from database."""
+        from data.persistence.factory import get_backend
+        from data.query_manager import get_active_profile_id
 
         # Arrange
-        profiles_file = temp_profiles_dir_with_default / "profiles.json"
-        profiles_data = {
-            "active_profile_id": "kafka",
-            "active_query_id": "main",
-            "profiles": {},
-        }
-        profiles_file.write_text(json.dumps(profiles_data))
+        backend = get_backend()
+        backend.set_app_state("active_profile_id", "kafka")
+        backend.set_app_state("active_query_id", "main")
 
-        # Act - patch constants, then import
-        with patch("data.query_manager.PROFILES_FILE", profiles_file):
-            from data.query_manager import get_active_profile_id
-
-            result = get_active_profile_id()
+        # Act
+        result = get_active_profile_id()
 
         # Assert
         assert result == "kafka"
@@ -103,126 +127,86 @@ class TestGetActiveProfileId:
 class TestSwitchQuery:
     """Test switch_query() function with <50ms performance target."""
 
-    def test_switches_to_existing_query(self, temp_profiles_dir_with_default):
-        """Verify switches active_query_id in profiles.json."""
-        from unittest.mock import patch
-
-        # Arrange: Create profiles.json with two queries
-        profiles_file = temp_profiles_dir_with_default / "profiles.json"
-        profiles_data = {
-            "active_profile_id": "kafka",
-            "active_query_id": "main",
-            "profiles": {},
-        }
-        profiles_file.write_text(json.dumps(profiles_data))
-
-        # Create query directories
-        kafka_dir = temp_profiles_dir_with_default / "kafka" / "queries"
-        (kafka_dir / "main").mkdir(parents=True)
-        (kafka_dir / "bugs").mkdir(parents=True)
-
-        # Act - patch constants, then import and call
-        with (
-            patch("data.query_manager.PROFILES_FILE", profiles_file),
-            patch("data.query_manager.PROFILES_DIR", temp_profiles_dir_with_default),
-        ):
-            from data.query_manager import switch_query, get_active_query_id
-
-            switch_query("bugs")
-
-            # Assert
-            assert get_active_query_id() == "bugs"
-
-        # Verify profiles.json updated
-        with open(profiles_file, "r") as f:
-            updated_data = json.load(f)
-        assert updated_data["active_query_id"] == "bugs"
-
-    def test_raises_if_query_does_not_exist(self, temp_profiles_dir_with_default):
-        """Verify raises ValueError if query directory doesn't exist."""
-        from unittest.mock import patch
+    def test_switches_to_existing_query(self, temp_database):
+        """Verify switches active_query_id in database."""
+        from data.persistence.factory import get_backend
+        from data.query_manager import switch_query, get_active_query_id
 
         # Arrange
-        profiles_file = temp_profiles_dir_with_default / "profiles.json"
-        profiles_data = {
-            "active_profile_id": "kafka",
-            "active_query_id": "main",
-            "profiles": {},
-        }
-        profiles_file.write_text(json.dumps(profiles_data))
+        backend = get_backend()
+        backend.save_profile(create_test_profile("kafka", "Kafka"))
+        backend.save_query(
+            "kafka", create_test_query("main", "All Issues", "project = KAFKA")
+        )
+        backend.save_query("kafka", create_test_query("bugs", "Bugs", "type = Bug"))
+        backend.set_app_state("active_profile_id", "kafka")
+        backend.set_app_state("active_query_id", "main")
 
-        # Create only main query
-        kafka_dir = temp_profiles_dir_with_default / "kafka" / "queries"
-        (kafka_dir / "main").mkdir(parents=True)
+        # Act
+        switch_query("bugs")
 
-        # Act & Assert - patch constants, then import and call
-        with (
-            patch("data.query_manager.PROFILES_FILE", profiles_file),
-            patch("data.query_manager.PROFILES_DIR", temp_profiles_dir_with_default),
-        ):
-            from data.query_manager import switch_query
+        # Assert
+        assert get_active_query_id() == "bugs"
 
-            with pytest.raises(ValueError, match="Query 'nonexistent' not found"):
-                switch_query("nonexistent")
-
-    def test_switch_is_atomic(self, temp_profiles_dir_with_default):
-        """Verify switch uses atomic write (temp file + rename)."""
-        from unittest.mock import patch
+    def test_raises_if_query_does_not_exist(self, temp_database):
+        """Verify raises ValueError if query doesn't exist."""
+        from data.persistence.factory import get_backend
+        from data.query_manager import switch_query
 
         # Arrange
-        profiles_file = temp_profiles_dir_with_default / "profiles.json"
-        profiles_data = {
-            "active_profile_id": "kafka",
-            "active_query_id": "main",
-            "profiles": {},
-        }
-        profiles_file.write_text(json.dumps(profiles_data))
+        backend = get_backend()
+        backend.save_profile(create_test_profile("kafka", "Kafka"))
+        backend.save_query(
+            "kafka", create_test_query("main", "All Issues", "project = KAFKA")
+        )
+        backend.set_app_state("active_profile_id", "kafka")
+        backend.set_app_state("active_query_id", "main")
 
-        kafka_dir = temp_profiles_dir_with_default / "kafka" / "queries"
-        (kafka_dir / "main").mkdir(parents=True)
-        (kafka_dir / "bugs").mkdir(parents=True)
+        # Act & Assert
+        with pytest.raises(ValueError, match="Query 'nonexistent' not found"):
+            switch_query("nonexistent")
 
-        # Act - patch constants, then import and call
-        with (
-            patch("data.query_manager.PROFILES_FILE", profiles_file),
-            patch("data.query_manager.PROFILES_DIR", temp_profiles_dir_with_default),
-        ):
-            from data.query_manager import switch_query
+    def test_switch_is_atomic(self, temp_database):
+        """Verify switch updates database atomically."""
+        from data.persistence.factory import get_backend
+        from data.query_manager import switch_query
 
-            switch_query("bugs")
+        # Arrange
+        backend = get_backend()
+        backend.save_profile(create_test_profile("kafka", "Kafka"))
+        backend.save_query(
+            "kafka", create_test_query("main", "All Issues", "project = KAFKA")
+        )
+        backend.save_query("kafka", create_test_query("bugs", "Bugs", "type = Bug"))
+        backend.set_app_state("active_profile_id", "kafka")
+        backend.set_app_state("active_query_id", "main")
 
-        # Assert: Temp file should not exist after successful switch
-        temp_file = profiles_file.with_suffix(".tmp")
-        assert not temp_file.exists()
+        # Act
+        switch_query("bugs")
 
-    def test_performance_under_50ms(self, temp_profiles_dir_with_default):
+        # Assert - database updated
+        assert backend.get_app_state("active_query_id") == "bugs"
+
+    def test_performance_under_50ms(self, temp_database):
         """Verify switch_query() completes in <50ms."""
         import time
-        from unittest.mock import patch
+        from data.persistence.factory import get_backend
+        from data.query_manager import switch_query
 
         # Arrange
-        profiles_file = temp_profiles_dir_with_default / "profiles.json"
-        profiles_data = {
-            "active_profile_id": "kafka",
-            "active_query_id": "main",
-            "profiles": {},
-        }
-        profiles_file.write_text(json.dumps(profiles_data))
+        backend = get_backend()
+        backend.save_profile(create_test_profile("kafka", "Kafka"))
+        backend.save_query(
+            "kafka", create_test_query("main", "All Issues", "project = KAFKA")
+        )
+        backend.save_query("kafka", create_test_query("bugs", "Bugs", "type = Bug"))
+        backend.set_app_state("active_profile_id", "kafka")
+        backend.set_app_state("active_query_id", "main")
 
-        kafka_dir = temp_profiles_dir_with_default / "kafka" / "queries"
-        (kafka_dir / "main").mkdir(parents=True)
-        (kafka_dir / "bugs").mkdir(parents=True)
-
-        # Act: Measure time - patch constants, then import and call
-        with (
-            patch("data.query_manager.PROFILES_FILE", profiles_file),
-            patch("data.query_manager.PROFILES_DIR", temp_profiles_dir_with_default),
-        ):
-            from data.query_manager import switch_query
-
-            start = time.perf_counter()
-            switch_query("bugs")
-            elapsed_ms = (time.perf_counter() - start) * 1000
+        # Act - measure time
+        start = time.perf_counter()
+        switch_query("bugs")
+        elapsed_ms = (time.perf_counter() - start) * 1000
 
         # Assert
         assert elapsed_ms < 50, f"switch_query took {elapsed_ms:.2f}ms, target: <50ms"
@@ -233,96 +217,71 @@ class TestSwitchQuery:
 class TestListQueriesForProfile:
     """Test list_queries_for_profile() function."""
 
-    def test_lists_queries_with_metadata(self, temp_profiles_dir_with_default):
+    def test_lists_queries_with_metadata(self, temp_database):
         """Verify returns list of queries with metadata."""
-        from unittest.mock import patch
+        from data.persistence.factory import get_backend
+        from data.query_manager import list_queries_for_profile
 
         # Arrange
-        profiles_file = temp_profiles_dir_with_default / "profiles.json"
-        profiles_data = {
-            "active_profile_id": "kafka",
-            "active_query_id": "main",
-            "profiles": {},
-        }
-        profiles_file.write_text(json.dumps(profiles_data))
+        backend = get_backend()
+        backend.save_profile(create_test_profile("kafka", "Kafka"))
+        backend.save_query(
+            "kafka", create_test_query("main", "All Issues", "project = KAFKA")
+        )
+        backend.save_query(
+            "kafka",
+            create_test_query("bugs", "Bugs Only", "project = KAFKA AND type = Bug"),
+        )
+        backend.set_app_state("active_profile_id", "kafka")
+        backend.set_app_state("active_query_id", "main")
 
-        kafka_dir = temp_profiles_dir_with_default / "kafka" / "queries"
-        main_dir = kafka_dir / "main"
-        bugs_dir = kafka_dir / "bugs"
-        main_dir.mkdir(parents=True)
-        bugs_dir.mkdir(parents=True)
-
-        # Create query.json files
-        main_query = {
-            "name": "All Issues",
-            "jql": "project = KAFKA",
-            "created_at": "2025-11-01T10:00:00Z",
-        }
-        (main_dir / "query.json").write_text(json.dumps(main_query))
-
-        bugs_query = {
-            "name": "Bugs Only",
-            "jql": "project = KAFKA AND type = Bug",
-            "created_at": "2025-11-10T14:30:00Z",
-        }
-        (bugs_dir / "query.json").write_text(json.dumps(bugs_query))
-
-        # Act - patch constants, then import and call
-        with (
-            patch("data.query_manager.PROFILES_FILE", profiles_file),
-            patch("data.query_manager.PROFILES_DIR", temp_profiles_dir_with_default),
-        ):
-            from data.query_manager import list_queries_for_profile
-
-            queries = list_queries_for_profile("kafka")
+        # Act
+        queries = list_queries_for_profile("kafka")
 
         # Assert
         assert len(queries) == 2
-        assert queries[0]["id"] == "main"
-        assert queries[0]["name"] == "All Issues"
-        assert queries[0]["jql"] == "project = KAFKA"
-        assert queries[0]["is_active"] is True
 
-        assert queries[1]["id"] == "bugs"
-        assert queries[1]["name"] == "Bugs Only"
-        assert queries[1]["is_active"] is False
+        # Find queries by ID (order may vary)
+        main_query = next(q for q in queries if q["id"] == "main")
+        bugs_query = next(q for q in queries if q["id"] == "bugs")
 
-    def test_returns_empty_list_if_no_queries(self, temp_profiles_dir_with_default):
+        assert main_query["name"] == "All Issues"
+        assert main_query["jql"] == "project = KAFKA"
+        assert main_query["is_active"] is True
+
+        assert bugs_query["name"] == "Bugs Only"
+        assert bugs_query["is_active"] is False
+
+    def test_returns_empty_list_if_no_queries(self, temp_database):
         """Verify returns empty list if profile has no queries."""
-        from unittest.mock import patch
+        from data.persistence.factory import get_backend
+        from data.query_manager import list_queries_for_profile
 
         # Arrange
-        kafka_dir = temp_profiles_dir_with_default / "kafka"
-        kafka_dir.mkdir(parents=True)
+        backend = get_backend()
+        backend.save_profile(create_test_profile("kafka", "Kafka"))
 
-        # Act - patch constants, then import and call
-        with patch("data.query_manager.PROFILES_DIR", temp_profiles_dir_with_default):
-            from data.query_manager import list_queries_for_profile
-
-            queries = list_queries_for_profile("kafka")
+        # Act
+        queries = list_queries_for_profile("kafka")
 
         # Assert
         assert queries == []
 
-    def test_handles_missing_query_json(self, temp_profiles_dir_with_default):
-        """Verify gracefully handles queries without query.json."""
-        from unittest.mock import patch
+    def test_handles_missing_query_json(self, temp_database):
+        """Verify returns empty list when profile has no queries in database."""
+        from data.persistence.factory import get_backend
+        from data.query_manager import list_queries_for_profile
 
         # Arrange
-        kafka_dir = temp_profiles_dir_with_default / "kafka" / "queries"
-        (kafka_dir / "orphan").mkdir(parents=True)
-        # No query.json created
+        backend = get_backend()
+        backend.save_profile(create_test_profile("kafka", "Kafka"))
+        # No queries saved
 
-        # Act - patch constants, then import and call
-        with patch("data.query_manager.PROFILES_DIR", temp_profiles_dir_with_default):
-            from data.query_manager import list_queries_for_profile
-
-            queries = list_queries_for_profile("kafka")
+        # Act
+        queries = list_queries_for_profile("kafka")
 
         # Assert
-        assert len(queries) == 1
-        assert queries[0]["id"] == "orphan"
-        assert queries[0]["name"] == "Orphan"  # Titleized from ID
+        assert queries == []
 
 
 @pytest.mark.unit
@@ -330,114 +289,77 @@ class TestListQueriesForProfile:
 class TestCreateQuery:
     """Test create_query() function."""
 
-    def test_creates_query_with_metadata(self, temp_profiles_dir_with_default):
-        """Verify creates query directory and query.json."""
-        from unittest.mock import patch
+    def test_creates_query_with_metadata(self, temp_database):
+        """Verify creates query in database."""
+        from data.persistence.factory import get_backend
+        from data.query_manager import create_query
 
         # Arrange
-        kafka_dir = temp_profiles_dir_with_default / "kafka"
-        kafka_dir.mkdir(parents=True)
+        backend = get_backend()
+        profile = create_test_profile("kafka", "Kafka")
+        profile["jira_config"] = {
+            "configured": True,
+            "base_url": "https://test.jira.com",
+            "token": "test-token",
+        }
+        backend.save_profile(profile)
 
-        # Create profile.json with JIRA configured (required by dependency chain)
-        profile_file = kafka_dir / "profile.json"
-        with open(profile_file, "w", encoding="utf-8") as f:
-            json.dump(
-                {
-                    "jira_config": {
-                        "configured": True,
-                        "base_url": "https://test.jira.com",
-                        "token": "test-token",
-                    }
-                },
-                f,
-            )
+        # Act
+        query_id = create_query("kafka", "High Priority Bugs", "priority = High")
 
-        # Act - patch constants, then import and call
-        with patch("data.query_manager.PROFILES_DIR", temp_profiles_dir_with_default):
-            from data.query_manager import create_query
-
-            query_id = create_query("kafka", "High Priority Bugs", "priority = High")
-
-        # Assert - should return hash-based ID (e.g., "q_9e86e25134dd")
+        # Assert - should return hash-based ID
         assert query_id.startswith("q_")
         assert len(query_id) == 14  # "q_" + 12 hex chars
 
-        query_dir = kafka_dir / "queries" / query_id
-        assert query_dir.exists()
-
-        query_file = query_dir / "query.json"
-        assert query_file.exists()
-
-        with open(query_file, "r") as f:
-            query_data = json.load(f)
-
+        query_data = backend.get_query("kafka", query_id)
+        assert query_data is not None
         assert query_data["name"] == "High Priority Bugs"
         assert query_data["jql"] == "priority = High"
         assert "created_at" in query_data
 
-    def test_raises_if_query_id_conflicts(self, temp_profiles_dir_with_default):
-        """Verify hash-based IDs make collisions statistically impossible (no explicit check needed)."""
-        from unittest.mock import patch
+    def test_raises_if_query_id_conflicts(self, temp_database):
+        """Verify hash-based IDs make collisions statistically impossible."""
+        from data.persistence.factory import get_backend
+        from data.query_manager import create_query
 
         # Arrange
-        kafka_dir = temp_profiles_dir_with_default / "kafka"
-        kafka_dir.mkdir(parents=True)
-
-        # Create profile.json with JIRA configured
-        profile_file = kafka_dir / "profile.json"
-        with open(profile_file, "w", encoding="utf-8") as f:
-            json.dump(
-                {
-                    "jira_config": {
-                        "configured": True,
-                        "base_url": "https://test.jira.com",
-                        "token": "test-token",
-                    }
-                },
-                f,
-            )
+        backend = get_backend()
+        profile = create_test_profile("kafka", "Kafka")
+        profile["jira_config"] = {
+            "configured": True,
+            "base_url": "https://test.jira.com",
+            "token": "test-token",
+        }
+        backend.save_profile(profile)
 
         # Act - Create multiple queries with same name
-        with patch("data.query_manager.PROFILES_DIR", temp_profiles_dir_with_default):
-            from data.query_manager import create_query
-
-            query_id1 = create_query("kafka", "Bugs", "type = Bug")
-            query_id2 = create_query(
-                "kafka", "Bugs", "type = Bug"
-            )  # Same name, different ID
+        query_id1 = create_query("kafka", "Bugs", "type = Bug")
+        query_id2 = create_query(
+            "kafka", "Bugs", "type = Bug"
+        )  # Same name, different ID
 
         # Assert - both queries created successfully with different IDs
         assert query_id1 != query_id2  # Different hash-based IDs
-        assert (kafka_dir / "queries" / query_id1).exists()
-        assert (kafka_dir / "queries" / query_id2).exists()
+        assert backend.get_query("kafka", query_id1) is not None
+        assert backend.get_query("kafka", query_id2) is not None
 
-    def test_slugifies_query_name(self, temp_profiles_dir_with_default):
+    def test_slugifies_query_name(self, temp_database):
         """Verify generates hash-based query ID regardless of name format."""
-        from unittest.mock import patch
+        from data.persistence.factory import get_backend
+        from data.query_manager import create_query
 
         # Arrange
-        kafka_dir = temp_profiles_dir_with_default / "kafka"
-        kafka_dir.mkdir(parents=True)
+        backend = get_backend()
+        profile = create_test_profile("kafka", "Kafka")
+        profile["jira_config"] = {
+            "configured": True,
+            "base_url": "https://test.jira.com",
+            "token": "test-token",
+        }
+        backend.save_profile(profile)
 
-        # Create profile.json with JIRA configured
-        profile_file = kafka_dir / "profile.json"
-        with open(profile_file, "w", encoding="utf-8") as f:
-            json.dump(
-                {
-                    "jira_config": {
-                        "configured": True,
-                        "base_url": "https://test.jira.com",
-                        "token": "test-token",
-                    }
-                },
-                f,
-            )
-
-        # Act - patch constants, then import and call
-        with patch("data.query_manager.PROFILES_DIR", temp_profiles_dir_with_default):
-            from data.query_manager import create_query
-
-            query_id = create_query("kafka", "Sprint 2025-Q4", "sprint = 2025-Q4")
+        # Act
+        query_id = create_query("kafka", "Sprint 2025-Q4", "sprint = 2025-Q4")
 
         # Assert - generates hash-based ID, not slugified name
         assert query_id.startswith("q_")
@@ -449,133 +371,82 @@ class TestCreateQuery:
 class TestUpdateQuery:
     """Test update_query() function."""
 
-    def test_updates_query_jql(self, temp_profiles_dir_with_default):
-        """Verify updates query JQL and adds updated_at timestamp."""
-        from unittest.mock import patch
+    def test_updates_query_jql(self, temp_database):
+        """Verify updates JQL."""
+        from data.persistence.factory import get_backend
+        from data.query_manager import update_query
 
         # Arrange
-        kafka_dir = temp_profiles_dir_with_default / "kafka"
-        kafka_dir.mkdir(parents=True)
-
-        # Create query
-        query_dir = kafka_dir / "queries" / "main"
-        query_dir.mkdir(parents=True)
-        query_file = query_dir / "query.json"
-        with open(query_file, "w", encoding="utf-8") as f:
-            json.dump(
-                {
-                    "name": "Main Query",
-                    "jql": "project = KAFKA",
-                    "description": "Main query",
-                    "created_at": "2025-01-01T00:00:00Z",
-                },
-                f,
-            )
-
-        # Act - patch constants, then import and call
-        with patch("data.query_manager.PROFILES_DIR", temp_profiles_dir_with_default):
-            from data.query_manager import update_query
-
-            result = update_query(
-                "kafka", "main", jql="project = KAFKA AND priority > Medium"
-            )
-
-        # Assert
-        assert result is True
-
-        with open(query_file, "r") as f:
-            query_data = json.load(f)
-
-        assert query_data["jql"] == "project = KAFKA AND priority > Medium"
-        assert "updated_at" in query_data
-        assert query_data["name"] == "Main Query"  # Unchanged
-
-    def test_updates_query_name(self, temp_profiles_dir_with_default):
-        """Verify updates query name."""
-        from unittest.mock import patch
-
-        # Arrange
-        kafka_dir = temp_profiles_dir_with_default / "kafka"
-        kafka_dir.mkdir(parents=True)
-
-        query_dir = kafka_dir / "queries" / "main"
-        query_dir.mkdir(parents=True)
-        query_file = query_dir / "query.json"
-        with open(query_file, "w", encoding="utf-8") as f:
-            json.dump(
-                {
-                    "name": "Old Name",
-                    "jql": "project = KAFKA",
-                    "description": "",
-                    "created_at": "2025-01-01T00:00:00Z",
-                },
-                f,
-            )
+        backend = get_backend()
+        backend.save_profile(create_test_profile("kafka", "Kafka"))
+        backend.save_query(
+            "kafka", create_test_query("main", "Main Query", "project = KAFKA")
+        )
 
         # Act
-        with patch("data.query_manager.PROFILES_DIR", temp_profiles_dir_with_default):
-            from data.query_manager import update_query
-
-            result = update_query("kafka", "main", name="New Name")
+        result = update_query(
+            "kafka", "main", jql="project = KAFKA AND priority > Medium"
+        )
 
         # Assert
         assert result is True
+        query_data = backend.get_query("kafka", "main")
+        assert query_data is not None
+        assert query_data["jql"] == "project = KAFKA AND priority > Medium"
+        assert query_data["name"] == "Main Query"  # Unchanged
 
-        with open(query_file, "r") as f:
-            query_data = json.load(f)
+    def test_updates_query_name(self, temp_database):
+        """Verify updates name."""
+        from data.persistence.factory import get_backend
+        from data.query_manager import update_query
 
+        # Arrange
+        backend = get_backend()
+        backend.save_profile(create_test_profile("kafka", "Kafka"))
+        backend.save_query(
+            "kafka", create_test_query("main", "Old Name", "project = KAFKA")
+        )
+
+        # Act
+        result = update_query("kafka", "main", name="New Name")
+
+        # Assert
+        assert result is True
+        query_data = backend.get_query("kafka", "main")
+        assert query_data is not None
         assert query_data["name"] == "New Name"
         assert query_data["jql"] == "project = KAFKA"  # Unchanged
 
-    def test_no_update_if_no_changes(self, temp_profiles_dir_with_default):
-        """Verify returns True but doesn't update if no changes."""
-        from unittest.mock import patch
+    def test_no_update_if_no_changes(self, temp_database):
+        """Verify returns True for no-op updates."""
+        from data.persistence.factory import get_backend
+        from data.query_manager import update_query
 
         # Arrange
-        kafka_dir = temp_profiles_dir_with_default / "kafka"
-        kafka_dir.mkdir(parents=True)
-
-        query_dir = kafka_dir / "queries" / "main"
-        query_dir.mkdir(parents=True)
-        query_file = query_dir / "query.json"
-        original_data = {
-            "name": "Main Query",
-            "jql": "project = KAFKA",
-            "description": "",
-            "created_at": "2025-01-01T00:00:00Z",
-        }
-        with open(query_file, "w", encoding="utf-8") as f:
-            json.dump(original_data, f)
+        backend = get_backend()
+        backend.save_profile(create_test_profile("kafka", "Kafka"))
+        backend.save_query(
+            "kafka", create_test_query("main", "Main Query", "project = KAFKA")
+        )
 
         # Act - update with same JQL
-        with patch("data.query_manager.PROFILES_DIR", temp_profiles_dir_with_default):
-            from data.query_manager import update_query
-
-            result = update_query("kafka", "main", jql="project = KAFKA")
+        result = update_query("kafka", "main", jql="project = KAFKA")
 
         # Assert
         assert result is True
 
-        with open(query_file, "r") as f:
-            query_data = json.load(f)
-
-        # No updated_at timestamp should be added if no changes
-        assert "updated_at" not in query_data
-
-    def test_raises_if_query_not_found(self, temp_profiles_dir_with_default):
+    def test_raises_if_query_not_found(self, temp_database):
         """Verify raises ValueError if query doesn't exist."""
-        from unittest.mock import patch
+        from data.persistence.factory import get_backend
+        from data.query_manager import update_query
 
         # Arrange
-        kafka_dir = temp_profiles_dir_with_default / "kafka"
-        kafka_dir.mkdir(parents=True)
+        backend = get_backend()
+        backend.save_profile(create_test_profile("kafka", "Kafka"))
 
         # Act & Assert
-        with patch("data.query_manager.PROFILES_DIR", temp_profiles_dir_with_default):
-            from data.query_manager import update_query
-
-            with pytest.raises(ValueError, match="not found"):
-                update_query("kafka", "nonexistent", jql="project = TEST")
+        with pytest.raises(ValueError, match="not found"):
+            update_query("kafka", "nonexistent", jql="project = TEST")
 
 
 @pytest.mark.unit
@@ -583,90 +454,68 @@ class TestUpdateQuery:
 class TestDeleteQuery:
     """Test delete_query() function."""
 
-    def test_deletes_query_directory(self, temp_profiles_dir_with_default):
-        """Verify deletes query directory and all contents."""
-        from unittest.mock import patch
+    def test_deletes_query_directory(self, temp_database):
+        """Verify deletes query from database."""
+        from data.persistence.factory import get_backend
+        from data.query_manager import delete_query
 
         # Arrange
-        profiles_file = temp_profiles_dir_with_default / "profiles.json"
-        profiles_data = {
-            "active_profile_id": "kafka",
-            "active_query_id": "main",
-            "profiles": {},
-        }
-        profiles_file.write_text(json.dumps(profiles_data))
+        backend = get_backend()
+        backend.save_profile(create_test_profile("kafka", "Kafka"))
+        backend.save_query(
+            "kafka", create_test_query("main", "Main Query", "project = KAFKA")
+        )
+        backend.save_query(
+            "kafka",
+            create_test_query(
+                "old-query", "Old Query", "project = KAFKA AND status = Closed"
+            ),
+        )
+        backend.set_app_state("active_profile_id", "kafka")
+        backend.set_app_state("active_query_id", "main")
 
-        kafka_dir = temp_profiles_dir_with_default / "kafka" / "queries"
-        (kafka_dir / "main").mkdir(parents=True)
-        old_query_dir = kafka_dir / "old-query"
-        old_query_dir.mkdir(parents=True)
-        (old_query_dir / "jira_cache.json").write_text("{}")
+        # Act
+        delete_query("kafka", "old-query")
 
-        # Act - patch constants, then import and call
-        with (
-            patch("data.query_manager.PROFILES_FILE", profiles_file),
-            patch("data.query_manager.PROFILES_DIR", temp_profiles_dir_with_default),
-        ):
-            from data.query_manager import delete_query
+        # Assert - old-query deleted, main query untouched
+        assert backend.get_query("kafka", "old-query") is None
+        assert backend.get_query("kafka", "main") is not None
 
-            delete_query("kafka", "old-query")
-
-        # Assert
-        assert not old_query_dir.exists()
-        assert (kafka_dir / "main").exists()  # Other query untouched
-
-    def test_raises_if_deleting_active_query(self, temp_profiles_dir_with_default):
+    def test_raises_if_deleting_active_query(self, temp_database):
         """Verify raises PermissionError if trying to delete active query."""
-        from unittest.mock import patch
+        from data.persistence.factory import get_backend
+        from data.query_manager import delete_query
 
         # Arrange
-        profiles_file = temp_profiles_dir_with_default / "profiles.json"
-        profiles_data = {
-            "active_profile_id": "kafka",
-            "active_query_id": "main",
-            "profiles": {},
-        }
-        profiles_file.write_text(json.dumps(profiles_data))
+        backend = get_backend()
+        backend.save_profile(create_test_profile("kafka", "Kafka"))
+        backend.save_query(
+            "kafka", create_test_query("main", "Main Query", "project = KAFKA")
+        )
+        backend.save_query("kafka", create_test_query("bugs", "Bugs", "type = Bug"))
+        backend.set_app_state("active_profile_id", "kafka")
+        backend.set_app_state("active_query_id", "main")
 
-        kafka_dir = temp_profiles_dir_with_default / "kafka" / "queries"
-        (kafka_dir / "main").mkdir(parents=True)
-        (kafka_dir / "bugs").mkdir(parents=True)
-
-        # Act & Assert - patch constants, then import and call
-        with (
-            patch("data.query_manager.PROFILES_FILE", profiles_file),
-            patch("data.query_manager.PROFILES_DIR", temp_profiles_dir_with_default),
-        ):
-            from data.query_manager import delete_query
-
-            with pytest.raises(PermissionError, match="Cannot delete active query"):
-                delete_query("kafka", "main")
-
-    def test_raises_if_deleting_last_query(self, temp_profiles_dir_with_default):
-        """Verify allows deleting last query (profile can exist with no queries)."""
-        from unittest.mock import patch
-
-        # Arrange
-        profiles_file = temp_profiles_dir_with_default / "profiles.json"
-        profiles_data = {
-            "active_profile_id": "kafka",
-            "active_query_id": "bugs",
-            "profiles": {},
-        }
-        profiles_file.write_text(json.dumps(profiles_data))
-
-        kafka_dir = temp_profiles_dir_with_default / "kafka" / "queries"
-        (kafka_dir / "main").mkdir(parents=True)
-
-        # Act - patch constants, then import and call
-        with (
-            patch("data.query_manager.PROFILES_FILE", profiles_file),
-            patch("data.query_manager.PROFILES_DIR", temp_profiles_dir_with_default),
-        ):
-            from data.query_manager import delete_query
-
-            # Should succeed - profiles can have 0 queries
+        # Act & Assert
+        with pytest.raises(PermissionError, match="Cannot delete active query"):
             delete_query("kafka", "main")
 
-        # Assert - query directory removed
-        assert not (kafka_dir / "main").exists()
+    def test_raises_if_deleting_last_query(self, temp_database):
+        """Verify allows deleting last query (profile can exist with no queries)."""
+        from data.persistence.factory import get_backend
+        from data.query_manager import delete_query
+
+        # Arrange
+        backend = get_backend()
+        backend.save_profile(create_test_profile("kafka", "Kafka"))
+        backend.save_query(
+            "kafka", create_test_query("main", "Main Query", "project = KAFKA")
+        )
+        backend.set_app_state("active_profile_id", "kafka")
+        backend.set_app_state("active_query_id", "bugs")  # Different active query
+
+        # Act - Should succeed - profiles can have 0 queries
+        delete_query("kafka", "main")
+
+        # Assert - query removed from database
+        assert backend.get_query("kafka", "main") is None

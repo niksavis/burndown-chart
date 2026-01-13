@@ -19,6 +19,9 @@ requests==2.32.3
 # Production server
 waitress==3.0.2
 
+# Clipboard support (cross-platform)
+pyperclip==1.8.2
+
 # Environment configuration
 python-dotenv==1.0.1
 

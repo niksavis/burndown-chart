@@ -1,5 +1,8 @@
 # Namespace Syntax for JIRA Field Mapping
 
+**Audience**: Developers implementing custom metrics or configuring JIRA field mappings
+**Purpose**: Understanding field reference syntax for DORA, Flow, and custom metric calculations
+
 The namespace syntax provides a human-readable way to reference JIRA fields across projects. This unified syntax simplifies field mapping configuration for DORA metrics, Flow metrics, and custom calculations.
 
 ## Quick Reference

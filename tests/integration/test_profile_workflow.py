@@ -32,18 +32,44 @@ from unittest.mock import patch
 
 @pytest.fixture(autouse=True)
 def isolate_profiles_directory():
-    """Isolate all profile tests from real data."""
+    """Isolate all profile tests from real data using temp SQLite database."""
+    from data.persistence.factory import reset_backend
+    from data.migration.schema import create_schema
+    from data.database import get_db_connection as real_get_db_connection
+    from data.persistence.sqlite_backend import SQLiteBackend
+
     temp_dir = tempfile.mkdtemp(prefix="profile_workflow_test_")
     temp_profiles_dir = Path(temp_dir) / "profiles"
     temp_profiles_dir.mkdir(parents=True, exist_ok=True)
-    temp_profiles_file = temp_profiles_dir / "profiles.json"
+    temp_db_path = Path(temp_profiles_dir / "test_burndown.db")
 
-    # Patch ALL modules that import PROFILES_DIR/PROFILES_FILE
+    # Initialize temp database with schema
+    with real_get_db_connection(temp_db_path) as conn:
+        create_schema(conn)
+        conn.commit()
+
+    # Create test backend instance
+    test_backend = SQLiteBackend(str(temp_db_path))
+
+    # Reset and patch get_backend to always return our test backend
+    reset_backend()
+
+    def mock_get_backend(*args, **kwargs):
+        return test_backend
+
+    def mock_get_db_connection(db_path=None):
+        """Always use test database, ignoring default DB_PATH."""
+        return real_get_db_connection(temp_db_path)
+
+    # Patch factory, database connection (everywhere it's imported), and PROFILES_DIR
     patches = [
+        patch("data.persistence.factory.get_backend", side_effect=mock_get_backend),
+        patch("data.database.get_db_connection", side_effect=mock_get_db_connection),
+        patch(
+            "data.persistence.sqlite_backend.get_db_connection",
+            side_effect=mock_get_db_connection,
+        ),
         patch("data.profile_manager.PROFILES_DIR", temp_profiles_dir),
-        patch("data.profile_manager.PROFILES_FILE", temp_profiles_file),
-        patch("data.query_manager.PROFILES_DIR", temp_profiles_dir),
-        patch("data.query_manager.PROFILES_FILE", temp_profiles_file),
     ]
 
     for p in patches:
@@ -54,6 +80,7 @@ def isolate_profiles_directory():
     for p in patches:
         p.stop()
 
+    reset_backend()
     shutil.rmtree(temp_dir, ignore_errors=True)
 
 
@@ -174,10 +201,8 @@ class TestProfileCreation:
             create_profile,
             delete_profile,
             switch_profile,
-            PROFILES_DIR,
         )
         from data.query_manager import create_query, list_queries_for_profile
-        import pytest
 
         # Create profile with JIRA configured
         profile_id = create_profile(
@@ -191,13 +216,6 @@ class TestProfileCreation:
         try:
             # Switch to this profile to ensure it's active
             switch_profile(profile_id)
-
-            # Check if profile directory exists at expected location
-            profile_dir = PROFILES_DIR / profile_id
-            if not profile_dir.exists():
-                pytest.skip(
-                    f"Profile directory not found - PROFILES_DIR may be patched by another test"
-                )
 
             # Create query
             query_id = create_query(
@@ -339,16 +357,6 @@ class TestProfileSwitching:
             # Ensure Profile A is active and create queries
             switch_profile(profile_id_1)
 
-            # Check if profile directory exists before creating queries
-            from data.profile_manager import PROFILES_DIR
-            import pytest
-
-            profile_a_dir = PROFILES_DIR / profile_id_1
-            if not profile_a_dir.exists():
-                pytest.skip(
-                    f"Profile directory not found - PROFILES_DIR may be patched by another test"
-                )
-
             q_a1 = create_query(profile_id_1, "Query A1", "project = A")
             q_a2 = create_query(
                 profile_id_1, "Query A2", "project = A AND priority = High"
@@ -400,18 +408,11 @@ class TestProfileDeletion:
 
         try:
             # Switch to profile to ensure it's active
-            from data.profile_manager import switch_profile, PROFILES_DIR
-            import pytest
+            from data.profile_manager import switch_profile
 
             switch_profile(profile_id)
 
-            # Check if profile directory exists
-            profile_dir = PROFILES_DIR / profile_id
-            if not profile_dir.exists():
-                pytest.skip(
-                    f"Profile directory not found - PROFILES_DIR may be patched by another test"
-                )
-
+            # Create query
             query_id = create_query(profile_id, "Test Query", "project = TEST")
 
             # Verify query exists

@@ -1,14 +1,18 @@
 # Metrics Documentation Index
 
+**Audience**: Project managers, team leads, and stakeholders who want to understand project metrics and calculations
+
+This is your starting point for understanding how the application measures project performance. The documentation is organized into focused guides, each covering a specific category of metrics.
+
 ## 📚 Documentation Structure
 
-This application tracks three categories of metrics, each documented in its own focused guide:
+The application tracks four categories of metrics, each documented in its own focused guide:
 
 ### 1. [Project Dashboard Metrics](./dashboard_metrics.md) ⭐ **START HERE**
 **Best for**: Project managers, stakeholders tracking delivery progress
 
 Covers the **Project Dashboard** tab metrics:
-- **Project Health Score** - Composite indicator (progress, schedule, velocity, confidence)
+- **[Project Health Score](./health_formula.md)** - Comprehensive multi-dimensional assessment using 20+ signals
 - **Completion Forecast** - When the project will finish based on current velocity
 - **Current Velocity** - Team throughput (items/week or points/week)
 - **Remaining Work** - Outstanding items and story points
@@ -46,7 +50,22 @@ Covers the **DORA & Flow Metrics** tab - Flow section:
 
 ---
 
-### 4. [Metrics Correlation Guide](./metrics_correlation_guide.md) 🆕
+### 4. [Budget Metrics](./budget_metrics.md)
+**Best for**: Project managers and finance stakeholders tracking project costs
+
+Covers financial tracking and budget management:
+- **Total Budget** - Project financial envelope
+- **Budget Consumed** - Spending based on completed work
+- **Burn Rate** - Average weekly spending rate
+- **Runway** - Weeks remaining at current burn rate
+- **Cost per Item** - Velocity-driven cost per work item
+- **Cost per Point** - Velocity-driven cost per story point
+
+**Lean/Agile Budgeting** - Adaptive financial management using velocity-driven metrics rather than fixed estimates.
+
+---
+
+### 5. [Metrics Correlation Guide](./metrics_correlation_guide.md)
 **Best for**: Teams validating metric configurations and understanding relationships
 
 Covers metric relationships and validation:
@@ -167,12 +186,13 @@ Each guide includes:
 
 ## 🔄 Document Maintenance
 
-**Last Major Update**: November 12, 2025 (split from monolithic 2,000-line file)
+**Last Major Update**: November 2025 (split from monolithic 2,000-line file)
 
 **Verification Status**:
 - ✅ **Dashboard Metrics**: Verified against code, velocity calculation fix documented
 - ✅ **DORA Metrics**: Verified against `data/dora_calculator.py` implementations
 - ✅ **Flow Metrics**: Verified against `data/flow_calculator.py` implementations
+- ✅ **Budget Metrics**: Verified against `data/budget_calculator.py` implementations
 
 **See**: "Documentation Verification Status" sections in each guide for detailed verification results.
 
@@ -189,4 +209,4 @@ If you find discrepancies between documentation and actual behavior:
 
 ---
 
-*Document Version: 1.0 | Last Updated: December 2025*
+*Document Version: 2.0 | Last Updated: January 2026*

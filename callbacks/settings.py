@@ -59,6 +59,70 @@ def get_data_points_info(value, min_val, max_val):
         )
 
 
+def calculate_remaining_work_for_data_window(data_points_count, statistics):
+    """
+    Get current remaining work scope - this does NOT depend on the data window.
+
+    The Data Points slider filters the time window for forecasting/statistics,
+    but "Remaining" always means CURRENT remaining work (what's left to do now).
+
+    Args:
+        data_points_count: Number of data points (weeks) - used for logging only
+        statistics: List of statistics data points - not used, kept for compatibility
+
+    Returns:
+        Tuple: (estimated_items, remaining_items, estimated_points, remaining_points_str, calc_results)
+               or None if calculation cannot be performed
+    """
+    if not data_points_count:
+        return None
+
+    try:
+        from data.persistence import load_unified_project_data
+
+        # Load unified data to get current scope
+        unified_data = load_unified_project_data()
+        project_scope = unified_data.get("project_scope", {})
+
+        # CRITICAL FIX: Parameter panel shows CURRENT remaining work, NOT windowed scope
+        # The slider filters statistics for forecasting, but remaining work is always current
+        estimated_items = project_scope.get("estimated_items", 0)
+        remaining_items = project_scope.get("remaining_items", 0)
+        estimated_points = project_scope.get("estimated_points", 0)
+        remaining_points = project_scope.get("remaining_total_points", 0)
+
+        # Calculate avg points per item for calc_results
+        avg_points_per_item = 0
+        if remaining_items > 0:
+            avg_points_per_item = remaining_points / remaining_items
+
+        logger.info("[PARAM PANEL] Current remaining work (independent of slider):")
+        logger.info(
+            f"  Estimated items: {estimated_items}, Remaining items: {remaining_items}"
+        )
+        logger.info(
+            f"  Estimated points: {estimated_points:.1f}, Remaining points: {remaining_points:.1f}"
+        )
+        logger.info(f"  Avg: {avg_points_per_item:.2f} points/item")
+
+        calc_results = {
+            "total_points": remaining_points,
+            "avg_points_per_item": avg_points_per_item,
+        }
+
+        return (
+            estimated_items,
+            int(remaining_items),
+            estimated_points,
+            f"{remaining_points:.0f}",
+            calc_results,
+        )
+
+    except Exception as e:
+        logger.error(f"Error calculating remaining work for data window: {e}")
+        return None
+
+
 #######################################################################
 # CALLBACKS
 #######################################################################
@@ -180,14 +244,21 @@ def register(app):
             Input("deadline-picker", "date"),  # Parameter panel deadline
             Input("milestone-picker", "date"),  # Parameter panel milestone (no toggle)
             Input("total-items-input", "value"),
-            Input("calculation-results", "data"),
             Input("estimated-items-input", "value"),
             Input("estimated-points-input", "value"),
-            Input("data-points-input", "value"),  # Parameter panel data points slider
+            Input(
+                "data-points-input", "value"
+            ),  # CRITICAL: Parameter panel data points slider - triggers settings update for visualizations
             Input("points-toggle", "value"),  # Parameter panel points toggle
         ],
         [
             State("app-init-complete", "data"),
+            State(
+                "current-statistics", "data"
+            ),  # CRITICAL: Need statistics to recalculate windowed scope
+            State(
+                "calculation-results", "data"
+            ),  # State, not Input - avoid race condition
             # PERFORMANCE FIX: Move JQL query to State to prevent callback on every keystroke
             State(
                 "jira-jql-query", "value"
@@ -199,13 +270,14 @@ def register(app):
         deadline,  # Parameter panel deadline
         milestone,  # Parameter panel milestone (no toggle needed)
         total_items,
-        calc_results,
         estimated_items,
         estimated_points,
         data_points_count,  # Parameter panel data points slider
         show_points,  # Parameter panel points toggle
         # State parameters (read but don't trigger callback)
         init_complete,
+        statistics,  # CRITICAL: Statistics for recalculating windowed scope
+        calc_results,  # State - read for fallback but doesn't trigger callback
         jql_query,  # PERFORMANCE FIX: JQL query moved to State to prevent keystroke lag
     ):
         """
@@ -221,21 +293,60 @@ def register(app):
         )  # Simplified: True if milestone date exists
 
         # Skip if not initialized or critical values are None
+        # NOTE: deadline and milestone are optional, so they're not in the required list
         if (
             not init_complete
             or not ctx.triggered
             or None
             in [
                 pert_factor,
-                deadline,
                 total_items,
                 data_points_count,
             ]
         ):
             raise PreventUpdate
 
-        # Get total points from calculation results
-        total_points = calc_results.get("total_points", DEFAULT_TOTAL_POINTS)
+        # CRITICAL FIX: Recalculate total_items and total_points based on windowed statistics
+        # When data_points_count slider changes, scope must be recalculated from filtered data
+        data_points_count = (
+            int(data_points_count) if data_points_count is not None else 12
+        )
+
+        # Initialize with fallback values from calc_results or defaults
+        total_points = (
+            calc_results.get("total_points", DEFAULT_TOTAL_POINTS)
+            if calc_results
+            else DEFAULT_TOTAL_POINTS
+        )
+
+        # CRITICAL FIX: Use CURRENT remaining work from project_scope, not windowed values
+        # The data_points slider filters the TIME WINDOW for velocity/forecasting calculations,
+        # but "Remaining Items/Points" should ALWAYS reflect CURRENT work (what's left NOW),
+        # not historical remaining work from the start of the time window.
+        #
+        # BUG: Previously used "earliest week's remaining" from filtered window, which gave
+        # incorrect values like 304 items instead of actual current 169 items.
+        #
+        # FIX: Load current remaining work from project_scope (database source of truth)
+        try:
+            from data.persistence import load_unified_project_data
+
+            unified_data = load_unified_project_data()
+            project_scope = unified_data.get("project_scope", {})
+
+            # Use CURRENT remaining work from project_scope
+            total_items = project_scope.get("remaining_items", total_items)
+            total_points = project_scope.get("remaining_total_points", total_points)
+
+            logger.info(
+                f"[Settings] Using CURRENT remaining work from project_scope: "
+                f"{total_items} items, {total_points:.1f} points "
+                f"(data_points slider: {data_points_count} weeks for velocity calculations)"
+            )
+        except Exception as e:
+            logger.error(
+                f"[Settings] Error loading current remaining work: {e}", exc_info=True
+            )
 
         # Use consistent .get() pattern for all fallbacks - restored from previous implementation
         input_values = {
@@ -245,12 +356,6 @@ def register(app):
         estimated_items = input_values.get("estimated_items", DEFAULT_ESTIMATED_ITEMS)
         estimated_points = input_values.get(
             "estimated_points", DEFAULT_ESTIMATED_POINTS
-        )
-
-        # Create updated settings
-        # CRITICAL: Ensure data_points_count is an integer (Dash sliders can return floats)
-        data_points_count = (
-            int(data_points_count) if data_points_count is not None else 12
         )
 
         settings = {
@@ -283,7 +388,9 @@ def register(app):
             data_points_count,
             show_milestone,  # Automatically calculated
             milestone,
-            show_points,  # Added parameter
+            settings[
+                "show_points"
+            ],  # Use the converted boolean from settings dict (NOT raw checklist value)
             jql_query.strip()
             if jql_query and jql_query.strip()
             else "project = JRASERVER",  # Use current JQL input
@@ -292,38 +399,33 @@ def register(app):
             # Note: JIRA configuration is now managed separately via save_jira_configuration()
         )
 
-        # Save project data using unified format
-        from data.persistence import load_unified_project_data, update_project_scope
+        # SOLUTION 1 FIX: NEVER save scope values (total_items, total_points, etc.) from UI inputs
+        # to the database. These values are DERIVED from the data points slider and should be
+        # calculated on-the-fly. Only the BASE scope (from JIRA) should be in the database.
+        #
+        # The parameter panel inputs show WINDOWED scope (based on data_points slider).
+        # The database stores BASE scope (full JIRA data without filtering).
+        # All visualizations calculate windowed values by reading current-settings store.
+        #
+        # This ensures:
+        # 1. Moving the slider immediately recalculates all displayed values
+        # 2. Database remains the source of truth for base data
+        # 3. No callback collisions overwriting calculated values
+        #
+        logger.info(
+            "[Settings] Scope values (total_items, total_points) are derived from slider - not saved to database"
+        )
+        logger.info(
+            f"[Settings] Storing windowed scope in settings store for visualization: {total_items} items, {total_points:.1f} points"
+        )
 
-        # Get current unified data to check if it's from JIRA
-        unified_data = load_unified_project_data()
-        data_source = unified_data.get("metadata", {}).get("source", "")
-
-        # Only update project scope if it's NOT from JIRA (to avoid overriding JIRA data)
-        if data_source != "jira_calculated":
-            try:
-                update_project_scope(
-                    {
-                        "total_items": total_items,
-                        "total_points": total_points,
-                        "estimated_items": estimated_items,
-                        "estimated_points": estimated_points,
-                        "remaining_items": total_items,  # Default assumption for manual data
-                        "remaining_points": total_points,
-                    }
-                )
-            except ValueError as e:
-                # Handle case where no active query exists yet (e.g., new profile with no queries)
-                logger.warning(f"[Settings] Cannot update project scope: {e}")
-        else:
-            # CRITICAL FIX: If data is from JIRA, DO NOT override any JIRA-calculated values
-            # The estimation fields should only be updated through JIRA scope calculation, not UI inputs
-            logger.info(
-                "[Settings] Preserving JIRA project scope data - UI input changes do not override JIRA calculations"
-            )
-            # JIRA project scope should ONLY be updated by JIRA operations, never by UI inputs
-
-        logger.info(f"[Settings] Updated and saved: {settings}")
+        # SOLUTION 1: Log which trigger caused the settings update for debugging
+        trigger_id = (
+            ctx.triggered[0]["prop_id"].split(".")[0] if ctx.triggered else "unknown"
+        )
+        logger.info(
+            f"[Settings] Updated settings (triggered by {trigger_id}): data_points={data_points_count}, total_items={total_items}, total_points={total_points:.1f}"
+        )
         return settings, int(datetime.now().timestamp() * 1000)
 
     # REMOVED: Legacy data points constraints callback - not needed with new parameter panel
@@ -386,6 +488,9 @@ def register(app):
             Output(
                 "progress-poll-interval", "disabled", allow_duplicate=True
             ),  # Enable polling for banner icons
+            Output(
+                "current-statistics", "data", allow_duplicate=True
+            ),  # CRITICAL: Clear statistics on force refresh to prevent stale data display
         ],
         [
             Input("update-data-unified", "n_clicks"),
@@ -419,9 +524,13 @@ def register(app):
         from dash import ctx
 
         triggered_id = ctx.triggered_id if ctx.triggered else None
+        triggered_prop = ctx.triggered[0] if ctx.triggered else None
+        logger.info("[UPDATE DATA] =========================================")
         logger.info(
             f"[UPDATE DATA] Callback triggered by: {triggered_id} - n_clicks={n_clicks}, force_refresh={force_refresh}"
         )
+        logger.info(f"[UPDATE DATA] Full trigger info: {triggered_prop}")
+        logger.info("[UPDATE DATA] =========================================")
 
         # Normal button state
         button_normal = [
@@ -452,6 +561,7 @@ def register(app):
                 "",  # toast notification (empty)
                 None,  # metrics trigger
                 True,  # progress-poll-interval disabled (no task)
+                no_update,  # current-statistics
             )
 
         try:
@@ -493,6 +603,7 @@ def register(app):
                     "",  # app-notifications (no toast)
                     None,  # trigger-auto-metrics-calc
                     True,  # progress-poll-interval disabled (already running)
+                    no_update,  # current-statistics
                 )
 
             # Start the task - returns False if can't start
@@ -527,6 +638,7 @@ def register(app):
                     "",  # app-notifications (no toast)
                     None,  # trigger-auto-metrics-calc
                     True,  # progress-poll-interval disabled (failed to start)
+                    no_update,  # current-statistics
                 )
 
             # Handle JIRA data import (settings panel only uses JIRA)
@@ -593,6 +705,8 @@ def register(app):
                     "",  # Toast notification (empty)
                     None,  # metrics trigger
                     False,  # progress-poll-interval enabled (task completed with error)
+                    no_update,  # current-statistics
+                    no_update,  # current-statistics
                 )
 
             # Use JQL query from input or fall back to active query's JQL
@@ -601,27 +715,18 @@ def register(app):
             # Get JQL from active query if input is empty
             if not jql_query or not jql_query.strip():
                 try:
-                    from data.profile_manager import (
-                        load_profiles_metadata,
-                        PROFILES_DIR,
-                    )
-                    import json
+                    from data.persistence.factory import get_backend
 
-                    metadata = load_profiles_metadata()
-                    active_query_id = metadata.get("active_query_id")
-                    active_profile_id = metadata.get("active_profile_id")
+                    backend = get_backend()
+                    active_query_id = backend.get_app_state("active_query_id")
+                    active_profile_id = backend.get_app_state("active_profile_id")
 
                     if active_query_id and active_profile_id:
-                        query_file = (
-                            PROFILES_DIR
-                            / active_profile_id
-                            / "queries"
-                            / active_query_id
-                            / "query.json"
+                        # Load query from database
+                        query_data = backend.get_query(
+                            active_profile_id, active_query_id
                         )
-                        if query_file.exists():
-                            with open(query_file, "r", encoding="utf-8") as f:
-                                query_data = json.load(f)
+                        if query_data:
                             settings_jql = query_data.get("jql", "")
                             logger.info(
                                 f"[Settings] Using JQL from active query '{active_query_id}': '{settings_jql}'"
@@ -631,7 +736,7 @@ def register(app):
                                 "jql_query", "project = JRASERVER"
                             )
                             logger.warning(
-                                f"[Settings] Query file not found: {query_file}, using fallback JQL"
+                                f"[Settings] Query not found in database: {active_query_id}, using fallback JQL"
                             )
                     else:
                         # No active query, use default
@@ -775,48 +880,139 @@ def register(app):
                 )
 
             # CRITICAL FIX: For NEW queries with no existing data, treat Update Data as Force Refresh
-            # Check if JIRA cache exists BEFORE fetching - this is the definitive indicator of a new query
+            # Check if JIRA cache exists in database - this is the definitive indicator of a new query
             if not force_refresh_bool:
-                from data.profile_manager import get_active_query_workspace
+                from data.persistence.factory import get_backend
 
-                query_workspace = get_active_query_workspace()
-                cache_file = query_workspace / "jira_cache.json"
+                backend = get_backend()
+                active_profile_id = backend.get_app_state("active_profile_id")
+                active_query_id = backend.get_app_state("active_query_id")
 
-                if not cache_file.exists():
-                    logger.info(
-                        "[Settings] New query detected (no jira_cache.json), treating Update Data as Force Refresh"
+                # Check if any issues exist in database for this query
+                if active_profile_id and active_query_id:
+                    issues = backend.get_issues(
+                        active_profile_id, active_query_id, limit=1
                     )
-                    force_refresh_bool = True
+                    if not issues:
+                        logger.info(
+                            "[Settings] New query detected (no issues in database), treating Update Data as Force Refresh"
+                        )
+                        force_refresh_bool = True
 
             if force_refresh_bool:
                 logger.info("=" * 60)
                 logger.info(
-                    "[Settings] FORCE REFRESH ENABLED BY USER (long-press detected)"
+                    "[Settings] FORCE REFRESH ENABLED - COMPLETE DATA WIPE FOR THIS QUERY"
                 )
                 logger.info(
-                    "[Settings] Cache will be invalidated and fresh data fetched from JIRA"
+                    "[Settings] This is a self-repair mechanism to recover from bad data"
                 )
                 logger.info("=" * 60)
+
+                # SELF-REPAIR MECHANISM: Complete data wipe for the active query
+                # This removes ALL data associated with this query from database and cache
+                # to give the user a clean slate when they suspect data corruption
+                from data.persistence.factory import get_backend
+
+                backend = get_backend()
+                active_profile_id = backend.get_app_state("active_profile_id")
+                active_query_id = backend.get_app_state("active_query_id")
+
+                if active_profile_id and active_query_id:
+                    try:
+                        logger.info(
+                            f"[Settings] Wiping ALL data for query: {active_profile_id}/{active_query_id}"
+                        )
+
+                        # Import database connection manager
+                        from data.database import get_db_connection
+
+                        # Step 1: Delete JIRA issues for this query (CASCADE deletes changelog too)
+                        with get_db_connection() as conn:
+                            cursor = conn.cursor()
+                            cursor.execute(
+                                "DELETE FROM jira_issues WHERE profile_id = ? AND query_id = ?",
+                                (active_profile_id, active_query_id),
+                            )
+                            issues_deleted = cursor.rowcount
+                            conn.commit()
+                            logger.info(
+                                f"[Settings] ✓ Deleted {issues_deleted} JIRA issues"
+                            )
+
+                        # Step 2: Delete project statistics for this query
+                        with get_db_connection() as conn:
+                            cursor = conn.cursor()
+                            cursor.execute(
+                                "DELETE FROM project_statistics WHERE profile_id = ? AND query_id = ?",
+                                (active_profile_id, active_query_id),
+                            )
+                            stats_deleted = cursor.rowcount
+                            conn.commit()
+                            logger.info(
+                                f"[Settings] ✓ Deleted {stats_deleted} project statistics"
+                            )
+
+                        # Step 3: Delete JIRA cache for this query
+                        with get_db_connection() as conn:
+                            cursor = conn.cursor()
+                            cursor.execute(
+                                "DELETE FROM jira_cache WHERE profile_id = ? AND query_id = ?",
+                                (active_profile_id, active_query_id),
+                            )
+                            cache_deleted = cursor.rowcount
+                            conn.commit()
+                            logger.info(
+                                f"[Settings] ✓ Deleted {cache_deleted} JIRA cache entries"
+                            )
+
+                        # Step 4: Invalidate global cache files
+                        from data.cache_manager import invalidate_all_cache
+
+                        invalidate_all_cache()
+                        logger.info("[Settings] ✓ All global cache files invalidated")
+
+                        # Step 5: Delete profile-specific cache files
+                        from data.profile_manager import get_active_query_workspace
+
+                        query_workspace = get_active_query_workspace()
+                        if query_workspace and query_workspace.exists():
+                            jira_cache = query_workspace / "jira_cache.json"
+                            if jira_cache.exists():
+                                jira_cache.unlink()
+                                logger.info(
+                                    "[Settings] ✓ Deleted query workspace jira_cache.json"
+                                )
+
+                        logger.info("=" * 60)
+                        logger.info("[Settings] ✅ COMPLETE DATA WIPE SUCCESSFUL")
+                        logger.info(
+                            f"[Settings] Deleted: {issues_deleted} issues, {stats_deleted} stats, {cache_deleted} cache"
+                        )
+                        logger.info(
+                            "[Settings] All data will be re-fetched fresh from JIRA"
+                        )
+                        logger.info("=" * 60)
+
+                    except Exception as e:
+                        logger.error(
+                            f"[Settings] ❌ Data wipe error: {e}", exc_info=True
+                        )
+                        # Continue anyway - partial cleanup is better than none
+                else:
+                    logger.warning(
+                        "[Settings] No active query found - skipping data wipe"
+                    )
 
             # CRITICAL FIX: Clear changelog cache only on force refresh
             # Changelog is issue-specific (keyed by issue key), not query-specific
             # Reusing changelog saves 1-2 minutes on subsequent operations
-            import os
-            from data.profile_manager import get_data_file_path
-
-            # Only clear changelog on FORCE REFRESH (expensive to re-fetch)
+            # NOTE: After database migration, changelog is in DB, not files
+            # Force refresh will cause jira_simple.py to delete and re-fetch from JIRA
             if force_refresh_bool:
-                changelog_cache = get_data_file_path("jira_changelog_cache.json")
-                if os.path.exists(changelog_cache):
-                    try:
-                        os.remove(changelog_cache)
-                        logger.info(
-                            "[Settings] Force refresh: Cleared changelog cache, will re-fetch from JIRA"
-                        )
-                    except Exception as e:
-                        logger.warning(
-                            f"[Settings] Could not remove changelog cache: {e}"
-                        )
+                logger.info(
+                    "[Settings] Force refresh: Changelog will be re-fetched from JIRA"
+                )
             else:
                 logger.info(
                     "[Settings] Normal refresh: Keeping changelog cache for reuse (saves 1-2 minutes)"
@@ -826,17 +1022,36 @@ def register(app):
             import threading
 
             def background_sync():
+                """Background thread for JIRA data fetch."""
+                logger.info("=" * 70)
+                logger.info("[BACKGROUND SYNC] Thread started")
+                logger.info(f"[BACKGROUND SYNC] JQL: {settings_jql}")
+                logger.info(f"[BACKGROUND SYNC] Force refresh: {force_refresh_bool}")
+                logger.info(
+                    f"[BACKGROUND SYNC] JIRA endpoint: {final_jira_api_endpoint}"
+                )
+                logger.info("=" * 70)
+
                 try:
+                    logger.info("[BACKGROUND SYNC] Calling sync_jira_scope_and_data...")
                     success, message, scope_data = sync_jira_scope_and_data(
                         settings_jql,
                         jira_config_for_sync,
                         force_refresh=force_refresh_bool,
                     )
+                    logger.info(
+                        f"[BACKGROUND SYNC] sync_jira_scope_and_data returned: success={success}, message={message}"
+                    )
+
                     if not success:
+                        logger.error(f"[BACKGROUND SYNC] Fetch failed: {message}")
                         TaskProgress.fail_task("update_data", message)
                     else:
                         # Fetch completed successfully - now trigger metrics calculation
                         # The progress polling callback will detect "calculate" phase and trigger metrics
+                        logger.info(
+                            "[BACKGROUND SYNC] Fetch complete, transitioning to calculate phase"
+                        )
                         TaskProgress.update_progress(
                             "update_data",
                             "calculate",
@@ -845,11 +1060,17 @@ def register(app):
                             "Fetch complete, starting metrics calculation...",
                         )
                 except Exception as e:
-                    logger.error(f"Background sync failed: {e}", exc_info=True)
+                    logger.error(f"[BACKGROUND SYNC] Exception: {e}", exc_info=True)
                     TaskProgress.fail_task("update_data", f"Error: {str(e)}")
+                finally:
+                    logger.info("[BACKGROUND SYNC] Thread exiting")
 
+            logger.info("[Settings] Starting background sync thread...")
             thread = threading.Thread(target=background_sync, daemon=True)
             thread.start()
+            logger.info(
+                f"[Settings] Background thread started: {thread.name} (alive={thread.is_alive()})"
+            )
 
             # Return immediately to show progress bar - polling will track completion
             return (
@@ -878,6 +1099,9 @@ def register(app):
                 "",  # app-notifications
                 None,  # trigger-auto-metrics-calc
                 False,  # progress-poll-interval enabled (start polling)
+                []
+                if force_refresh_bool
+                else no_update,  # current-statistics: CLEAR on force refresh to prevent stale data display
             )
 
             # OLD SYNCHRONOUS CODE BELOW - NOT REACHED
@@ -921,54 +1145,13 @@ def register(app):
                 )
 
                 # AUTOMATIC METRICS CALCULATION
-                # Check if data actually changed before recalculating metrics
-                # Only skip if: NOT force refresh AND delta fetch returned 0 changes
-                from data.profile_manager import get_active_query_workspace
-                import json
-
+                # After database migration, always calculate metrics after data update
+                # TODO: Implement changed_keys tracking in database schema for optimization
                 should_calculate = True
 
-                # If force refresh, always calculate (full re-fetch)
-                if not force_refresh_bool:
-                    query_workspace = get_active_query_workspace()
-                    cache_file = query_workspace / "jira_cache.json"
-                    logger.info(
-                        f"[Settings] Checking cache file: {cache_file}, exists={cache_file.exists()}"
-                    )
-
-                    try:
-                        if cache_file.exists():
-                            with open(cache_file, "r", encoding="utf-8") as f:
-                                cache_data = json.load(f)
-
-                            # Check changed_keys to determine if calculation is needed:
-                            # - changed_keys = [] → Delta fetch with NO changes → skip calculation
-                            # - changed_keys = [keys...] → Full fetch or delta with changes → calculate
-                            # - changed_keys missing → Old cache format → calculate (be safe)
-                            if "changed_keys" in cache_data:
-                                changed_keys = cache_data["changed_keys"]
-                                if len(changed_keys) == 0:
-                                    should_calculate = False
-                                    logger.info(
-                                        "[Settings] Delta fetch found 0 changes, skipping metrics calculation"
-                                    )
-                                else:
-                                    logger.info(
-                                        f"[Settings] {len(changed_keys)} issues changed/fetched, will calculate metrics"
-                                    )
-                            else:
-                                # Old cache format without changed_keys field - calculate to be safe
-                                logger.info(
-                                    "[Settings] Old cache format (no changed_keys field), will calculate metrics"
-                                )
-                        else:
-                            logger.info(
-                                "[Settings] No cache file exists, this is first fetch, will calculate metrics"
-                            )
-                    except Exception as e:
-                        logger.warning(
-                            f"[Settings] Could not check changed_keys, will calculate: {e}"
-                        )
+                logger.info(
+                    "[Settings] Post-migration: Always calculating metrics after data update"
+                )
 
                 # Metrics calculation will happen in separate callback triggered by store
                 # This allows the Update Data callback to return quickly, enabling progress bar updates
@@ -1060,15 +1243,10 @@ def register(app):
                         "Preparing metrics calculation...",
                     )
 
-                    # Delay to ensure progress bar polls and sees the phase change (polling interval is 500ms)
-                    import time
-
-                    time.sleep(
-                        0.6
-                    )  # 600ms delay - longer than polling interval to guarantee visibility
-                    logger.info(
-                        "[Settings] Transitioned to calculate phase, waited for polling, returning to trigger metrics callback"
-                    )
+                # No delay needed - progress bar polls frequently (250ms) and will detect phase change
+                logger.info(
+                    "[Settings] Transitioned to calculate phase, returning to trigger metrics callback"
+                )
 
                 # Create success toast notification
                 success_toast = create_success_toast(
@@ -1101,6 +1279,7 @@ def register(app):
                     success_toast,  # Toast notification
                     metrics_trigger,  # Trigger separate metrics calculation
                     False,  # progress-poll-interval enabled (metrics will run)
+                    no_update,  # current-statistics
                 )
             else:
                 # Create detailed error message
@@ -1145,6 +1324,7 @@ def register(app):
                     "",  # Toast notification (empty)
                     None,  # trigger-auto-metrics-calc
                     False,  # progress-poll-interval enabled (task completed with error)
+                    no_update,  # current-statistics
                 )
 
         except ImportError:
@@ -1224,6 +1404,7 @@ def register(app):
                 "",  # Toast notification (empty)
                 None,  # metrics trigger
                 False,  # progress-poll-interval enabled (task completed with error)
+                no_update,  # current-statistics
             )
 
     #######################################################################
@@ -1339,17 +1520,28 @@ def register(app):
                 "Starting metrics calculation...",
             )
 
-            # Clear metrics cache before recalculating
-            from data.profile_manager import get_data_file_path
-            import os
+            # Clear existing metrics for this query to force fresh calculation
+            # This ensures field mapping and configuration changes are reflected
+            logger.info(
+                "[Settings] Clearing existing metrics for active query to force fresh calculation"
+            )
+            from data.persistence.factory import get_backend
 
-            metrics_cache = get_data_file_path("metrics_snapshots.json")
-            if os.path.exists(metrics_cache):
+            backend = get_backend()
+            active_profile_id = backend.get_app_state("active_profile_id")
+            active_query_id = backend.get_app_state("active_query_id")
+
+            if active_profile_id and active_query_id:
                 try:
-                    os.remove(metrics_cache)
-                    logger.info("[Settings] Cleared metrics cache before recalculation")
+                    # Delete metrics for this specific profile/query combination
+                    backend.delete_metrics(active_profile_id, active_query_id)
+                    logger.info(
+                        f"[Settings] Deleted existing metrics for {active_profile_id}/{active_query_id}"
+                    )
                 except Exception as e:
-                    logger.warning(f"[Settings] Could not remove metrics cache: {e}")
+                    logger.warning(f"[Settings] Failed to clear metrics cache: {e}")
+
+            logger.info("[Settings] Metrics will be recalculated and saved to database")
 
             # Statistics already validated above - proceed with calculation
             from data.metrics_calculator import calculate_metrics_for_last_n_weeks
@@ -1366,7 +1558,6 @@ def register(app):
                     current_week = week_match.group(1)
                     for idx, week in enumerate(custom_weeks, start=1):
                         if week == current_week:
-                            percent = (idx / total_weeks) * 100
                             TaskProgress.update_progress(
                                 "update_data",
                                 "calculate",
@@ -1450,7 +1641,6 @@ def register(app):
 
         try:
             from data.persistence import (
-                calculate_project_scope_from_jira,
                 load_jira_configuration,
             )
 
@@ -1491,6 +1681,8 @@ def register(app):
             }
 
             # Calculate project scope from JIRA (no saving to file!)
+            from data.persistence import calculate_project_scope_from_jira
+
             success, message, scope_data = calculate_project_scope_from_jira(
                 jql_query, ui_config
             )
@@ -2782,22 +2974,26 @@ def register(app):
         [
             Output("data-points-input", "max"),
             Output("data-points-input", "marks"),
+            Output("data-points-input", "value"),
         ],
         [Input("current-statistics", "data")],
+        [State("data-points-input", "value")],
         prevent_initial_call=False,
     )
-    def update_data_points_slider_marks(statistics):
+    def update_data_points_slider_marks(statistics, current_value):
         """
-        Update Data Points slider max and marks when statistics data changes.
+        Update Data Points slider max, marks, and value when statistics data changes.
 
         This ensures the slider reflects the current data size after fetching
-        new data from JIRA or importing data.
+        new data from JIRA or importing data. The slider value is clamped to the
+        new maximum to prevent invalid states when switching between queries.
 
         Args:
             statistics: List of statistics data points
+            current_value: Current slider value (to be clamped if needed)
 
         Returns:
-            Tuple: (max_value, marks_dict) for the data points slider
+            Tuple: (max_value, marks_dict, clamped_value) for the data points slider
         """
         # Calculate max data points from statistics
         max_data_points = 52  # Default max
@@ -2835,100 +3031,76 @@ def register(app):
             )
             data_points_marks = {val: {"label": str(val)} for val in mark_values}
 
-        logger.info(
-            f"Data Points slider updated: max={max_data_points}, marks={list(data_points_marks.keys())}"
-        )
-
-        return max_data_points, data_points_marks
-
-    # Helper function to calculate remaining work scope (used by multiple callbacks)
-    def calculate_remaining_work_for_data_window(data_points_count, statistics):
-        """
-        Calculate remaining work scope for a given data window.
-
-        This function calculates what the remaining work was at the START of
-        the selected time window, so burndown charts show accurate projections.
-
-        Args:
-            data_points_count: Number of data points (weeks) to include
-            statistics: List of statistics data points
-
-        Returns:
-            Tuple: (estimated_items, remaining_items, estimated_points, remaining_points_str)
-                   or None if calculation cannot be performed
-        """
-        if not statistics or not data_points_count:
-            return None
-
-        try:
-            from data.persistence import load_unified_project_data
-            import pandas as pd
-
-            # Load unified data to get current scope
-            unified_data = load_unified_project_data()
-            project_scope = unified_data.get("project_scope", {})
-
-            # If no statistics or insufficient data, use current scope values
-            if len(statistics) < data_points_count:
-                estimated_items = project_scope.get("estimated_items", 0)
-                remaining_items = project_scope.get("remaining_items", 0)
-                estimated_points = project_scope.get("estimated_points", 0)
-                remaining_points = project_scope.get("remaining_total_points", 0)
-
-                # Calculate avg points per item for calc_results
-                avg_points_per_item = 0
-                if remaining_items > 0:
-                    avg_points_per_item = remaining_points / remaining_items
-
-                calc_results = {
-                    "total_points": remaining_points,
-                    "avg_points_per_item": avg_points_per_item,
-                }
-
-                return (
-                    estimated_items,
-                    remaining_items,
-                    estimated_points,
-                    f"{remaining_points:.0f}",
-                    calc_results,
-                )
-
-            # Convert statistics to DataFrame for easier manipulation
-            df = pd.DataFrame(statistics)
-            df["date"] = pd.to_datetime(df["date"])
-            df = df.sort_values("date", ascending=False)  # Most recent first
-
-            # Use actual remaining values from project scope (no window calculations)
-            remaining_items = project_scope.get("remaining_items", 0)
-            remaining_points = project_scope.get("remaining_total_points", 0)
-            estimated_items = project_scope.get("estimated_items", 0)
-            estimated_points = project_scope.get("estimated_points", 0)
-
-            # Calculate avg points per item for calculation_results
-            avg_points_per_item = 0
-            if remaining_items > 0:
-                avg_points_per_item = remaining_points / remaining_items
-
-            calc_results = {
-                "total_points": remaining_points,
-                "avg_points_per_item": avg_points_per_item,
-            }
-
-            return (
-                estimated_items,
-                int(remaining_items),
-                estimated_points,
-                f"{remaining_points:.0f}",
-                calc_results,
+        # Clamp current value to new maximum
+        # This prevents the slider value from being higher than the available data
+        # when switching from a query with more weeks to one with fewer weeks
+        clamped_value = current_value if current_value else max_data_points
+        if clamped_value > max_data_points:
+            clamped_value = max_data_points
+            logger.info(
+                f"Data Points slider value clamped from {current_value} to {clamped_value} (max={max_data_points})"
             )
 
-        except Exception as e:
-            logger.error(f"Error calculating remaining work for data window: {e}")
-            return None
+        logger.info(
+            f"Data Points slider updated: max={max_data_points}, marks={list(data_points_marks.keys())}, value={clamped_value}"
+        )
+
+        return max_data_points, data_points_marks, clamped_value
 
     # NOTE: Initial values are now calculated directly in ui/layout.py serve_layout()
     # This ensures consistent values between app load and slider interaction
     # No separate initialization callback needed
+
+    # Callback to reload remaining work scope after metrics calculation completes
+    @app.callback(
+        [
+            Output("estimated-items-input", "value", allow_duplicate=True),
+            Output("total-items-input", "value", allow_duplicate=True),
+            Output("estimated-points-input", "value", allow_duplicate=True),
+            Output("total-points-display", "value", allow_duplicate=True),
+            Output("calculation-results", "data", allow_duplicate=True),
+        ],
+        [Input("metrics-refresh-trigger", "data")],
+        [State("current-statistics", "data"), State("data-points-input", "value")],
+        prevent_initial_call=True,
+    )
+    def reload_scope_after_metrics(refresh_trigger, statistics, data_points_count):
+        """
+        Reload scope data from database after metrics calculation completes.
+
+        SOLUTION 1: This callback reloads the BASE scope from database (full JIRA data)
+        and then recalculates the WINDOWED scope based on the current data points slider value.
+        This ensures parameter panel shows values consistent with the selected time window.
+
+        Args:
+            refresh_trigger: Timestamp when metrics calculation completed
+            statistics: Current statistics data
+            data_points_count: Current data points slider value
+
+        Returns:
+            Tuple: (estimated_items, remaining_items, estimated_points, remaining_points_display, calc_results)
+        """
+        if not refresh_trigger:
+            raise PreventUpdate
+
+        logger.info(
+            f"[Settings] Reloading BASE scope from database after metrics, then calculating WINDOWED scope for {data_points_count} data points"
+        )
+
+        # SOLUTION 1: Calculate windowed scope based on current slider position
+        # This ensures the parameter panel always shows values for the selected time window
+        result = calculate_remaining_work_for_data_window(data_points_count, statistics)
+
+        if result:
+            logger.info(
+                f"[Settings] Scope reloaded and windowed: estimated_items={result[0]}, remaining_items={result[1]}, estimated_points={result[2]}, remaining_points={result[3]}"
+            )
+            return result
+        else:
+            logger.warning(
+                "[Settings] Failed to calculate windowed scope after metrics reload"
+            )
+            raise PreventUpdate
 
     # Callback to recalculate remaining work scope when data points slider changes
     @app.callback(
@@ -2950,7 +3122,10 @@ def register(app):
         data_points_count, statistics, init_complete
     ):
         """
-        Recalculate remaining work scope when the Data Points slider changes.
+        SOLUTION 1: Recalculate WINDOWED remaining work scope when Data Points slider changes.
+
+        This is the PRIMARY callback that ensures parameter panel values reflect the selected
+        time window. All values are calculated on-the-fly from base statistics data.
 
         When the user adjusts the Data Points slider to use fewer historical weeks,
         the remaining work should reflect the scope at the START of that time window.
@@ -2963,8 +3138,13 @@ def register(app):
             init_complete: Whether app initialization is complete
 
         Returns:
-            Tuple: (estimated_items, remaining_items, estimated_points, remaining_points)
+            Tuple: (estimated_items, remaining_items, estimated_points, remaining_points, calc_results)
         """
+        logger.info(
+            f"[Settings] Data Points slider callback fired: data_points={data_points_count}, "
+            f"init_complete={init_complete}, statistics count={len(statistics) if statistics else 0}"
+        )
+
         if not init_complete or not statistics or not data_points_count:
             raise PreventUpdate
 
@@ -3086,81 +3266,20 @@ def register(app):
                 metrics_trigger = int(time.time() * 1000)
             elif phase == "fetch" and fetch_percent == 0:
                 # RECOVERY: Stuck in fetch phase with 0% progress
-                # This happens when delta fetch found 0 changes and tried to complete,
-                # but validation failed because fetch never progressed beyond 0%
-                # Check if cached data exists - if so, the fetch already completed
-                from data.profile_manager import get_active_query_workspace
-                import json
+                # After migration, always assume changes exist and calculate metrics
+                logger.warning(
+                    "[Settings] Recovery: Task stuck at fetch 0%. Post-migration assumes changes exist."
+                )
 
-                query_workspace = get_active_query_workspace()
-                cache_file = query_workspace / "jira_cache.json"
-
-                if cache_file.exists():
-                    logger.warning(
-                        "[Settings] Recovery: Task stuck at fetch 0% but cache exists. "
-                        "This indicates delta fetch completed with 0 changes. Checking if metrics needed..."
-                    )
-
-                    try:
-                        with open(cache_file, "r", encoding="utf-8") as f:
-                            cache_data = json.load(f)
-
-                        # Check if there were any changes
-                        changed_keys = cache_data.get("changed_keys", [])
-
-                        if len(changed_keys) == 0:
-                            # No changes - complete the task immediately
-                            logger.info(
-                                "[Settings] Recovery: 0 changes detected, completing task immediately"
-                            )
-                            TaskProgress.update_progress(
-                                "update_data",
-                                "fetch",
-                                395,  # Use issue count from cache
-                                395,
-                                "Delta check complete - no changes",
-                            )
-                            TaskProgress.complete_task(
-                                "update_data",
-                                "✓ Data loaded: 395 issues from JIRA (no changes detected)",
-                            )
-                            # Return completed state
-                            return (
-                                "",  # No status message
-                                True,  # Disable progress polling
-                                {"display": "none"},  # Hide progress bar
-                                {},  # Show Update Data button
-                                {"display": "none"},  # Hide Cancel button
-                                0,  # Skip metrics (0 = no calculation needed)
-                            )
-                        else:
-                            # Changes detected - trigger metrics calculation
-                            logger.info(
-                                f"[Settings] Recovery: {len(changed_keys)} changes detected, triggering metrics"
-                            )
-                            # Update progress to show fetch complete
-                            TaskProgress.update_progress(
-                                "update_data",
-                                "calculate",
-                                0,
-                                0,
-                                "Preparing metrics calculation...",
-                            )
-                            metrics_trigger = int(time.time() * 1000)
-                    except Exception as e:
-                        logger.error(f"[Settings] Recovery failed: {e}")
-                        # Fail the task to allow user to retry
-                        TaskProgress.fail_task(
-                            "update_data", f"Recovery error: {str(e)}"
-                        )
-                        return (
-                            "",  # No status message
-                            True,  # Disable progress polling
-                            {"display": "none"},  # Hide progress bar
-                            {},  # Show Update Data button
-                            {"display": "none"},  # Hide Cancel button
-                            no_update,  # No metrics trigger
-                        )
+                # Update progress to show fetch complete
+                TaskProgress.update_progress(
+                    "update_data",
+                    "calculate",
+                    0,
+                    0,
+                    "Preparing metrics calculation...",
+                )
+                metrics_trigger = int(time.time() * 1000)
 
             # Read button visibility from ui_state (immediate restore on page load)
             ui_state = active_task.get("ui_state", {})

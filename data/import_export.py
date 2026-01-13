@@ -357,6 +357,9 @@ def resolve_profile_conflict(
 
         return new_profile_id, renamed_data
 
+    # Should never reach here due to strategy validation at start
+    raise ValueError(f"Unsupported conflict resolution strategy: {strategy}")
+
 
 # ============================================================================
 # T009: Profile Export System with Setup Status Migration
@@ -516,16 +519,21 @@ def _export_profile_queries(profile_id: str, export_dir: Path) -> int:
 
 
 def _export_profile_cache(profile_id: str, export_dir: Path) -> bool:
-    """Export cached data for a profile."""
+    """Export cached data for a profile (LEGACY - most data now in database).
+
+    Note: This function is primarily for backward compatibility.
+    Most cache data is now stored in SQLite database and exported separately.
+    """
     try:
         from data.profile_manager import PROFILES_DIR
 
         profile_dir = PROFILES_DIR / profile_id
+        # Legacy cache files - most data now in database
         cache_files = [
             "app_settings.json",
             "project_data.json",
-            "jira_cache.json",
-            "jira_changelog_cache.json",
+            "jira_cache.json",  # LEGACY - now in database
+            "jira_changelog_cache.json",  # LEGACY - now in database
             "metrics_snapshots.json",
         ]
 
@@ -553,7 +561,11 @@ def _export_profile_cache(profile_id: str, export_dir: Path) -> bool:
 
 
 def export_profile_with_mode(
-    profile_id: str, query_id: str, export_mode: str, include_token: bool = False
+    profile_id: str,
+    query_id: str,
+    export_mode: str,
+    include_token: bool = False,
+    include_budget: bool = False,
 ) -> Dict[str, Any]:
     """Export FULL profile with ALL queries and their data.
 
@@ -562,6 +574,7 @@ def export_profile_with_mode(
         query_id: Active query identifier (used for manifest metadata, but all queries exported)
         export_mode: One of "CONFIG_ONLY", "FULL_DATA"
         include_token: Whether to include JIRA token (default: False)
+        include_budget: Whether to include budget data (default: False)
 
     Returns:
         Export package dictionary with structure:
@@ -595,18 +608,14 @@ def export_profile_with_mode(
             f"Invalid export_mode: {export_mode}. Must be 'CONFIG_ONLY' or 'FULL_DATA'"
         )
 
-    # Load profile data
-    from data.query_manager import get_active_profile_id
-    from pathlib import Path
+    # Load profile data from database
+    from data.persistence import factory
 
-    profile_dir = Path("profiles") / profile_id
-    profile_file = profile_dir / "profile.json"
+    backend = factory.get_backend()
+    profile_data = backend.get_profile(profile_id)
 
-    if not profile_file.exists():
-        raise FileNotFoundError(f"Profile '{profile_id}' not found at {profile_file}")
-
-    with open(profile_file, "r", encoding="utf-8") as f:
-        profile_data = json.load(f)
+    if not profile_data:
+        raise FileNotFoundError(f"Profile '{profile_id}' not found in database")
 
     # Strip credentials if not including token
     if not include_token:
@@ -633,50 +642,64 @@ def export_profile_with_mode(
     }
 
     # Export ALL queries (not just the active one) - True full-profile export
-    queries_dir = profile_dir / "queries"
     all_queries_data = {}
     exported_query_count = 0
 
-    if queries_dir.exists():
-        # Iterate through all query directories
-        for query_dir in queries_dir.iterdir():
-            if not query_dir.is_dir():
-                continue
+    # Get all queries for this profile from database
+    queries = backend.list_queries(profile_id)
 
-            current_query_id = query_dir.name
-            query_data = {}
+    for query_info in queries:
+        current_query_id = query_info["id"]
+        query_data = {}
 
-            # Load query.json (name, JQL, description) - REQUIRED for both modes
-            query_file = query_dir / "query.json"
-            if query_file.exists():
-                with open(query_file, "r", encoding="utf-8") as f:
-                    query_data["query_metadata"] = json.load(f)
-            else:
-                logger.warning(f"query.json not found for {current_query_id}, skipping")
-                continue
+        # Get query metadata (name, JQL, description) - REQUIRED for both modes
+        query_metadata = {
+            "id": query_info["id"],
+            "name": query_info["name"],
+            "jql": query_info["jql"],
+            "created_at": query_info["created_at"],
+            "last_used": query_info["last_used"],
+        }
+        query_data["query_metadata"] = query_metadata
 
-            # Include data files only if FULL_DATA mode
-            if export_mode == "FULL_DATA":
-                # Load project_data.json
-                project_file = query_dir / "project_data.json"
-                if project_file.exists():
-                    with open(project_file, "r", encoding="utf-8") as f:
-                        query_data["project_data"] = json.load(f)
+        # Include data files only if FULL_DATA mode
+        if export_mode == "FULL_DATA":
+            # Get issues (replaces jira_cache.json)
+            issues = backend.get_issues(profile_id, current_query_id, limit=100000)
+            if issues:
+                query_data["jira_cache"] = {"issues": issues}
 
-                # Load jira_cache.json (CRITICAL for UI display)
-                cache_file = query_dir / "jira_cache.json"
-                if cache_file.exists():
-                    with open(cache_file, "r", encoding="utf-8") as f:
-                        query_data["jira_cache"] = json.load(f)
+            # Get statistics (replaces project_data.json and metrics_snapshots.json)
+            statistics = backend.get_statistics(
+                profile_id, current_query_id, limit=100000
+            )
+            if statistics:
+                query_data["statistics"] = statistics
 
-                # Load metrics_snapshots.json
-                metrics_file = query_dir / "metrics_snapshots.json"
-                if metrics_file.exists():
-                    with open(metrics_file, "r", encoding="utf-8") as f:
-                        query_data["metrics_snapshots"] = json.load(f)
+            # Get project scope (for forecasting context in AI prompts)
+            project_scope = backend.get_scope(profile_id, current_query_id)
+            if project_scope:
+                query_data["project_scope"] = project_scope
+                logger.info(f"Exported project scope for query '{current_query_id}'")
 
-            all_queries_data[current_query_id] = query_data
-            exported_query_count += 1
+        # Export budget settings and revisions (query-level data) - only if explicitly requested
+        if include_budget:
+            budget_settings = backend.get_budget_settings(profile_id, current_query_id)
+            if budget_settings:
+                query_data["budget_settings"] = budget_settings
+                logger.info(f"Exported budget settings for query '{current_query_id}'")
+
+            budget_revisions = backend.get_budget_revisions(
+                profile_id, current_query_id
+            )
+            if budget_revisions:
+                query_data["budget_revisions"] = budget_revisions
+                logger.info(
+                    f"Exported {len(budget_revisions)} budget revisions for query '{current_query_id}'"
+                )
+
+        all_queries_data[current_query_id] = query_data
+        exported_query_count += 1
 
     if exported_query_count == 0:
         logger.warning(f"No queries found to export for profile '{profile_id}'")
@@ -689,7 +712,7 @@ def export_profile_with_mode(
 
     logger.info(
         f"Exported profile '{profile_id}' with {exported_query_count} queries, "
-        f"mode='{export_mode}', token={include_token}"
+        f"mode='{export_mode}', token={include_token}, budget={include_budget}"
     )
 
     return export_package
@@ -744,6 +767,10 @@ def import_profile_enhanced(
             with open(profile_file) as f:
                 profile_data = json.load(f)
 
+            # Note: Budget data is not in ZIP-based exports
+            # Use the callback-based import (perform_import) for budget support
+            budget_data = None
+
             # Generate target profile ID if not provided
             if not target_profile_id:
                 base_name = profile_data.get("name", "Imported Profile")
@@ -759,7 +786,7 @@ def import_profile_enhanced(
 
             # Create profile
             success, new_profile_id = _create_profile_from_import(
-                profile_data, target_profile_id, temp_path
+                profile_data, target_profile_id, temp_path, budget_data
             )
 
             if not success:
@@ -831,7 +858,10 @@ def _migrate_imported_setup_status(
 
 
 def _create_profile_from_import(
-    profile_data: Dict[str, Any], profile_id: str, import_path: Path
+    profile_data: Dict[str, Any],
+    profile_id: str,
+    import_path: Path,
+    budget_data: Optional[Dict[str, Any]] = None,
 ) -> Tuple[bool, str]:
     """Create profile from imported data."""
     try:
@@ -883,6 +913,10 @@ def _create_profile_from_import(
         cache_dir = import_path / "cache"
         if cache_dir.exists():
             _import_profile_cache(profile_id, cache_dir)
+
+        # Note: Budget data is now per-query (not profile-level)
+        # Budget import is handled within query import flow
+        # Legacy profile-level budget_data parameter is deprecated
 
         return True, profile_id
 

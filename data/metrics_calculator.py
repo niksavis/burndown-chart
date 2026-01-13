@@ -35,7 +35,6 @@ def calculate_and_save_weekly_metrics(
     week_label: str = "",
     progress_callback=None,
     profile_id: Optional[str] = None,
-    affected_weeks: Optional[set] = None,
 ) -> Tuple[bool, str]:
     """
     Calculate all Flow/DORA metrics for current week and save to snapshots.
@@ -90,14 +89,19 @@ def calculate_and_save_weekly_metrics(
         if not app_settings:
             return False, "Failed to load app settings"
 
-        # Load JIRA issues from cache file
-        import json
-        import os
-        from data.profile_manager import get_active_query_workspace
+        # Check if JIRA data exists in database
+        from data.persistence.factory import get_backend
 
-        query_workspace = get_active_query_workspace()
-        cache_file = str(query_workspace / "jira_cache.json")
-        if not os.path.exists(cache_file):
+        backend = get_backend()
+        active_profile_id = backend.get_app_state("active_profile_id")
+        active_query_id = backend.get_app_state("active_query_id")
+
+        if not active_profile_id or not active_query_id:
+            return False, "No active profile/query selected."
+
+        # Query database for JIRA issues
+        all_issues_raw = backend.get_issues(active_profile_id, active_query_id)
+        if not all_issues_raw:
             return False, "No JIRA data available. Please update data first."
 
         # OPTIMIZATION: Check if metrics already exist and are up-to-date
@@ -112,66 +116,46 @@ def calculate_and_save_weekly_metrics(
         is_current_week_check = week_label == current_week_label
 
         # Only use cached metrics for historical weeks
+        # CRITICAL: Check for BOTH Flow AND DORA metrics to avoid partial calculation
         if not is_current_week_check:
-            existing_snapshot = get_metric_snapshot(week_label, "flow_velocity")
-            if existing_snapshot:
-                # DELTA CALCULATE OPTIMIZATION: Check if this week is affected by recent changes
+            flow_snapshot = get_metric_snapshot(week_label, "flow_velocity")
+            dora_snapshot = get_metric_snapshot(week_label, "dora_deployment_frequency")
+
+            # Only skip if BOTH Flow and DORA metrics exist
+            if flow_snapshot and dora_snapshot:
+                # Check if snapshot is still up-to-date by comparing timestamps
+                # For historical weeks, if metrics exist, they're usually still valid
+                # (historical data doesn't change unless full refetch)
                 try:
-                    # If affected_weeks was pre-calculated (delta fetch scenario)
-                    if affected_weeks is not None:
-                        if week_label not in affected_weeks:
-                            logger.debug(
-                                f"[OK] Week {week_label} not affected by delta changes - using cached metrics"
-                            )
-                            return (
-                                True,
-                                f"[OK] Week {week_label} not affected by changes",
-                            )
-                        else:
-                            logger.info(
-                                f"[Delta Calculate] Week {week_label} affected by changes - recalculating"
-                            )
-                    else:
-                        # No pre-calculated affected_weeks - check mtime fallback
-                        cache_mtime = os.path.getmtime(cache_file)
-                        snapshot_timestamp_str = existing_snapshot.get("timestamp")
-
-                        if snapshot_timestamp_str:
-                            snapshot_timestamp = datetime.fromisoformat(
-                                snapshot_timestamp_str.replace("Z", "+00:00")
-                            )
-                            snapshot_mtime = snapshot_timestamp.timestamp()
-
-                            if cache_mtime < snapshot_mtime:
-                                # Cache is older than snapshot - metrics are up-to-date
-                                logger.info(
-                                    f"[OK] Metrics for week {week_label} already exist and are up-to-date. Skipping recalculation."
-                                )
-                                report_progress(
-                                    f"[OK] Week {week_label} already calculated - using cached metrics"
-                                )
-                                return (
-                                    True,
-                                    f"[OK] Metrics for week {week_label} already up-to-date",
-                                )
-
+                    flow_timestamp = flow_snapshot.get("timestamp")
+                    dora_timestamp = dora_snapshot.get("timestamp")
+                    if flow_timestamp and dora_timestamp:
+                        # Both Flow and DORA metrics exist - skip recalculation
+                        logger.info(
+                            f"[OK] Metrics (Flow + DORA) for week {week_label} already exist. Skipping recalculation."
+                        )
+                        report_progress(
+                            f"[OK] Week {week_label} already calculated - using cached metrics"
+                        )
+                        return (
+                            True,
+                            f"[OK] Metrics for week {week_label} already up-to-date",
+                        )
                 except Exception as opt_error:
                     # If optimization check fails, fall through to recalculation
-                    logger.debug(
-                        f"[Delta Calculate] Optimization check failed: {opt_error}"
-                    )
+                    logger.debug(f"[Metrics] Optimization check failed: {opt_error}")
+            elif flow_snapshot and not dora_snapshot:
+                # Flow metrics exist but DORA missing - recalculate all
+                logger.warning(
+                    f"[!] Week {week_label} has Flow metrics but missing DORA metrics. Recalculating..."
+                )
         else:
             logger.info(
                 f"[Stats] Week {week_label} is current week - will recalculate (running total)"
             )
 
-        with open(cache_file, "r", encoding="utf-8") as f:
-            cache_data = json.load(f)
-
-        all_issues_raw = cache_data.get("issues", [])
-        if not all_issues_raw:
-            return False, "No JIRA issues found in cache."
-        logger.info(f"Loaded {len(all_issues_raw)} issues from cache")
+        # all_issues_raw already loaded at the beginning of function
+        logger.info(f"Loaded {len(all_issues_raw)} issues from database")
 
         # CRITICAL: Filter out DevOps project issues and Operational Tasks
         # Flow metrics should ONLY include development project issues
@@ -191,11 +175,15 @@ def calculate_and_save_weekly_metrics(
             all_issues = all_issues_raw
             logger.info("No DevOps projects configured, using all issues")
 
-        # Check if changelog cache exists
+        # Check if changelog data exists in database
         # NOTE: Changelog is OPTIONAL - only needed for Flow Time and Flow Efficiency
         # All other metrics (Flow Velocity, Load, Distribution, ALL DORA metrics) work without it
-        changelog_cache_file = str(query_workspace / "jira_changelog_cache.json")
-        changelog_available = os.path.exists(changelog_cache_file)
+        changelog_entries = backend.get_changelog_entries(
+            active_profile_id, active_query_id
+        )
+        changelog_available = (
+            changelog_entries is not None and len(changelog_entries) > 0
+        )
 
         if not changelog_available:
             report_progress(
@@ -235,32 +223,91 @@ def calculate_and_save_weekly_metrics(
         else:
             logger.info("Changelog cache found, using existing data")
 
-        # Load changelog data and merge into issues (if available)
-        if changelog_available and os.path.exists(changelog_cache_file):
-            report_progress("[Stats] Loading changelog data...")
+        # Load changelog data from database and merge into issues (if available)
+        if changelog_available:
+            report_progress("[Stats] Loading changelog data from database...")
             try:
-                with open(changelog_cache_file, "r", encoding="utf-8") as f:
-                    changelog_cache = json.load(f)
+                logger.info(
+                    f"[DEBUG] Converting {len(changelog_entries)} changelog entries to JIRA format"
+                )
+
+                # Build changelog lookup map by issue_key
+                # Convert flat database records to JIRA changelog format
+                changelog_map = {}
+                for entry in changelog_entries:
+                    issue_key = entry.get("issue_key")
+                    if issue_key:
+                        if issue_key not in changelog_map:
+                            changelog_map[issue_key] = {"histories": []}
+
+                        # Convert database entry to JIRA changelog history format
+                        # Database: {issue_key, change_date, field_name, old_value, new_value, ...}
+                        # JIRA format: {created: date, items: [{field, fromString, toString}]}
+                        history_entry = {
+                            "created": entry.get("change_date"),
+                            "items": [
+                                {
+                                    "field": entry.get("field_name"),
+                                    "fromString": entry.get("old_value"),
+                                    "toString": entry.get("new_value"),
+                                }
+                            ],
+                        }
+                        changelog_map[issue_key]["histories"].append(history_entry)
+
+                logger.info(
+                    f"[DEBUG] Converted changelog for {len(changelog_map)} unique issues"
+                )
+
+                # DEBUG: Log sample keys from both sides
+                if changelog_map:
+                    sample_changelog_keys = list(changelog_map.keys())[:3]
+                    logger.info(
+                        f"[DEBUG] Sample changelog keys: {sample_changelog_keys}"
+                    )
+                if all_issues:
+                    sample_issue_keys = [i.get("issue_key") for i in all_issues[:3]]
+                    logger.info(f"[DEBUG] Sample issue keys: {sample_issue_keys}")
 
                 # Merge changelog into issues
+                # NOTE: Database uses 'issue_key' column for both issues and changelog
                 merged_count = 0
                 for issue in all_issues:
-                    issue_key = issue.get("key", "")
-                    if issue_key in changelog_cache:
-                        issue["changelog"] = changelog_cache[issue_key].get(
-                            "changelog", {}
-                        )
+                    issue_key = issue.get("issue_key", "")
+                    if issue_key in changelog_map:
+                        issue["changelog"] = changelog_map[issue_key]
                         merged_count += 1
 
                 logger.info(f"Merged changelog data into {merged_count} issues")
+
+                # DEBUG: Log sample issue with changelog to verify format
+                if merged_count > 0:
+                    sample_issue = next(
+                        (i for i in all_issues if "changelog" in i), None
+                    )
+                    if sample_issue:
+                        sample_key = sample_issue.get("issue_key")
+                        sample_histories = sample_issue.get("changelog", {}).get(
+                            "histories", []
+                        )
+                        logger.info(
+                            f"[DEBUG] Sample issue {sample_key} has {len(sample_histories)} history entries"
+                        )
+                        if sample_histories:
+                            first_history = sample_histories[0]
+                            logger.info(
+                                f"[DEBUG] First history: created={first_history.get('created')}, "
+                                f"items={len(first_history.get('items', []))}, "
+                                f"first_item={first_history.get('items', [{}])[0] if first_history.get('items') else 'none'}"
+                            )
             except Exception as e:
                 logger.warning(
-                    f"Failed to load changelog cache: {e}. Continuing without it."
+                    f"Failed to load changelog from database: {e}. Continuing without it."
                 )
                 changelog_available = False
-        elif not changelog_available:
+        else:
             logger.info(
-                "Changelog not available. Flow Time and Efficiency metrics will be skipped."
+                "Changelog not available in database. Flow Time and Efficiency metrics will be skipped."
             )
 
         # Get configuration
@@ -285,10 +332,12 @@ def calculate_and_save_weekly_metrics(
         week_label_clean = week_label.replace("W", "").replace("-W", "-")
         try:
             year, week_num = map(int, week_label_clean.split("-"))
-            jan_4 = datetime(year, 1, 4)
+            jan_4 = datetime(year, 1, 4, tzinfo=timezone.utc)  # Make timezone-aware UTC
             week_1_monday = jan_4 - timedelta(days=jan_4.weekday())
             target_week_monday = week_1_monday + timedelta(weeks=week_num - 1)
-            week_start = target_week_monday
+            week_start = target_week_monday.replace(
+                tzinfo=None
+            )  # Convert to naive UTC for comparison
             week_end = week_start + timedelta(days=7)
         except (ValueError, AttributeError) as e:
             logger.error(f"Failed to parse week label '{week_label}': {e}")
@@ -317,19 +366,46 @@ def calculate_and_save_weekly_metrics(
         logger.info(
             f"[DEBUG] Starting completion timestamp extraction for {len(all_issues)} issues"
         )
+        logger.info(f"[DEBUG] Flow end statuses: {flow_end_statuses}")
+
+        # Check first few issues for changelog data
+        issues_with_changelog = [i for i in all_issues if i.get("changelog")]
+        logger.info(f"[DEBUG] {len(issues_with_changelog)} issues have changelog data")
+
         extraction_stats = {"found": 0, "not_found": 0, "parse_errors": 0}
 
-        for issue in all_issues:
+        for idx, issue in enumerate(all_issues):
+            issue_key = issue.get("issue_key", "unknown")
             # Find completion timestamp from changelog - when issue first transitioned
             # to a completion status (Done, Resolved, Closed, etc.)
             changelog = issue.get("changelog", {}).get("histories", [])
+
+            # DEBUG: Log first 3 issues with changelog
+            if idx < 3 and changelog:
+                logger.info(
+                    f"[DEBUG] Issue {issue_key} has {len(changelog)} history entries"
+                )
+                # Check if any are status transitions
+                status_transitions = [
+                    h
+                    for h in changelog
+                    if any(item.get("field") == "status" for item in h.get("items", []))
+                ]
+                logger.info(
+                    f"[DEBUG] Issue {issue_key} has {len(status_transitions)} status transitions"
+                )
+
             timestamp_str = _find_first_transition_to_statuses(
                 changelog, flow_end_statuses
             )
 
             if not timestamp_str:
-                # Fallback: try resolutiondate field
-                timestamp_str = issue.get("fields", {}).get("resolutiondate")
+                # Fallback: try resolutiondate field (handle both formats)
+                if "fields" in issue and isinstance(issue.get("fields"), dict):
+                    timestamp_str = issue["fields"].get("resolutiondate")
+                else:
+                    # Flat format: resolutiondate at top level
+                    timestamp_str = issue.get("resolutiondate")
 
             if not timestamp_str:
                 extraction_stats["not_found"] += 1
@@ -406,6 +482,10 @@ def calculate_and_save_weekly_metrics(
         # Calculate Flow Load with historical WIP reconstruction
         # For historical weeks, we need WIP as-of that week's end
         report_progress("[Stats] Calculating Flow Load metric...")
+        logger.info(
+            f"[Flow Load] Starting calculation for week {week_label}: "
+            f"wip_statuses={wip_statuses}, is_current_week={is_current_week}"
+        )
         from data.changelog_processor import get_status_at_point_in_time
 
         # Calculate historical WIP (issues in active work at end of this week)
@@ -417,14 +497,23 @@ def calculate_and_save_weekly_metrics(
         for issue in all_issues:
             # For current week, use current status directly (more accurate, includes issues without changelog)
             if is_current_week:
-                current_status = (
-                    issue.get("fields", {}).get("status", {}).get("name", "")
-                )
+                # Handle both nested JIRA API format and flat database format
+                if "fields" in issue and isinstance(issue.get("fields"), dict):
+                    # Nested format: issue["fields"]["status"]["name"]
+                    current_status = issue["fields"].get("status", {}).get("name", "")
+                else:
+                    # Flat format: issue["status"] (database schema)
+                    current_status = issue.get("status", "")
+
                 is_in_wip_now = current_status in wip_statuses
                 is_completed = current_status in flow_end_statuses
 
                 if is_in_wip_now and not is_completed:
                     issues_in_wip_at_week_end.append(issue)
+                    logger.debug(
+                        f"[WIP Current Week] {issue.get('key', issue.get('issue_key'))}: "
+                        f"status='{current_status}', is_in_wip={is_in_wip_now}, is_completed={is_completed}"
+                    )
                 # Don't continue - we need to fall through to breakdown calculation
 
             else:
@@ -432,6 +521,11 @@ def calculate_and_save_weekly_metrics(
                 # This includes issues sitting in same status for long periods (e.g., "Selected", "Analysis")
                 status_at_week_end = get_status_at_point_in_time(
                     issue, week_end_check_time
+                )
+
+                logger.debug(
+                    f"[WIP Historical] {issue.get('key', issue.get('issue_key'))}: "
+                    f"status_at_week_end='{status_at_week_end}', week_end={week_end_check_time.date()}"
                 )
 
                 # If issue existed and was in WIP status at week end, count it
@@ -443,6 +537,10 @@ def calculate_and_save_weekly_metrics(
                     and not is_completed_at_week_end
                 ):
                     issues_in_wip_at_week_end.append(issue)
+                    logger.debug(
+                        f"[WIP Historical] ✓ {issue.get('key', issue.get('issue_key'))}: "
+                        f"IN WIP at week end (status='{status_at_week_end}')"
+                    )
 
         # Calculate breakdowns for WIP
         by_status = {}
@@ -450,9 +548,11 @@ def calculate_and_save_weekly_metrics(
         for issue in issues_in_wip_at_week_end:
             # For current week, use current status directly
             if is_current_week:
-                issue_wip_status = (
-                    issue.get("fields", {}).get("status", {}).get("name", "")
-                )
+                # Handle both nested JIRA API format and flat database format
+                if "fields" in issue and isinstance(issue.get("fields"), dict):
+                    issue_wip_status = issue["fields"].get("status", {}).get("name", "")
+                else:
+                    issue_wip_status = issue.get("status", "")
             else:
                 # For historical weeks, get the WIP status at week end
                 # (the most recent WIP status before week end)
@@ -473,10 +573,12 @@ def calculate_and_save_weekly_metrics(
             if issue_wip_status:
                 by_status[issue_wip_status] = by_status.get(issue_wip_status, 0) + 1
 
-            # Get issue type (same for both current and historical)
-            issue_type = (
-                issue.get("fields", {}).get("issuetype", {}).get("name", "Unknown")
-            )
+            # Get issue type (handle both nested and flat formats)
+            if "fields" in issue and isinstance(issue.get("fields"), dict):
+                issue_type = issue["fields"].get("issuetype", {}).get("name", "Unknown")
+            else:
+                issue_type = issue.get("issue_type", issue.get("issuetype", "Unknown"))
+
             by_issue_type[issue_type] = by_issue_type.get(issue_type, 0) + 1
 
         wip_time_desc = (
@@ -644,11 +746,21 @@ def calculate_and_save_weekly_metrics(
         report_progress("[Stats] Categorizing work distribution...")
         from configuration.metrics_config import get_metrics_config
 
+        logger.info(
+            f"[Work Distribution] Starting calculation for week {week_label}: "
+            f"{len(issues_completed_this_week)} completed issues"
+        )
+
         # Get field mappings from configuration (nested under 'flow')
         field_mappings = app_settings.get("field_mappings", {})
         flow_mappings = field_mappings.get("flow", {})
         flow_type_field = flow_mappings.get("flow_item_type", "issuetype")
         effort_category_field = flow_mappings.get("effort_category")
+
+        logger.info(
+            f"[Work Distribution] Configuration: flow_type_field='{flow_type_field}', "
+            f"effort_category_field='{effort_category_field}'"
+        )
 
         if not effort_category_field:
             logger.warning(
@@ -666,10 +778,27 @@ def calculate_and_save_weekly_metrics(
         }
 
         for issue in issues_completed_this_week:
-            fields = issue.get("fields", {})
+            # Handle both nested JIRA API format and flat database format
+            if "fields" in issue and isinstance(issue.get("fields"), dict):
+                fields = issue.get("fields", {})
+            else:
+                # Flat format: fields are at top level
+                fields = issue.copy()
+
+                # Merge custom_fields into fields dict (database stores them separately)
+                if "custom_fields" in issue and isinstance(
+                    issue.get("custom_fields"), dict
+                ):
+                    custom_fields = issue.get("custom_fields", {})
+                    fields.update(custom_fields)
 
             # Extract issue type
             issue_type_value = fields.get(flow_type_field)
+
+            # Fallback: database uses 'issue_type' (with underscore)
+            if not issue_type_value and flow_type_field == "issuetype":
+                issue_type_value = fields.get("issue_type")
+
             if isinstance(issue_type_value, dict):
                 issue_type = issue_type_value.get("name") or issue_type_value.get(
                     "value", ""
@@ -701,9 +830,9 @@ def calculate_and_save_weekly_metrics(
             elif flow_type == "Technical Debt":
                 distribution["tech_debt"] += 1
             else:
-                # Unknown types - don't count (or could default to feature)
-                logger.debug(
-                    f"Issue {issue.get('key')} has unknown flow type: {flow_type}"
+                # Unknown types - log warning only (no per-issue logging)
+                logger.warning(
+                    f"[Work Distribution] Unknown flow type '{flow_type}' for issue {issue.get('key', issue.get('issue_key'))} (issue_type='{issue_type}')"
                 )
 
         logger.info(
@@ -765,11 +894,17 @@ def calculate_and_save_weekly_metrics(
             releases = set()
 
             for issue in issues:
-                status = issue.get("fields", {}).get("status", {}).get("name", "")
+                # Handle both nested (JIRA API) and flat (database) formats
+                if "fields" in issue and isinstance(issue.get("fields"), dict):
+                    status = issue.get("fields", {}).get("status", {}).get("name", "")
+                    fix_versions = issue.get("fields", {}).get("fixVersions", [])
+                else:
+                    # Flat format: status and fixVersions at root level
+                    status = issue.get("status", "")
+                    fix_versions = issue.get("fixVersions", [])
+
                 if status not in flow_end_statuses:
                     continue
-
-                fix_versions = issue.get("fields", {}).get("fixVersions", [])
                 for fv in fix_versions:
                     release_date_str = fv.get("releaseDate")
                     release_name = fv.get("name")
@@ -807,7 +942,13 @@ def calculate_and_save_weekly_metrics(
             """
             filtered = []
             for issue in issues:
-                fix_versions = issue.get("fields", {}).get("fixVersions", [])
+                # Handle both nested (JIRA API) and flat (database) formats
+                if "fields" in issue and isinstance(issue.get("fields"), dict):
+                    fix_versions = issue.get("fields", {}).get("fixVersions", [])
+                else:
+                    # Flat format: fixVersions at root level
+                    fix_versions = issue.get("fixVersions", [])
+
                 for fv in fix_versions:
                     release_date_str = fv.get("releaseDate")
                     if not release_date_str:
@@ -829,7 +970,13 @@ def calculate_and_save_weekly_metrics(
             """
             filtered = []
             for bug in bugs:
-                resolution_str = bug.get("fields", {}).get("resolutiondate")
+                # Handle both nested (JIRA API) and flat (database) formats
+                if "fields" in bug and isinstance(bug.get("fields"), dict):
+                    resolution_str = bug.get("fields", {}).get("resolutiondate")
+                else:
+                    # Flat format: resolutiondate at root level
+                    resolution_str = bug.get("resolutiondate")
+
                 if not resolution_str:
                     continue
                 try:
@@ -868,8 +1015,14 @@ def calculate_and_save_weekly_metrics(
         # ========================================================================
         operational_tasks = []
         for issue in all_issues_raw:
-            fields = issue.get("fields", {})
-            issue_type = fields.get("issuetype", {}).get("name", "")
+            # Handle both nested (JIRA API) and flat (database) formats
+            if "fields" in issue and isinstance(issue.get("fields"), dict):
+                fields = issue["fields"]
+                issue_type = fields.get("issuetype", {}).get("name", "")
+            else:
+                # Flat format: issue_type at root level
+                issue_type = issue.get("issue_type", "")
+
             if issue_type in devops_task_types:
                 operational_tasks.append(issue)
 
@@ -892,8 +1045,14 @@ def calculate_and_save_weekly_metrics(
         affected_environment_mapping = dora_mappings.get("affected_environment", "")
 
         for issue in all_issues:
-            fields = issue.get("fields", {})
-            issue_type = fields.get("issuetype", {}).get("name", "")
+            # Handle both nested (JIRA API) and flat (database) formats
+            if "fields" in issue and isinstance(issue.get("fields"), dict):
+                fields = issue["fields"]
+                issue_type = fields.get("issuetype", {}).get("name", "")
+            else:
+                # Flat format: issue_type at root level
+                fields = issue
+                issue_type = issue.get("issue_type", "")
 
             # Production bugs: issue type matches bug_types
             if issue_type in bug_types:
@@ -925,7 +1084,13 @@ def calculate_and_save_weekly_metrics(
         # ========================================================================
         development_fix_versions = set()
         for issue in all_issues:  # all_issues = development project issues only
-            fix_versions = issue.get("fields", {}).get("fixVersions", [])
+            # Handle both nested (JIRA API) and flat (database) formats
+            if "fields" in issue and isinstance(issue.get("fields"), dict):
+                fix_versions = issue.get("fields", {}).get("fixVersions", [])
+            else:
+                # Flat format: fixVersions at root level
+                fix_versions = issue.get("fixVersions", [])
+
             for fv in fix_versions:
                 fv_name = fv.get("name")
                 if fv_name:
@@ -1305,43 +1470,20 @@ def calculate_metrics_for_last_n_weeks(
         failed_weeks = []
         skipped_weeks = []
 
-        # DELTA CALCULATE OPTIMIZATION: Calculate affected weeks once before loop
-        affected_weeks = None  # None = recalculate all (full fetch or no cache)
-        try:
-            from data.profile_manager import get_active_query_workspace
-            import json
-
-            query_workspace = get_active_query_workspace()
-            cache_file = query_workspace / "jira_cache.json"
-
-            if cache_file.exists():
-                with open(cache_file, "r", encoding="utf-8") as f:
-                    cache_metadata = json.load(f)
-
-                changed_keys = cache_metadata.get("changed_keys", [])
-
-                # Only use delta optimization if changed_keys is a non-empty list
-                if isinstance(changed_keys, list) and len(changed_keys) > 0:
-                    from data.jira_simple import get_affected_weeks_from_changed_issues
-
-                    affected_weeks = get_affected_weeks_from_changed_issues(
-                        changed_keys
-                    )
-                    logger.info(
-                        f"[Delta Calculate] {len(changed_keys)} changed issues affect {len(affected_weeks)} weeks"
-                    )
-                else:
-                    logger.info(
-                        "[Delta Calculate] No changed_keys in cache - will check mtime for each week"
-                    )
-        except Exception as opt_error:
-            logger.debug(
-                f"[Delta Calculate] Failed to pre-calculate affected weeks: {opt_error}"
-            )
+        # Note: Legacy delta optimization removed - database timestamps provide sufficient tracking
 
         # Use batch write mode to accumulate all changes and write once
         # Import TaskProgress once before loop for progress updates
         from data.task_progress import TaskProgress
+
+        # Calculate progress update interval: every 5 weeks or every 2%, whichever is more frequent
+        # This balances UI smoothness with reduced database writes (80% reduction for large datasets)
+        progress_update_interval = min(
+            5, max(1, n_weeks // 50)
+        )  # Update every 2% or every 5 weeks
+        logger.info(
+            f"Progress will update every {progress_update_interval} week(s) (~{100 * progress_update_interval / max(n_weeks, 1):.1f}% increments)"
+        )
 
         with batch_write_mode():
             week_number = 0
@@ -1383,28 +1525,32 @@ def calculate_metrics_for_last_n_weeks(
                 success, message = calculate_and_save_weekly_metrics(
                     week_label=week_label,
                     progress_callback=progress_callback,
-                    affected_weeks=affected_weeks,
                 )
 
                 # Report calculation progress AFTER week is calculated (not before)
                 # This ensures 100% means "all work done", not "starting last week"
-                try:
-                    TaskProgress.update_progress(
-                        "update_data",
-                        "calculate",
-                        current=week_number,
-                        total=n_weeks,
-                        message=f"Week {week_label}",
-                    )
-                    # Log every 10th week to avoid log spam
-                    if week_number % 10 == 0 or week_number == n_weeks:
+                # Only update at intervals to reduce database writes (Phase 1 optimization)
+                should_update_progress = (
+                    week_number % progress_update_interval == 0
+                    or week_number == n_weeks  # Always update on completion
+                )
+
+                if should_update_progress:
+                    try:
+                        TaskProgress.update_progress(
+                            "update_data",
+                            "calculate",
+                            current=week_number,
+                            total=n_weeks,
+                            message=f"Week {week_label}",
+                        )
                         logger.info(
                             f"[Progress] Calculation progress: {week_number}/{n_weeks} weeks ({week_number / n_weeks * 100:.0f}%)"
                         )
-                except Exception as e:
-                    logger.warning(
-                        f"[Progress] Failed to update progress for week {week_label}: {e}"
-                    )
+                    except Exception as e:
+                        logger.warning(
+                            f"[Progress] Failed to update progress for week {week_label}: {e}"
+                        )
 
                 # Yield control to allow other Dash callbacks (like progress bar polling) to execute
                 # This prevents the long-running calculation from blocking the UI

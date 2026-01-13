@@ -101,8 +101,10 @@ Example - Correct callback pattern:
 from ui.layout import USE_ACCORDION_SETTINGS
 
 from callbacks import (
+    ai_prompt_generation,  # AI prompt generation callbacks (Feature 017, auto-registers via @callback)  # noqa: F401
     app_update,  # Application auto-update callbacks (auto-registers via @callback)  # noqa: F401
     banner_status_icons,  # Banner icon animations during operations (auto-registers via @callback)  # noqa: F401
+    budget_settings,  # Budget configuration callbacks (auto-registers via @callback)  # noqa: F401
     bug_analysis,  # Bug analysis metrics callbacks (Feature 004)
     # dashboard,  # REMOVED - Dead code: callbacks reference non-existent UI components (ui/dashboard.py never imported)
     dora_flow_metrics,  # DORA/Flow metrics callbacks (Feature 007, auto-registers via @callback)  # noqa: F401
@@ -110,6 +112,7 @@ from callbacks import (
     field_value_fetch,  # Auto-fetch field values for dropdowns (Feature 012, auto-registers via @callback)  # noqa: F401
     import_export,  # Import/export full profile callbacks (Feature 012, auto-registers via @callback)  # noqa: F401
     integrated_query_management,  # Integrated query management callbacks (Feature 011, auto-registers via @callback)  # noqa: F401
+    migration,  # Automatic JSON to database migration (Feature 015, auto-registers via @callback)  # noqa: F401
     report_generation,  # HTML report generation with progress tracking (Feature 012, auto-registers via @callback)  # noqa: F401
     jira_config,  # JIRA config modal callbacks (auto-registers via @callback)  # noqa: F401
     jira_data_store,  # JIRA issues store population (Feature 007, auto-registers via @callback)  # noqa: F401
