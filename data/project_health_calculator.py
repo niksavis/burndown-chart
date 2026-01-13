@@ -6,7 +6,7 @@ signals from across the application: Dashboard, DORA, Flow, Bug Analysis, Budget
 Scope metrics. Each dimension is optional and automatically adjusts weights based on
 data availability.
 
-Formula v3.0 - Comprehensive Multi-Dimensional:
+Formula - Comprehensive Multi-Dimensional:
 - Delivery Performance (25%): velocity, throughput, completion rate
 - Predictability (20%): velocity CV, forecast confidence, schedule adherence
 - Quality (20%): bug density, DORA CFR, bug resolution, MTTR

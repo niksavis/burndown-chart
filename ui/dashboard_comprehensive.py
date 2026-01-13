@@ -78,7 +78,7 @@ def _calculate_project_health_score(
 ):
     """Calculate overall project health score (0-100) using comprehensive multi-dimensional analysis.
 
-    Formula v3.0 - Comprehensive with dynamic weighting:
+    Formula - Comprehensive with dynamic weighting:
     Calculates health across 6 dimensions with dynamic weight redistribution when metrics are unavailable:
     - Delivery Performance (25% max): velocity, throughput, completion rate
     - Predictability (20% max): velocity CV, forecast confidence, schedule adherence

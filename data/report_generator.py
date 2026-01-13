@@ -383,7 +383,7 @@ def _calculate_dashboard_metrics(
     3. Total comes from settings.estimated_total_items (NOT calculated)
     4. Remaining = total - completed (same as app)
     5. Completion % = completed / total (LIFETIME, same as app)
-    6. Health score uses comprehensive formula v3.0 (6 dimensions: Delivery, Predictability, Quality, Efficiency, Sustainability, Financial)
+    6. Health score uses comprehensive formula (6 dimensions: Delivery, Predictability, Quality, Efficiency, Sustainability, Financial)
 
     Args:
         all_statistics: ALL statistics for lifetime completion calculation

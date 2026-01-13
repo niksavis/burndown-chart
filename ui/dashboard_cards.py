@@ -469,12 +469,12 @@ def create_dashboard_overview_content(metrics: Dict[str, Any]) -> html.Div:
 
 
 def _calculate_health_score(metrics: Dict[str, Any]) -> int:
-    """Calculate overall project health score (0-100) using comprehensive health formula v3.0.
+    """Calculate overall project health score (0-100) using comprehensive health formula.
 
     This function uses the comprehensive health calculator (6 dimensions) to ensure
     consistency with dashboard and reports.
 
-    Formula v3.0 - 6 Dimensions:
+    Formula - 6 Dimensions:
     - Delivery (25%): Progress, trend, throughput
     - Predictability (20%): CV, schedule, confidence
     - Quality (20%): Bug resolution, DORA CFR/MTTR
