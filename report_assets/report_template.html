@@ -702,19 +702,19 @@
                   <div class="progress-detail-item">
                     <span class="progress-detail-label">Completed: </span>
                     <span class="progress-detail-value"
-                      >{{ metrics.dashboard.completed_points|dec2 }}</span
+                      >{{ metrics.dashboard.completed_points|dec1 }}</span
                     >
                   </div>
                   <div class="progress-detail-item">
                     <span class="progress-detail-label">Remaining: </span>
                     <span class="progress-detail-value"
-                      >{{ metrics.dashboard.remaining_points|dec2 }}</span
+                      >{{ metrics.dashboard.remaining_points|dec1 }}</span
                     >
                   </div>
                   <div class="progress-detail-item">
                     <span class="progress-detail-label">Total: </span>
                     <span class="progress-detail-value"
-                      >{{ metrics.dashboard.total_points|dec2 }}</span
+                      >{{ metrics.dashboard.total_points|dec1 }}</span
                     >
                   </div>
                 </div>
@@ -944,7 +944,7 @@
                     style="border-top: none; padding-top: 0.5rem"
                   >
                     <span class="text-primary"
-                      >+{{ metrics.scope.created_points|dec2 }}</span
+                      >+{{ metrics.scope.created_points|dec1 }}</span
                     >
                   </td>
                 </tr>
@@ -964,7 +964,7 @@
                   </td>
                   <td class="text-end" style="padding-bottom: 0.75rem">
                     <span class="text-success"
-                      >-{{ metrics.scope.completed_points|dec2 }}</span
+                      >-{{ metrics.scope.completed_points|dec1 }}</span
                     >
                   </td>
                 </tr>
