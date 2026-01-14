@@ -229,11 +229,10 @@ sdd-*/
 *.zip
 
 # GitHub Copilot and spec-kit agent files (may contain credentials/tokens)
-.github/
-
-# Confidential field mapping documentation (contains customer-specific data)
-DORA_FLOW_FIELD_MAPPING.md
-JIRA_CUSTOM_FIELDS.md
+# Ignore everything in .github/ except specific public files
+.github/*
+!.github/copilot-instructions.md
+!.github/release.yml
 
 # Debug and test artifacts (root directory only - not tests/ folder)
 /test_*.py
@@ -244,7 +243,6 @@ mobile_nav_*.png
 debug_*.png
 screenshot_*.png
 mobile_nav_error.png
-
 
 # Background callback cache directory
 cache/

@@ -114,7 +114,7 @@ Industry-standard DevOps performance:
 
 ## How It Works
 
-**Data Storage:** Everything stored locally in SQLite database (`profiles/{profile_id}/database.db`). No cloud, no external services.
+**Data Storage:** Everything stored locally in SQLite database (`profiles/burndown.db`). No cloud, no external services.
 
 **JIRA Sync:** 
 - First sync: Downloads all issues matching your query (paginated, 100/page)

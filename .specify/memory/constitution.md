@@ -1,145 +1,129 @@
 <!--
 Sync Impact Report:
-- Version: 1.4.0 → 1.4.1 (Enhanced Principle IV with explicit outcomes)
-- Principles: 6 core architectural principles (unchanged)
-- Updated: Principle IV now explicitly states maintainability and extensibility as outcomes
-- Rationale: Clarify that KISS/DRY principles directly produce maintainable and extensible code
+- Version: 1.4.2 → 1.5.0 (Optimized for conciseness and token efficiency)
+- Principles: 6 core architectural principles (unchanged in semantics, condensed in form)
+- Updated: Removed redundant details now in copilot-instructions.md, kept governance focus
+- Rationale: Constitution is for spec-kit governance, not agent execution. Agent uses copilot-instructions.md
 - Templates requiring updates: None
 - Follow-up: None
 -->
 
-# Burndown Chart Generator Constitution
+# Burndown Chart Constitution
 
 ## Core Principles
 
 ### I. Layered Architecture (NON-NEGOTIABLE)
 
-**Rule**: Business logic MUST reside in the `data/` layer. Callbacks in `callbacks/` MUST only handle events and delegate to data layer functions.
+Business logic MUST reside in `data/` layer. Callbacks in `callbacks/` MUST only delegate to data layer.
 
-**Rationale**: Dash callbacks become untestable when they contain logic. Separation enables unit testing, reusability, and clear responsibility boundaries.
+**Rationale**: Dash callbacks become untestable when they contain logic. Separation enables unit testing and reusability.
 
-**Verification**: Code review MUST reject callbacks with calculations, API calls, or data transformations. All logic functions MUST have corresponding unit tests in `tests/unit/data/`.
+**Verification**: Code review MUST reject callbacks with calculations/API calls/transformations. All logic functions MUST have unit tests in `tests/unit/data/`.
 
 ### II. Test Isolation (NON-NEGOTIABLE)
 
-**Rule**: Tests MUST NOT create files in project root directory. All file operations MUST use `tempfile.TemporaryDirectory()` or `tempfile.NamedTemporaryFile()` with proper cleanup via pytest fixtures.
+Tests MUST NOT create files in project root. All file operations MUST use `tempfile.TemporaryDirectory()` or `tempfile.NamedTemporaryFile()`.
 
-**Rationale**: File pollution causes test interdependencies, race conditions in parallel execution, and workspace contamination.
+**Rationale**: File pollution causes test interdependencies and workspace contamination.
 
-**Verification**: All test files creating `app_settings.json`, `project_data.json`, `jira_cache.json`, `jira_changelog_cache.json`, `jira_query_profiles.json`, `metrics_snapshots.json`, or `task_progress.json` MUST be flagged in code review. Use `pytest --random-order` to detect isolation violations.
+**Verification**: Tests MUST use `tempfile` for all file operations. Use `pytest --random-order` to detect violations.
 
 ### III. Performance Budgets (NON-NEGOTIABLE)
 
-**Rule**: Initial page load < 2 seconds. Chart rendering < 500ms. User interactions < 100ms response time.
+Page load <2s, chart rendering <500ms, user interactions <100ms.
 
-**Rationale**: Performance budgets prevent regressions and impact architectural decisions (caching, lazy loading, data structure choices).
+**Rationale**: Performance budgets prevent regressions and impact architectural decisions.
 
-**Verification**: Performance tests in `tests/` MUST validate these targets. Violations require profiling data and justification before merge.
+**Verification**: Performance tests in `tests/` MUST validate these targets.
 
 ### IV. Simplicity & Reusability (KISS + DRY)
 
-**Rule**: Keep implementations simple (KISS). Avoid duplication - extract shared logic to reusable functions (DRY).
+Keep implementations simple (KISS). Avoid duplication - extract shared logic to reusable functions (DRY).
 
-**Rationale**: Complex code is harder to test and maintain. Duplication creates multiple sources of truth and increases bug surface area.
+**Rationale**: Complex code is harder to test and maintain. Duplication creates multiple sources of truth.
 
-**Outcomes**: Adherence to KISS and DRY principles produces **maintainable** code (easy to understand, modify, and debug) and **extensible** architecture (new features integrate cleanly without widespread changes).
-
-**Verification**: Code review MUST reject over-engineered solutions or copy-pasted logic. Shared utilities MUST be extracted to appropriate modules with unit tests.
+**Verification**: Code review MUST reject over-engineered solutions or copy-pasted logic.
 
 ### V. Data Privacy & Security (NON-NEGOTIABLE)
 
-**Rule**: Customer-identifying information MUST NEVER be committed to the repository. All examples, documentation, and configuration MUST use generic placeholder data.
+Customer-identifying information MUST NEVER be committed. Use placeholder data only.
 
-**Rationale**: Public repositories expose sensitive information. Data breaches damage trust, violate privacy obligations, and can have legal consequences.
+**Rationale**: Public repositories expose sensitive information.
 
-**Verification**: Code review MUST reject commits containing:
-- Real company or organization names
-- Production domain names or URLs
-- Customer-specific JIRA field IDs (e.g., customfield_XXXXX with actual production values)
-- Production environment identifiers
-- Real user data, credentials, or API tokens
-- Comments referencing specific customer implementations
+**Verification**: Code review MUST reject commits containing real company names, production domains, customer JIRA field IDs, credentials, or user data.
 
-**Required Practices**:
-- Use placeholder names: "Acme Corp", "Example Organization"
-- Use placeholder domains: "example.com", "example.org"
-- Use generic field IDs: "customfield_10001", "customfield_10002"
-- Document patterns, not specific customer configurations
-- Review git history before pushing to ensure no sensitive data exposure
+**Placeholders**: "Acme Corp", "example.com", "customfield_10001"
 
 ### VI. Defensive Refactoring (NON-NEGOTIABLE)
 
-**Rule**: Unused code MUST be removed systematically. Obsolete comments and dead dependencies MUST be eliminated. All refactoring MUST follow defensive practices with verification at each step.
+Unused code MUST be removed systematically. All refactoring MUST follow defensive practices with verification.
 
-**Rationale**: Dead code increases maintenance burden, confuses developers, and creates false positives in code searches. Accumulation of technical debt slows development and increases bug surface area.
+**Rationale**: Dead code increases maintenance burden and creates false positives.
 
 **Verification**: Before removing any function:
-1. MUST verify zero references across entire codebase (excluding its own definition)
-2. MUST confirm no callback decorators (`@callback`, `@app.callback`)
-3. MUST check no unit tests reference it
-4. MUST ensure not exported in `__init__.py` files
-5. MUST run full test suite before AND after removal
-6. MUST create backup branch before starting refactoring work
-7. MUST commit changes incrementally with descriptive messages
+1. Verify zero references across codebase
+2. Confirm no callback decorators
+3. Check no unit tests reference it
+4. Ensure not exported in `__init__.py`
+5. Run full test suite before AND after removal
+6. Create backup branch
+7. Commit incrementally
 
-**Protected Code** (NEVER remove without explicit justification):
+**Protected Code** (NEVER remove without justification):
 - Functions with callback decorators
 - Functions registered in `callbacks/__init__.py`
-- Public API exports in `__init__.py` files
+- Public API exports in `__init__.py`
 - Functions with unit tests in `tests/unit/`
 - Entry point functions in `app.py`, `server.py`
 
-**Refactoring Workflow**:
-1. Create dedicated refactor branch: `refactor/remove-unused-<description>-<date>`
-2. Use automated tools (Vulture, Ruff) to identify candidates
-3. Manually verify each candidate has no dependencies
-4. Remove function, related imports, and obsolete comments
-5. Run tests after each removal
-6. Commit incrementally with clear messages
-7. Final validation: full test suite + manual smoke testing
+See `docs/defensive_refactoring_guide.md` for procedures.
 
-See `docs/defensive_refactoring_guide.md` for detailed PowerShell procedures and safety protocols. Developers may optionally create `.github/copilot-instructions.md` as a personal workspace guide.
+---
 
 ## Data Architecture
 
-**Persistence**: Application state persists to JSON files:
-- `app_settings.json` - PERT config, deadline, JIRA config, field_mappings (DORA/Flow)
-- `project_data.json` - Statistics, scope, metrics_history (snapshots)
-- `jira_cache.json` - JIRA API responses (24hr TTL)
-- `jira_changelog_cache.json` - JIRA changelog data cache
-- `jira_query_profiles.json` - Saved JQL queries
-- `metrics_snapshots.json` - Weekly DORA/Flow metric snapshots
-- `task_progress.json` - Runtime task progress tracking
+**Persistence**: SQLite database at `profiles/burndown.db`
+
+**Tables** (12): profiles, queries, jira_cache, jira_issues, jira_changelog_entries, project_statistics, project_scope, metrics_data_points, budget_revisions, budget_settings, app_state, task_progress
+
+**JSON usage**: Export/import/reports only (not primary storage)
 
 **Code Organization**:
 - `callbacks/` - Event handlers only (delegate to data layer)
-- `data/` - Business logic, JIRA API, metrics calculators (DORA/Flow), persistence
-- `ui/` - Component rendering (dashboards, modals, metric cards)
-- `visualization/` - Chart generation (burndown, DORA/Flow trends)
-- `configuration/` - Constants, settings, metric definitions
+- `data/` - Business logic, JIRA API, metrics, persistence
+- `ui/` - Component rendering (dashboards, cards)
+- `visualization/` - Chart generation
+- `configuration/` - Constants, settings
+
+**User Data Protection**: All user data in `profiles/` (excluded via `.gitignore`)
+
+---
 
 ## Testing Requirements
 
-Unit tests MUST be written during implementation. Integration and performance tests MAY be written after feature completion.
+Unit tests MUST be written during implementation. Integration/performance tests MAY be written after feature completion.
+
+---
 
 ## Development Workflow
 
-**Branch Strategy**: Before implementing any feature or bugfix, the AI agent MUST ask: "Should I create a feature/bugfix branch for this, or work directly on main?" and wait for user decision. Main branch commits trigger version update notifications; feature branches enable isolated development.
+**Branch Strategy**: AI agent MUST ask before creating feature branch vs main commit.
 
-**Version Management**: CRITICAL - Version bump MUST occur AFTER merging to main, never on feature branch:
+**Version Management** (CRITICAL sequence):
+1. `git checkout main && git merge <feature-branch>`
+2. `python bump_version.py [major|minor|patch]` (on main only)
+3. `git push origin main --tags`
 
-1. **FIRST**: `git checkout main && git merge <feature-branch>` (merge feature to main)
-2. **THEN**: `python bump_version.py [major|minor|patch]` (bump version on main)
-3. **FINALLY**: `git push origin main --tags` (push main with new tag)
+AI agent MUST verify current branch is main before running bump script.
 
-The bump script automatically updates version files, commits changes, and creates an annotated git tag. This sequence ensures the tag is created on main branch, not feature branch. The AI agent MUST verify current branch is main before running bump script.
+---
 
 ## Governance
 
 This constitution supersedes conflicting guidance. All code changes MUST comply with Core Principles I-VI.
 
-Amendments MUST increment version per semantic versioning: MAJOR (principle removal/redefinition), MINOR (new principle), PATCH (clarifications).
+**Amendments**: MAJOR (principle removal/redefinition), MINOR (new principle), PATCH (clarifications).
 
-Reference `docs/` folder for operational guides and standards. Developers may optionally create `.github/copilot-instructions.md` as a personal workspace file with project-specific patterns and AI agent context.
+**Operational Details**: See `docs/` folder. Development standards in `.github/copilot-instructions.md`.
 
-**Version**: 1.4.1 | **Ratified**: 2025-10-27 | **Last Amended**: 2025-12-05
+**Version**: 1.5.0 | **Ratified**: 2025-10-27 | **Optimized**: 2026-01-14
