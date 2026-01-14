@@ -80,6 +80,8 @@ pandas==2.2.3
     # via -r requirements.in
 pefile==2024.8.26
     # via pyinstaller
+pillow==12.1.0
+    # via -r requirements.in
 pip-licenses==5.5.0
     # via -r requirements.in
 pip-tools==7.4.1

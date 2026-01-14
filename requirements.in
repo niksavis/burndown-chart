@@ -38,6 +38,7 @@ pip-licenses>=5.0.0
 
 # Build and packaging tools
 pyinstaller>=6.0.0  # Build standalone executables (build-only dependency)
+pillow>=10.0.0  # Icon generation for Windows executables (build-only dependency)
 
 # Development tools
 pip-tools==7.4.1  # Dependency management (pip-compile)
