@@ -35,16 +35,42 @@ hiddenimports = [
 
 # Packages to exclude from the bundle
 excludes = [
+    # Test frameworks and tools
     'pytest',
     'pytest_cov',
+    'pytest_mock',
+    'pytest_asyncio',
     'playwright',
+    'selenium',
+    # Development tools
     'pip_tools',
     'pip_licenses',
     'pyinstaller',
+    'setuptools',
+    'wheel',
+    'pip',
+    # Build tools
+    'distutils',
+    'setuptools',
+    # GUI frameworks not used
     'tkinter',
+    'wx',
+    'PyQt5',
+    'PyQt6',
+    'PySide2',
+    'PySide6',
+    # Test modules
     'test',
+    'tests',
     'unittest',
     '_pytest',
+    'py.test',
+    # Documentation tools
+    'sphinx',
+    'docutils',
+    # Type checking
+    'mypy',
+    'typing_extensions',
 ]
 
 a = Analysis(

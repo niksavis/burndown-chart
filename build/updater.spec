@@ -17,15 +17,30 @@ hiddenimports = [
 
 # Exclude everything not needed for updater
 excludes = [
+    # Heavy application dependencies
     'dash',
     'plotly',
     'pandas',
     'numpy',
     'scipy',
     'matplotlib',
+    'networkx',
+    'pydantic',
+    # Test frameworks
     'pytest',
+    'pytest_cov',
     'playwright',
+    'selenium',
+    # Development tools
+    'pip_tools',
+    'pip_licenses',
+    # GUI frameworks
     'tkinter',
+    'wx',
+    'PyQt5',
+    'PyQt6',
+    # Database (updater doesn't need it)
+    'sqlite3',
 ]
 
 a = Analysis(
