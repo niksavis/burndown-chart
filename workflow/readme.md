@@ -22,7 +22,9 @@
    ↓
 5. ITERATIVE DEVELOPMENT (Code → Test → Commit)
    ↓
-6. RELEASE (Git + Beads sync)
+6. FEATURE COMPLETION (Update Spec-Kit docs, quality gates)
+   ↓
+7. RELEASE (Merge to main, version bump)
 ```
 
 ---
@@ -215,7 +217,70 @@ Closes beads-t104
 
 ---
 
-## Phase 5: Release and Sync
+## Phase 5: Feature Completion
+
+### Verify All Tasks Complete
+
+**When all beads tasks are closed**, finalize the Spec-Kit workflow:
+
+```powershell
+# Verify no open tasks remain
+bd list --status open  # Should show 0 open tasks
+```
+
+### Update Spec-Kit Documentation
+
+1. **Update tasks.md** - Check off completed tasks in `specs/<feature>/tasks.md`:
+   ```powershell
+   # Edit specs/<feature>/tasks.md and mark tasks complete
+   # Change [ ] to [x] for completed tasks
+   ```
+
+2. **Update spec.md** - Add completion date and final notes to `specs/<feature>/spec.md`:
+   ```markdown
+   ## Status
+   - **Completed**: 2026-01-14
+   - **Notes**: All MVP tasks completed, ready for merge
+   ```
+
+### Run Final Quality Gates
+
+```powershell
+# Activate virtual environment
+.\.venv\Scripts\activate
+
+# Run all tests
+pytest tests/ -v          # All tests pass
+
+# Check for errors (if using GitHub Copilot)
+# Use get_errors tool to verify zero errors
+```
+
+### Commit Documentation Updates
+
+```powershell
+# Add updated spec files
+git add specs/<feature>/
+
+# Commit with descriptive message
+git commit -m "docs(spec-kit): mark <feature> as complete"
+```
+
+### Final Sync and Push
+
+```powershell
+# Sync beads to JSONL
+bd sync
+
+# Push to remote
+git push
+```
+
+**Feature is now complete and ready for PR or merge to main.**
+
+---
+
+## Phase 6: Release and Merge
 
 ### Push Changes
 
@@ -230,7 +295,7 @@ bd sync
 git push
 ```
 
-### Create Release (MVP Complete)
+### Create Release (After Feature Branch Merge)
 
 ```powershell
 # Merge feature branch to main

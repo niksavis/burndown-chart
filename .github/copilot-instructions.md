@@ -282,6 +282,43 @@ feat(scope): description
 Closes beads-<issue-id>
 ```
 
+### 6. Feature Completion
+
+**When all beads tasks are closed**, finalize the Spec-Kit workflow:
+
+1. **Verify all tasks complete**:
+
+   ```powershell
+   bd list --status open  # Should show 0 open tasks
+   ```
+
+2. **Update tasks.md** - Check off completed tasks in `specs/<feature>/tasks.md`
+
+3. **Update spec.md** - Add completion date and final notes to `specs/<feature>/spec.md`
+
+4. **Run final quality gates**:
+
+   ```powershell
+   pytest tests/ -v          # All tests pass
+   get_errors                # Zero errors
+   ```
+
+5. **Commit documentation updates**:
+
+   ```powershell
+   git add specs/<feature>/
+   git commit -m "docs(spec-kit): mark <feature> as complete"
+   ```
+
+6. **Final sync and push**:
+
+   ```powershell
+   bd sync
+   git push
+   ```
+
+7. **Ready for merge** - Feature branch ready for PR or merge to main
+
 **Complete workflow**: See `workflow/README.md`  
 **Tool setup**: See `workflow/SETUP.md`  
 **Session completion**: See `AGENTS.md` for mandatory checklist
