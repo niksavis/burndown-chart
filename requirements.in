@@ -33,7 +33,12 @@ pytest==8.3.5
 pytest-cov==6.1.1
 playwright>=1.40.0
 
+# License auditing for packaging investigation
+pip-licenses>=5.0.0
+
+# Development tools
+pip-tools==7.4.1  # Dependency management (pip-compile)
+
 # Optional: Additional development and testing tools
 # Uncomment these lines when you need additional tools:
 # pytest-playwright>=0.4.0
-# pip-tools==7.4.1
