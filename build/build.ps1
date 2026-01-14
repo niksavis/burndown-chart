@@ -91,7 +91,29 @@ try {
     }
     Write-Success "Found updater.spec"
 
-    # Step 5: Clean previous builds if requested
+    # Step 5: Collect license information
+    Write-Step "Collecting third-party license information"
+    $collectLicensesScript = Join-Path $BuildDir "collect_licenses.ps1"
+    
+    if (-not (Test-Path $collectLicensesScript)) {
+        Write-Error "collect_licenses.ps1 not found at: $collectLicensesScript"
+        exit 1
+    }
+    
+    Push-Location $ProjectRoot
+    try {
+        & $collectLicensesScript
+        if ($LASTEXITCODE -ne 0) {
+            Write-Error "License collection failed"
+            exit 1
+        }
+        Write-Success "License information collected"
+    }
+    finally {
+        Pop-Location
+    }
+
+    # Step 6: Clean previous builds if requested
     if ($Clean) {
         Write-Step "Cleaning previous build artifacts"
         
@@ -118,7 +140,7 @@ try {
         }
     }
 
-    # Step 6: Create dist directory if it doesn't exist
+    # Step 7: Create dist directory if it doesn't exist
     Write-Step "Preparing output directory"
     if (-not (Test-Path $DistDir)) {
         New-Item -ItemType Directory -Path $DistDir | Out-Null
@@ -128,7 +150,7 @@ try {
         Write-Success "Dist directory exists"
     }
 
-    # Step 7: Build main application
+    # Step 8: Build main application
     Write-Step "Building main application (BurndownChart.exe)"
     Push-Location $ProjectRoot
     try {
@@ -148,7 +170,7 @@ try {
         Pop-Location
     }
 
-    # Step 8: Build updater
+    # Step 9: Build updater
     Write-Step "Building updater (BurndownChartUpdater.exe)"
     Push-Location $ProjectRoot
     try {
@@ -168,7 +190,7 @@ try {
         Pop-Location
     }
 
-    # Step 9: Verify output files
+    # Step 10: Verify output files
     Write-Step "Verifying build artifacts"
     $mainExe = Join-Path $DistDir "BurndownChart\BurndownChart.exe"
     $updaterExe = Join-Path $DistDir "BurndownChartUpdater\BurndownChartUpdater.exe"
@@ -187,7 +209,7 @@ try {
     $updaterSize = (Get-Item $updaterExe).Length / 1MB
     Write-Success "Updater executable: $updaterExe ($([math]::Round($updaterSize, 2)) MB)"
 
-    # Step 10: Code signing (if requested)
+    # Step 11: Code signing (if requested)
     if ($Sign) {
         Write-Step "Code signing executables"
         $signScript = Join-Path $BuildDir "sign_executable.ps1"
@@ -215,7 +237,7 @@ try {
         }
     }
 
-    # Step 11: Post-build tests (if requested)
+    # Step 12: Post-build tests (if requested)
     if ($Test) {
         Write-Step "Running post-build validation tests"
         
