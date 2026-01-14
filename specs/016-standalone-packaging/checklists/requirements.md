@@ -2,6 +2,7 @@
 
 **Purpose**: Validate specification completeness and quality before proceeding to planning
 **Created**: 2025-12-23
+**Updated**: 2026-01-14
 **Feature**: [specs/016-standalone-packaging/spec.md](../spec.md)
 
 ## Content Quality
@@ -32,13 +33,40 @@
 ## Dependency Verification
 
 - [x] Feature 015 (SQLite Database Migration) identified as prerequisite
+- [x] SQLite persistence COMPLETED and merged to main (2026-01-14)
 - [x] Clear rationale for dependency (packaged executable requires database persistence)
-- [x] Implementation order specified (Feature 015 must complete first)
+- [x] Prerequisite no longer blocks implementation - feature ready to proceed
+
+## Investigation Requirements
+
+- [ ] Browser auto-launch best practices researched and documented
+- [ ] Two-executable vs single-executable approach evaluated with pros/cons
+- [ ] PyInstaller capabilities for self-updating verified
+- [ ] Windows file locking constraints documented
+- [ ] **License compatibility of all bundled dependencies verified**
+- [ ] **Required license files and attributions identified**
+- [ ] **Impact on app license documented (if any)**
+- [ ] **GitHub release best practices researched from recognized open-source projects**
+- [ ] **Release asset naming, structure, and installation instructions format determined**
+- [ ] **Automated release workflow designed (GitHub Actions or equivalent)**
+- [ ] Recommended architecture selected based on research
 
 ## Notes
 
-All checklist items passed. Specification is complete and ready for planning phase AFTER Feature 015 is successfully implemented.
+**Status Update (2026-01-14)**: 
 
-**Implementation Notes Clarification**: The "Implementation Notes" section contains suggested technical approaches (PyInstaller, update architecture) to guide planning but these are advisory, not prescriptive. The specification itself remains technology-agnostic in requirements and success criteria.
+✅ **Major Blocker Removed**: Feature 015 (SQLite Persistence) has been successfully merged to main branch along with budget tracking, DORA/Flow metrics enhancements, and comprehensive testing. The prerequisite is complete.
 
-**Critical Dependency**: This feature CANNOT proceed to implementation until Feature 015 (SQLite Database Migration) is complete, tested, and verified working without errors. The packaged executable fundamentally depends on database persistence working correctly.
+✅ **Specification Updated**: Added detailed requirements for:
+- Browser auto-launching with terminal fallback
+- Terminal window management for server control
+- Update checks on every launch via GitHub releases
+- Two-executable architecture investigation
+- Cross-platform distribution (Windows executable + source ZIP for Linux/macOS)
+
+⚠️ **Investigation Needed**: Before implementation planning, research is required for:
+1. Best approach for browser launching (auto-open vs terminal vs hybrid)
+2. Whether two separate executables are necessary for Windows self-updating
+3. PyInstaller best practices for update mechanisms
+
+**Feature is READY FOR PLANNING** - All specification requirements met, prerequisite complete, investigation areas clearly defined.
