@@ -23,10 +23,13 @@ from contextlib import contextmanager
 from pathlib import Path
 from typing import Generator
 
+from data.installation_context import get_installation_context
+
 logger = logging.getLogger(__name__)
 
-# Database file location (per spec: profiles/burndown.db)
-DB_PATH = Path("profiles/burndown.db")
+# Database file location - uses InstallationContext to determine correct path
+_installation_context = get_installation_context()
+DB_PATH = _installation_context.database_path
 
 
 @contextmanager
@@ -40,7 +43,7 @@ def get_db_connection(
     WAL mode enables concurrent reads during writes.
 
     Args:
-        db_path: Path to database file (default: profiles/burndown.db)
+        db_path: Path to database file (default: from InstallationContext)
 
     Yields:
         sqlite3.Connection: Database connection with row factory

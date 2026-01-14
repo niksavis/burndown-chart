@@ -9,6 +9,15 @@
 
 ALL errors MUST be fixed immediately: type errors, linting, runtime. Run `get_errors` after every change.
 
+**Pre-Commit Check (MANDATORY)**: BEFORE any `git add` or `git commit`, you MUST:
+
+1. Run `get_errors` on all modified files
+2. Fix ALL errors found (zero tolerance)
+3. Verify fixes with another `get_errors` call
+4. Only proceed with commit after confirming zero errors
+
+**If errors exist, commit is FORBIDDEN.** No exceptions.
+
 ### 2. Layered Architecture (NON-NEGOTIABLE)
 
 `callbacks/` → event handling ONLY, delegate to `data/` layer. Never implement logic in callbacks.

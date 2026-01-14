@@ -30,15 +30,21 @@ from data.profile_manager import (
     list_profiles,
 )
 from data.query_manager import list_queries_for_profile, get_active_query_id
+from data.installation_context import get_installation_context
 from utils.version_checker import check_for_updates
 
 #######################################################################
 # APPLICATION SETUP
 #######################################################################
 
+# Detect installation context (frozen/source, paths)
+installation_context = get_installation_context()
+logger_init = logging.getLogger(__name__)
+logger_init.info(f"Installation context: {installation_context}")
+
 # Initialize logging first (before any other operations)
-setup_logging(log_level="INFO")
-cleanup_old_logs(max_age_days=30)
+setup_logging(log_dir=str(installation_context.logs_path), log_level="INFO")
+cleanup_old_logs(log_dir=str(installation_context.logs_path), max_age_days=30)
 
 # Get logger for this module
 logger = logging.getLogger(__name__)

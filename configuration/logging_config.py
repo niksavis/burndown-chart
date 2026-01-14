@@ -29,6 +29,13 @@ import os
 import glob
 from datetime import datetime, timedelta, timezone
 
+from data.installation_context import get_installation_context
+
+
+# Get default log directory from installation context
+_installation_context = get_installation_context()
+DEFAULT_LOG_DIR = str(_installation_context.logs_path)
+
 
 class SensitiveDataFilter(logging.Filter):
     """
@@ -184,7 +191,7 @@ class JSONFormatter(logging.Formatter):
 
 
 def setup_logging(
-    log_dir: str = "logs",
+    log_dir: str | None = None,
     max_bytes: int = 10 * 1024 * 1024,  # 10MB
     backup_count: int = 5,
     log_level: str = "INFO",
@@ -200,7 +207,7 @@ def setup_logging(
     All handlers use SensitiveDataFilter to redact sensitive data.
 
     Args:
-        log_dir: Directory for log files, created if doesn't exist
+        log_dir: Directory for log files (default: from InstallationContext), created if doesn't exist
         max_bytes: Maximum size per log file before rotation (default 10MB)
         backup_count: Number of rotated backup files to keep (default 5)
         log_level: Minimum log level - 'DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'
@@ -210,11 +217,15 @@ def setup_logging(
         PermissionError: If log files cannot be written
 
     Example:
-        >>> setup_logging(log_dir='logs', log_level='INFO')
+        >>> setup_logging(log_level='INFO')
         >>> import logging
         >>> logger = logging.getLogger(__name__)
         >>> logger.info("Application started")
     """
+    # Use installation context default if not specified
+    if log_dir is None:
+        log_dir = DEFAULT_LOG_DIR
+
     # Create log directory if it doesn't exist
     os.makedirs(log_dir, exist_ok=True)
 
@@ -316,7 +327,7 @@ def shutdown_logging() -> None:
         root_logger.removeHandler(handler)
 
 
-def cleanup_old_logs(log_dir: str = "logs", max_age_days: int = 30) -> int:
+def cleanup_old_logs(log_dir: str | None = None, max_age_days: int = 30) -> int:
     """
     Delete log files older than specified age.
 
@@ -324,7 +335,7 @@ def cleanup_old_logs(log_dir: str = "logs", max_age_days: int = 30) -> int:
     modification time older than max_age_days.
 
     Args:
-        log_dir: Directory containing log files
+        log_dir: Directory containing log files (default: from InstallationContext)
         max_age_days: Delete files older than this many days
 
     Returns:
@@ -335,10 +346,14 @@ def cleanup_old_logs(log_dir: str = "logs", max_age_days: int = 30) -> int:
         - Logs deletion operations to application log
 
     Example:
-        >>> deleted_count = cleanup_old_logs(log_dir='logs', max_age_days=30)
+        >>> deleted_count = cleanup_old_logs(max_age_days=30)
         >>> print(f"Deleted {deleted_count} old log files")
     """
     logger = logging.getLogger(__name__)
+
+    # Use installation context default if not specified
+    if log_dir is None:
+        log_dir = DEFAULT_LOG_DIR
 
     try:
         # Calculate cutoff timestamp

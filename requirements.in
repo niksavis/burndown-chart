@@ -36,6 +36,9 @@ playwright>=1.40.0
 # License auditing for packaging investigation
 pip-licenses>=5.0.0
 
+# Build and packaging tools
+pyinstaller>=6.0.0  # Build standalone executables (build-only dependency)
+
 # Development tools
 pip-tools==7.4.1  # Dependency management (pip-compile)
 
