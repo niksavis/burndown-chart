@@ -32,6 +32,8 @@ Before installing these tools, ensure you have:
      - macOS: `beads_0.47.1_darwin_amd64.tar.gz`
 
 2. **Extract and Setup PATH** (Windows):
+
+   **Option A: System PATH (Traditional Method)**:
    ```powershell
    # Create tools directory and extract
    New-Item -ItemType Directory -Force -Path "$env:USERPROFILE\Tools\bd"
@@ -44,6 +46,25 @@ Before installing these tools, ensure you have:
    
    # Restart PowerShell for PATH to take effect
    ```
+
+   **Option B: VS Code Only (Avoids PATH Length Limit)**:
+   
+   If you've hit Windows PATH length limits, add to VS Code settings instead:
+   
+   1. Extract `bd.exe` to a directory (e.g., `C:\Development\tools\bd`)
+   2. Open VS Code settings: `Ctrl+Shift+P` → "Preferences: Open User Settings (JSON)"
+   3. Add this configuration:
+   
+   ```json
+   {
+     "terminal.integrated.env.windows": {
+       "PATH": "${env:PATH};C:\\Development\\tools\\bd"
+     }
+   }
+   ```
+   
+   Replace `C:\\Development\\tools\\bd` with your actual path (use double backslashes).
+   This adds `bd` to PATH only for VS Code terminals, avoiding system PATH modification.
 
 3. **Verify Installation**:
    ```powershell
@@ -111,6 +132,8 @@ speckit --version
      - macOS: `speckit-v0.0.90-darwin-x86_64.tar.gz`
 
 2. **Extract and Setup PATH**:
+
+   **Option A: System PATH (Traditional Method)**:
    ```powershell
    # Create tools directory and extract
    New-Item -ItemType Directory -Force -Path "$env:USERPROFILE\Tools\speckit"
@@ -123,6 +146,25 @@ speckit --version
    
    # Restart PowerShell for PATH to take effect
    ```
+
+   **Option B: VS Code Only (Avoids PATH Length Limit)**:
+   
+   If you've hit Windows PATH length limits, add to VS Code settings instead:
+   
+   1. Extract `speckit.exe` to a directory (e.g., `C:\Development\tools\speckit`)
+   2. Open VS Code settings: `Ctrl+Shift+P` → "Preferences: Open User Settings (JSON)"
+   3. Add this configuration:
+   
+   ```json
+   {
+     "terminal.integrated.env.windows": {
+       "PATH": "${env:PATH};C:\\Development\\tools\\bd;C:\\Development\\tools\\speckit"
+     }
+   }
+   ```
+   
+   Replace paths with your actual directories (use double backslashes).
+   This adds tools to PATH only for VS Code terminals.
 
 3. **Verify Installation**:
    ```powershell
@@ -236,18 +278,32 @@ GitHub.copilot-chat
 **Error**: `bd : The term 'bd' is not recognized`
 
 **Fix**:
-1. Verify beads.exe exists in your tools folder
+1. Verify bd.exe exists in your tools folder
 2. Check PATH variable:
    ```powershell
-   $env:Path -split ';' | Select-String "beads"
+   $env:Path -split ';' | Select-String "bd"
    ```
-3. If missing, add to PATH:
+3. If missing, choose one approach:
+   
+   **System PATH** (requires restart):
    ```powershell
-   $toolsDir = "$env:USERPROFILE\Tools\beads"
+   $toolsDir = "$env:USERPROFILE\Tools\bd"
    [Environment]::SetEnvironmentVariable("Path", 
        [Environment]::GetEnvironmentVariable("Path", "User") + ";$toolsDir", "User")
    ```
-4. Restart PowerShell (or reload: `$env:Path = [Environment]::GetEnvironmentVariable("Path", "User")`)
+   Then restart PowerShell or reload: `$env:Path = [Environment]::GetEnvironmentVariable("Path", "User")`
+   
+   **VS Code settings.json** (no restart, VS Code terminals only):
+   Add to settings.json (`Ctrl+Shift+P` → "Preferences: Open User Settings (JSON)"):
+   ```json
+   {
+     "terminal.integrated.env.windows": {
+       "PATH": "${env:PATH};C:\\Development\\tools\\bd"
+     }
+   }
+   ```
+   
+   Reload VS Code window after editing settings.json.
 
 ### Spec-Kit Command Not Found
 
