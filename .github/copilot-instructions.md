@@ -212,6 +212,73 @@ Types: `feat`, `fix`, `refactor`, `docs`, `test`, `chore`, `perf`
 
 ---
 
+## Development Workflow (Spec-Kit + Beads)
+
+**For new features/specs, follow this structured workflow:**
+
+### 1. Specification (Spec-Kit)
+
+**In VS Code Chat** (`Ctrl+Alt+I`):
+
+```
+@speckit.specify <feature description>
+```
+
+Creates `specs/<feature>/spec.md` with user stories and acceptance criteria.
+
+### 2. Planning (Spec-Kit)
+
+**In VS Code Chat**:
+
+```
+@speckit.plan
+```
+
+Generates planning documents: research.md, plan.md, data-model.md, contracts/, quickstart.md
+
+### 3. Task Generation (Spec-Kit)
+
+**In VS Code Chat**:
+
+```
+@speckit.tasks
+```
+
+Generates `specs/<feature>/tasks.md` with 100+ actionable tasks organized by user stories.
+
+### 4. Import to Beads
+
+```powershell
+.\.venv\Scripts\activate; python workflow/tasks_to_beads.py specs/<feature>/tasks.md tasks.jsonl
+bd import -i tasks.jsonl --rename-on-import
+bd sync
+Remove-Item tasks.jsonl
+```
+
+### 5. Task Tracking (Beads)
+
+**Daily commands**:
+
+- `bd ready` - Show available tasks
+- `bd show <id>` - View task details
+- `bd update <id> --status in_progress` - Claim task
+- `bd close <id>` - Complete task
+- `bd sync` - Sync with git
+
+**Commit format**:
+
+```
+feat(scope): description
+
+Closes beads-<issue-id>
+```
+
+**Complete workflow**: See `workflow/README.md`  
+**Tool setup**: See `workflow/SETUP.md`  
+**Session completion**: See `AGENTS.md` for mandatory checklist
+
+---
+
 ## Component Guidelines
 
 **When to Extract Component**: Code duplicated 2+ places, function >50 lines, clear single responsibility, reusable across views
