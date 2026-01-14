@@ -1,0 +1,54 @@
+# PyInstaller Build Configuration
+# This file defines settings for building standalone executables
+
+app:
+  name: "BurndownChart"
+  version_source: "configuration/__init__.py" # Read __version__ from this file
+  entry_point: "app.py"
+  icon: "assets/icon.ico"
+  console: true # Show terminal window for status messages
+
+dependencies:
+  # Core application dependencies to include
+  include:
+    - dash
+    - dash_bootstrap_components
+    - plotly
+    - pandas
+    - numpy
+    - scipy
+    - requests
+    - waitress
+    - pyperclip
+    - python_dotenv
+    - networkx
+    - pydantic
+
+  # Development/test dependencies to exclude from bundle
+  exclude:
+    - pytest
+    - pytest_cov
+    - playwright
+    - pip_tools
+    - pip_licenses
+    - pyinstaller
+
+assets:
+  # Directories to bundle with the executable
+  include:
+    - assets
+    - licenses
+
+updater:
+  name: "BurndownChartUpdater"
+  entry_point: "updater/updater.py"
+  icon: "assets/icon.ico"
+  console: true
+
+build:
+  output_dir: "dist"
+  work_dir: "build/temp"
+  clean_build: true
+  one_file: true # Single executable file
+  upx: false # Disable UPX compression (can trigger antivirus)
+  strip: false # Keep debug symbols for troubleshooting

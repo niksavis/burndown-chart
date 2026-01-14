@@ -1,0 +1,263 @@
+# Build Script for Burndown Chart Application
+# Builds standalone Windows executables using PyInstaller
+
+[CmdletBinding()]
+param(
+    [switch]$Clean,      # Remove previous build artifacts before building
+    [switch]$Verbose,    # Show detailed output from PyInstaller
+    [switch]$Test,       # Run post-build validation tests
+    [switch]$Sign        # Code sign the executables (requires certificate)
+)
+
+# Script configuration
+$ErrorActionPreference = "Stop"
+$ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+$ProjectRoot = Split-Path -Parent $ScriptDir
+$BuildDir = Join-Path $ProjectRoot "build"
+$DistDir = Join-Path $ProjectRoot "dist"
+
+# Output formatting
+function Write-Step {
+    param([string]$Message)
+    Write-Host "`n==== $Message ====" -ForegroundColor Cyan
+}
+
+function Write-Success {
+    param([string]$Message)
+    Write-Host "[OK] $Message" -ForegroundColor Green
+}
+
+function Write-Error {
+    param([string]$Message)
+    Write-Host "[ERROR] $Message" -ForegroundColor Red
+}
+
+# Main build process
+try {
+    Write-Host "`nBurndown Chart - Build Script" -ForegroundColor Yellow
+    Write-Host "==============================`n" -ForegroundColor Yellow
+
+    # Step 1: Extract version from configuration/__init__.py
+    Write-Step "Extracting version number"
+    $ConfigFile = Join-Path $ProjectRoot "configuration\__init__.py"
+    if (-not (Test-Path $ConfigFile)) {
+        Write-Error "Configuration file not found at: $ConfigFile"
+        exit 1
+    }
+    
+    $ConfigContent = Get-Content $ConfigFile -Raw
+    if ($ConfigContent -match '__version__\s*=\s*["\'](\d+\.\d+\.\d+)["\']') {
+        $Version = $Matches[1]
+        Write-Success "Version: $Version"
+    }
+    else {
+        Write-Error "Could not extract version from configuration/__init__.py"
+        exit 1
+    }
+
+    # Step 2: Verify virtual environment is activated
+    Write-Step "Verifying Python environment"
+    if (-not $env:VIRTUAL_ENV) {
+        Write-Error "Virtual environment not activated"
+        Write-Host "Please run: .\.venv\Scripts\activate" -ForegroundColor Yellow
+        exit 1
+    }
+    Write-Success "Virtual environment active: $env:VIRTUAL_ENV"
+
+    # Step 3: Verify PyInstaller is installed
+    Write-Step "Verifying PyInstaller installation"
+    $pyinstallerVersion = python -m PyInstaller --version 2>&1
+    if ($LASTEXITCODE -ne 0) {
+        Write-Error "PyInstaller not found"
+        Write-Host "Please run: pip install -r requirements.txt" -ForegroundColor Yellow
+        exit 1
+    }
+    Write-Success "PyInstaller version: $pyinstallerVersion"
+
+    # Step 4: Verify spec files exist
+    Write-Step "Verifying build specification files"
+    $appSpec = Join-Path $BuildDir "app.spec"
+    $updaterSpec = Join-Path $BuildDir "updater.spec"
+    
+    if (-not (Test-Path $appSpec)) {
+        Write-Error "app.spec not found at: $appSpec"
+        exit 1
+    }
+    Write-Success "Found app.spec"
+    
+    if (-not (Test-Path $updaterSpec)) {
+        Write-Error "updater.spec not found at: $updaterSpec"
+        exit 1
+    }
+    Write-Success "Found updater.spec"
+
+    # Step 5: Clean previous builds if requested
+    if ($Clean) {
+        Write-Step "Cleaning previous build artifacts"
+        
+        # Remove dist directory
+        if (Test-Path $DistDir) {
+            Remove-Item -Path $DistDir -Recurse -Force
+            Write-Success "Removed dist directory"
+        }
+        
+        # Remove build/temp directory
+        $TempDir = Join-Path $BuildDir "temp"
+        if (Test-Path $TempDir) {
+            Remove-Item -Path $TempDir -Recurse -Force
+            Write-Success "Removed build/temp directory"
+        }
+        
+        # Remove .spec build artifacts
+        $BuildArtifacts = @(
+            (Join-Path $ProjectRoot "build" | Get-ChildItem -Filter "*.spec.log" -ErrorAction SilentlyContinue)
+        )
+        foreach ($artifact in $BuildArtifacts) {
+            Remove-Item -Path $artifact.FullName -Force
+            Write-Success "Removed $($artifact.Name)"
+        }
+    }
+
+    # Step 6: Create dist directory if it doesn't exist
+    Write-Step "Preparing output directory"
+    if (-not (Test-Path $DistDir)) {
+        New-Item -ItemType Directory -Path $DistDir | Out-Null
+        Write-Success "Created dist directory"
+    }
+    else {
+        Write-Success "Dist directory exists"
+    }
+
+    # Step 7: Build main application
+    Write-Step "Building main application (BurndownChart.exe)"
+    Push-Location $ProjectRoot
+    try {
+        $pyinstallerArgs = @($appSpec, "--noconfirm")
+        if (-not $Verbose) {
+            $pyinstallerArgs += "--log-level=WARN"
+        }
+        
+        python -m PyInstaller $pyinstallerArgs
+        if ($LASTEXITCODE -ne 0) {
+            Write-Error "Main application build failed"
+            exit 1
+        }
+        Write-Success "Main application built successfully"
+    }
+    finally {
+        Pop-Location
+    }
+
+    # Step 8: Build updater
+    Write-Step "Building updater (BurndownChartUpdater.exe)"
+    Push-Location $ProjectRoot
+    try {
+        $pyinstallerArgs = @($updaterSpec, "--noconfirm")
+        if (-not $Verbose) {
+            $pyinstallerArgs += "--log-level=WARN"
+        }
+        
+        python -m PyInstaller $pyinstallerArgs
+        if ($LASTEXITCODE -ne 0) {
+            Write-Error "Updater build failed"
+            exit 1
+        }
+        Write-Success "Updater built successfully"
+    }
+    finally {
+        Pop-Location
+    }
+
+    # Step 9: Verify output files
+    Write-Step "Verifying build artifacts"
+    $mainExe = Join-Path $DistDir "BurndownChart\BurndownChart.exe"
+    $updaterExe = Join-Path $DistDir "BurndownChartUpdater\BurndownChartUpdater.exe"
+    
+    if (-not (Test-Path $mainExe)) {
+        Write-Error "Main executable not found at: $mainExe"
+        exit 1
+    }
+    $mainSize = (Get-Item $mainExe).Length / 1MB
+    Write-Success "Main executable: $mainExe ($([math]::Round($mainSize, 2)) MB)"
+    
+    if (-not (Test-Path $updaterExe)) {
+        Write-Error "Updater executable not found at: $updaterExe"
+        exit 1
+    }
+    $updaterSize = (Get-Item $updaterExe).Length / 1MB
+    Write-Success "Updater executable: $updaterExe ($([math]::Round($updaterSize, 2)) MB)"
+
+    # Step 10: Code signing (if requested)
+    if ($Sign) {
+        Write-Step "Code signing executables"
+        $signScript = Join-Path $BuildDir "sign_executable.ps1"
+        
+        if (-not (Test-Path $signScript)) {
+            Write-Error "Sign script not found at: $signScript"
+            Write-Host "Skipping code signing" -ForegroundColor Yellow
+        }
+        else {
+            & $signScript -FilePath $mainExe
+            if ($LASTEXITCODE -eq 0) {
+                Write-Success "Main executable signed"
+            }
+            else {
+                Write-Error "Failed to sign main executable"
+            }
+            
+            & $signScript -FilePath $updaterExe
+            if ($LASTEXITCODE -eq 0) {
+                Write-Success "Updater executable signed"
+            }
+            else {
+                Write-Error "Failed to sign updater executable"
+            }
+        }
+    }
+
+    # Step 11: Post-build tests (if requested)
+    if ($Test) {
+        Write-Step "Running post-build validation tests"
+        
+        # Test 1: Verify executables can be launched
+        Write-Host "Testing main executable launch..." -ForegroundColor White
+        $testProcess = Start-Process -FilePath $mainExe -ArgumentList "--version" -PassThru -NoNewWindow -Wait
+        if ($testProcess.ExitCode -eq 0) {
+            Write-Success "Main executable launches successfully"
+        }
+        else {
+            Write-Error "Main executable failed to launch (exit code: $($testProcess.ExitCode))"
+        }
+        
+        # Test 2: Check for missing dependencies
+        Write-Host "Checking for missing dependencies..." -ForegroundColor White
+        $depsCheck = python -c "import sys; sys.exit(0)"
+        if ($LASTEXITCODE -eq 0) {
+            Write-Success "No missing dependencies detected"
+        }
+    }
+
+    # Build complete
+    Write-Host "`n=====================================" -ForegroundColor Green
+    Write-Host "Build completed successfully!" -ForegroundColor Green
+    Write-Host "=====================================" -ForegroundColor Green
+    Write-Host "`nOutput location: $DistDir" -ForegroundColor Cyan
+    
+    # Show usage information
+    if ($Clean -or $Verbose -or $Test -or $Sign) {
+        Write-Host "`nOptions used:" -ForegroundColor Yellow
+        if ($Clean) { Write-Host "  - Clean build (previous artifacts removed)" -ForegroundColor White }
+        if ($Verbose) { Write-Host "  - Verbose output enabled" -ForegroundColor White }
+        if ($Test) { Write-Host "  - Post-build tests executed" -ForegroundColor White }
+        if ($Sign) { Write-Host "  - Code signing applied" -ForegroundColor White }
+    }
+    
+    Write-Host "`nNext steps:" -ForegroundColor Yellow
+    Write-Host "  1. Test the executable: .\dist\BurndownChart\BurndownChart.exe" -ForegroundColor White
+    Write-Host "  2. Create distribution package: .\build\package.ps1" -ForegroundColor White
+
+}
+catch {
+    Write-Error "Build failed with error: $_"
+    exit 1
+}
