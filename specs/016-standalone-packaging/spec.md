@@ -136,6 +136,24 @@ Packaged app writes errors and diagnostics to log files in same directory, allow
 
 ---
 
+### User Story 8 - License Transparency and Legal Compliance (Priority: P3)
+
+Users can access complete license information for all bundled open source dependencies through an in-app About dialog, while distribution includes bundled license files for full legal compliance.
+
+**Why this priority**: Professional applications provide transparent attribution to open source contributors. Legal compliance requires distributing license texts. Combining bundled files (legal) with in-app display (UX) is industry standard (VS Code, Electron, Firefox).
+
+**Independent Test**: Open About dialog, verify all dependencies listed with licenses and links, confirm bundled licenses/ directory exists with complete license texts.
+
+**Acceptance Scenarios**:
+
+1. **Given** user clicks About button in footer, **When** About modal opens, **Then** modal displays tabs for App Info and Open Source Licenses
+2. **Given** user views Licenses tab, **When** tab loads, **Then** all dependencies are listed with package name, license type, and link to repository
+3. **Given** user wants complete license text, **When** user navigates to licenses/ directory in executable location, **Then** THIRD_PARTY_LICENSES.txt contains full license texts for all dependencies
+4. **Given** executable is distributed, **When** package is inspected, **Then** licenses/ directory contains LICENSE.txt (app), NOTICE.txt (Apache 2.0 attributions), and THIRD_PARTY_LICENSES.txt
+5. **Given** user searches for specific package license, **When** user types in filter box, **Then** license list filters to matching packages
+
+---
+
 ### Edge Cases
 
 - What happens when executable runs from read-only location (CD-ROM, protected system folder)?
@@ -195,16 +213,18 @@ Packaged app writes errors and diagnostics to log files in same directory, allow
 - **FR-030**: Build process MUST investigate and document best approach for browser launching (auto-open vs terminal-only vs hybrid)
 - **FR-031**: Build process MUST investigate and document whether two-executable architecture is necessary for self-updating on Windows
 - **FR-032**: Build process MUST verify all bundled dependencies have compatible open source licenses
-- **FR-033**: Executable distribution MUST include all required license files from bundled dependencies
+- **FR-033**: Executable distribution MUST include bundled licenses/ directory containing LICENSE.txt (app license), NOTICE.txt (Apache 2.0 attributions), and THIRD_PARTY_LICENSES.txt (all dependency licenses)
 - **FR-034**: Build process MUST document any license requirements that affect distribution or usage terms
-- **FR-035**: Automated release process MUST create GitHub release with proper structure when triggered
-- **FR-036**: GitHub release MUST include descriptive title ("Burndown Chart v{version}"), automated changelog from commits/PRs, and clear installation instructions
-- **FR-037**: GitHub release MUST upload Windows standalone package as ZIP asset containing both executables (app.exe + updater.exe)
-- **FR-038**: Installation instructions MUST distinguish between "Windows Standalone" (download zip, extract, run) and "Run from Source" (clone/download source, install Python, run commands)
-- **FR-039**: Windows ZIP asset MUST include: app.exe, updater.exe, README.txt (quick start guide), licenses/ directory, and document that database creates on first run
-- **FR-040**: Release workflow MUST integrate with GitHub Actions or equivalent CI/CD for automated building and publishing
-- **FR-041**: Release process MUST version executables consistently with git tags and app version metadata
-- **FR-042**: Release notes MUST be automatically generated from conventional commits or pull request titles since last release
+- **FR-035**: App MUST provide in-app "About" dialog accessible from footer displaying app version, credits, and open source licenses
+- **FR-036**: About dialog MUST read license information from bundled licenses/ directory and display in user-friendly format with links to repositories
+- **FR-037**: Automated release process MUST create GitHub release with proper structure when triggered
+- **FR-038**: GitHub release MUST include descriptive title ("Burndown Chart v{version}"), automated changelog from commits/PRs, and clear installation instructions
+- **FR-039**: GitHub release MUST upload Windows standalone package as ZIP asset containing both executables (app.exe + updater.exe)
+- **FR-040**: Installation instructions MUST distinguish between "Windows Standalone" (download zip, extract, run) and "Run from Source" (clone/download source, install Python, run commands)
+- **FR-041**: Windows ZIP asset MUST include: app.exe, updater.exe, README.txt (quick start guide), licenses/ directory with all dependency licenses, and document that database creates on first run
+- **FR-042**: Release workflow MUST integrate with GitHub Actions or equivalent CI/CD for automated building and publishing
+- **FR-043**: Release process MUST version executables consistently with git tags and app version metadata
+- **FR-044**: Release notes MUST be automatically generated from conventional commits or pull request titles since last release
 
 ### Key Entities
 
@@ -229,6 +249,7 @@ Packaged app writes errors and diagnostics to log files in same directory, allow
 - **SC-011**: Browser opens automatically within 3 seconds of launching executable for 95% of Windows users with default browser configured
 - **SC-012**: Update check on launch completes without blocking app UI from appearing (non-blocking check)
 - **SC-013**: Full update download and installation completes within 3 minutes for typical 100MB executable on standard broadband
+- **SC-014**: Users can access complete license information for all bundled dependencies through in-app About dialog within 2 clicks
 
 ## Scope & Boundaries *(optional)*
 
@@ -251,6 +272,7 @@ Packaged app writes errors and diagnostics to log files in same directory, allow
 - Splash screen during initialization
 - Portable installation mode
 - Source ZIP distribution option for Linux/macOS users
+- In-app About dialog displaying licenses, version, and credits
 
 ### Out of Scope
 

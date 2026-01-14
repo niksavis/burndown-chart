@@ -39,17 +39,17 @@
 
 ## Investigation Requirements
 
-- [ ] Browser auto-launch best practices researched and documented
-- [ ] Two-executable vs single-executable approach evaluated with pros/cons
-- [ ] PyInstaller capabilities for self-updating verified
-- [ ] Windows file locking constraints documented
-- [ ] **License compatibility of all bundled dependencies verified**
-- [ ] **Required license files and attributions identified**
-- [ ] **Impact on app license documented (if any)**
-- [ ] **GitHub release best practices researched from recognized open-source projects**
-- [ ] **Release asset naming, structure, and installation instructions format determined**
-- [ ] **Automated release workflow designed (GitHub Actions or equivalent)**
-- [ ] Recommended architecture selected based on research
+- [x] Browser auto-launch best practices researched and documented (hybrid approach recommended)
+- [x] Two-executable vs single-executable approach evaluated with pros/cons (two-executable confirmed necessary)
+- [x] PyInstaller capabilities for self-updating verified (supports exclusions, two spec files)
+- [x] Windows file locking constraints documented (confirms need for two executables)
+- [x] **License compatibility of all bundled dependencies verified** (all permissive, Apache 2.0 requires NOTICE file)
+- [x] **Required license files and attributions identified** (10 Apache 2.0 packages documented)
+- [x] **Impact on app license documented (if any)** (No changes needed, attribution files required)
+- [x] **GitHub release best practices researched from recognized open-source projects** (VS Code, Electron, PyInstaller patterns documented)
+- [x] **Release asset naming, structure, and installation instructions format determined** (pattern: {project}-{platform}-v{version}.zip)
+- [x] **Automated release workflow designed (GitHub Actions or equivalent)** (workflow template created)
+- [x] Recommended architecture selected based on research (two-executable with hybrid browser launch)
 
 ## Notes
 
@@ -64,9 +64,11 @@
 - Two-executable architecture investigation
 - Cross-platform distribution (Windows executable + source ZIP for Linux/macOS)
 
-⚠️ **Investigation Needed**: Before implementation planning, research is required for:
-1. Best approach for browser launching (auto-open vs terminal vs hybrid)
-2. Whether two separate executables are necessary for Windows self-updating
-3. PyInstaller best practices for update mechanisms
+✅ **Investigation Phase Complete** (2026-01-14): All research completed and documented in `specs/016-standalone-packaging/research/findings.md`:
+- **License Audit**: All dependencies use permissive licenses (MIT/BSD/Apache). 10 Apache 2.0 packages require attribution NOTICE file. No GPL contamination.
+- **PyInstaller**: Confirmed as best tool. Two-executable architecture necessary for Windows self-updating due to file locking. Test dependencies can be excluded (40-50MB savings).
+- **Browser Launching**: Hybrid approach recommended (auto-launch with terminal fallback).
+- **GitHub Releases**: Best practices documented from VS Code, Electron, PyInstaller. Asset naming pattern established. GitHub Actions workflow designed.
+- **Update Mechanism**: Two-executable flow designed (main app + updater) with GitHub Releases API integration.
 
-**Feature is READY FOR PLANNING** - All specification requirements met, prerequisite complete, investigation areas clearly defined.
+**Feature is READY FOR PLANNING** (`/speckit.plan`) - All specification requirements met, prerequisite complete, all investigations complete with documented findings.
