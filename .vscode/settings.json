@@ -14,9 +14,17 @@
   "python.testing.unittestEnabled": false,
   "python.testing.pytestEnabled": true,
   "files.associations": {
-    "**/data/report_template.html": "jinja-html"
+    "**/report_assets/report_template.html": "jinja-html"
   },
   "emmet.includeLanguages": {
     "jinja-html": "html"
-  }
+  },
+  "sqltools.connections": [
+    {
+      "previewLimit": 50,
+      "driver": "SQLite",
+      "name": "Burndown Database",
+      "database": "profiles/burndown.db"
+    }
+  ]
 }

@@ -4,16 +4,13 @@ Tests the complete workflow of configuring, saving, and using Jira field mapping
 Ensures proper isolation using tempfile and mocking.
 """
 
-import json
-import os
 import tempfile
 import shutil
 from pathlib import Path
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 import pytest
 
 from data.field_mapper import (
-    fetch_available_jira_fields,
     save_field_mappings,
     load_field_mappings,
 )
@@ -26,17 +23,34 @@ class TestFieldMappingWorkflow:
     @pytest.fixture(autouse=True)
     def isolate_profiles(self):
         """Create isolated profile environment for field mapping tests."""
+        from data.persistence.factory import reset_backend
+        from data.migration.schema import create_schema
+        from data.database import get_db_connection
+        from data.persistence.sqlite_backend import SQLiteBackend
+
         temp_dir = tempfile.mkdtemp(prefix="field_mapping_test_")
         temp_profiles_dir = Path(temp_dir) / "profiles"
         temp_profiles_dir.mkdir(parents=True, exist_ok=True)
-        temp_profiles_file = temp_profiles_dir / "profiles.json"
+        temp_db_path = str(temp_profiles_dir / "test_burndown.db")
 
-        # Patch all modules that import PROFILES_DIR/PROFILES_FILE
+        # Initialize temp database with schema
+        with get_db_connection(Path(temp_db_path)) as conn:
+            create_schema(conn)
+            conn.commit()
+
+        # Create test backend instance
+        test_backend = SQLiteBackend(temp_db_path)
+
+        # Reset and patch get_backend to always return our test backend
+        reset_backend()
+
+        def mock_get_backend(*args, **kwargs):
+            return test_backend
+
+        # Patch both the factory and all module imports
         patches = [
+            patch("data.persistence.factory.get_backend", side_effect=mock_get_backend),
             patch("data.profile_manager.PROFILES_DIR", temp_profiles_dir),
-            patch("data.profile_manager.PROFILES_FILE", temp_profiles_file),
-            patch("data.query_manager.PROFILES_DIR", temp_profiles_dir),
-            patch("data.query_manager.PROFILES_FILE", temp_profiles_file),
         ]
 
         for p in patches:
@@ -51,6 +65,7 @@ class TestFieldMappingWorkflow:
         for p in patches:
             p.stop()
 
+        reset_backend()
         shutil.rmtree(temp_dir, ignore_errors=True)
 
     @pytest.fixture

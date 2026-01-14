@@ -9,12 +9,14 @@ a fresh layout with the latest data from disk on each page load.
 # IMPORTS
 #######################################################################
 # Standard library imports
+import logging
 from datetime import datetime
 
 # Third-party library imports
 import dash_bootstrap_components as dbc
 from dash import dcc, html
 
+# Application imports
 # Application imports
 from configuration import __version__
 from data import (
@@ -33,7 +35,6 @@ from ui.tabs import create_tabs
 from ui.jira_config_modal import create_jira_config_modal
 from ui.query_creation_modal import create_query_creation_modal
 from ui.field_mapping_modal import create_field_mapping_modal
-from ui.update_modal import create_update_modal
 
 # Integrated query management modals (Feature 011 - replaces legacy settings_modal query functions)
 from ui.save_query_modal import create_save_query_modal
@@ -41,6 +42,9 @@ from ui.unsaved_changes_modal import create_unsaved_changes_modal
 from ui.delete_query_modal import create_delete_query_modal
 from ui.improved_settings_panel import create_improved_settings_panel
 from ui.import_export_panel import create_import_export_flyout
+
+# Initialize logger
+logger = logging.getLogger(__name__)
 
 # Feature flag for new accordion-based settings panel (Feature 011)
 USE_ACCORDION_SETTINGS = False  # Set to True to use accordion UI, False for tabbed UI
@@ -59,6 +63,12 @@ def serve_layout():
     """
     # Load initial data using new separated functions
     app_settings = load_app_settings()
+
+    # DEBUG: Log the show_points value being loaded
+    logger.info(
+        f"[LAYOUT DEBUG] show_points loaded from settings: {app_settings.get('show_points', 'NOT_FOUND')}"
+    )
+
     statistics, is_sample_data = load_statistics()
 
     # Get project scope and use actual remaining values (no window calculations)
@@ -127,8 +137,8 @@ def create_app_layout(settings, statistics, is_sample_data):
     # Modern app container with updated styling matching DORA/Flow design
     return dbc.Container(
         [
-            # Toast notification container for profile switching feedback
-            # Note: Version update toast is shown via callback after page loads
+            # Toast notification container for all app notifications
+            # (profile switching, version updates, migration, etc.)
             html.Div(
                 id="app-notifications",
                 style={
@@ -143,12 +153,12 @@ def create_app_layout(settings, statistics, is_sample_data):
             dcc.Store(id="version-check-info", data=version_info),
             # Track if update toast has been shown this session (prevents showing on every page refresh)
             dcc.Store(id="update-toast-shown", storage_type="session", data=False),
+            # Migration status tracking (prevents re-running migration)
+            dcc.Store(id="migration-status", storage_type="session", data=None),
             # JIRA Configuration Modal (Feature 003-jira-config-separation)
             create_jira_config_modal(),
             # Field Mapping Modal (Feature 007-dora-flow-metrics Phase 4)
             create_field_mapping_modal(),
-            # Application Update Modal
-            create_update_modal(),
             # Integrated Query Management Modals (Feature 011)
             create_save_query_modal(),
             create_unsaved_changes_modal(),

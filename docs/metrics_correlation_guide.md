@@ -1,5 +1,8 @@
 # DORA & Flow Metrics Correlation Guide
 
+**Audience**: Users validating metric configurations and understanding metric relationships
+**Part of**: [Metrics Documentation Index](./metrics_index.md)
+
 This guide explains the relationships between DORA and Flow metrics, helping you verify that your field mappings are correct and your metrics are reliable.
 
 ---

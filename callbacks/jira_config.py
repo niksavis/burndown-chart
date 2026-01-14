@@ -424,7 +424,7 @@ def update_jira_config_status(modal_is_open, save_clicks, profile_id):
 
         if is_configured:
             base_url = jira_config.get("base_url", "")
-            api_version = jira_config.get("api_version", "v3")
+            api_version = jira_config.get("api_version", "v2")
             token = jira_config.get("token", "")
 
             # Test the connection to verify API version actually works

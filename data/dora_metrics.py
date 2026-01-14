@@ -77,7 +77,11 @@ def _is_issue_completed(issue: Dict[str, Any], flow_end_statuses: List[str]) -> 
     Returns:
         True if issue status is in flow_end_statuses
     """
-    status = issue.get("fields", {}).get("status", {}).get("name", "")
+    # Handle both nested (JIRA API) and flat (database) formats
+    if "fields" in issue and isinstance(issue.get("fields"), dict):
+        status = issue["fields"].get("status", {}).get("name", "")
+    else:
+        status = issue.get("status", "")
     return status in flow_end_statuses
 
 
@@ -134,7 +138,23 @@ def _extract_datetime_from_field_mapping(
 
     # Handle fixVersions special case
     if field_mapping == "fixVersions":
-        fix_versions = issue.get("fields", {}).get("fixVersions", [])
+        # Handle both nested (JIRA API) and flat (database) formats
+        if "fields" in issue and isinstance(issue.get("fields"), dict):
+            fix_versions = issue["fields"].get("fixVersions", [])
+        else:
+            # In flat format, fixVersions is JSON string - need to parse
+            import json
+
+            fix_versions_raw = issue.get("fixversions", "[]")
+            try:
+                fix_versions = (
+                    json.loads(fix_versions_raw)
+                    if isinstance(fix_versions_raw, str)
+                    else fix_versions_raw
+                )
+            except (json.JSONDecodeError, TypeError):
+                fix_versions = []
+
         for fv in fix_versions:
             release_date = fv.get("releaseDate")
             if release_date:
@@ -142,7 +162,12 @@ def _extract_datetime_from_field_mapping(
         return None
 
     # Handle simple and nested field paths
-    fields = issue.get("fields", {})
+    # Support both nested (JIRA API) and flat (database) formats
+    if "fields" in issue and isinstance(issue.get("fields"), dict):
+        fields = issue["fields"]
+    else:
+        fields = issue  # Flat format: fields are at root level
+
     if "." in field_mapping:
         # Nested field like "status.name"
         parts = field_mapping.split(".")
@@ -209,7 +234,21 @@ def check_field_value_match(
     if not filter_values:
         return True  # No filter means all pass
 
-    field_value = issue.get("fields", {}).get(field_id)
+    # Handle both nested (JIRA API) and flat (database) formats
+    if "fields" in issue and isinstance(issue.get("fields"), dict):
+        # Nested format: check fields first, then custom_fields
+        field_value = issue["fields"].get(field_id)
+        if field_value is None and "customfield" in field_id:
+            # Check in nested custom_fields
+            field_value = issue["fields"].get("customfields", {}).get(field_id)
+    else:
+        # Flat format: check root level first, then custom_fields dict
+        field_value = issue.get(field_id)
+        if field_value is None and "customfield" in field_id:
+            # Check in flat custom_fields dict
+            custom_fields = issue.get("custom_fields", {})
+            if isinstance(custom_fields, dict):
+                field_value = custom_fields.get(field_id)
 
     if field_value is None:
         return False
@@ -479,10 +518,11 @@ def calculate_deployment_frequency(
         devops_task_types = project_classification.get("devops_task_types", [])
 
         # Log configuration for debugging
-        logger.debug(
-            f"[DORA] Deployment Frequency config: "
+        logger.info(
+            f"[DORA DF] Starting calculation: "
             f"devops_projects={devops_projects}, "
             f"devops_task_types={devops_task_types}, "
+            f"flow_end_statuses={flow_end_statuses}, "
             f"analyzing {len(issues)} issues"
         )
 
@@ -490,30 +530,74 @@ def calculate_deployment_frequency(
         deployment_count = 0
         all_releases = set()  # Track distinct fixVersion names
 
+        # Diagnostic counters
+        total_checked = 0
+        filtered_by_project = 0
+        filtered_by_type = 0
+        filtered_by_completion = 0
+        filtered_by_no_fixversion = 0
+
         for issue in issues:
-            fields = issue.get("fields", {})
+            total_checked += 1
+            issue_key = issue.get("key", "UNKNOWN")
+
+            # Handle both nested (JIRA API) and flat (database) formats
+            if "fields" in issue and isinstance(issue.get("fields"), dict):
+                fields = issue["fields"]
+                project_key = fields.get("project", {}).get("key", "")
+                issue_type = fields.get("issuetype", {}).get("name", "")
+                status = fields.get("status", {}).get("name", "")
+                fix_versions = fields.get("fixVersions", [])
+            else:
+                # Flat format: fields at root level
+                fields = issue
+                project_key = issue.get("project", "")
+                issue_type = issue.get(
+                    "issue_type", ""
+                )  # Note: database uses issue_type not issuetype
+                status = issue.get("status", "")
+                # fixVersions is JSON string in flat format (mapped from fix_versions by sqlite_backend)
+                import json
+
+                fix_versions_raw = issue.get("fixVersions", "[]")
+                try:
+                    fix_versions = (
+                        json.loads(fix_versions_raw)
+                        if isinstance(fix_versions_raw, str)
+                        else fix_versions_raw
+                    )
+                except (json.JSONDecodeError, TypeError):
+                    fix_versions = []
+
+            # Log first 3 issues for debugging
+            if total_checked <= 3:
+                logger.info(
+                    f"[DORA DF] Sample issue {issue_key}: "
+                    f"project={project_key}, type={issue_type}, status={status}, "
+                    f"fixVersions={len(fix_versions)} versions"
+                )
 
             # CRITICAL: Filter for operational tasks from DevOps projects
             # Only count issues that are:
             # 1. From a DevOps project (if devops_projects configured)
             # 2. Of type "Operational Task" or other DevOps task types (if devops_task_types configured)
-            project_key = fields.get("project", {}).get("key", "")
-            issue_type = fields.get("issuetype", {}).get("name", "")
 
             # Skip if DevOps projects configured and issue is not from DevOps project
             if devops_projects and project_key not in devops_projects:
+                filtered_by_project += 1
                 continue
 
             # Skip if DevOps task types configured and issue is not a DevOps task
             if devops_task_types and issue_type not in devops_task_types:
+                filtered_by_type += 1
                 continue
 
             # Check if issue is completed
             if not _is_issue_completed(issue, flow_end_statuses):
+                filtered_by_completion += 1
                 continue
 
             # Check if issue has fixVersion with releaseDate
-            fix_versions = fields.get("fixVersions", [])
             has_release_date = False
 
             for fv in fix_versions:
@@ -525,12 +609,24 @@ def calculate_deployment_frequency(
 
             if has_release_date:
                 deployment_count += 1
-                logger.debug(
-                    f"[DORA] Issue {issue.get('key')} counted as deployment: "
-                    f"project={project_key}, "
-                    f"type={issue_type}, "
+                logger.info(
+                    f"[DORA DF] ✓ Issue {issue_key} counted as deployment: "
+                    f"project={project_key}, type={issue_type}, "
                     f"fixVersions={[v.get('name') for v in fix_versions if v.get('releaseDate')]}"
                 )
+            else:
+                filtered_by_no_fixversion += 1
+
+        # Log filtering summary
+        logger.info(
+            f"[DORA DF] Filtering results: "
+            f"total={total_checked}, "
+            f"filtered_by_project={filtered_by_project}, "
+            f"filtered_by_type={filtered_by_type}, "
+            f"filtered_by_completion={filtered_by_completion}, "
+            f"filtered_by_no_fixversion={filtered_by_no_fixversion}, "
+            f"deployment_count={deployment_count}"
+        )
 
         if deployment_count == 0:
             return {
@@ -929,14 +1025,31 @@ def calculate_change_failure_rate(
         failed_releases = set()  # Track fixVersions that had failures
 
         for issue in deployment_issues:
-            fields = issue.get("fields", {})
+            # Handle both nested (JIRA API) and flat (database) formats
+            if "fields" in issue and isinstance(issue.get("fields"), dict):
+                fields = issue["fields"]
+                fix_versions = fields.get("fixVersions", [])
+            else:
+                # Flat format: fields at root level
+                fields = issue
+                # fixVersions is JSON string in flat format (mapped from fix_versions by sqlite_backend)
+                import json
+
+                fix_versions_raw = issue.get("fixVersions", "[]")
+                try:
+                    fix_versions = (
+                        json.loads(fix_versions_raw)
+                        if isinstance(fix_versions_raw, str)
+                        else fix_versions_raw
+                    )
+                except (json.JSONDecodeError, TypeError):
+                    fix_versions = []
 
             # Check if issue is completed
             if not _is_issue_completed(issue, flow_end_statuses):
                 continue
 
             # Check if issue has fixVersion with releaseDate (deployment date)
-            fix_versions = fields.get("fixVersions", [])
             has_valid_release = False
             issue_releases = []
 
@@ -960,8 +1073,17 @@ def calculate_change_failure_rate(
             total_deployments += 1
 
             # Check change_failure field from profile mapping
-            # Handle both simple values and object values (e.g., {"value": "Yes"})
+            # First try to get from fields (root level or fields dict)
             change_failure_value = fields.get(change_failure_field)
+
+            # If not found and it's a custom field, check custom_fields dict
+            if change_failure_value is None and "customfield" in change_failure_field:
+                custom_fields = fields.get("custom_fields") or issue.get(
+                    "custom_fields", {}
+                )
+                if isinstance(custom_fields, dict):
+                    change_failure_value = custom_fields.get(change_failure_field)
+
             is_failure = False
 
             if change_failure_value is not None:

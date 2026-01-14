@@ -17,7 +17,7 @@ def filter_bug_issues(
     """Filter issues to include only bugs based on type mappings.
 
     Args:
-        issues: List of JIRA issues
+        issues: List of JIRA issues (supports both JIRA API format and normalized database format)
         bug_type_mappings: Dict mapping JIRA type names to "bug" category
         date_from: Optional start date filter (filters by created_date)
         date_to: Optional end date filter (filters by created_date)
@@ -30,8 +30,15 @@ def filter_bug_issues(
     filtered_bugs = []
 
     for issue in issues:
-        # Extract issue type name
-        issue_type = issue.get("fields", {}).get("issuetype", {}).get("name", "")
+        # Extract issue type name - handle both JIRA API format and normalized database format
+        # JIRA API format: {"fields": {"issuetype": {"name": "Bug"}}}
+        # Database format: {"issue_type": "Bug"}
+        if "fields" in issue:
+            # JIRA API format (nested)
+            issue_type = issue.get("fields", {}).get("issuetype", {}).get("name", "")
+        else:
+            # Database format (flat)
+            issue_type = issue.get("issue_type", "")
 
         # Check if issue type is mapped to "bug"
         if issue_type not in bug_type_mappings:
@@ -39,7 +46,14 @@ def filter_bug_issues(
 
         # Apply date range filter if specified
         if date_from or date_to:
-            created_str = issue.get("fields", {}).get("created", "")
+            # Handle both JIRA API format and database format
+            if "fields" in issue:
+                # JIRA API format
+                created_str = issue.get("fields", {}).get("created", "")
+            else:
+                # Database format
+                created_str = issue.get("created", "")
+
             if created_str:
                 try:
                     # Parse JIRA datetime format
@@ -70,10 +84,10 @@ def calculate_bug_statistics(
     """Calculate weekly bug statistics from bug issues.
 
     Args:
-        bug_issues: List of filtered bug issues
+        bug_issues: List of filtered bug issues from repository layer
         date_from: Start date of analysis period
         date_to: End date of analysis period
-        story_points_field: JIRA custom field for story points
+        story_points_field: Deprecated - kept for backward compatibility, uses normalized 'points' field
 
     Returns:
         List of weekly bug statistics dictionaries
@@ -126,10 +140,8 @@ def calculate_bug_statistics(
 
     # Aggregate bugs into weekly bins
     for bug in bug_issues:
-        fields = bug.get("fields", {})
-
-        # Parse created date
-        created_str = fields.get("created", "")
+        # Parse created date from normalized format
+        created_str = bug.get("created", "")
         if created_str:
             try:
                 created_date = datetime.strptime(created_str[:19], "%Y-%m-%dT%H:%M:%S")
@@ -139,16 +151,16 @@ def calculate_bug_statistics(
                 if created_week in weekly_stats:
                     weekly_stats[created_week]["bugs_created"] += 1
 
-                    # Add story points
-                    points = fields.get(story_points_field) or 0
+                    # Add story points from normalized format
+                    points = bug.get("points") or 0
                     weekly_stats[created_week]["bugs_points_created"] += points
 
             except ValueError:
                 # Skip bugs with invalid date format
                 continue
 
-        # Parse resolved date
-        resolved_str = fields.get("resolutiondate")
+        # Parse resolved date from normalized format
+        resolved_str = bug.get("resolved")
         if resolved_str:
             try:
                 resolved_date = datetime.strptime(
@@ -160,8 +172,8 @@ def calculate_bug_statistics(
                 if resolved_week in weekly_stats:
                     weekly_stats[resolved_week]["bugs_resolved"] += 1
 
-                    # Add story points
-                    points = fields.get(story_points_field) or 0
+                    # Add story points from normalized format
+                    points = bug.get("points") or 0
                     weekly_stats[resolved_week]["bugs_points_resolved"] += points
 
             except ValueError:
@@ -193,7 +205,7 @@ def calculate_bug_metrics_summary(
     weekly_stats: List[Dict],
     date_from=None,
     date_to=None,
-    all_project_issues: List[Dict] = None,
+    all_project_issues: Optional[List[Dict]] = None,
 ) -> Dict:
     """Calculate overall bug metrics summary.
 
@@ -227,15 +239,44 @@ def calculate_bug_metrics_summary(
     # This gives the true current state of open/closed bugs
     open_bugs = 0
     open_bug_points = 0
+    open_bug_ages = []  # Track ages of open bugs
 
     for issue in all_bug_issues:
-        fields = issue.get("fields", {})
-        resolution_date = fields.get("resolutiondate")
-        points = fields.get("customfield_10016") or 0
+        # Handle both JIRA API format and database format
+        if "fields" in issue:
+            # JIRA API format: {"fields": {"resolutiondate": "...", "customfield_10016": ...}}
+            fields = issue.get("fields", {})
+            resolution_date = fields.get("resolutiondate")
+            points = fields.get("customfield_10016") or 0
+            created_str = fields.get("created", "")
+        else:
+            # Database format: {"resolved": "...", "points": ...}
+            resolution_date = issue.get("resolved")
+            points = issue.get("points") or 0
+            created_str = issue.get("created", "")
 
         if not resolution_date:
             open_bugs += 1
             open_bug_points += points
+
+            # Calculate age of open bug
+            if created_str:
+                try:
+                    created = datetime.strptime(created_str[:19], "%Y-%m-%dT%H:%M:%S")
+                    age_days = (datetime.now() - created).days
+                    open_bug_ages.append(age_days)
+                except ValueError:
+                    pass
+
+    # Calculate average age of open bugs
+    avg_age_days = sum(open_bug_ages) / len(open_bug_ages) if open_bug_ages else 0
+
+    import logging
+
+    logger = logging.getLogger(__name__)
+    logger.info(
+        f"[BUG CALC] Open bugs: count={open_bugs}, ages={len(open_bug_ages)}, avg_age={avg_age_days:.1f}d"
+    )
 
     # Count historical metrics from timeline-filtered bugs
     # This gives resolution rate and trends for the selected period
@@ -244,10 +285,27 @@ def calculate_bug_metrics_summary(
     total_bug_points = 0
     resolution_times = []
 
+    import logging
+
+    logger = logging.getLogger(__name__)
+    logger.info(
+        f"[BUG CALC] Calculating resolution from timeline_filtered_bugs: "
+        f"count={total_bugs}, all_bugs={len(all_bug_issues)}"
+    )
+
     for issue in timeline_filtered_bugs:
-        fields = issue.get("fields", {})
-        resolution_date = fields.get("resolutiondate")
-        points = fields.get("customfield_10016") or 0
+        # Handle both JIRA API format and database format
+        if "fields" in issue:
+            # JIRA API format
+            fields = issue.get("fields", {})
+            resolution_date = fields.get("resolutiondate")
+            points = fields.get("customfield_10016") or 0
+            created_str = fields.get("created", "")
+        else:
+            # Database format
+            resolution_date = issue.get("resolved")
+            points = issue.get("points") or 0
+            created_str = issue.get("created", "")
 
         total_bug_points += points
 
@@ -256,7 +314,6 @@ def calculate_bug_metrics_summary(
             closed_bugs += 1
 
             # Calculate resolution time
-            created_str = fields.get("created", "")
             if created_str:
                 try:
                     created = datetime.strptime(created_str[:19], "%Y-%m-%dT%H:%M:%S")
@@ -270,6 +327,19 @@ def calculate_bug_metrics_summary(
 
     # Calculate resolution rate from timeline-filtered bugs
     resolution_rate = closed_bugs / total_bugs if total_bugs > 0 else 0.0
+
+    logger.info(
+        f"[BUG CALC] Resolution rate: {closed_bugs}/{total_bugs} = {resolution_rate:.4f} ({resolution_rate * 100:.2f}%)"
+    )
+
+    # DEBUG: Log resolution rate calculation
+    import logging
+
+    logger = logging.getLogger(__name__)
+    logger.info(
+        f"[BUG CALC] Resolution rate: closed={closed_bugs}, total={total_bugs}, "
+        f"rate={resolution_rate * 100:.2f}%, all_bugs={len(all_bug_issues)}, timeline_bugs={len(timeline_filtered_bugs)}"
+    )
 
     # Calculate average resolution time
     avg_resolution_time_days = (
@@ -303,8 +373,13 @@ def calculate_bug_metrics_summary(
         # Calculate total project points from ALL issues (bugs and non-bugs)
         total_project_points = 0
         for issue in all_project_issues:
-            fields = issue.get("fields", {})
-            points = fields.get("customfield_10016") or 0
+            # Handle both JIRA API format and database format
+            if "fields" in issue:
+                # JIRA API format
+                points = issue.get("fields", {}).get("customfield_10016") or 0
+            else:
+                # Database format
+                points = issue.get("points") or 0
             total_project_points += points
 
         # Calculate capacity: open bug points / total points
@@ -317,6 +392,7 @@ def calculate_bug_metrics_summary(
         "closed_bugs": closed_bugs,
         "resolution_rate": resolution_rate,
         "avg_resolution_time_days": avg_resolution_time_days,
+        "avg_age_days": avg_age_days,  # Average age of OPEN bugs (for Bug Health score)
         "bugs_created_last_4_weeks": bugs_created_last_4_weeks,
         "bugs_resolved_last_4_weeks": bugs_resolved_last_4_weeks,
         "trend_direction": trend_direction,

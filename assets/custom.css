@@ -211,6 +211,18 @@
   overflow: hidden !important;
 }
 
+/* CRITICAL FIX: Apply same overflow rules to settings and data panels */
+/* Prevents both panels' content from being visible during transition */
+#settings-collapse.collapse.show,
+#import-export-collapse.collapse.show {
+  overflow: visible !important;
+}
+
+#settings-collapse.collapsing,
+#import-export-collapse.collapsing {
+  overflow: hidden !important;
+}
+
 /* Ensure the tabbed settings panel inside allows overflow when expanded */
 #parameter-collapse.show .tabbed-settings-panel,
 #parameter-collapse.show .settings-tab-content,
@@ -264,8 +276,8 @@
   .parameter-bar-collapsed .btn-sm {
     margin-right: 0.1rem !important;
     padding: 0 5px !important;
-    min-width: 32px !important;
-    height: 32px !important;
+    min-width: 31px !important;
+    height: 31px !important;
     font-size: 0.85rem !important;
   }
 
@@ -501,6 +513,51 @@
   background-color: transparent !important; /* Inherit panel background */
 }
 
+/* ========================================
+   Standardized Form Controls (31px height)
+   Applied to all flyout panels for pixel-perfect consistency
+   ======================================== */
+
+/* Parameters Panel - All form controls */
+.parameter-panel-expanded .form-control,
+.parameter-panel-expanded .form-select,
+.parameter-panel-expanded .input-group-text,
+.parameter-panel-expanded .btn-sm {
+  height: 31px !important;
+  font-size: 0.875rem !important;
+  padding: 0.25rem 0.5rem !important;
+  line-height: 1.5 !important;
+}
+
+.parameter-panel-expanded .input-group-sm > .form-control,
+.parameter-panel-expanded .input-group-sm > .form-select,
+.parameter-panel-expanded .input-group-sm > .input-group-text,
+.parameter-panel-expanded .input-group-sm > .btn {
+  height: 31px !important;
+  font-size: 0.875rem !important;
+  padding: 0.25rem 0.5rem !important;
+}
+
+/* Import/Export Panel - All form controls */
+.import-export-panel-expanded .form-control,
+.import-export-panel-expanded .form-select,
+.import-export-panel-expanded .input-group-text,
+.import-export-panel-expanded .btn-sm {
+  height: 31px !important;
+  font-size: 0.875rem !important;
+  padding: 0.25rem 0.5rem !important;
+  line-height: 1.5 !important;
+}
+
+.import-export-panel-expanded .input-group-sm > .form-control,
+.import-export-panel-expanded .input-group-sm > .form-select,
+.import-export-panel-expanded .input-group-sm > .input-group-text,
+.import-export-panel-expanded .input-group-sm > .btn {
+  height: 31px !important;
+  font-size: 0.875rem !important;
+  padding: 0.25rem 0.5rem !important;
+}
+
 /* Settings panel column spacing */
 .settings-panel-expanded .col-md-8 {
   padding: var(--spacing-md);
@@ -531,8 +588,8 @@
 /* Icon buttons in settings panel (compact design) */
 .settings-panel-expanded .btn-sm {
   padding: 0.25rem 0.5rem;
-  min-width: 32px;
-  height: 32px;
+  min-width: 31px;
+  height: 31px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -540,6 +597,63 @@
 
 .settings-panel-expanded .btn-sm i {
   margin: 0;
+}
+
+/* Standardize all form controls in settings panel to 31px */
+.settings-panel-expanded .form-control,
+.settings-panel-expanded .form-select,
+.settings-panel-expanded .input-group-text {
+  height: 31px !important;
+  font-size: 0.875rem !important;
+  padding: 0.25rem 0.5rem !important;
+  line-height: 1.5 !important;
+}
+
+.settings-panel-expanded .input-group-sm > .form-control,
+.settings-panel-expanded .input-group-sm > .form-select,
+.settings-panel-expanded .input-group-sm > .input-group-text,
+.settings-panel-expanded .input-group-sm > .btn {
+  height: 31px !important;
+  font-size: 0.875rem !important;
+  padding: 0.25rem 0.5rem !important;
+}
+
+/* Ensure Budget tab inputs are 31px (override any Bootstrap defaults) */
+#budget-time-allocated-input,
+#budget-currency-symbol-input,
+#budget-team-cost-input,
+#budget-total-manual-input,
+#budget-revision-reason-input {
+  height: 31px !important;
+  font-size: 0.875rem !important;
+  padding: 0.25rem 0.5rem !important;
+  line-height: 1.5 !important;
+}
+
+/* Standardize radio buttons and checkboxes in all panels */
+.settings-panel-expanded .form-check-label,
+.settings-panel-expanded .form-check-input,
+.parameter-panel-expanded .form-check-label,
+.parameter-panel-expanded .form-check-input,
+.import-export-panel-expanded .form-check-label,
+.import-export-panel-expanded .form-check-input {
+  font-size: 0.875rem !important;
+}
+
+/* Import/Export panel specific controls */
+#export-mode-radio .form-check-label,
+#include-token-checkbox,
+#include-budget-checkbox {
+  font-size: 0.875rem !important;
+}
+
+/* Remove bottom margin from checkboxes in Import/Export panel */
+.import-export-panel-expanded .form-check {
+  margin-bottom: 0 !important;
+}
+
+.import-export-panel-expanded .form-check-label {
+  margin-bottom: 0 !important;
 }
 
 /* Compact headers with inline actions */
@@ -798,7 +912,7 @@ td.cell--editable:not(.cell-selected) .dash-cell-value::after {
   justify-content: center !important;
   margin: 15px auto !important;
   gap: 5px !important;
-  height: 36px !important; /* Default height */
+  height: 31px !important; /* Match form controls */
 }
 
 /* Style navigation buttons consistently */
@@ -809,8 +923,8 @@ td.cell--editable:not(.cell-selected) .dash-cell-value::after {
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
-  width: 36px !important; /* Default width */
-  height: 36px !important; /* Default height */
+  width: 31px !important; /* Match form controls */
+  height: 31px !important; /* Match form controls */
   border: 1px solid var(--color-gray-300) !important;
   border-radius: 4px !important;
   background-color: var(--color-gray-100) !important;
@@ -852,7 +966,7 @@ td.cell--editable:not(.cell-selected) .dash-cell-value::after {
   display: flex !important; /* Force flex display */
   align-items: center !important;
   justify-content: center !important;
-  height: 36px !important;
+  height: 31px !important;
   margin: 0 5px !important; /* Spacing around page number */
   gap: 6px !important; /* Add space between elements */
   position: relative !important;
@@ -861,7 +975,7 @@ td.cell--editable:not(.cell-selected) .dash-cell-value::after {
 }
 
 .page-number input[type="number"] {
-  height: 36px !important; /* Match button height */
+  height: 31px !important; /* Match form controls */
   border: 1px solid var(--color-gray-300) !important;
   border-radius: 4px !important;
   padding: 0.375rem 0.75rem !important;
@@ -894,15 +1008,15 @@ td.cell--editable:not(.cell-selected) .dash-cell-value::after {
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
-  height: 36px !important;
+  height: 31px !important;
 }
 
 /* Style the current page input to prevent overlap */
 .current-page {
   position: relative !important;
   z-index: 3 !important;
-  width: 36px !important;
-  height: 36px !important;
+  width: 31px !important;
+  height: 31px !important;
   border: 1px solid var(--color-gray-300) !important;
   border-radius: 4px !important;
   background-color: var(--color-white) !important;
@@ -928,8 +1042,8 @@ td.cell--editable:not(.cell-selected) .dash-cell-value::after {
 
 /* Style the total pages indicator */
 .page-number .last-page {
-  width: 36px !important;
-  height: 36px !important;
+  width: 31px !important;
+  height: 31px !important;
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
@@ -2461,9 +2575,10 @@ input[type="range"]::-moz-range-thumb {
 }
 
 .DateInput_input {
-  font-size: 1rem !important;
-  padding: 0.375rem 0.75rem !important;
-  height: calc(1.5em + 0.75rem + 2px) !important;
+  font-size: 0.875rem !important;
+  padding: 0.25rem 0.5rem !important;
+  padding-right: 0.5rem !important;
+  height: 31px !important;
   line-height: 1.5 !important;
   border: 1px solid var(--color-gray-400) !important;
   border-radius: 0.25rem !important;
@@ -2471,10 +2586,38 @@ input[type="range"]::-moz-range-thumb {
   box-sizing: border-box !important;
 }
 
+/* Budget page datepicker - remove extra spacing */
+#budget-effective-date-picker .SingleDatePickerInput {
+  display: flex !important;
+  width: 100% !important;
+  padding-right: 0 !important;
+}
+
+#budget-effective-date-picker .DateInput {
+  flex: 1 !important;
+  width: 100% !important;
+}
+
+#budget-effective-date-picker .DateInput_input {
+  padding-right: 0.5rem !important;
+}
+
+#budget-effective-date-picker .SingleDatePickerInput_clearDate {
+  position: absolute !important;
+  right: 8px !important;
+  margin: 0 !important;
+}
+
+#budget-effective-date-picker {
+  width: 100% !important;
+  max-width: 100% !important;
+  padding-right: 0 !important;
+}
+
 /* Exact pixel dimensions for both pickers */
 #deadline-picker,
 #milestone-picker {
-  height: 50px !important; /* Force both to be exactly 50px tall */
+  height: 31px !important; /* Match Bootstrap sm input height */
   padding: 0 !important;
   box-sizing: border-box !important;
   margin: 0 !important;
@@ -2492,10 +2635,11 @@ input[type="range"]::-moz-range-thumb {
 /* Ensure font and line heights match */
 #deadline-picker .DateInput_input,
 #milestone-picker .DateInput_input {
-  font-size: 1rem !important;
+  font-size: 0.875rem !important;
   line-height: 1.5 !important;
-  padding-top: 0.375rem !important;
-  padding-bottom: 0.375rem !important;
+  padding: 0.25rem 0.5rem !important;
+  padding-right: 0.5rem !important;
+  height: 31px !important;
 }
 
 /* Ensure consistent borders */
@@ -4156,6 +4300,77 @@ label.fw-medium {
 }
 */
 
+/* ========================================
+   Budget Timeline Card Styles
+   ======================================== */
+
+/* Timeline container */
+.timeline-container {
+  position: relative;
+}
+
+/* Timeline item cards */
+.timeline-item {
+  background-color: #ffffff;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.timeline-item:hover {
+  background-color: #f8f9fa;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  transform: translateX(2px);
+}
+
+/* Current date item - highlighted */
+.timeline-item-current {
+  border-color: #6f42c1 !important;
+  border-width: 2px !important;
+}
+
+.timeline-item-current:hover {
+  box-shadow: 0 4px 12px rgba(111, 66, 193, 0.15);
+}
+
+/* Icon wrapper styling */
+.timeline-icon-wrapper {
+  position: relative;
+  z-index: 1;
+}
+
+/* Timeline gaps section */
+.timeline-gaps .mb-2 {
+  padding: 0.5rem;
+  border-radius: 0.25rem;
+  background-color: #f8f9fa;
+  transition: background-color 0.2s ease;
+}
+
+.timeline-gaps .mb-2:hover {
+  background-color: #e9ecef;
+}
+
+/* Responsive adjustments for mobile */
+@media (max-width: 576px) {
+  .timeline-item .d-flex {
+    flex-wrap: wrap;
+  }
+
+  .timeline-icon-wrapper {
+    width: 40px !important;
+    height: 40px !important;
+  }
+
+  .timeline-icon-wrapper i {
+    font-size: 1.1rem !important;
+  }
+
+  .timeline-item .badge {
+    margin-top: 0.5rem;
+    margin-left: 52px;
+  }
+}
+
 /* ================================================================
    Namespace Syntax Styling (Feature 012)
    ================================================================ */
@@ -4572,6 +4787,49 @@ body {
 ::selection {
   background-color: rgba(13, 110, 253, 0.2);
   color: inherit;
+}
+
+/* ================================================================
+   Placeholder Text Styling
+   ================================================================ */
+
+/* Make placeholder text more transparent and distinguishable from actual values */
+.form-control::placeholder,
+.form-control::-webkit-input-placeholder,
+.form-control::-moz-placeholder,
+.form-control:-ms-input-placeholder {
+  color: #adb5bd !important; /* Bootstrap gray-400, lighter than default */
+  opacity: 0.6 !important;
+  font-style: italic;
+}
+
+/* Textarea placeholders */
+textarea.form-control::placeholder,
+textarea.form-control::-webkit-input-placeholder,
+textarea.form-control::-moz-placeholder,
+textarea.form-control:-ms-input-placeholder {
+  color: #adb5bd !important;
+  opacity: 0.6 !important;
+  font-style: italic;
+}
+
+/* Budget-specific input placeholders (extra specificity for consistency) */
+#budget-time-allocated-input::placeholder,
+#budget-currency-symbol-input::placeholder,
+#budget-team-cost-input::placeholder,
+#budget-total-manual-input::placeholder,
+#budget-revision-reason-input::placeholder,
+#budget-delete-confirmation-input::placeholder {
+  color: #adb5bd !important;
+  opacity: 0.6 !important;
+  font-style: italic;
+}
+
+/* Date picker placeholder */
+#budget-effective-date-picker .DateInput_input::placeholder {
+  color: #adb5bd !important;
+  opacity: 0.6 !important;
+  font-style: italic;
 }
 
 /* ================================================================

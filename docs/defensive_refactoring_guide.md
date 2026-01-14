@@ -1,7 +1,7 @@
 # Defensive Refactoring Guide
 
-**Audience**: Human developers and AI coding agents  
-**Purpose**: Systematic removal of unused code, obsolete comments, and dead dependencies  
+**Audience**: Human developers and AI coding agents performing code cleanup
+**Purpose**: Systematic removal of unused code, obsolete comments, and dead dependencies
 **Philosophy**: Safety first - verify before removing, test after each change
 
 ---

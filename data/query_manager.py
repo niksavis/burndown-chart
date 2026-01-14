@@ -16,19 +16,20 @@ Performance Requirements:
     - list_queries_for_profile(): <100ms (reads directory + metadata)
 
 Data Isolation:
-    Each query has dedicated directory with isolated cache:
-    - jira_cache.json (JIRA API responses)
-    - jira_changelog_cache.json (changelog data)
-    - project_data.json (statistics, scope, metadata)
-    - metrics_snapshots.json (historical metrics)
+    Each query has dedicated data in SQLite database:
+    - jira_issues table (JIRA API responses)
+    - jira_changelog table (changelog data)
+    - project_statistics table (statistics, scope, metadata)
+    - metrics_snapshots table (historical metrics)
+
+    Legacy JSON files (jira_cache.json, project_data.json) are deprecated.
 """
 
-import json
 import logging
 from typing import Dict, List, Optional
 from datetime import datetime, timezone
 
-from data.profile_manager import PROFILES_DIR, PROFILES_FILE
+from data.persistence.factory import get_backend
 
 logger = logging.getLogger(__name__)
 
@@ -57,15 +58,15 @@ def _generate_unique_query_id() -> str:
     return f"q_{uuid.uuid4().hex[:12]}"
 
 
-def get_active_query_id() -> str:
+def get_active_query_id() -> Optional[str]:
     """
     Get the currently active query ID.
 
     Returns:
-        str: Active query ID (e.g., "main", "bugs", "12w") or None if no active query
+        Optional[str]: Active query ID (e.g., "main", "bugs", "12w") or None if no active query
 
     Raises:
-        ValueError: If profiles.json not found or malformed
+        ValueError: If app state not accessible
 
     Example:
         >>> get_active_query_id()
@@ -73,19 +74,9 @@ def get_active_query_id() -> str:
         >>> get_active_query_id()  # No active query in profile
         None
     """
-    if not PROFILES_FILE.exists():
-        raise ValueError(f"profiles.json not found at {PROFILES_FILE}")
-
-    try:
-        with open(PROFILES_FILE, "r", encoding="utf-8") as f:
-            profiles_data = json.load(f)
-
-        active_query_id = profiles_data.get("active_query_id")
-        # Return None if no active query (valid state for empty profile)
-        return active_query_id
-
-    except json.JSONDecodeError as e:
-        raise ValueError(f"profiles.json is malformed: {e}")
+    backend = get_backend()
+    active_query_id = backend.get_app_state("active_query_id")
+    return active_query_id
 
 
 def get_active_profile_id() -> str:
@@ -96,44 +87,34 @@ def get_active_profile_id() -> str:
         str: Active profile ID (e.g., "default", "kafka")
 
     Raises:
-        ValueError: If profiles.json not found or malformed
+        ValueError: If app state not accessible
 
     Example:
         >>> get_active_profile_id()
         'default'
     """
-    if not PROFILES_FILE.exists():
-        raise ValueError(f"profiles.json not found at {PROFILES_FILE}")
-
-    try:
-        with open(PROFILES_FILE, "r", encoding="utf-8") as f:
-            profiles_data = json.load(f)
-
-        active_profile_id = profiles_data.get("active_profile_id")
-        if not active_profile_id:
-            raise ValueError("active_profile_id not found in profiles.json")
-
-        return active_profile_id
-
-    except json.JSONDecodeError as e:
-        raise ValueError(f"profiles.json is malformed: {e}")
+    backend = get_backend()
+    active_profile_id = backend.get_app_state("active_profile_id")
+    if not active_profile_id:
+        raise ValueError("active_profile_id not found in app state")
+    return active_profile_id
 
 
 def switch_query(query_id: str) -> None:
     """
     Switch to a different query within the active profile.
 
-    Performance: Target <50ms (atomic JSON update).
+    Performance: Target <50ms (atomic database update).
 
     Args:
         query_id: ID of query to switch to (e.g., "bugs", "12w")
 
     Raises:
-        ValueError: If query doesn't exist or profiles.json malformed
-        IOError: If profiles.json cannot be written
+        ValueError: If query doesn't exist
+        IOError: If database update fails
 
     Side Effects:
-        - Updates profiles.json with new active_query_id
+        - Updates app_state with new active_query_id
         - Subsequent get_active_query_workspace() calls return new path
         - UI callbacks will reload data from new query workspace
 
@@ -141,53 +122,33 @@ def switch_query(query_id: str) -> None:
         >>> switch_query("bugs")
         # Now all data operations use profiles/kafka/queries/bugs/
     """
-    if not PROFILES_FILE.exists():
-        raise ValueError(f"profiles.json not found at {PROFILES_FILE}")
+    backend = get_backend()
 
-    try:
-        # Read current state
-        with open(PROFILES_FILE, "r", encoding="utf-8") as f:
-            profiles_data = json.load(f)
+    active_profile_id = backend.get_app_state("active_profile_id")
+    if not active_profile_id:
+        raise ValueError("active_profile_id not found in app state")
 
-        active_profile_id = profiles_data.get("active_profile_id")
-        if not active_profile_id:
-            raise ValueError("active_profile_id not found in profiles.json")
+    # Validate query exists
+    query = backend.get_query(active_profile_id, query_id)
+    if not query:
+        available_queries = backend.list_queries(active_profile_id)
+        available_ids = [q["id"] for q in available_queries]
+        raise ValueError(
+            f"Query '{query_id}' not found in profile '{active_profile_id}'. "
+            f"Available queries: {available_ids}"
+        )
 
-        # Validate query exists
-        profile_queries_dir = PROFILES_DIR / active_profile_id / "queries"
-        query_dir = profile_queries_dir / query_id
-        if not query_dir.exists():
-            available_queries = [
-                d.name for d in profile_queries_dir.iterdir() if d.is_dir()
-            ]
-            raise ValueError(
-                f"Query '{query_id}' not found in profile '{active_profile_id}'. "
-                f"Available queries: {available_queries}"
-            )
+    # Update active_query_id
+    backend.set_app_state("active_query_id", query_id)
 
-        # Update active_query_id
-        profiles_data["active_query_id"] = query_id
-
-        # Write atomically (write to temp file, then rename)
-        temp_file = PROFILES_FILE.with_suffix(".tmp")
-        with open(temp_file, "w", encoding="utf-8") as f:
-            json.dump(profiles_data, f, indent=2)
-
-        temp_file.replace(PROFILES_FILE)
-
-        logger.info(f"Switched to query '{query_id}' in profile '{active_profile_id}'")
-
-    except json.JSONDecodeError as e:
-        raise ValueError(f"profiles.json is malformed: {e}")
-    except IOError as e:
-        raise IOError(f"Failed to update profiles.json: {e}")
+    logger.info(f"Switched to query '{query_id}' in profile '{active_profile_id}'")
 
 
 def list_queries_for_profile(profile_id: Optional[str] = None) -> List[Dict]:
     """
     List all queries in a profile.
 
-    Performance: Target <100ms (directory scan + metadata reads).
+    Performance: Target <100ms (database query).
 
     Args:
         profile_id: Profile ID to list queries for (defaults to active profile)
@@ -210,16 +171,13 @@ def list_queries_for_profile(profile_id: Optional[str] = None) -> List[Dict]:
             {"id": "bugs", "name": "Bugs Only", "jql": "project = KAFKA AND type = Bug", "is_active": False},
         ]
     """
+    backend = get_backend()
+
     if profile_id is None:
         profile_id = get_active_profile_id()
 
-    profile_dir = PROFILES_DIR / profile_id
-    if not profile_dir.exists():
-        raise ValueError(f"Profile '{profile_id}' not found at {profile_dir}")
-
-    queries_dir = profile_dir / "queries"
-    if not queries_dir.exists():
-        return []
+    # Get queries from backend
+    queries = backend.list_queries(profile_id)
 
     # Get active query for is_active flag
     try:
@@ -227,39 +185,9 @@ def list_queries_for_profile(profile_id: Optional[str] = None) -> List[Dict]:
     except ValueError:
         active_query_id = None
 
-    queries = []
-    for query_dir in queries_dir.iterdir():
-        if not query_dir.is_dir():
-            continue
-
-        query_id = query_dir.name
-        query_file = query_dir / "query.json"
-
-        # Load metadata if exists, otherwise use defaults
-        if query_file.exists():
-            try:
-                with open(query_file, "r", encoding="utf-8") as f:
-                    query_data = json.load(f)
-            except (json.JSONDecodeError, IOError) as e:
-                logger.warning(f"Failed to load {query_file}: {e}")
-                query_data = {}
-        else:
-            query_data = {}
-
-        queries.append(
-            {
-                "id": query_id,
-                "name": query_data.get("name", query_id.replace("_", " ").title()),
-                "jql": query_data.get("jql", ""),
-                "created_at": query_data.get(
-                    "created_at", datetime.now(timezone.utc).isoformat()
-                ),
-                "is_active": query_id == active_query_id,
-            }
-        )
-
-    # Sort by created_at (oldest first)
-    queries.sort(key=lambda q: q["created_at"])
+    # Add is_active flag to each query
+    for query in queries:
+        query["is_active"] = query["id"] == active_query_id
 
     return queries
 
@@ -282,94 +210,51 @@ def create_query(profile_id: str, name: str, jql: str, description: str = "") ->
         DependencyError: If JIRA not configured (dependency chain violation)
 
     Side Effects:
-        - Creates profiles/{profile_id}/queries/{query_id}/ directory
-        - Creates query.json with metadata
+        - Creates query in database
+        - Adds query metadata
 
     Example:
         >>> query_id = create_query("p_abc123", "High Priority Bugs!", "project = KAFKA AND priority = High")
         >>> assert query_id.startswith("q_") and len(query_id) == 14
     """
-    profile_dir = PROFILES_DIR / profile_id
-    if not profile_dir.exists():
-        raise ValueError(f"Profile '{profile_id}' not found at {profile_dir}")
+    backend = get_backend()
+
+    # Validate profile exists
+    profile = backend.get_profile(profile_id)
+    if not profile:
+        raise ValueError(f"Profile '{profile_id}' not found")
 
     # DEPENDENCY CHECK: JIRA must be configured before creating queries
-    profile_file = profile_dir / "profile.json"
-    if profile_file.exists():
-        with open(profile_file, "r", encoding="utf-8") as f:
-            profile_data = json.load(f)
+    jira_config = profile.get("jira_config", {})
+    if not jira_config.get("configured"):
+        raise DependencyError(
+            "JIRA must be configured before creating queries. "
+            "Go to 'JIRA Configuration' section and test connection first."
+        )
 
-        jira_config = profile_data.get("jira_config", {})
-        if not jira_config.get("configured"):
-            raise DependencyError(
-                "JIRA must be configured before creating queries. "
-                "Go to 'JIRA Configuration' section and test connection first."
-            )
-
-        # Optional warning if field mappings not configured
-        field_mappings = profile_data.get("field_mappings", {})
-        if not field_mappings:
-            logger.warning(
-                f"[Query] Field mappings not configured in profile '{profile_id}' - "
-                "metrics may be limited. Configure field mappings for full DORA/Flow metrics."
-            )
-    else:
-        raise ValueError(f"Profile configuration not found at {profile_file}")
+    # Optional warning if field mappings not configured
+    field_mappings = profile.get("field_mappings", {})
+    if not field_mappings:
+        logger.warning(
+            f"[Query] Field mappings not configured in profile '{profile_id}' - "
+            "metrics may be limited. Configure field mappings for full DORA/Flow metrics."
+        )
 
     # Generate unique query ID using UUID
     query_id = _generate_unique_query_id()
 
-    # Create query directory (UUID guarantees no collision)
-    query_dir = profile_dir / "queries" / query_id
-
-    # Create directory
-    query_dir.mkdir(parents=True, exist_ok=True)
-
-    # Create query.json
-    query_data = {
+    # Create query data
+    query_dict = {
+        "id": query_id,
         "name": name,
         "jql": jql,
         "description": description,
         "created_at": datetime.now(timezone.utc).isoformat(),
+        "last_used": datetime.now(timezone.utc).isoformat(),
     }
-    query_file = query_dir / "query.json"
-    with open(query_file, "w", encoding="utf-8") as f:
-        json.dump(query_data, f, indent=2)
 
-    # Initialize empty project_data.json to prevent data leaks
-    project_data = {
-        "statistics": [],
-        "project_scope": {
-            "total_items": 0,
-            "estimated_items": 0,
-            "total_points": 0,
-            "estimated_points": 0,
-        },
-        "last_updated": datetime.now(timezone.utc).isoformat(),
-        "version": "1.0",
-    }
-    project_data_file = query_dir / "project_data.json"
-    with open(project_data_file, "w", encoding="utf-8") as f:
-        json.dump(project_data, f, indent=2)
-
-    logger.info(f"Initialized empty project_data.json for new query '{query_id}'")
-
-    # Update profiles.json to add query to profile's queries list
-    if PROFILES_FILE.exists():
-        with open(PROFILES_FILE, "r", encoding="utf-8") as f:
-            profiles_data = json.load(f)
-
-        if profile_id in profiles_data.get("profiles", {}):
-            if "queries" not in profiles_data["profiles"][profile_id]:
-                profiles_data["profiles"][profile_id]["queries"] = []
-            if query_id not in profiles_data["profiles"][profile_id]["queries"]:
-                profiles_data["profiles"][profile_id]["queries"].append(query_id)
-
-        # Atomic write
-        temp_file = PROFILES_FILE.with_suffix(".tmp")
-        with open(temp_file, "w", encoding="utf-8") as f:
-            json.dump(profiles_data, f, indent=2)
-        temp_file.replace(PROFILES_FILE)
+    # Save query using backend
+    backend.save_query(profile_id, query_dict)
 
     logger.info(f"Created query '{query_id}' in profile '{profile_id}'")
 
@@ -391,81 +276,66 @@ def update_query(
         query_id: Query to update
         name: New display name (optional, keeps existing if None)
         jql: New JQL query string (optional, keeps existing if None)
-        description: New description (optional, keeps existing if None)
+        description: New description (optional, keeps existing if None - NOTE: not yet persisted in database)
 
     Returns:
-        bool: True if update successful, False otherwise
+        bool: True if update successful
 
     Raises:
         ValueError: If profile or query doesn't exist
 
     Side Effects:
-        - Updates query.json atomically
-        - Adds updated_at timestamp
+        - Updates query in database atomically
         - Logs update operation
 
     Example:
         >>> update_query("kafka", "main", jql="project = KAFKA AND priority > Medium")
         True
     """
-    profile_dir = PROFILES_DIR / profile_id
-    if not profile_dir.exists():
-        raise ValueError(f"Profile '{profile_id}' not found at {profile_dir}")
+    # Use repository pattern - get backend and load query
+    from data.persistence.factory import get_backend
 
-    query_dir = profile_dir / "queries" / query_id
-    if not query_dir.exists():
+    backend = get_backend()
+
+    # Load existing query data from database
+    query_data = backend.get_query(profile_id, query_id)
+    if not query_data:
         raise ValueError(f"Query '{query_id}' not found in profile '{profile_id}'")
 
-    query_file = query_dir / "query.json"
-    if not query_file.exists():
-        raise ValueError(f"Query metadata file not found at {query_file}")
+    # Track what changed for logging
+    changes = []
 
-    try:
-        # Load existing query data
-        with open(query_file, "r", encoding="utf-8") as f:
-            query_data = json.load(f)
+    # Update fields if provided
+    if name is not None and name != query_data.get("name"):
+        old_name = query_data.get("name")
+        query_data["name"] = name
+        changes.append(f"name: '{old_name}' -> '{name}'")
 
-        # Track what changed for logging
-        changes = []
+    if jql is not None and jql != query_data.get("jql"):
+        query_data["jql"] = jql
+        changes.append("jql updated")
 
-        # Update fields if provided
-        if name is not None and name != query_data.get("name"):
-            query_data["name"] = name
-            changes.append(f"name: '{query_data.get('name')}' -> '{name}'")
+    if description is not None and description != query_data.get("description"):
+        query_data["description"] = description
+        changes.append("description updated (not persisted)")
 
-        if jql is not None and jql != query_data.get("jql"):
-            query_data["jql"] = jql
-            changes.append("jql updated")
-
-        if description is not None and description != query_data.get("description"):
-            query_data["description"] = description
-            changes.append("description updated")
-
-        # If no changes, return early
-        if not changes:
-            logger.info(f"No changes to query '{query_id}' in profile '{profile_id}'")
-            return True
-
-        # Add updated timestamp
-        query_data["updated_at"] = datetime.now(timezone.utc).isoformat()
-
-        # Atomic write
-        temp_file = query_file.with_suffix(".tmp")
-        with open(temp_file, "w", encoding="utf-8") as f:
-            json.dump(query_data, f, indent=2)
-        temp_file.replace(query_file)
-
-        logger.info(
-            f"Updated query '{query_id}' in profile '{profile_id}': {', '.join(changes)}"
-        )
-
+    # If no changes, return early
+    if not changes:
+        logger.info(f"No changes to query '{query_id}' in profile '{profile_id}'")
         return True
 
-    except Exception as e:
-        logger.error(
-            f"Failed to update query '{query_id}' in profile '{profile_id}': {e}"
-        )
-        return False
+    # Ensure id is in query_data
+    query_data["id"] = query_id
+
+    # Save via backend (expects profile_id and query dict)
+    # Note: only name, jql, last_used are persisted (schema limitation)
+    backend.save_query(profile_id, query_data)
+
+    logger.info(
+        f"Updated query '{query_id}' in profile '{profile_id}': {', '.join(changes)}"
+    )
+
+    return True
 
 
 def delete_query(profile_id: str, query_id: str, allow_cascade: bool = False) -> None:
@@ -483,13 +353,13 @@ def delete_query(profile_id: str, query_id: str, allow_cascade: bool = False) ->
         PermissionError: If query is currently active (must switch first, unless allow_cascade=True)
 
     Side Effects:
-        - Deletes profiles/{profile_id}/queries/{query_id}/ directory and all contents
+        - Deletes query from database (CASCADE DELETE handled by backend)
 
     Example:
         >>> delete_query("kafka", "old-query")  # Normal deletion with safety checks
         >>> delete_query("kafka", "main", allow_cascade=True)  # Cascade deletion (no safety checks)
     """
-    import shutil
+    backend = get_backend()
 
     # Prevent deleting active query (unless cascading)
     if not allow_cascade:
@@ -502,37 +372,13 @@ def delete_query(profile_id: str, query_id: str, allow_cascade: bool = False) ->
         except ValueError:
             pass  # No active query, safe to delete
 
-    profile_dir = PROFILES_DIR / profile_id
-    if not profile_dir.exists():
-        raise ValueError(f"Profile '{profile_id}' not found at {profile_dir}")
+    # Validate query exists
+    query = backend.get_query(profile_id, query_id)
+    if not query:
+        raise ValueError(f"Query '{query_id}' not found in profile '{profile_id}'")
 
-    query_dir = profile_dir / "queries" / query_id
-    if not query_dir.exists():
-        raise ValueError(
-            f"Query '{query_id}' not found in profile '{profile_id}' at {query_dir}"
-        )
-
-    # Allow deletion of last query when allow_cascade=True
-    # (No restriction - users can delete the last query)
-
-    # Delete directory and all contents
-    shutil.rmtree(query_dir)
-
-    # Update profiles.json to remove query from profile's queries list
-    if PROFILES_FILE.exists():
-        with open(PROFILES_FILE, "r", encoding="utf-8") as f:
-            profiles_data = json.load(f)
-
-        if profile_id in profiles_data.get("profiles", {}):
-            if "queries" in profiles_data["profiles"][profile_id]:
-                if query_id in profiles_data["profiles"][profile_id]["queries"]:
-                    profiles_data["profiles"][profile_id]["queries"].remove(query_id)
-
-        # Atomic write
-        temp_file = PROFILES_FILE.with_suffix(".tmp")
-        with open(temp_file, "w", encoding="utf-8") as f:
-            json.dump(profiles_data, f, indent=2)
-        temp_file.replace(PROFILES_FILE)
+    # Delete query using backend (CASCADE DELETE to all related data)
+    backend.delete_query(profile_id, query_id)
 
     logger.info(f"Deleted query '{query_id}' from profile '{profile_id}'")
 
@@ -548,7 +394,7 @@ def validate_query_exists_for_data_operation(query_id: str) -> None:
 
     Raises:
         DependencyError: If query doesn't exist (not saved yet)
-        ValueError: If profiles.json malformed or active profile not set
+        ValueError: If active profile not set
 
     Example:
         >>> validate_query_exists_for_data_operation("main")
@@ -557,22 +403,23 @@ def validate_query_exists_for_data_operation(query_id: str) -> None:
         >>> validate_query_exists_for_data_operation("unsaved-query")
         # Raises DependencyError - query not saved
     """
+    backend = get_backend()
+
     try:
         active_profile_id = get_active_profile_id()
     except ValueError as e:
         raise ValueError(f"Cannot validate query: {e}")
 
-    # Check if query directory exists
-    query_dir = PROFILES_DIR / active_profile_id / "queries" / query_id
-    if not query_dir.exists():
+    # Check if query exists in database
+    query = backend.get_query(active_profile_id, query_id)
+    if not query:
         raise DependencyError(
             f"Query '{query_id}' must be saved before executing data operations. "
             "Click 'Save Query' first, then 'Update Data'."
         )
 
-    # Check if query.json exists (ensures query is properly initialized)
-    query_file = query_dir / "query.json"
-    if not query_file.exists():
+    # Verify query has required fields (name and jql)
+    if not query.get("name") or not query.get("jql"):
         raise DependencyError(
             f"Query '{query_id}' is not properly initialized. "
             "Re-save the query with name and JQL, then try again."

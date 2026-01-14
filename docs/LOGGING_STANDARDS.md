@@ -1,8 +1,11 @@
 # Logging Standards
 
+**Audience**: Developers implementing features, debugging issues, or maintaining the codebase
+**Purpose**: Consistent, useful, and maintainable logging across the application
+
 ## Overview
 
-This document defines logging standards for the burndown-chart application to ensure consistent, useful, and maintainable logs.
+This document defines logging standards for the burndown-chart application to ensure logs are informative, searchable, and actionable.
 
 ## Logging Levels
 

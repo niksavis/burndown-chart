@@ -1,5 +1,6 @@
 # Project Dashboard Metrics Guide
 
+**Audience**: Project managers and stakeholders tracking project delivery
 **Part of**: [Metrics Documentation](./metrics_index.md)
 
 ---
@@ -25,58 +26,35 @@ The **Project Dashboard** is the primary landing view, providing at-a-glance vis
 
 ### 1. Project Health Score
 
-**What it measures**: Overall project health as a single 0-100 score
+**What it measures**: Overall project health as a single 0-100 score using a comprehensive multi-dimensional assessment
 
-**Calculation Method (Formula v2.1)**:
-- **Four-component continuous formula** providing smooth, gradual health changes:
-
-  **Total Health = Progress (30 pts) + Schedule (30 pts) + Stability (20 pts) + Trend (20 pts)**
-
-  1. **Progress Component** (0-30 points):
-     - Linear mapping: `(completion_percentage / 100) × 30`
-     - Example: 50% complete → 15 points, 80% complete → 24 points
-
-  2. **Schedule Component** (0-30 points):
-     - Sigmoid function for smooth transitions: `(tanh(buffer_days / 20) + 1) × 15`
-     - Buffer = days_to_deadline - days_to_completion
-     - Examples:
-       - 30 days ahead → ~28.6 points
-       - On schedule (0 buffer) → 15 points (neutral)
-       - 30 days behind → ~1.4 points
-     - Returns 15 (neutral) if deadline is missing
-
-  3. **Stability Component** (0-20 points):
-     - Velocity consistency via Coefficient of Variation (CV = std_dev / mean)
-     - Linear decay: `20 × max(0, 1 - (CV / 1.5))`
-     - Uses last 10 weeks of completed items (or all available data)
-     - Examples:
-       - CV = 0 (perfect consistency) → 20 points
-       - CV = 0.75 (typical) → 10 points
-       - CV ≥ 1.5 (chaotic) → 0 points
-     - Returns 10 (neutral) if insufficient data (<2 weeks) or zero velocity
-
-  4. **Trend Component** (0-20 points):
-     - Velocity change between older half vs recent half of data
-     - Linear scaling: `clamp(10 + (velocity_change_% / 50) × 10, 0, 20)`
-     - Examples:
-       - +50% velocity growth → 20 points
-       - 0% change (stable) → 10 points (neutral)
-       - -50% velocity decline → 0 points
-     - Returns 10 (neutral) if insufficient trend data (<4 weeks) or zero older velocity
+**Formula**: The health score uses a state-of-the-art formula that analyzes **20+ signals** across 6 dimensions:
+- **Delivery Performance** (25%): Completion progress, velocity trend, throughput rate
+- **Predictability** (20%): Velocity consistency, schedule adherence, forecast confidence
+- **Quality** (20%): Bug resolution, DORA metrics (CFR, MTTR), bug density/age
+- **Efficiency** (15%): Flow efficiency, flow time, lead time for changes
+- **Sustainability** (10%): Scope stability (context-aware), WIP management, flow distribution
+- **Financial Health** (10%): Budget adherence, runway adequacy, burn rate
 
 **Key Features**:
-- **Smooth gradients**: No threshold-based penalties - incremental changes produce proportional score adjustments
-- **Incomplete week filtering**: Automatically excludes current incomplete week (unless today is Sunday ≥23:59:59) to prevent mid-week score fluctuations
-- **Full 0-100 range**: Formula validated to span entire range from critical projects (<10) to excellent projects (>90)
-- **Scales to project size**: Works for 4-week sprints through multi-year projects
+- **Dynamic Weighting**: Automatically adapts based on available data (Dashboard, DORA, Flow, Bug, Budget)
+- **Context-Aware**: Penalties adjust based on project stage (inception/early/mid/late)
+- **Graceful Degradation**: Works with any combination of available metrics
+- **Smooth Gradients**: Sigmoid and logarithmic curves prevent sudden score jumps
+
+**For detailed formula documentation**, see **[Project Health Formula](./health_formula.md)** which includes:
+- Complete signal specifications and calculations
+- Weight redistribution logic
+- Context-aware scope penalty details
+- Real-world examples and scenarios
 
 **Display**:
 - **Primary Value**: 0-100 score displayed prominently (3.5rem font size)
-- **Performance Badge**:
-  - **Excellent** (80-100): Green badge - project on track
-  - **Good** (60-79): Blue badge - minor concerns
-  - **Fair** (40-59): Yellow badge - needs attention
-  - **At Risk** (0-39): Red badge - significant issues
+- **Health Status Badge**:
+  - **GOOD** 🟢 (70-100): Green badge - project healthy, on track
+  - **CAUTION** 🟡 (50-69): Yellow badge - moderate risks, watch closely
+  - **AT RISK** 🟠 (30-49): Orange badge - significant issues, action needed
+  - **CRITICAL** 🔴 (0-29): Red badge - severe problems, immediate intervention required
 - **Progress Bar**: Shows completion percentage below health score
 
 **How to Read It**:
@@ -84,34 +62,49 @@ The **Project Dashboard** is the primary landing view, providing at-a-glance vis
 ┌─────────────────────────────────────┐
 │   Project Health Score              │
 │                                     │
-│         85  /100                    │
-│       [Excellent]🟢                 │
+│         68  /100                    │
+│       [Good]🟡                      │
 │                                     │
-│   ████████████████░░░░ 75.0% Complete
+│   ████████░░░░░░░░░░░░ 35% Complete
 └─────────────────────────────────────┘
 ```
 
+**Example Scenario (Early-Stage Project)**:
+- **35% complete**: Delivery dimension includes completion progress
+- **Improving trend**: Strong contribution to Delivery dimension
+- **Moderate CV (45%)**: Good Predictability dimension score
+- **Ahead of schedule**: Positive Schedule Adherence contribution
+- **Scope change (80%)**: Light penalty due to early-stage context factor
+- **Result**: ~60-70 points → **CAUTION/GOOD** status
+
 **What it tells you**:
-- **85/100 (Excellent)**: Project healthy - good progress (22.5/30), ahead of schedule (28/30), consistent velocity (18/20), positive trend (16.5/20)
-- **75% Complete**: Three-quarters of work finished
-- **Green badge**: High confidence in on-time delivery
+- Early projects with positive momentum score well even with scope changes
+- Health score adapts to use DORA, Flow, Bug, and Budget metrics when available
+- Context-aware penalties prevent false negatives in early stages
 
 **Action Guide by Score**:
-- **80-100 (Excellent)**: Maintain current pace, celebrate wins, monitor for scope creep
-- **60-79 (Good)**: Watch for velocity drops, review upcoming work complexity, address any schedule slippage
+- **70-100 (GOOD)**: Maintain current pace, celebrate wins, monitor for risks
+- **50-69 (CAUTION)**: Watch for velocity drops, review work complexity, address schedule slippage
+- **30-49 (AT RISK)**: Immediate attention needed, identify blockers, adjust plan
+- **0-29 (CRITICAL)**: Severe issues, consider project reset or escalation
 - **40-59 (Fair)**: Investigate velocity issues, consider scope reduction, add resources, reassess timeline
 - **0-39 (At Risk)**: Emergency intervention needed - scope freeze, add capacity, extend deadline
 
-**Why Scores May Change Mid-Week**:
-Health scores remain stable throughout the week due to incomplete week filtering. You may see changes only when:
-- New data is manually added (outside normal week boundaries)
-- Completion percentage is updated
+**Why Scores May Change**:
+Health scores recalculate on data updates:
+- New completion data added
+- Completion percentage updated
 - Deadline changes (via Settings)
-- It's Sunday night and the week completes
+- Velocity trend shifts (improving → stable → declining)
 
-**⚠️ Statistical Note**: Component weights (30/30/20/20) balance delivery metrics with process metrics. While not empirically validated for predictive accuracy, they provide directional trend monitoring. Use score trends (improving/stable/declining) rather than absolute values for decision-making.
+**⚠️ Formula Change (v2.1 → v2.2)**:
+- **Added**: Progress component (30 pts) - rewards actual completion
+- **Changed**: Velocity trend increased to 20 pts (from 15 pts combined) - momentum matters more
+- **Changed**: Scope stability reduced to 10 pts (from 20 pts) with context-aware penalties
+- **Changed**: Schedule reduced to 20 pts (from 25 pts) - less weight on forecasts
+- **Result**: More balanced, less aggressive penalties for early-stage projects with scope growth
 
-**Code Location**: `ui/dashboard_cards.py::_calculate_health_score()` and helper functions
+**Code Location**: `ui/dashboard_cards.py::_calculate_health_score()` and `ui/dashboard_comprehensive.py::_calculate_project_health_score()`
 
 ---
 

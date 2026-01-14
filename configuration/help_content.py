@@ -701,7 +701,7 @@ DASHBOARD_METRICS_TOOLTIPS = {
     "pert_expected": "Weighted average of optimistic, most likely, and pessimistic forecasts using the formula: (O + 4×ML + P) ÷ 6. Provides the most statistically reliable single-point estimate.",
     "confidence_range": "Uncertainty band around the forecast showing the range of possible completion dates. Wider ranges indicate higher unpredictability; narrower ranges show consistent velocity.",
     "scope_changes": "Additions or removals to project scope over time. Tracks how requirements evolve and impacts forecast accuracy and completion dates.",
-    "health_score": "Health score (0-100 points) combines four components: Progress (0-30 points - completion %), Schedule (0-30 points - buffer vs deadline using smooth sigmoid), Stability (0-20 points - velocity consistency via CV = Coefficient of Variation, which measures how much velocity varies: CV = std dev / mean × 100%), and Trend (0-20 points - recent velocity change). Continuous formulas provide smooth, gradual score changes. Incomplete weeks are automatically filtered to prevent mid-week score fluctuations.",
+    "health_score": "Health score (0-100 points). Automatically adapts to available data sources: Dashboard (Delivery Performance 25%, Predictability 20%), Process Quality (DORA metrics 20%), Delivery Efficiency (Flow metrics 15%), Risk Indicators (Bug Analysis, Scope, Budget 25%). Weights dynamically adjust based on data availability, gracefully handling missing metrics.",
 }
 
 # PARAMETER INPUTS HELP CONTENT - Tooltips for parameter panel controls

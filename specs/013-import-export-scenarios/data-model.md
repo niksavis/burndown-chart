@@ -76,6 +76,7 @@ class ExportPackage:
     manifest: ExportManifest
     profile_data: Dict[str, Any]    # From profile.json
     query_data: Optional[Dict[str, Any]]  # None if CONFIG_ONLY
+    budget_data: Optional[Dict[str, Any]]  # Budget settings and revisions
 ```
 
 **Structure**:
@@ -101,14 +102,35 @@ class ExportPackage:
       "jira_cache": { /* cached issues */ },
       "metrics_snapshots": { /* weekly snapshots */ }
     }
+  },
+  "budget_data": {  // Budget settings and history
+    "budget_settings": {
+      "start_date": "2025-01-01",
+      "end_date": "2025-12-31",
+      "budget_hours": 2080,
+      "notes": "Annual development budget"
+    },
+    "budget_revisions": [
+      {
+        "timestamp": "2025-01-15T10:00:00Z",
+        "budget_hours": 2080,
+        "notes": "Initial budget allocation"
+      }
+    ]
   }
 }
 ```
 
 **Size Estimates**:
-- `CONFIG_ONLY`: ~5-10 KB (profile + query definitions)
-- `FULL_DATA`: ~500 KB - 5 MB (includes cached JIRA responses)
+- `CONFIG_ONLY`: ~5-10 KB (profile + query definitions + budget)
+- `FULL_DATA`: ~500 KB - 5 MB (includes cached JIRA responses + budget)
 - `FULL_DATA_WITH_TOKEN`: Same as FULL_DATA + token field
+
+**Budget Data Components**:
+- `budget_settings`: Current budget configuration (start/end dates, hours, notes)
+- `budget_revisions`: Historical changes to budget allocation with timestamps
+- Budget data is always included when present in the profile (all export modes)
+- Budget timestamps are updated to import time during import to maintain history
 
 ---
 

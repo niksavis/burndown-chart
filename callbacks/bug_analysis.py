@@ -38,7 +38,9 @@ logger = logging.getLogger(__name__)
 #######################################################################
 
 
-def _render_bug_analysis_content(data_points_count: int):
+def _render_bug_analysis_content(
+    data_points_count: int, show_points: bool = True, has_points_data: bool = False
+):
     """
     Render bug analysis tab content.
 
@@ -48,6 +50,8 @@ def _render_bug_analysis_content(data_points_count: int):
 
     Args:
         data_points_count: Number of weeks to include (from timeline filter)
+        show_points: Whether points tracking is enabled
+        has_points_data: Whether points data exists in the filtered time period
 
     Returns:
         Complete bug analysis tab content (html.Div)
@@ -67,27 +71,31 @@ def _render_bug_analysis_content(data_points_count: int):
         # Get JIRA issues from cache with ALL fields (don't specify fields to avoid validation mismatch)
         # By passing empty string for fields, load_jira_cache won't validate fields
         all_issues = []
-        cache_loaded = False  # Track if cache was successfully loaded
 
         try:
-            from data.jira_simple import load_jira_cache
-            from data.persistence import get_active_query_workspace
-            import json
+            # Load from database via backend
+            from data.persistence.factory import get_backend
 
-            # Load from query workspace cache
-            query_workspace = get_active_query_workspace()
-            cache_file = query_workspace / "jira_cache.json"
+            backend = get_backend()
+            active_profile_id = backend.get_app_state("active_profile_id")
+            active_query_id = backend.get_app_state("active_query_id")
 
-            if cache_file.exists():
-                with open(cache_file, "r", encoding="utf-8") as f:
-                    cache_data = json.load(f)
-                    all_issues = cache_data.get("issues", [])
-                    cache_loaded = True
+            # Get all issues from database
+            if active_profile_id and active_query_id:
+                all_issues = backend.get_issues(active_profile_id, active_query_id)
+
+                if all_issues:
                     logger.debug(
-                        f"Loaded {len(all_issues)} issues from query workspace cache: {cache_file}"
+                        f"Loaded {len(all_issues)} issues from database for {active_profile_id}/{active_query_id}"
+                    )
+                else:
+                    logger.warning(
+                        f"No issues found in database for {active_profile_id}/{active_query_id}"
                     )
             else:
-                logger.warning(f"No cache file found at {cache_file}")
+                logger.warning(
+                    f"No active profile/query configured: profile_id={active_profile_id}, query_id={active_query_id}"
+                )
         except Exception as e:
             logger.warning(f"Could not load from JIRA cache: {e}")
 
@@ -222,38 +230,117 @@ def _render_bug_analysis_content(data_points_count: int):
 
             # T056: Create bug investment chart (items + story points)
             # T057: Check if story points data is available
-            has_story_points = any(
+            # Check both weekly aggregations AND raw bug data for story points
+            has_story_points_in_stats = any(
                 stat.get("bugs_points_created", 0) > 0
                 or stat.get("bugs_points_resolved", 0) > 0
                 for stat in weekly_stats
             )
 
-            if has_story_points:
+            # Also check if ANY bugs have story points assigned
+            # This catches cases where weekly_stats might be empty but bugs have points
+            has_story_points_in_bugs = any(
+                (bug.get("points") or bug.get("fields", {}).get(points_field, 0) or 0)
+                > 0
+                for bug in (
+                    timeline_filtered_bugs if timeline_filtered_bugs else all_bug_issues
+                )
+            )
+
+            has_story_points = has_story_points_in_stats or has_story_points_in_bugs
+
+            logger.info(
+                f"[BUG ANALYSIS] has_story_points={has_story_points} "
+                f"(stats={has_story_points_in_stats}, bugs={has_story_points_in_bugs}), "
+                f"weekly_stats count={len(weekly_stats)}"
+            )
+            if weekly_stats:
+                logger.debug(f"[BUG ANALYSIS] Sample stat: {weekly_stats[0]}")
+
+            # Bug Investment Chart - only show when points tracking is enabled AND has data
+            if show_points and has_points_data and has_story_points:
                 investment_chart = BugInvestmentChart(
                     weekly_stats, viewport_size="mobile"
                 )
-            else:
-                # T057: Show message when no story points
+            elif not show_points:
+                # Points tracking disabled
                 investment_chart = dbc.Card(
                     dbc.CardBody(
                         [
                             html.H5(
                                 "Bug Investment Chart",
-                                className="card-title",
+                                className="card-title mb-3",
                             ),
                             html.Div(
                                 [
-                                    html.I(className="fas fa-info-circle me-2"),
-                                    html.Span(
-                                        "Story points data not available for this project. "
-                                        "Only bug item counts are being tracked."
+                                    html.I(
+                                        className="fas fa-toggle-off fa-lg text-secondary"
+                                    ),
+                                    html.Div(
+                                        "Points Tracking Disabled",
+                                        className="fw-bold",
+                                        style={
+                                            "fontSize": "1rem",
+                                            "color": "#6c757d",
+                                        },
+                                    ),
+                                    html.Small(
+                                        "Enable points tracking in Settings to view bug investment by story points.",
+                                        className="text-muted",
+                                        style={"fontSize": "0.85rem"},
                                     ),
                                 ],
-                                className="alert alert-info",
+                                className="d-flex align-items-center justify-content-center flex-column",
+                                style={"gap": "0.25rem"},
                             ),
-                        ]
+                        ],
                     ),
                     className="mb-3",
+                    style={
+                        "borderRadius": "0.375rem",
+                        "border": "1px solid #dee2e6",
+                        "backgroundColor": "#f8f9fa",
+                    },
+                )
+            else:
+                # Points tracking enabled but no data in filtered period
+                investment_chart = dbc.Card(
+                    dbc.CardBody(
+                        [
+                            html.H5(
+                                "Bug Investment Chart",
+                                className="card-title mb-3",
+                            ),
+                            html.Div(
+                                [
+                                    html.I(
+                                        className="fas fa-database fa-lg text-secondary"
+                                    ),
+                                    html.Div(
+                                        "No Points Data",
+                                        className="fw-bold",
+                                        style={
+                                            "fontSize": "1rem",
+                                            "color": "#6c757d",
+                                        },
+                                    ),
+                                    html.Small(
+                                        "No story points data available in the selected time period. Configure story points field in Settings or complete bug items with point estimates.",
+                                        className="text-muted",
+                                        style={"fontSize": "0.85rem"},
+                                    ),
+                                ],
+                                className="d-flex align-items-center justify-content-center flex-column",
+                                style={"gap": "0.25rem"},
+                            ),
+                        ],
+                    ),
+                    className="mb-3",
+                    style={
+                        "borderRadius": "0.375rem",
+                        "border": "1px solid #dee2e6",
+                        "backgroundColor": "#f8f9fa",
+                    },
                 )
         except ValueError as ve:
             # Handle edge case: not enough bugs for statistics

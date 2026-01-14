@@ -28,6 +28,41 @@ import logging
 logger = logging.getLogger(__name__)
 
 
+def _get_completed_date_field():
+    """Get the completed_date field mapping with backwards compatibility.
+
+    Checks general mappings first (new location), falls back to flow mappings (old location).
+
+    Returns:
+        str: Field name to use for completion date (e.g., "resolutiondate" or "resolved")
+    """
+    from data.persistence import load_app_settings
+
+    settings = load_app_settings()
+    field_mappings = settings.get("field_mappings", {})
+
+    # New location: general.completed_date
+    general_mappings = field_mappings.get("general", {})
+    completed_date_field = general_mappings.get("completed_date")
+
+    if completed_date_field:
+        return completed_date_field
+
+    # Backwards compatibility: check old location in flow.completed_date
+    flow_mappings = field_mappings.get("flow", {})
+    completed_date_field = flow_mappings.get("completed_date")
+
+    if completed_date_field:
+        logger.warning(
+            "completed_date found in flow mappings (deprecated location). "
+            "Please move to General Fields section in field mapping UI."
+        )
+        return completed_date_field
+
+    # Default fallback for JIRA Cloud (most common)
+    return "resolutiondate"
+
+
 def _get_field_mappings():
     """Load field mappings and project classification from app settings.
 
@@ -47,19 +82,30 @@ def _get_field_mappings():
     default_flow_start_statuses = ["In Progress", "In Review"]
     default_wip_statuses = ["In Progress", "In Review", "In Development"]
 
+    # Get values and apply defaults if None or empty list
+    flow_end = app_settings.get("flow_end_statuses")
+    flow_start = app_settings.get("flow_start_statuses")
+    wip = app_settings.get("wip_statuses")
+
     project_classification = {
-        "flow_end_statuses": app_settings.get("flow_end_statuses")
-        or default_flow_end_statuses,
+        "flow_end_statuses": flow_end if flow_end else default_flow_end_statuses,
         "active_statuses": app_settings.get("active_statuses", []),
-        "wip_statuses": app_settings.get("wip_statuses") or default_wip_statuses,
-        "flow_start_statuses": app_settings.get("flow_start_statuses")
-        or default_flow_start_statuses,
+        "wip_statuses": wip if wip else default_wip_statuses,
+        "flow_start_statuses": flow_start
+        if flow_start
+        else default_flow_start_statuses,
         "bug_types": app_settings.get("bug_types", []),
         "devops_task_types": app_settings.get("devops_task_types", []),
         "production_environment_values": app_settings.get(
             "production_environment_values", []
         ),
     }
+
+    logger.debug(
+        f"[Flow Metrics] Loaded status configuration: "
+        f"flow_start={project_classification['flow_start_statuses']}, "
+        f"flow_end={project_classification['flow_end_statuses']}"
+    )
 
     return flow_mappings, project_classification
 
@@ -108,9 +154,21 @@ def _extract_datetime_from_field_mapping(
                     return history.get("created")
         return None
 
-    # Handle simple field paths
+    # Handle simple and nested field paths (e.g., "resolutiondate" or "resolved.resolutiondate")
     fields = issue.get("fields", {})
-    return fields.get(field_mapping)
+    if "." in field_mapping:
+        # Nested field like "resolved.resolutiondate" (Apache JIRA)
+        parts = field_mapping.split(".")
+        value = fields
+        for part in parts:
+            if isinstance(value, dict):
+                value = value.get(part)
+            else:
+                return None
+        return value if isinstance(value, str) else None
+    else:
+        # Simple field like "created", "resolutiondate"
+        return fields.get(field_mapping)
 
 
 def _find_first_transition_to_statuses(
@@ -143,36 +201,64 @@ def _find_first_transition_to_statuses(
 
 
 def _is_issue_completed(
-    issue: Dict[str, Any], completed_date_field: str, changelog: Optional[List] = None
+    issue: Dict[str, Any],
+    completed_date_field: str,
+    changelog: Optional[List] = None,
+    flow_end_statuses: Optional[List[str]] = None,
 ) -> bool:
-    """Check if issue is completed by checking if completed_date field has a value.
+    """Check if issue is completed by checking if completed_date field has a value OR if it transitioned to a flow_end_status.
 
     Args:
         issue: JIRA issue dictionary
         completed_date_field: Field mapping for completion date
         changelog: Optional changelog history
+        flow_end_statuses: List of statuses that indicate completion (e.g., ["Done", "Closed"])
 
     Returns:
-        True if issue has a completion date
+        True if issue has a completion date OR has transitioned to a flow_end_status
     """
+    # First check the completed_date field
     completed_date = _extract_datetime_from_field_mapping(
         issue, completed_date_field, changelog
     )
-    return completed_date is not None
+    if completed_date is not None:
+        return True
+
+    # If no completed_date field but we have flow_end_statuses, check changelog for transition
+    if flow_end_statuses and changelog:
+        completion_timestamp = _find_first_transition_to_statuses(
+            changelog, flow_end_statuses
+        )
+        if completion_timestamp is not None:
+            return True
+
+    return False
 
 
 def _is_issue_in_progress(issue: Dict[str, Any], wip_statuses: List[str]) -> bool:
     """Check if issue is currently in progress based on WIP statuses.
 
     Args:
-        issue: JIRA issue dictionary
+        issue: JIRA issue dictionary (supports both JIRA API format and flat database format)
         wip_statuses: List of status names that indicate WIP
 
     Returns:
         True if issue status is in wip_statuses
     """
+    # Try nested JIRA API format first (fields.status.name)
     status = issue.get("fields", {}).get("status", {}).get("name", "")
-    return status in wip_statuses
+
+    # If not found, try flat database format (status field directly)
+    if not status:
+        status = issue.get("status", "")
+
+    issue_key = issue.get("key") or issue.get("issue_key", "unknown")
+    is_wip = status in wip_statuses
+    logger.debug(
+        f"[WIP Check] {issue_key}: status='{status}', is_wip={is_wip}, wip_statuses={wip_statuses[:3]}..."
+    )
+
+    return is_wip
 
 
 def _get_work_type_for_issue(
@@ -183,7 +269,7 @@ def _get_work_type_for_issue(
     Uses the same logic as metrics_calculator.py lines 651-716.
 
     Args:
-        issue: JIRA issue dictionary
+        issue: JIRA issue dictionary (supports both JIRA API format and flat database format)
         flow_mappings: Flow field mappings
         flow_type_mappings: Work type classification mappings
 
@@ -192,11 +278,23 @@ def _get_work_type_for_issue(
     """
     from configuration.metrics_config import get_metrics_config
 
+    # Try nested JIRA API format first
     fields = issue.get("fields", {})
+
+    # If fields is empty, use flat database format (issue itself is the fields dict)
+    if not fields:
+        fields = issue
 
     # Extract issue type
     flow_type_field = flow_mappings.get("flow_item_type", "issuetype")
+
+    # First try to get from fields dict
     issue_type_value = fields.get(flow_type_field)
+
+    # If not found and we're in flat format, try issue_type field directly
+    if not issue_type_value and flow_type_field == "issuetype":
+        issue_type_value = fields.get("issue_type")
+
     if isinstance(issue_type_value, dict):
         issue_type = issue_type_value.get("name") or issue_type_value.get("value", "")
     else:
@@ -334,9 +432,12 @@ def calculate_flow_velocity(
     flow_mappings, project_classification = _get_field_mappings()
     from data.persistence import load_app_settings
 
-    flow_type_mappings = load_app_settings().get("flow_type_mappings", {})
+    settings = load_app_settings()
+    flow_type_mappings = settings.get("flow_type_mappings", {})
+    flow_end_statuses = project_classification.get("flow_end_statuses", [])
 
-    completed_date_field = flow_mappings.get("completed_date", "resolutiondate")
+    # Get completed_date field (checks general mappings, falls back to flow for compatibility)
+    completed_date_field = _get_completed_date_field()
 
     # Extract completion status and work type from issues
     completed_issues = []
@@ -350,7 +451,9 @@ def calculate_flow_velocity(
         changelog = issue.get("changelog", {}).get("histories", [])
 
         # Check if issue is completed using field mappings
-        if not _is_issue_completed(issue, completed_date_field, changelog):
+        if not _is_issue_completed(
+            issue, completed_date_field, changelog, flow_end_statuses
+        ):
             continue
 
         # Extract work type category using field mappings
@@ -393,7 +496,7 @@ def calculate_flow_velocity(
     )
 
     return {
-        "value": round(velocity, 1),
+        "value": velocity,
         "unit": "items/week",
         "breakdown": breakdown,
         "trend_direction": trend["trend_direction"],
@@ -454,7 +557,12 @@ def calculate_flow_time(
 
     flow_start_statuses = project_classification.get("flow_start_statuses", [])
     flow_end_statuses = project_classification.get("flow_end_statuses", [])
-    completed_date_field = flow_mappings.get("completed_date", "resolutiondate")
+    completed_date_field = _get_completed_date_field()
+
+    logger.info(
+        f"[Flow Time] Configuration loaded: flow_start_statuses={flow_start_statuses}, "
+        f"flow_end_statuses={flow_end_statuses}, completed_date_field={completed_date_field}"
+    )
 
     # Validate required configuration
     if not flow_start_statuses:
@@ -481,14 +589,40 @@ def calculate_flow_time(
 
     # Extract cycle times from completed issues
     cycle_times = []
+    issues_checked = 0
+    issues_completed = 0
+    issues_with_start = 0
+    issues_with_completion = 0
 
     for issue in issues:
+        issues_checked += 1
+        issue_key = issue.get("key", "unknown")
         # Extract changelog for status transition detection
         changelog = issue.get("changelog", {}).get("histories", [])
 
+        # Extract current status and completed date field for debugging
+        current_status = (
+            issue.get("fields", {}).get("status", {}).get("name", "unknown")
+        )
+        fields = issue.get("fields", {})
+        completed_date_value = fields.get(completed_date_field)
+
         # Check if issue is completed using field mappings
-        if not _is_issue_completed(issue, completed_date_field, changelog):
+        is_completed = _is_issue_completed(
+            issue, completed_date_field, changelog, flow_end_statuses
+        )
+
+        if issues_checked <= 3:  # Log first 3 issues for debugging
+            logger.info(
+                f"[Flow Time] Issue {issue_key}: status={current_status}, "
+                f"{completed_date_field}={completed_date_value}, is_completed={is_completed}, "
+                f"has_changelog={len(changelog) > 0}"
+            )
+
+        if not is_completed:
             continue
+
+        issues_completed += 1
 
         # Find first transition to any flow_start_status (work started)
         start_timestamp = _find_first_transition_to_statuses(
@@ -498,6 +632,11 @@ def calculate_flow_time(
         completion_timestamp = _find_first_transition_to_statuses(
             changelog, flow_end_statuses
         )
+
+        if start_timestamp:
+            issues_with_start += 1
+        if completion_timestamp:
+            issues_with_completion += 1
 
         if not start_timestamp or not completion_timestamp:
             continue
@@ -525,7 +664,11 @@ def calculate_flow_time(
 
     # Check if we have data
     if not cycle_times:
-        logger.info("Flow Time: No completed issues with valid timestamps found")
+        logger.info(
+            f"Flow Time: No completed issues with valid timestamps found "
+            f"(checked={issues_checked}, completed={issues_completed}, "
+            f"with_start={issues_with_start}, with_completion={issues_with_completion})"
+        )
         return {
             "value": 0.0,
             "unit": "days",
@@ -549,14 +692,14 @@ def calculate_flow_time(
     )
 
     return {
-        "value": round(median_flow_time, 1),
+        "value": median_flow_time,
         "unit": "days",
         "trend_direction": trend["trend_direction"],
         "trend_percentage": trend["trend_percentage"],
         "error_state": None,
         "error_message": None,
         # Additional statistics for analysis
-        "mean_days": round(mean_flow_time, 1),
+        "mean_days": mean_flow_time,
     }
 
 
@@ -676,7 +819,8 @@ def calculate_flow_efficiency(
 
     active_statuses = project_classification.get("active_statuses", [])
     wip_statuses = project_classification.get("wip_statuses", [])
-    completed_date_field = flow_mappings.get("completed_date", "resolutiondate")
+    flow_end_statuses = project_classification.get("flow_end_statuses", [])
+    completed_date_field = _get_completed_date_field()
 
     if not active_statuses or not wip_statuses:
         logger.warning(
@@ -699,7 +843,9 @@ def calculate_flow_efficiency(
         changelog = issue.get("changelog", {}).get("histories", [])
 
         # Check if issue is completed using field mappings
-        if not _is_issue_completed(issue, completed_date_field, changelog):
+        if not _is_issue_completed(
+            issue, completed_date_field, changelog, flow_end_statuses
+        ):
             continue
 
         # Calculate active time and total WIP time from changelog
@@ -739,7 +885,7 @@ def calculate_flow_efficiency(
     )
 
     return {
-        "value": round(average_efficiency, 1),
+        "value": average_efficiency,
         "unit": "%",
         "trend_direction": trend["trend_direction"],
         "trend_percentage": trend["trend_percentage"],
@@ -780,6 +926,8 @@ def calculate_flow_load(
     _, project_classification = _get_field_mappings()
 
     wip_statuses = project_classification.get("wip_statuses", [])
+
+    logger.info(f"Flow Load: wip_statuses configuration: {wip_statuses}")
 
     if not wip_statuses:
         logger.warning("Flow Load: Missing wip_statuses configuration")
@@ -855,12 +1003,18 @@ def calculate_flow_distribution(
     )
 
     # Load field mappings
-    flow_mappings, _ = _get_field_mappings()
+    flow_mappings, project_classification = _get_field_mappings()
     from data.persistence import load_app_settings
 
     flow_type_mappings = load_app_settings().get("flow_type_mappings", {})
+    flow_end_statuses = project_classification.get("flow_end_statuses", [])
 
-    completed_date_field = flow_mappings.get("completed_date", "resolutiondate")
+    completed_date_field = _get_completed_date_field()
+
+    logger.info(
+        f"Flow Distribution: flow_end_statuses={flow_end_statuses}, completed_date_field={completed_date_field}"
+    )
+    logger.info(f"Flow Distribution: flow_type_mappings={flow_type_mappings}")
 
     # Initialize distribution counts from configured flow types
     distribution_counts = {key: 0 for key in flow_type_mappings.keys()}
@@ -872,20 +1026,35 @@ def calculate_flow_distribution(
             "Risk": 0,
         }
 
+    completed_count = 0
     for issue in issues:
         # Extract changelog for variable extraction
         changelog = issue.get("changelog", {}).get("histories", [])
 
         # Check if issue is completed using field mappings
-        if not _is_issue_completed(issue, completed_date_field, changelog):
-            continue
+        is_completed = _is_issue_completed(
+            issue, completed_date_field, changelog, flow_end_statuses
+        )
 
-        # Extract work type category using field mappings
-        work_type = _get_work_type_for_issue(issue, flow_mappings, flow_type_mappings)
-        if work_type in distribution_counts:
-            distribution_counts[work_type] += 1
-        else:
-            distribution_counts[work_type] = distribution_counts.get(work_type, 0) + 1
+        if is_completed:
+            completed_count += 1
+            # Extract work type category using field mappings
+            work_type = _get_work_type_for_issue(
+                issue, flow_mappings, flow_type_mappings
+            )
+            issue_key = issue.get("key") or issue.get("issue_key", "unknown")
+            logger.debug(f"[Work Type] {issue_key}: type='{work_type}'")
+            if work_type in distribution_counts:
+                distribution_counts[work_type] += 1
+            else:
+                distribution_counts[work_type] = (
+                    distribution_counts.get(work_type, 0) + 1
+                )
+
+    logger.info(
+        f"Flow Distribution: Found {completed_count} completed issues out of {len(issues)} total"
+    )
+    logger.info(f"Flow Distribution: distribution_counts={distribution_counts}")
 
     total_completed = sum(distribution_counts.values())
 
@@ -904,7 +1073,7 @@ def calculate_flow_distribution(
 
     # Calculate percentages
     distribution_percentages = {
-        work_type: round((count / total_completed) * 100, 1)
+        work_type: (count / total_completed) * 100
         for work_type, count in distribution_counts.items()
     }
 

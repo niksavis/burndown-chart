@@ -48,7 +48,12 @@ def get_fixversions(issue: Dict) -> List[Dict]:
         ]
     """
     try:
-        return issue.get("fields", {}).get("fixVersions", [])
+        # Handle both nested (JIRA API) and flat (database) formats
+        if "fields" in issue and isinstance(issue.get("fields"), dict):
+            return issue.get("fields", {}).get("fixVersions", [])
+        else:
+            # Flat format: fixVersions at root level
+            return issue.get("fixVersions", [])
     except Exception as e:
         logger.error(
             f"Error getting fixVersions for issue {issue.get('key', 'UNKNOWN')}: {e}"
@@ -619,11 +624,22 @@ def build_fixversion_release_map(
     for issue in operational_tasks:
         # Filter by completion status if provided
         if flow_end_statuses:
-            status = issue.get("fields", {}).get("status", {}).get("name", "")
+            # Handle both nested (JIRA API) and flat (database) formats
+            if "fields" in issue and isinstance(issue.get("fields"), dict):
+                status = issue.get("fields", {}).get("status", {}).get("name", "")
+            else:
+                # Flat format: status at root level
+                status = issue.get("status", "")
+
             if status not in flow_end_statuses:
                 continue
 
-        fix_versions = issue.get("fields", {}).get("fixVersions", [])
+        # Handle both nested (JIRA API) and flat (database) formats
+        if "fields" in issue and isinstance(issue.get("fields"), dict):
+            fix_versions = issue.get("fields", {}).get("fixVersions", [])
+        else:
+            # Flat format: fixVersions at root level
+            fix_versions = issue.get("fixVersions", [])
         for fv in fix_versions:
             fv_name = fv.get("name")
             release_date_str = fv.get("releaseDate")
@@ -680,7 +696,12 @@ def get_deployment_date_for_issue(
         >>> get_deployment_date_for_issue(issue, release_map)
         datetime(2025, 1, 15, 0, 0)  # Returns earliest
     """
-    fix_versions = issue.get("fields", {}).get("fixVersions", [])
+    # Handle both nested (JIRA API) and flat (database) formats
+    if "fields" in issue and isinstance(issue.get("fields"), dict):
+        fix_versions = issue.get("fields", {}).get("fixVersions", [])
+    else:
+        # Flat format: fixVersions at root level
+        fix_versions = issue.get("fixVersions", [])
 
     deployment_dates = []
     for fv in fix_versions:

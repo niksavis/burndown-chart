@@ -491,7 +491,12 @@ def get_status_at_point_in_time(
     """
     try:
         # Check if issue existed at target time
-        created_str = issue.get("fields", {}).get("created")
+        # Handle both nested JIRA API format and flat database format
+        if "fields" in issue and isinstance(issue.get("fields"), dict):
+            created_str = issue["fields"].get("created")
+        else:
+            created_str = issue.get("created")
+
         if not created_str:
             return None
 
@@ -509,11 +514,16 @@ def get_status_at_point_in_time(
             return None
 
         # Get current status as fallback
-        current_status = issue.get("fields", {}).get("status", {})
-        if isinstance(current_status, dict):
-            current_status_name = current_status.get("name", "")
+        # Handle both nested JIRA API format and flat database format
+        if "fields" in issue and isinstance(issue.get("fields"), dict):
+            current_status = issue["fields"].get("status", {})
+            if isinstance(current_status, dict):
+                current_status_name = current_status.get("name", "")
+            else:
+                current_status_name = current_status or ""
         else:
-            current_status_name = current_status or ""
+            # Flat format: status at top level
+            current_status_name = issue.get("status", "")
 
         # Check if issue has changelog
         changelog = issue.get("changelog", {})

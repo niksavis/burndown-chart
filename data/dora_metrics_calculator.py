@@ -225,7 +225,7 @@ def load_dora_metrics_from_cache(n_weeks: int = 12) -> Optional[Dict[str, Any]]:
             logger.info(
                 f"[LOAD_CACHE] Week {week_label}: lt_data={lt_data}, lt_hours={lt_hours}"
             )
-            lt_days = round(lt_hours / 24, 1) if lt_hours else 0
+            lt_days = lt_hours / 24 if lt_hours else 0
             weekly_lead_time.append(lt_days)
 
             # Accumulate issue count regardless of whether we have hours
@@ -248,12 +248,12 @@ def load_dora_metrics_from_cache(n_weeks: int = 12) -> Optional[Dict[str, Any]]:
             cfr_percent = (
                 cfr_data.get("change_failure_rate_percent", 0) if cfr_data else 0
             )
-            weekly_cfr.append(round(cfr_percent, 1))
+            weekly_cfr.append(cfr_percent)
             # NEW: Track release-based CFR
             cfr_release_percent = (
                 cfr_data.get("release_failure_rate_percent", 0) if cfr_data else 0
             )
-            weekly_cfr_releases.append(round(cfr_release_percent, 1))
+            weekly_cfr_releases.append(cfr_release_percent)
 
             if cfr_data:
                 total_cfr_numerator += cfr_data.get("failed_deployments", 0)
@@ -272,7 +272,7 @@ def load_dora_metrics_from_cache(n_weeks: int = 12) -> Optional[Dict[str, Any]]:
             mttr_count = (
                 mttr_data.get("bugs_with_mttr", 0) if mttr_data else 0
             )  # FIX: Use correct field name
-            weekly_mttr.append(round(mttr_hours, 1) if mttr_hours else 0)
+            weekly_mttr.append(mttr_hours if mttr_hours else 0)
 
             # Accumulate issue count regardless of whether we have hours
             if mttr_count > 0:
@@ -341,19 +341,19 @@ def load_dora_metrics_from_cache(n_weeks: int = 12) -> Optional[Dict[str, Any]]:
                 "total_issue_count": total_deployment_issues,
             },
             "lead_time_for_changes": {
-                "value": round(overall_lead_time / 24, 1)
+                "value": overall_lead_time / 24
                 if overall_lead_time is not None
                 else None,
-                "value_hours": round(overall_lead_time, 1)
+                "value_hours": overall_lead_time
                 if overall_lead_time is not None
                 else None,  # Hours equivalent for secondary display
-                "value_days": round(overall_lead_time / 24, 1)
+                "value_days": overall_lead_time / 24
                 if overall_lead_time is not None
                 else None,  # Days equivalent for secondary display
-                "p95_value": round(overall_lead_time_p95 / 24, 1)
+                "p95_value": overall_lead_time_p95 / 24
                 if overall_lead_time_p95 is not None
                 else None,  # NEW: P95 in days
-                "mean_value": round(overall_lead_time_mean / 24, 1)
+                "mean_value": overall_lead_time_mean / 24
                 if overall_lead_time_mean is not None
                 else None,  # NEW: Mean in days
                 "weekly_labels": weekly_labels,
@@ -361,27 +361,25 @@ def load_dora_metrics_from_cache(n_weeks: int = 12) -> Optional[Dict[str, Any]]:
                 "total_issue_count": total_lead_time_issues,
             },
             "change_failure_rate": {
-                "value": round(overall_cfr, 1),
-                "release_value": round(
-                    overall_cfr_releases, 1
-                ),  # NEW: Release-based CFR
+                "value": overall_cfr,
+                "release_value": overall_cfr_releases,  # NEW: Release-based CFR
                 "weekly_labels": weekly_labels,
                 "weekly_values": weekly_cfr,
                 "weekly_release_values": weekly_cfr_releases,  # NEW: Release CFR per week
                 "total_issue_count": total_cfr_issues,
             },
             "mean_time_to_recovery": {
-                "value": round(overall_mttr, 1) if overall_mttr else None,
-                "value_hours": round(overall_mttr, 1)
+                "value": overall_mttr if overall_mttr else None,
+                "value_hours": overall_mttr
                 if overall_mttr is not None
                 else None,  # Hours equivalent for secondary display
-                "value_days": round(overall_mttr / 24, 1)
+                "value_days": overall_mttr / 24
                 if overall_mttr is not None
                 else None,  # Days equivalent for secondary display
-                "p95_value": round(overall_mttr_p95, 1)
+                "p95_value": overall_mttr_p95
                 if overall_mttr_p95 is not None
                 else None,  # NEW: P95 MTTR
-                "mean_value": round(overall_mttr_mean, 1)
+                "mean_value": overall_mttr_mean
                 if overall_mttr_mean is not None
                 else None,  # NEW: Mean MTTR
                 "weekly_labels": weekly_labels,

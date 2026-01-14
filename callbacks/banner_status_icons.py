@@ -6,7 +6,6 @@ Provides visual feedback even when Settings panel is closed.
 """
 
 import logging
-from pathlib import Path
 import json
 from dash import callback, Output, Input
 
@@ -34,15 +33,15 @@ def update_banner_status_icons(n_intervals):
     Returns:
         Tuple of (profile icon class, query icon class)
     """
-    progress_file = Path("task_progress.json")
-
-    if not progress_file.exists():
-        # No operation in progress - return default icons
-        return "fas fa-folder me-1", "fas fa-search me-1"
-
     try:
-        with open(progress_file, "r", encoding="utf-8") as f:
-            progress_data = json.load(f)
+        from data.persistence.factory import get_backend
+
+        backend = get_backend()
+        progress_data = backend.get_task_state()
+
+        if not progress_data:
+            # No operation in progress - return default icons
+            return "fas fa-folder me-1", "fas fa-search me-1"
 
         status = progress_data.get("status", "idle")
         phase = progress_data.get("phase", "fetch")

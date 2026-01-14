@@ -12,13 +12,11 @@ Tests cover:
 All tests use temporary directories for isolation (no project root pollution).
 """
 
-import pytest
 import logging
 import json
 import os
 import time
-from datetime import datetime, timedelta
-from pathlib import Path
+from typing import cast
 
 
 def test_setup_logging_creates_log_directory(temp_log_dir):
@@ -234,3 +232,68 @@ def test_cleanup_old_logs_preserves_recent_files(temp_log_dir):
     # Verify recent file was NOT deleted
     assert os.path.exists(recent_log), "Recent log file should be preserved"
     assert deleted_count == 0, "Should report 0 files deleted"
+
+
+def test_sensitive_data_filter_preserves_numeric_types(temp_log_dir):
+    """Test that numeric argument types are preserved after filtering.
+
+    This prevents TypeError when using %d format strings with numeric arguments,
+    like waitress's 'Task queue depth is %d' message.
+    """
+    from configuration.logging_config import SensitiveDataFilter
+
+    # Create a filter instance
+    filter_instance = SensitiveDataFilter()
+
+    # Create a mock LogRecord with numeric args (similar to waitress)
+    record = logging.LogRecord(
+        name="waitress.queue",
+        level=logging.WARNING,
+        pathname="task.py",
+        lineno=113,
+        msg="Task queue depth is %d",
+        args=(2,),  # Integer argument
+        exc_info=None,
+    )
+
+    # Apply filter
+    result = filter_instance.filter(record)
+
+    # Filter should return True (don't suppress the record)
+    assert result is True
+
+    # Args should still contain integer, not string
+    assert record.args is not None
+    args_tuple = cast(tuple[int], record.args)
+    assert args_tuple == (2,), f"Expected (2,), got {args_tuple}"
+    assert isinstance(args_tuple[0], int), f"Expected int, got {type(args_tuple[0])}"
+
+    # getMessage should work without TypeError
+    message = record.getMessage()
+    assert message == "Task queue depth is 2"
+
+
+def test_sensitive_data_filter_converts_to_string_when_redacting():
+    """Test that args are converted to string only when redaction occurs."""
+    from configuration.logging_config import SensitiveDataFilter
+
+    filter_instance = SensitiveDataFilter()
+
+    # Create a record with a sensitive value in args
+    record = logging.LogRecord(
+        name="test",
+        level=logging.INFO,
+        pathname="test.py",
+        lineno=1,
+        msg="API key: %s",
+        args=('{"api_key": "sk-secret123"}',),
+        exc_info=None,
+    )
+
+    filter_instance.filter(record)
+
+    # Args should be redacted and converted to string
+    assert record.args is not None
+    args_tuple = cast(tuple[str], record.args)
+    assert "[REDACTED]" in str(args_tuple[0])
+    assert "sk-secret123" not in str(args_tuple[0])

@@ -28,6 +28,70 @@ from ui.tooltip_utils import create_hoverlabel_config, format_hover_template
 # Mobile optimization removed for simplicity - will implement via CSS and responsive config
 
 #######################################################################
+# HELPER FUNCTIONS
+#######################################################################
+
+
+def _fill_missing_weeks(weekly_df, start_date, end_date, value_columns):
+    """Fill in missing weeks with zero values to show complete time range.
+
+    Args:
+        weekly_df: DataFrame with aggregated weekly data (may have gaps)
+        start_date: Start date of the time range
+        end_date: End date of the time range
+        value_columns: List of column names to fill with zeros (e.g., ['items', 'points'])
+
+    Returns:
+        DataFrame with all weeks in the range, missing weeks filled with zeros
+    """
+    if weekly_df.empty:
+        return weekly_df
+
+    # Create complete week range
+    all_weeks = []
+    current = start_date
+    while current <= end_date:
+        # Get ISO week info
+        iso_calendar = current.isocalendar()
+        year_week = f"{iso_calendar.year}-W{iso_calendar.week:02d}"
+        all_weeks.append(
+            {
+                "year_week": year_week,
+                "start_date": current
+                - timedelta(days=current.weekday()),  # Monday of the week
+            }
+        )
+        current += timedelta(weeks=1)
+
+    # Create DataFrame with all weeks
+    all_weeks_df = pd.DataFrame(all_weeks)
+
+    # Merge with actual data, filling missing values with 0
+    result_df = all_weeks_df.merge(
+        weekly_df, on="year_week", how="left", suffixes=("", "_actual")
+    )
+
+    # Use the actual start_date if it exists, otherwise use the computed one
+    if "start_date_actual" in result_df.columns:
+        result_df["start_date"] = result_df["start_date_actual"].fillna(
+            result_df["start_date"]
+        )
+        result_df = result_df.drop("start_date_actual", axis=1)
+
+    # Ensure start_date is datetime type
+    result_df["start_date"] = pd.to_datetime(
+        result_df["start_date"], format="mixed", errors="coerce"
+    )
+
+    # Fill missing value columns with 0
+    for col in value_columns:
+        if col in result_df.columns:
+            result_df[col] = result_df[col].fillna(0)
+
+    return result_df.sort_values("start_date")
+
+
+#######################################################################
 # CHART CREATION FUNCTIONS
 #######################################################################
 
@@ -671,7 +735,11 @@ def create_forecast_plot(
 
         # Calculate days to deadline for metrics
         current_date = datetime.now()
-        days_to_deadline = max(0, (deadline - pd.Timestamp(current_date)).days)
+        # Handle None or NaT deadline safely
+        if deadline is None or pd.isna(deadline):
+            days_to_deadline = 0
+        else:
+            days_to_deadline = max(0, (deadline - pd.Timestamp(current_date)).days)
 
         # Calculate weekly metrics
         avg_weekly_items, avg_weekly_points, med_weekly_items, med_weekly_points = (
@@ -727,7 +795,9 @@ def create_forecast_plot(
                 "total_items": total_items,
                 "total_points": total_points,
                 "deadline": deadline.strftime("%Y-%m-%d")
-                if hasattr(deadline, "strftime")
+                if deadline is not None
+                and hasattr(deadline, "strftime")
+                and not pd.isna(deadline)
                 else "Unknown",
                 "days_to_deadline": days_to_deadline,
                 "avg_weekly_items": float(avg_weekly_items),
@@ -807,7 +877,7 @@ def _parse_deadline_milestone(deadline_str, milestone_str=None):
     """
     # Parse deadline with error handling
     try:
-        deadline = pd.to_datetime(deadline_str)
+        deadline = pd.to_datetime(deadline_str, format="mixed", errors="coerce")
     except (ValueError, TypeError):
         # Use fallback date 30 days from now if deadline format is invalid
         deadline = pd.Timestamp.now() + pd.Timedelta(days=30)
@@ -819,7 +889,7 @@ def _parse_deadline_milestone(deadline_str, milestone_str=None):
     milestone = None
     if milestone_str:
         try:
-            milestone = pd.to_datetime(milestone_str)
+            milestone = pd.to_datetime(milestone_str, format="mixed", errors="coerce")
             # Only reject milestones that are AFTER the deadline, not equal to it
             if milestone > deadline:
                 logging.getLogger("burndown_chart").warning(
@@ -965,7 +1035,6 @@ def _handle_forecast_error(e):
 
 def create_weekly_items_chart(
     statistics_data,
-    date_range_weeks=12,
     pert_factor=3,
     include_forecast=True,
     data_points_count=None,
@@ -975,7 +1044,6 @@ def create_weekly_items_chart(
 
     Args:
         statistics_data: List of dictionaries containing statistics data
-        date_range_weeks: Number of weeks to display (default: 12 weeks)
         pert_factor: PERT factor for calculations (for forecast)
         include_forecast: Whether to include forecast data (default: True)
         data_points_count: Number of data points to use for calculations (default: None, uses all data)
@@ -984,19 +1052,38 @@ def create_weekly_items_chart(
     Returns:
         Plotly figure object with the weekly items chart
     """
-    # Apply data points filtering before creating chart
+    # CRITICAL FIX: Apply data points filtering by DATE RANGE, not row count
+    # data_points_count represents WEEKS, not rows. With sparse data,
+    # filtering by row count gives incorrect results.
     filtered_statistics_data = statistics_data
     if data_points_count is not None and data_points_count > 0:
-        if (
-            isinstance(statistics_data, list)
-            and len(statistics_data) > data_points_count
-        ):
-            filtered_statistics_data = statistics_data[-data_points_count:]
-        elif (
-            isinstance(statistics_data, pd.DataFrame)
-            and len(statistics_data) > data_points_count
-        ):
-            filtered_statistics_data = statistics_data.tail(data_points_count)
+        if isinstance(statistics_data, list):
+            # Convert to DataFrame for date-based filtering
+            df_temp = pd.DataFrame(statistics_data)
+            if not df_temp.empty and "date" in df_temp.columns:
+                df_temp["date"] = pd.to_datetime(
+                    df_temp["date"], format="mixed", errors="coerce"
+                )
+                df_temp = df_temp.dropna(subset=["date"])
+                df_temp = df_temp.sort_values("date", ascending=True)
+
+                latest_date = df_temp["date"].max()
+                cutoff_date = latest_date - timedelta(weeks=data_points_count)
+                df_temp = df_temp[df_temp["date"] >= cutoff_date]
+
+                filtered_statistics_data = df_temp.to_dict("records")
+        elif isinstance(statistics_data, pd.DataFrame):
+            df_temp = statistics_data.copy()
+            if not df_temp.empty and "date" in df_temp.columns:
+                df_temp["date"] = pd.to_datetime(
+                    df_temp["date"], format="mixed", errors="coerce"
+                )
+                df_temp = df_temp.dropna(subset=["date"])
+                df_temp = df_temp.sort_values("date", ascending=True)
+
+                latest_date = df_temp["date"].max()
+                cutoff_date = latest_date - timedelta(weeks=data_points_count)
+                filtered_statistics_data = df_temp[df_temp["date"] >= cutoff_date]
 
     # Create DataFrame from filtered statistics data
     df = pd.DataFrame(filtered_statistics_data).copy()
@@ -1011,26 +1098,22 @@ def create_weekly_items_chart(
         return fig
 
     # Convert date to datetime and ensure proper format
-    df["date"] = pd.to_datetime(df["date"])
+    df["date"] = pd.to_datetime(df["date"], format="mixed", errors="coerce")
 
-    # Always filter by date range for better visualization
-    # Ensure date_range_weeks is not None and is a positive number
-    weeks = 12  # Default to 12 weeks
-    if (
-        date_range_weeks is not None
-        and isinstance(date_range_weeks, (int, float))
-        and date_range_weeks > 0
-    ):
-        weeks = int(date_range_weeks)
+    # Date filtering already applied via data_points_count above
+    # No additional filtering needed to avoid double-filtering bug
 
+    # Calculate date range for filling missing weeks
     latest_date = df["date"].max()
-    start_date = latest_date - timedelta(weeks=weeks)
-    df = df[df["date"] >= start_date]
+    start_date = df["date"].min()
 
     # Add week and year columns for grouping
-    df["week"] = df["date"].dt.isocalendar().week
-    df["year"] = df["date"].dt.year
-    df["year_week"] = df.apply(lambda r: f"{r['year']}-W{r['week']:02d}", axis=1)
+    df["week"] = df["date"].dt.isocalendar().week  # type: ignore[attr-defined]
+    df["year"] = df["date"].dt.year  # type: ignore[attr-defined]
+    # Use vectorized string formatting to avoid DataFrame return issues
+    df["year_week"] = (
+        df["year"].astype(str) + "-W" + df["week"].astype(str).str.zfill(2)
+    )
 
     # Aggregate by week
     weekly_df = (
@@ -1039,11 +1122,25 @@ def create_weekly_items_chart(
         .reset_index()
     )
 
+    # Fill in missing weeks with zeros to show complete time range
+    # Use date range from aggregated data to respect data_points_count filtering
+    if not weekly_df.empty:
+        weekly_start = weekly_df["start_date"].min()
+        weekly_end = weekly_df["start_date"].max()
+        weekly_df = _fill_missing_weeks(weekly_df, weekly_start, weekly_end, ["items"])
+    else:
+        weekly_df = _fill_missing_weeks(weekly_df, start_date, latest_date, ["items"])
+
     # Sort by date
     weekly_df = weekly_df.sort_values("start_date")
 
+    # Ensure start_date is datetime for type safety
+    weekly_df["start_date"] = pd.to_datetime(
+        weekly_df["start_date"], format="mixed", errors="coerce"
+    )
+
     # Format date for display
-    weekly_df["week_label"] = weekly_df["start_date"].dt.strftime("%b %d")
+    weekly_df["week_label"] = weekly_df["start_date"].dt.strftime("%b %d")  # type: ignore[attr-defined]
 
     # Calculate weighted moving average (last 4 weeks)
     # More weight given to recent weeks using exponential weights
@@ -1215,7 +1312,6 @@ def create_weekly_items_chart(
 
 def create_weekly_points_chart(
     statistics_data,
-    date_range_weeks=12,
     pert_factor=3,
     include_forecast=True,
     data_points_count=None,
@@ -1225,7 +1321,6 @@ def create_weekly_points_chart(
 
     Args:
         statistics_data: List of dictionaries containing statistics data
-        date_range_weeks: Number of weeks to display (default: 12 weeks)
         pert_factor: PERT factor for calculations (for forecast)
         include_forecast: Whether to include forecast data (default: True)
         data_points_count: Number of data points to use for calculations (default: None, uses all data)
@@ -1234,19 +1329,37 @@ def create_weekly_points_chart(
     Returns:
         Plotly figure object with the weekly points chart
     """
-    # Apply data points filtering before creating chart
+    # CRITICAL FIX: Apply data points filtering by DATE RANGE, not row count
+    # data_points_count represents WEEKS, not rows. With sparse data,
+    # filtering by row count gives incorrect results.
     filtered_statistics_data = statistics_data
     if data_points_count is not None and data_points_count > 0:
-        if (
-            isinstance(statistics_data, list)
-            and len(statistics_data) > data_points_count
-        ):
-            filtered_statistics_data = statistics_data[-data_points_count:]
-        elif (
-            isinstance(statistics_data, pd.DataFrame)
-            and len(statistics_data) > data_points_count
-        ):
-            filtered_statistics_data = statistics_data.tail(data_points_count)
+        if isinstance(statistics_data, list):
+            df_temp = pd.DataFrame(statistics_data)
+            if not df_temp.empty and "date" in df_temp.columns:
+                df_temp["date"] = pd.to_datetime(
+                    df_temp["date"], format="mixed", errors="coerce"
+                )
+                df_temp = df_temp.dropna(subset=["date"])
+                df_temp = df_temp.sort_values("date", ascending=True)
+
+                latest_date = df_temp["date"].max()
+                cutoff_date = latest_date - timedelta(weeks=data_points_count)
+                df_temp = df_temp[df_temp["date"] >= cutoff_date]
+
+                filtered_statistics_data = df_temp.to_dict("records")
+        elif isinstance(statistics_data, pd.DataFrame):
+            df_temp = statistics_data.copy()
+            if not df_temp.empty and "date" in df_temp.columns:
+                df_temp["date"] = pd.to_datetime(
+                    df_temp["date"], format="mixed", errors="coerce"
+                )
+                df_temp = df_temp.dropna(subset=["date"])
+                df_temp = df_temp.sort_values("date", ascending=True)
+
+                latest_date = df_temp["date"].max()
+                cutoff_date = latest_date - timedelta(weeks=data_points_count)
+                filtered_statistics_data = df_temp[df_temp["date"] >= cutoff_date]
 
     # Create DataFrame from filtered statistics data
     df = pd.DataFrame(filtered_statistics_data).copy()
@@ -1261,26 +1374,22 @@ def create_weekly_points_chart(
         return fig
 
     # Convert date to datetime and ensure proper format
-    df["date"] = pd.to_datetime(df["date"])
+    df["date"] = pd.to_datetime(df["date"], format="mixed", errors="coerce")
 
-    # Always filter by date range for better visualization
-    # Ensure date_range_weeks is not None and is a positive number
-    weeks = 12  # Default to 12 weeks
-    if (
-        date_range_weeks is not None
-        and isinstance(date_range_weeks, (int, float))
-        and date_range_weeks > 0
-    ):
-        weeks = int(date_range_weeks)
+    # Date filtering already applied via data_points_count above
+    # No additional filtering needed to avoid double-filtering bug
 
+    # Calculate date range for filling missing weeks
     latest_date = df["date"].max()
-    start_date = latest_date - timedelta(weeks=weeks)
-    df = df[df["date"] >= start_date]
+    start_date = df["date"].min()
 
     # Add week and year columns for grouping
-    df["week"] = df["date"].dt.isocalendar().week
-    df["year"] = df["date"].dt.year
-    df["year_week"] = df.apply(lambda r: f"{r['year']}-W{r['week']:02d}", axis=1)
+    df["week"] = df["date"].dt.isocalendar().week  # type: ignore[attr-defined]
+    df["year"] = df["date"].dt.year  # type: ignore[attr-defined]
+    # Use vectorized string formatting to avoid DataFrame return issues
+    df["year_week"] = (
+        df["year"].astype(str) + "-W" + df["week"].astype(str).str.zfill(2)
+    )
 
     # Aggregate by week
     weekly_df = (
@@ -1289,11 +1398,25 @@ def create_weekly_points_chart(
         .reset_index()
     )
 
+    # Fill in missing weeks with zeros to show complete time range
+    # Use date range from aggregated data to respect data_points_count filtering
+    if not weekly_df.empty:
+        weekly_start = weekly_df["start_date"].min()
+        weekly_end = weekly_df["start_date"].max()
+        weekly_df = _fill_missing_weeks(weekly_df, weekly_start, weekly_end, ["points"])
+    else:
+        weekly_df = _fill_missing_weeks(weekly_df, start_date, latest_date, ["points"])
+
     # Sort by date
     weekly_df = weekly_df.sort_values("start_date")
 
+    # Ensure start_date is datetime for type safety
+    weekly_df["start_date"] = pd.to_datetime(
+        weekly_df["start_date"], format="mixed", errors="coerce"
+    )
+
     # Format date for display
-    weekly_df["week_label"] = weekly_df["start_date"].dt.strftime("%b %d")
+    weekly_df["week_label"] = weekly_df["start_date"].dt.strftime("%b %d")  # type: ignore[attr-defined]
 
     # Calculate weighted moving average (last 4 weeks)
     # More weight given to recent weeks using exponential weights
@@ -1478,19 +1601,37 @@ def create_weekly_items_forecast_chart(
     Returns:
         Plotly figure object with the weekly items forecast chart
     """
-    # Apply data points filtering before creating chart
+    # CRITICAL FIX: Apply data points filtering by DATE RANGE, not row count
+    # data_points_count represents WEEKS, not rows. With sparse data,
+    # filtering by row count gives incorrect results.
     filtered_statistics_data = statistics_data
     if data_points_count is not None and data_points_count > 0:
-        if (
-            isinstance(statistics_data, list)
-            and len(statistics_data) > data_points_count
-        ):
-            filtered_statistics_data = statistics_data[-data_points_count:]
-        elif (
-            isinstance(statistics_data, pd.DataFrame)
-            and len(statistics_data) > data_points_count
-        ):
-            filtered_statistics_data = statistics_data.tail(data_points_count)
+        if isinstance(statistics_data, list):
+            df_temp = pd.DataFrame(statistics_data)
+            if not df_temp.empty and "date" in df_temp.columns:
+                df_temp["date"] = pd.to_datetime(
+                    df_temp["date"], format="mixed", errors="coerce"
+                )
+                df_temp = df_temp.dropna(subset=["date"])
+                df_temp = df_temp.sort_values("date", ascending=True)
+
+                latest_date = df_temp["date"].max()
+                cutoff_date = latest_date - timedelta(weeks=data_points_count)
+                df_temp = df_temp[df_temp["date"] >= cutoff_date]
+
+                filtered_statistics_data = df_temp.to_dict("records")
+        elif isinstance(statistics_data, pd.DataFrame):
+            df_temp = statistics_data.copy()
+            if not df_temp.empty and "date" in df_temp.columns:
+                df_temp["date"] = pd.to_datetime(
+                    df_temp["date"], format="mixed", errors="coerce"
+                )
+                df_temp = df_temp.dropna(subset=["date"])
+                df_temp = df_temp.sort_values("date", ascending=True)
+
+                latest_date = df_temp["date"].max()
+                cutoff_date = latest_date - timedelta(weeks=data_points_count)
+                filtered_statistics_data = df_temp[df_temp["date"] >= cutoff_date]
 
     # Create DataFrame from filtered statistics data
     df = pd.DataFrame(filtered_statistics_data).copy()
@@ -1505,7 +1646,7 @@ def create_weekly_items_forecast_chart(
         return fig
 
     # Convert date to datetime and ensure proper format
-    df["date"] = pd.to_datetime(df["date"])
+    df["date"] = pd.to_datetime(df["date"], format="mixed", errors="coerce")
 
     # Always filter by date range for better visualization
     # Ensure date_range_weeks is not None and is a positive number
@@ -1524,7 +1665,10 @@ def create_weekly_items_forecast_chart(
     # Add week and year columns for grouping
     df["week"] = df["date"].dt.isocalendar().week
     df["year"] = df["date"].dt.year
-    df["year_week"] = df.apply(lambda r: f"{r['year']}-W{r['week']:02d}", axis=1)
+    # Use vectorized string formatting to avoid DataFrame return issues
+    df["year_week"] = (
+        df["year"].astype(str) + "-W" + df["week"].astype(str).str.zfill(2)
+    )
 
     # Aggregate by week
     weekly_df = (
@@ -1533,11 +1677,25 @@ def create_weekly_items_forecast_chart(
         .reset_index()
     )
 
+    # Fill in missing weeks with zeros to show complete time range
+    # Use date range from aggregated data to respect data_points_count filtering
+    if not weekly_df.empty:
+        weekly_start = weekly_df["start_date"].min()
+        weekly_end = weekly_df["start_date"].max()
+        weekly_df = _fill_missing_weeks(weekly_df, weekly_start, weekly_end, ["items"])
+    else:
+        weekly_df = _fill_missing_weeks(weekly_df, start_date, latest_date, ["items"])
+
     # Sort by date
     weekly_df = weekly_df.sort_values("start_date")
 
+    # Ensure start_date is datetime for type safety
+    weekly_df["start_date"] = pd.to_datetime(
+        weekly_df["start_date"], format="mixed", errors="coerce"
+    )
+
     # Format date for display
-    weekly_df["week_label"] = weekly_df["start_date"].dt.strftime("%b %d")
+    weekly_df["week_label"] = weekly_df["start_date"].dt.strftime("%b %d")  # type: ignore[attr-defined]
 
     # Generate forecast data using filtered statistics data
     forecast_data = generate_weekly_forecast(
@@ -1699,19 +1857,37 @@ def create_weekly_points_forecast_chart(
     Returns:
         Plotly figure object with the weekly points forecast chart
     """
-    # Apply data points filtering before creating chart
+    # CRITICAL FIX: Apply data points filtering by DATE RANGE, not row count
+    # data_points_count represents WEEKS, not rows. With sparse data,
+    # filtering by row count gives incorrect results.
     filtered_statistics_data = statistics_data
     if data_points_count is not None and data_points_count > 0:
-        if (
-            isinstance(statistics_data, list)
-            and len(statistics_data) > data_points_count
-        ):
-            filtered_statistics_data = statistics_data[-data_points_count:]
-        elif (
-            isinstance(statistics_data, pd.DataFrame)
-            and len(statistics_data) > data_points_count
-        ):
-            filtered_statistics_data = statistics_data.tail(data_points_count)
+        if isinstance(statistics_data, list):
+            df_temp = pd.DataFrame(statistics_data)
+            if not df_temp.empty and "date" in df_temp.columns:
+                df_temp["date"] = pd.to_datetime(
+                    df_temp["date"], format="mixed", errors="coerce"
+                )
+                df_temp = df_temp.dropna(subset=["date"])
+                df_temp = df_temp.sort_values("date", ascending=True)
+
+                latest_date = df_temp["date"].max()
+                cutoff_date = latest_date - timedelta(weeks=data_points_count)
+                df_temp = df_temp[df_temp["date"] >= cutoff_date]
+
+                filtered_statistics_data = df_temp.to_dict("records")
+        elif isinstance(statistics_data, pd.DataFrame):
+            df_temp = statistics_data.copy()
+            if not df_temp.empty and "date" in df_temp.columns:
+                df_temp["date"] = pd.to_datetime(
+                    df_temp["date"], format="mixed", errors="coerce"
+                )
+                df_temp = df_temp.dropna(subset=["date"])
+                df_temp = df_temp.sort_values("date", ascending=True)
+
+                latest_date = df_temp["date"].max()
+                cutoff_date = latest_date - timedelta(weeks=data_points_count)
+                filtered_statistics_data = df_temp[df_temp["date"] >= cutoff_date]
 
     # Create DataFrame from filtered statistics data
     df = pd.DataFrame(filtered_statistics_data).copy()
@@ -1726,7 +1902,7 @@ def create_weekly_points_forecast_chart(
         return fig
 
     # Convert date to datetime and ensure proper format
-    df["date"] = pd.to_datetime(df["date"])
+    df["date"] = pd.to_datetime(df["date"], format="mixed", errors="coerce")
 
     # Always filter by date range for better visualization
     # Ensure date_range_weeks is not None and is a positive number
@@ -1745,7 +1921,10 @@ def create_weekly_points_forecast_chart(
     # Add week and year columns for grouping
     df["week"] = df["date"].dt.isocalendar().week
     df["year"] = df["date"].dt.year
-    df["year_week"] = df.apply(lambda r: f"{r['year']}-W{r['week']:02d}", axis=1)
+    # Use vectorized string formatting to avoid DataFrame return issues
+    df["year_week"] = (
+        df["year"].astype(str) + "-W" + df["week"].astype(str).str.zfill(2)
+    )
 
     # Aggregate by week
     weekly_df = (
@@ -1754,11 +1933,25 @@ def create_weekly_points_forecast_chart(
         .reset_index()
     )
 
+    # Fill in missing weeks with zeros to show complete time range
+    # Use date range from aggregated data to respect data_points_count filtering
+    if not weekly_df.empty:
+        weekly_start = weekly_df["start_date"].min()
+        weekly_end = weekly_df["start_date"].max()
+        weekly_df = _fill_missing_weeks(weekly_df, weekly_start, weekly_end, ["points"])
+    else:
+        weekly_df = _fill_missing_weeks(weekly_df, start_date, latest_date, ["points"])
+
     # Sort by date
     weekly_df = weekly_df.sort_values("start_date")
 
+    # Ensure start_date is datetime for type safety
+    weekly_df["start_date"] = pd.to_datetime(
+        weekly_df["start_date"], format="mixed", errors="coerce"
+    )
+
     # Format date for display
-    weekly_df["week_label"] = weekly_df["start_date"].dt.strftime("%b %d")
+    weekly_df["week_label"] = weekly_df["start_date"].dt.strftime("%b %d")  # type: ignore[attr-defined]
 
     # Calculate weighted moving average (last 4 weeks)
     if len(weekly_df) >= 4:
@@ -2000,7 +2193,10 @@ def create_capacity_chart(capacity_data, forecast_data, settings):
     fig = make_subplots(specs=[[{"secondary_y": True}]])
 
     # Extract dates and convert to datetime objects
-    dates = [pd.to_datetime(date) for date in forecast_data.get("dates", [])]
+    dates = [
+        pd.to_datetime(date, format="mixed", errors="coerce")
+        for date in forecast_data.get("dates", [])
+    ]
 
     if not dates:
         # If no forecast data, return empty chart with message
@@ -2225,6 +2421,10 @@ def add_deadline_marker(fig, deadline, milestone=None):
     Returns:
         Updated figure with deadline and milestone markers
     """
+    # Early return if deadline is None or NaT
+    if deadline is None or (isinstance(deadline, pd.Timestamp) and pd.isna(deadline)):
+        return fig
+
     # Convert pandas Timestamp to a format compatible with Plotly
     if isinstance(deadline, pd.Timestamp):
         # Convert to Python datetime to prevent FutureWarning
@@ -2554,17 +2754,26 @@ def prepare_visualization_data(
     Returns:
         Dictionary containing all data needed for visualization
     """
+    # Ensure data_points_count is an integer (could be float from UI slider)
+    if data_points_count is not None:
+        data_points_count = int(data_points_count)
+
     # Import needed functions from data module
     from data.processing import (
         daily_forecast_burnup,
         compute_weekly_throughput,
         calculate_rates,
     )
+    from utils.dataframe_utils import ensure_dataframe
 
     # Handle empty dataframe case
-    if df.empty:
+    if (
+        df is None
+        or (isinstance(df, pd.DataFrame) and df.empty)
+        or (isinstance(df, list) and len(df) == 0)
+    ):
         return {
-            "df_calc": df,
+            "df_calc": pd.DataFrame() if not isinstance(df, pd.DataFrame) else df,
             "pert_time_items": 0,
             "pert_time_points": 0,
             "items_forecasts": {"avg": ([], []), "opt": ([], []), "pes": ([], [])},
@@ -2576,9 +2785,11 @@ def prepare_visualization_data(
             "last_points": total_points,
         }
 
+    # Convert to DataFrame if input is a list of dictionaries
+    df_calc = ensure_dataframe(df)
+
     # Convert string dates to datetime for calculations
-    df_calc = df.copy()
-    df_calc["date"] = pd.to_datetime(df_calc["date"])
+    df_calc["date"] = pd.to_datetime(df_calc["date"], format="mixed", errors="coerce")
 
     # Ensure data is sorted by date in ascending order
     df_calc = df_calc.sort_values("date", ascending=True)
@@ -2631,18 +2842,93 @@ def prepare_visualization_data(
             df_calc["cum_points"] = total_scope_points
 
     # Filter to use only the specified number of most recent data points
+    # CRITICAL FIX: Use date-based filtering instead of row count (.iloc)
+    # data_points_count represents WEEKS, not rows. With sparse data,
+    # row-based filtering gives incorrect results.
+
+    # Initialize logger early for debug logging
+    import logging
+
+    logger = logging.getLogger(__name__)
+
     if (
         data_points_count is not None
         and data_points_count > 0
-        and len(df_calc) > data_points_count
+        and not df_calc.empty
+        and "date" in df_calc.columns
     ):
-        # Get the most recent data_points_count rows
-        df_calc = df_calc.iloc[-data_points_count:]
+        # Apply date-based filtering
+        latest_date = df_calc["date"].max()
+        cutoff_date = latest_date - timedelta(weeks=data_points_count)
+        rows_before = len(df_calc)
+        df_calc = df_calc[df_calc["date"] >= cutoff_date]
+        rows_after = len(df_calc)
 
-    # Compute weekly throughput and rates with the filtered data
+        logger.info(
+            f"[FORECAST FILTER] data_points_count={data_points_count} weeks, "
+            f"latest_date={latest_date.strftime('%Y-%m-%d') if hasattr(latest_date, 'strftime') else latest_date}, "
+            f"cutoff_date={cutoff_date.strftime('%Y-%m-%d') if hasattr(cutoff_date, 'strftime') else cutoff_date}, "
+            f"rows: {rows_before} -> {rows_after}"
+        )
+
+    # Compute weekly throughput with the filtered data
     grouped = compute_weekly_throughput(df_calc)
+
+    # Ensure grouped is a DataFrame
+    if not isinstance(grouped, pd.DataFrame):
+        grouped = pd.DataFrame(grouped)
+    logger.info(
+        f"[CHART DATA] df_calc rows={len(df_calc)}, grouped weeks={len(grouped)}, "
+        f"data_points_count={data_points_count}, "
+        f"grouped non-zero items={len(grouped[grouped['completed_items'] > 0])}, "
+        f"grouped non-zero points={len(grouped[grouped['completed_points'] > 0])}"
+    )
+
+    # Filter out zero-value weeks before calculating rates
+    # Filter separately for items and points to support projects with only one tracking type
+    # Zero weeks (often from _fill_missing_weeks) shouldn't influence rate calculations
+    grouped_items_non_zero = grouped[grouped["completed_items"] > 0].copy()
+    grouped_points_non_zero = grouped[grouped["completed_points"] > 0].copy()
+
+    # Determine which filtering to use based on available data
+    has_items_data = len(grouped_items_non_zero) > 0
+    has_points_data = len(grouped_points_non_zero) > 0
+
+    # If no valid weeks exist for either metric, return early with safe defaults
+    # (prevents pessimistic forecasts from extending years into the future)
+    if not has_items_data and not has_points_data:
+        # Return empty forecast data to indicate insufficient data
+        return {
+            "df_calc": df_calc,
+            "pert_time_items": 0,
+            "pert_time_points": 0,
+            "items_forecasts": {"avg": ([], []), "opt": ([], []), "pes": ([], [])},
+            "points_forecasts": {"avg": ([], []), "opt": ([], []), "pes": ([], [])},
+            "max_items": df_calc["cum_items"].max()
+            if not df_calc.empty
+            else total_items,
+            "max_points": df_calc["cum_points"].max()
+            if not df_calc.empty
+            else total_points,
+            "start_date": df_calc["date"].iloc[-1]
+            if not df_calc.empty
+            else datetime.now(),
+            "last_items": df_calc["cum_items"].iloc[-1]
+            if not df_calc.empty
+            else total_items,
+            "last_points": df_calc["cum_points"].iloc[-1]
+            if not df_calc.empty
+            else total_points,
+        }
+
+    # Use items data for calculation if available, otherwise use points data
+    # This ensures we can calculate forecasts even when only one type has data
+    grouped_non_zero = (
+        grouped_items_non_zero if has_items_data else grouped_points_non_zero
+    )
+
     rates = calculate_rates(
-        grouped, total_items, total_points, pert_factor, show_points
+        grouped_non_zero, total_items, total_points, pert_factor, show_points
     )
 
     (
@@ -2670,6 +2956,13 @@ def prepare_visualization_data(
     # Get starting points for forecast
     start_date = df_calc["date"].iloc[-1] if not df_calc.empty else datetime.now()
 
+    # Debug logging for forecast calculation
+    logger.info(
+        f"[CHART FORECAST] start_date={start_date.strftime('%Y-%m-%d') if hasattr(start_date, 'strftime') else start_date}, "
+        f"pert_time_items={pert_time_items:.2f}, total_items={total_items}, "
+        f"items_daily_rate={items_daily_rate:.4f}"
+    )
+
     # For burndown charts, we need to get the correct last values
     # (these represent remaining work, not completed work)
     if not is_burnup:
@@ -2689,45 +2982,82 @@ def prepare_visualization_data(
         last_points = last_completed_points  # This is completed points for burnup
 
     # Use completed items/points values for burnup chart
+    # PERFORMANCE: Limit forecast to 2 years (730 days) and max 100 points per line
     if is_burnup:
         # For burnup charts, start from completed values and forecast toward scope
         items_forecasts = {
             "avg": daily_forecast_burnup(
-                last_items, items_daily_rate, start_date, scope_items
+                last_items,
+                items_daily_rate,
+                start_date,
+                scope_items,
+                max_days=730,
+                max_points=100,
             ),
             "opt": daily_forecast_burnup(
-                last_items, optimistic_items_rate, start_date, scope_items
+                last_items,
+                optimistic_items_rate,
+                start_date,
+                scope_items,
+                max_days=730,
+                max_points=100,
             ),
             "pes": daily_forecast_burnup(
-                last_items, pessimistic_items_rate, start_date, scope_items
+                last_items,
+                pessimistic_items_rate,
+                start_date,
+                scope_items,
+                max_days=730,
+                max_points=100,
             ),
         }
 
         points_forecasts = {
             "avg": daily_forecast_burnup(
-                last_points, points_daily_rate, start_date, scope_points
+                last_points,
+                points_daily_rate,
+                start_date,
+                scope_points,
+                max_days=730,
+                max_points=100,
             ),
             "opt": daily_forecast_burnup(
-                last_points, optimistic_points_rate, start_date, scope_points
+                last_points,
+                optimistic_points_rate,
+                start_date,
+                scope_points,
+                max_days=730,
+                max_points=100,
             ),
             "pes": daily_forecast_burnup(
-                last_points, pessimistic_points_rate, start_date, scope_points
+                last_points,
+                pessimistic_points_rate,
+                start_date,
+                scope_points,
+                max_days=730,
+                max_points=100,
             ),
         }
     else:
         # For burndown charts, we need to ensure consistent end dates with burnup charts
         # First, calculate burnup forecasts to get end dates
+        # PERFORMANCE: Limit forecast to 2 years (730 days) and max 100 points per line
         burnup_items_avg = daily_forecast_burnup(
-            0, items_daily_rate, start_date, total_items
+            0, items_daily_rate, start_date, total_items, max_days=730, max_points=100
         )
         burnup_points_avg = daily_forecast_burnup(
-            0, points_daily_rate, start_date, total_points
+            0, points_daily_rate, start_date, total_points, max_days=730, max_points=100
         )
 
         # Get the end dates from burnup forecasts
         items_end_date = burnup_items_avg[0][-1] if burnup_items_avg[0] else start_date
         points_end_date = (
             burnup_points_avg[0][-1] if burnup_points_avg[0] else start_date
+        )
+
+        logger.info(
+            f"[CHART FORECAST] Burndown end dates: items_end_date={items_end_date.strftime('%Y-%m-%d') if hasattr(items_end_date, 'strftime') else items_end_date}, "
+            f"days_to_items_end={(items_end_date - start_date).days if hasattr(items_end_date, 'strftime') else 0}"
         )
 
         # Now calculate burndown forecasts with fixed end dates
@@ -2768,10 +3098,8 @@ def prepare_visualization_data(
         ),
     )
 
-    # For burndown charts, make sure max values include total scope
-    if not is_burnup:
-        max_items = max(max_items, total_scope_items)
-        max_points = max(max_points, total_scope_points)
+    # Y-axis now dynamically scales to actual data shown on chart
+    # (removed fixed scope ceiling that was pushing graphs down)
 
     # Return results with scope information for burndown charts
     result = {
@@ -2800,7 +3128,7 @@ def generate_burndown_forecast(
 ):
     """
     Generate burndown forecast with a fixed end date to ensure consistency with burnup charts.
-    Includes strict 10-year maximum cap for visualization performance.
+    Includes strict performance optimizations: 2-year max horizon, 100 points per line max.
 
     Args:
         last_value: Current remaining value (items or points)
@@ -2813,14 +3141,10 @@ def generate_burndown_forecast(
     Returns:
         Dictionary containing forecasts for average, optimistic, and pessimistic scenarios
     """
-    from datetime import datetime
-
-    # STRICT 10-YEAR CAP: Never forecast beyond today + 10 years
-    today = datetime.now()
-    absolute_max_date = today + timedelta(
-        days=3653
-    )  # 10 years from today (accounting for leap years)
-    MAX_FORECAST_DAYS = 3653  # Absolute maximum
+    # PERFORMANCE: Limit forecast to 2 years and max 100 points per line
+    # This prevents chart freezing with thousands of data points
+    MAX_FORECAST_DAYS = 730  # 2 years maximum
+    MAX_POINTS_PER_LINE = 100  # Maximum data points per forecast line
 
     # Calculate days between start and end
     days_span = (end_date - start_date).days
@@ -2828,7 +3152,7 @@ def generate_burndown_forecast(
         # If end date is same as or before start date, use 1 day
         days_span = 1
 
-    # Calculate days needed for each rate to reach zero, but cap at 10 years
+    # Calculate days needed for each rate to reach zero, but cap at max
     days_to_zero_avg = min(
         MAX_FORECAST_DAYS,
         int(last_value / avg_rate) if avg_rate > 0.001 else days_span * 2,
@@ -2842,48 +3166,51 @@ def generate_burndown_forecast(
         int(last_value / pes_rate) if pes_rate > 0.001 else days_span * 2,
     )
 
-    # Cap everything at maximum forecast horizon
-    max_days = min(
-        MAX_FORECAST_DAYS,
-        max(days_span, days_to_zero_avg, days_to_zero_opt, days_to_zero_pes),
+    # PERFORMANCE: Calculate sampling interval to limit data points
+    def generate_sampled_forecast(days_to_zero, rate):
+        """Generate forecast with even sampling throughout the entire forecast period."""
+        # Calculate interval to distribute points evenly across entire forecast
+        # This ensures consistent spacing from start to finish (no condensed-then-sparse appearance)
+        sample_interval = max(1, int(days_to_zero / MAX_POINTS_PER_LINE))
+
+        dates = []
+        values = []
+        day = 0
+
+        # Sample evenly across the entire forecast period
+        while day <= days_to_zero:
+            forecast_date = start_date + timedelta(days=day)
+            remaining = max(0, last_value - (rate * day))
+            dates.append(forecast_date)
+            values.append(remaining)
+
+            # Stop if we reached zero
+            if remaining <= 0:
+                break
+
+            day += sample_interval
+
+        # Always ensure we have a final point at zero for visual closure
+        if values and values[-1] > 0:
+            final_date = start_date + timedelta(days=days_to_zero)
+            dates.append(final_date)
+            values.append(0)
+
+        return dates, values
+
+    # Generate forecasts with sampling
+    dates_avg, avg_values = generate_sampled_forecast(days_to_zero_avg, avg_rate)
+    dates_opt, opt_values = generate_sampled_forecast(days_to_zero_opt, opt_rate)
+    dates_pes, pes_values = generate_sampled_forecast(days_to_zero_pes, pes_rate)
+
+    # Debug logging
+    import logging
+
+    logger = logging.getLogger(__name__)
+    logger.info(
+        f"[BURNDOWN FORECAST] Generated forecasts: avg={len(dates_avg)} points, "
+        f"opt={len(dates_opt)} points, pes={len(dates_pes)} points"
     )
-
-    # Create date ranges with strict caps for performance
-    dates_avg = [
-        start_date + timedelta(days=i)
-        for i in range(min(max_days, days_to_zero_avg) + 1)
-        if start_date + timedelta(days=i) <= absolute_max_date
-    ]
-    dates_opt = [
-        start_date + timedelta(days=i)
-        for i in range(min(max_days, days_to_zero_opt) + 1)
-        if start_date + timedelta(days=i) <= absolute_max_date
-    ]
-    dates_pes = [
-        start_date + timedelta(days=i)
-        for i in range(min(max_days, days_to_zero_pes) + 1)
-        if start_date + timedelta(days=i) <= absolute_max_date
-    ]
-
-    # Calculate decreasing values for each rate
-    avg_values = []
-    opt_values = []
-    pes_values = []
-
-    # Average rate forecast
-    for i in range(len(dates_avg)):
-        remaining_avg = max(0, last_value - (avg_rate * i))
-        avg_values.append(remaining_avg)
-
-    # Optimistic rate forecast
-    for i in range(len(dates_opt)):
-        remaining_opt = max(0, last_value - (opt_rate * i))
-        opt_values.append(remaining_opt)
-
-    # Pessimistic rate forecast
-    for i in range(len(dates_pes)):
-        remaining_pes = max(0, last_value - (pes_rate * i))
-        pes_values.append(remaining_pes)
 
     return {
         "avg": (dates_avg, avg_values),

@@ -63,7 +63,7 @@ def create_compact_overview_card(
 
     # Format value display
     if isinstance(value, float):
-        value_display = f"{value:.1f}"
+        value_display = f"{value:.2f}"
     else:
         value_display = str(value) if value is not None else "—"
 
@@ -71,7 +71,7 @@ def create_compact_overview_card(
     secondary_display = None
     if secondary_value is not None:
         if isinstance(secondary_value, float):
-            secondary_display = f"{secondary_value:.1f}"
+            secondary_display = f"{secondary_value:.2f}"
         else:
             secondary_display = str(secondary_value)
 

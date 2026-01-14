@@ -80,9 +80,13 @@ def generate_smart_defaults(
                         "code_commit_date": "status:In Progress.DateTime",
                         ...
                     },
+                    "general": {
+                        "completed_date": "resolutiondate",  # OR "resolved" for Apache JIRA/JIRA Server
+                        "created_date": "created",
+                        "updated_date": "updated",
+                    },
                     "flow": {
                         "flow_item_type": "issuetype",
-                        "completed_date": "resolutiondate",
                         ...
                     }
                 },
@@ -205,6 +209,21 @@ def generate_smart_defaults(
         "severity_level": "priority",
     }
 
+    # === GENERAL FIELDS: Standard fields used across all features ===
+    general_mappings = {
+        # Completion Date: When issue was resolved/completed
+        # JIRA Cloud/Atlassian: "resolutiondate"
+        # Apache JIRA/JIRA Server: "resolved"
+        # Standard field - available in all JIRA instances (but name varies)
+        "completed_date": "resolutiondate",  # Default to JIRA Cloud standard
+        # Creation Date: When issue was created
+        # Standard field - always "created" in all JIRA versions
+        "created_date": "created",
+        # Updated Date: When issue was last modified
+        # Standard field - always "updated" in all JIRA versions
+        "updated_date": "updated",
+    }
+
     # === FLOW METRICS: Use standard fields (status lists are in project_classification) ===
     flow_mappings = {
         # Flow Item Type: Issue type classification
@@ -213,14 +232,12 @@ def generate_smart_defaults(
         # Status: Current status (for WIP calculations)
         # Standard field - always available
         "status": "status",
-        # Completed Date: Resolution date for completed items
-        # Standard field - always available
-        "completed_date": "resolutiondate",
+        # NOTE: completed_date moved to general_mappings (used by velocity, budget, flow metrics)
     }
 
     logger.info(
-        f"[AutoConfigure] Flow metrics use status lists from project_classification: "
-        f"flow_start_statuses, flow_end_statuses (configured separately)"
+        "[AutoConfigure] Flow metrics use status lists from project_classification: "
+        "flow_start_statuses, flow_end_statuses (configured separately)"
     )
 
     # === OPTIONAL: Detect custom fields to ADD to mappings (not override) ===
@@ -284,13 +301,14 @@ def generate_smart_defaults(
         )
 
     # Always store field_mappings (standard fields + any detected custom overrides)
+    field_mappings["general"] = general_mappings
     field_mappings["dora"] = dora_mappings
     field_mappings["flow"] = flow_mappings
     defaults["field_mappings"] = field_mappings
 
     logger.info(
         f"[AutoConfigure] Field mappings configured: "
-        f"{len(dora_mappings)} DORA fields, {len(flow_mappings)} Flow fields"
+        f"{len(general_mappings)} General fields, {len(dora_mappings)} DORA fields, {len(flow_mappings)} Flow fields"
     )
 
     return defaults

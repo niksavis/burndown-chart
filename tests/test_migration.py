@@ -2,13 +2,18 @@
 Migration Testing Module
 
 Tests for CSV-to-JSON data migration functionality.
+
+NOTE: These tests are for legacy CSV-to-JSON migration which has been replaced
+by SQLite database migration. Tests are skipped as the functionality no longer exists.
 """
 
 import unittest
+import pytest
 from unittest.mock import patch
 from datetime import datetime
 
 
+@pytest.mark.skip(reason="CSV-to-JSON migration replaced by SQLite migration")
 class TestDataMigration(unittest.TestCase):
     """Test CSV-to-JSON migration functionality."""
 
@@ -47,7 +52,7 @@ class TestDataMigration(unittest.TestCase):
         mock_load_project.return_value = self.sample_project_data
 
         # Import after patching
-        from data.persistence import migrate_csv_to_json
+        from data.persistence import migrate_csv_to_json  # type: ignore[attr-defined]
 
         with patch("data.persistence.save_unified_project_data") as mock_save:
             result = migrate_csv_to_json()
@@ -168,19 +173,20 @@ class TestDataMigration(unittest.TestCase):
 
     def test_migration_functions_available(self):
         """Test that migration functions are available in persistence module."""
-        from data.persistence import migrate_csv_to_json, _backup_legacy_files
+        from data.persistence import migrate_csv_to_json, _backup_legacy_files  # type: ignore[attr-defined]
 
         # These should be callable
         self.assertTrue(callable(migrate_csv_to_json))
         self.assertTrue(callable(_backup_legacy_files))
 
 
+@pytest.mark.skip(reason="CSV-to-JSON migration replaced by SQLite migration")
 class TestMigrationScript(unittest.TestCase):
     """Test migration functionality."""
 
     def test_migration_functions_integrated(self):
         """Test that migration functions are now part of persistence module."""
-        from data.persistence import migrate_csv_to_json
+        from data.persistence import migrate_csv_to_json  # type: ignore[attr-defined]
 
         # The migration function should exist and be callable
         self.assertTrue(callable(migrate_csv_to_json))

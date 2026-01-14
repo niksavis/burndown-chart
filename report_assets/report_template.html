@@ -1,1015 +1,1643 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>{{ profile_name }} - {{ query_name }} | Project Report</title>
-    
+
     <!-- Embedded Dependencies for Offline Use -->
-    <style>{{ bootstrap_css }}</style>
-    <style>{{ fontawesome_css }}</style>
-    <script>{{ chartjs }}</script>
-    <script>{{ chartjs_annotation }}</script>
-    
     <style>
-        :root {
-            --color-blue: #0d6efd;
-            --color-orange: #fd7e14;
-            --color-green: #28a745;
-            --color-yellow: #ffc107;
-            --color-red: #dc3545;
-            --color-gray-light: #f8f9fa;
-            --color-gray: #6c757d;
-            --color-dark: #212529;
-        }
-        
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-            background-color: var(--color-gray-light);
-            font-size: 14px;
-            line-height: 1.5;
-        }
-        
-        /* Header Styles */
-        .report-header {
-            background: linear-gradient(135deg, var(--color-blue) 0%, #0dcaf0 100%);
-            color: white;
-            padding: 2.5rem 0;
-            margin-bottom: 2rem;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-        }
-        
-        .project-title {
-            font-size: 2.25rem;
-            font-weight: 700;
-            margin-bottom: 0.5rem;
-            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-        }
-        
-        .query-title {
-            font-size: 1.4rem;
-            opacity: 0.95;
-            font-weight: 500;
-        }
-        
-        .report-meta {
-            font-size: 0.95rem;
-            opacity: 0.85;
-            margin-top: 1rem;
-        }
-        
-        /* Section Styles */
-        .section {
-            background: white;
-            border-radius: 12px;
-            padding: 2rem;
-            margin-bottom: 2rem;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-        }
-        
-        .section-title {
-            font-size: 1.75rem;
-            font-weight: 600;
-            margin-bottom: 1.5rem;
-            color: var(--color-dark);
-            border-bottom: 3px solid var(--color-blue);
-            padding-bottom: 0.75rem;
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-        }
-        
-        .section-title i {
-            color: var(--color-blue);
-            font-size: 1.5rem;
-        }
-        
-        /* Dashboard Overview Styles */
-        .dashboard-overview {
-            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-            border-radius: 16px;
-            padding: 2rem;
-            margin-bottom: 2rem;
-            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
-        }
-        
-        .health-gauge-container {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 1rem;
-        }
-        
-        .health-gauge {
-            width: 160px;
-            height: 160px;
-            border-radius: 50%;
-            background: conic-gradient(
-                from 0deg,
-                var(--gauge-color) 0deg,
-                var(--gauge-color) calc(var(--gauge-percent) * 3.6deg),
-                #e9ecef calc(var(--gauge-percent) * 3.6deg),
-                #e9ecef 360deg
-            );
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
-            position: relative;
-        }
-        
-        .health-gauge-inner {
-            width: 116px;
-            height: 116px;
-            border-radius: 50%;
-            background: white;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.1);
-        }
-        
-        .health-gauge-text {
-            font-size: 1.8rem;
-            font-weight: 700;
-            color: var(--gauge-color);
-            line-height: 1;
-        }
-        
-        .health-gauge-label {
-            font-size: 0.75rem;
-            color: var(--color-gray);
-            margin-top: 0.25rem;
-            font-weight: 500;
-        }
-        
-        .health-status-badge {
-            padding: 0.5rem 1.25rem;
-            border-radius: 20px;
-            font-weight: 600;
-            font-size: 0.95rem;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-        
-        .health-status-excellent,
-        .health-status-good {
-            background-color: var(--color-green);
-            color: #fff;
-        }
-        
-        .health-status-moderate {
-            background-color: var(--color-yellow);
-            color: #000;
-        }
-        
-        .health-status-at-risk {
-            background-color: var(--color-red);
-            color: #fff;
-        }
-        
-        .progress-ring-container {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 1rem;
-        }
-        
-        .progress-ring {
-            width: 160px;
-            height: 160px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
-            position: relative;
-        }
-        
-        .progress-ring-inner {
-            width: 116px;
-            height: 116px;
-            border-radius: 50%;
-            background: white;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.08);
-        }
-        
-        .progress-ring-text {
-            font-size: 1.8rem;
-            font-weight: 700;
-            line-height: 1;
-        }
-        
-        .progress-ring-subtext {
-            font-size: 0.75rem;
-            color: var(--color-gray);
-            margin-top: 0.25rem;
-        }
-        
-        .progress-ring-label {
-            font-size: 1rem;
-            font-weight: 600;
-            color: var(--color-dark);
-            text-align: center;
-        }
-        
-        .progress-details {
-            display: flex;
-            flex-direction: column;
-            gap: 0.5rem;
-            margin-top: 0.5rem;
-        }
-        
-        .progress-detail-item {
-            display: flex;
-            justify-content: space-between;
-            font-size: 0.9rem;
-        }
-        
-        .progress-detail-label {
-            color: var(--color-gray);
-        }
-        
-        .progress-detail-value {
-            font-weight: 600;
-            color: var(--color-dark);
-        }
-        
-        /* Velocity Cards */
-        .velocity-cards {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 1.5rem;
-            margin-top: 2rem;
-        }
-        
-        .velocity-card {
-            background: white;
-            border-radius: 12px;
-            padding: 1.5rem;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-            border-left: 4px solid var(--color-blue);
-        }
-        
-        .velocity-card.points {
-            border-left-color: var(--color-orange);
-        }
-        
-        .velocity-card-title {
-            font-size: 0.9rem;
-            color: var(--color-gray);
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-bottom: 0.75rem;
-            font-weight: 600;
-        }
-        
-        .velocity-card-value {
-            font-size: 2rem;
-            font-weight: 700;
-            color: var(--color-dark);
-        }
-        
-        .velocity-card-unit {
-            font-size: 0.9rem;
-            color: var(--color-gray);
-            margin-left: 0.5rem;
-        }
-        
-        /* Metric Cards */
-        .metric-cards {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 1.5rem;
-            margin: 1.5rem 0;
-        }
-        
-        .metric-card {
-            background: white;
-            border-radius: 8px;
-            padding: 1.25rem;
-            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
-            border-top: 3px solid var(--color-blue);
-        }
-        
-        .metric-card-label {
-            font-size: 0.85rem;
-            color: var(--color-gray);
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-bottom: 0.5rem;
-            font-weight: 600;
-        }
-        
-        .metric-card-value {
-            font-size: 1.75rem;
-            font-weight: 700;
-            color: var(--color-dark);
-        }
-        
-        .metric-card-change {
-            font-size: 0.85rem;
-            margin-top: 0.5rem;
-            font-weight: 500;
-        }
-        
-        .metric-card-change.positive {
-            color: var(--color-green);
-        }
-        
-        .metric-card-change.negative {
-            color: var(--color-red);
-        }
-        
-        /* Tables */
-        table {
-            font-size: 0.9rem;
-        }
-        
-        .table thead th {
-            background-color: var(--color-gray-light);
-            border-bottom: 2px solid var(--color-blue);
-            font-weight: 600;
-            color: var(--color-dark);
-            padding: 0.75rem;
-        }
-        
-        .table tbody td {
-            padding: 0.75rem;
-            vertical-align: middle;
-        }
-        
-        .table-striped tbody tr:nth-of-type(odd) {
-            background-color: rgba(0, 0, 0, 0.02);
-        }
-        
-        /* Chart Containers */
-        .chart-container {
-            position: relative;
-            height: 300px;
-            margin: 1.5rem 0;
-        }
-        
-        .chart-container.large {
-            height: 400px;
-        }
-        
-        /* Badges */
-        .badge-metric {
-            font-size: 0.9rem;
-            padding: 0.4rem 0.8rem;
-            font-weight: 600;
-        }
-        
-        .badge-items {
-            background-color: var(--color-blue);
-        }
-        
-        .badge-points {
-            background-color: var(--color-orange);
-        }
-        
-        /* Info Boxes */
-        .info-box {
-            background-color: #e7f3ff;
-            border-left: 4px solid var(--color-blue);
-            padding: 1rem 1.25rem;
-            border-radius: 6px;
-            margin: 1rem 0;
-        }
-        
-        .info-box-warning {
-            background-color: #fff3cd;
-            border-left-color: var(--color-yellow);
-        }
-        
-        .info-box-danger {
-            background-color: #f8d7da;
-            border-left-color: var(--color-red);
-        }
-        
-        .info-box-success {
-            background-color: #d4edda;
-            border-left-color: var(--color-green);
-        }
-        
-        /* Footer */
-        .report-footer {
-            text-align: center;
-            padding: 2rem;
-            color: var(--color-gray);
-            font-size: 0.9rem;
-            margin-top: 3rem;
-        }
-        
-        /* Responsive */
-        @media (max-width: 768px) {
-            .project-title {
-                font-size: 1.75rem;
-            }
-            
-            .query-title {
-                font-size: 1.1rem;
-            }
-            
-            .velocity-cards {
-                grid-template-columns: 1fr;
-            }
-            
-            .metric-cards {
-                grid-template-columns: 1fr;
-            }
-            
-            .progress-ring,
-            .health-gauge {
-                transform: scale(0.85);
-            }
-            
-            /* Stack dashboard overview columns on mobile */
-            .dashboard-overview .row {
-                margin-bottom: 1rem;
-            }
-            
-            .dashboard-overview .col-md-4 {
-                margin-bottom: 1rem;
-            }
-        }
-        
-        /* Extra small devices (phones, 320px and up) */
-        @media (max-width: 576px) {
-            .health-gauge-text {
-                font-size: 1.5rem;
-            }
-            
-            .progress-ring-text {
-                font-size: 1.5rem;
-            }
-            
-            /* Ensure forecast label is readable on small screens */
-            .text-center.mt-2 {
-                font-size: 0.7rem !important;
-            }
-        }
-        
-        /* Print Styles */
-        @media print {
-            body {
-                background-color: white;
-            }
-            
-            .section {
-                box-shadow: none;
-                border: 1px solid #dee2e6;
-                page-break-inside: avoid;
-            }
-            
-            .chart-container {
-                page-break-inside: avoid;
-            }
-        }
+      {{ bootstrap_css }}
     </style>
-</head>
-<body>
+    <style>
+      {{ fontawesome_css }}
+    </style>
+    <script>
+      {{ chartjs }}
+    </script>
+    <script>
+      {{ chartjs_annotation }}
+    </script>
+
+    <style>
+      :root {
+        --color-blue: #0d6efd;
+        --color-orange: #fd7e14;
+        --color-green: #28a745;
+        --color-yellow: #ffc107;
+        --color-red: #dc3545;
+        --color-gray-light: #f8f9fa;
+        --color-gray: #6c757d;
+        --color-dark: #212529;
+      }
+
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          "Helvetica Neue", Arial, sans-serif;
+        background-color: var(--color-gray-light);
+        font-size: 14px;
+        line-height: 1.5;
+      }
+
+      /* Header Styles */
+      .report-header {
+        background: linear-gradient(135deg, var(--color-blue) 0%, #0dcaf0 100%);
+        color: white;
+        padding: 0.75rem 0;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+      }
+
+      .header-content {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 2rem;
+      }
+
+      .header-left {
+        flex: 1;
+      }
+
+      .header-right {
+        flex: 0 0 auto;
+        text-align: right;
+      }
+
+      .project-title {
+        font-size: 1.5rem;
+        font-weight: 700;
+        margin-bottom: 0.25rem;
+        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        line-height: 1.2;
+      }
+
+      .query-title {
+        font-size: 1rem;
+        opacity: 0.9;
+        font-weight: 400;
+        margin-bottom: 0;
+        line-height: 1.2;
+      }
+
+      .report-meta {
+        font-size: 0.75rem;
+        opacity: 0.8;
+        margin-top: 0.25rem;
+        line-height: 1.2;
+      }
+
+      .report-period {
+        background: rgba(255, 255, 255, 0.15);
+        border-radius: 6px;
+        padding: 0.4rem 0.75rem;
+        margin-bottom: 0.25rem;
+        display: inline-block;
+        line-height: 1.3;
+      }
+
+      .report-period-highlight {
+        font-size: 1rem;
+        font-weight: 700;
+        margin-right: 0.5rem;
+      }
+
+      .report-period-detail {
+        font-size: 0.85rem;
+        opacity: 0.9;
+      }
+
+      /* Section Styles */
+      .section {
+        background: white;
+        border-radius: 12px;
+        padding: 2rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+      }
+
+      .section-title {
+        font-size: 1.75rem;
+        font-weight: 600;
+        margin-bottom: 1.5rem;
+        color: var(--color-dark);
+        border-bottom: 3px solid var(--color-blue);
+        padding-bottom: 0.75rem;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+      }
+
+      .section-title i {
+        color: var(--color-blue);
+        font-size: 1.5rem;
+      }
+
+      /* Dashboard Overview Styles */
+      .dashboard-overview {
+        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        border-radius: 16px;
+        padding: 2rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+      }
+
+      .health-gauge-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 1rem;
+      }
+
+      .health-gauge {
+        width: 160px;
+        height: 160px;
+        border-radius: 50%;
+        background: conic-gradient(
+          from 0deg,
+          var(--gauge-color) 0deg,
+          var(--gauge-color) calc(var(--gauge-percent) * 3.6deg),
+          #e9ecef calc(var(--gauge-percent) * 3.6deg),
+          #e9ecef 360deg
+        );
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+        position: relative;
+      }
+
+      .health-gauge-inner {
+        width: 116px;
+        height: 116px;
+        border-radius: 50%;
+        background: white;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.1);
+      }
+
+      .health-gauge-text {
+        font-size: 1.8rem;
+        font-weight: 700;
+        color: var(--gauge-color);
+        line-height: 1;
+      }
+
+      .health-gauge-label {
+        font-size: 0.75rem;
+        color: var(--color-gray);
+        margin-top: 0.25rem;
+        font-weight: 500;
+      }
+
+      .health-status-badge {
+        padding: 0.5rem 1.25rem;
+        border-radius: 20px;
+        font-weight: 600;
+        font-size: 0.95rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+
+      .health-status-excellent,
+      .health-status-good {
+        background-color: var(--color-green);
+        color: #fff;
+      }
+
+      .health-status-moderate {
+        background-color: var(--color-yellow);
+        color: #000;
+      }
+
+      .health-status-at-risk {
+        background-color: var(--color-red);
+        color: #fff;
+      }
+
+      .progress-ring-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 1rem;
+      }
+
+      .progress-ring {
+        width: 160px;
+        height: 160px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+        position: relative;
+      }
+
+      .progress-ring-inner {
+        width: 116px;
+        height: 116px;
+        border-radius: 50%;
+        background: white;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.08);
+      }
+
+      .progress-ring-text {
+        font-size: 1.8rem;
+        font-weight: 700;
+        line-height: 1;
+      }
+
+      .progress-ring-subtext {
+        font-size: 0.75rem;
+        color: var(--color-gray);
+        margin-top: 0.25rem;
+      }
+
+      .progress-ring-label {
+        font-size: 1rem;
+        font-weight: 600;
+        color: var(--color-dark);
+        text-align: center;
+      }
+
+      .progress-details {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+        margin-top: 0.5rem;
+      }
+
+      .progress-detail-item {
+        display: flex;
+        justify-content: space-between;
+        font-size: 0.9rem;
+      }
+
+      .progress-detail-label {
+        color: var(--color-gray);
+      }
+
+      .progress-detail-value {
+        font-weight: 600;
+        color: var(--color-dark);
+      }
+
+      /* Velocity Cards */
+      .velocity-cards {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1.5rem;
+        margin-top: 2rem;
+      }
+
+      .velocity-card {
+        background: white;
+        border-radius: 12px;
+        padding: 1.5rem;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        border-left: 4px solid var(--color-blue);
+      }
+
+      .velocity-card.points {
+        border-left-color: var(--color-orange);
+      }
+
+      .velocity-card-title {
+        font-size: 0.9rem;
+        color: var(--color-gray);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 0.75rem;
+        font-weight: 600;
+      }
+
+      .velocity-card-value {
+        font-size: 2rem;
+        font-weight: 700;
+        color: var(--color-dark);
+      }
+
+      .velocity-card-unit {
+        font-size: 0.9rem;
+        color: var(--color-gray);
+        margin-left: 0.5rem;
+      }
+
+      /* Metric Cards */
+      .metric-cards {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1.5rem;
+        margin: 1.5rem 0;
+      }
+
+      .metric-card {
+        background: white;
+        border-radius: 8px;
+        padding: 1.25rem;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+        border-top: 3px solid var(--color-blue);
+      }
+
+      .metric-card-label {
+        font-size: 0.85rem;
+        color: var(--color-gray);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 0.5rem;
+        font-weight: 600;
+      }
+
+      .metric-card-value {
+        font-size: 1.75rem;
+        font-weight: 700;
+        color: var(--color-dark);
+      }
+
+      .metric-card-change {
+        font-size: 0.85rem;
+        margin-top: 0.5rem;
+        font-weight: 500;
+      }
+
+      .metric-card-change.positive {
+        color: var(--color-green);
+      }
+
+      .metric-card-change.negative {
+        color: var(--color-red);
+      }
+
+      /* Tables */
+      table {
+        font-size: 0.9rem;
+      }
+
+      .table thead th {
+        background-color: var(--color-gray-light);
+        border-bottom: 2px solid var(--color-blue);
+        font-weight: 600;
+        color: var(--color-dark);
+        padding: 0.75rem;
+      }
+
+      .table tbody td {
+        padding: 0.75rem;
+        vertical-align: middle;
+      }
+
+      .table-striped tbody tr:nth-of-type(odd) {
+        background-color: rgba(0, 0, 0, 0.02);
+      }
+
+      /* Chart Containers */
+      .chart-container {
+        position: relative;
+        height: 300px;
+        margin: 1.5rem 0;
+      }
+
+      .chart-container.large {
+        height: 400px;
+      }
+
+      /* Badges */
+      .badge-metric {
+        font-size: 0.9rem;
+        padding: 0.4rem 0.8rem;
+        font-weight: 600;
+      }
+
+      .badge-items {
+        background-color: var(--color-blue);
+      }
+
+      .badge-points {
+        background-color: var(--color-orange);
+      }
+
+      /* Info Boxes */
+      .info-box {
+        background-color: #e7f3ff;
+        border-left: 4px solid var(--color-blue);
+        padding: 1rem 1.25rem;
+        border-radius: 6px;
+        margin: 1rem 0;
+      }
+
+      .info-box-warning {
+        background-color: #fff3cd;
+        border-left-color: var(--color-yellow);
+      }
+
+      .info-box-danger {
+        background-color: #f8d7da;
+        border-left-color: var(--color-red);
+      }
+
+      .info-box-success {
+        background-color: #d4edda;
+        border-left-color: var(--color-green);
+      }
+
+      /* Footer */
+      .report-footer {
+        text-align: center;
+        padding: 1rem;
+        color: var(--color-gray);
+        font-size: 0.8rem;
+        margin-top: 2rem;
+        border-top: 1px solid #dee2e6;
+      }
+
+      /* Responsive */
+      @media (max-width: 768px) {
+        .header-content {
+          flex-direction: column;
+          align-items: flex-start;
+          gap: 0.5rem;
+        }
+
+        .header-right {
+          text-align: left;
+        }
+
+        .project-title {
+          font-size: 1.25rem;
+        }
+
+        .query-title {
+          font-size: 0.9rem;
+        }
+
+        .report-period {
+          font-size: 0.85rem;
+        }
+
+        .velocity-cards {
+          grid-template-columns: 1fr;
+        }
+
+        .metric-cards {
+          grid-template-columns: 1fr;
+        }
+
+        .progress-ring,
+        .health-gauge {
+          transform: scale(0.85);
+        }
+
+        /* Stack dashboard overview columns on mobile */
+        .dashboard-overview .row {
+          margin-bottom: 1rem;
+        }
+
+        .dashboard-overview .col-md-4 {
+          margin-bottom: 1rem;
+        }
+      }
+
+      /* Extra small devices (phones, 320px and up) */
+      @media (max-width: 576px) {
+        .health-gauge-text {
+          font-size: 1.5rem;
+        }
+
+        .progress-ring-text {
+          font-size: 1.5rem;
+        }
+
+        /* Ensure forecast label is readable on small screens */
+        .text-center.mt-2 {
+          font-size: 0.7rem !important;
+        }
+      }
+
+      /* Print Styles */
+      @media print {
+        body {
+          background-color: white;
+        }
+
+        .section {
+          box-shadow: none;
+          border: 1px solid #dee2e6;
+          page-break-inside: avoid;
+        }
+
+        .chart-container {
+          page-break-inside: avoid;
+        }
+      }
+    </style>
+  </head>
+  <body>
     <!-- Header -->
     <div class="report-header">
-        <div class="container">
+      <div class="container">
+        <div class="header-content">
+          <div class="header-left">
             <div class="project-title">{{ profile_name }}</div>
             <div class="query-title">{{ query_name }}</div>
-            <div class="report-meta">
-                <i class="fas fa-calendar-alt"></i> Generated: {{ generated_at }}
-                &nbsp;&nbsp;|&nbsp;&nbsp;
-                <i class="fas fa-clock"></i> Period: {{ weeks_count }} weeks
+          </div>
+          <div class="header-right">
+            <div class="report-period">
+              <span class="report-period-highlight">
+                <i class="fas fa-calendar-week"></i> {{ weeks_count }} Weeks
+              </span>
+              <span class="report-period-detail">
+                {% if first_week and last_week %}
+                {{ first_week }} to {{ last_week }}
+                {% endif %}
+                {% if start_date and end_date %}
+                ({{ start_date }} to {{ end_date }})
+                {% endif %}
+              </span>
             </div>
+            <div class="report-meta">
+              <i class="fas fa-calendar-alt"></i> Generated: {{ generated_at }}
+            </div>
+          </div>
         </div>
+      </div>
     </div>
 
     <div class="container">
-        <!-- Dashboard Section -->
-        <div class="section">
-            <h2 class="section-title">
-                <i class="fas fa-chart-line"></i>
-                Project Health Overview
-            </h2>
-            
-            {% if metrics.dashboard.has_data %}
-                <!-- Dashboard Overview with Progress Rings and Health Gauge -->
-                <div class="dashboard-overview">
-                    <div class="row g-4">
-                        <!-- Health Gauge -->
-                        <div class="col-md-4">
-                            <div class="health-gauge-container">
-                                {% if metrics.dashboard.health_status == 'EXCELLENT' or metrics.dashboard.health_status == 'GOOD' %}
-                                    {% set gauge_color = 'var(--color-green)' %}
-                                    {% set badge_class = 'health-status-good' %}
-                                {% elif metrics.dashboard.health_status == 'MODERATE' %}
-                                    {% set gauge_color = 'var(--color-yellow)' %}
-                                    {% set badge_class = 'health-status-moderate' %}
-                                {% else %}
-                                    {% set gauge_color = 'var(--color-red)' %}
-                                    {% set badge_class = 'health-status-at-risk' %}
-                                {% endif %}
-                                <div class="health-gauge" style="--gauge-percent: {{ metrics.dashboard.health_score|int }}; --gauge-color: {{ gauge_color }};">
-                                    <div class="health-gauge-inner">
-                                        <div class="health-gauge-text">{{ metrics.dashboard.health_score|int }}%</div>
-                                        <div class="health-gauge-label">HEALTH</div>
-                                    </div>
-                                </div>
-                                <div class="health-status-badge {{ badge_class }}">
-                                    {{ metrics.dashboard.health_status }}
-                                </div>
-                                {% if metrics.dashboard.deadline or metrics.dashboard.forecast_date %}
-                                <div class="text-center mt-2" style="font-size: 0.8rem; line-height: 1.5;">
-                                    {% if metrics.dashboard.forecast_date %}
-                                        <div style="color: #198754; font-weight: 500;">
-                                            <strong>Forecast:</strong> {{ metrics.dashboard.forecast_date }}
-                                        </div>
-                                        <div style="color: #6c757d; font-size: 0.75rem; font-style: italic;">
-                                            Based on {{ metrics.dashboard.forecast_metric }}
-                                        </div>
-                                    {% endif %}
-                                    {% if metrics.dashboard.deadline %}
-                                        <div style="color: #6c757d; margin-top: 0.25rem;">
-                                            <strong>Deadline:</strong> {{ metrics.dashboard.deadline }}
-                                        </div>
-                                    {% endif %}
-                                </div>
-                                {% endif %}
-                            </div>
-                        </div>
-                        
-                        <!-- Items Progress Ring -->
-                        <div class="col-md-4">
-                            <div class="progress-ring-container">
-                                {% set items_pct = metrics.dashboard.items_completion_pct %}
-                                {% set items_deg = items_pct * 3.6 %}
-                                <div class="progress-ring" style="--progress-deg: {{ items_deg }}deg; background: conic-gradient(from 0deg, var(--color-blue) 0deg, var(--color-blue) var(--progress-deg), #e9ecef var(--progress-deg), #e9ecef 360deg);">
-                                    <div class="progress-ring-inner">
-                                        <div class="progress-ring-text" style="color: var(--color-blue);">{{ items_pct|int }}%</div>
-                                        <div class="progress-ring-subtext">Complete</div>
-                                    </div>
-                                </div>
-                                <div class="progress-ring-label">ITEMS</div>
-                                <div class="progress-details">
-                                    <div class="progress-detail-item">
-                                        <span class="progress-detail-label">Completed: </span>
-                                        <span class="progress-detail-value">{{ metrics.dashboard.completed_items|int }}</span>
-                                    </div>
-                                    <div class="progress-detail-item">
-                                        <span class="progress-detail-label">Remaining: </span>
-                                        <span class="progress-detail-value">{{ metrics.dashboard.remaining_items|int }}</span>
-                                    </div>
-                                    <div class="progress-detail-item">
-                                        <span class="progress-detail-label">Total: </span>
-                                        <span class="progress-detail-value">{{ metrics.dashboard.total_items|int }}</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <!-- Points Progress Ring -->
-                        <div class="col-md-4">
-                            <div class="progress-ring-container">
-                                {% set points_pct = metrics.dashboard.points_completion_pct %}
-                                {% set points_deg = points_pct * 3.6 %}
-                                <div class="progress-ring" style="--progress-deg: {{ points_deg }}deg; background: conic-gradient(from 0deg, var(--color-orange) 0deg, var(--color-orange) var(--progress-deg), #e9ecef var(--progress-deg), #e9ecef 360deg);">
-                                    <div class="progress-ring-inner">
-                                        <div class="progress-ring-text" style="color: var(--color-orange);">{{ points_pct|int }}%</div>
-                                        <div class="progress-ring-subtext">Complete</div>
-                                    </div>
-                                </div>
-                                <div class="progress-ring-label">POINTS</div>
-                                <div class="progress-details">
-                                    <div class="progress-detail-item">
-                                        <span class="progress-detail-label">Completed: </span>
-                                        <span class="progress-detail-value">{{ metrics.dashboard.completed_points|dec1 }}</span>
-                                    </div>
-                                    <div class="progress-detail-item">
-                                        <span class="progress-detail-label">Remaining: </span>
-                                        <span class="progress-detail-value">{{ metrics.dashboard.remaining_points|dec1 }}</span>
-                                    </div>
-                                    <div class="progress-detail-item">
-                                        <span class="progress-detail-label">Total: </span>
-                                        <span class="progress-detail-value">{{ metrics.dashboard.total_points|dec1 }}</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Velocity Cards -->
-                <div class="velocity-cards">
-                    <div class="velocity-card">
-                        <div class="velocity-card-title"><i class="fas fa-tachometer-alt"></i> Velocity (Items)</div>
-                        <div class="velocity-card-value">
-                            {{ metrics.dashboard.velocity_items|dec1 }}
-                            <span class="velocity-card-unit">items/week</span>
-                        </div>
-                    </div>
-                    <div class="velocity-card points">
-                        <div class="velocity-card-title"><i class="fas fa-tachometer-alt"></i> Velocity (Points)</div>
-                        <div class="velocity-card-value">
-                            {{ metrics.dashboard.velocity_points|dec1 }}
-                            <span class="velocity-card-unit">points/week</span>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Health Score Explanation -->
-                <p class="text-muted mt-3 mb-0" style="font-size: 0.875rem;">
-                    <i class="fas fa-info-circle me-1"></i>
-                    <small>Health score (0-100%) combines five weighted factors: Velocity Consistency (30%), Schedule Performance (25%), Scope Stability (20%), Quality Trends (15%), and Recent Performance (10%).</small>
-                </p>
-            {% else %}
-                <div class="alert alert-warning">
-                    <i class="fas fa-exclamation-triangle"></i> No dashboard data available.
-                </div>
-            {% endif %}
-        </div>
+      <!-- Dashboard Section -->
+      <div class="section">
+        <h2 class="section-title">
+          <i class="fas fa-chart-line"></i>
+          Project Health Overview
+        </h2>
 
-        <!-- Burndown Section -->
-        {% if 'burndown' in sections %}
-        <div class="section">
-            <h2 class="section-title">
-                <i class="fas fa-chart-area"></i>
-                Burndown Analysis
-            </h2>
-            
-            {% if metrics.burndown.has_data %}
-                <h4 class="mb-3">Burndown Chart</h4>
-                <div class="chart-container large">
-                    <canvas id="burndownChart"></canvas>
+        {% if metrics.dashboard.has_data %}
+        <!-- Dashboard Overview with Progress Rings and Health Gauge -->
+        <div class="dashboard-overview">
+          <div class="row g-4">
+            <!-- Health Gauge -->
+            <div class="col-md-4">
+              <div class="health-gauge-container">
+                {% if metrics.dashboard.health_status == 'EXCELLENT' or
+                metrics.dashboard.health_status == 'GOOD' %} {% set gauge_color
+                = 'var(--color-green)' %} {% set badge_class =
+                'health-status-good' %} {% elif metrics.dashboard.health_status
+                == 'MODERATE' %} {% set gauge_color = 'var(--color-yellow)' %}
+                {% set badge_class = 'health-status-moderate' %} {% else %} {%
+                set gauge_color = 'var(--color-red)' %} {% set badge_class =
+                'health-status-at-risk' %} {% endif %}
+                <div
+                  class="health-gauge"
+                  style="--gauge-percent: {{ metrics.dashboard.health_score|round|int }}; --gauge-color: {{ gauge_color }};"
+                >
+                  <div class="health-gauge-inner">
+                    <div class="health-gauge-text">
+                      {{ metrics.dashboard.health_score|round|int }}%
+                    </div>
+                    <div class="health-gauge-label">HEALTH</div>
+                  </div>
                 </div>
-                
-                {% if metrics.burndown.weekly_data %}
-                <h4 class="mt-4 mb-3">Weekly Breakdown</h4>
-                <div class="chart-container large">
-                    <canvas id="weeklyBreakdownChart"></canvas>
+                <div class="health-status-badge {{ badge_class }}">
+                  {{ metrics.dashboard.health_status }}
+                </div>
+                {% if metrics.dashboard.deadline or
+                metrics.dashboard.forecast_date %}
+                <div
+                  class="text-center mt-2"
+                  style="font-size: 0.8rem; line-height: 1.5"
+                >
+                  {% if metrics.dashboard.forecast_date_items %}
+                  <div style="color: #0d6efd; font-weight: 500">
+                    <strong>Forecast (items):</strong> {{
+                    metrics.dashboard.forecast_date_items }}
+                  </div>
+                  {% endif %}
+                  {% if show_points and metrics.dashboard.forecast_date_points %}
+                  <div style="color: #fd7e14; font-weight: 500; margin-top: 0.25rem">
+                    <strong>Forecast (points):</strong> {{
+                    metrics.dashboard.forecast_date_points }}
+                  </div>
+                  {% endif %}
+                  {% if metrics.dashboard.deadline %}
+                  <div style="color: #6c757d; font-weight: 500; margin-top: 0.25rem">
+                    <strong>Deadline:</strong> {{ metrics.dashboard.deadline }}
+                  </div>
+                  {% endif %}
                 </div>
                 {% endif %}
-            {% else %}
-                <div class="alert alert-warning">
-                    <i class="fas fa-exclamation-triangle"></i> No burndown data available.
+              </div>
+            </div>
+
+            <!-- Items Progress Ring -->
+            <div class="col-md-4">
+              <div class="progress-ring-container">
+                {% set items_pct = metrics.dashboard.items_completion_pct %} {%
+                set items_deg = items_pct * 3.6 %}
+                <div
+                  class="progress-ring"
+                  style="--progress-deg: {{ items_deg }}deg; background: conic-gradient(from 0deg, var(--color-blue) 0deg, var(--color-blue) var(--progress-deg), #e9ecef var(--progress-deg), #e9ecef 360deg);"
+                >
+                  <div class="progress-ring-inner">
+                    <div
+                      class="progress-ring-text"
+                      style="color: var(--color-blue)"
+                    >
+                      {{ items_pct|int }}%
+                    </div>
+                    <div class="progress-ring-subtext">Complete</div>
+                  </div>
                 </div>
+                <div class="progress-ring-label">ITEMS</div>
+                <div class="progress-details">
+                  <div class="progress-detail-item">
+                    <span class="progress-detail-label">Completed: </span>
+                    <span class="progress-detail-value"
+                      >{{ metrics.dashboard.completed_items|int }}</span
+                    >
+                  </div>
+                  <div class="progress-detail-item">
+                    <span class="progress-detail-label">Remaining: </span>
+                    <span class="progress-detail-value"
+                      >{{ metrics.dashboard.remaining_items|int }}</span
+                    >
+                  </div>
+                  <div class="progress-detail-item">
+                    <span class="progress-detail-label">Total: </span>
+                    <span class="progress-detail-value"
+                      >{{ metrics.dashboard.total_items|int }}</span
+                    >
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Points Progress Ring -->
+            {% if show_points %}
+            <div class="col-md-4">
+              <div class="progress-ring-container">
+                {% set points_pct = metrics.dashboard.points_completion_pct %}
+                {% set points_deg = points_pct * 3.6 %}
+                <div
+                  class="progress-ring"
+                  style="--progress-deg: {{ points_deg }}deg; background: conic-gradient(from 0deg, var(--color-orange) 0deg, var(--color-orange) var(--progress-deg), #e9ecef var(--progress-deg), #e9ecef 360deg);"
+                >
+                  <div class="progress-ring-inner">
+                    <div
+                      class="progress-ring-text"
+                      style="color: var(--color-orange)"
+                    >
+                      {{ points_pct|int }}%
+                    </div>
+                    <div class="progress-ring-subtext">Complete</div>
+                  </div>
+                </div>
+                <div class="progress-ring-label">POINTS</div>
+                <div class="progress-details">
+                  <div class="progress-detail-item">
+                    <span class="progress-detail-label">Completed: </span>
+                    <span class="progress-detail-value"
+                      >{{ metrics.dashboard.completed_points|dec1 }}</span
+                    >
+                  </div>
+                  <div class="progress-detail-item">
+                    <span class="progress-detail-label">Remaining: </span>
+                    <span class="progress-detail-value"
+                      >{{ metrics.dashboard.remaining_points|dec1 }}</span
+                    >
+                  </div>
+                  <div class="progress-detail-item">
+                    <span class="progress-detail-label">Total: </span>
+                    <span class="progress-detail-value"
+                      >{{ metrics.dashboard.total_points|dec1 }}</span
+                    >
+                  </div>
+                </div>
+              </div>
+            </div>
             {% endif %}
+          </div>
+        </div>
+
+        <!-- Velocity Cards -->
+        <div class="velocity-cards">
+          <div class="velocity-card">
+            <div class="velocity-card-title">
+              <i class="fas fa-tachometer-alt"></i> Velocity (Items)
+            </div>
+            <div class="velocity-card-value">
+              {{ metrics.dashboard.velocity_items|dec2 }}
+              <span class="velocity-card-unit">items/week</span>
+            </div>
+          </div>
+          {% if show_points %}
+          <div class="velocity-card points">
+            <div class="velocity-card-title">
+              <i class="fas fa-tachometer-alt"></i> Velocity (Points)
+            </div>
+            <div class="velocity-card-value">
+              {{ metrics.dashboard.velocity_points|dec2 }}
+              <span class="velocity-card-unit">points/week</span>
+            </div>
+          </div>
+          {% endif %}
+        </div>
+
+        <!-- Health Score Explanation -->
+        <p class="text-muted mt-3 mb-0" style="font-size: 0.875rem">
+          <i class="fas fa-info-circle me-1"></i>
+          <small
+            >Health score (0-100 points). Automatically adapts to available data sources: 
+            Dashboard (Delivery Performance 25%, Predictability 20%), Process Quality (DORA metrics 20%), 
+            Delivery Efficiency (Flow metrics 15%), Risk Indicators (Bug Analysis, Scope, Budget 25%). 
+            Weights dynamically adjust based on data availability, gracefully handling missing metrics.</small
+          >
+        </p>
+        {% else %}
+        <div class="alert alert-warning">
+          <i class="fas fa-exclamation-triangle"></i> No dashboard data
+          available.
+        </div>
+        {% endif %}
+      </div>
+
+      <!-- Burndown Section -->
+      {% if 'burndown' in sections %}
+      <div class="section">
+        <h2 class="section-title">
+          <i class="fas fa-chart-area"></i>
+          Burndown Analysis
+        </h2>
+
+        {% if metrics.burndown.has_data %}
+        <h4 class="mb-3">Burndown Chart</h4>
+        <div class="chart-container large">
+          <canvas id="burndownChart"></canvas>
+        </div>
+
+        {% if metrics.burndown.weekly_data %}
+        <h4 class="mt-4 mb-3">Weekly Breakdown</h4>
+        <div class="chart-container large">
+          <canvas id="weeklyBreakdownChart"></canvas>
+        </div>
+        {% endif %}
+        {% endif %}
+      </div>
+      {% endif %}
+
+      <!-- Scope Changes Section (before Bug Analysis) -->
+      {% if 'burndown' in sections and metrics.scope.has_data %}
+      <div class="section">
+        <h2 class="section-title">
+          <i class="fas fa-chart-line"></i>
+          Scope Changes
+        </h2>
+
+        <div class="row">
+          <div class="col-md-6">
+            <h5>Items Scope</h5>
+            <table class="table table-sm table-striped">
+              <tbody>
+                <tr>
+                  <td class="metric-card-label">
+                    Initial Backlog ({{ weeks_count }}w ago)
+                  </td>
+                  <td class="text-end">
+                    <strong>{{ metrics.scope.initial_items }}</strong>
+                  </td>
+                </tr>
+                <tr>
+                  <td class="metric-card-label">Current Backlog</td>
+                  <td class="text-end">
+                    <strong>{{ metrics.scope.final_items }}</strong>
+                  </td>
+                </tr>
+                <tr style="border-top: 2px solid #dee2e6">
+                  <td class="metric-card-label" style="padding-top: 0.75rem">
+                    <strong
+                      style="text-transform: uppercase; font-size: 0.85rem"
+                      >Backlog Size Change</strong
+                    >
+                  </td>
+                  <td class="text-end" style="padding-top: 0.75rem">
+                    <strong
+                      style="font-size: 1.1rem"
+                      class="{% if metrics.scope.items_change > 0 %}text-danger{% elif metrics.scope.items_change < 0 %}text-success{% endif %}"
+                    >
+                      {% if metrics.scope.items_change > 0 %}+{% endif %}{{
+                      metrics.scope.items_change }}
+                    </strong>
+                  </td>
+                </tr>
+                <tr style="background-color: #f8f9fa">
+                  <td
+                    class="metric-card-label"
+                    style="
+                      padding-left: 2rem;
+                      border-top: none;
+                      padding-top: 0.5rem;
+                    "
+                  >
+                    <span
+                      style="
+                        text-transform: uppercase;
+                        font-size: 0.75rem;
+                        color: #6c757d;
+                      "
+                      >New Items Added</span
+                    >
+                  </td>
+                  <td
+                    class="text-end"
+                    style="border-top: none; padding-top: 0.5rem"
+                  >
+                    <span class="text-primary"
+                      >+{{ metrics.scope.created_items }}</span
+                    >
+                  </td>
+                </tr>
+                <tr style="background-color: #f8f9fa">
+                  <td
+                    class="metric-card-label"
+                    style="padding-left: 2rem; padding-bottom: 0.75rem"
+                  >
+                    <span
+                      style="
+                        text-transform: uppercase;
+                        font-size: 0.75rem;
+                        color: #6c757d;
+                      "
+                      >Items Completed</span
+                    >
+                  </td>
+                  <td class="text-end" style="padding-bottom: 0.75rem">
+                    <span class="text-success"
+                      >-{{ metrics.scope.completed_items }}</span
+                    >
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          {% if show_points %}
+          <div class="col-md-6">
+            <h5>Points Scope</h5>
+            <table class="table table-sm table-striped">
+              <tbody>
+                <tr>
+                  <td class="metric-card-label">
+                    Initial Backlog ({{ weeks_count }}w ago)
+                  </td>
+                  <td class="text-end">
+                    <strong>{{ metrics.scope.initial_points }}</strong>
+                  </td>
+                </tr>
+                <tr>
+                  <td class="metric-card-label">Current Backlog</td>
+                  <td class="text-end">
+                    <strong>{{ metrics.scope.final_points }}</strong>
+                  </td>
+                </tr>
+                <tr style="border-top: 2px solid #dee2e6">
+                  <td class="metric-card-label" style="padding-top: 0.75rem">
+                    <strong
+                      style="text-transform: uppercase; font-size: 0.85rem"
+                      >Backlog Size Change</strong
+                    >
+                  </td>
+                  <td class="text-end" style="padding-top: 0.75rem">
+                    <strong
+                      style="font-size: 1.1rem"
+                      class="{% if metrics.scope.points_change > 0 %}text-danger{% elif metrics.scope.points_change < 0 %}text-success{% endif %}"
+                    >
+                      {% if metrics.scope.points_change > 0 %}+{% endif %}{{
+                      metrics.scope.points_change }}
+                    </strong>
+                  </td>
+                </tr>
+                <tr style="background-color: #f8f9fa">
+                  <td
+                    class="metric-card-label"
+                    style="
+                      padding-left: 2rem;
+                      border-top: none;
+                      padding-top: 0.5rem;
+                    "
+                  >
+                    <span
+                      style="
+                        text-transform: uppercase;
+                        font-size: 0.75rem;
+                        color: #6c757d;
+                      "
+                      >New Points Added</span
+                    >
+                  </td>
+                  <td
+                    class="text-end"
+                    style="border-top: none; padding-top: 0.5rem"
+                  >
+                    <span class="text-primary"
+                      >+{{ metrics.scope.created_points|dec1 }}</span
+                    >
+                  </td>
+                </tr>
+                <tr style="background-color: #f8f9fa">
+                  <td
+                    class="metric-card-label"
+                    style="padding-left: 2rem; padding-bottom: 0.75rem"
+                  >
+                    <span
+                      style="
+                        text-transform: uppercase;
+                        font-size: 0.75rem;
+                        color: #6c757d;
+                      "
+                      >Points Completed</span
+                    >
+                  </td>
+                  <td class="text-end" style="padding-bottom: 0.75rem">
+                    <span class="text-success"
+                      >-{{ metrics.scope.completed_points|dec1 }}</span
+                    >
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          {% endif %}
+        </div>
+
+        <!-- Creation/Completion Ratios -->
+        <div class="row mt-3">
+          <div class="col-md-6">
+            <div class="metric-card">
+              <div class="metric-card-label">Items Creation Rate</div>
+              <div class="metric-card-value">
+                {{ metrics.scope.items_ratio|dec2 }}
+              </div>
+              <div class="text-muted small">new items per completed item</div>
+            </div>
+          </div>
+          {% if show_points %}
+          <div class="col-md-6">
+            <div class="metric-card">
+              <div class="metric-card-label">Points Creation Rate</div>
+              <div class="metric-card-value">
+                {{ metrics.scope.points_ratio|dec2 }}
+              </div>
+              <div class="text-muted small">new points per completed point</div>
+            </div>
+          </div>
+          {% endif %}
+        </div>
+
+        <!-- Scope Changes Over Time Chart -->
+        <div class="mt-4">
+          <h4 class="mb-3">Scope Changes Over Time</h4>
+          <div class="chart-container">
+            <canvas id="scopeChangesChart"></canvas>
+          </div>
+          <p class="text-muted mt-2 mb-0">
+            <i class="fas fa-info-circle me-1"></i>
+            <small
+              >Weekly comparison of items created (red) vs completed (green).
+              Net positive = scope growth.</small
+            >
+          </p>
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- Bug Analysis Section (after Scope Changes) -->
+      {% if 'burndown' in sections and metrics.bug_analysis.has_data %}
+      <div class="section">
+        <h2 class="section-title">
+          <i class="fas fa-bug"></i>
+          Bug Analysis
+        </h2>
+
+        <div class="metric-cards">
+          <div class="metric-card">
+            <div class="metric-card-label">
+              <i class="fas fa-exclamation-circle"></i> Open Bugs
+            </div>
+            <div class="metric-card-value" style="color: var(--color-red)">
+              {{ metrics.bug_analysis.open_bugs|int }}
+            </div>
+            <div class="metric-card-sublabel">Current state (all time)</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-card-label">
+              <i class="fas fa-check-circle"></i> Resolution Rate
+            </div>
+            <div class="metric-card-value" style="color: var(--color-green)">
+              {{ metrics.bug_analysis.resolution_rate|dec2 }}%
+            </div>
+            <div class="metric-card-sublabel">
+              {{ metrics.bug_analysis.closed_bugs|int }} closed / {{
+              metrics.bug_analysis.total_bugs|int }} total
+            </div>
+          </div>
+        </div>
+
+        {% if metrics.bug_analysis.forecast_weeks %}
+        <div class="info-box mt-4">
+          <strong
+            ><i class="fas fa-crystal-ball"></i> Expected Resolution:</strong
+          >
+          ~<strong>{{ metrics.bug_analysis.forecast_weeks }} weeks</strong>
+          {% if metrics.bug_analysis.forecast_date %} by {{
+          metrics.bug_analysis.forecast_date }} {% endif %} {% if
+          metrics.bug_analysis.avg_closure_rate %} • {{
+          metrics.bug_analysis.avg_closure_rate|dec2 }} bugs/week {% endif %}
+          <br />
+          <small class="text-muted">
+            {% if metrics.bug_analysis.weeks_analyzed %} Based on {{
+            metrics.bug_analysis.weeks_analyzed }} weeks of data {% endif %}
+          </small>
+        </div>
+        {% endif %} {% if metrics.bug_analysis.weekly_stats %}
+        <div class="mt-4">
+          <h4 class="mb-3">Bug Trends Over Time</h4>
+          <div class="chart-container">
+            <canvas id="bugTrendsChart"></canvas>
+          </div>
+          <p class="text-muted mt-2 mb-0">
+            <i class="fas fa-info-circle me-1"></i>
+            <small
+              >Orange highlighted areas indicate 3+ consecutive weeks of bugs
+              created exceeding bugs closed.</small
+            >
+          </p>
+        </div>
+        {% endif %}
+      </div>
+      {% endif %}
+
+      <!-- Budget Section -->
+      {% if 'budget' in sections and metrics.budget.has_data %}
+      <div class="section">
+        <h2 class="section-title">
+          <i class="fas fa-money-bill-wave"></i>
+          Beyond Budgeting Analysis
+        </h2>
+
+        
+        <!-- Budget Overview -->
+        <div class="row justify-content-center mb-4">
+          <div class="col-md-8">
+            <h5 class="text-center mb-3">Budget Overview</h5>
+            <table class="table table-sm table-striped">
+              <tbody>
+                <tr>
+                  <td class="metric-card-label">
+                    <i class="fas fa-wallet"></i> Total Budget
+                  </td>
+                  <td class="text-end">
+                    <strong style="color: #0d6efd"
+                      >{{ metrics.budget.currency_symbol }}{{
+                      metrics.budget.budget_total|round(0)|int }}</strong
+                    >
+                  </td>
+                </tr>
+                <tr>
+                  <td class="metric-card-label">
+                    <i class="fas fa-calendar-alt"></i> Time Allocated
+                  </td>
+                  <td class="text-end">
+                    <strong>{{ metrics.budget.time_allocated_weeks }}</strong>
+                    weeks
+                  </td>
+                </tr>
+                <tr>
+                  <td class="metric-card-label">
+                    <i class="fas fa-chart-line"></i> Team Cost
+                  </td>
+                  <td class="text-end">
+                    {{ metrics.budget.currency_symbol }}{{
+                    metrics.budget.cost_per_week|round(0)|int }}/week
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Budget Consumption -->
+        <div class="row justify-content-center mb-4">
+          <div class="col-md-8">
+            <h5 class="text-center mb-3">Budget Consumption</h5>
+            <div class="mb-3">
+              <div class="d-flex justify-content-between mb-1">
+                <span><i class="fas fa-fire"></i> Consumed</span>
+                <span
+                  ><strong
+                    style="color: {% if metrics.budget.consumed_percentage > 90 %}#dc3545{% elif metrics.budget.consumed_percentage > 75 %}#fd7e14{% else %}#198754{% endif %};"
+                    >{{ metrics.budget.consumed_percentage|dec2 }}%</strong
+                  ></span
+                >
+              </div>
+              <div class="progress" style="height: 25px">
+                <div
+                  class="progress-bar {% if metrics.budget.consumed_percentage > 90 %}bg-danger{% elif metrics.budget.consumed_percentage > 75 %}bg-warning{% else %}bg-success{% endif %}"
+                  role="progressbar"
+                  style="width: {{ metrics.budget.consumed_percentage }}%;"
+                  aria-valuenow="{{ metrics.budget.consumed_percentage }}"
+                  aria-valuemin="0"
+                  aria-valuemax="100"
+                >
+                  {{ metrics.budget.currency_symbol }}{{
+                  metrics.budget.consumed_amount|round(0)|int }}
+                </div>
+              </div>
+            </div>
+            <table class="table table-sm table-borderless">
+              <tbody>
+                <tr>
+                  <td>
+                    <i class="fas fa-check-circle text-success"></i> Consumed
+                  </td>
+                  <td class="text-end">
+                    {{ metrics.budget.currency_symbol }}{{
+                    metrics.budget.consumed_amount|round(0)|int }}
+                  </td>
+                </tr>
+                <tr>
+                  <td>
+                    <i class="fas fa-hourglass-half text-primary"></i> Remaining
+                  </td>
+                  <td class="text-end">
+                    {{ metrics.budget.currency_symbol }}{{
+                    metrics.budget.remaining_amount|round(0)|int }}
+                  </td>
+                </tr>
+                <tr>
+                  <td><i class="fas fa-fire text-warning"></i> Burn Rate</td>
+                  <td class="text-end">
+                    <strong
+                      >{{ metrics.budget.currency_symbol }}{{
+                      metrics.budget.burn_rate|round(0)|int }}/week</strong
+                    >
+                  </td>
+                </tr>
+                <tr>
+                  <td><i class="fas fa-road text-info"></i> Runway</td>
+                  <td class="text-end">
+                    <strong
+                      >{% if metrics.budget.runway_weeks > 999990 %}Unlimited{%
+                      else %}{{ metrics.budget.runway_weeks|dec2 }} weeks{%
+                      endif %}</strong
+                    >
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Cost Efficiency -->
+        <div class="row justify-content-center mb-4">
+          <div class="col-md-8">
+            <h5 class="text-center mb-3">Cost Efficiency</h5>
+            <table class="table table-sm table-striped">
+              <tbody>
+                <tr>
+                  <td class="metric-card-label">
+                    <i class="fas fa-calculator"></i> Cost Per Item
+                  </td>
+                  <td class="text-end">
+                    <strong
+                      >{{ metrics.budget.currency_symbol }}{{
+                      metrics.budget.cost_per_item|dec2 }}</strong
+                    >
+                  </td>
+                </tr>
+                {% if metrics.dashboard.show_points and metrics.dashboard.velocity_points and metrics.dashboard.velocity_points > 0 %}
+                <tr>
+                  <td class="metric-card-label">
+                    <i class="fas fa-chart-bar"></i> Cost Per Point
+                  </td>
+                  <td class="text-end">
+                    <strong
+                      >{{ metrics.budget.currency_symbol }}{{
+                      metrics.budget.cost_per_point|dec2 }}</strong
+                    >
+                  </td>
+                </tr>
+                {% endif %}
+              </tbody>
+            </table>
+            <p class="text-muted text-center small mt-2 mb-0">
+              <i class="fas fa-info-circle"></i> Based on recent 4-week velocity
+              and Team Cost
+            </p>
+          </div>
+        </div>
+
+        <!-- Cost Breakdown by Work Type -->
+        {% if metrics.budget.cost_breakdown %}
+        <div class="row justify-content-center mb-4">
+          <div class="col-md-10">
+            <h5 class="text-center mb-3">Cost Breakdown by Work Type</h5>
+            <table class="table table-sm table-striped">
+              <thead>
+                <tr>
+                  <th>Work Type</th>
+                  <th class="text-end">Items</th>
+                  <th class="text-end">Cost</th>
+                  <th class="text-end">Percentage</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for work_type, data in metrics.budget.cost_breakdown.items() %}
+                <tr>
+                  <td>
+                    <i class="fas fa-circle me-2" style="color: 
+                      {% if work_type == 'Feature' %}#198754
+                      {% elif work_type == 'Defect' %}#dc3545
+                      {% elif work_type == 'Technical Debt' %}#fd7e14
+                      {% elif work_type == 'Risk' %}#ffc107
+                      {% else %}#6c757d{% endif %};">
+                    </i>{{ work_type }}
+                  </td>
+                  <td class="text-end">{{ data.count }}</td>
+                  <td class="text-end">{{ metrics.budget.currency_symbol }}{{ data.cost|round(0)|int }}</td>
+                  <td class="text-end">{{ data.percentage|dec2 }}%</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+            <p class="text-muted text-center small mt-2 mb-0">
+              <i class="fas fa-info-circle"></i> Cost allocated based on completed work distribution across Flow item types
+            </p>
+          </div>
         </div>
         {% endif %}
 
-        <!-- Scope Changes Section (before Bug Analysis) -->
-        {% if 'burndown' in sections and metrics.scope.has_data %}
-        <div class="section">
-            <h2 class="section-title">
-                <i class="fas fa-chart-line"></i>
-                Scope Changes
-            </h2>
-            
-            <div class="row">
-                <div class="col-md-6">
-                    <h5>Items Scope</h5>
-                    <table class="table table-sm table-striped">
-                        <tbody>
-                            <tr>
-                                <td class="metric-card-label">Initial Backlog ({{ weeks_count }}w ago)</td>
-                                <td class="text-end"><strong>{{ metrics.scope.initial_items }}</strong></td>
-                            </tr>
-                            <tr>
-                                <td class="metric-card-label">Current Backlog</td>
-                                <td class="text-end"><strong>{{ metrics.scope.final_items }}</strong></td>
-                            </tr>
-                            <tr style="border-top: 2px solid #dee2e6;">
-                                <td class="metric-card-label" style="padding-top: 0.75rem;"><strong style="text-transform: uppercase; font-size: 0.85rem;">Backlog Size Change</strong></td>
-                                <td class="text-end" style="padding-top: 0.75rem;">
-                                    <strong style="font-size: 1.1rem;" class="{% if metrics.scope.items_change > 0 %}text-danger{% elif metrics.scope.items_change < 0 %}text-success{% endif %}">
-                                        {% if metrics.scope.items_change > 0 %}+{% endif %}{{ metrics.scope.items_change }}
-                                    </strong>
-                                </td>
-                            </tr>
-                            <tr style="background-color: #f8f9fa;">
-                                <td class="metric-card-label" style="padding-left: 2rem; border-top: none; padding-top: 0.5rem;"><span style="text-transform: uppercase; font-size: 0.75rem; color: #6c757d;">New Items Added</span></td>
-                                <td class="text-end" style="border-top: none; padding-top: 0.5rem;"><span class="text-primary">+{{ metrics.scope.created_items }}</span></td>
-                            </tr>
-                            <tr style="background-color: #f8f9fa;">
-                                <td class="metric-card-label" style="padding-left: 2rem; padding-bottom: 0.75rem;"><span style="text-transform: uppercase; font-size: 0.75rem; color: #6c757d;">Items Completed</span></td>
-                                <td class="text-end" style="padding-bottom: 0.75rem;"><span class="text-success">-{{ metrics.scope.completed_items }}</span></td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-                
-                <div class="col-md-6">
-                    <h5>Points Scope</h5>
-                    <table class="table table-sm table-striped">
-                        <tbody>
-                            <tr>
-                                <td class="metric-card-label">Initial Backlog ({{ weeks_count }}w ago)</td>
-                                <td class="text-end"><strong>{{ metrics.scope.initial_points }}</strong></td>
-                            </tr>
-                            <tr>
-                                <td class="metric-card-label">Current Backlog</td>
-                                <td class="text-end"><strong>{{ metrics.scope.final_points }}</strong></td>
-                            </tr>
-                            <tr style="border-top: 2px solid #dee2e6;">
-                                <td class="metric-card-label" style="padding-top: 0.75rem;"><strong style="text-transform: uppercase; font-size: 0.85rem;">Backlog Size Change</strong></td>
-                                <td class="text-end" style="padding-top: 0.75rem;">
-                                    <strong style="font-size: 1.1rem;" class="{% if metrics.scope.points_change > 0 %}text-danger{% elif metrics.scope.points_change < 0 %}text-success{% endif %}">
-                                        {% if metrics.scope.points_change > 0 %}+{% endif %}{{ metrics.scope.points_change }}
-                                    </strong>
-                                </td>
-                            </tr>
-                            <tr style="background-color: #f8f9fa;">
-                                <td class="metric-card-label" style="padding-left: 2rem; border-top: none; padding-top: 0.5rem;"><span style="text-transform: uppercase; font-size: 0.75rem; color: #6c757d;">New Points Added</span></td>
-                                <td class="text-end" style="border-top: none; padding-top: 0.5rem;"><span class="text-primary">+{{ metrics.scope.created_points|dec1 }}</span></td>
-                            </tr>
-                            <tr style="background-color: #f8f9fa;">
-                                <td class="metric-card-label" style="padding-left: 2rem; padding-bottom: 0.75rem;"><span style="text-transform: uppercase; font-size: 0.75rem; color: #6c757d;">Points Completed</span></td>
-                                <td class="text-end" style="padding-bottom: 0.75rem;"><span class="text-success">-{{ metrics.scope.completed_points|dec1 }}</span></td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
+        <!-- Forecast vs Budget Alignment -->
+        {% if metrics.dashboard.pert_time_items_weeks and metrics.budget.runway_weeks %}
+        <div class="row mt-4">
+          <div class="col-md-10 mx-auto">
+            <h4 class="text-center mb-3">
+              <i class="fas fa-balance-scale"></i> Forecast vs Budget Alignment
+            </h4>
+            <div class="table-responsive">
+              <table class="table table-bordered">
+                <thead>
+                  <tr>
+                    <th style="width: 25%">Tracking Method</th>
+                    <th class="text-center" style="width: 25%">Forecast (weeks)</th>
+                    <th class="text-center" style="width: 25%">Budget Runway (weeks)</th>
+                    <th class="text-center" style="width: 25%">Gap</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% if metrics.dashboard.pert_time_items_weeks %}
+                  <tr>
+                    <td>
+                      <i class="fas fa-hashtag" style="color: #0d6efd"></i>
+                      <strong>Items</strong>
+                    </td>
+                    <td class="text-center">
+                      {{ metrics.dashboard.pert_time_items_weeks|dec2 }}
+                    </td>
+                    <td class="text-center">
+                      {{ metrics.budget.runway_weeks|dec2 }}
+                    </td>
+                    <td class="text-center">
+                      {% set gap_items = metrics.budget.runway_weeks - metrics.dashboard.pert_time_items_weeks %}
+                      {% if gap_items >= 0 %}
+                        <span style="color: #198754">
+                          <i class="fas fa-check-circle"></i> +{{ gap_items|dec2 }} weeks
+                        </span>
+                      {% else %}
+                        <span style="color: #dc3545">
+                          <i class="fas fa-exclamation-triangle"></i> {{ gap_items|dec2 }} weeks
+                        </span>
+                      {% endif %}
+                    </td>
+                  </tr>
+                  {% endif %}
+                  {% if metrics.dashboard.pert_time_points_weeks %}
+                  <tr>
+                    <td>
+                      <i class="fas fa-star" style="color: #fd7e14"></i>
+                      <strong>Story Points</strong>
+                    </td>
+                    <td class="text-center">
+                      {{ metrics.dashboard.pert_time_points_weeks|dec2 }}
+                    </td>
+                    <td class="text-center">
+                      {{ metrics.budget.runway_weeks|dec2 }}
+                    </td>
+                    <td class="text-center">
+                      {% set gap_points = metrics.budget.runway_weeks - metrics.dashboard.pert_time_points_weeks %}
+                      {% if gap_points >= 0 %}
+                        <span style="color: #198754">
+                          <i class="fas fa-check-circle"></i> +{{ gap_points|dec2 }} weeks
+                        </span>
+                      {% else %}
+                        <span style="color: #dc3545">
+                          <i class="fas fa-exclamation-triangle"></i> {{ gap_points|dec2 }} weeks
+                        </span>
+                      {% endif %}
+                    </td>
+                  </tr>
+                  {% endif %}
+                </tbody>
+              </table>
+              <p class="text-muted text-center small mt-2 mb-0">
+                <i class="fas fa-info-circle"></i> 
+                Positive gap indicates budget is sufficient for forecast completion.
+                Negative gap indicates potential budget shortfall.
+              </p>
             </div>
-            
-            <!-- Creation/Completion Ratios -->
-            <div class="row mt-3">
-                <div class="col-md-6">
-                    <div class="metric-card">
-                        <div class="metric-card-label">Items Creation Rate</div>
-                        <div class="metric-card-value">{{ metrics.scope.items_ratio|dec2 }}</div>
-                        <div class="text-muted small">new items per completed item</div>
-                    </div>
-                </div>
-                <div class="col-md-6">
-                    <div class="metric-card">
-                        <div class="metric-card-label">Points Creation Rate</div>
-                        <div class="metric-card-value">{{ metrics.scope.points_ratio|dec2 }}</div>
-                        <div class="text-muted small">new points per completed point</div>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Scope Changes Over Time Chart -->
-            <div class="mt-4">
-                <h4 class="mb-3">Scope Changes Over Time</h4>
-                <div class="chart-container">
-                    <canvas id="scopeChangesChart"></canvas>
-                </div>
-                <p class="text-muted mt-2 mb-0">
-                    <i class="fas fa-info-circle me-1"></i>
-                    <small>Weekly comparison of items created (red) vs completed (green). Net positive = scope growth.</small>
-                </p>
-            </div>
+          </div>
         </div>
         {% endif %}
 
-        <!-- Bug Analysis Section (after Scope Changes) -->
-        {% if 'burndown' in sections and metrics.bug_analysis.has_data %}
-        <div class="section">
-            <h2 class="section-title">
-                <i class="fas fa-bug"></i>
-                Bug Analysis
-            </h2>
-            
-            <div class="metric-cards">
-                <div class="metric-card">
-                    <div class="metric-card-label"><i class="fas fa-exclamation-circle"></i> Open Bugs</div>
-                    <div class="metric-card-value" style="color: var(--color-red);">
-                        {{ metrics.bug_analysis.open_bugs|int }}
-                    </div>
-                    <div class="metric-card-sublabel">Current state (all time)</div>
-                </div>
-                <div class="metric-card">
-                    <div class="metric-card-label"><i class="fas fa-check-circle"></i> Resolution Rate</div>
-                    <div class="metric-card-value" style="color: var(--color-green);">
-                        {{ metrics.bug_analysis.resolution_rate|dec1 }}%
-                    </div>
-                    <div class="metric-card-sublabel">{{ metrics.bug_analysis.closed_bugs|int }} closed / {{ metrics.bug_analysis.total_bugs|int }} total</div>
-                </div>
+        {% if metrics.budget.revision_count > 0 %}
+        <div class="row justify-content-center">
+          <div class="col-md-8">
+            <p class="text-muted text-center small">
+              <i class="fas fa-history"></i> {{ metrics.budget.revision_count }}
+              budget revision{{ "s" if metrics.budget.revision_count > 1 else ""
+              }} tracked
+            </p>
+          </div>
+        </div>
+        {% endif %}
+      </div>
+      {% endif %}
+
+      <!-- Flow Metrics Section -->
+      {% if 'flow' in sections and metrics.flow.has_data %}
+      <div class="section">
+        <h2 class="section-title">
+          <i class="fas fa-water"></i>
+          Flow Metrics
+        </h2>
+
+        
+        <!-- Flow Metrics: Period aggregates matching app display exactly -->
+        <div class="row justify-content-center">
+          <div class="col-md-8">
+            <h5 class="text-center mb-3">
+              {{ metrics.flow.weeks_count }}-Week Period Metrics
+            </h5>
+            <table class="table table-sm table-striped">
+              <tbody>
+                <tr>
+                  <td class="metric-card-label">
+                    <i class="fas fa-tachometer-alt"></i> Flow Velocity
+                  </td>
+                  <td class="text-end">
+                    <strong style="color: #0d6efd"
+                      >{{ metrics.flow.velocity|dec2 }}</strong
+                    >
+                    items/week
+                  </td>
+                </tr>
+                <tr>
+                  <td class="metric-card-label">
+                    <i class="fas fa-clock"></i> Flow Time
+                  </td>
+                  <td class="text-end">
+                    <strong style="color: #fd7e14"
+                      >{{ metrics.flow.flow_time|dec2 }}</strong
+                    >
+                    days (median)
+                  </td>
+                </tr>
+                <tr>
+                  <td class="metric-card-label">
+                    <i class="fas fa-chart-line"></i> Flow Efficiency
+                  </td>
+                  <td class="text-end">
+                    <strong style="color: #198754"
+                      >{{ metrics.flow.efficiency|dec2 }}</strong
+                    >%
+                  </td>
+                </tr>
+                <tr>
+                  <td class="metric-card-label">
+                    <i class="fas fa-tasks"></i> Flow Load (WIP)
+                  </td>
+                  <td class="text-end">
+                    <strong style="color: #6f42c1"
+                      >{{ metrics.flow.wip }}</strong
+                    >
+                    items (current)
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+            <p class="text-muted text-center small mt-2 mb-0">
+              <i class="fas fa-info-circle"></i> 4-week weighted average. Recent
+              weeks weighted more heavily (40%, 30%, 20%, 10% from newest to
+              oldest).
+            </p>
+          </div>
+        </div>
+
+        {% if metrics.flow.work_distribution %}
+        <div class="mt-4">
+          <h5 class="mb-3">Work Distribution</h5>
+
+          {% set total_items = metrics.flow.work_distribution.total %} {% if
+          total_items > 0 %}
+          <div class="row mb-3">
+            <div class="col-12">
+              <small
+                class="text-muted text-center d-block mb-2"
+                style="font-weight: 600"
+                >{{ metrics.flow.weeks_count }}-week aggregate</small
+              >
             </div>
-            
-            {% if metrics.bug_analysis.forecast_weeks %}
-            <div class="info-box mt-4">
-                <strong><i class="fas fa-crystal-ball"></i> Expected Resolution:</strong>
-                ~<strong>{{ metrics.bug_analysis.forecast_weeks }} weeks</strong>
-                {% if metrics.bug_analysis.forecast_date %}
-                by {{ metrics.bug_analysis.forecast_date }}
-                {% endif %}
-                {% if metrics.bug_analysis.avg_closure_rate %}
-                • {{ metrics.bug_analysis.avg_closure_rate|dec1 }} bugs/week
-                {% endif %}
-                <br>
-                <small class="text-muted">
-                    {% if metrics.bug_analysis.weeks_analyzed %}
-                    Based on {{ metrics.bug_analysis.weeks_analyzed }} weeks of data
+            <div class="col-md-3 col-6 mb-3">
+              <div class="text-center">
+                <span class="small text-muted d-block mb-1">Feature</span>
+                <div class="d-flex align-items-baseline justify-content-center">
+                  <span class="h4 mb-0 me-2" style="color: rgb(25, 135, 84)"
+                    >{{ metrics.flow.work_distribution.feature }}</span
+                  >
+                  <span class="h6 mb-0" style="color: rgb(25, 135, 84)"
+                    >{{ ((metrics.flow.work_distribution.feature / total_items *
+                    100) | round | int) }}%</span
+                  >
+                </div>
+              </div>
+            </div>
+            <div class="col-md-3 col-6 mb-3">
+              <div class="text-center">
+                <span class="small text-muted d-block mb-1">Defect</span>
+                <div class="d-flex align-items-baseline justify-content-center">
+                  <span class="h4 mb-0 me-2" style="color: rgb(220, 53, 69)"
+                    >{{ metrics.flow.work_distribution.defect }}</span
+                  >
+                  <span class="h6 mb-0" style="color: rgb(220, 53, 69)"
+                    >{{ ((metrics.flow.work_distribution.defect / total_items *
+                    100) | round | int) }}%</span
+                  >
+                </div>
+              </div>
+            </div>
+            <div class="col-md-3 col-6 mb-3">
+              <div class="text-center">
+                <span class="small text-muted d-block mb-1">Tech Debt</span>
+                <div class="d-flex align-items-baseline justify-content-center">
+                  <span class="h4 mb-0 me-2" style="color: rgb(253, 126, 20)"
+                    >{{ metrics.flow.work_distribution.tech_debt }}</span
+                  >
+                  <span class="h6 mb-0" style="color: rgb(253, 126, 20)"
+                    >{{ ((metrics.flow.work_distribution.tech_debt / total_items
+                    * 100) | round | int) }}%</span
+                  >
+                </div>
+              </div>
+            </div>
+            <div class="col-md-3 col-6 mb-3">
+              <div class="text-center">
+                <span class="small text-muted d-block mb-1">Risk</span>
+                <div class="d-flex align-items-baseline justify-content-center">
+                  <span class="h4 mb-0 me-2" style="color: rgb(255, 193, 7)"
+                    >{{ metrics.flow.work_distribution.risk }}</span
+                  >
+                  <span class="h6 mb-0" style="color: rgb(255, 193, 7)"
+                    >{{ ((metrics.flow.work_distribution.risk / total_items *
+                    100) | round | int) }}%</span
+                  >
+                </div>
+              </div>
+            </div>
+          </div>
+          {% endif %}
+
+          <div class="chart-container" style="height: 350px">
+            <canvas id="workDistributionChart"></canvas>
+          </div>
+          <p class="text-muted mt-2 mb-0">
+            <i class="fas fa-info-circle me-1"></i>
+            <small
+              >Stacked bar chart showing percentage distribution of work across
+              Flow item types per week.</small
+            >
+          </p>
+        </div>
+        {% endif %}
+      </div>
+      {% endif %}
+
+      <!-- DORA Metrics Section -->
+      {% if 'dora' in sections and metrics.dora.has_data %}
+      <div class="section">
+        <h2 class="section-title">
+          <i class="fas fa-rocket"></i>
+          DORA Metrics
+        </h2>
+
+        
+        <!-- DORA Metrics: Period aggregates matching app display exactly -->
+        <div class="row justify-content-center">
+          <div class="col-md-8">
+            <h5 class="text-center mb-3">
+              {{ metrics.dora.weeks_count }}-Week Period Metrics
+            </h5>
+            <table class="table table-sm table-striped">
+              <tbody>
+                <tr>
+                  <td class="metric-card-label">
+                    <i class="fas fa-shipping-fast"></i> Deployment Frequency
+                  </td>
+                  <td class="text-end">
+                    <strong style="color: #0d6efd"
+                      >{{ metrics.dora.deployment_frequency|dec2 }}</strong
+                    >
+                    releases/week {% if metrics.dora.deployment_frequency_tasks
+                    != metrics.dora.deployment_frequency %} <br /><small
+                      class="text-muted"
+                      >({{ metrics.dora.deployment_frequency_tasks|dec2 }}
+                      deployments/week)</small
+                    >
                     {% endif %}
-                </small>
-            </div>
-            {% endif %}
-            
-            {% if metrics.bug_analysis.weekly_stats %}
-            <div class="mt-4">
-                <h4 class="mb-3">Bug Trends Over Time</h4>
-                <div class="chart-container">
-                    <canvas id="bugTrendsChart"></canvas>
-                </div>
-                <p class="text-muted mt-2 mb-0">
-                    <i class="fas fa-info-circle me-1"></i>
-                    <small>Orange highlighted areas indicate 3+ consecutive weeks of bugs created exceeding bugs closed.</small>
-                </p>
-            </div>
-            {% endif %}
-        </div>
-        {% endif %}
-
-        <!-- Flow Metrics Section -->
-        {% if 'flow' in sections %}
-        <div class="section">
-            <h2 class="section-title">
-                <i class="fas fa-water"></i>
-                Flow Metrics
-            </h2>
-            
-            {% if metrics.flow.has_data %}
-                <!-- Flow Metrics: Period aggregates matching app display exactly -->
-                <div class="row justify-content-center">
-                    <div class="col-md-8">
-                        <h5 class="text-center mb-3">{{ metrics.flow.weeks_count }}-Week Period Metrics</h5>
-                        <table class="table table-sm table-striped">
-                            <tbody>
-                                <tr>
-                                    <td class="metric-card-label"><i class="fas fa-tachometer-alt"></i> Flow Velocity</td>
-                                    <td class="text-end"><strong style="color: #0d6efd;">{{ metrics.flow.velocity|round(1) }}</strong> items/week</td>
-                                </tr>
-                                <tr>
-                                    <td class="metric-card-label"><i class="fas fa-clock"></i> Flow Time</td>
-                                    <td class="text-end"><strong style="color: #fd7e14;">{{ metrics.flow.flow_time|round(1) }}</strong> days (median)</td>
-                                </tr>
-                                <tr>
-                                    <td class="metric-card-label"><i class="fas fa-chart-line"></i> Flow Efficiency</td>
-                                    <td class="text-end"><strong style="color: #198754;">{{ metrics.flow.efficiency|round(1) }}</strong>%</td>
-                                </tr>
-                                <tr>
-                                    <td class="metric-card-label"><i class="fas fa-tasks"></i> Flow Load (WIP)</td>
-                                    <td class="text-end"><strong style="color: #6f42c1;">{{ metrics.flow.wip }}</strong> items (current)</td>
-                                </tr>
-                            </tbody>
-                        </table>
-                        <p class="text-muted text-center small mt-2 mb-0">
-                            <i class="fas fa-info-circle"></i> 4-week weighted average. Recent weeks weighted more heavily (40%, 30%, 20%, 10% from newest to oldest).
-                        </p>
-                    </div>
-                </div>
-                
-                {% if metrics.flow.work_distribution %}
-                <div class="mt-4">
-                    <h5 class="mb-3">Work Distribution</h5>
-                    
-                    {% set total_items = metrics.flow.work_distribution.total %}
-                    {% if total_items > 0 %}
-                    <div class="row mb-3">
-                        <div class="col-12">
-                            <small class="text-muted text-center d-block mb-2" style="font-weight: 600;">{{ metrics.flow.weeks_count }}-week aggregate</small>
-                        </div>
-                        <div class="col-md-3 col-6 mb-3">
-                            <div class="text-center">
-                                <span class="small text-muted d-block mb-1">Feature</span>
-                                <div class="d-flex align-items-baseline justify-content-center">
-                                    <span class="h4 mb-0 me-2" style="color: rgb(25, 135, 84);">{{ metrics.flow.work_distribution.feature }}</span>
-                                    <span class="h6 mb-0" style="color: rgb(25, 135, 84);">{{ ((metrics.flow.work_distribution.feature / total_items * 100) | round | int) }}%</span>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-3 col-6 mb-3">
-                            <div class="text-center">
-                                <span class="small text-muted d-block mb-1">Defect</span>
-                                <div class="d-flex align-items-baseline justify-content-center">
-                                    <span class="h4 mb-0 me-2" style="color: rgb(220, 53, 69);">{{ metrics.flow.work_distribution.defect }}</span>
-                                    <span class="h6 mb-0" style="color: rgb(220, 53, 69);">{{ ((metrics.flow.work_distribution.defect / total_items * 100) | round | int) }}%</span>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-3 col-6 mb-3">
-                            <div class="text-center">
-                                <span class="small text-muted d-block mb-1">Tech Debt</span>
-                                <div class="d-flex align-items-baseline justify-content-center">
-                                    <span class="h4 mb-0 me-2" style="color: rgb(253, 126, 20);">{{ metrics.flow.work_distribution.tech_debt }}</span>
-                                    <span class="h6 mb-0" style="color: rgb(253, 126, 20);">{{ ((metrics.flow.work_distribution.tech_debt / total_items * 100) | round | int) }}%</span>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-3 col-6 mb-3">
-                            <div class="text-center">
-                                <span class="small text-muted d-block mb-1">Risk</span>
-                                <div class="d-flex align-items-baseline justify-content-center">
-                                    <span class="h4 mb-0 me-2" style="color: rgb(255, 193, 7);">{{ metrics.flow.work_distribution.risk }}</span>
-                                    <span class="h6 mb-0" style="color: rgb(255, 193, 7);">{{ ((metrics.flow.work_distribution.risk / total_items * 100) | round | int) }}%</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                  </td>
+                </tr>
+                <tr>
+                  <td class="metric-card-label">
+                    <i class="fas fa-clock"></i> Lead Time For Changes
+                  </td>
+                  <td class="text-end">
+                    {% if metrics.dora.lead_time_days %}
+                    <strong style="color: #198754"
+                      >{{ metrics.dora.lead_time_days|dec2 }}</strong
+                    >
+                    days <br /><small class="text-muted"
+                      >({{ metrics.dora.lead_time_hours|dec2 }}
+                      hours)</small
+                    >
+                    {% else %}
+                    <span class="text-muted">No data</span>
                     {% endif %}
-                    
-                    <div class="chart-container" style="height: 350px;">
-                        <canvas id="workDistributionChart"></canvas>
-                    </div>
-                    <p class="text-muted mt-2 mb-0">
-                        <i class="fas fa-info-circle me-1"></i>
-                        <small>Stacked bar chart showing percentage distribution of work across Flow item types per week.</small>
-                    </p>
-                </div>
-                {% endif %}
-            {% else %}
-                <div class="alert alert-warning">
-                    <i class="fas fa-exclamation-triangle"></i> No flow metrics data available.
-                </div>
-            {% endif %}
+                  </td>
+                </tr>
+                <tr>
+                  <td class="metric-card-label">
+                    <i class="fas fa-exclamation-triangle"></i> Change Failure
+                    Rate
+                  </td>
+                  <td class="text-end">
+                    <strong style="color: #fd7e14"
+                      >{{ metrics.dora.change_failure_rate|dec2 }}</strong
+                    >%
+                  </td>
+                </tr>
+                <tr>
+                  <td class="metric-card-label">
+                    <i class="fas fa-tools"></i> Mean Time To Recovery
+                  </td>
+                  <td class="text-end">
+                    {% if metrics.dora.mttr_hours %}
+                    <strong style="color: #dc3545"
+                      >{{ metrics.dora.mttr_hours|dec2 }}</strong
+                    >
+                    hours <br /><small class="text-muted"
+                      >({{ metrics.dora.mttr_days|dec2 }} days)</small
+                    >
+                    {% else %}
+                    <span class="text-muted">No data</span>
+                    {% endif %}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+            <p class="text-muted text-center small mt-2 mb-0">
+              <i class="fas fa-info-circle"></i> Lead Time & MTTR: median of
+              weekly medians. Deployment Frequency: average of weekly counts.
+              CFR: aggregate rate over all weeks.
+            </p>
+          </div>
         </div>
-        {% endif %}
-
-        <!-- DORA Metrics Section -->
-        {% if 'dora' in sections %}
-        <div class="section">
-            <h2 class="section-title">
-                <i class="fas fa-rocket"></i>
-                DORA Metrics
-            </h2>
-            
-            {% if metrics.dora.has_data %}
-                <!-- DORA Metrics: Period aggregates matching app display exactly -->
-                <div class="row justify-content-center">
-                    <div class="col-md-8">
-                        <h5 class="text-center mb-3">{{ metrics.dora.weeks_count }}-Week Period Metrics</h5>
-                        <table class="table table-sm table-striped">
-                            <tbody>
-                                <tr>
-                                    <td class="metric-card-label"><i class="fas fa-shipping-fast"></i> Deployment Frequency</td>
-                                    <td class="text-end">
-                                        <strong style="color: #0d6efd;">{{ metrics.dora.deployment_frequency|round(2) }}</strong> releases/week
-                                        {% if metrics.dora.deployment_frequency_tasks != metrics.dora.deployment_frequency %}
-                                        <br><small class="text-muted">({{ metrics.dora.deployment_frequency_tasks|round(2) }} tasks/week)</small>
-                                        {% endif %}
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td class="metric-card-label"><i class="fas fa-clock"></i> Lead Time For Changes</td>
-                                    <td class="text-end">
-                                        {% if metrics.dora.lead_time_days %}
-                                        <strong style="color: #198754;">{{ metrics.dora.lead_time_days|round(1) }}</strong> days
-                                        <br><small class="text-muted">({{ metrics.dora.lead_time_hours|round(0) }} hours)</small>
-                                        {% else %}
-                                        <span class="text-muted">No data</span>
-                                        {% endif %}
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td class="metric-card-label"><i class="fas fa-exclamation-triangle"></i> Change Failure Rate</td>
-                                    <td class="text-end"><strong style="color: #fd7e14;">{{ metrics.dora.change_failure_rate|round(1) }}</strong>%</td>
-                                </tr>
-                                <tr>
-                                    <td class="metric-card-label"><i class="fas fa-tools"></i> Mean Time To Recovery</td>
-                                    <td class="text-end">
-                                        {% if metrics.dora.mttr_hours %}
-                                        <strong style="color: #dc3545;">{{ metrics.dora.mttr_hours|round(1) }}</strong> hours
-                                        <br><small class="text-muted">({{ metrics.dora.mttr_days|round(1) }} days)</small>
-                                        {% else %}
-                                        <span class="text-muted">No data</span>
-                                        {% endif %}
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-                        <p class="text-muted text-center small mt-2 mb-0">
-                            <i class="fas fa-info-circle"></i> Lead Time & MTTR: median of weekly medians. Deployment Frequency: average of weekly counts. CFR: aggregate rate over all weeks.
-                        </p>
-                    </div>
-                </div>
-            {% else %}
-                <div class="alert alert-warning">
-                    <i class="fas fa-exclamation-triangle"></i> No DORA metrics data available.
-                </div>
-            {% endif %}
-        </div>
-        {% endif %}
+      </div>
+      {% endif %}
     </div>
 
     <!-- Footer -->
     <div class="report-footer">
-        <p>
-            <strong>{{ profile_name }}</strong> - {{ query_name }}<br>
-            Generated on {{ generated_at }}
-        </p>
-        <p class="text-muted">
-            <small>Report covers {{ weeks_count }} weeks of project data</small>
-        </p>
+      <p class="mb-1">
+        <strong>{{ profile_name }}</strong> - {{ query_name }} | Generated {{ generated_at }}
+      </p>
     </div>
 
     <!-- Chart.js Initialization Scripts -->
     <script>
-        {{ chart_script|safe }}
+      {{ chart_script|safe }}
     </script>
-</body>
+  </body>
 </html>

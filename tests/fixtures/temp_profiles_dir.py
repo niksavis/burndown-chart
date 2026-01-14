@@ -50,6 +50,7 @@ def temp_profiles_dir_with_default():
     Create temporary profiles directory with default profile already migrated.
 
     Useful for testing scenarios where migration has already occurred.
+    Also initializes SQLite database schema to avoid "no such table" errors.
 
     Yields:
         Path: Temporary profiles directory with default profile structure
@@ -70,11 +71,24 @@ def temp_profiles_dir_with_default():
         default_query_dir = default_queries_dir / "default"
         default_query_dir.mkdir(parents=True, exist_ok=True)
 
+        # Initialize database schema
+        db_path = profiles_dir / "burndown.db"
+        from data.migration.schema_manager import initialize_schema
+
+        initialize_schema(db_path=db_path)
+
         # Patch constants
         profiles_file = profiles_dir / "profiles.json"
 
         with (
             patch("data.profile_manager.PROFILES_DIR", profiles_dir),
             patch("data.profile_manager.PROFILES_FILE", profiles_file),
+            patch("data.database.DB_PATH", db_path),
+            patch("data.persistence.factory.DEFAULT_SQLITE_PATH", str(db_path)),
         ):
+            # Clear backend singleton to force recreation with new path
+            import data.persistence.factory as factory
+
+            factory._backend_instance = None
+
             yield profiles_dir

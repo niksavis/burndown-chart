@@ -172,6 +172,7 @@ def _create_import_export_tab():
                         ],
                         value="CONFIG_ONLY",  # Default to secure option
                         className="mb-2",
+                        style={"fontSize": "0.875rem"},
                     ),
                 ],
                 className="mb-2",
@@ -183,7 +184,7 @@ def _create_import_export_tab():
                         id="include-token-checkbox",
                         label="Include JIRA Token (⚠️ Security Risk)",
                         value=False,  # Default unchecked
-                        className="mb-1",
+                        style={"fontSize": "0.875rem"},
                     ),
                     dbc.Tooltip(
                         "Including token allows recipient to access your JIRA instance. Only enable for personal backups.",
@@ -191,7 +192,24 @@ def _create_import_export_tab():
                         placement="right",
                     ),
                 ],
-                className="mb-3",
+                className="mb-2",
+            ),
+            # Budget data inclusion checkbox
+            html.Div(
+                [
+                    dbc.Checkbox(
+                        id="include-budget-checkbox",
+                        label="Include Budget Data",
+                        value=False,  # Default unchecked
+                        style={"fontSize": "0.875rem"},
+                    ),
+                    dbc.Tooltip(
+                        "Budget data is project-specific. Uncheck when sharing configurations with others.",
+                        target="include-budget-checkbox",
+                        placement="right",
+                    ),
+                ],
+                className="mb-2",
             ),
             html.Div(
                 [
@@ -424,7 +442,7 @@ def _create_reports_tab():
                     dbc.Checklist(
                         id="report-sections-checklist",
                         options=[],
-                        value=["burndown", "dora", "flow"],
+                        value=["burndown", "dora", "flow", "budget"],
                         style={"display": "none"},
                     ),
                     dbc.RadioItems(
@@ -436,6 +454,71 @@ def _create_reports_tab():
                     html.Div(id="report-size-estimate", style={"display": "none"}),
                 ],
                 style={"display": "none"},
+            ),
+        ],
+        className="settings-tab-content",
+    )
+
+
+def _create_ai_prompt_tab():
+    """Create AI Prompt Generator tab."""
+    return html.Div(
+        [
+            # Header
+            html.Div(
+                [
+                    html.I(className="fas fa-robot me-2 text-primary"),
+                    html.Span("AI Analysis Prompt Generator", className="fw-bold"),
+                ],
+                className="d-flex align-items-center mb-2",
+            ),
+            html.P(
+                "Generate privacy-safe prompt for AI analysis (works with any AI agent)",
+                className="text-muted small mb-2",
+                style={"fontSize": "0.8rem"},
+            ),
+            # Info about time period (mirrors Reports tab)
+            html.Div(
+                [
+                    html.I(className="fas fa-info-circle me-2"),
+                    html.Span(
+                        [
+                            "AI analysis will include data from the ",
+                            html.Strong(id="ai-prompt-weeks-display", children="12"),
+                            " weeks shown in your current Data Points view",
+                        ],
+                        style={"fontSize": "0.85rem"},
+                    ),
+                ],
+                className="alert alert-info py-2 mb-3",
+                style={"fontSize": "0.8rem"},
+            ),
+            # Privacy notice
+            html.Div(
+                [
+                    html.I(className="fas fa-shield-alt me-2"),
+                    html.Span(
+                        "All customer-identifying data is automatically sanitized before prompt generation.",
+                        style={"fontSize": "0.85rem"},
+                    ),
+                ],
+                className="alert alert-secondary py-2 mb-3",
+                style={"fontSize": "0.8rem"},
+            ),
+            # Generate button (matches other action buttons)
+            html.Div(
+                [
+                    dbc.Button(
+                        [
+                            html.I(className="fas fa-robot"),
+                            html.Span("Generate AI Prompt"),
+                        ],
+                        id="generate-ai-prompt-button",
+                        color="primary",
+                        className="action-button",
+                    ),
+                ],
+                style={"marginBottom": "1rem"},
             ),
         ],
         className="settings-tab-content",
@@ -473,6 +556,11 @@ def create_import_export_flyout(is_open: bool = False):
                                     label="Import/Export",
                                     tab_id="import-export-tab",
                                     children=_create_import_export_tab(),
+                                ),
+                                dbc.Tab(
+                                    label="AI Prompt",
+                                    tab_id="ai-prompt-tab",
+                                    children=_create_ai_prompt_tab(),
                                 ),
                             ],
                             id="data-tabs",

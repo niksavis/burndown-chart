@@ -175,94 +175,71 @@ def switch_query_callback(selected_query_id, current_options):
         return no_update, "__create_new__", "", "", ""
 
     try:
-        import time
         from data.query_manager import (
-            switch_query,
-            get_active_query_id,
             get_active_profile_id,
             list_queries_for_profile,
         )
 
-        # Check if already on this query (None means no active query)
-        current_query_id = get_active_query_id()
-        if current_query_id and selected_query_id == current_query_id:
-            raise PreventUpdate
+        # IMPORTANT: Do NOT call switch_query() here!
+        # Switching the active query would cause other callbacks to load data
+        # from the newly selected query before the user clicks "Load".
+        # The actual query switch happens in load_query_cached_data() when
+        # the user clicks the "Load Query Data" button.
 
-        # Performance measurement
-        start_time = time.perf_counter()
-
-        # Switch query (atomic operation)
-        switch_query(selected_query_id)
-
-        elapsed_ms = (time.perf_counter() - start_time) * 1000
-
-        logger.info(f"Query switched to '{selected_query_id}' in {elapsed_ms:.2f}ms")
-
-        # CRITICAL: Trigger data refresh for new query workspace
-        # The statistics table and charts will auto-update via other callbacks
-        # that listen to query changes
-
-        # Refresh dropdown to update active indicator and get JQL + name
+        # Just refresh the dropdown to show the selected query's JQL and name
         profile_id = get_active_profile_id()
         queries = list_queries_for_profile(profile_id)
 
         options = [{"label": "→ Create New Query", "value": "__create_new__"}]
-        active_value = ""
-        active_jql = ""
-        active_name = ""
+        selected_jql = ""
+        selected_name = ""
 
-        # Find the query we just switched to
-        switched_query = None
+        # Build dropdown options and find the selected query's details
         for query in queries:
             label = query.get("name", "Unnamed Query")
             value = query.get("id", "")
+
+            # Mark active query with [Active] indicator
             if query.get("is_active", False):
                 label += " [Active]"
-                active_value = value
-                active_jql = query.get("jql", "")
-                active_name = query.get("name", "")
-                switched_query = query
+
+            # Store JQL and name for the selected query
+            if value == selected_query_id:
+                selected_jql = query.get("jql", "")
+                selected_name = query.get("name", "")
+
             options.append({"label": label, "value": value})
 
-        # Validate that we found the switched query
-        if not switched_query:
+        # Validate that we found the selected query
+        if not selected_jql and not selected_name:
             logger.error(
-                f"Query switch failed: {selected_query_id} not found as active after switch_query()"
+                f"Query selection failed: {selected_query_id} not found in profile"
             )
-            # Fallback: Find the query by ID directly
-            fallback_query = next(
-                (q for q in queries if q.get("id") == selected_query_id), None
-            )
-            if fallback_query:
-                logger.warning(
-                    f"Using fallback: found query {selected_query_id} but it's not marked active"
-                )
-                active_value = selected_query_id
-                active_jql = fallback_query.get("jql", "")
-                active_name = fallback_query.get("name", "")
-            else:
-                logger.error(
-                    f"Critical error: Query {selected_query_id} not found at all in profile"
-                )
-                raise ValueError(f"Query {selected_query_id} not found after switch")
+            # Query not found - don't update anything
+            raise PreventUpdate
 
         logger.info(
-            f"Query switched successfully - Name: '{active_name}', JQL length: {len(active_jql)} chars"
+            f"Query selected (not switched): '{selected_name}', JQL length: {len(selected_jql)} chars. "
+            f"Data will load when user clicks 'Load Query Data' button."
         )
         return (
             options,
-            active_value,
-            active_jql,
-            active_name,
-            active_jql,
-        )  # Sync to legacy component
+            selected_query_id,  # Keep the selected value
+            selected_jql,
+            selected_name,
+            selected_jql,  # Sync to legacy component
+        )
 
     except ValueError as e:
         logger.error(f"Query switch validation error: {e}")
         return no_update, no_update, no_update, no_update, no_update
 
+    except PreventUpdate:
+        # Re-raise PreventUpdate - this is expected behavior, not an error
+        raise
+
     except Exception as e:
-        logger.error(f"Failed to switch query: {e}")
+        logger.error(f"Failed to switch query: {type(e).__name__}: {e}")
         return no_update, no_update, no_update, no_update, no_update
 
 
@@ -583,6 +560,9 @@ def trigger_delete_query_modal_from_selector(delete_clicks, selected_query_id):
         Output("update-data-status", "children", allow_duplicate=True),
         Output("current-statistics", "data", allow_duplicate=True),
         Output("jira-cache-status", "children", allow_duplicate=True),
+        Output(
+            "query-selector", "options", allow_duplicate=True
+        ),  # Update dropdown to show [Active]
     ],
     Input("load-query-data-btn", "n_clicks"),
     State("query-selector", "value"),
@@ -617,18 +597,43 @@ def load_query_cached_data(n_clicks, selected_query_id):
         raise PreventUpdate
 
     try:
-        from data.query_manager import switch_query
+        from data.query_manager import (
+            switch_query,
+            get_active_profile_id,
+            list_queries_for_profile,
+        )
         from data.persistence import load_unified_project_data, load_app_settings
 
         # Switch to the selected query
         switch_query(selected_query_id)
-        logger.info(
-            f"Switched to query: {selected_query_id}"
-        )  # Load cached data for this query
+        logger.info(f"Switched to query: {selected_query_id}")
+
+        # Refresh dropdown to show [Active] indicator on the newly active query
+        profile_id = get_active_profile_id()
+        queries = list_queries_for_profile(profile_id)
+        dropdown_options = [{"label": "→ Create New Query", "value": "__create_new__"}]
+        for query in queries:
+            label = query.get("name", "Unnamed Query")
+            value = query.get("id", "")
+            if query.get("is_active", False):
+                label += " [Active]"
+            dropdown_options.append({"label": label, "value": value})
+
+        # Load cached data for this query
         unified_data = load_unified_project_data()
 
         # Extract statistics
         statistics = unified_data.get("statistics", [])
+        logger.info(
+            f"[QUERY SWITCH] Loaded {len(statistics)} statistics for query {selected_query_id}"
+        )
+        if statistics:
+            logger.info(
+                f"[QUERY SWITCH] First stat: {statistics[0].get('date', 'NO DATE')} - items: {statistics[0].get('remaining_items', 'NO ITEMS')}, points: {statistics[0].get('remaining_total_points', 'NO POINTS')}"
+            )
+            logger.info(
+                f"[QUERY SWITCH] Last stat: {statistics[-1].get('date', 'NO DATE')} - items: {statistics[-1].get('remaining_items', 'NO ITEMS')}, points: {statistics[-1].get('remaining_total_points', 'NO POINTS')}"
+            )
 
         # Extract scope
         scope = unified_data.get("project_scope", {})
@@ -642,20 +647,21 @@ def load_query_cached_data(n_clicks, selected_query_id):
         # Format total_points for display field
         total_points_display = f"{total_points:.0f}"
 
-        # Load settings
+        # Load settings and update with current scope data
         settings = load_app_settings()
 
-        # BUGFIX: Update settings with actual values from project_scope
-        # so that visualization callbacks use the correct data
-        settings = {**settings}
-        settings.update(
-            {
-                "total_items": total_items,
-                "total_points": total_points,
-                "estimated_items": estimated_items,
-                "estimated_points": estimated_points,
-            }
-        )
+        # CRITICAL: After query switch, settings MUST include current scope data
+        # for forecast calculations to work. This is especially important after
+        # migration when switching to a different query for the first time.
+        if scope:
+            settings["total_items"] = total_items
+            settings["total_points"] = total_points
+            settings["estimated_items"] = estimated_items
+            settings["estimated_points"] = estimated_points
+            logger.info(
+                f"[QUERY SWITCH] Updated settings with scope: "
+                f"items={total_items}, points={total_points}"
+            )
 
         # Create success message
         data_points_count = len(statistics)
@@ -694,6 +700,7 @@ def load_query_cached_data(n_clicks, selected_query_id):
             status_message,
             statistics,  # Update current-statistics store to trigger dashboard/charts
             cache_status,  # Update jira-cache-status to trigger dashboard refresh
+            dropdown_options,  # Update dropdown to show [Active] on newly loaded query
         )
 
     except Exception as e:
@@ -717,4 +724,97 @@ def load_query_cached_data(n_clicks, selected_query_id):
             error_message,
             no_update,  # Don't update current-statistics on error
             no_update,  # Don't update jira-cache-status on error
+            no_update,  # Don't update dropdown on error
         )
+
+
+# ============================================================================
+# Auto-Reload Data When Query Switches
+# ============================================================================
+
+
+# DISABLED: Auto-reload on query switch
+# User requirement: Query dropdown should not trigger data loading automatically
+# Data should only be loaded via explicit "Load Data" button click
+# This allows users to select and modify queries without triggering data loads
+#
+# @callback(
+#     [
+#         Output("statistics-table", "data", allow_duplicate=True),
+#         Output("current-statistics", "data", allow_duplicate=True),
+#         Output("current-settings", "data", allow_duplicate=True),
+#         Output("total-items-input", "value", allow_duplicate=True),
+#         Output("estimated-items-input", "value", allow_duplicate=True),
+#         Output("total-points-display", "value", allow_duplicate=True),
+#         Output("estimated-points-input", "value", allow_duplicate=True),
+#     ],
+#     Input("query-selector", "value"),
+#     State("query-selector", "options"),
+#     prevent_initial_call=True,
+# )
+# def auto_reload_data_on_query_switch(selected_query_id, current_options):
+#     """Automatically reload statistics and settings when query switches.
+#
+#     This ensures that switching queries immediately updates all displayed data
+#     without requiring manual "Load Data" button click.
+#
+#     Args:
+#         selected_query_id: Newly selected query ID
+#         current_options: Current dropdown options (for validation)
+#
+#     Returns:
+#         Tuple of (statistics, statistics_store, settings, total_items,
+#                   estimated_items, total_points, estimated_points)
+#     """
+#     if not selected_query_id or selected_query_id == "__create_new__":
+#         raise PreventUpdate
+#
+#     try:
+#         from data.persistence import (
+#             load_statistics,
+#             load_unified_project_data,
+#             load_app_settings,
+#         )
+#
+#         # Load statistics from database for active query
+#         statistics, _ = load_statistics()
+#
+#         # Load unified project data for scope
+#         unified_data = load_unified_project_data()
+#         scope = unified_data.get("project_scope", {})
+#
+#         estimated_items = scope.get("estimated_items", 0)
+#         estimated_points = scope.get("estimated_points", 0)
+#         total_items = scope.get("remaining_items", 0)
+#         total_points = scope.get("remaining_total_points", 0)
+#         total_points_display = f"{total_points:.0f}"
+#
+#         # Load settings and update with actual scope values
+#         settings = load_app_settings()
+#         settings = {**settings}
+#         settings.update(
+#             {
+#                 "total_items": total_items,
+#                 "total_points": total_points,
+#                 "estimated_items": estimated_items,
+#                 "estimated_points": estimated_points,
+#             }
+#         )
+#
+#         logger.info(
+#             f"Auto-reloaded data for query {selected_query_id}: {len(statistics)} data points"
+#         )
+#
+#         return (
+#             statistics,
+#             statistics,  # Update store
+#             settings,
+#             total_items,
+#             estimated_items,
+#             total_points_display,
+#             estimated_points,
+#         )
+#
+#     except Exception as e:
+#         logger.error(f"Failed to auto-reload data on query switch: {e}")
+#         raise PreventUpdate

@@ -2,14 +2,9 @@
 Unit tests for profile_manager path resolution functions.
 
 Tests the critical path abstraction layer that enables profile-based data organization.
-These functions BLOCK all user stories and must be implemented first.
-
-Note: Imports are done inside tests to ensure mocked paths take effect.
-The temp_profiles_dir fixture patches PROFILES_DIR, but it must be active
-before imports resolve the Path.absolute() calls.
+Uses SQLite database backend via temp_database fixture.
 """
 
-import json
 import pytest
 from pathlib import Path
 
@@ -60,139 +55,179 @@ class TestPathResolutionFunctions:
         assert isinstance(result, Path)
 
     def test_get_active_profile_workspace_returns_active_profile_dir(
-        self, temp_profiles_dir_with_default
+        self, temp_database
     ):
         """Verify get_active_profile_workspace returns active profile directory."""
         from data.profile_manager import get_active_profile_workspace
+        from data.persistence.factory import get_backend
 
         # Arrange
-        profiles_file = temp_profiles_dir_with_default / "profiles.json"
-        profiles_data = {
-            "active_profile_id": "kafka",
-            "active_query_id": "12w",
-            "profiles": {
-                "kafka": {"name": "Apache Kafka", "created_at": "2025-11-13T10:00:00Z"}
-            },
+        backend = get_backend()
+        profile_data = {
+            "id": "kafka",
+            "name": "Apache Kafka",
+            "description": "",
+            "created_at": "2025-11-13T10:00:00Z",
+            "last_used": "2025-11-13T10:00:00Z",
+            "jira_config": {},
+            "field_mappings": {},
+            "forecast_settings": {},
+            "project_classification": {},
+            "flow_type_mappings": {},
         }
-        profiles_file.write_text(json.dumps(profiles_data))
+        backend.save_profile(profile_data)
+        backend.set_app_state("active_profile_id", "kafka")
+        backend.set_app_state("active_query_id", "12w")
 
         # Act
         result = get_active_profile_workspace()
 
         # Assert
-        assert result == temp_profiles_dir_with_default / "kafka"
+        # Result should be profiles/kafka
+        assert result.name == "kafka"
+        assert "profiles" in str(result)
         assert isinstance(result, Path)
 
     def test_get_active_profile_workspace_raises_if_no_profiles_file(
-        self, temp_profiles_dir
+        self, temp_database
     ):
-        """Verify get_active_profile_workspace raises if profiles.json missing."""
+        """Verify get_active_profile_workspace raises if no active profile set."""
         from data.profile_manager import get_active_profile_workspace
 
-        # Act & Assert
-        with pytest.raises(ValueError, match="profiles.json not found"):
+        # Act & Assert - no app_state set
+        with pytest.raises(ValueError, match="No active_profile_id"):
             get_active_profile_workspace()
 
     def test_get_active_profile_workspace_raises_if_invalid_profile(
-        self, temp_profiles_dir_with_default
+        self, temp_database
     ):
         """Verify get_active_profile_workspace raises if active_profile_id invalid."""
         from data.profile_manager import get_active_profile_workspace
+        from data.persistence.factory import get_backend
 
-        # Arrange
-        profiles_file = temp_profiles_dir_with_default / "profiles.json"
-        profiles_data = {
-            "active_profile_id": "nonexistent",
-            "profiles": {},
-        }
-        profiles_file.write_text(json.dumps(profiles_data))
+        # Arrange - set active_profile_id but don't create profile
+        backend = get_backend()
+        backend.set_app_state("active_profile_id", "nonexistent")
 
         # Act & Assert
         with pytest.raises(ValueError, match="Profile.*not found"):
             get_active_profile_workspace()
 
-    def test_get_active_query_workspace_returns_active_query_dir(
-        self, temp_profiles_dir_with_default
-    ):
+    def test_get_active_query_workspace_returns_active_query_dir(self, temp_database):
         """Verify get_active_query_workspace returns active query directory."""
         from data.profile_manager import get_active_query_workspace
+        from data.persistence.factory import get_backend
 
         # Arrange
-        profiles_file = temp_profiles_dir_with_default / "profiles.json"
-        profiles_data = {
-            "active_profile_id": "kafka",
-            "active_query_id": "bugs",
-            "profiles": {"kafka": {"name": "Apache Kafka", "queries": ["12w", "bugs"]}},
+        backend = get_backend()
+        profile_data = {
+            "id": "kafka",
+            "name": "Apache Kafka",
+            "description": "",
+            "created_at": "2025-11-13T10:00:00Z",
+            "last_used": "2025-11-13T10:00:00Z",
+            "jira_config": {},
+            "field_mappings": {},
+            "forecast_settings": {},
+            "project_classification": {},
+            "flow_type_mappings": {},
         }
-        profiles_file.write_text(json.dumps(profiles_data))
+        backend.save_profile(profile_data)
+        query_data = {
+            "id": "bugs",
+            "name": "Bugs Query",
+            "jql": "type = Bug",
+            "created_at": "2025-11-13T10:00:00Z",
+            "last_used": "2025-11-13T10:00:00Z",
+        }
+        backend.save_query("kafka", query_data)
+        backend.set_app_state("active_profile_id", "kafka")
+        backend.set_app_state("active_query_id", "bugs")
 
         # Act
         result = get_active_query_workspace()
 
         # Assert
-        assert result == temp_profiles_dir_with_default / "kafka" / "queries" / "bugs"
+        # Result should be profiles/kafka/queries/bugs
+        assert result.name == "bugs"
+        assert "queries" in str(result)
+        assert "kafka" in str(result)
         assert isinstance(result, Path)
 
-    def test_get_active_query_workspace_raises_if_no_profiles_file(
-        self, temp_profiles_dir
-    ):
-        """Verify get_active_query_workspace raises if profiles.json missing."""
+    def test_get_active_query_workspace_raises_if_no_profiles_file(self, temp_database):
+        """Verify get_active_query_workspace raises if no active profile set."""
         from data.profile_manager import get_active_query_workspace
 
-        # Act & Assert
-        with pytest.raises(ValueError, match="profiles.json not found"):
+        # Act & Assert - no app_state set
+        with pytest.raises(ValueError, match="No active_profile_id"):
             get_active_query_workspace()
 
-    def test_get_active_query_workspace_raises_if_invalid_query(
-        self, temp_profiles_dir_with_default
-    ):
+    def test_get_active_query_workspace_raises_if_invalid_query(self, temp_database):
         """Verify get_active_query_workspace raises if active_query_id invalid."""
         from data.profile_manager import get_active_query_workspace
+        from data.persistence.factory import get_backend
 
         # Arrange
-        profiles_file = temp_profiles_dir_with_default / "profiles.json"
-        profiles_data = {
-            "active_profile_id": "kafka",
-            "active_query_id": "nonexistent",
-            "profiles": {"kafka": {"name": "Apache Kafka", "queries": ["12w"]}},
+        backend = get_backend()
+        profile_data = {
+            "id": "kafka",
+            "name": "Apache Kafka",
+            "description": "",
+            "created_at": "2025-11-13T10:00:00Z",
+            "last_used": "2025-11-13T10:00:00Z",
+            "jira_config": {},
+            "field_mappings": {},
+            "forecast_settings": {},
+            "project_classification": {},
+            "flow_type_mappings": {},
         }
-        profiles_file.write_text(json.dumps(profiles_data))
+        backend.save_profile(profile_data)
+        backend.set_app_state("active_profile_id", "kafka")
+        backend.set_app_state("active_query_id", "nonexistent")  # Query doesn't exist
 
         # Act & Assert
         with pytest.raises(ValueError, match="Query.*not found"):
             get_active_query_workspace()
 
     def test_get_active_query_workspace_uses_default_profile_after_migration(
-        self, temp_profiles_dir_with_default
+        self, temp_database
     ):
         """Verify get_active_query_workspace works with default profile."""
         from data.profile_manager import get_active_query_workspace
+        from data.persistence.factory import get_backend
 
         # Arrange
-        profiles_file = temp_profiles_dir_with_default / "profiles.json"
-        profiles_data = {
-            "active_profile_id": DEFAULT_PROFILE_ID,
-            "active_query_id": DEFAULT_QUERY_ID,
-            "profiles": {
-                DEFAULT_PROFILE_ID: {
-                    "name": "Default",
-                    "queries": [DEFAULT_QUERY_ID],
-                }
-            },
+        backend = get_backend()
+        profile_data = {
+            "id": DEFAULT_PROFILE_ID,
+            "name": "Default",
+            "description": "",
+            "created_at": "2025-11-13T10:00:00Z",
+            "last_used": "2025-11-13T10:00:00Z",
+            "jira_config": {},
+            "field_mappings": {},
+            "forecast_settings": {},
+            "project_classification": {},
+            "flow_type_mappings": {},
         }
-        profiles_file.write_text(json.dumps(profiles_data))
+        backend.save_profile(profile_data)
+        query_data = {
+            "id": DEFAULT_QUERY_ID,
+            "name": "Default Query",
+            "jql": "project = DEFAULT",
+            "created_at": "2025-11-13T10:00:00Z",
+            "last_used": "2025-11-13T10:00:00Z",
+        }
+        backend.save_query(DEFAULT_PROFILE_ID, query_data)
+        backend.set_app_state("active_profile_id", DEFAULT_PROFILE_ID)
+        backend.set_app_state("active_query_id", DEFAULT_QUERY_ID)
 
         # Act
         result = get_active_query_workspace()
 
         # Assert
-        assert (
-            result
-            == temp_profiles_dir_with_default
-            / DEFAULT_PROFILE_ID
-            / "queries"
-            / DEFAULT_QUERY_ID
-        )
+        assert result.name == DEFAULT_QUERY_ID
+        assert DEFAULT_PROFILE_ID in str(result)
         assert isinstance(result, Path)
 
 

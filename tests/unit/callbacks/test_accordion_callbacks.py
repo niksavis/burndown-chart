@@ -22,7 +22,7 @@ class TestConfigurationStatusTracking:
         from callbacks.accordion_settings import update_configuration_status
 
         # No profile selected, no JIRA status, no query saves
-        status = update_configuration_status(None, None, 0)
+        status = update_configuration_status(None, None, 0, None)
 
         # Profile is always enabled (can select profile at any time)
         assert status["profile"]["enabled"] is True
@@ -49,7 +49,7 @@ class TestConfigurationStatusTracking:
         """Verify profile section enabled when profile selected."""
         from callbacks.accordion_settings import update_configuration_status
 
-        status = update_configuration_status("default", None, 0)
+        status = update_configuration_status("default", None, 0, None)
 
         # Profile section should be enabled
         assert status["profile"]["enabled"] is True
@@ -72,7 +72,7 @@ class TestConfigurationStatusTracking:
 
         # JIRA status must contain 'success' or '[OK]' in its string representation
         jira_status = "[OK] JIRA Connected"
-        status = update_configuration_status("default", jira_status, 0)
+        status = update_configuration_status("default", jira_status, 0, None)
 
         # Profile complete
         assert status["profile"]["complete"] is True
@@ -101,7 +101,7 @@ class TestConfigurationStatusTracking:
         from callbacks.accordion_settings import update_configuration_status
 
         jira_status = "[OK] JIRA Connected"
-        status = update_configuration_status("default", jira_status, 1)
+        status = update_configuration_status("default", jira_status, 1, None)
 
         # All previous sections complete
         assert status["profile"]["complete"] is True
@@ -395,7 +395,7 @@ class TestCallbackIntegration:
         )
 
         # Simulate profile selection
-        status = update_configuration_status("default", None, 0)
+        status = update_configuration_status("default", None, 0, None)
         jira_class, fields_class, queries_class, data_ops_class = update_section_states(
             status
         )
@@ -417,7 +417,7 @@ class TestCallbackIntegration:
 
         # Simulate JIRA configuration
         jira_status = "[OK] JIRA Connected"
-        status = update_configuration_status("default", jira_status, 0)
+        status = update_configuration_status("default", jira_status, 0, None)
 
         (
             profile_title,
@@ -447,23 +447,23 @@ class TestCallbackIntegration:
         )
 
         # Step 1: No profile selected
-        status = update_configuration_status(None, None, 0)
+        status = update_configuration_status(None, None, 0, None)
         button_disabled, _, _ = enforce_query_save_before_data_ops(status)
         assert button_disabled is True
 
         # Step 2: Profile selected
-        status = update_configuration_status("default", None, 0)
+        status = update_configuration_status("default", None, 0, None)
         button_disabled, _, _ = enforce_query_save_before_data_ops(status)
         assert button_disabled is True  # Still locked (no JIRA)
 
         # Step 3: JIRA configured
         jira_status = "[OK] JIRA Connected"
-        status = update_configuration_status("default", jira_status, 0)
+        status = update_configuration_status("default", jira_status, 0, None)
         button_disabled, _, _ = enforce_query_save_before_data_ops(status)
         assert button_disabled is True  # Still locked (no query saved)
 
         # Step 4: Query saved
-        status = update_configuration_status("default", jira_status, 1)
+        status = update_configuration_status("default", jira_status, 1, None)
         button_disabled, _, _ = enforce_query_save_before_data_ops(status)
         assert button_disabled is False  # Finally unlocked!
 
@@ -471,74 +471,82 @@ class TestCallbackIntegration:
 class TestLoadQueryJQL:
     """Test load_query_jql callback."""
 
-    def test_loads_query_jql(self, temp_profiles_dir_with_default):
-        """Verify loads JQL when query selected."""
-        from unittest.mock import patch
-        import json
+    def test_loads_query_jql(self, temp_database):
+        """
+        Verify loads JQL when query selected.
+        Uses SQLite database backend via temp_database fixture.
+        """
+        from data.persistence.factory import get_backend
+        from callbacks.accordion_settings import load_query_jql
+        from datetime import datetime, timezone
 
-        # Arrange
-        kafka_dir = temp_profiles_dir_with_default / "kafka"
-        query_dir = kafka_dir / "queries" / "main"
-        query_dir.mkdir(parents=True)
+        # Arrange - Create profile and query in database
+        backend = get_backend()
 
-        query_file = query_dir / "query.json"
-        with open(query_file, "w", encoding="utf-8") as f:
-            json.dump(
-                {
-                    "name": "Main Query",
-                    "jql": "project = KAFKA AND priority > Medium",
-                    "description": "High priority items",
-                    "created_at": "2025-01-01T00:00:00Z",
-                },
-                f,
-            )
-
-        profiles_file = temp_profiles_dir_with_default / "profiles.json"
-        profiles_data = {
-            "active_profile_id": "kafka",
-            "active_query_id": "main",
-            "profiles": {},
+        # Create test profile
+        profile_data = {
+            "id": "kafka",
+            "name": "Kafka Profile",
+            "created_at": datetime(
+                2026, 1, 1, 0, 0, 0, tzinfo=timezone.utc
+            ).isoformat(),
+            "last_used": datetime(2026, 1, 1, 0, 0, 0, tzinfo=timezone.utc).isoformat(),
+            "jira_config": {},
+            "field_mappings": {},
         }
-        with open(profiles_file, "w", encoding="utf-8") as f:
-            json.dump(profiles_data, f)
+        backend.save_profile(profile_data)
+
+        # Create test query with JQL
+        query_data = {
+            "id": "main",
+            "profile_id": "kafka",
+            "name": "Main Query",
+            "jql": "project = KAFKA AND priority > Medium",
+            "description": "High priority items",
+            "created_at": datetime(
+                2026, 1, 1, 0, 0, 0, tzinfo=timezone.utc
+            ).isoformat(),
+            "last_used": datetime(2026, 1, 1, 0, 0, 0, tzinfo=timezone.utc).isoformat(),
+        }
+        backend.save_query("kafka", query_data)
+
+        # Set as active query
+        backend.set_app_state("active_profile_id", "kafka")
+        backend.set_app_state("active_query_id", "main")
 
         # Act
-        with (
-            patch("data.query_manager.PROFILES_FILE", profiles_file),
-            patch("data.query_manager.PROFILES_DIR", temp_profiles_dir_with_default),
-        ):
-            from callbacks.accordion_settings import load_query_jql
-
-            result = load_query_jql("main")
+        result = load_query_jql("main")
 
         # Assert
         assert result == "project = KAFKA AND priority > Medium"
 
-    def test_returns_empty_string_if_query_not_found(
-        self, temp_profiles_dir_with_default
-    ):
-        """Verify returns empty string if query file doesn't exist."""
-        from unittest.mock import patch
-        import json
+    def test_returns_empty_string_if_query_not_found(self, temp_database):
+        """
+        Verify returns empty string if query file doesn't exist.
+        Uses SQLite database backend via temp_database fixture.
+        """
+        from data.persistence.factory import get_backend
+        from callbacks.accordion_settings import load_query_jql
+        from datetime import datetime, timezone
 
-        # Arrange
-        profiles_file = temp_profiles_dir_with_default / "profiles.json"
-        profiles_data = {
-            "active_profile_id": "default",
-            "active_query_id": "main",
-            "profiles": {},
+        # Arrange - Create profile but NOT the query
+        backend = get_backend()
+        profile_data = {
+            "id": "default",
+            "name": "Default Profile",
+            "created_at": datetime(
+                2026, 1, 1, 0, 0, 0, tzinfo=timezone.utc
+            ).isoformat(),
+            "last_used": datetime(2026, 1, 1, 0, 0, 0, tzinfo=timezone.utc).isoformat(),
+            "jira_config": {},
+            "field_mappings": {},
         }
-        with open(profiles_file, "w", encoding="utf-8") as f:
-            json.dump(profiles_data, f)
+        backend.save_profile(profile_data)
+        backend.set_app_state("active_profile_id", "default")
+        backend.set_app_state("active_query_id", "main")
 
-        # Act
-        with (
-            patch("data.query_manager.PROFILES_FILE", profiles_file),
-            patch("data.query_manager.PROFILES_DIR", temp_profiles_dir_with_default),
-        ):
-            from callbacks.accordion_settings import load_query_jql
-
-            result = load_query_jql("nonexistent")
+        # Act - Try to load non-existent query
+        result = load_query_jql("nonexistent")
 
         # Assert
         assert result == ""
@@ -547,57 +555,58 @@ class TestLoadQueryJQL:
 class TestSaveQueryChanges:
     """Test save_query_changes callback."""
 
-    def test_saves_query_jql(self, temp_profiles_dir_with_default):
-        """Verify saves updated JQL to query file."""
-        from unittest.mock import patch
-        import json
+    def test_saves_query_jql(self, temp_database):
+        """
+        Verify saves updated JQL to query file.
+        Uses SQLite database backend via temp_database fixture.
+        """
+        from data.persistence.factory import get_backend
+        from callbacks.accordion_settings import save_query_changes
+        from datetime import datetime, timezone
 
-        # Arrange
-        kafka_dir = temp_profiles_dir_with_default / "kafka"
-        query_dir = kafka_dir / "queries" / "main"
-        query_dir.mkdir(parents=True)
+        # Arrange - Create profile and query in database
+        backend = get_backend()
 
-        query_file = query_dir / "query.json"
-        with open(query_file, "w", encoding="utf-8") as f:
-            json.dump(
-                {
-                    "name": "Main Query",
-                    "jql": "project = KAFKA",
-                    "description": "",
-                    "created_at": "2025-01-01T00:00:00Z",
-                },
-                f,
-            )
-
-        profiles_file = temp_profiles_dir_with_default / "profiles.json"
-        profiles_data = {
-            "active_profile_id": "kafka",
-            "active_query_id": "main",
-            "profiles": {},
+        profile_data = {
+            "id": "kafka",
+            "name": "Kafka Profile",
+            "created_at": datetime(
+                2026, 1, 1, 0, 0, 0, tzinfo=timezone.utc
+            ).isoformat(),
+            "last_used": datetime(2026, 1, 1, 0, 0, 0, tzinfo=timezone.utc).isoformat(),
+            "jira_config": {},
+            "field_mappings": {},
         }
-        with open(profiles_file, "w", encoding="utf-8") as f:
-            json.dump(profiles_data, f)
+        backend.save_profile(profile_data)
 
-        # Act
-        with (
-            patch("data.query_manager.PROFILES_FILE", profiles_file),
-            patch("data.query_manager.PROFILES_DIR", temp_profiles_dir_with_default),
-        ):
-            from callbacks.accordion_settings import save_query_changes
+        query_data = {
+            "id": "main",
+            "profile_id": "kafka",
+            "name": "Main Query",
+            "jql": "project = KAFKA",
+            "description": "Original query",
+            "created_at": datetime(
+                2026, 1, 1, 0, 0, 0, tzinfo=timezone.utc
+            ).isoformat(),
+            "last_used": datetime(2026, 1, 1, 0, 0, 0, tzinfo=timezone.utc).isoformat(),
+        }
+        backend.save_query("kafka", query_data)
 
-            result = save_query_changes(
-                1, "main", "project = KAFKA AND priority = High"
-            )
+        backend.set_app_state("active_profile_id", "kafka")
+        backend.set_app_state("active_query_id", "main")
+
+        # Act - Save updated JQL
+        from callbacks.accordion_settings import save_query_changes
+
+        result = save_query_changes(1, "main", "project = KAFKA AND priority = High")
 
         # Assert - result should be a success Alert
         assert "saved successfully" in str(result).lower()
 
-        # Verify file updated
-        with open(query_file, "r") as f:
-            query_data = json.load(f)
-
-        assert query_data["jql"] == "project = KAFKA AND priority = High"
-        assert "updated_at" in query_data
+        # Verify database updated
+        updated_query = backend.get_query("kafka", "main")
+        assert updated_query is not None
+        assert updated_query["jql"] == "project = KAFKA AND priority = High"
 
     def test_returns_warning_if_no_query_selected(self):
         """Verify returns warning if query_id is None."""
@@ -621,46 +630,49 @@ class TestSaveQueryChanges:
 class TestCancelQueryEdit:
     """Test cancel_query_edit callback."""
 
-    def test_reloads_original_jql(self, temp_profiles_dir_with_default):
-        """Verify reloads original JQL on cancel."""
-        from unittest.mock import patch
-        import json
+    def test_reloads_original_jql(self, temp_database):
+        """
+        Verify reloads original JQL on cancel.
+        Uses SQLite database backend via temp_database fixture.
+        """
+        from data.persistence.factory import get_backend
+        from callbacks.accordion_settings import cancel_query_edit
+        from datetime import datetime, timezone
 
-        # Arrange
-        kafka_dir = temp_profiles_dir_with_default / "kafka"
-        query_dir = kafka_dir / "queries" / "main"
-        query_dir.mkdir(parents=True)
+        # Arrange - Create profile and query in database
+        backend = get_backend()
 
-        query_file = query_dir / "query.json"
-        original_jql = "project = KAFKA AND created >= -12w"
-        with open(query_file, "w", encoding="utf-8") as f:
-            json.dump(
-                {
-                    "name": "Main Query",
-                    "jql": original_jql,
-                    "description": "",
-                    "created_at": "2025-01-01T00:00:00Z",
-                },
-                f,
-            )
-
-        profiles_file = temp_profiles_dir_with_default / "profiles.json"
-        profiles_data = {
-            "active_profile_id": "kafka",
-            "active_query_id": "main",
-            "profiles": {},
+        profile_data = {
+            "id": "kafka",
+            "name": "Kafka Profile",
+            "created_at": datetime(
+                2026, 1, 1, 0, 0, 0, tzinfo=timezone.utc
+            ).isoformat(),
+            "last_used": datetime(2026, 1, 1, 0, 0, 0, tzinfo=timezone.utc).isoformat(),
+            "jira_config": {},
+            "field_mappings": {},
         }
-        with open(profiles_file, "w", encoding="utf-8") as f:
-            json.dump(profiles_data, f)
+        backend.save_profile(profile_data)
+
+        original_jql = "project = KAFKA AND created >= -12w"
+        query_data = {
+            "id": "main",
+            "profile_id": "kafka",
+            "name": "Main Query",
+            "jql": original_jql,
+            "description": "",
+            "created_at": datetime(
+                2026, 1, 1, 0, 0, 0, tzinfo=timezone.utc
+            ).isoformat(),
+            "last_used": datetime(2026, 1, 1, 0, 0, 0, tzinfo=timezone.utc).isoformat(),
+        }
+        backend.save_query("kafka", query_data)
+
+        backend.set_app_state("active_profile_id", "kafka")
+        backend.set_app_state("active_query_id", "main")
 
         # Act
-        with (
-            patch("data.query_manager.PROFILES_FILE", profiles_file),
-            patch("data.query_manager.PROFILES_DIR", temp_profiles_dir_with_default),
-        ):
-            from callbacks.accordion_settings import cancel_query_edit
-
-            result = cancel_query_edit(1, "main")
+        result = cancel_query_edit(1, "main")
 
         # Assert
         assert result == original_jql

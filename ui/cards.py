@@ -1972,7 +1972,9 @@ def create_project_status_card(statistics_df, settings):
         # Convert to datetime to ensure proper week grouping
         if not recent_df.empty:
             # Use proper pandas assignment with .loc to avoid SettingWithCopyWarning
-            recent_df.loc[:, "date"] = pd.to_datetime(recent_df["date"])
+            recent_df.loc[:, "date"] = pd.to_datetime(
+                recent_df["date"], format="mixed", errors="coerce"
+            )
 
             # Add week and year columns
             recent_df.loc[:, "week"] = recent_df["date"].dt.isocalendar().week  # type: ignore[attr-defined]
@@ -2046,8 +2048,12 @@ def create_project_status_card(statistics_df, settings):
         # Calculate days of data available
         if not statistics_df.empty:
             if "date" in statistics_df.columns:
-                earliest_date = pd.to_datetime(statistics_df["date"].min())
-                latest_date = pd.to_datetime(statistics_df["date"].max())
+                earliest_date = pd.to_datetime(
+                    statistics_df["date"].min(), format="mixed", errors="coerce"
+                )
+                latest_date = pd.to_datetime(
+                    statistics_df["date"].max(), format="mixed", errors="coerce"
+                )
                 days_of_data = (
                     (latest_date - earliest_date).days + 1
                     if earliest_date and latest_date
@@ -2344,7 +2350,9 @@ def create_project_summary_card(
 
         # Convert 'date' column to datetime right at the beginning
         if not statistics_df.empty and "date" in statistics_df.columns:
-            statistics_df["date"] = pd.to_datetime(statistics_df["date"])
+            statistics_df["date"] = pd.to_datetime(
+                statistics_df["date"], format="mixed", errors="coerce"
+            )
 
         # Calculate values needed for the dashboard
         if not statistics_df.empty:
@@ -2972,7 +2980,9 @@ def create_points_forecast_info_card(statistics_df=None, pert_data=None):
     if statistics_df is not None and not statistics_df.empty:
         # Convert to datetime to ensure proper week grouping
         recent_df = statistics_df.copy()
-        recent_df["date"] = pd.to_datetime(recent_df["date"])
+        recent_df["date"] = pd.to_datetime(
+            recent_df["date"], format="mixed", errors="coerce"
+        )
         recent_df["week"] = recent_df["date"].dt.isocalendar().week
         recent_df["year"] = recent_df["date"].dt.isocalendar().year
 

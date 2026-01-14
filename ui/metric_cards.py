@@ -149,16 +149,17 @@ def create_forecast_section(
 
     forecast_value = forecast_data.get("forecast_value")
     confidence = forecast_data.get("confidence", "building")
-    weeks_with_data = forecast_data.get("weeks_with_data")  # Actual weeks used
+    # Support both keys for backwards compatibility (weeks_with_data is preferred, weeks_available is fallback)
+    weeks_with_data = forecast_data.get("weeks_with_data") or forecast_data.get(
+        "weeks_available"
+    )
     used_non_zero_filter = forecast_data.get(
         "used_non_zero_filter", False
     )  # Whether zeros were filtered
 
     # Format forecast value - standard formatting for all metrics
     if forecast_value is not None:
-        forecast_display = (
-            f"{forecast_value:.1f}" if forecast_value >= 10 else f"{forecast_value:.2f}"
-        )
+        forecast_display = f"{forecast_value:.2f}"
     else:
         forecast_display = "N/A"
 
@@ -270,6 +271,13 @@ def _get_metric_explanation(metric_name: str) -> str:
         "flow_time": "Time to complete work items. Lower is better - measures cycle time.",
         "flow_efficiency": "Active work time vs. total time. 25-40% is healthy - too high indicates overload.",
         "flow_distribution": "Mix of feature vs. defect vs. risk work. Balance indicates healthy product development.",
+        "budget_utilization": "Percentage of total budget consumed. Shows how much budget has been spent based on completed work and team costs.",
+        "weekly_burn_rate": "Budget spent per week. Calculated from completed items × cost per item. Trend shows if spending is accelerating or decelerating.",
+        "budget_runway": "Weeks of budget remaining at current burn rate. Based on actual work completion, not just team cost. Critical when < 4 weeks.",
+        "cost_per_item": "Average cost to complete one work item. Calculated from team cost per week ÷ velocity. Lower indicates better efficiency.",
+        "cost_per_point": "Average cost to complete one story point. Calculated from team cost per week ÷ velocity. Tracks cost efficiency over time.",
+        "budget_forecast": "Projected final budget at completion. Uses PERT three-point estimation with optimistic, likely, and pessimistic scenarios.",
+        "cost_breakdown": "Distribution of budget across work types (Feature, Defect, Tech Debt, Risk). Shows where money is being spent.",
     }
 
     return explanations.get(
@@ -622,7 +630,7 @@ def _create_deployment_details_table(
                         [
                             f"Total: {int(total_deployments)} deployments • ",
                             f"{int(total_releases)} releases • ",
-                            f"Ratio: {ratio:.1f}:1",
+                            f"Ratio: {ratio:.2f}:1",
                         ],
                         className="text-muted",
                     ),
@@ -659,7 +667,7 @@ def _create_deployment_details_table(
                                 style={"fontSize": "0.85rem"},
                             ),
                             html.Td(
-                                f"{week_ratio:.1f}:1",
+                                f"{week_ratio:.2f}:1",
                                 className="text-center",
                                 style={"fontSize": "0.85rem"},
                             ),
@@ -713,6 +721,8 @@ def create_metric_card(
     card_id: Optional[str] = None,
     forecast_data: Optional[Dict[str, Any]] = None,
     trend_vs_forecast: Optional[Dict[str, Any]] = None,
+    show_details_button: bool = True,
+    text_details: Optional[List[Any]] = None,
 ) -> dbc.Card:
     """Create a metric display card.
 
@@ -733,6 +743,8 @@ def create_metric_card(
         card_id: Optional HTML ID for the card
         forecast_data: Optional forecast calculation results (Feature 009)
         trend_vs_forecast: Optional trend vs forecast analysis (Feature 009)
+        show_details_button: If True, show "Show Details" button for expandable chart (default: True)
+        text_details: Optional list of html.Div components with rich text content to display inline
 
     Returns:
         Dash Bootstrap Card component
@@ -755,7 +767,14 @@ def create_metric_card(
     if error_state != "success":
         return _create_error_card(metric_data, card_id)
 
-    return _create_success_card(metric_data, card_id, forecast_data, trend_vs_forecast)
+    return _create_success_card(
+        metric_data,
+        card_id,
+        forecast_data,
+        trend_vs_forecast,
+        show_details_button,
+        text_details,
+    )
 
 
 def _create_success_card(
@@ -763,6 +782,8 @@ def _create_success_card(
     card_id: Optional[str],
     forecast_data: Optional[Dict[str, Any]] = None,
     trend_vs_forecast: Optional[Dict[str, Any]] = None,
+    show_details_button: bool = True,
+    text_details: Optional[List[Any]] = None,
 ) -> dbc.Card:
     """Create card for successful metric calculation.
 
@@ -772,6 +793,9 @@ def _create_success_card(
     - weekly_values: List of metric values for each week
 
     Feature 009: Also includes forecast display section when forecast_data is provided.
+
+    Args:
+        text_details: Optional list of html components to display inline (e.g., baseline comparisons)
     """
     # Map performance tier colors to Bootstrap/custom colors
     # Use custom 'tier-orange' class for proper visual distinction
@@ -831,10 +855,8 @@ def _create_success_card(
 
     if alternative_name:
         display_name = alternative_name
-        tooltip_text = f"Interpreted as: {alternative_name} (Standard field: {metric_name.replace('_', ' ').title()})"
     else:
         display_name = metric_name.replace("_", " ").title()
-        tooltip_text = None
 
     # Format value - special handling for deployment_frequency with release count
     value = metric_data.get("value")
@@ -844,7 +866,7 @@ def _create_success_card(
     )  # NEW: deployment count (operational tasks)
 
     if value is not None:
-        formatted_value = f"{value:.1f}" if value >= 10 else f"{value:.2f}"
+        formatted_value = f"{value:.2f}"
     else:
         formatted_value = "N/A"
 
@@ -853,9 +875,7 @@ def _create_success_card(
 
     # Format task value if present (deployment_frequency - operational task count)
     if task_value is not None:
-        formatted_task_value = (
-            f"{task_value:.1f}" if task_value >= 10 else f"{task_value:.2f}"
-        )
+        formatted_task_value = f"{task_value:.2f}"
     else:
         formatted_task_value = None
 
@@ -869,13 +889,22 @@ def _create_success_card(
 
     # Build card header with flex layout for title on left, badge on right
     if alternative_name:
+        # Use metric tooltip if provided, otherwise fall back to generic explanation
+        if metric_tooltip:
+            help_text = metric_tooltip
+        else:
+            help_text = _get_metric_explanation(metric_name)
+
         title_element = html.Span(
             [
-                html.I(
-                    className="fas fa-info-circle me-2 text-info",
-                    title=tooltip_text,
-                ),
                 display_name,
+                " ",
+                create_info_tooltip(
+                    help_text=help_text,
+                    id_suffix=f"metric-{metric_name}",
+                    placement="top",
+                    variant="dark",
+                ),
             ],
             className="metric-card-title",
         )
@@ -1136,9 +1165,7 @@ def _create_success_card(
     if metric_name == "lead_time_for_changes":
         value_hours = metric_data.get("value_hours")
         if value_hours is not None:
-            formatted_hours = (
-                f"{value_hours:.1f}" if value_hours >= 10 else f"{value_hours:.2f}"
-            )
+            formatted_hours = f"{value_hours:.2f}"
             card_body_children.append(
                 html.Div(
                     [
@@ -1151,9 +1178,7 @@ def _create_success_card(
     elif metric_name == "mean_time_to_recovery":
         value_days = metric_data.get("value_days")
         if value_days is not None:
-            formatted_days = (
-                f"{value_days:.1f}" if value_days >= 10 else f"{value_days:.2f}"
-            )
+            formatted_days = f"{value_days:.2f}"
             card_body_children.append(
                 html.Div(
                     [
@@ -1174,6 +1199,11 @@ def _create_success_card(
         )
         if forecast_section.children:  # Only add if forecast section has content
             card_body_children.append(forecast_section)
+
+    # Add optional text details (e.g., baseline comparisons for budget cards)
+    if text_details:
+        card_body_children.append(html.Hr(className="my-2"))
+        card_body_children.extend(text_details)
 
     # Add inline trend sparkline if weekly data is provided
     # Note: weekly_labels and weekly_values already fetched above for trend indicator
@@ -1196,32 +1226,40 @@ def _create_success_card(
         # Generate unique collapse ID for this card
         collapse_id = f"{metric_name}-details-collapse"
 
+        # Build sparkline section children
+        sparkline_section_children = [
+            html.Small(
+                f"Trend (last {len(sparkline_values)} weeks):",
+                className="text-muted d-block mb-1",
+            ),
+            mini_sparkline,
+        ]
+
+        # Only add "Show Details" button if enabled
+        if show_details_button:
+            sparkline_section_children.append(
+                dbc.Button(
+                    [
+                        html.I(className="fas fa-chart-line me-2"),
+                        "Show Details",
+                    ],
+                    id=f"{metric_name}-details-btn",
+                    color="link",
+                    size="sm",
+                    className="mt-2 p-0",
+                    style={"fontSize": "0.85rem"},
+                )
+            )
+
         card_body_children.append(
             html.Div(
                 [
                     html.Hr(className="my-2"),
                     html.Div(
-                        [
-                            html.Small(
-                                f"Trend (last {len(sparkline_values)} weeks):",
-                                className="text-muted d-block mb-1",
-                            ),
-                            mini_sparkline,
-                            dbc.Button(
-                                [
-                                    html.I(className="fas fa-chart-line me-2"),
-                                    "Show Details",
-                                ],
-                                id=f"{metric_name}-details-btn",
-                                color="link",
-                                size="sm",
-                                className="mt-2 p-0",
-                                style={"fontSize": "0.85rem"},
-                            ),
-                        ],
+                        sparkline_section_children,
                         className="text-center",
                     ),
-                    # Expandable detailed chart section
+                    # Expandable detailed chart section (only shown if button exists)
                     dbc.Collapse(
                         dbc.CardBody(
                             [
@@ -1249,7 +1287,9 @@ def _create_success_card(
                         ),
                         id=collapse_id,
                         is_open=False,
-                    ),
+                    )
+                    if show_details_button
+                    else html.Div(),  # Only render Collapse if button enabled
                 ],
                 className="metric-trend-section",
             )
@@ -1307,8 +1347,12 @@ def _create_error_card(metric_data: dict, card_id: Optional[str]) -> dbc.Card:
     error_message = metric_data.get("error_message", "An error occurred")
 
     # Format metric name for display
+    # Use alternative_name if provided, otherwise convert metric_name
     metric_name = metric_data.get("metric_name", "Unknown Metric")
-    display_name = metric_name.replace("_", " ").title()
+    alternative_name = metric_data.get("alternative_name")
+    display_name = (
+        alternative_name if alternative_name else metric_name.replace("_", " ").title()
+    )
 
     # Map error states to icons and titles
     error_config = {
@@ -1334,13 +1378,21 @@ def _create_error_card(metric_data: dict, card_id: Optional[str]) -> dbc.Card:
             },
             "message_override": "This metric is disabled because the required JIRA field mapping is not configured for your JIRA setup.",
         },
+        "points_tracking_disabled": {
+            "icon": "fas fa-toggle-off",
+            "title": "Points Tracking Disabled",
+            "color": "secondary",
+            "action_text": "Enable in Parameters",
+            "action_id": "open-parameters-panel",
+            "message_override": "Points tracking is disabled. Enable Points Tracking in Parameters panel to view story points metrics.",
+        },
         "no_data": {
-            "icon": "fas fa-inbox",
+            "icon": "fas fa-database",
             "title": "No Data Available",
             "color": "secondary",
             "action_text": "Recalculate Metrics",
             "action_id": "open-time-period-selector",
-            "message_override": "No matching issues found for this metric. This may be normal if your JIRA setup doesn't track this data (e.g., deployment tracking for open-source projects).",
+            "message_override": "No data available for the selected time period. Adjust the Data Points slider or refresh metrics.",
         },
         "calculation_error": {
             "icon": "fas fa-exclamation-triangle",
@@ -1372,6 +1424,7 @@ def _create_error_card(metric_data: dict, card_id: Optional[str]) -> dbc.Card:
         "no_data": "No Data",
         "missing_mapping": "Setup Required",
         "field_not_configured": "Disabled",
+        "points_tracking_disabled": "Disabled",
         "calculation_error": "Error",
     }
     badge_text = badge_text_map.get(error_state, "Error")
