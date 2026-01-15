@@ -11,8 +11,9 @@ __pycache__/
 develop-eggs/
 dist/
 # Note: build/ directory contains build scripts, not build output
-# Build output (PyInstaller temp files) goes in build/temp/
+# Build output (PyInstaller temp files) goes in build/temp/ and build/app/
 build/temp/
+build/app/
 build/*.log
 downloads/
 eggs/
@@ -185,6 +186,9 @@ jira_cache.json
 jira_changelog_cache.json
 jira_query_profiles.json
 metrics_snapshots.json
+
+# Build-generated license files (created by build/collect_licenses.ps1)
+licenses/
 
 # Profile & Query workspace data (Feature 011 - contains customer data)
 # Directory created automatically by migration/profile manager on first run
