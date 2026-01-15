@@ -365,7 +365,9 @@ if __name__ == "__main__":
         print(
             f"Starting Waitress production server on {server_config['host']}:{server_config['port']}..."
         )
-        print(f"Open your browser at: {url}", flush=True)
+        print("\nOpen your browser at:", flush=True)
+        print(f"  {url}", flush=True)
+        print("", flush=True)  # Empty line for better visibility
 
         # Launch browser in separate thread if running as executable (unless disabled by env var)
         if should_launch_browser:
