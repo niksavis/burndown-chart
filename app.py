@@ -17,6 +17,7 @@ import sys
 import threading
 import time
 import webbrowser
+from typing import Optional
 
 # Third-party library imports
 import dash
@@ -38,7 +39,7 @@ from data.profile_manager import (
 )
 from data.query_manager import list_queries_for_profile, get_active_query_id
 from data.installation_context import get_installation_context
-from utils.version_checker import check_for_updates
+from data.update_manager import check_for_updates, UpdateProgress, UpdateState
 from utils.license_extractor import extract_license_on_first_run
 
 #######################################################################
@@ -88,9 +89,55 @@ except Exception as e:
 # VERSION CHECK
 #######################################################################
 
-# Check for updates on startup (once, not on page refresh)
-# Store result globally for footer to access
-VERSION_CHECK_RESULT = check_for_updates()
+# Global variable to store update check result
+# Accessed by UI components to show update notifications
+VERSION_CHECK_RESULT: Optional[UpdateProgress] = None
+
+
+def _check_for_updates_background() -> None:
+    """Background thread function to check for updates.
+
+    Runs update check without blocking app startup. Result is stored
+    in global VERSION_CHECK_RESULT for UI components to display.
+
+    This is a daemon thread, so it will be terminated when the app exits.
+    """
+    global VERSION_CHECK_RESULT
+    try:
+        logger.info("Starting background update check")
+        VERSION_CHECK_RESULT = check_for_updates()
+        logger.info(
+            "Update check complete",
+            extra={
+                "operation": "update_check",
+                "state": VERSION_CHECK_RESULT.state.value,
+                "current_version": VERSION_CHECK_RESULT.current_version,
+                "available_version": VERSION_CHECK_RESULT.available_version,
+            },
+        )
+    except Exception as e:
+        logger.error(
+            f"Update check failed: {e}",
+            exc_info=True,
+            extra={"operation": "update_check"},
+        )
+        # Set error state so UI knows check failed
+        VERSION_CHECK_RESULT = UpdateProgress(
+            state=UpdateState.ERROR,
+            current_version="unknown",
+            error_message=str(e),
+        )
+
+
+# Launch update check in background thread (daemon=True)
+# App UI will appear immediately without waiting for check to complete
+update_check_thread = threading.Thread(
+    target=_check_for_updates_background,
+    daemon=True,
+    name="UpdateCheckThread",
+)
+update_check_thread.start()
+logger.info("Update check thread started")
 
 #######################################################################
 # WORKSPACE VALIDATION
