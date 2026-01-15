@@ -11,7 +11,9 @@ and serves as the main entry point for running the server.
 # Standard library imports
 import logging
 import os
+import signal
 import socket
+import sys
 import threading
 import time
 import webbrowser
@@ -304,8 +306,30 @@ def wait_for_server_ready(host: str, port: int, timeout: float = 3.0) -> bool:
     return False
 
 
+def setup_graceful_shutdown():
+    """
+    Setup graceful shutdown handlers for SIGINT (Ctrl+C) and SIGTERM.
+
+    This ensures clean termination when the executable is closed.
+    """
+
+    def shutdown_handler(signum, frame):
+        """Handle shutdown signals gracefully."""
+        sig_name = "SIGINT" if signum == signal.SIGINT else "SIGTERM"
+        logger.info(f"Received {sig_name}, shutting down gracefully...")
+        print("\nShutting down server...", flush=True)
+        sys.exit(0)
+
+    # Register handlers for both SIGINT (Ctrl+C) and SIGTERM (process termination)
+    signal.signal(signal.SIGINT, shutdown_handler)
+    signal.signal(signal.SIGTERM, shutdown_handler)
+
+
 # Run the app
 if __name__ == "__main__":
+    # Setup graceful shutdown handlers
+    setup_graceful_shutdown()
+
     # Clean up stale task progress from previous crashed/killed processes
     # CRITICAL: This must run BEFORE Dash app starts accepting requests
     try:
