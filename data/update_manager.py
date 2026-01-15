@@ -71,7 +71,7 @@ UPDATE_CHECK_TIMEOUT = 10  # seconds
 DOWNLOAD_CHUNK_SIZE = 1024 * 1024  # 1MB chunks
 
 # File size limits
-MAX_DOWNLOAD_SIZE = 100 * 1024 * 1024  # 100MB warning threshold
+MAX_DOWNLOAD_SIZE = 150 * 1024 * 1024  # 150MB warning threshold (current exe ~102MB)
 
 #######################################################################
 # LOGGING
