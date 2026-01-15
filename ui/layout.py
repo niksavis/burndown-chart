@@ -120,11 +120,13 @@ def create_app_layout(settings, statistics, is_sample_data):
 
     # Store version check result for callback access (not rendered in initial layout)
     # Toast will be shown via callback to avoid being cleared by page load callbacks
-    version_update_available = hasattr(
-        app, "VERSION_CHECK_RESULT"
-    ) and app.VERSION_CHECK_RESULT.get("update_available", False)
+    version_update_available = (
+        hasattr(app, "VERSION_CHECK_RESULT")
+        and isinstance(app.VERSION_CHECK_RESULT, dict)
+        and app.VERSION_CHECK_RESULT.get("update_available", False)
+    )
 
-    if version_update_available:
+    if version_update_available and isinstance(app.VERSION_CHECK_RESULT, dict):
         version_info = {
             "current": app.VERSION_CHECK_RESULT.get("current_commit", "unknown"),
             "latest": app.VERSION_CHECK_RESULT.get("latest_commit", "unknown"),
@@ -151,6 +153,8 @@ def create_app_layout(settings, statistics, is_sample_data):
             dcc.Store(id="version-check-info", data=version_info),
             # Track if update toast has been shown this session (prevents showing on every page refresh)
             dcc.Store(id="update-toast-shown", storage_type="session", data=False),
+            # Update status store for tracking download/install progress
+            dcc.Store(id="update-status-store", data=None),
             # Migration status tracking (prevents re-running migration)
             dcc.Store(id="migration-status", storage_type="session", data=None),
             # JIRA Configuration Modal (Feature 003-jira-config-separation)
@@ -275,6 +279,11 @@ def create_app_layout(settings, statistics, is_sample_data):
                 ],
                 id="sample-data-banner",
             ),
+            # Update notification container - shows when update is available
+            html.Div(
+                id="update-notification-container",
+                className="mb-3",
+            ),
             # Tab Navigation and Charts Row - using full width template
             create_full_width_layout(
                 dbc.Card(
@@ -395,6 +404,7 @@ def create_app_layout(settings, statistics, is_sample_data):
                             style={"lineHeight": "1.2"},
                         )
                         if hasattr(app, "VERSION_CHECK_RESULT")
+                        and isinstance(app.VERSION_CHECK_RESULT, dict)
                         and app.VERSION_CHECK_RESULT.get("update_available", False)
                         else None
                     ),
