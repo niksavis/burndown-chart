@@ -45,7 +45,11 @@ Usage:
 #######################################################################
 # Standard library imports
 import logging
+import os
+import subprocess
+import sys
 import tempfile
+import zipfile
 from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
@@ -594,11 +598,148 @@ def launch_updater(update_path: Path) -> bool:
         extra={"operation": "launch_updater", "update_path": str(update_path)},
     )
 
-    # TODO: Implement updater extraction and launch (task t-051)
-    # For now, return False as placeholder
-    logger.warning(
-        "Updater launch placeholder - not yet implemented",
-        extra={"operation": "launch_updater"},
-    )
+    try:
+        # Create temporary extraction directory
+        extract_dir = Path(tempfile.gettempdir()) / "burndown_updater"
+        extract_dir.mkdir(parents=True, exist_ok=True)
 
-    return False
+        logger.debug(
+            "Extracting updater ZIP",
+            extra={
+                "operation": "launch_updater",
+                "zip_path": str(update_path),
+                "extract_dir": str(extract_dir),
+            },
+        )
+
+        # Extract ZIP file
+        with zipfile.ZipFile(update_path, "r") as zip_ref:
+            zip_ref.extractall(extract_dir)
+
+        # Find updater executable
+        updater_exe = extract_dir / "BurndownChartUpdater.exe"
+
+        if not updater_exe.exists():
+            # Try alternate location (might be in subdirectory)
+            possible_paths = list(extract_dir.glob("**/BurndownChartUpdater.exe"))
+            if possible_paths:
+                updater_exe = possible_paths[0]
+            else:
+                logger.error(
+                    "Updater executable not found in ZIP",
+                    extra={
+                        "operation": "launch_updater",
+                        "extract_dir": str(extract_dir),
+                        "files": [str(p) for p in extract_dir.rglob("*")],
+                    },
+                )
+                return False
+
+        logger.info(
+            "Found updater executable",
+            extra={"operation": "launch_updater", "updater_path": str(updater_exe)},
+        )
+
+        # Get current executable path
+        if getattr(sys, "frozen", False):
+            # Running as frozen executable
+            current_exe = Path(sys.executable)
+        else:
+            # Running as script - use placeholder
+            # In dev mode, updater won't actually work, but we can test the logic
+            current_exe = Path(__file__).parent.parent / "BurndownChart.exe"
+            logger.warning(
+                "Running in development mode - updater may not work correctly",
+                extra={"operation": "launch_updater"},
+            )
+
+        logger.info(
+            "Preparing to launch updater",
+            extra={
+                "operation": "launch_updater",
+                "current_exe": str(current_exe),
+                "update_zip": str(update_path),
+            },
+        )
+
+        # Launch updater with arguments:
+        # 1. Path to current executable (to be replaced)
+        # 2. Path to update ZIP (contains new version)
+        # 3. Process ID (so updater can wait for app to exit)
+        args = [
+            str(updater_exe),
+            str(current_exe),
+            str(update_path),
+            str(os.getpid()),
+        ]
+
+        logger.info(
+            "Launching updater process",
+            extra={"operation": "launch_updater", "command_args": args},
+        )
+
+        # Launch updater as detached process
+        # Use DETACHED_PROCESS on Windows to prevent console window
+        if sys.platform == "win32":
+            # Windows-specific: detached process
+            DETACHED_PROCESS = 0x00000008
+            subprocess.Popen(
+                args,
+                creationflags=DETACHED_PROCESS,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
+        else:
+            # Unix-like systems
+            subprocess.Popen(
+                args,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                start_new_session=True,
+            )
+
+        logger.info(
+            "Updater launched successfully - application will exit",
+            extra={"operation": "launch_updater"},
+        )
+
+        # Exit the application to allow updater to replace files
+        # The updater will restart the app after update completes
+        sys.exit(0)
+
+        # This line should never be reached
+        return True
+
+    except zipfile.BadZipFile as e:
+        logger.error(
+            "Invalid ZIP file",
+            extra={
+                "operation": "launch_updater",
+                "error": str(e),
+                "path": str(update_path),
+            },
+        )
+        return False
+
+    except OSError as e:
+        logger.error(
+            "Failed to extract or launch updater",
+            extra={
+                "operation": "launch_updater",
+                "error": str(e),
+                "error_type": type(e).__name__,
+            },
+        )
+        return False
+
+    except Exception as e:
+        logger.error(
+            "Unexpected error launching updater",
+            exc_info=True,
+            extra={
+                "operation": "launch_updater",
+                "error": str(e),
+                "error_type": type(e).__name__,
+            },
+        )
+        return False
