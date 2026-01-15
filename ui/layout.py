@@ -42,6 +42,7 @@ from ui.unsaved_changes_modal import create_unsaved_changes_modal
 from ui.delete_query_modal import create_delete_query_modal
 from ui.improved_settings_panel import create_improved_settings_panel
 from ui.import_export_panel import create_import_export_flyout
+from ui.about_dialog import create_about_dialog
 
 # Initialize logger
 logger = logging.getLogger(__name__)
@@ -167,6 +168,8 @@ def create_app_layout(settings, statistics, is_sample_data):
             create_delete_query_modal(),
             # Query Creation Modal (Feature 011-profile-workspace-switching Phase 4)
             create_query_creation_modal(),
+            # About Dialog (Feature 016 - Standalone Packaging)
+            create_about_dialog(),
             # Help System (Phase 9.2 Progressive Disclosure)
             create_help_system_layout(),
             # URL location for triggering page load callbacks
@@ -332,24 +335,42 @@ def create_app_layout(settings, statistics, is_sample_data):
                                 sm=4,
                                 className="d-flex align-items-center justify-content-center justify-content-sm-start mb-1 mb-sm-0",
                             ),
-                            # Center column - GitHub link
+                            # Center column - GitHub and About links
                             dbc.Col(
-                                html.A(
+                                html.Div(
                                     [
-                                        html.I(
-                                            className="fab fa-github me-1",
+                                        html.A(
+                                            [
+                                                html.I(
+                                                    className="fab fa-github me-1",
+                                                    style={"fontSize": "0.85rem"},
+                                                ),
+                                                "GitHub",
+                                            ],
+                                            href="https://github.com/niksavis/burndown-chart",
+                                            target="_blank",
+                                            className="text-decoration-none text-primary fw-medium me-3",
                                             style={"fontSize": "0.85rem"},
                                         ),
-                                        "GitHub",
+                                        html.A(
+                                            [
+                                                html.I(
+                                                    className="fas fa-info-circle me-1",
+                                                    style={"fontSize": "0.85rem"},
+                                                ),
+                                                "About",
+                                            ],
+                                            id="about-button",
+                                            href="#",
+                                            className="text-decoration-none text-primary fw-medium",
+                                            style={"fontSize": "0.85rem"},
+                                        ),
                                     ],
-                                    href="https://github.com/niksavis/burndown-chart",
-                                    target="_blank",
-                                    className="text-decoration-none text-primary fw-medium",
-                                    style={"fontSize": "0.85rem"},
+                                    className="d-flex align-items-center justify-content-center",
                                 ),
                                 xs=12,
                                 sm=4,
-                                className="d-flex align-items-center justify-content-center mb-1 mb-sm-0",
+                                className="mb-1 mb-sm-0",
                             ),
                             # Right column - Last updated
                             dbc.Col(
