@@ -62,15 +62,18 @@ try {
             if ($versionLine) {
                 $Version = $versionLine.Matches.Groups[1].Value
                 Write-Success "Version from configuration: $Version"
-            } else {
+            }
+            else {
                 Write-Error "Could not parse version from $configFile"
                 exit 1
             }
-        } else {
+        }
+        else {
             Write-Error "Configuration file not found: $configFile"
             exit 1
         }
-    } else {
+    }
+    else {
         Write-Success "Using specified version: $Version"
     }
 
@@ -102,7 +105,8 @@ try {
         $licensesStaging = Join-Path $stagingDir "licenses"
         Copy-Item -Path $licensesSource -Destination $licensesStaging -Recurse
         Write-Success "Copied licenses"
-    } else {
+    }
+    else {
         Write-Host "[WARN] Licenses directory not found, skipping" -ForegroundColor Yellow
     }
     
@@ -122,7 +126,7 @@ try {
 
     # Step 5: Create ZIP file
     Write-Step "Creating distribution package"
-    $zipName = "burndown-chart-windows-v$Version.zip"
+    $zipName = "BurndownChart-Windows-$Version.zip"
     $zipPath = Join-Path $DistDir $zipName
     
     # Remove existing ZIP if present
@@ -147,7 +151,7 @@ try {
     
     # List contents
     Write-Host "`nPackage contents:" -ForegroundColor White
-    $zipContents = Expand-Archive -Path $zipPath -DestinationPath "$env:TEMP\burndown-verify" -Force -PassThru
+    Expand-Archive -Path $zipPath -DestinationPath "$env:TEMP\burndown-verify" -Force | Out-Null
     Get-ChildItem -Path "$env:TEMP\burndown-verify" -Recurse -File | ForEach-Object {
         $relativePath = $_.FullName.Replace("$env:TEMP\burndown-verify\", "")
         Write-Host "  - $relativePath" -ForegroundColor Gray
@@ -170,7 +174,8 @@ try {
     Write-Host "  2. Upload to release distribution server" -ForegroundColor White
     Write-Host "  3. Update version manifest for auto-update" -ForegroundColor White
 
-} catch {
+}
+catch {
     Write-Error "Packaging failed with error: $_"
     exit 1
 }

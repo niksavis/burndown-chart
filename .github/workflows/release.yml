@@ -1,0 +1,242 @@
+name: Release Build
+
+on:
+  push:
+    tags:
+      - "v*" # Trigger on version tags (v1.0.0, v2.1.3, etc.)
+
+permissions:
+  contents: write # Required for creating releases and uploading assets
+
+jobs:
+  build-and-release:
+    name: Build and Release
+    runs-on: windows-latest
+
+    steps:
+      # Checkout code
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Full history for changelog generation
+
+      # Setup Python 3.13
+      - name: Setup Python 3.13
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: "pip" # Cache pip dependencies for faster builds
+
+      # Install dependencies
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+        shell: pwsh
+
+      # Collect third-party licenses
+      - name: Collect licenses
+        run: |
+          .\build\collect_licenses.ps1
+        shell: pwsh
+
+      # Build executables
+      - name: Build executables
+        run: |
+          .\build\build.ps1 -VerboseBuild
+        shell: pwsh
+
+      # Package distribution
+      - name: Create distribution package
+        run: |
+          .\build\package.ps1
+        shell: pwsh
+
+      # Extract version from tag
+      - name: Extract version
+        id: version
+        run: |
+          $tag = "${{ github.ref_name }}"
+          $version = $tag -replace '^v', ''
+          echo "VERSION=$version" >> $env:GITHUB_OUTPUT
+          echo "Extracted version: $version"
+        shell: pwsh
+
+      # Find the ZIP file
+      - name: Find ZIP file
+        id: zip
+        run: |
+          $zipFile = Get-ChildItem -Path dist -Filter "BurndownChart-Windows-*.zip" | Select-Object -First 1
+          if ($zipFile) {
+            echo "ZIP_PATH=$($zipFile.FullName)" >> $env:GITHUB_OUTPUT
+            echo "ZIP_NAME=$($zipFile.Name)" >> $env:GITHUB_OUTPUT
+            echo "Found: $($zipFile.Name)"
+          } else {
+            Write-Error "ZIP file not found"
+            exit 1
+          }
+        shell: pwsh
+
+      # Generate changelog from commits
+      - name: Generate changelog
+        id: changelog
+        run: |
+          $tag = "${{ github.ref_name }}"
+
+          # Get previous tag
+          $previousTag = git describe --tags --abbrev=0 "$tag^" 2>$null
+
+          if ($previousTag) {
+            $range = "$previousTag..$tag"
+            echo "Changelog since $previousTag"
+          } else {
+            $range = $tag
+            echo "Initial release"
+          }
+
+          # Generate changelog grouped by type
+          $commits = git log $range --pretty=format:"%s" --no-merges
+
+          $features = @()
+          $fixes = @()
+          $other = @()
+
+          foreach ($commit in $commits) {
+            if ($commit -match '^feat(\(.*?\))?:') {
+              $features += "- $($commit -replace '^feat(\(.*?\))?:\s*', '')"
+            } elseif ($commit -match '^fix(\(.*?\))?:') {
+              $fixes += "- $($commit -replace '^fix(\(.*?\))?:\s*', '')"
+            } elseif ($commit -match '^(refactor|perf|docs|chore)(\(.*?\))?:') {
+              # Skip internal changes from changelog
+            } else {
+              $other += "- $commit"
+            }
+          }
+
+          # Build changelog content
+          $changelog = @()
+          if ($features.Count -gt 0) {
+            $changelog += "### Features`n"
+            $changelog += $features -join "`n"
+            $changelog += "`n"
+          }
+          if ($fixes.Count -gt 0) {
+            $changelog += "### Bug Fixes`n"
+            $changelog += $fixes -join "`n"
+            $changelog += "`n"
+          }
+          if ($other.Count -gt 0) {
+            $changelog += "### Other Changes`n"
+            $changelog += $other -join "`n"
+            $changelog += "`n"
+          }
+
+          # Save to file and output
+          $changelogText = $changelog -join "`n"
+          $changelogText | Out-File -FilePath changelog.md -Encoding utf8
+
+          # For GitHub output, use multiline format
+          echo "CHANGELOG<<EOF" >> $env:GITHUB_OUTPUT
+          echo $changelogText >> $env:GITHUB_OUTPUT
+          echo "EOF" >> $env:GITHUB_OUTPUT
+        shell: pwsh
+
+      # Create release notes
+      - name: Create release notes
+        id: notes
+        run: |
+          $version = "${{ steps.version.outputs.VERSION }}"
+          $changelog = Get-Content changelog.md -Raw
+
+          $notes = @"
+          # Burndown Chart v$version
+
+          ## Installation Instructions
+
+          ### Windows (Standalone Executable)
+
+          **For non-technical users** - No Python installation required:
+
+          1. **Download** `BurndownChart-Windows-$version.zip` below
+          2. **Extract** the contents to a folder of your choice (e.g., `C:\Program Files\BurndownChart`)
+          3. **Run** `BurndownChart\BurndownChart.exe` to start the application
+          4. **Optional**: Create a desktop shortcut to the executable for easy access
+
+          ### Linux / macOS / Windows (Run from Source)
+
+          **For technical users** - Requires Python 3.13+:
+
+          1. **Download** the source code ZIP below (`Source code (zip)`)
+          2. **Extract** and navigate to the folder
+          3. **Install dependencies**: `pip install -r requirements.txt`
+          4. **Run**: `python app.py`
+          5. **Access**: Open browser to `http://127.0.0.1:8050`
+
+          See the included `readme.md` for detailed setup instructions.
+
+          ### First-Time Setup
+
+          When you first run the application:
+
+          1. Navigate to **Settings** tab
+          2. Configure your **JIRA connection**:
+             - JIRA URL (e.g., `https://your-company.atlassian.net`)
+             - Email address
+             - API token ([create one here](https://id.atlassian.com/manage-profile/security/api-tokens))
+          3. Create a **query profile** to fetch your project's issues
+          4. Click **Update Data** to load your project data
+
+          ## What's Changed
+
+          $changelog
+
+          ## Requirements
+
+          - **Operating System**: Windows 10/11 (64-bit)
+          - **Internet Connection**: Required for JIRA API access
+          - **Disk Space**: ~150 MB
+
+          ## Support
+
+          - 📖 **Documentation**: See the included README files
+          - 🐛 **Report Issues**: [GitHub Issues](https://github.com/yourusername/burndown-chart/issues)
+          - 💡 **Feature Requests**: [GitHub Discussions](https://github.com/yourusername/burndown-chart/discussions)
+
+          ## License
+
+          This software is licensed under the Apache License 2.0.
+          See `licenses/` directory for third-party licenses.
+
+          ---
+
+          **Full Changelog**: https://github.com/yourusername/burndown-chart/compare/$tag...v$version
+          "@
+
+          $notes | Out-File -FilePath release_notes.md -Encoding utf8
+
+          # For GitHub output
+          echo "NOTES<<EOF" >> $env:GITHUB_OUTPUT
+          echo $notes >> $env:GITHUB_OUTPUT
+          echo "EOF" >> $env:GITHUB_OUTPUT
+        shell: pwsh
+
+      # Create GitHub release
+      - name: Create GitHub Release
+        id: create_release
+        uses: softprops/action-gh-release@v1
+        with:
+          name: "Burndown Chart v${{ steps.version.outputs.VERSION }}"
+          body_path: release_notes.md
+          draft: false
+          prerelease: false
+          files: ${{ steps.zip.outputs.ZIP_PATH }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # Upload changelog as artifact for reference
+      - name: Upload changelog artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: changelog
+          path: changelog.md
+          retention-days: 90
