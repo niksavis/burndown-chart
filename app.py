@@ -10,6 +10,11 @@ and serves as the main entry point for running the server.
 #######################################################################
 # Standard library imports
 import logging
+import os
+import socket
+import threading
+import time
+import webbrowser
 
 # Third-party library imports
 import dash
@@ -276,6 +281,29 @@ register_all_callbacks(app)
 # MAIN
 #######################################################################
 
+
+def wait_for_server_ready(host: str, port: int, timeout: float = 3.0) -> bool:
+    """
+    Wait for server to be ready to accept connections.
+
+    Args:
+        host: Server host address
+        port: Server port number
+        timeout: Maximum time to wait in seconds
+
+    Returns:
+        True if server is ready, False if timeout occurred
+    """
+    start_time = time.time()
+    while time.time() - start_time < timeout:
+        try:
+            with socket.create_connection((host, port), timeout=0.5):
+                return True
+        except (socket.error, OSError):
+            time.sleep(0.1)
+    return False
+
+
 # Run the app
 if __name__ == "__main__":
     # Clean up stale task progress from previous crashed/killed processes
@@ -312,6 +340,15 @@ if __name__ == "__main__":
     # Get server configuration
     server_config = get_server_config()
 
+    # Determine if browser should auto-launch
+    # Only auto-launch when running as frozen executable (not in dev mode)
+    # and when BURNDOWN_NO_BROWSER environment variable is not set
+    should_launch_browser = (
+        installation_context.is_frozen
+        and not server_config["debug"]
+        and os.environ.get("BURNDOWN_NO_BROWSER", "0") != "1"
+    )
+
     if server_config["debug"]:
         logger.info(
             f"Starting development server in DEBUG mode on {server_config['host']}:{server_config['port']}"
@@ -329,4 +366,33 @@ if __name__ == "__main__":
             f"Starting Waitress production server on {server_config['host']}:{server_config['port']}..."
         )
         print(f"Open your browser at: {url}", flush=True)
+
+        # Launch browser in separate thread if running as executable (unless disabled by env var)
+        if should_launch_browser:
+
+            def launch_browser():
+                """Wait for server to be ready, then launch browser."""
+                logger.info("Waiting for server to be ready...")
+                if wait_for_server_ready(
+                    server_config["host"], server_config["port"], timeout=3.0
+                ):
+                    logger.info(f"Server ready, launching browser at {url}")
+                    print("Server ready! Launching browser...", flush=True)
+                    try:
+                        webbrowser.open(url)
+                    except Exception as e:
+                        logger.warning(f"Failed to auto-launch browser: {e}")
+                        print(f"Could not auto-launch browser: {e}", flush=True)
+                else:
+                    logger.warning(
+                        "Server readiness check timed out after 3s, browser not launched"
+                    )
+                    print(
+                        "Server startup took longer than expected. Please open browser manually.",
+                        flush=True,
+                    )
+
+            browser_thread = threading.Thread(target=launch_browser, daemon=True)
+            browser_thread.start()
+
         serve(app.server, host=server_config["host"], port=server_config["port"])
