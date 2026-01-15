@@ -42,6 +42,7 @@ hiddenimports = [
     'pydantic',
     'sqlite3',
     'logging.handlers',
+    'typing_extensions',
 ]
 
 # Packages to exclude from the bundle
@@ -81,7 +82,6 @@ excludes = [
     'docutils',
     # Type checking
     'mypy',
-    'typing_extensions',
 ]
 
 a = Analysis(

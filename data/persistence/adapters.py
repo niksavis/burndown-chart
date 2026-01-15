@@ -18,8 +18,9 @@ from typing import Dict, Any, List
 # Third-party library imports
 import pandas as pd
 
-# Application imports
-from configuration import (
+# Application imports - import from settings directly to avoid circular import
+# (configuration/__init__.py imports from data which imports from this module)
+from configuration.settings import (
     DEFAULT_DATA_POINTS_COUNT,
     DEFAULT_DEADLINE,
     DEFAULT_ESTIMATED_ITEMS,
