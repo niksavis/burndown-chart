@@ -14,6 +14,7 @@ dist/
 # Build output (PyInstaller temp files) goes in build/temp/ and build/app/
 build/temp/
 build/app/
+build/updater/
 build/*.log
 downloads/
 eggs/
