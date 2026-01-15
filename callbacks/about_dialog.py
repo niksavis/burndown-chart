@@ -1,13 +1,14 @@
 """
 About Dialog Callbacks
 
-Handles opening and closing of the About dialog modal from footer button.
+Handles opening and closing of the About dialog modal from footer button,
+and clientside license search/filter functionality.
 """
 
 #######################################################################
 # IMPORTS
 #######################################################################
-from dash import Input, Output, State, callback
+from dash import Input, Output, State, callback, clientside_callback
 
 
 #######################################################################
@@ -39,3 +40,23 @@ def toggle_about_modal(
     """
     # Toggle modal state on any button click
     return not is_open
+
+
+# Clientside callback for license search/filter (for instant response)
+# Triggers on modal open (to initialize count) and search input changes
+# Returns formatted string with count (e.g., "Showing 5 of 59 dependencies")
+clientside_callback(
+    """
+    function(isOpen, searchValue) {
+        // Only run filter if modal is open
+        if (isOpen) {
+            return window.dash_clientside.about_dialog.filterLicenses(searchValue);
+        }
+        return window.dash_clientside.no_update;
+    }
+    """,
+    Output("license-count-text", "children"),
+    Input("about-modal", "is_open"),
+    Input("license-search-input", "value"),
+    prevent_initial_call=False,
+)

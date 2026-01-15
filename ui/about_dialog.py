@@ -154,7 +154,7 @@ def _create_license_accordion(licenses: list[dict]) -> html.Div | dbc.Alert:
         url = lic.get("url", "")
         description = lic.get("description", "")
 
-        # Create accordion item
+        # Create accordion item with enhanced title for searchability
         accordion_items.append(
             dbc.AccordionItem(
                 [
@@ -198,8 +198,12 @@ def _create_license_accordion(licenses: list[dict]) -> html.Div | dbc.Alert:
                     if description
                     else None,
                 ],
-                title=f"{name} ({version})" if version else name,
+                # Include license type in title for searchability
+                title=f"{name} ({version}) - {license_type}"
+                if version
+                else f"{name} - {license_type}",
                 item_id=f"license-{idx}",
+                className="license-item",
             )
         )
 
@@ -208,11 +212,19 @@ def _create_license_accordion(licenses: list[dict]) -> html.Div | dbc.Alert:
             html.P(
                 [
                     html.I(className="fas fa-info-circle me-2"),
-                    f"Showing {len(licenses)} dependencies",
+                    html.Span(
+                        f"Showing {len(licenses)} dependencies",
+                        id="license-count-text",
+                    ),
                 ],
                 className="text-muted small mb-3",
             ),
-            dbc.Accordion(accordion_items, flush=True, start_collapsed=True),
+            dbc.Accordion(
+                accordion_items,
+                id="licenses-accordion",
+                flush=True,
+                start_collapsed=True,
+            ),
         ]
     )
 
@@ -427,6 +439,11 @@ def _get_licenses_tab() -> dbc.Tab:
         # Parse licenses
         licenses = _parse_licenses(licenses_text)
 
+        # Extract unique license types for autocomplete
+        license_types = sorted(
+            set(lic.get("license", "") for lic in licenses if lic.get("license"))
+        )
+
         content = html.Div(
             [
                 html.H5("Third-Party Software Licenses", className="mb-3"),
@@ -437,10 +454,50 @@ def _get_licenses_tab() -> dbc.Tab:
                     ],
                     className="text-muted mb-3",
                 ),
+                # Search/filter input with autocomplete and clear button
+                html.Div(
+                    [
+                        dbc.InputGroup(
+                            [
+                                dbc.Input(
+                                    id="license-search-input",
+                                    type="text",
+                                    placeholder="Search by name or license type...",
+                                    size="sm",
+                                    list="license-types-datalist",
+                                    debounce=300,  # 300ms debounce for better performance
+                                ),
+                                dbc.InputGroupText(
+                                    html.I(className="fas fa-search"),
+                                    className="bg-light border-start-0",
+                                    style={"cursor": "default"},
+                                ),
+                            ],
+                            size="sm",
+                            className="mb-2",
+                        ),
+                        html.Datalist(
+                            [html.Option(value=lt) for lt in license_types],
+                            id="license-types-datalist",
+                        ),
+                    ],
+                    className="mb-3",
+                ),
+                # No results message (hidden by default)
+                dbc.Alert(
+                    [
+                        html.I(className="fas fa-search me-2"),
+                        "No licenses match your search. Try a different term.",
+                    ],
+                    id="license-no-results",
+                    color="info",
+                    className="mb-3",
+                    style={"display": "none"},
+                ),
                 _create_license_accordion(licenses),
             ],
             className="p-3",
-            style={"maxHeight": "500px", "overflowY": "auto"},
+            style={"minHeight": "500px", "maxHeight": "500px", "overflowY": "auto"},
         )
 
     return dbc.Tab(
