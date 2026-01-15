@@ -10,9 +10,11 @@ Tests update checking, version comparison, and state management.
 # Standard library imports
 from datetime import datetime
 from pathlib import Path
+from unittest.mock import Mock, patch
 
 # Third-party library imports
 import pytest
+import requests
 
 # Application imports
 from data.update_manager import (
@@ -199,26 +201,199 @@ def test_get_current_version():
 
 
 #######################################################################
-# TESTS: check_for_updates (Placeholder)
+# TESTS: check_for_updates
 #######################################################################
 
 
 def test_check_for_updates_returns_progress():
     """Test check_for_updates returns UpdateProgress object."""
-    progress = check_for_updates()
+    with patch("data.update_manager.requests.get") as mock_get:
+        # Mock API response - up to date
+        mock_response = Mock()
+        mock_response.json.return_value = {
+            "tag_name": "v2.5.0",
+            "prerelease": False,
+            "assets": [],
+        }
+        mock_response.raise_for_status.return_value = None
+        mock_get.return_value = mock_response
 
-    assert isinstance(progress, UpdateProgress)
-    assert progress.current_version is not None
-    assert progress.last_checked is not None
-    assert isinstance(progress.last_checked, datetime)
+        progress = check_for_updates()
+
+        assert isinstance(progress, UpdateProgress)
+        assert progress.current_version is not None
+        assert progress.last_checked is not None
+        assert isinstance(progress.last_checked, datetime)
 
 
-def test_check_for_updates_placeholder_state():
-    """Test check_for_updates returns UP_TO_DATE (placeholder behavior)."""
-    progress = check_for_updates()
+def test_check_for_updates_with_newer_version():
+    """Test check_for_updates detects available update."""
+    with patch("data.update_manager.requests.get") as mock_get:
+        # Mock API response with newer version
+        mock_response = Mock()
+        mock_response.json.return_value = {
+            "tag_name": "v99.0.0",  # Much newer version
+            "prerelease": False,
+            "body": "## What's New\n\n- Feature X",
+            "assets": [
+                {
+                    "name": "burndown-chart-windows-v99.0.0.zip",
+                    "browser_download_url": "https://github.com/owner/repo/releases/download/v99.0.0/burndown-chart-windows-v99.0.0.zip",
+                    "size": 95420160,
+                }
+            ],
+        }
+        mock_response.raise_for_status.return_value = None
+        mock_get.return_value = mock_response
 
-    # Current placeholder implementation returns UP_TO_DATE
-    assert progress.state == UpdateState.UP_TO_DATE
+        progress = check_for_updates()
+
+        assert progress.state == UpdateState.AVAILABLE
+        assert progress.available_version == "99.0.0"
+        assert progress.download_url is not None
+        assert "github.com" in progress.download_url
+        assert progress.file_size == 95420160
+        assert progress.release_notes is not None
+
+
+def test_check_for_updates_same_version():
+    """Test check_for_updates when already up to date."""
+    with patch("data.update_manager.requests.get") as mock_get:
+        with patch("data.update_manager.get_current_version") as mock_version:
+            mock_version.return_value = "2.5.0"
+
+            # Mock API response with same version
+            mock_response = Mock()
+            mock_response.json.return_value = {
+                "tag_name": "v2.5.0",
+                "prerelease": False,
+                "assets": [],
+            }
+            mock_response.raise_for_status.return_value = None
+            mock_get.return_value = mock_response
+
+            progress = check_for_updates()
+
+            assert progress.state == UpdateState.UP_TO_DATE
+
+
+def test_check_for_updates_skips_prerelease():
+    """Test check_for_updates ignores prerelease versions."""
+    with patch("data.update_manager.requests.get") as mock_get:
+        # Mock API response with prerelease
+        mock_response = Mock()
+        mock_response.json.return_value = {
+            "tag_name": "v99.0.0-beta",
+            "prerelease": True,
+            "assets": [],
+        }
+        mock_response.raise_for_status.return_value = None
+        mock_get.return_value = mock_response
+
+        progress = check_for_updates()
+
+        assert progress.state == UpdateState.UP_TO_DATE
+
+
+def test_check_for_updates_no_windows_asset():
+    """Test check_for_updates when no Windows asset is available."""
+    with patch("data.update_manager.requests.get") as mock_get:
+        # Mock API response without Windows asset
+        mock_response = Mock()
+        mock_response.json.return_value = {
+            "tag_name": "v99.0.0",
+            "prerelease": False,
+            "assets": [
+                {
+                    "name": "burndown-chart-linux-v99.0.0.tar.gz",
+                    "browser_download_url": "https://example.com/linux.tar.gz",
+                }
+            ],
+        }
+        mock_response.raise_for_status.return_value = None
+        mock_get.return_value = mock_response
+
+        progress = check_for_updates()
+
+        assert progress.state == UpdateState.ERROR
+        assert progress.error_message is not None
+        assert "No Windows installer found" in progress.error_message
+
+
+def test_check_for_updates_timeout():
+    """Test check_for_updates handles timeout gracefully."""
+    with patch("data.update_manager.requests.get") as mock_get:
+        mock_get.side_effect = requests.exceptions.Timeout("Connection timeout")
+
+        progress = check_for_updates()
+
+        assert progress.state == UpdateState.ERROR
+        assert progress.error_message is not None
+        assert "timed out" in progress.error_message.lower()
+
+
+def test_check_for_updates_network_error():
+    """Test check_for_updates handles network errors."""
+    with patch("data.update_manager.requests.get") as mock_get:
+        mock_get.side_effect = requests.exceptions.ConnectionError(
+            "Network unreachable"
+        )
+
+        progress = check_for_updates()
+
+        assert progress.state == UpdateState.ERROR
+        assert progress.error_message is not None
+        assert "Failed to check for updates" in progress.error_message
+
+
+def test_check_for_updates_http_error():
+    """Test check_for_updates handles HTTP errors."""
+    with patch("data.update_manager.requests.get") as mock_get:
+        mock_response = Mock()
+        mock_response.raise_for_status.side_effect = requests.exceptions.HTTPError(
+            "404 Not Found"
+        )
+        mock_get.return_value = mock_response
+
+        progress = check_for_updates()
+
+        assert progress.state == UpdateState.ERROR
+
+
+def test_check_for_updates_invalid_json():
+    """Test check_for_updates handles invalid JSON response."""
+    with patch("data.update_manager.requests.get") as mock_get:
+        mock_response = Mock()
+        mock_response.json.side_effect = ValueError("Invalid JSON")
+        mock_response.raise_for_status.return_value = None
+        mock_get.return_value = mock_response
+
+        progress = check_for_updates()
+
+        assert progress.state == UpdateState.ERROR
+        assert progress.error_message is not None
+        assert "Invalid update data" in progress.error_message
+
+
+def test_check_for_updates_sends_user_agent():
+    """Test check_for_updates sends proper User-Agent header."""
+    with patch("data.update_manager.requests.get") as mock_get:
+        mock_response = Mock()
+        mock_response.json.return_value = {
+            "tag_name": "v2.5.0",
+            "prerelease": False,
+            "assets": [],
+        }
+        mock_response.raise_for_status.return_value = None
+        mock_get.return_value = mock_response
+
+        check_for_updates()
+
+        # Verify User-Agent header was sent
+        call_kwargs = mock_get.call_args[1]
+        assert "headers" in call_kwargs
+        assert "User-Agent" in call_kwargs["headers"]
+        assert "BurndownChart" in call_kwargs["headers"]["User-Agent"]
 
 
 #######################################################################

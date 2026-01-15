@@ -52,7 +52,7 @@ from pathlib import Path
 from typing import Optional
 
 # Third-party library imports
-# None yet (will add requests for GitHub API)
+import requests
 
 # Application imports
 from configuration import __version__
@@ -60,6 +60,10 @@ from configuration import __version__
 #######################################################################
 # CONSTANTS
 #######################################################################
+
+# GitHub repository configuration
+GITHUB_OWNER = "niksavis"  # Repository owner
+GITHUB_REPO = "burndown-chart"  # Repository name
 
 # GitHub API configuration
 GITHUB_API_URL = "https://api.github.com/repos/{owner}/{repo}/releases/latest"
@@ -245,15 +249,146 @@ def check_for_updates() -> UpdateProgress:
         last_checked=datetime.now(),
     )
 
-    # TODO: Implement GitHub API query (task t-043)
-    # For now, return UP_TO_DATE as placeholder
-    logger.info(
-        "Update check placeholder - not yet implemented",
-        extra={"operation": "check_for_updates", "state": "up_to_date"},
-    )
+    try:
+        # Query GitHub releases API
+        api_url = GITHUB_API_URL.format(owner=GITHUB_OWNER, repo=GITHUB_REPO)
 
-    progress.state = UpdateState.UP_TO_DATE
-    return progress
+        logger.debug(
+            "Querying GitHub releases API",
+            extra={"operation": "check_for_updates", "url": api_url},
+        )
+
+        response = requests.get(
+            api_url,
+            timeout=UPDATE_CHECK_TIMEOUT,
+            headers={
+                "Accept": "application/vnd.github+json",
+                "User-Agent": f"BurndownChart/{current_version}",
+            },
+        )
+
+        # Check for HTTP errors
+        response.raise_for_status()
+
+        release_data = response.json()
+
+        # Extract version information
+        tag_name = release_data.get("tag_name", "")
+        available_version = tag_name.lstrip("v")  # Remove 'v' prefix if present
+
+        logger.info(
+            "GitHub API query successful",
+            extra={
+                "operation": "check_for_updates",
+                "available_version": available_version,
+                "prerelease": release_data.get("prerelease", False),
+            },
+        )
+
+        # Skip prereleases
+        if release_data.get("prerelease", False):
+            logger.info(
+                "Skipping prerelease version",
+                extra={"operation": "check_for_updates", "version": available_version},
+            )
+            progress.state = UpdateState.UP_TO_DATE
+            return progress
+
+        # Compare versions
+        version_comparison = compare_versions(current_version, available_version)
+
+        if version_comparison < 0:
+            # Update available
+            logger.info(
+                "Update available",
+                extra={
+                    "operation": "check_for_updates",
+                    "current": current_version,
+                    "available": available_version,
+                },
+            )
+
+            # Find Windows ZIP asset
+            assets = release_data.get("assets", [])
+            windows_asset = None
+
+            for asset in assets:
+                asset_name = asset.get("name", "")
+                if "windows" in asset_name.lower() and asset_name.endswith(".zip"):
+                    windows_asset = asset
+                    break
+
+            if not windows_asset:
+                logger.warning(
+                    "No Windows ZIP asset found in release",
+                    extra={
+                        "operation": "check_for_updates",
+                        "version": available_version,
+                        "assets": [a.get("name") for a in assets],
+                    },
+                )
+                progress.state = UpdateState.ERROR
+                progress.error_message = (
+                    f"No Windows installer found for version {available_version}"
+                )
+                return progress
+
+            # Update progress with available version info
+            progress.state = UpdateState.AVAILABLE
+            progress.available_version = available_version
+            progress.download_url = windows_asset.get("browser_download_url")
+            progress.file_size = windows_asset.get("size")
+            progress.release_notes = release_data.get("body", "")
+
+            return progress
+
+        else:
+            # Up to date or current is newer
+            logger.info(
+                "App is up to date",
+                extra={
+                    "operation": "check_for_updates",
+                    "current": current_version,
+                    "latest": available_version,
+                },
+            )
+            progress.state = UpdateState.UP_TO_DATE
+            return progress
+
+    except requests.exceptions.Timeout:
+        logger.warning(
+            "GitHub API request timed out",
+            extra={"operation": "check_for_updates", "timeout": UPDATE_CHECK_TIMEOUT},
+        )
+        progress.state = UpdateState.ERROR
+        progress.error_message = f"Update check timed out after {UPDATE_CHECK_TIMEOUT}s"
+        return progress
+
+    except requests.exceptions.RequestException as e:
+        logger.error(
+            "GitHub API request failed",
+            extra={
+                "operation": "check_for_updates",
+                "error": str(e),
+                "error_type": type(e).__name__,
+            },
+        )
+        progress.state = UpdateState.ERROR
+        progress.error_message = f"Failed to check for updates: {str(e)}"
+        return progress
+
+    except (ValueError, KeyError) as e:
+        logger.error(
+            "Failed to parse GitHub API response",
+            extra={
+                "operation": "check_for_updates",
+                "error": str(e),
+                "error_type": type(e).__name__,
+            },
+        )
+        progress.state = UpdateState.ERROR
+        progress.error_message = f"Invalid update data: {str(e)}"
+        return progress
 
 
 def download_update(progress: UpdateProgress) -> UpdateProgress:
