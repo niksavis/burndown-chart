@@ -1024,3 +1024,51 @@ class DatabaseCorruptionError(PersistenceError):
     """Raised when database integrity check fails."""
 
     pass
+
+
+# =============================================================================
+# Lazy Loading of Adapter Functions (Avoid Circular Imports)
+# =============================================================================
+# Use __getattr__ to lazily import adapter functions only when accessed.
+# This prevents circular imports at module load time while maintaining
+# backward compatibility with existing code.
+
+
+def __getattr__(name: str):
+    """
+    Lazy import adapter functions to avoid circular import at module load time.
+
+    Adapter functions are imported from data.persistence.adapters only when
+    first accessed, breaking the circular dependency chain.
+    """
+    _adapter_functions = {
+        "generate_realistic_sample_data",
+        "load_app_settings",
+        "load_project_data",
+        "load_settings",
+        "load_statistics",
+        "read_and_clean_data",
+        "save_app_settings",
+        "save_project_data",
+        "save_settings",
+        "save_statistics",
+        "save_statistics_from_csv_import",
+        "load_jira_configuration",
+        "save_jira_configuration",
+        "validate_jira_config",
+        "save_jira_data_unified",
+        "load_unified_project_data",
+        "save_unified_project_data",
+        "get_project_statistics",
+        "get_project_scope",
+        "update_project_scope",
+        "update_project_scope_from_jira",
+        "calculate_project_scope_from_jira",
+    }
+
+    if name in _adapter_functions:
+        from data.persistence import adapters
+
+        return getattr(adapters, name)
+
+    raise AttributeError(f"module '{__name__}' has no attribute '{name}'")

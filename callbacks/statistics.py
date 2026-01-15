@@ -22,7 +22,11 @@ import dash_bootstrap_components as dbc
 
 # Application imports
 from configuration import logger
-from data import save_statistics, save_statistics_from_csv_import, read_and_clean_data
+from data.persistence import (
+    save_statistics,
+    save_statistics_from_csv_import,
+    read_and_clean_data,
+)
 
 #######################################################################
 # HELPER FUNCTIONS

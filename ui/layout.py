@@ -17,12 +17,12 @@ import dash_bootstrap_components as dbc
 from dash import dcc, html
 
 # Application imports
-# Application imports
 from configuration import __version__
-from data import (
-    calculate_total_points,
+from data import calculate_total_points
+from data.persistence import (
     load_app_settings,
     load_statistics,
+    get_project_scope,
 )
 from ui.cards import (
     create_statistics_data_card,
@@ -72,8 +72,6 @@ def serve_layout():
     statistics, is_sample_data = load_statistics()
 
     # Get project scope and use actual remaining values (no window calculations)
-    from data.persistence import get_project_scope
-
     project_scope = get_project_scope()
 
     # Use actual remaining values from project scope (no window calculations)
