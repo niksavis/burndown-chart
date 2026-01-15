@@ -514,57 +514,12 @@ def _get_changelog_tab() -> dbc.Tab:
     Returns:
         dbc.Tab containing changelog information
     """
+    changelog_content = _read_and_parse_changelog()
+
     content = html.Div(
         [
             html.H5("Changelog", className="mb-3"),
-            # Version 2.5.0
-            html.Div(
-                [
-                    html.H6(
-                        [
-                            html.Code("v2.5.0", className="me-2"),
-                            html.Small("Current Version", className="badge bg-success"),
-                        ],
-                        className="mb-2",
-                    ),
-                    html.Ul(
-                        [
-                            html.Li(
-                                "Auto-update functionality with standalone updater"
-                            ),
-                            html.Li(
-                                "Build system with PyInstaller for standalone executables"
-                            ),
-                            html.Li("License management and attribution"),
-                            html.Li("About dialog with open source information"),
-                        ],
-                        className="small text-muted mb-3",
-                    ),
-                ]
-            ),
-            html.Hr(),
-            # Version 2.0.0+
-            html.Div(
-                [
-                    html.H6(
-                        [
-                            html.Code("v2.0.0+", className="me-2"),
-                        ],
-                        className="mb-2",
-                    ),
-                    html.Ul(
-                        [
-                            html.Li("PERT-based probabilistic forecasting"),
-                            html.Li("JIRA integration with JQL query support"),
-                            html.Li("DORA and Flow metrics dashboards"),
-                            html.Li("Budget tracking and scope management"),
-                            html.Li("Bug analysis and quality insights"),
-                            html.Li("Multiple profile support"),
-                        ],
-                        className="small text-muted mb-3",
-                    ),
-                ]
-            ),
+            changelog_content,
             html.Hr(),
             html.P(
                 [
@@ -591,6 +546,173 @@ def _get_changelog_tab() -> dbc.Tab:
         tab_id="about-tab-changelog",
         label_style={"cursor": "pointer"},
     )
+
+
+def _read_and_parse_changelog() -> html.Div:
+    """Read and parse changelog.md file.
+
+    Returns:
+        html.Div containing parsed changelog sections or fallback content
+    """
+    import sys
+    from pathlib import Path
+
+    # Determine changelog path (works for both dev and frozen)
+    if getattr(sys, "frozen", False):
+        # Running as frozen executable - changelog should be in same dir as exe
+        base_path = Path(sys.executable).parent
+    else:
+        # Running in development - changelog in project root
+        base_path = Path(__file__).parent.parent
+
+    changelog_file = base_path / "changelog.md"
+
+    if not changelog_file.exists():
+        # Fallback to hardcoded content if file not found
+        return html.Div(
+            [
+                html.Div(
+                    [
+                        html.H6(
+                            [
+                                html.Code("v2.5.0", className="me-2"),
+                                html.Small(
+                                    "Current Version", className="badge bg-success"
+                                ),
+                            ],
+                            className="mb-2",
+                        ),
+                        html.Ul(
+                            [
+                                html.Li(
+                                    "Auto-update functionality with standalone updater"
+                                ),
+                                html.Li(
+                                    "Build system with PyInstaller for standalone executables"
+                                ),
+                                html.Li("License management and attribution"),
+                                html.Li("About dialog with open source information"),
+                            ],
+                            className="small text-muted mb-3",
+                        ),
+                    ]
+                ),
+                html.Hr(),
+                dbc.Alert(
+                    [
+                        html.I(className="fas fa-info-circle me-2"),
+                        "Changelog file not found. See GitHub Releases for full version history.",
+                    ],
+                    color="info",
+                    className="mb-0",
+                ),
+            ]
+        )
+
+    try:
+        content = changelog_file.read_text(encoding="utf-8")
+
+        # Parse markdown sections by version (## v{version})
+        version_sections = []
+        lines = content.split("\n")
+
+        current_version = None
+        current_content = []
+
+        for line in lines:
+            if line.startswith("## v"):
+                # Save previous section
+                if current_version and current_content:
+                    version_sections.append(
+                        (current_version, "\n".join(current_content))
+                    )
+
+                # Start new section
+                current_version = line.replace("## ", "").strip()
+                current_content = []
+            elif line.startswith("# Changelog"):
+                # Skip main title
+                continue
+            elif current_version:
+                # Accumulate content for current version
+                current_content.append(line)
+
+        # Save last section
+        if current_version and current_content:
+            version_sections.append((current_version, "\n".join(current_content)))
+
+        # Convert to HTML
+        if not version_sections:
+            return html.Div(
+                dbc.Alert(
+                    "No version history found in changelog.",
+                    color="info",
+                )
+            )
+
+        elements = []
+        for idx, (version, section_content) in enumerate(version_sections):
+            # Parse section content
+            section_lines = [
+                line for line in section_content.split("\n") if line.strip()
+            ]
+
+            # Extract date if present
+            date_text = None
+            items = []
+
+            for line in section_lines:
+                if line.strip().startswith("*Released:"):
+                    date_text = line.strip().replace("*", "")
+                elif line.strip().startswith("###"):
+                    # Skip section headings - not currently displayed
+                    continue
+                elif line.strip().startswith("-"):
+                    items.append(html.Li(line.strip()[2:]))  # Remove "- " prefix
+
+            # Build version section
+            version_header: list = [html.Code(version, className="me-2")]
+            if idx == 0:
+                version_header.append(
+                    html.Small("Latest", className="badge bg-success")
+                )
+
+            version_div = html.Div(
+                [
+                    html.H6(version_header, className="mb-2"),
+                    html.P(date_text, className="text-muted small mb-2")
+                    if date_text
+                    else None,
+                    html.Ul(items, className="small text-muted mb-3")
+                    if items
+                    else None,
+                ]
+            )
+
+            elements.append(version_div)
+
+            # Add separator except for last item
+            if idx < len(version_sections) - 1:
+                elements.append(html.Hr())
+
+        return html.Div(elements)
+
+    except Exception as e:
+        # Fallback on parse error
+        import logging
+
+        logger = logging.getLogger(__name__)
+        logger.error(f"Error parsing changelog: {e}", exc_info=True)
+
+        return html.Div(
+            dbc.Alert(
+                [
+                    html.I(className="fas fa-exclamation-triangle me-2"),
+                    f"Error reading changelog: {str(e)}",
+                ],
+                color="warning",
+            )
+        )
 
 
 #######################################################################

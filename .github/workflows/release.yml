@@ -77,67 +77,35 @@ jobs:
           }
         shell: pwsh
 
-      # Generate changelog from commits
-      - name: Generate changelog
+      # Read changelog from changelog.md
+      - name: Read changelog
         id: changelog
         run: |
-          $tag = "${{ github.ref_name }}"
+          $version = "${{ steps.version.outputs.VERSION }}"
 
-          # Get previous tag
-          $previousTag = git describe --tags --abbrev=0 "$tag^" 2>$null
+          if (-not (Test-Path "changelog.md")) {
+            echo "CHANGELOG=No changelog available for this release." >> $env:GITHUB_OUTPUT
+            echo "No changelog.md found"
+            exit 0
+          }
 
-          if ($previousTag) {
-            $range = "$previousTag..$tag"
-            echo "Changelog since $previousTag"
+          # Read entire changelog
+          $content = Get-Content "changelog.md" -Raw
+
+          # Extract version-specific section (between ## v{version} and next ## or end)
+          $pattern = "(?s)## v$version\s*\r?\n(.*?)(?=\r?\n## v|\z)"
+          if ($content -match $pattern) {
+            $changelogSection = $matches[1].Trim()
+            echo "Found changelog for v$version"
           } else {
-            $range = $tag
-            echo "Initial release"
+            # Fallback: use entire changelog if version section not found
+            $changelogSection = $content
+            echo "Using full changelog (version section not found)"
           }
 
-          # Generate changelog grouped by type
-          $commits = git log $range --pretty=format:"%s" --no-merges
-
-          $features = @()
-          $fixes = @()
-          $other = @()
-
-          foreach ($commit in $commits) {
-            if ($commit -match '^feat(\(.*?\))?:') {
-              $features += "- $($commit -replace '^feat(\(.*?\))?:\s*', '')"
-            } elseif ($commit -match '^fix(\(.*?\))?:') {
-              $fixes += "- $($commit -replace '^fix(\(.*?\))?:\s*', '')"
-            } elseif ($commit -match '^(refactor|perf|docs|chore)(\(.*?\))?:') {
-              # Skip internal changes from changelog
-            } else {
-              $other += "- $commit"
-            }
-          }
-
-          # Build changelog content
-          $changelog = @()
-          if ($features.Count -gt 0) {
-            $changelog += "### Features`n"
-            $changelog += $features -join "`n"
-            $changelog += "`n"
-          }
-          if ($fixes.Count -gt 0) {
-            $changelog += "### Bug Fixes`n"
-            $changelog += $fixes -join "`n"
-            $changelog += "`n"
-          }
-          if ($other.Count -gt 0) {
-            $changelog += "### Other Changes`n"
-            $changelog += $other -join "`n"
-            $changelog += "`n"
-          }
-
-          # Save to file and output
-          $changelogText = $changelog -join "`n"
-          $changelogText | Out-File -FilePath changelog.md -Encoding utf8
-
-          # For GitHub output, use multiline format
+          # Save to output
           echo "CHANGELOG<<EOF" >> $env:GITHUB_OUTPUT
-          echo $changelogText >> $env:GITHUB_OUTPUT
+          echo $changelogSection >> $env:GITHUB_OUTPUT
           echo "EOF" >> $env:GITHUB_OUTPUT
         shell: pwsh
 
@@ -240,3 +208,4 @@ jobs:
           name: changelog
           path: changelog.md
           retention-days: 90
+        if: always()

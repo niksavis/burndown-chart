@@ -74,6 +74,18 @@ def update_readme_file(new_version: tuple[int, int, int]) -> None:
     print(f"[OK] Updated readme.md badge to {version_str}")
 
 
+def generate_changelog() -> None:
+    """Regenerate changelog.md from all git tags using regenerate_changelog script."""
+    try:
+        # Import and run the changelog regeneration
+        import regenerate_changelog
+
+        regenerate_changelog.main()
+    except Exception as e:
+        print(f"[WARNING] Could not regenerate changelog: {e}")
+        print("  You can manually run: python regenerate_changelog.py")
+
+
 def main() -> None:
     """Main entry point."""
     print("=" * 60)
@@ -159,6 +171,23 @@ def main() -> None:
             capture_output=True,
         )
         print(f"[OK] Created tag v{new_version_str}")
+
+        # Now regenerate changelog from all tags (including the new one)
+        print("\nRegenerating changelog from git history...")
+        generate_changelog()
+
+        # Commit the regenerated changelog
+        subprocess.run(
+            ["git", "add", "changelog.md"],
+            check=True,
+            capture_output=True,
+        )
+        subprocess.run(
+            ["git", "commit", "--amend", "--no-edit"],
+            check=True,
+            capture_output=True,
+        )
+        print("[OK] Updated changelog.md")
 
     except subprocess.CalledProcessError as e:
         print(f"\n[WARNING] Could not create git tag automatically: {e}")

@@ -42,6 +42,27 @@ bd update <id> --title "new title"
 bd update <id> --notes "additional notes"
 ```
 
+## Commit Format (MANDATORY)
+
+All commits MUST follow Conventional Commits format:
+
+```
+type(scope): description
+
+Closes burndown-chart-<issue-id>
+```
+
+**Valid types**: `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`
+
+**Examples**:
+```bash
+feat(dashboard): add velocity trend visualization
+
+Closes burndown-chart-abc
+```
+
+See `.github/copilot-instructions.md` for complete type definitions.
+
 ## Landing the Plane (Session Completion)
 
 **When ending a work session**, you MUST complete ALL steps below. Work is NOT complete until `git push` succeeds.

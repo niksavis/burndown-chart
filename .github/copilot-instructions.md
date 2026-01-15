@@ -79,6 +79,37 @@ When discovering errors or outdated information in `copilot-instructions.md`:
 
 Keep documentation synchronized with evolving codebase. Examples: wrong file paths, obsolete workflows, incorrect technical details.
 
+### 9. Conventional Commits (NON-NEGOTIABLE)
+
+ALL commits MUST follow Conventional Commits format: `type(scope): description`
+
+**Required format**: `type(scope): description` where scope is optional
+
+**Valid types**:
+
+- `feat`: New features for users
+- `fix`: Bug fixes for users
+- `docs`: Documentation changes
+- `style`: Code style changes (formatting, whitespace, no logic change)
+- `refactor`: Code restructuring (no feature change)
+- `perf`: Performance improvements
+- `test`: Adding or updating tests
+- `build`: Build system changes (package.json, pip, etc.)
+- `ci`: CI/CD pipeline changes (GitHub Actions, etc.)
+- `chore`: Maintenance tasks (tooling, dependencies, cleanup)
+
+**Examples**:
+
+```
+feat(dashboard): add velocity trend visualization
+fix(jira): handle pagination timeout errors
+docs(readme): update installation instructions
+refactor(metrics): extract calculation logic to helper
+chore(deps): update plotly to 5.18.0
+```
+
+**Enforcement**: Changelog generation relies on commit types. Non-conforming commits won't appear in user-facing changelogs.
+
 ---
 
 ## Architecture
@@ -208,8 +239,7 @@ logger.info("Velocity calculated", extra={"operation": "calc_velocity", "result"
 
 **MUST verify current branch is main before running bump script.** Bump script auto-updates files, commits, and creates annotated git tag. This sequence ensures tag is on main, not feature branch.
 
-**Commits**: Conventional Commits - `type(scope): description`  
-Types: `feat`, `fix`, `refactor`, `docs`, `test`, `chore`, `perf`
+**Commits**: See CRITICAL RULE #9 - Conventional Commits format is MANDATORY
 
 **Self-Review Checklist**:
 
