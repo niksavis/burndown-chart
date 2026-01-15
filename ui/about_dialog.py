@@ -290,7 +290,7 @@ def _get_app_info_tab() -> dbc.Tab:
             ),
         ],
         className="p-3",
-        style={"maxHeight": "500px", "overflowY": "auto"},
+        style={"minHeight": "500px", "maxHeight": "500px", "overflowY": "auto"},
     )
 
     return dbc.Tab(
@@ -393,7 +393,7 @@ def _get_open_source_tab() -> dbc.Tab:
             ),
         ],
         className="p-3",
-        style={"maxHeight": "500px", "overflowY": "auto"},
+        style={"minHeight": "500px", "maxHeight": "500px", "overflowY": "auto"},
     )
 
     return dbc.Tab(
@@ -582,7 +582,7 @@ def _get_changelog_tab() -> dbc.Tab:
             ),
         ],
         className="p-3",
-        style={"maxHeight": "500px", "overflowY": "auto"},
+        style={"minHeight": "500px", "maxHeight": "500px", "overflowY": "auto"},
     )
 
     return dbc.Tab(
