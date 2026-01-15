@@ -369,8 +369,34 @@ def check_for_updates() -> UpdateProgress:
         progress.error_message = f"Update check timed out after {UPDATE_CHECK_TIMEOUT}s"
         return progress
 
+    except requests.exceptions.HTTPError as e:
+        # HTTP errors (4xx, 5xx)
+        status_code = e.response.status_code if e.response else "unknown"
+        logger.warning(
+            "GitHub API HTTP error",
+            extra={
+                "operation": "check_for_updates",
+                "status_code": status_code,
+                "error": str(e),
+            },
+        )
+        progress.state = UpdateState.ERROR
+        progress.error_message = f"Update check failed (HTTP {status_code})"
+        return progress
+
+    except requests.exceptions.ConnectionError as e:
+        # Network connectivity issues
+        logger.info(
+            "Cannot connect to GitHub API (network offline or unavailable)",
+            extra={"operation": "check_for_updates", "error": str(e)},
+        )
+        progress.state = UpdateState.ERROR
+        progress.error_message = "No network connection available"
+        return progress
+
     except requests.exceptions.RequestException as e:
-        logger.error(
+        # Other request errors
+        logger.warning(
             "GitHub API request failed",
             extra={
                 "operation": "check_for_updates",
