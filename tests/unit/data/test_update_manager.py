@@ -10,7 +10,7 @@ Tests update checking, version comparison, and state management.
 # Standard library imports
 from datetime import datetime
 from pathlib import Path
-from unittest.mock import Mock, patch
+from unittest.mock import Mock, patch, mock_open
 
 # Third-party library imports
 import pytest
@@ -397,7 +397,7 @@ def test_check_for_updates_sends_user_agent():
 
 
 #######################################################################
-# TESTS: download_update (Placeholder)
+# TESTS: download_update
 #######################################################################
 
 
@@ -425,20 +425,236 @@ def test_download_update_requires_download_url():
         download_update(progress)
 
 
-def test_download_update_placeholder_returns_error():
-    """Test download_update returns ERROR state (placeholder behavior)."""
-    progress = UpdateProgress(
-        state=UpdateState.AVAILABLE,
-        current_version="2.5.0",
-        available_version="2.6.0",
-        download_url="https://example.com/update.zip",
-    )
+def test_download_update_success(tmp_path):
+    """Test download_update successfully downloads file with progress tracking."""
+    # Mock file content
+    file_content = b"fake zip content for testing" * 1000  # ~27KB
 
-    result = download_update(progress)
+    with patch("data.update_manager.requests.get") as mock_get:
+        with patch("data.update_manager.tempfile.gettempdir") as mock_tempdir:
+            # Set temp directory to our test path
+            mock_tempdir.return_value = str(tmp_path)
 
-    # Current placeholder implementation returns ERROR
-    assert result.state == UpdateState.ERROR
-    assert result.error_message is not None
+            # Mock streaming response
+            mock_response = Mock()
+            mock_response.headers = {"content-length": str(len(file_content))}
+            mock_response.raise_for_status.return_value = None
+
+            # Mock iter_content to return chunks
+            chunk_size = 1024 * 1024  # 1MB
+            chunks = [
+                file_content[i : i + chunk_size]
+                for i in range(0, len(file_content), chunk_size)
+            ]
+            mock_response.iter_content.return_value = chunks
+            mock_get.return_value = mock_response
+
+            progress = UpdateProgress(
+                state=UpdateState.AVAILABLE,
+                current_version="2.5.0",
+                available_version="2.6.0",
+                download_url="https://github.com/owner/repo/releases/download/v2.6.0/update.zip",
+            )
+
+            result = download_update(progress)
+
+            assert result.state == UpdateState.READY
+            assert result.progress_percent == 100
+            assert result.download_path is not None
+            assert result.download_path.exists()
+            assert "burndown-chart-v2.6.0.zip" in str(result.download_path)
+
+            # Verify file contents
+            downloaded_content = result.download_path.read_bytes()
+            assert downloaded_content == file_content
+
+
+def test_download_update_progress_tracking():
+    """Test download_update tracks progress correctly."""
+    file_content = b"x" * (10 * 1024 * 1024)  # 10MB
+
+    with patch("data.update_manager.requests.get") as mock_get:
+        with patch("data.update_manager.tempfile.gettempdir") as mock_tempdir:
+            with patch("builtins.open", mock_open()):
+                mock_tempdir.return_value = "/tmp"
+
+                mock_response = Mock()
+                mock_response.headers = {"content-length": str(len(file_content))}
+                mock_response.raise_for_status.return_value = None
+
+                # Mock chunks to track progress
+                chunk_size = 1024 * 1024  # 1MB
+                chunks = [
+                    file_content[i : i + chunk_size]
+                    for i in range(0, len(file_content), chunk_size)
+                ]
+                mock_response.iter_content.return_value = chunks
+                mock_get.return_value = mock_response
+
+                progress = UpdateProgress(
+                    state=UpdateState.AVAILABLE,
+                    current_version="2.5.0",
+                    available_version="2.6.0",
+                    download_url="https://example.com/update.zip",
+                )
+
+                result = download_update(progress)
+
+                # Progress should reach 100%
+                assert result.progress_percent == 100
+
+
+def test_download_update_large_file_warning(tmp_path):
+    """Test download_update logs warning for large files."""
+    # Create file larger than MAX_DOWNLOAD_SIZE (150MB)
+    large_size = 160 * 1024 * 1024
+    # Provide full content to match the size
+    file_content = b"x" * large_size
+
+    with patch("data.update_manager.requests.get") as mock_get:
+        with patch("data.update_manager.tempfile.gettempdir") as mock_tempdir:
+            mock_tempdir.return_value = str(tmp_path)
+
+            mock_response = Mock()
+            mock_response.headers = {"content-length": str(large_size)}
+            mock_response.raise_for_status.return_value = None
+            # Return in chunks to avoid memory issues in test
+            chunk_size = 1024 * 1024
+            chunks = [
+                file_content[i : i + chunk_size]
+                for i in range(0, len(file_content), chunk_size)
+            ]
+            mock_response.iter_content.return_value = chunks
+            mock_get.return_value = mock_response
+
+            progress = UpdateProgress(
+                state=UpdateState.AVAILABLE,
+                current_version="2.5.0",
+                available_version="2.6.0",
+                download_url="https://example.com/large-update.zip",
+            )
+
+            result = download_update(progress)
+
+            # Should still succeed despite size
+            assert result.state == UpdateState.READY
+
+
+def test_download_update_incomplete_download(tmp_path):
+    """Test download_update detects incomplete downloads."""
+    expected_size = 10 * 1024 * 1024  # 10MB
+    actual_content = b"incomplete" * 100  # Much smaller
+
+    with patch("data.update_manager.requests.get") as mock_get:
+        with patch("data.update_manager.tempfile.gettempdir") as mock_tempdir:
+            mock_tempdir.return_value = str(tmp_path)
+
+            mock_response = Mock()
+            mock_response.headers = {"content-length": str(expected_size)}
+            mock_response.raise_for_status.return_value = None
+            mock_response.iter_content.return_value = [actual_content]
+            mock_get.return_value = mock_response
+
+            progress = UpdateProgress(
+                state=UpdateState.AVAILABLE,
+                current_version="2.5.0",
+                available_version="2.6.0",
+                download_url="https://example.com/update.zip",
+            )
+
+            result = download_update(progress)
+
+            assert result.state == UpdateState.ERROR
+            assert result.error_message is not None
+            assert "incomplete" in result.error_message.lower()
+
+
+def test_download_update_timeout():
+    """Test download_update handles timeout gracefully."""
+    with patch("data.update_manager.requests.get") as mock_get:
+        mock_get.side_effect = requests.exceptions.Timeout("Connection timeout")
+
+        progress = UpdateProgress(
+            state=UpdateState.AVAILABLE,
+            current_version="2.5.0",
+            available_version="2.6.0",
+            download_url="https://example.com/update.zip",
+        )
+
+        result = download_update(progress)
+
+        assert result.state == UpdateState.ERROR
+        assert result.error_message is not None
+        assert "timed out" in result.error_message.lower()
+
+
+def test_download_update_network_error():
+    """Test download_update handles network errors."""
+    with patch("data.update_manager.requests.get") as mock_get:
+        mock_get.side_effect = requests.exceptions.ConnectionError(
+            "Network unreachable"
+        )
+
+        progress = UpdateProgress(
+            state=UpdateState.AVAILABLE,
+            current_version="2.5.0",
+            available_version="2.6.0",
+            download_url="https://example.com/update.zip",
+        )
+
+        result = download_update(progress)
+
+        assert result.state == UpdateState.ERROR
+        assert result.error_message is not None
+        assert "failed" in result.error_message.lower()
+
+
+def test_download_update_http_error():
+    """Test download_update handles HTTP errors."""
+    with patch("data.update_manager.requests.get") as mock_get:
+        mock_response = Mock()
+        mock_response.raise_for_status.side_effect = requests.exceptions.HTTPError(
+            "404 Not Found"
+        )
+        mock_get.return_value = mock_response
+
+        progress = UpdateProgress(
+            state=UpdateState.AVAILABLE,
+            current_version="2.5.0",
+            available_version="2.6.0",
+            download_url="https://example.com/update.zip",
+        )
+
+        result = download_update(progress)
+
+        assert result.state == UpdateState.ERROR
+
+
+def test_download_update_file_write_error():
+    """Test download_update handles file write errors."""
+    with patch("data.update_manager.requests.get") as mock_get:
+        with patch("builtins.open", side_effect=OSError("Permission denied")):
+            mock_response = Mock()
+            mock_response.headers = {"content-length": "1000"}
+            mock_response.raise_for_status.return_value = None
+            mock_response.iter_content.return_value = [b"test"]
+            mock_get.return_value = mock_response
+
+            progress = UpdateProgress(
+                state=UpdateState.AVAILABLE,
+                current_version="2.5.0",
+                available_version="2.6.0",
+                download_url="https://example.com/update.zip",
+            )
+
+            result = download_update(progress)
+
+            assert result.state == UpdateState.ERROR
+            assert result.error_message is not None
+            assert (
+                "save" in result.error_message.lower()
+                or "write" in result.error_message.lower()
+            )
 
 
 #######################################################################

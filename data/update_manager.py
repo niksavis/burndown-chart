@@ -45,6 +45,7 @@ Usage:
 #######################################################################
 # Standard library imports
 import logging
+import tempfile
 from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
@@ -423,17 +424,146 @@ def download_update(progress: UpdateProgress) -> UpdateProgress:
 
     progress.state = UpdateState.DOWNLOADING
     progress.progress_percent = 0
+    download_path: Optional[Path] = None
 
-    # TODO: Implement download with progress tracking (task t-045, t-046)
-    # For now, return ERROR as placeholder
-    logger.warning(
-        "Update download placeholder - not yet implemented",
-        extra={"operation": "download_update"},
-    )
+    try:
+        # Create temporary file for download
+        temp_dir = Path(tempfile.gettempdir()) / "burndown_updates"
+        temp_dir.mkdir(parents=True, exist_ok=True)
 
-    progress.state = UpdateState.ERROR
-    progress.error_message = "Download functionality not yet implemented"
-    return progress
+        # Generate filename from version
+        filename = f"burndown-chart-v{progress.available_version}.zip"
+        download_path = temp_dir / filename
+
+        logger.debug(
+            "Downloading to temp location",
+            extra={
+                "operation": "download_update",
+                "path": str(download_path),
+                "url": progress.download_url,
+            },
+        )
+
+        # Stream download with progress tracking
+        response = requests.get(
+            progress.download_url,
+            stream=True,
+            timeout=UPDATE_CHECK_TIMEOUT,
+            headers={
+                "User-Agent": f"BurndownChart/{progress.current_version}",
+            },
+        )
+
+        response.raise_for_status()
+
+        # Get total file size
+        total_size = int(response.headers.get("content-length", 0))
+
+        if total_size > MAX_DOWNLOAD_SIZE:
+            logger.warning(
+                "Large update file detected",
+                extra={
+                    "operation": "download_update",
+                    "size_mb": total_size / (1024 * 1024),
+                    "threshold_mb": MAX_DOWNLOAD_SIZE / (1024 * 1024),
+                },
+            )
+
+        # Download with progress tracking
+        downloaded_size = 0
+
+        with open(download_path, "wb") as f:
+            for chunk in response.iter_content(chunk_size=DOWNLOAD_CHUNK_SIZE):
+                if chunk:  # Filter out keep-alive chunks
+                    f.write(chunk)
+                    downloaded_size += len(chunk)
+
+                    # Update progress percentage
+                    if total_size > 0:
+                        progress.progress_percent = int(
+                            (downloaded_size / total_size) * 100
+                        )
+
+                        # Log progress at 25% intervals
+                        if (
+                            progress.progress_percent % 25 == 0
+                            and downloaded_size > DOWNLOAD_CHUNK_SIZE
+                        ):
+                            logger.info(
+                                "Download progress",
+                                extra={
+                                    "operation": "download_update",
+                                    "progress": progress.progress_percent,
+                                    "downloaded_mb": downloaded_size / (1024 * 1024),
+                                    "total_mb": total_size / (1024 * 1024),
+                                },
+                            )
+
+        # Verify download completed
+        if total_size > 0 and downloaded_size != total_size:
+            logger.error(
+                "Download incomplete",
+                extra={
+                    "operation": "download_update",
+                    "expected": total_size,
+                    "received": downloaded_size,
+                },
+            )
+            progress.state = UpdateState.ERROR
+            progress.error_message = f"Download incomplete: expected {total_size} bytes, got {downloaded_size}"
+            return progress
+
+        logger.info(
+            "Download completed successfully",
+            extra={
+                "operation": "download_update",
+                "path": str(download_path),
+                "size_mb": downloaded_size / (1024 * 1024),
+            },
+        )
+
+        progress.state = UpdateState.READY
+        progress.download_path = download_path
+        progress.progress_percent = 100
+        return progress
+
+    except requests.exceptions.Timeout:
+        logger.warning(
+            "Download timed out",
+            extra={
+                "operation": "download_update",
+                "url": progress.download_url,
+            },
+        )
+        progress.state = UpdateState.ERROR
+        progress.error_message = "Download timed out"
+        return progress
+
+    except requests.exceptions.RequestException as e:
+        logger.error(
+            "Download failed",
+            extra={
+                "operation": "download_update",
+                "error": str(e),
+                "error_type": type(e).__name__,
+            },
+        )
+        progress.state = UpdateState.ERROR
+        progress.error_message = f"Download failed: {str(e)}"
+        return progress
+
+    except OSError as e:
+        logger.error(
+            "Failed to write download file",
+            extra={
+                "operation": "download_update",
+                "error": str(e),
+                "path": str(download_path) if download_path else None,
+            },
+        )
+        progress.state = UpdateState.ERROR
+        progress.error_message = f"Failed to save update file: {str(e)}"
+        return progress
 
 
 def launch_updater(update_path: Path) -> bool:
