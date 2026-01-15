@@ -4,7 +4,7 @@
 [CmdletBinding()]
 param(
     [switch]$Clean,      # Remove previous build artifacts before building
-    [switch]$Verbose,    # Show detailed output from PyInstaller
+    [switch]$VerboseBuild,    # Show detailed output from PyInstaller
     [switch]$Test,       # Run post-build validation tests
     [switch]$Sign        # Code sign the executables (requires certificate)
 )
@@ -45,9 +45,14 @@ try {
         exit 1
     }
     
-    $ConfigContent = Get-Content $ConfigFile -Raw
-    if ($ConfigContent -match '__version__\s*=\s*["\'](\d+\.\d+\.\d+)["\']') {
-        $Version = $Matches[1]
+    $ConfigContent = Get-Content $ConfigFile
+    $VersionLine = $ConfigContent | Where-Object { $_ -match '__version__' }
+    if ($VersionLine) {
+        # Extract version string between quotes
+        $Version = ($VersionLine -split '"')[1]
+        if (-not $Version) {
+            $Version = ($VersionLine -split "'")[1]
+        }
         Write-Success "Version: $Version"
     }
     else {
@@ -98,7 +103,7 @@ try {
     
     # Search Python files excluding tests directory
     $pythonFiles = Get-ChildItem -Path $ProjectRoot -Filter "*.py" -Recurse | 
-        Where-Object { $_.FullName -notmatch "\\tests\\" -and $_.FullName -notmatch "\\\.venv\\" }
+    Where-Object { $_.FullName -notmatch "\\tests\\" -and $_.FullName -notmatch "\\\.venv\\" }
     
     foreach ($file in $pythonFiles) {
         $content = Get-Content $file.FullName -Raw
@@ -182,7 +187,7 @@ try {
     Push-Location $ProjectRoot
     try {
         $pyinstallerArgs = @($appSpec, "--noconfirm")
-        if (-not $Verbose) {
+        if (-not $VerboseBuild) {
             $pyinstallerArgs += "--log-level=WARN"
         }
         
@@ -199,42 +204,54 @@ try {
 
     # Step 10: Build updater
     Write-Step "Building updater (BurndownChartUpdater.exe)"
-    Push-Location $ProjectRoot
-    try {
-        $pyinstallerArgs = @($updaterSpec, "--noconfirm")
-        if (-not $Verbose) {
-            $pyinstallerArgs += "--log-level=WARN"
-        }
-        
-        python -m PyInstaller $pyinstallerArgs
-        if ($LASTEXITCODE -ne 0) {
-            Write-Error "Updater build failed"
-            exit 1
-        }
-        Write-Success "Updater built successfully"
+    
+    # Check if updater exists
+    $updaterPy = Join-Path $ProjectRoot "updater\updater.py"
+    if (-not (Test-Path $updaterPy)) {
+        Write-Host "Updater source not found - skipping updater build" -ForegroundColor Yellow
+        $updaterExe = $null
     }
-    finally {
-        Pop-Location
+    else {
+        Push-Location $ProjectRoot
+        try {
+            $pyinstallerArgs = @($updaterSpec, "--noconfirm")
+            if (-not $VerboseBuild) {
+                $pyinstallerArgs += "--log-level=WARN"
+            }
+            
+            python -m PyInstaller $pyinstallerArgs
+            if ($LASTEXITCODE -ne 0) {
+                Write-Error "Updater build failed"
+                exit 1
+            }
+            Write-Success "Updater built successfully"
+            $updaterExe = Join-Path $DistDir "BurndownChartUpdater\BurndownChartUpdater.exe"
+        }
+        finally {
+            Pop-Location
+        }
     }
 
     # Step 11: Verify output files
     Write-Step "Verifying build artifacts"
-    $mainExe = Join-Path $DistDir "BurndownChart\BurndownChart.exe"
-    $updaterExe = Join-Path $DistDir "BurndownChartUpdater\BurndownChartUpdater.exe"
+    $mainExe = Join-Path $DistDir "BurndownChart.exe"
     
     if (-not (Test-Path $mainExe)) {
         Write-Error "Main executable not found at: $mainExe"
         exit 1
     }
     $mainSize = (Get-Item $mainExe).Length / 1MB
-    Write-Success "Main executable: $mainExe ($([math]::Round($mainSize, 2)) MB)"
+    $mainSizeRounded = [math]::Round($mainSize, 2)
+    Write-Success "Main executable: $mainExe ($mainSizeRounded MB)"
     
-    if (-not (Test-Path $updaterExe)) {
-        Write-Error "Updater executable not found at: $updaterExe"
-        exit 1
+    if ($updaterExe -and (Test-Path $updaterExe)) {
+        $updaterSize = (Get-Item $updaterExe).Length / 1MB
+        $updaterSizeRounded = [math]::Round($updaterSize, 2)
+        Write-Success "Updater executable: $updaterExe ($updaterSizeRounded MB)"
     }
-    $updaterSize = (Get-Item $updaterExe).Length / 1MB
-    Write-Success "Updater executable: $updaterExe ($([math]::Round($updaterSize, 2)) MB)"
+    else {
+        Write-Host "Updater executable not built (updater feature not implemented)" -ForegroundColor Yellow
+    }
 
     # Step 12: Code signing (if requested)
     if ($Sign) {
@@ -280,7 +297,7 @@ try {
         
         # Test 2: Check for missing dependencies
         Write-Host "Checking for missing dependencies..." -ForegroundColor White
-        $depsCheck = python -c "import sys; sys.exit(0)"
+        python -c "import sys; sys.exit(0)" | Out-Null
         if ($LASTEXITCODE -eq 0) {
             Write-Success "No missing dependencies detected"
         }
@@ -293,10 +310,10 @@ try {
     Write-Host "`nOutput location: $DistDir" -ForegroundColor Cyan
     
     # Show usage information
-    if ($Clean -or $Verbose -or $Test -or $Sign) {
+    if ($Clean -or $VerboseBuild -or $Test -or $Sign) {
         Write-Host "`nOptions used:" -ForegroundColor Yellow
         if ($Clean) { Write-Host "  - Clean build (previous artifacts removed)" -ForegroundColor White }
-        if ($Verbose) { Write-Host "  - Verbose output enabled" -ForegroundColor White }
+        if ($VerboseBuild) { Write-Host "  - Verbose output enabled" -ForegroundColor White }
         if ($Test) { Write-Host "  - Post-build tests executed" -ForegroundColor White }
         if ($Sign) { Write-Host "  - Code signing applied" -ForegroundColor White }
     }

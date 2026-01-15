@@ -4,6 +4,15 @@ PyInstaller spec file for Burndown Chart Updater.
 Minimal executable to handle updating the main application.
 """
 
+import os
+from pathlib import Path
+
+# Get project root - when running with pyinstaller from project root,
+# spec file paths are relative to spec file location (build/)
+# So we need to go up one level
+SPEC_DIR = Path(os.path.abspath(SPECPATH))
+PROJECT_ROOT = SPEC_DIR.parent
+
 block_cipher = None
 
 # Minimal hidden imports for updater
@@ -44,7 +53,7 @@ excludes = [
 ]
 
 a = Analysis(
-    ['updater\\updater.py'],
+    [str(PROJECT_ROOT / 'updater' / 'updater.py')],  # Use absolute path
     pathex=[],
     binaries=[],
     datas=[],
@@ -80,5 +89,5 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon='assets\\icon.ico' if os.path.exists('assets\\icon.ico') else None,
+    icon=str(PROJECT_ROOT / 'assets' / 'icon.ico') if (PROJECT_ROOT / 'assets' / 'icon.ico').exists() else None,
 )
