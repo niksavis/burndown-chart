@@ -310,10 +310,6 @@ def create_app_layout(settings, statistics, is_sample_data):
             # Compact footer with clean design
             html.Div(
                 [
-                    html.Hr(
-                        className="my-2",
-                        style={"borderColor": "#dee2e6", "margin": "0.5rem 0"},
-                    ),
                     dbc.Row(
                         [
                             # Left column - app version
@@ -350,7 +346,10 @@ def create_app_layout(settings, statistics, is_sample_data):
                                             href="https://github.com/niksavis/burndown-chart",
                                             target="_blank",
                                             className="text-decoration-none text-primary fw-medium me-3",
-                                            style={"fontSize": "0.85rem"},
+                                            style={
+                                                "fontSize": "0.85rem",
+                                                "transition": "opacity 0.2s",
+                                            },
                                         ),
                                         html.A(
                                             [
@@ -363,7 +362,10 @@ def create_app_layout(settings, statistics, is_sample_data):
                                             id="about-button",
                                             href="#",
                                             className="text-decoration-none text-primary fw-medium",
-                                            style={"fontSize": "0.85rem"},
+                                            style={
+                                                "fontSize": "0.85rem",
+                                                "transition": "opacity 0.2s",
+                                            },
                                         ),
                                     ],
                                     className="d-flex align-items-center justify-content-center",
@@ -377,13 +379,13 @@ def create_app_layout(settings, statistics, is_sample_data):
                                 html.Small(
                                     [
                                         html.I(
-                                            className="fas fa-clock me-1 text-muted",
-                                            style={"fontSize": "0.75rem"},
+                                            className="fas fa-clock me-1",
+                                            style={"fontSize": "0.8rem"},
                                         ),
                                         f"{datetime.now().strftime('%b %d, %Y')}",
                                     ],
                                     className="text-muted",
-                                    style={"fontSize": "0.75rem"},
+                                    style={"fontSize": "0.8rem"},
                                 ),
                                 xs=12,
                                 sm=4,
@@ -430,11 +432,12 @@ def create_app_layout(settings, statistics, is_sample_data):
                         else None
                     ),
                 ],
-                className="mt-2 mb-1 py-1",
+                className="mt-2 mb-1 py-2",
                 style={
                     "backgroundColor": "#f8f9fa",
+                    "borderTop": "1px solid #dee2e6",
                     "borderRadius": "4px",
-                    "padding": "0.35rem 0.75rem",
+                    "padding": "0.5rem 0.75rem",
                 },
             ),
         ],

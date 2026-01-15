@@ -54,6 +54,8 @@ def _read_licenses_file() -> str:
 def _parse_licenses(licenses_text: str) -> list[dict]:
     """Parse the plain-vertical format license text into structured data.
 
+    Defensive parsing that handles format variations gracefully without breaking UI.
+
     Args:
         licenses_text: Content from THIRD_PARTY_LICENSES.txt
 
@@ -65,51 +67,83 @@ def _parse_licenses(licenses_text: str) -> list[dict]:
     field_order = ["name", "version", "license", "url", "description"]
     field_index = 0
 
-    # Skip header lines
-    lines = licenses_text.split("\n")
-    in_header = True
+    try:
+        lines = licenses_text.split("\n")
 
-    for line in lines:
-        line = line.strip()
+        # Defensive: Find where actual licenses start by looking for separator pattern
+        # Expected format: first 11 lines are header, but check for separator to be safe
+        start_index = 0
+        separator_count = 0
+        for i, line in enumerate(lines):
+            if line.strip().startswith("==="):
+                separator_count += 1
+                if separator_count == 2:
+                    # Start after second separator and skip any blank lines
+                    start_index = i + 1
+                    while start_index < len(lines) and not lines[start_index].strip():
+                        start_index += 1
+                    break
 
-        # Skip header section (until we hit the separator line)
-        if in_header:
-            if line.startswith("==="):
-                in_header = False
-            continue
+        # Fallback: if no separators found, assume first 11 lines are header
+        if start_index == 0:
+            start_index = min(11, len(lines))
 
-        # Empty line signals end of an entry
-        if not line:
-            if current_entry:
-                licenses.append(current_entry)
+        # Parse license entries starting after header
+        for line in lines[start_index:]:
+            line = line.strip()
+
+            # Empty line signals end of an entry
+            if not line:
+                # Only add entry if it has all required fields
+                if current_entry and len(current_entry) == len(field_order):
+                    licenses.append(current_entry)
+                # Reset for incomplete entries too (defensive)
                 current_entry = {}
                 field_index = 0
-            continue
+                continue
 
-        # Parse field based on position (plain-vertical format)
-        if field_index < len(field_order):
-            field_name = field_order[field_index]
-            current_entry[field_name] = line
-            field_index += 1
+            # Parse field based on position (plain-vertical format)
+            if field_index < len(field_order):
+                field_name = field_order[field_index]
+                current_entry[field_name] = line
+                field_index += 1
+            # Defensive: ignore extra lines beyond expected 5 fields
 
-    # Add last entry if exists
-    if current_entry:
-        licenses.append(current_entry)
+        # Add last entry if exists and complete
+        if current_entry and len(current_entry) == len(field_order):
+            licenses.append(current_entry)
+
+    except Exception as e:
+        # Defensive: if parsing fails completely, return empty list
+        # This prevents UI crash but logs the error
+        import logging
+
+        logger = logging.getLogger(__name__)
+        logger.error(f"License parsing failed: {e}", exc_info=True)
+        return []
 
     return licenses
 
 
-def _create_license_accordion(licenses: list[dict]) -> html.Div:
+def _create_license_accordion(licenses: list[dict]) -> html.Div | dbc.Alert:
     """Create accordion with all license entries.
 
     Args:
         licenses: List of license dicts
 
     Returns:
-        html.Div containing accordion with all licenses
+        html.Div containing accordion with all licenses or Alert if empty
     """
     if not licenses:
-        return html.Div("No licenses found", className="text-muted")
+        return dbc.Alert(
+            [
+                html.I(className="fas fa-info-circle me-2"),
+                "License information could not be parsed. The application uses open source dependencies - ",
+                "please see the project repository for full license details.",
+            ],
+            color="info",
+            className="mb-0",
+        )
 
     accordion_items = []
 
@@ -243,7 +277,8 @@ def _get_app_info_tab() -> dbc.Tab:
                 ["MIT License - Free and open source software"], className="text-muted"
             ),
         ],
-        style={"maxHeight": "400px", "overflowY": "auto"},
+        className="p-3",
+        style={"maxHeight": "500px", "overflowY": "auto"},
     )
 
     return dbc.Tab(
@@ -345,7 +380,8 @@ def _get_open_source_tab() -> dbc.Tab:
                 className="text-muted small",
             ),
         ],
-        style={"maxHeight": "400px", "overflowY": "auto"},
+        className="p-3",
+        style={"maxHeight": "500px", "overflowY": "auto"},
     )
 
     return dbc.Tab(
@@ -376,7 +412,6 @@ def _get_licenses_tab() -> dbc.Tab:
                     "This application uses open source libraries.",
                     className="text-muted mb-3",
                 ),
-                html.Hr(),
                 dbc.Alert(
                     [
                         html.I(className="fas fa-exclamation-triangle me-2"),
@@ -385,7 +420,8 @@ def _get_licenses_tab() -> dbc.Tab:
                     color="warning",
                 ),
             ],
-            style={"maxHeight": "400px", "overflowY": "auto"},
+            className="p-3",
+            style={"maxHeight": "500px", "overflowY": "auto"},
         )
     else:
         # Parse licenses
@@ -393,18 +429,18 @@ def _get_licenses_tab() -> dbc.Tab:
 
         content = html.Div(
             [
-                html.H5("Third-Party Licenses", className="mb-3"),
+                html.H5("Third-Party Software Licenses", className="mb-3"),
                 html.P(
                     [
-                        "This application uses the following open source libraries. ",
-                        "Expand each item to view license details.",
+                        "This application bundles the following open source dependencies. ",
+                        "Expand each item to view full license details.",
                     ],
                     className="text-muted mb-3",
                 ),
-                html.Hr(),
                 _create_license_accordion(licenses),
             ],
-            style={"maxHeight": "400px", "overflowY": "auto"},
+            className="p-3",
+            style={"maxHeight": "500px", "overflowY": "auto"},
         )
 
     return dbc.Tab(
@@ -488,7 +524,8 @@ def _get_changelog_tab() -> dbc.Tab:
                 className="text-muted small",
             ),
         ],
-        style={"maxHeight": "400px", "overflowY": "auto"},
+        className="p-3",
+        style={"maxHeight": "500px", "overflowY": "auto"},
     )
 
     return dbc.Tab(

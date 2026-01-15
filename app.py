@@ -234,6 +234,7 @@ app = dash.Dash(
         # Using free version CSS-only (no kit system) to prevent checkout code injection
         "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/fontawesome.min.css",  # Font Awesome core (CSS only)
         "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/solid.min.css",  # Solid icons
+        "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/brands.min.css",  # Brand icons (GitHub, etc.)
         "https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css",  # CodeMirror base styles
         "/assets/custom.css",  # Our custom CSS for standardized styling (includes CodeMirror theme overrides)
         "/assets/help_system.css",  # Help system CSS for progressive disclosure
