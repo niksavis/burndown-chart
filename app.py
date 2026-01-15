@@ -39,6 +39,7 @@ from data.profile_manager import (
 from data.query_manager import list_queries_for_profile, get_active_query_id
 from data.installation_context import get_installation_context
 from utils.version_checker import check_for_updates
+from utils.license_extractor import extract_license_on_first_run
 
 #######################################################################
 # APPLICATION SETUP
@@ -48,6 +49,9 @@ from utils.version_checker import check_for_updates
 installation_context = get_installation_context()
 logger_init = logging.getLogger(__name__)
 logger_init.info(f"Installation context: {installation_context}")
+
+# Extract LICENSE.txt on first run (frozen executable only)
+extract_license_on_first_run()
 
 # Initialize logging first (before any other operations)
 setup_logging(log_dir=str(installation_context.logs_path), log_level="INFO")

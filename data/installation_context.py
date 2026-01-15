@@ -55,12 +55,13 @@ class InstallationContext:
         if is_portable or not is_frozen:
             # Portable mode or source mode: use profiles/ subdirectory
             database_path = executable_dir / "profiles" / "burndown.db"
-            logs_path = executable_dir / "profiles" / "logs"
         else:
             # Installed mode (future): use %APPDATA% or similar
             # For now, always use portable mode
             database_path = executable_dir / "profiles" / "burndown.db"
-            logs_path = executable_dir / "profiles" / "logs"
+
+        # Logs always go to executable_dir/logs (not under profiles)
+        logs_path = executable_dir / "logs"
 
         # Ensure directories exist
         database_path.parent.mkdir(parents=True, exist_ok=True)
