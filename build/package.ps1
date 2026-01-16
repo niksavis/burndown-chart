@@ -35,22 +35,26 @@ try {
 
     # Step 1: Verify build artifacts exist
     Write-Step "Verifying build artifacts"
-    $mainExeDir = Join-Path $DistDir "BurndownChart"
-    $updaterExeDir = Join-Path $DistDir "BurndownChartUpdater"
+    $mainExe = Join-Path $DistDir "BurndownChart.exe"
+    $updaterExe = Join-Path $DistDir "BurndownChartUpdater.exe"
     
-    if (-not (Test-Path $mainExeDir)) {
-        Write-Error "Main application not found at: $mainExeDir"
+    if (-not (Test-Path $mainExe)) {
+        Write-Error "Main application not found at: $mainExe"
         Write-Host "Please run: .\build\build.ps1" -ForegroundColor Yellow
         exit 1
     }
-    Write-Success "Found main application"
+    $mainSize = (Get-Item $mainExe).Length / 1MB
+    Write-Success "Found main application ($([math]::Round($mainSize, 2)) MB)"
     
-    if (-not (Test-Path $updaterExeDir)) {
-        Write-Error "Updater not found at: $updaterExeDir"
-        Write-Host "Please run: .\build\build.ps1" -ForegroundColor Yellow
-        exit 1
+    if (-not (Test-Path $updaterExe)) {
+        Write-Host "[WARN] Updater not found at: $updaterExe" -ForegroundColor Yellow
+        Write-Host "[WARN] Proceeding without updater" -ForegroundColor Yellow
+        $updaterExe = $null
     }
-    Write-Success "Found updater"
+    else {
+        $updaterSize = (Get-Item $updaterExe).Length / 1MB
+        Write-Success "Found updater ($([math]::Round($updaterSize, 2)) MB)"
+    }
 
     # Step 2: Determine version
     Write-Step "Determining version"
@@ -90,14 +94,14 @@ try {
     Write-Step "Copying files to staging"
     
     # Copy main application
-    $mainAppStaging = Join-Path $stagingDir "BurndownChart"
-    Copy-Item -Path $mainExeDir -Destination $mainAppStaging -Recurse
+    Copy-Item -Path $mainExe -Destination $stagingDir
     Write-Success "Copied main application"
     
-    # Copy updater
-    $updaterStaging = Join-Path $stagingDir "BurndownChartUpdater"
-    Copy-Item -Path $updaterExeDir -Destination $updaterStaging -Recurse
-    Write-Success "Copied updater"
+    # Copy updater if exists
+    if ($updaterExe) {
+        Copy-Item -Path $updaterExe -Destination $stagingDir
+        Write-Success "Copied updater"
+    }
     
     # Copy licenses directory
     $licensesSource = Join-Path $ProjectRoot "licenses"
