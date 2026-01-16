@@ -11,6 +11,7 @@ $ErrorActionPreference = "Stop"
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $ProjectRoot = Split-Path -Parent $ScriptDir
 $DistDir = Join-Path $ProjectRoot "dist"
+$BuildDir = Join-Path $ProjectRoot "build"
 
 # Output formatting
 function Write-Step {
