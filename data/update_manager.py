@@ -200,8 +200,12 @@ def compare_versions(current: str, available: str) -> int:
         ValueError: If version strings are not valid semantic versions
     """
     try:
-        current_parts = tuple(int(x) for x in current.lstrip("v").split("."))
-        available_parts = tuple(int(x) for x in available.lstrip("v").split("."))
+        # Strip 'v' prefix and any suffix after hyphen (e.g., '-test', '-rc1', '-beta')
+        current_clean = current.lstrip("v").split("-")[0]
+        available_clean = available.lstrip("v").split("-")[0]
+
+        current_parts = tuple(int(x) for x in current_clean.split("."))
+        available_parts = tuple(int(x) for x in available_clean.split("."))
 
         # Validate version format (must be X.Y.Z)
         if len(current_parts) != 3 or len(available_parts) != 3:
