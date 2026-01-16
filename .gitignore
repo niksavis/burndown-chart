@@ -242,6 +242,7 @@ sdd-*/
 .github/*
 !.github/copilot-instructions.md
 !.github/workflows/
+!.github/changelog-scopes.yml
 
 # Debug and test artifacts (root directory only - not tests/ folder)
 /test_*.py

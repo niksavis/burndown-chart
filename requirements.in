@@ -25,6 +25,9 @@ pyperclip==1.8.2
 # Environment configuration
 python-dotenv==1.0.1
 
+# YAML configuration (for changelog scope descriptions)
+PyYAML==6.0.2
+
 # Network analysis (used in the app)
 networkx>=3.0
 
