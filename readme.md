@@ -20,6 +20,16 @@
 
 **All data stays local** - No cloud services, no tracking, no telemetry.
 
+## Download
+
+**[📥 Download Latest Release](https://github.com/niksavis/burndown-chart/releases/latest)**
+
+**Windows Users:** Download the Windows ZIP package - standalone executable, no Python required
+
+**All Other Platforms:** Download source code (zip/tar.gz) - requires Python 3.13+
+
+See installation instructions below for setup details.
+
 ## Installation
 
 ### Option 1: Windows (Standalone Executable)
