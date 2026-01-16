@@ -242,7 +242,7 @@ jobs:
 
           ## Support
 
-          - 📖 **Documentation**: [Full documentation](https://github.com/niksavis/burndown-chart/blob/main/readme.md) (also included in package)
+          - 📖 **Documentation**: [Full documentation](https://github.com/niksavis/burndown-chart/blob/main/docs/readme.md)
           - 🐛 **Report Issues & Feature Requests**: [GitHub Issues](https://github.com/niksavis/burndown-chart/issues)
 
           ## License
