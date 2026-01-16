@@ -195,8 +195,6 @@ jobs:
             }
 
             $notes = @"
-          # Burndown Chart v$version
-
           ## Installation Instructions
 
           ### Windows (Standalone Executable)
