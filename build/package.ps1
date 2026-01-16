@@ -121,6 +121,13 @@ try {
         Write-Success "Copied README"
     }
     
+    # Copy README.txt (Windows quick start guide) if exists
+    $readmeTxtSource = Join-Path $BuildDir "README.txt"
+    if (Test-Path $readmeTxtSource) {
+        Copy-Item -Path $readmeTxtSource -Destination $stagingDir
+        Write-Success "Copied README.txt (quick start guide)"
+    }
+    
     # Copy LICENSE if exists
     $licenseSource = Join-Path $ProjectRoot "LICENSE"
     if (Test-Path $licenseSource) {
