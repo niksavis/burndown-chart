@@ -74,10 +74,10 @@ def show_version_update_toast(app_init_complete, toast_already_shown):
                 ),
                 dbc.Button(
                     [
-                        html.I(className="fas fa-info-circle me-2"),
-                        "View Instructions",
+                        html.I(className="fas fa-external-link-alt me-2"),
+                        "View Releases",
                     ],
-                    id="footer-update-indicator",
+                    id="manual-update-instructions-button",
                     color="info",
                     size="sm",
                     className="mt-2",
@@ -112,9 +112,9 @@ def show_version_update_toast(app_init_complete, toast_already_shown):
                 dbc.Button(
                     [
                         html.I(className="fas fa-download me-2"),
-                        "Download Update",
+                        "Download",
                     ],
-                    id="footer-update-indicator",
+                    id="download-update-button",
                     color="success",
                     size="sm",
                     className="mt-2",

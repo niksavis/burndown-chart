@@ -556,8 +556,9 @@ def download_update(progress: UpdateProgress) -> UpdateProgress:
         temp_dir = Path(tempfile.gettempdir()) / "burndown_updates"
         temp_dir.mkdir(parents=True, exist_ok=True)
 
-        # Generate filename from version
-        filename = f"burndown-chart-v{progress.available_version}.zip"
+        # Extract filename from download URL to preserve actual asset name
+        # URL format: https://github.com/.../releases/download/v2.5.4-test/BurndownChart-Windows-2.5.4.zip
+        filename = progress.download_url.split("/")[-1]
         download_path = temp_dir / filename
 
         logger.debug(
@@ -824,9 +825,11 @@ def launch_updater(update_path: Path) -> bool:
             extra={"operation": "launch_updater"},
         )
 
-        # Exit the application to allow updater to replace files
+        # Force immediate exit to allow updater to replace files
         # The updater will restart the app after update completes
-        sys.exit(0)
+        # Use os._exit() to bypass all cleanup and exit immediately
+        logger.info("Forcing immediate application exit for update...")
+        os._exit(0)  # Immediate termination, no cleanup
 
         # This line should never be reached
         return True

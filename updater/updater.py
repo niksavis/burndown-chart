@@ -68,37 +68,49 @@ def wait_for_process_exit(pid: int, timeout: int = 10) -> bool:
     """
     print_status(f"Waiting for process {pid} to exit (timeout: {timeout}s)...")
 
-    start_time = time.time()
-    while time.time() - start_time < timeout:
-        try:
-            # On Windows, check if process exists
-            if sys.platform == "win32":
-                # Use tasklist to check if process exists
-                result = subprocess.run(
-                    ["tasklist", "/FI", f"PID eq {pid}"],
-                    capture_output=True,
-                    text=True,
-                    timeout=2,
-                )
-                # If PID not found in output, process has exited
-                if str(pid) not in result.stdout:
-                    print_status(f"Process {pid} has exited")
-                    return True
-            else:
-                # On Unix, try to send signal 0 (doesn't kill, just checks existence)
-                os.kill(pid, 0)
+    # Try psutil for faster process detection
+    try:
+        import psutil
 
-            # Process still running, wait a bit
-            time.sleep(0.5)
+        start_time = time.time()
+        while time.time() - start_time < timeout:
+            if not psutil.pid_exists(pid):
+                print_status(f"Process {pid} has exited")
+                return True
+            time.sleep(0.1)  # Fast polling with psutil
+    except ImportError:
+        # Fallback to platform-specific methods
+        start_time = time.time()
+        while time.time() - start_time < timeout:
+            try:
+                # On Windows, check if process exists
+                if sys.platform == "win32":
+                    # Use tasklist to check if process exists
+                    result = subprocess.run(
+                        ["tasklist", "/FI", f"PID eq {pid}"],
+                        capture_output=True,
+                        text=True,
+                        timeout=1,
+                    )
+                    # If PID not found in output, process has exited
+                    if str(pid) not in result.stdout:
+                        print_status(f"Process {pid} has exited")
+                        return True
+                else:
+                    # On Unix, try to send signal 0 (doesn't kill, just checks existence)
+                    os.kill(pid, 0)
 
-        except (ProcessLookupError, OSError):
-            # Process doesn't exist anymore
-            print_status(f"Process {pid} has exited")
-            return True
-        except Exception as e:
-            print_status(f"Warning: Error checking process status: {e}")
-            # Continue waiting
-            time.sleep(0.5)
+                # Process still running, wait a bit
+                time.sleep(0.2)  # Reduced from 0.5s
+
+            except (ProcessLookupError, OSError):
+                # Process doesn't exist anymore
+                print_status(f"Process {pid} has exited")
+                return True
+            except Exception as e:
+                print_status(f"Warning: Error checking process status: {e}")
+                # Continue waiting
+                time.sleep(0.2)
 
     print_status(f"Timeout waiting for process {pid} to exit")
     return False
@@ -289,8 +301,8 @@ def main() -> int:
         print_status("Please close the application manually and run the updater again")
         return 2
 
-    # Add small delay to ensure file handles are released
-    time.sleep(1)
+    # App uses os._exit() so file handles are released immediately
+    # No additional delay needed with fast polling
 
     # Step 2: Backup current executable
     backup_path = backup_file(current_exe)
@@ -328,17 +340,30 @@ def main() -> int:
     try:
         print_status("Cleaning up temporary files...")
 
-        # Remove backup (optional - you might want to keep it)
-        # if backup_path.exists():
-        #     backup_path.unlink()
+        # Remove backup file after successful update
+        if backup_path.exists():
+            backup_path.unlink()
+            print_status("Removed backup file")
 
         # Remove extraction directory
         if extract_dir.exists():
             shutil.rmtree(extract_dir)
 
-        # Optionally remove update ZIP
-        # if update_zip.exists():
-        #     update_zip.unlink()
+        # Remove update ZIP file
+        if update_zip.exists():
+            update_zip.unlink()
+            print_status("Removed update ZIP")
+
+        # Clean up parent temp directories if empty
+        for temp_folder in ["burndown_updater", "burndown_updates"]:
+            temp_path = Path(update_zip.parent.parent) / temp_folder
+            if temp_path.exists():
+                try:
+                    # Remove if empty or force remove
+                    shutil.rmtree(temp_path)
+                    print_status(f"Removed temp folder: {temp_folder}")
+                except Exception:
+                    pass  # May still have files from other sessions
 
         print_status("Cleanup complete")
     except Exception as e:
@@ -348,8 +373,8 @@ def main() -> int:
     print_status("Update process finished - you may close this window")
     print_status("=" * 60)
 
-    # Keep window open briefly so user can see final status
-    time.sleep(3)
+    # Brief delay so user can see final status
+    time.sleep(1)
 
     return 0
 

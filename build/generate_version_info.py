@@ -68,7 +68,7 @@ VSVersionInfo(
       StringTable(
         u'040904B0',
         [StringStruct(u'CompanyName', u'Niksa Visic'),
-        StringStruct(u'FileDescription', u'Forecast your project completion date with JIRA-based velocity tracking and forecasting'),
+        StringStruct(u'FileDescription', u'Burndown Chart'),
         StringStruct(u'FileVersion', u'{version_str}'),
         StringStruct(u'InternalName', u'BurndownChart'),
         StringStruct(u'LegalCopyright', u'Copyright (c) 2025-2026 Niksa Visic. Licensed under MIT License.'),

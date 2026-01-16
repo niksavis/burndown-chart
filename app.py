@@ -23,14 +23,13 @@ from typing import Optional
 import dash
 import dash_bootstrap_components as dbc
 from dash import DiskcacheManager
-from waitress import serve
+import atexit
 import diskcache
 
+# Application imports (after third-party, before usage)
 from callbacks import register_all_callbacks
 from configuration.server import get_server_config
 from configuration.logging_config import setup_logging, cleanup_old_logs
-
-# Application imports
 from ui import serve_layout
 from data.profile_manager import (
     get_active_profile,
@@ -41,6 +40,20 @@ from data.query_manager import list_queries_for_profile, get_active_query_id
 from data.installation_context import get_installation_context
 from data.update_manager import check_for_updates, UpdateProgress, UpdateState
 from utils.license_extractor import extract_license_on_first_run
+
+# Global reference to server for clean shutdown
+_server = None
+
+
+def shutdown_server():
+    """Shutdown the Waitress server gracefully."""
+    if _server:
+        logger.info("Shutting down Waitress server...")
+        try:
+            _server.close()
+        except Exception as e:
+            logger.warning(f"Error closing server: {e}")
+
 
 #######################################################################
 # APPLICATION SETUP
@@ -457,7 +470,9 @@ if __name__ == "__main__":
                     logger.info(f"Server ready, launching browser at {url}")
                     print("Server ready! Launching browser...", flush=True)
                     try:
-                        webbrowser.open(url)
+                        # Try to reuse existing tab by opening with new=2 (new tab if possible)
+                        # This still may open a new tab but at least tries to reuse window
+                        webbrowser.open(url, new=2, autoraise=True)
                     except Exception as e:
                         logger.warning(f"Failed to auto-launch browser: {e}")
                         print(f"Could not auto-launch browser: {e}", flush=True)
@@ -473,4 +488,18 @@ if __name__ == "__main__":
             browser_thread = threading.Thread(target=launch_browser, daemon=True)
             browser_thread.start()
 
-        serve(app.server, host=server_config["host"], port=server_config["port"])
+        # Start server in a way that allows graceful shutdown
+        from waitress.server import create_server
+
+        _server = create_server(
+            app.server,
+            host=server_config["host"],
+            port=server_config["port"],
+            threads=4,
+        )
+
+        # Register shutdown handler
+        atexit.register(shutdown_server)
+
+        logger.info("Waitress server starting...")
+        _server.run()

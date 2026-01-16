@@ -210,6 +210,13 @@ def create_app_layout(settings, statistics, is_sample_data):
             dcc.Store(id="viewport-size", data="desktop"),
             # Store for triggering metrics refresh (DORA/Flow)
             dcc.Store(id="metrics-refresh-trigger", data=None),
+            # Interval for download progress polling
+            dcc.Interval(
+                id="download-progress-poll",
+                interval=1000,  # Poll every second
+                n_intervals=0,
+                disabled=True,  # Initially disabled, enabled when download starts
+            ),
             # Interval component for dynamic viewport detection
             dcc.Interval(
                 id="viewport-detector",
@@ -390,44 +397,55 @@ def create_app_layout(settings, statistics, is_sample_data):
                         className="g-1",
                     ),
                     # Update available banner (compact, below main row)
-                    (
-                        html.Div(
-                            html.Button(
-                                [
-                                    html.I(
-                                        className="fas fa-sync-alt me-1",
-                                        style={"fontSize": "0.7rem"},
-                                    ),
-                                    "Update Available: ",
-                                    html.Span(
-                                        f"{app.VERSION_CHECK_RESULT.current_version} → {app.VERSION_CHECK_RESULT.available_version}",
-                                        className="opacity-75",
-                                        style={"fontSize": "0.7rem"},
-                                    ),
-                                ],
-                                id="footer-update-indicator",
-                                n_clicks=0,
-                                className="btn btn-link p-0 border-0",
-                                style={
-                                    "color": "#198754",
-                                    "fontWeight": "500",
-                                    "fontSize": "0.75rem",
-                                    "textDecoration": "none",
-                                },
-                            ),
-                            className="mt-1 text-center",
-                            style={"lineHeight": "1.2"},
-                        )
-                        if hasattr(app, "VERSION_CHECK_RESULT")
-                        and app.VERSION_CHECK_RESULT is not None
-                        and hasattr(app.VERSION_CHECK_RESULT, "state")
-                        and app.VERSION_CHECK_RESULT.state
-                        in [
-                            app.VERSION_CHECK_RESULT.state.__class__.AVAILABLE,
-                            app.VERSION_CHECK_RESULT.state.__class__.MANUAL_UPDATE_REQUIRED,
-                            app.VERSION_CHECK_RESULT.state.__class__.READY,
-                        ]
-                        else None
+                    html.Div(
+                        id="footer-update-container",
+                        children=(
+                            html.Div(
+                                html.Button(
+                                    [
+                                        html.I(
+                                            className="fas fa-sync-alt me-1"
+                                            if app.VERSION_CHECK_RESULT.state
+                                            != app.VERSION_CHECK_RESULT.state.__class__.READY
+                                            else "fas fa-check-circle me-1",
+                                            style={"fontSize": "0.7rem"},
+                                        ),
+                                        (
+                                            f"Update Available: {app.VERSION_CHECK_RESULT.current_version} → {app.VERSION_CHECK_RESULT.available_version}"
+                                            if app.VERSION_CHECK_RESULT.state
+                                            == app.VERSION_CHECK_RESULT.state.__class__.AVAILABLE
+                                            else (
+                                                "Update Ready - Click to Install"
+                                                if app.VERSION_CHECK_RESULT.state
+                                                == app.VERSION_CHECK_RESULT.state.__class__.READY
+                                                else f"Manual Update Available: {app.VERSION_CHECK_RESULT.current_version} → {app.VERSION_CHECK_RESULT.available_version}"
+                                            )
+                                        ),
+                                    ],
+                                    id="footer-update-indicator",
+                                    n_clicks=0,
+                                    className="btn btn-link p-0 border-0",
+                                    style={
+                                        "color": "#198754",
+                                        "fontWeight": "500",
+                                        "fontSize": "0.75rem",
+                                        "textDecoration": "none",
+                                    },
+                                ),
+                                className="mt-1 text-center",
+                                style={"lineHeight": "1.2"},
+                            )
+                            if hasattr(app, "VERSION_CHECK_RESULT")
+                            and app.VERSION_CHECK_RESULT is not None
+                            and hasattr(app.VERSION_CHECK_RESULT, "state")
+                            and app.VERSION_CHECK_RESULT.state
+                            in [
+                                app.VERSION_CHECK_RESULT.state.__class__.AVAILABLE,
+                                app.VERSION_CHECK_RESULT.state.__class__.MANUAL_UPDATE_REQUIRED,
+                                app.VERSION_CHECK_RESULT.state.__class__.READY,
+                            ]
+                            else None
+                        ),
                     ),
                 ],
                 className="mt-2 mb-1 py-2",
