@@ -115,18 +115,14 @@ try {
         Write-Host "[WARN] THIRD_PARTY_LICENSES.txt not found, skipping" -ForegroundColor Yellow
     }
     
-    # Copy README if exists
-    $readmeSource = Join-Path $ProjectRoot "readme.md"
-    if (Test-Path $readmeSource) {
-        Copy-Item -Path $readmeSource -Destination (Join-Path $stagingDir "README.md")
-        Write-Success "Copied README"
-    }
-    
-    # Copy README.txt (Windows quick start guide) if exists
+    # Copy README.txt (Windows quick start guide)
     $readmeTxtSource = Join-Path $BuildDir "README.txt"
     if (Test-Path $readmeTxtSource) {
         Copy-Item -Path $readmeTxtSource -Destination $stagingDir
         Write-Success "Copied README.txt (quick start guide)"
+    }
+    else {
+        Write-Host "[WARN] README.txt not found, skipping" -ForegroundColor Yellow
     }
     
     # Copy LICENSE as LICENSE.txt (Windows convention, matches app extraction)
