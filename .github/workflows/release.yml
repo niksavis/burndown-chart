@@ -129,9 +129,14 @@ jobs:
             exit 1
           }
           $zipSize = (Get-Item $zipFile.FullName).Length / 1MB
-          echo "ZIP_PATH=$($zipFile.FullName)" >> $env:GITHUB_OUTPUT
+
+          # Use relative path for GitHub Actions (forward slashes)
+          $relativePath = "dist/$($zipFile.Name)"
+
+          echo "ZIP_PATH=$relativePath" >> $env:GITHUB_OUTPUT
           echo "ZIP_NAME=$($zipFile.Name)" >> $env:GITHUB_OUTPUT
           Write-Host "Found: $($zipFile.Name) ($([math]::Round($zipSize, 2)) MB)"
+          Write-Host "Relative path: $relativePath"
         shell: pwsh
         continue-on-error: false
 
@@ -276,10 +281,13 @@ jobs:
         run: |
           Write-Host "Running final validation checks..." -ForegroundColor Cyan
 
-          # Check ZIP file exists and is accessible
+          # Check ZIP file exists and is accessible (use relative path)
           $zipPath = "${{ steps.zip.outputs.ZIP_PATH }}"
           if (-not (Test-Path $zipPath)) {
             Write-Error "ZIP file not found at: $zipPath"
+            Write-Host "Current directory: $(Get-Location)"
+            Write-Host "Contents:" -ForegroundColor Yellow
+            Get-ChildItem -Path . -Recurse | ForEach-Object { Write-Host "  $_" }
             exit 1
           }
 
