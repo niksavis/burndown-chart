@@ -9,10 +9,16 @@ $ErrorActionPreference = "Stop"
 
 Write-Host "Collecting third-party licenses..." -ForegroundColor Cyan
 
-# Ensure virtual environment is activated
+# Check if virtual environment exists and activate if needed
 if (-not $env:VIRTUAL_ENV) {
-    Write-Host "Activating virtual environment..." -ForegroundColor Yellow
-    & "$PSScriptRoot\..\\.venv\Scripts\Activate.ps1"
+    $venvActivate = "$PSScriptRoot\..\\.venv\Scripts\Activate.ps1"
+    if (Test-Path $venvActivate) {
+        Write-Host "Activating virtual environment..." -ForegroundColor Yellow
+        & $venvActivate
+    }
+    else {
+        Write-Host "No virtual environment found - using global Python" -ForegroundColor Yellow
+    }
 }
 
 # Ensure licenses directory exists
@@ -27,11 +33,17 @@ $outputFile = "$licensesDir\THIRD_PARTY_LICENSES.txt"
 Write-Host "Generating license report..." -ForegroundColor Yellow
 
 # Run pip-licenses to generate the report
-# Format: Table with columns: Name, Version, License
-$pipLicensesPath = Join-Path $env:VIRTUAL_ENV "Scripts\pip-licenses.exe"
-if (-not (Test-Path $pipLicensesPath)) {
-    Write-Error "pip-licenses not found at $pipLicensesPath"
-    exit 1
+# Try to find pip-licenses in venv first, then fall back to global
+$pipLicensesPath = if ($env:VIRTUAL_ENV) { 
+    Join-Path $env:VIRTUAL_ENV "Scripts\pip-licenses.exe" 
+}
+else { 
+    "pip-licenses" 
+}
+
+if ($env:VIRTUAL_ENV -and -not (Test-Path $pipLicensesPath)) {
+    Write-Host "pip-licenses not found in venv, trying global..." -ForegroundColor Yellow
+    $pipLicensesPath = "pip-licenses"
 }
 
 $licenseOutput = & $pipLicensesPath --format=plain-vertical --with-urls --with-description
