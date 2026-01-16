@@ -177,6 +177,9 @@ try {
     Write-Host "  1. Test the package on a clean system" -ForegroundColor White
     Write-Host "  2. Upload to release distribution server" -ForegroundColor White
     Write-Host "  3. Update version manifest for auto-update" -ForegroundColor White
+    
+    # Explicit success exit
+    exit 0
 
 }
 catch {

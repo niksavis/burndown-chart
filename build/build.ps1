@@ -322,6 +322,9 @@ try {
     Write-Host "`nNext steps:" -ForegroundColor Yellow
     Write-Host "  1. Test the executable: .\dist\BurndownChart\BurndownChart.exe" -ForegroundColor White
     Write-Host "  2. Create distribution package: .\build\package.ps1" -ForegroundColor White
+    
+    # Explicit success exit
+    exit 0
 
 }
 catch {
