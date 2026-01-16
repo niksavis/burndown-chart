@@ -238,7 +238,7 @@ jobs:
           ## Requirements
 
           - **Operating System**: Windows 10/11 (64-bit)
-          - **Internet Connection**: Required for JIRA API access
+          - **Network Access**: Required to connect to your JIRA server (internet or local network)
           - **Disk Space**: ~150 MB
 
           ## Support
