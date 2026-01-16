@@ -282,11 +282,6 @@ def create_app_layout(settings, statistics, is_sample_data):
                 ],
                 id="sample-data-banner",
             ),
-            # Update notification container - shows when update is available
-            html.Div(
-                id="update-notification-container",
-                className="mb-3",
-            ),
             # Tab Navigation and Charts Row - using full width template
             create_full_width_layout(
                 dbc.Card(
@@ -397,13 +392,13 @@ def create_app_layout(settings, statistics, is_sample_data):
                     # Update available banner (compact, below main row)
                     (
                         html.Div(
-                            html.Span(
+                            html.Button(
                                 [
                                     html.I(
                                         className="fas fa-sync-alt me-1",
                                         style={"fontSize": "0.7rem"},
                                     ),
-                                    "Update: ",
+                                    "Update Available: ",
                                     html.Span(
                                         # Show tags when available, fall back to commit hashes for missing tags
                                         f"{app.VERSION_CHECK_RESULT.get('current_tag') or app.VERSION_CHECK_RESULT.get('current_commit', 'unknown')[:7]} → "
@@ -414,13 +409,12 @@ def create_app_layout(settings, statistics, is_sample_data):
                                 ],
                                 id="footer-update-indicator",
                                 n_clicks=0,
-                                className="d-inline-block",
+                                className="btn btn-link p-0 border-0",
                                 style={
-                                    "cursor": "pointer",
-                                    "userSelect": "none",
                                     "color": "#198754",
                                     "fontWeight": "500",
                                     "fontSize": "0.75rem",
+                                    "textDecoration": "none",
                                 },
                             ),
                             className="mt-1 text-center",

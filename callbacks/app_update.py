@@ -18,164 +18,167 @@ logger = logging.getLogger(__name__)
 
 
 @callback(
-    Output("update-notification-container", "children", allow_duplicate=True),
+    Output("app-notifications", "children", allow_duplicate=True),
     Input("url", "pathname"),
     prevent_initial_call=True,
 )
 def display_update_notification_on_load(pathname: str):
-    """Display update notification on page load if update is available.
+    """Display update notification toast on page load if update is available.
 
     Args:
         pathname: URL pathname (triggers on page load)
 
     Returns:
-        Update notification component or None
+        Toast notification or None
     """
     # Import app module to access VERSION_CHECK_RESULT
     import app
+    from dash import no_update
 
     if not app.VERSION_CHECK_RESULT:
-        return None
+        return no_update
 
     progress = app.VERSION_CHECK_RESULT
 
     # Only show notification if update is available
     if progress.state == UpdateState.AVAILABLE:
         logger.info(
-            "Update available - displaying notification",
+            "Update available - displaying toast notification",
             extra={
                 "current_version": progress.current_version,
                 "available_version": progress.available_version,
             },
         )
 
-        from ui.update_notification import create_update_notification
+        from ui.toast_notifications import create_toast
+        from dash import html
 
-        return create_update_notification(progress)
+        # Create toast message with update info
+        message = [
+            html.Div(
+                f"Version {progress.available_version} is available. You are running {progress.current_version}."
+            ),
+            html.Div(
+                [
+                    "Click the ",
+                    html.I(className="fas fa-sync-alt"),
+                    " update indicator in the footer to download.",
+                ],
+                className="mt-2",
+                style={"fontSize": "0.85rem", "opacity": "0.9"},
+            ),
+        ]
 
-    return None
+        return create_toast(
+            message=message,
+            toast_type="info",
+            header=f"Update Available",
+            duration=8000,  # 8 seconds - longer for important message
+            icon="arrow-circle-up",
+        )
+
+    return no_update
 
 
 @callback(
     [
         Output("update-status-store", "data"),
-        Output("update-notification-container", "children"),
+        Output("app-notifications", "children", allow_duplicate=True),
     ],
     [
-        Input("update-now-button", "n_clicks"),
-        Input("update-install-button", "n_clicks"),
-        Input("update-dismiss-button", "n_clicks"),
+        Input("footer-update-indicator", "n_clicks"),
     ],
     State("update-status-store", "data"),
     prevent_initial_call=True,
 )
-def handle_update_actions(
-    download_clicks: int,
-    install_clicks: int,
-    dismiss_clicks: int,
+def handle_update_download(
+    indicator_clicks: int,
     status_data: Optional[dict],
 ):
-    """Handle update button clicks (download, install, dismiss).
+    """Handle update download when user clicks footer indicator.
 
     Args:
-        download_clicks: Number of clicks on "Update Now" button
-        install_clicks: Number of clicks on "Install Now" button
-        dismiss_clicks: Number of clicks on "Dismiss" button
+        indicator_clicks: Number of clicks on footer update indicator
         status_data: Current update status from dcc.Store
 
     Returns:
-        Tuple of (updated status data, notification component)
+        Tuple of (updated status data, toast notification)
     """
-    triggered_id = ctx.triggered_id
+    from ui.toast_notifications import create_toast
+    from dash import html
 
-    if not triggered_id:
+    if not indicator_clicks:
         return no_update, no_update
 
-    # Handle dismiss - clear notification
-    if triggered_id == "update-dismiss-button":
-        logger.info("User dismissed update notification")
-        return status_data or {}, None
+    logger.info("User clicked footer update indicator - starting download")
 
-    # Handle install - launch updater and exit app
-    if triggered_id == "update-install-button":
-        logger.info("User clicked Install Now - launching updater")
+    # Import app module to access VERSION_CHECK_RESULT
+    import app
 
-        # Import app module to access VERSION_CHECK_RESULT
-        import app
+    if not app.VERSION_CHECK_RESULT:
+        logger.error("No VERSION_CHECK_RESULT available for download")
+        return no_update, create_toast(
+            "Update check not available. Please restart the app.",
+            "warning",
+            header="Update Error",
+        )
 
-        if not app.VERSION_CHECK_RESULT:
-            logger.error("No VERSION_CHECK_RESULT available for installation")
-            return no_update, no_update
+    progress = app.VERSION_CHECK_RESULT
 
-        progress = app.VERSION_CHECK_RESULT
-
-        if progress.state != UpdateState.READY:
-            logger.error(
-                f"Cannot install update in state {progress.state}",
-                extra={"state": progress.state.value},
-            )
-            return no_update, no_update
-
+    # Check current state
+    if progress.state == UpdateState.READY:
+        # Already downloaded, launch installer
+        logger.info("Update already downloaded - launching updater")
         if not progress.download_path:
-            logger.error("No download_path available for installation")
-            return no_update, no_update
+            return no_update, create_toast(
+                "Download path not found. Please restart and try again.",
+                "danger",
+                header="Installation Error",
+            )
 
-        # Launch updater (this will exit the app)
         try:
             success = launch_updater(progress.download_path)
             if not success:
-                logger.error("Failed to launch updater")
-                from ui.update_notification import create_update_error_alert
-
-                error_alert = create_update_error_alert(
-                    "Failed to launch updater. Please try downloading manually."
+                return status_data or {}, create_toast(
+                    "Failed to launch updater. Please try downloading manually from GitHub.",
+                    "danger",
+                    header="Installation Error",
+                    duration=10000,
                 )
-                return status_data or {}, error_alert
-
-            # If we get here, updater launched successfully
-            # App will exit shortly, so return no_update
+            # If successful, app will exit - return no_update
             return no_update, no_update
 
         except Exception as e:
             logger.error(f"Exception launching updater: {e}", exc_info=True)
-            from ui.update_notification import create_update_error_alert
-
-            error_alert = create_update_error_alert(
-                f"Failed to launch updater: {str(e)}"
+            return status_data or {}, create_toast(
+                f"Failed to launch updater: {str(e)}",
+                "danger",
+                header="Installation Error",
+                duration=10000,
             )
-            return status_data or {}, error_alert
 
-    # Handle download - start downloading update
-    if triggered_id == "update-now-button":
-        logger.info("User clicked Update Now - starting download")
+    elif progress.state == UpdateState.AVAILABLE:
+        # Need to download first
+        logger.info("Starting download...")
 
-        # Import app module to access VERSION_CHECK_RESULT
-        import app
+        # Show downloading toast
+        downloading_toast = create_toast(
+            [
+                html.Div("Downloading update... This may take a few minutes."),
+                html.Div(
+                    "The app will show another notification when ready to install.",
+                    className="mt-2",
+                    style={"fontSize": "0.85rem", "opacity": "0.8"},
+                ),
+            ],
+            "info",
+            header="Downloading Update",
+            duration=5000,
+            icon="spinner fa-spin",
+        )
 
-        if not app.VERSION_CHECK_RESULT:
-            logger.error("No VERSION_CHECK_RESULT available for download")
-            return no_update, no_update
-
-        progress = app.VERSION_CHECK_RESULT
-
-        if progress.state != UpdateState.AVAILABLE:
-            logger.error(
-                f"Cannot download update in state {progress.state}",
-                extra={"state": progress.state.value},
-            )
-            return no_update, no_update
-
-        # Start download in this callback (blocking)
-        # In a production app, this would be in a background callback
-        # But for simplicity, we'll do it synchronously here
         try:
-            from ui.update_notification import (
-                create_update_ready_alert,
-                create_update_error_alert,
-            )
-
-            # Perform download
-            logger.info("Starting download...")
+            # Perform download (synchronous for now)
             updated_progress = download_update(progress)
 
             # Update global VERSION_CHECK_RESULT
@@ -190,13 +193,35 @@ def handle_update_actions(
                         "path": str(updated_progress.download_path),
                     },
                 )
-                ready_alert = create_update_ready_alert()
+
+                # Show ready to install toast
+                ready_toast = create_toast(
+                    [
+                        html.Div(
+                            f"Update to version {updated_progress.available_version} downloaded successfully!"
+                        ),
+                        html.Div(
+                            [
+                                "Click the ",
+                                html.I(className="fas fa-sync-alt"),
+                                " update indicator again to install.",
+                            ],
+                            className="mt-2",
+                            style={"fontSize": "0.85rem", "opacity": "0.9"},
+                        ),
+                    ],
+                    "success",
+                    header="Ready to Install",
+                    duration=10000,
+                    icon="check-circle",
+                )
+
                 return (
                     {
                         "state": updated_progress.state.value,
                         "version": updated_progress.available_version,
                     },
-                    ready_alert,
+                    ready_toast,
                 )
 
             elif updated_progress.state == UpdateState.ERROR:
@@ -204,16 +229,19 @@ def handle_update_actions(
                     "Download failed",
                     extra={"error": updated_progress.error_message},
                 )
-                error_alert = create_update_error_alert(
+                error_toast = create_toast(
                     updated_progress.error_message
-                    or "Download failed. Please try again."
+                    or "Download failed. Please try again or download manually from GitHub.",
+                    "danger",
+                    header="Download Failed",
+                    duration=10000,
                 )
                 return (
                     {
                         "state": updated_progress.state.value,
                         "error": updated_progress.error_message,
                     },
-                    error_alert,
+                    error_toast,
                 )
 
             else:
@@ -221,13 +249,25 @@ def handle_update_actions(
                 logger.warning(
                     f"Unexpected state after download: {updated_progress.state}"
                 )
-                return no_update, no_update
+                return status_data or {}, downloading_toast
 
         except Exception as e:
             logger.error(f"Exception during download: {e}", exc_info=True)
-            from ui.update_notification import create_update_error_alert
+            error_toast = create_toast(
+                f"Download failed: {str(e)}",
+                "danger",
+                header="Download Error",
+                duration=10000,
+            )
+            return {"state": "error", "error": str(e)}, error_toast
 
-            error_alert = create_update_error_alert(f"Download failed: {str(e)}")
-            return {"state": "error", "error": str(e)}, error_alert
+    else:
+        # Unexpected state
+        logger.warning(f"Cannot handle update in state: {progress.state}")
+        return no_update, create_toast(
+            f"Update in unexpected state: {progress.state.value}. Please restart the app.",
+            "warning",
+            header="Update Status",
+        )
 
     return no_update, no_update
