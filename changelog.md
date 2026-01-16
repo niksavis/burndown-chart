@@ -1,5 +1,46 @@
 # Changelog
 
+## v2.6.0
+
+*Unreleased - In Development*
+
+### Features
+
+- **Background Operation**: Application now runs silently in the background with system tray icon
+  - System tray menu with Open and Quit options
+  - No terminal window - completely silent operation
+  - Automatic browser launch when ready
+
+### Bug Fixes
+
+- Fixed system tray icon not appearing in PyInstaller builds
+- Fixed quit menu not properly closing the application
+
+## v2.5.4
+
+*Released: 2026-01-14*
+
+### Features
+
+- **Standalone Windows Executable**: No Python installation required - just download and run
+  - Single executable file (~106MB) with all dependencies included
+  - Portable - stores settings and data alongside the executable
+  - Automatic browser launch when started
+- **Automatic Updates**: Application checks for new versions and can update itself
+  - Notifies you when updates are available
+  - One-click download and installation
+  - Seamless update process with automatic restart
+- **About Dialog**: View application information, changelog, and licenses
+  - See what's new in each version
+  - Browse third-party software licenses
+  - Search through license information
+
+### Bug Fixes
+
+- Improved update notifications to be less intrusive
+- Fixed version comparison for pre-release versions
+- Various stability improvements
+
 ## v2.5.0
 
 *Released: 2026-01-13*
@@ -111,4 +152,3 @@
 - Fixed deadline marker display and forecast visualization accuracy
 - Improved mobile layout responsiveness and date picker alignment
 - Fixed statistics table editing and data persistence
-
