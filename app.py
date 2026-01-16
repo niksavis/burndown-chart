@@ -17,6 +17,7 @@ import sys
 import threading
 import time
 import webbrowser
+from pathlib import Path
 from typing import Optional
 
 # Third-party library imports
@@ -450,12 +451,15 @@ if __name__ == "__main__":
                 icon.stop()
                 sys.exit(0)
 
-            # Load icon file
-            icon_path = os.path.join("assets", "icon.ico")
-            if os.path.exists(icon_path):
+            # Load icon file from PyInstaller bundle (_MEIPASS)
+            # PyInstaller unpacks bundled files to _MEIPASS at runtime
+            meipass = Path(sys._MEIPASS)  # type: ignore[attr-defined]
+            icon_path = meipass / "assets" / "icon.ico"
+
+            if icon_path.exists():
                 tray_icon = pystray.Icon(
                     "burndown-chart",
-                    Image.open(icon_path),
+                    Image.open(str(icon_path)),
                     f"Burndown Chart - Running on http://{server_config['host']}:{server_config['port']}",
                     menu=pystray.Menu(
                         pystray.MenuItem("Open in Browser", on_open),
@@ -468,7 +472,7 @@ if __name__ == "__main__":
                     target=tray_icon.run, daemon=True, name="TrayIconThread"
                 )
                 tray_thread.start()
-                logger.info("System tray icon initialized")
+                logger.info(f"System tray icon initialized from {icon_path}")
             else:
                 logger.warning(
                     f"Icon file not found at {icon_path}, skipping tray icon"
