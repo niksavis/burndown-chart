@@ -316,7 +316,7 @@ def create_app_layout(settings, statistics, is_sample_data):
                                             style={"fontSize": "0.8rem"},
                                         ),
                                         html.Span(
-                                            f"v{__version__} (Fix Applied!)",
+                                            f"v{__version__}",
                                             className="fw-medium text-secondary",
                                         ),
                                     ],
