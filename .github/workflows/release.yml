@@ -243,13 +243,14 @@ jobs:
 
           ## Support
 
-          - 📖 **Documentation**: See the included README files
+          - 📖 **Documentation**: [Full documentation](https://github.com/niksavis/burndown-chart/blob/main/readme.md) (also included in package)
           - 🐛 **Report Issues & Feature Requests**: [GitHub Issues](https://github.com/niksavis/burndown-chart/issues)
 
           ## License
 
-          This software is licensed under the MIT License.
-          Third-party dependencies and their licenses are listed in ``THIRD_PARTY_LICENSES.txt``.
+          This software is licensed under the [MIT License](https://github.com/niksavis/burndown-chart/blob/main/LICENSE).
+
+          Third-party dependencies and their licenses are included in the package as ``THIRD_PARTY_LICENSES.txt``.
 
           ---
 
