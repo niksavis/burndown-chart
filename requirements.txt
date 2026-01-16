@@ -56,6 +56,8 @@ packaging==25.0
     # via plotly
 pandas==2.2.3
     # via -r requirements.in
+pillow==12.1.0
+    # via pystray
 plotly==6.0.1
     # via
     #   -r requirements.in
@@ -70,6 +72,8 @@ pydantic-core==2.41.5
     # via pydantic
 pyperclip==1.8.2
     # via -r requirements.in
+pystray==0.19.5
+    # via -r requirements.in
 python-dateutil==2.9.0.post0
     # via pandas
 pytz==2025.2
@@ -83,7 +87,9 @@ retrying==1.4.2
 scipy==1.16.2
     # via -r requirements.in
 six==1.17.0
-    # via python-dateutil
+    # via
+    #   pystray
+    #   python-dateutil
 typing-extensions==4.15.0
     # via
     #   dash

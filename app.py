@@ -429,6 +429,57 @@ if __name__ == "__main__":
     # Get server configuration
     server_config = get_server_config()
 
+    # Initialize system tray icon (frozen executable only)
+    if installation_context.is_frozen:
+        try:
+            import pystray
+            from PIL import Image
+
+            def on_open(icon, item):
+                """Open the application in the default browser."""
+                url = f"http://{server_config['host']}:{server_config['port']}"
+                try:
+                    webbrowser.open(url, new=2, autoraise=True)
+                    logger.info("Browser opened from tray icon")
+                except Exception as e:
+                    logger.error(f"Failed to open browser from tray: {e}")
+
+            def on_quit(icon, item):
+                """Quit the application gracefully."""
+                logger.info("Quit requested from tray icon")
+                icon.stop()
+                sys.exit(0)
+
+            # Load icon file
+            icon_path = os.path.join("assets", "icon.ico")
+            if os.path.exists(icon_path):
+                tray_icon = pystray.Icon(
+                    "burndown-chart",
+                    Image.open(icon_path),
+                    f"Burndown Chart - Running on http://{server_config['host']}:{server_config['port']}",
+                    menu=pystray.Menu(
+                        pystray.MenuItem("Open in Browser", on_open),
+                        pystray.MenuItem("Quit", on_quit),
+                    ),
+                )
+
+                # Run tray icon in separate daemon thread so it doesn't block server
+                tray_thread = threading.Thread(
+                    target=tray_icon.run, daemon=True, name="TrayIconThread"
+                )
+                tray_thread.start()
+                logger.info("System tray icon initialized")
+            else:
+                logger.warning(
+                    f"Icon file not found at {icon_path}, skipping tray icon"
+                )
+        except ImportError:
+            logger.warning(
+                "pystray not available, skipping tray icon (install with: pip install pystray)"
+            )
+        except Exception as e:
+            logger.error(f"Failed to initialize tray icon: {e}", exc_info=True)
+
     # Determine if browser should auto-launch
     # Only auto-launch when running as frozen executable (not in dev mode)
     # and when BURNDOWN_NO_BROWSER environment variable is not set

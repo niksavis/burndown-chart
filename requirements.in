@@ -28,3 +28,6 @@ pyperclip==1.8.2
 
 # Process utilities (for faster update process detection)
 psutil==6.1.1
+
+# System tray icon (for console-free executable control)
+pystray>=0.19.5
