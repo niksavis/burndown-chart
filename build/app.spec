@@ -24,6 +24,8 @@ datas = [
     (str(PROJECT_ROOT / 'licenses'), 'licenses'),
     # Project LICENSE file (extracted on first run)
     (str(PROJECT_ROOT / 'LICENSE'), '.'),
+    # Changelog for About dialog
+    (str(PROJECT_ROOT / 'changelog.md'), '.'),
 ]
 
 # Hidden imports that PyInstaller might miss

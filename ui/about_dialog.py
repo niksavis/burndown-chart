@@ -666,9 +666,11 @@ def _get_latest_release_notes() -> tuple[str, str, list[str]] | None:
     from pathlib import Path
 
     # Determine changelog path (works for both dev and frozen)
-    if getattr(sys, "frozen", False):
-        base_path = Path(sys.executable).parent
+    if getattr(sys, "frozen", False) and hasattr(sys, "_MEIPASS"):
+        # Frozen executable - read from bundled resources
+        base_path = Path(sys._MEIPASS)  # type: ignore[attr-defined]
     else:
+        # Development mode - read from project root
         base_path = Path(__file__).parent.parent
 
     changelog_file = base_path / "changelog.md"
@@ -723,11 +725,11 @@ def _read_and_parse_changelog() -> html.Div:
     from pathlib import Path
 
     # Determine changelog path (works for both dev and frozen)
-    if getattr(sys, "frozen", False):
-        # Running as frozen executable - changelog should be in same dir as exe
-        base_path = Path(sys.executable).parent
+    if getattr(sys, "frozen", False) and hasattr(sys, "_MEIPASS"):
+        # Frozen executable - read from bundled resources
+        base_path = Path(sys._MEIPASS)  # type: ignore[attr-defined]
     else:
-        # Running in development - changelog in project root
+        # Development mode - read from project root
         base_path = Path(__file__).parent.parent
 
     changelog_file = base_path / "changelog.md"
