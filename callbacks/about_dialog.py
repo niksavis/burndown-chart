@@ -42,6 +42,23 @@ def toggle_about_modal(
     return not is_open
 
 
+@callback(
+    Output("about-tabs", "active_tab"),
+    Input("view-changelog-link", "n_clicks"),
+    prevent_initial_call=True,
+)
+def switch_to_changelog_tab(n_clicks: int | None) -> str:
+    """Switch to changelog tab when 'View full changelog' link is clicked.
+
+    Args:
+        n_clicks: Number of clicks on changelog link
+
+    Returns:
+        Tab ID to activate
+    """
+    return "about-tab-changelog"
+
+
 # Clientside callback for license search/filter (for instant response)
 # Triggers on modal open (to initialize count) and search input changes
 # Returns formatted string with count (e.g., "Showing 5 of 59 dependencies")

@@ -22,6 +22,58 @@ from configuration import __version__
 #######################################################################
 
 
+def _parse_markdown_text(text: str) -> list:
+    """Parse simple markdown formatting and convert to Dash components.
+
+    Supports: **bold**, `code`, [link](url)
+
+    Args:
+        text: Text containing markdown formatting
+
+    Returns:
+        List of html.Span/html.Strong/html.Code/html.A components
+    """
+    import re
+
+    # Pattern to match **bold**, `code`, and [text](url)
+    pattern = r"(\*\*.*?\*\*|`.*?`|\[.*?\]\(.*?\))"
+    parts = re.split(pattern, text)
+
+    components = []
+    for part in parts:
+        if not part:
+            continue
+
+        if part.startswith("**") and part.endswith("**"):
+            # Bold text
+            bold_text = part[2:-2]
+            components.append(html.Strong(bold_text))
+        elif part.startswith("`") and part.endswith("`"):
+            # Code text
+            code_text = part[1:-1]
+            components.append(html.Code(code_text, className="mx-1"))
+        elif part.startswith("[") and "](" in part:
+            # Link [text](url)
+            link_match = re.match(r"\[(.*?)\]\((.*?)\)", part)
+            if link_match:
+                link_text, url = link_match.groups()
+                components.append(
+                    html.A(
+                        link_text,
+                        href=url,
+                        target="_blank",
+                        className="text-decoration-none",
+                    )
+                )
+            else:
+                components.append(html.Span(part))
+        else:
+            # Plain text
+            components.append(html.Span(part))
+
+    return components if components else [html.Span(text)]
+
+
 def _read_licenses_file() -> str:
     """Read the THIRD_PARTY_LICENSES.txt file from bundled resources.
 
@@ -244,30 +296,82 @@ def _get_app_info_tab() -> dbc.Tab:
     is_frozen = getattr(sys, "frozen", False)
     install_type = "Standalone Executable" if is_frozen else "Development Mode"
 
-    content = html.Div(
+    # Get latest release notes
+    latest_release = _get_latest_release_notes()
+
+    # Build content sections
+    content_sections = [
+        html.H5("Burndown Chart", className="mb-3"),
+        html.P(
+            [
+                html.Strong("Version: "),
+                html.Span(__version__, className="text-muted"),
+            ],
+            className="mb-2",
+        ),
+        html.P(
+            [
+                html.Strong("Installation: "),
+                html.Span(install_type, className="text-muted"),
+            ],
+            className="mb-2",
+        ),
+        html.P(
+            [
+                html.Strong("Python: "),
+                html.Span(python_version, className="text-muted"),
+            ],
+            className="mb-3",
+        ),
+    ]
+
+    # Add latest release notes if available
+    if latest_release:
+        version, date, items = latest_release
+        content_sections.extend(
+            [
+                html.Hr(),
+                html.H6(
+                    [
+                        "What's New in ",
+                        html.Code(version, className="ms-1"),
+                    ],
+                    className="mb-2",
+                ),
+                html.P(
+                    [
+                        html.I(className="fas fa-calendar-alt me-2"),
+                        html.Small(date, className="text-muted"),
+                    ],
+                    className="mb-2",
+                ),
+                html.Ul(
+                    [
+                        html.Li(_parse_markdown_text(item), className="mb-1")
+                        for item in items
+                    ],
+                    className="text-muted small mb-2",
+                ),
+                html.P(
+                    [
+                        html.A(
+                            [
+                                html.I(className="fas fa-history me-1"),
+                                "View full changelog",
+                            ],
+                            href="#",
+                            id="view-changelog-link",
+                            className="text-decoration-none",
+                        ),
+                    ],
+                    className="mb-3",
+                ),
+            ]
+        )
+
+    # Add standard sections
+    content_sections.extend(
         [
-            html.H5("Burndown Chart", className="mb-3"),
-            html.P(
-                [
-                    html.Strong("Version: "),
-                    html.Span(__version__, className="text-muted"),
-                ],
-                className="mb-2",
-            ),
-            html.P(
-                [
-                    html.Strong("Installation: "),
-                    html.Span(install_type, className="text-muted"),
-                ],
-                className="mb-2",
-            ),
-            html.P(
-                [
-                    html.Strong("Python: "),
-                    html.Span(python_version, className="text-muted"),
-                ],
-                className="mb-3",
-            ),
             html.Hr(),
             html.H6("About", className="mb-2"),
             html.P(
@@ -288,7 +392,11 @@ def _get_app_info_tab() -> dbc.Tab:
             html.P(
                 ["MIT License - Free and open source software"], className="text-muted"
             ),
-        ],
+        ]
+    )
+
+    content = html.Div(
+        content_sections,
         className="p-3",
         style={"minHeight": "500px", "maxHeight": "500px", "overflowY": "auto"},
     )
@@ -548,6 +656,63 @@ def _get_changelog_tab() -> dbc.Tab:
     )
 
 
+def _get_latest_release_notes() -> tuple[str, str, list[str]] | None:
+    """Extract latest version's release notes from changelog.md.
+
+    Returns:
+        Tuple of (version, date, feature_list) or None if not found
+    """
+    import sys
+    from pathlib import Path
+
+    # Determine changelog path (works for both dev and frozen)
+    if getattr(sys, "frozen", False):
+        base_path = Path(sys.executable).parent
+    else:
+        base_path = Path(__file__).parent.parent
+
+    changelog_file = base_path / "changelog.md"
+
+    if not changelog_file.exists():
+        return None
+
+    try:
+        content = changelog_file.read_text(encoding="utf-8")
+        lines = content.split("\n")
+
+        # Find first version section
+        version = None
+        date = None
+        items = []
+        in_version_section = False
+
+        for line in lines:
+            if line.startswith("## v"):
+                if in_version_section:
+                    # We've reached the next version, stop
+                    break
+                # Found first version
+                version = line.replace("## ", "").strip()
+                in_version_section = True
+            elif in_version_section:
+                if line.strip().startswith("*Released:"):
+                    date = (
+                        line.strip().replace("*Released:", "").replace("*", "").strip()
+                    )
+                elif line.strip().startswith("- "):
+                    # Extract feature/fix item
+                    item = line.strip()[2:]  # Remove "- " prefix
+                    items.append(item)
+
+        if version and items:
+            return (version, date or "Date unknown", items[:5])  # Limit to 5 items
+
+        return None
+
+    except Exception:
+        return None
+
+
 def _read_and_parse_changelog() -> html.Div:
     """Read and parse changelog.md file.
 
@@ -668,7 +833,9 @@ def _read_and_parse_changelog() -> html.Div:
                     # Skip section headings - not currently displayed
                     continue
                 elif line.strip().startswith("-"):
-                    items.append(html.Li(line.strip()[2:]))  # Remove "- " prefix
+                    # Parse markdown in list item
+                    item_text = line.strip()[2:]  # Remove "- " prefix
+                    items.append(html.Li(_parse_markdown_text(item_text)))
 
             # Build version section
             version_header: list = [html.Code(version, className="me-2")]
