@@ -60,14 +60,15 @@ try {
         exit 1
     }
 
-    # Step 2: Verify virtual environment is activated
+    # Step 2: Verify Python environment
     Write-Step "Verifying Python environment"
     if (-not $env:VIRTUAL_ENV) {
-        Write-Error "Virtual environment not activated"
-        Write-Host "Please run: .\.venv\Scripts\activate" -ForegroundColor Yellow
-        exit 1
+        Write-Host "No virtual environment detected - using global Python" -ForegroundColor Yellow
+        Write-Host "This is normal in CI/CD environments" -ForegroundColor Yellow
     }
-    Write-Success "Virtual environment active: $env:VIRTUAL_ENV"
+    else {
+        Write-Success "Virtual environment active: $env:VIRTUAL_ENV"
+    }
 
     # Step 3: Verify PyInstaller is installed
     Write-Step "Verifying PyInstaller installation"
