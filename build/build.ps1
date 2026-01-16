@@ -173,7 +173,29 @@ try {
         }
     }
 
-    # Step 8: Create dist directory if it doesn't exist
+    # Step 8: Generate Windows version information file
+    Write-Step "Generating Windows version information"
+    $generateVersionScript = Join-Path $BuildDir "generate_version_info.py"
+    
+    if (-not (Test-Path $generateVersionScript)) {
+        Write-Error "generate_version_info.py not found at: $generateVersionScript"
+        exit 1
+    }
+    
+    Push-Location $ProjectRoot
+    try {
+        python $generateVersionScript
+        if ($LASTEXITCODE -ne 0) {
+            Write-Error "Version info generation failed"
+            exit 1
+        }
+        Write-Success "Version info generated for version $Version"
+    }
+    finally {
+        Pop-Location
+    }
+
+    # Step 9: Create dist directory if it doesn't exist
     Write-Step "Preparing output directory"
     if (-not (Test-Path $DistDir)) {
         New-Item -ItemType Directory -Path $DistDir | Out-Null
@@ -183,7 +205,7 @@ try {
         Write-Success "Dist directory exists"
     }
 
-    # Step 9: Build main application
+    # Step 10: Build main application
     Write-Step "Building main application (BurndownChart.exe)"
     Push-Location $ProjectRoot
     try {
@@ -203,7 +225,7 @@ try {
         Pop-Location
     }
 
-    # Step 10: Build updater
+    # Step 11: Build updater
     Write-Step "Building updater (BurndownChartUpdater.exe)"
     
     # Check if updater exists
@@ -233,7 +255,7 @@ try {
         }
     }
 
-    # Step 11: Verify output files
+    # Step 12: Verify output files
     Write-Step "Verifying build artifacts"
     $mainExe = Join-Path $DistDir "BurndownChart.exe"
     
@@ -254,7 +276,7 @@ try {
         Write-Host "Updater executable not built (updater feature not implemented)" -ForegroundColor Yellow
     }
 
-    # Step 12: Code signing (if requested)
+    # Step 13: Code signing (if requested)
     if ($Sign) {
         Write-Step "Code signing executables"
         $signScript = Join-Path $BuildDir "sign_executable.ps1"
@@ -282,7 +304,7 @@ try {
         }
     }
 
-    # Step 13: Post-build tests (if requested)
+    # Step 14: Post-build tests (if requested)
     if ($Test) {
         Write-Step "Running post-build validation tests"
         
