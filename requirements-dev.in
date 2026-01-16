@@ -1,0 +1,23 @@
+# Development Dependencies
+# Includes all production dependencies plus development/testing/build tools.
+# 
+# Usage:
+#   pip-compile requirements-dev.in          # Generate requirements-dev.txt
+#   pip install -r requirements-dev.txt      # Install everything for development
+
+# Include all production dependencies
+-r requirements.txt
+
+# Testing dependencies
+pytest==8.3.5
+pytest-cov==6.1.1
+playwright>=1.40.0
+
+# Build and packaging tools
+pyinstaller>=6.0.0  # Build standalone executables
+pillow>=10.0.0      # Icon generation for Windows executables
+pip-licenses>=5.0.0 # License auditing for THIRD_PARTY_LICENSES.txt
+PyYAML>=6.0.0       # Used by regenerate_changelog.py build script
+
+# Development tools
+pip-tools==7.4.1    # Dependency management (pip-compile)

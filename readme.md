@@ -50,14 +50,14 @@
    ```powershell
    python -m venv .venv
    .venv\Scripts\activate
-   pip install -r requirements.txt
+   pip install -r requirements-dev.txt
    ```
    
    **Mac/Linux:**
    ```bash
    python3 -m venv .venv
    source .venv/bin/activate
-   pip install -r requirements.txt
+   pip install -r requirements-dev.txt
    ```
 
 4. **Start** - Run `python app.py`
@@ -68,8 +68,10 @@
 ```bash
 git clone https://github.com/niksavis/burndown-chart.git
 cd burndown-chart
-# Follow installation steps above
+# Follow installation steps above using requirements-dev.txt
 ```
+
+**Note:** `requirements-dev.txt` includes testing/build tools. Use `requirements.txt` for production-only dependencies.
 
 ## First-Time Setup
 
