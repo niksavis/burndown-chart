@@ -400,9 +400,7 @@ def create_app_layout(settings, statistics, is_sample_data):
                                     ),
                                     "Update Available: ",
                                     html.Span(
-                                        # Show tags when available, fall back to commit hashes for missing tags
-                                        f"{app.VERSION_CHECK_RESULT.get('current_tag') or app.VERSION_CHECK_RESULT.get('current_commit', 'unknown')[:7]} → "
-                                        f"{app.VERSION_CHECK_RESULT.get('latest_tag') or app.VERSION_CHECK_RESULT.get('latest_commit', 'unknown')[:7]}",
+                                        f"{app.VERSION_CHECK_RESULT.current_version} → {app.VERSION_CHECK_RESULT.available_version}",
                                         className="opacity-75",
                                         style={"fontSize": "0.7rem"},
                                     ),
@@ -421,8 +419,14 @@ def create_app_layout(settings, statistics, is_sample_data):
                             style={"lineHeight": "1.2"},
                         )
                         if hasattr(app, "VERSION_CHECK_RESULT")
-                        and isinstance(app.VERSION_CHECK_RESULT, dict)
-                        and app.VERSION_CHECK_RESULT.get("update_available", False)
+                        and app.VERSION_CHECK_RESULT is not None
+                        and hasattr(app.VERSION_CHECK_RESULT, "state")
+                        and app.VERSION_CHECK_RESULT.state
+                        in [
+                            app.VERSION_CHECK_RESULT.state.__class__.AVAILABLE,
+                            app.VERSION_CHECK_RESULT.state.__class__.MANUAL_UPDATE_REQUIRED,
+                            app.VERSION_CHECK_RESULT.state.__class__.READY,
+                        ]
                         else None
                     ),
                 ],
