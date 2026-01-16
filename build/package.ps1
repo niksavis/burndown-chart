@@ -129,11 +129,11 @@ try {
         Write-Success "Copied README.txt (quick start guide)"
     }
     
-    # Copy LICENSE if exists
+    # Copy LICENSE as LICENSE.txt (Windows convention, matches app extraction)
     $licenseSource = Join-Path $ProjectRoot "LICENSE"
     if (Test-Path $licenseSource) {
-        Copy-Item -Path $licenseSource -Destination $stagingDir
-        Write-Success "Copied LICENSE"
+        Copy-Item -Path $licenseSource -Destination (Join-Path $stagingDir "LICENSE.txt")
+        Write-Success "Copied LICENSE as LICENSE.txt"
     }
 
     # Step 5: Create ZIP file
