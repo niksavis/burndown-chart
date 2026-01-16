@@ -448,8 +448,12 @@ if __name__ == "__main__":
             def on_quit(icon, item):
                 """Quit the application gracefully."""
                 logger.info("Quit requested from tray icon")
+                # Stop the tray icon first
                 icon.stop()
-                sys.exit(0)
+                # Shutdown the Waitress server
+                shutdown_server()
+                # Exit the application
+                os._exit(0)  # Force exit all threads
 
             # Load icon file from PyInstaller bundle (_MEIPASS)
             # PyInstaller unpacks bundled files to _MEIPASS at runtime
