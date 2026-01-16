@@ -4,6 +4,13 @@ on:
   push:
     tags:
       - "v*" # Trigger on version tags (v1.0.0, v2.1.3, etc.)
+  workflow_dispatch: # Allow manual trigger for testing
+    inputs:
+      test_mode:
+        description: "Test mode (skips actual release creation)"
+        required: false
+        type: boolean
+        default: true
 
 permissions:
   contents: write # Required for creating releases and uploading assets
@@ -307,9 +314,10 @@ jobs:
         shell: pwsh
         continue-on-error: false
 
-      # Create GitHub release
+      # Create GitHub release (skip in test mode)
       - name: Create GitHub Release
         id: create_release
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v1
         with:
           name: "Burndown Chart v${{ steps.version.outputs.VERSION }}"
@@ -320,6 +328,24 @@ jobs:
           fail_on_unmatched_files: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # Test mode summary
+      - name: Test mode summary
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          Write-Host "`n========================================" -ForegroundColor Yellow
+          Write-Host "TEST MODE - Release creation skipped" -ForegroundColor Yellow
+          Write-Host "========================================" -ForegroundColor Yellow
+          Write-Host "`nBuild artifacts validated successfully:" -ForegroundColor Green
+          Write-Host "  - Executable built: dist\BurndownChart.exe"
+          Write-Host "  - Package created: ${{ steps.zip.outputs.ZIP_NAME }}"
+          Write-Host "  - Release notes generated: release_notes.md"
+          Write-Host "  - Version extracted: ${{ steps.version.outputs.VERSION }}"
+          Write-Host "`nAll error handling checks passed!" -ForegroundColor Green
+          Write-Host "`nTo create actual release, push a version tag:" -ForegroundColor Cyan
+          Write-Host "  git tag v${{ steps.version.outputs.VERSION }}"
+          Write-Host "  git push origin v${{ steps.version.outputs.VERSION }}"
+        shell: pwsh
 
       # Upload changelog as artifact for reference
       - name: Upload changelog artifact
