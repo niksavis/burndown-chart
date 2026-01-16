@@ -52,19 +52,22 @@ def display_update_notification_on_load(pathname: str):
 
         from ui.toast_notifications import create_toast
         from dash import html
+        import dash_bootstrap_components as dbc
 
         message = [
             html.Div(
                 f"Version {progress.available_version} is available. You are running {progress.current_version} from source code."
             ),
-            html.Div(
+            dbc.Button(
                 [
-                    "Click the ",
-                    html.I(className="fas fa-sync-alt"),
-                    " update indicator in the footer for instructions.",
+                    html.I(className="fas fa-info-circle me-2"),
+                    "View Instructions",
                 ],
+                id="footer-update-indicator",
+                color="info",
+                size="sm",
                 className="mt-2",
-                style={"fontSize": "0.85rem", "opacity": "0.9"},
+                n_clicks=0,
             ),
         ]
 
@@ -72,7 +75,7 @@ def display_update_notification_on_load(pathname: str):
             message=message,
             toast_type="info",
             header="Update Available (Manual)",
-            duration=8000,
+            duration=20000,  # 20 seconds - enough time to read and click
             icon="arrow-circle-up",
         )
 
@@ -88,20 +91,23 @@ def display_update_notification_on_load(pathname: str):
 
         from ui.toast_notifications import create_toast
         from dash import html
+        import dash_bootstrap_components as dbc
 
-        # Create toast message with update info
+        # Create toast message with update button embedded
         message = [
             html.Div(
                 f"Version {progress.available_version} is available. You are running {progress.current_version}."
             ),
-            html.Div(
+            dbc.Button(
                 [
-                    "Click the ",
-                    html.I(className="fas fa-sync-alt"),
-                    " update indicator in the footer to download.",
+                    html.I(className="fas fa-download me-2"),
+                    "Download Update",
                 ],
+                id="footer-update-indicator",
+                color="success",
+                size="sm",
                 className="mt-2",
-                style={"fontSize": "0.85rem", "opacity": "0.9"},
+                n_clicks=0,
             ),
         ]
 
@@ -109,7 +115,7 @@ def display_update_notification_on_load(pathname: str):
             message=message,
             toast_type="info",
             header="Update Available",
-            duration=8000,  # 8 seconds - longer for important message
+            duration=20000,  # 20 seconds - enough time to read and click
             icon="arrow-circle-up",
         )
 
