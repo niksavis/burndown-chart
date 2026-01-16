@@ -205,7 +205,7 @@ jobs:
 
           1. **Download** ``BurndownChart-Windows-$version.zip`` below
           2. **Extract** the contents to a folder of your choice (e.g., ``C:\Program Files\BurndownChart``)
-          3. **Run** ``BurndownChart\BurndownChart.exe`` to start the application
+          3. **Run** ``BurndownChart.exe`` to start the application
           4. **Optional**: Create a desktop shortcut to the executable for easy access
 
           ### Linux / macOS / Windows (Run from Source)
@@ -228,7 +228,7 @@ jobs:
           2. Configure your **JIRA connection**:
              - JIRA URL (e.g., ``https://your-company.atlassian.net``)
              - Email address
-             - API token ([create one here](https://id.atlassian.com/manage-profile/security/api-tokens))
+             - API token (create one in your JIRA server's security settings)
           3. Create a **query profile** to fetch your project's issues
           4. Click **Update Data** to load your project data
 
@@ -245,8 +245,8 @@ jobs:
           ## Support
 
           - 📖 **Documentation**: See the included README files
-          - 🐛 **Report Issues**: [GitHub Issues](https://github.com/yourusername/burndown-chart/issues)
-          - 💡 **Feature Requests**: [GitHub Discussions](https://github.com/yourusername/burndown-chart/discussions)
+          - 🐛 **Report Issues**: [GitHub Issues](https://github.com/niksavis/burndown-chart/issues)
+          - 💡 **Feature Requests**: [GitHub Discussions](https://github.com/niksavis/burndown-chart/discussions)
 
           ## License
 
@@ -255,7 +255,7 @@ jobs:
 
           ---
 
-          **Full Changelog**: https://github.com/yourusername/burndown-chart/compare/$tag...v$version
+          **Full Changelog**: https://github.com/niksavis/burndown-chart/compare/$tag...v$version
           "@
 
             $notes | Out-File -FilePath release_notes.md -Encoding utf8 -ErrorAction Stop
