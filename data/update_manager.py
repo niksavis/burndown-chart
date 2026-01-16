@@ -103,6 +103,7 @@ class UpdateState(Enum):
         INSTALLING: Updater launched, app will exit
         ERROR: Download or installation failed
         UP_TO_DATE: No update needed (current version is latest)
+        MANUAL_UPDATE_REQUIRED: Running from source, manual update needed
     """
 
     IDLE = "idle"
@@ -113,6 +114,7 @@ class UpdateState(Enum):
     INSTALLING = "installing"
     ERROR = "error"
     UP_TO_DATE = "up_to_date"
+    MANUAL_UPDATE_REQUIRED = "manual_update_required"
 
 
 @dataclass
@@ -166,6 +168,49 @@ class UpdateProgress:
             "release_notes": self.release_notes,
             "file_size": self.file_size,
         }
+
+
+#######################################################################
+# DEPLOYMENT DETECTION
+#######################################################################
+
+
+def is_frozen() -> bool:
+    """Check if running as frozen executable (PyInstaller).
+
+    Returns:
+        True if running as executable, False if running from source
+    """
+    return getattr(sys, "frozen", False) and hasattr(sys, "_MEIPASS")
+
+
+def get_deployment_type() -> str:
+    """Get deployment type for logging and user guidance.
+
+    Returns:
+        "executable" if frozen, "source" if running from Python
+    """
+    return "executable" if is_frozen() else "source"
+
+
+def is_git_repository() -> bool:
+    """Check if running from a git repository (for developers).
+
+    Returns:
+        True if .git directory exists
+    """
+    try:
+        if is_frozen():
+            return False
+        # Check for .git in current directory or parents
+        current = Path.cwd()
+        while current != current.parent:
+            if (current / ".git").exists():
+                return True
+            current = current.parent
+        return False
+    except Exception:
+        return False
 
 
 #######################################################################
@@ -238,18 +283,28 @@ def check_for_updates() -> UpdateProgress:
     Queries the GitHub releases API for the latest version. Compares with current
     version using semantic versioning. Non-blocking operation with timeout.
 
+    For source code deployments (non-frozen), returns MANUAL_UPDATE_REQUIRED state
+    with guidance on how to update.
+
     Returns:
-        UpdateProgress with state AVAILABLE, UP_TO_DATE, or ERROR
+        UpdateProgress with state AVAILABLE, UP_TO_DATE, MANUAL_UPDATE_REQUIRED, or ERROR
 
     Note:
         This function should be called from a background thread to avoid blocking
         the UI. Network errors are caught and returned as ERROR state.
     """
     current_version = get_current_version()
+    deployment_type = get_deployment_type()
+    is_git_repo = is_git_repository()
 
     logger.info(
         "Starting update check",
-        extra={"operation": "check_for_updates", "current_version": current_version},
+        extra={
+            "operation": "check_for_updates",
+            "current_version": current_version,
+            "deployment_type": deployment_type,
+            "is_git_repo": is_git_repo,
+        },
     )
 
     progress = UpdateProgress(
@@ -314,10 +369,46 @@ def check_for_updates() -> UpdateProgress:
                     "operation": "check_for_updates",
                     "current": current_version,
                     "available": available_version,
+                    "deployment_type": deployment_type,
                 },
             )
 
-            # Find Windows ZIP asset
+            # Check if running from source (not frozen executable)
+            if not is_frozen():
+                logger.info(
+                    "Running from source - manual update required",
+                    extra={
+                        "operation": "check_for_updates",
+                        "is_git_repo": is_git_repo,
+                    },
+                )
+
+                # Provide appropriate guidance based on deployment type
+                if is_git_repo:
+                    update_instructions = (
+                        "You are running from a git repository. To update:\n\n"
+                        "1. Save your work and close the app\n"
+                        "2. Run: git pull\n"
+                        "3. Run: pip install -r requirements.txt\n"
+                        "4. Restart the app"
+                    )
+                else:
+                    update_instructions = (
+                        "You are running from source code. To update:\n\n"
+                        "1. Download the new source code ZIP from GitHub releases\n"
+                        "2. Extract and replace the existing files\n"
+                        "3. Run: pip install -r requirements.txt\n"
+                        "4. Restart the app\n\n"
+                        f"Download from: https://github.com/{GITHUB_OWNER}/{GITHUB_REPO}/releases/tag/v{available_version}"
+                    )
+
+                progress.state = UpdateState.MANUAL_UPDATE_REQUIRED
+                progress.available_version = available_version
+                progress.release_notes = update_instructions
+                progress.error_message = update_instructions  # For compatibility
+                return progress
+
+            # Find Windows ZIP asset (only for executable mode)
             assets = release_data.get("assets", [])
             windows_asset = None
 

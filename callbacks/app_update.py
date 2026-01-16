@@ -5,7 +5,7 @@ Handles downloading and installing updates from GitHub releases.
 """
 
 import logging
-from dash import callback, Input, Output, State, no_update, ctx
+from dash import callback, Input, Output, State, no_update
 from typing import Optional
 
 from data.update_manager import (
@@ -40,7 +40,43 @@ def display_update_notification_on_load(pathname: str):
 
     progress = app.VERSION_CHECK_RESULT
 
-    # Only show notification if update is available
+    # Handle manual update required (source code deployment)
+    if progress.state == UpdateState.MANUAL_UPDATE_REQUIRED:
+        logger.info(
+            "Manual update required - displaying instructions",
+            extra={
+                "current_version": progress.current_version,
+                "available_version": progress.available_version,
+            },
+        )
+
+        from ui.toast_notifications import create_toast
+        from dash import html
+
+        message = [
+            html.Div(
+                f"Version {progress.available_version} is available. You are running {progress.current_version} from source code."
+            ),
+            html.Div(
+                [
+                    "Click the ",
+                    html.I(className="fas fa-sync-alt"),
+                    " update indicator in the footer for instructions.",
+                ],
+                className="mt-2",
+                style={"fontSize": "0.85rem", "opacity": "0.9"},
+            ),
+        ]
+
+        return create_toast(
+            message=message,
+            toast_type="info",
+            header="Update Available (Manual)",
+            duration=8000,
+            icon="arrow-circle-up",
+        )
+
+    # Only show notification if automatic update is available
     if progress.state == UpdateState.AVAILABLE:
         logger.info(
             "Update available - displaying toast notification",
@@ -72,7 +108,7 @@ def display_update_notification_on_load(pathname: str):
         return create_toast(
             message=message,
             toast_type="info",
-            header=f"Update Available",
+            header="Update Available",
             duration=8000,  # 8 seconds - longer for important message
             icon="arrow-circle-up",
         )
@@ -124,6 +160,44 @@ def handle_update_download(
         )
 
     progress = app.VERSION_CHECK_RESULT
+
+    # Handle manual update required (source code deployment)
+    if progress.state == UpdateState.MANUAL_UPDATE_REQUIRED:
+        logger.info(
+            "User clicked update indicator - showing manual update instructions"
+        )
+
+        # Show instructions as info toast with longer duration
+        instructions_toast = create_toast(
+            [
+                html.Div(
+                    html.Strong(
+                        f"Manual Update to {progress.available_version} Required"
+                    ),
+                    className="mb-2",
+                ),
+                html.Div(
+                    html.Pre(
+                        progress.release_notes
+                        or "See GitHub releases for update instructions.",
+                        style={
+                            "fontSize": "0.8rem",
+                            "whiteSpace": "pre-wrap",
+                            "backgroundColor": "#f8f9fa",
+                            "padding": "0.5rem",
+                            "borderRadius": "4px",
+                            "maxHeight": "300px",
+                            "overflow": "auto",
+                        },
+                    )
+                ),
+            ],
+            "info",
+            header="Update Instructions",
+            duration=0,  # Don't auto-dismiss
+            icon="info-circle",
+        )
+        return status_data or {}, instructions_toast
 
     # Check current state
     if progress.state == UpdateState.READY:
