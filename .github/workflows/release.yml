@@ -238,6 +238,7 @@ jobs:
           ## Requirements
 
           - **Operating System**: Windows 10/11 (64-bit)
+          - **Web Browser**: Chrome, Firefox, Edge, or any modern browser
           - **Network Access**: Required to connect to your JIRA server (internet or local network)
           - **Disk Space**: ~150 MB
 
