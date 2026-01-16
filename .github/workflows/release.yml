@@ -251,7 +251,7 @@ jobs:
           ## License
 
           This software is licensed under the Apache License 2.0.
-          See ``licenses/`` directory for third-party licenses.
+          Third-party dependencies and their licenses are listed in ``THIRD_PARTY_LICENSES.txt``.
 
           ---
 

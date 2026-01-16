@@ -104,15 +104,15 @@ try {
         Write-Success "Copied updater"
     }
     
-    # Copy licenses directory
-    $licensesSource = Join-Path $ProjectRoot "licenses"
-    if (Test-Path $licensesSource) {
-        $licensesStaging = Join-Path $stagingDir "licenses"
-        Copy-Item -Path $licensesSource -Destination $licensesStaging -Recurse
-        Write-Success "Copied licenses"
+    # Copy THIRD_PARTY_LICENSES.txt (bundled in executable, also in ZIP for transparency)
+    # Note: Detailed licenses/ folder is bundled in executable and accessible via About dialog
+    $thirdPartyLicenses = Join-Path $ProjectRoot "licenses\THIRD_PARTY_LICENSES.txt"
+    if (Test-Path $thirdPartyLicenses) {
+        Copy-Item -Path $thirdPartyLicenses -Destination $stagingDir
+        Write-Success "Copied THIRD_PARTY_LICENSES.txt"
     }
     else {
-        Write-Host "[WARN] Licenses directory not found, skipping" -ForegroundColor Yellow
+        Write-Host "[WARN] THIRD_PARTY_LICENSES.txt not found, skipping" -ForegroundColor Yellow
     }
     
     # Copy README if exists
