@@ -1,0 +1,56 @@
+# Changelog Scope Descriptions
+# Maps conventional commit scopes to user-friendly descriptions
+# Used by regenerate_changelog.py for release notes generation
+#
+# IMPORTANT: Only scopes listed here will appear in the changelog.
+# This filters out technical/internal scopes automatically.
+#
+# Writing guidelines:
+# - Focus on user benefits, not implementation details
+# - Use complete sentences describing what users get
+# - Mention specific capabilities when relevant
+# - Keep descriptions concise (1-2 lines maximum)
+
+# Major Features (v2.5.0 style - comprehensive descriptions)
+budget: "Complete budget management system with query-level settings, cost breakdown by flow type, weekly trends, and baseline velocity tracking"
+ai-prompt: "Export privacy-safe project summaries for ChatGPT/Claude analysis with flexible formatting and improved styling"
+dashboard: "Improved project health card with better styling, recent completions view (4-week), deadline risk analysis with PERT forecasting insights"
+points-tracking: "Enhanced visibility logic with data validation for filtered periods, improved error handling and user messaging"
+sqlite-migration: "Migrated to SQLite backend for better performance and data persistence (legacy JSON files cleaned up automatically)"
+
+# Data & Integration
+database: "Database improvements and query optimization"
+jira: "JIRA integration enhancements and data synchronization improvements"
+persistence: "Data storage and caching improvements"
+
+# Bug Fix Consolidation Categories
+date-handling: "Fixed date handling consistency in deadline calculations and metric displays"
+sqlite-tests: "Resolved SQLite test isolation issues and data points slider clamping"
+budget-styling: "Fixed budget section styling and data display for unavailable metrics"
+health-score: "Improved health score calculation accuracy with optimized polling intervals"
+database-queries: "Corrected database queries for remaining work calculations (migrated from legacy cache)"
+date-format: "Fixed date format normalization to prevent duplicate entries"
+
+# Other Changes Categories
+dora-flow-metrics: "Enhanced DORA and Flow metrics with improved error state handling"
+jira-filtering: "Improved JIRA issue filtering for dashboard consistency"
+logging-stats: "Better logging and statistics tracking throughout the application"
+
+# Historical Features (for older versions)
+report: "Standalone offline reports with all charts and metrics for easy sharing"
+dora: "Industry-standard DevOps metrics tracking (Deployment Frequency, Lead Time, MTTR, Change Failure Rate)"
+flow: "Team efficiency tracking with Throughput, WIP, Cycle Time, and Flow Distribution"
+profile: "Profile management with workspace isolation and duplication"
+mobile: "Touch-friendly navigation with drawer menu and responsive design"
+jql-editor: "Syntax highlighting with real-time validation (CodeMirror integration)"
+import-export: "Profile conflict resolution with multiple export modes"
+update: "Automatic version checking with in-app notifications for new releases"
+health: "Smooth statistical formula with detailed explanations in executive summary"
+documentation: "Comprehensive installation and JIRA integration guide"
+version-management: "Automated version bumping process with git tag enforcement"
+data-refresh: "Statistics reload automatically after JIRA data updates complete"
+ui-refresh: "Fixed UI refresh to reflect updated statistics immediately after data sync"
+trends: "Added baseline tracking for trend indicators to better visualize metric changes over time"
+zero-activity: "Fixed zero-activity week handling in charts and PERT calculations"
+logging: "Resolved type errors and improved logging consistency"
+stability: "Minor stability improvements and performance optimizations"

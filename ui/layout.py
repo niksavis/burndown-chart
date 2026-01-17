@@ -17,12 +17,12 @@ import dash_bootstrap_components as dbc
 from dash import dcc, html
 
 # Application imports
-# Application imports
 from configuration import __version__
-from data import (
-    calculate_total_points,
+from data import calculate_total_points
+from data.persistence import (
     load_app_settings,
     load_statistics,
+    get_project_scope,
 )
 from ui.cards import (
     create_statistics_data_card,
@@ -42,6 +42,7 @@ from ui.unsaved_changes_modal import create_unsaved_changes_modal
 from ui.delete_query_modal import create_delete_query_modal
 from ui.improved_settings_panel import create_improved_settings_panel
 from ui.import_export_panel import create_import_export_flyout
+from ui.about_dialog import create_about_dialog
 
 # Initialize logger
 logger = logging.getLogger(__name__)
@@ -72,8 +73,6 @@ def serve_layout():
     statistics, is_sample_data = load_statistics()
 
     # Get project scope and use actual remaining values (no window calculations)
-    from data.persistence import get_project_scope
-
     project_scope = get_project_scope()
 
     # Use actual remaining values from project scope (no window calculations)
@@ -122,11 +121,13 @@ def create_app_layout(settings, statistics, is_sample_data):
 
     # Store version check result for callback access (not rendered in initial layout)
     # Toast will be shown via callback to avoid being cleared by page load callbacks
-    version_update_available = hasattr(
-        app, "VERSION_CHECK_RESULT"
-    ) and app.VERSION_CHECK_RESULT.get("update_available", False)
+    version_update_available = (
+        hasattr(app, "VERSION_CHECK_RESULT")
+        and isinstance(app.VERSION_CHECK_RESULT, dict)
+        and app.VERSION_CHECK_RESULT.get("update_available", False)
+    )
 
-    if version_update_available:
+    if version_update_available and isinstance(app.VERSION_CHECK_RESULT, dict):
         version_info = {
             "current": app.VERSION_CHECK_RESULT.get("current_commit", "unknown"),
             "latest": app.VERSION_CHECK_RESULT.get("latest_commit", "unknown"),
@@ -153,6 +154,8 @@ def create_app_layout(settings, statistics, is_sample_data):
             dcc.Store(id="version-check-info", data=version_info),
             # Track if update toast has been shown this session (prevents showing on every page refresh)
             dcc.Store(id="update-toast-shown", storage_type="session", data=False),
+            # Update status store for tracking download/install progress
+            dcc.Store(id="update-status-store", data=None),
             # Migration status tracking (prevents re-running migration)
             dcc.Store(id="migration-status", storage_type="session", data=None),
             # JIRA Configuration Modal (Feature 003-jira-config-separation)
@@ -165,6 +168,8 @@ def create_app_layout(settings, statistics, is_sample_data):
             create_delete_query_modal(),
             # Query Creation Modal (Feature 011-profile-workspace-switching Phase 4)
             create_query_creation_modal(),
+            # About Dialog (Feature 016 - Standalone Packaging)
+            create_about_dialog(),
             # Help System (Phase 9.2 Progressive Disclosure)
             create_help_system_layout(),
             # URL location for triggering page load callbacks
@@ -205,6 +210,13 @@ def create_app_layout(settings, statistics, is_sample_data):
             dcc.Store(id="viewport-size", data="desktop"),
             # Store for triggering metrics refresh (DORA/Flow)
             dcc.Store(id="metrics-refresh-trigger", data=None),
+            # Interval for download progress polling
+            dcc.Interval(
+                id="download-progress-poll",
+                interval=1000,  # Poll every second
+                n_intervals=0,
+                disabled=True,  # Initially disabled, enabled when download starts
+            ),
             # Interval component for dynamic viewport detection
             dcc.Interval(
                 id="viewport-detector",
@@ -300,10 +312,6 @@ def create_app_layout(settings, statistics, is_sample_data):
             # Compact footer with clean design
             html.Div(
                 [
-                    html.Hr(
-                        className="my-2",
-                        style={"borderColor": "#dee2e6", "margin": "0.5rem 0"},
-                    ),
                     dbc.Row(
                         [
                             # Left column - app version
@@ -325,37 +333,61 @@ def create_app_layout(settings, statistics, is_sample_data):
                                 sm=4,
                                 className="d-flex align-items-center justify-content-center justify-content-sm-start mb-1 mb-sm-0",
                             ),
-                            # Center column - GitHub link
+                            # Center column - GitHub and About links
                             dbc.Col(
-                                html.A(
+                                html.Div(
                                     [
-                                        html.I(
-                                            className="fab fa-github me-1",
-                                            style={"fontSize": "0.85rem"},
+                                        html.A(
+                                            [
+                                                html.I(
+                                                    className="fab fa-github me-1",
+                                                    style={"fontSize": "0.85rem"},
+                                                ),
+                                                "GitHub",
+                                            ],
+                                            href="https://github.com/niksavis/burndown-chart",
+                                            target="_blank",
+                                            className="text-decoration-none text-primary fw-medium me-3",
+                                            style={
+                                                "fontSize": "0.85rem",
+                                                "transition": "opacity 0.2s",
+                                            },
                                         ),
-                                        "GitHub",
+                                        html.A(
+                                            [
+                                                html.I(
+                                                    className="fas fa-info-circle me-1",
+                                                    style={"fontSize": "0.85rem"},
+                                                ),
+                                                "About",
+                                            ],
+                                            id="about-button",
+                                            href="#",
+                                            className="text-decoration-none text-primary fw-medium",
+                                            style={
+                                                "fontSize": "0.85rem",
+                                                "transition": "opacity 0.2s",
+                                            },
+                                        ),
                                     ],
-                                    href="https://github.com/niksavis/burndown-chart",
-                                    target="_blank",
-                                    className="text-decoration-none text-primary fw-medium",
-                                    style={"fontSize": "0.85rem"},
+                                    className="d-flex align-items-center justify-content-center",
                                 ),
                                 xs=12,
                                 sm=4,
-                                className="d-flex align-items-center justify-content-center mb-1 mb-sm-0",
+                                className="mb-1 mb-sm-0",
                             ),
                             # Right column - Last updated
                             dbc.Col(
                                 html.Small(
                                     [
                                         html.I(
-                                            className="fas fa-clock me-1 text-muted",
-                                            style={"fontSize": "0.75rem"},
+                                            className="fas fa-clock me-1",
+                                            style={"fontSize": "0.8rem"},
                                         ),
                                         f"{datetime.now().strftime('%b %d, %Y')}",
                                     ],
                                     className="text-muted",
-                                    style={"fontSize": "0.75rem"},
+                                    style={"fontSize": "0.8rem"},
                                 ),
                                 xs=12,
                                 sm=4,
@@ -365,47 +397,63 @@ def create_app_layout(settings, statistics, is_sample_data):
                         className="g-1",
                     ),
                     # Update available banner (compact, below main row)
-                    (
-                        html.Div(
-                            html.Span(
-                                [
-                                    html.I(
-                                        className="fas fa-sync-alt me-1",
-                                        style={"fontSize": "0.7rem"},
-                                    ),
-                                    "Update: ",
-                                    html.Span(
-                                        # Show tags when available, fall back to commit hashes for missing tags
-                                        f"{app.VERSION_CHECK_RESULT.get('current_tag') or app.VERSION_CHECK_RESULT.get('current_commit', 'unknown')[:7]} → "
-                                        f"{app.VERSION_CHECK_RESULT.get('latest_tag') or app.VERSION_CHECK_RESULT.get('latest_commit', 'unknown')[:7]}",
-                                        className="opacity-75",
-                                        style={"fontSize": "0.7rem"},
-                                    ),
-                                ],
-                                id="footer-update-indicator",
-                                n_clicks=0,
-                                className="d-inline-block",
-                                style={
-                                    "cursor": "pointer",
-                                    "userSelect": "none",
-                                    "color": "#198754",
-                                    "fontWeight": "500",
-                                    "fontSize": "0.75rem",
-                                },
-                            ),
-                            className="mt-1 text-center",
-                            style={"lineHeight": "1.2"},
-                        )
-                        if hasattr(app, "VERSION_CHECK_RESULT")
-                        and app.VERSION_CHECK_RESULT.get("update_available", False)
-                        else None
+                    html.Div(
+                        id="footer-update-container",
+                        children=(
+                            html.Div(
+                                html.Button(
+                                    [
+                                        html.I(
+                                            className="fas fa-sync-alt me-1"
+                                            if app.VERSION_CHECK_RESULT.state
+                                            != app.VERSION_CHECK_RESULT.state.__class__.READY
+                                            else "fas fa-check-circle me-1",
+                                            style={"fontSize": "0.7rem"},
+                                        ),
+                                        (
+                                            f"Update Available: {app.VERSION_CHECK_RESULT.current_version} → {app.VERSION_CHECK_RESULT.available_version}"
+                                            if app.VERSION_CHECK_RESULT.state
+                                            == app.VERSION_CHECK_RESULT.state.__class__.AVAILABLE
+                                            else (
+                                                "Update Ready - Click to Install"
+                                                if app.VERSION_CHECK_RESULT.state
+                                                == app.VERSION_CHECK_RESULT.state.__class__.READY
+                                                else f"Manual Update Available: {app.VERSION_CHECK_RESULT.current_version} → {app.VERSION_CHECK_RESULT.available_version}"
+                                            )
+                                        ),
+                                    ],
+                                    id="footer-update-indicator",
+                                    n_clicks=0,
+                                    className="btn btn-link p-0 border-0",
+                                    style={
+                                        "color": "#198754",
+                                        "fontWeight": "500",
+                                        "fontSize": "0.75rem",
+                                        "textDecoration": "none",
+                                    },
+                                ),
+                                className="mt-1 text-center",
+                                style={"lineHeight": "1.2"},
+                            )
+                            if hasattr(app, "VERSION_CHECK_RESULT")
+                            and app.VERSION_CHECK_RESULT is not None
+                            and hasattr(app.VERSION_CHECK_RESULT, "state")
+                            and app.VERSION_CHECK_RESULT.state
+                            in [
+                                app.VERSION_CHECK_RESULT.state.__class__.AVAILABLE,
+                                app.VERSION_CHECK_RESULT.state.__class__.MANUAL_UPDATE_REQUIRED,
+                                app.VERSION_CHECK_RESULT.state.__class__.READY,
+                            ]
+                            else None
+                        ),
                     ),
                 ],
-                className="mt-2 mb-1 py-1",
+                className="mt-2 mb-1 py-2",
                 style={
                     "backgroundColor": "#f8f9fa",
+                    "borderTop": "1px solid #dee2e6",
                     "borderRadius": "4px",
-                    "padding": "0.35rem 0.75rem",
+                    "padding": "0.5rem 0.75rem",
                 },
             ),
         ],

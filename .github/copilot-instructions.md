@@ -9,6 +9,15 @@
 
 ALL errors MUST be fixed immediately: type errors, linting, runtime. Run `get_errors` after every change.
 
+**Pre-Commit Check (MANDATORY)**: BEFORE any `git add` or `git commit`, you MUST:
+
+1. Run `get_errors` on all modified files
+2. Fix ALL errors found (zero tolerance)
+3. Verify fixes with another `get_errors` call
+4. Only proceed with commit after confirming zero errors
+
+**If errors exist, commit is FORBIDDEN.** No exceptions.
+
 ### 2. Layered Architecture (NON-NEGOTIABLE)
 
 `callbacks/` → event handling ONLY, delegate to `data/` layer. Never implement logic in callbacks.
@@ -69,6 +78,37 @@ When discovering errors or outdated information in `copilot-instructions.md`:
 3. **UPDATE** instructions after user approval
 
 Keep documentation synchronized with evolving codebase. Examples: wrong file paths, obsolete workflows, incorrect technical details.
+
+### 9. Conventional Commits (NON-NEGOTIABLE)
+
+ALL commits MUST follow Conventional Commits format: `type(scope): description`
+
+**Required format**: `type(scope): description` where scope is optional
+
+**Valid types**:
+
+- `feat`: New features for users
+- `fix`: Bug fixes for users
+- `docs`: Documentation changes
+- `style`: Code style changes (formatting, whitespace, no logic change)
+- `refactor`: Code restructuring (no feature change)
+- `perf`: Performance improvements
+- `test`: Adding or updating tests
+- `build`: Build system changes (package.json, pip, etc.)
+- `ci`: CI/CD pipeline changes (GitHub Actions, etc.)
+- `chore`: Maintenance tasks (tooling, dependencies, cleanup)
+
+**Examples**:
+
+```
+feat(dashboard): add velocity trend visualization
+fix(jira): handle pagination timeout errors
+docs(readme): update installation instructions
+refactor(metrics): extract calculation logic to helper
+chore(deps): update plotly to 5.18.0
+```
+
+**Enforcement**: Changelog generation relies on commit types. Non-conforming commits won't appear in user-facing changelogs.
 
 ---
 
@@ -199,8 +239,57 @@ logger.info("Velocity calculated", extra={"operation": "calc_velocity", "result"
 
 **MUST verify current branch is main before running bump script.** Bump script auto-updates files, commits, and creates annotated git tag. This sequence ensures tag is on main, not feature branch.
 
-**Commits**: Conventional Commits - `type(scope): description`  
-Types: `feat`, `fix`, `refactor`, `docs`, `test`, `chore`, `perf`
+**Changelog Management** (Part of release process):
+
+The `bump_version.py` script automatically calls `regenerate_changelog.py` to generate draft entries for new tags. Two workflows available:
+
+**Option A - Direct Markdown (Quick Draft):**
+
+1. Script runs automatically during bump
+2. Review generated entries in `changelog.md`
+3. Manually refine for clarity and user-friendliness
+4. Commit changelog updates
+
+**Option B - LLM-Assisted (Polished Summaries):**
+
+1. Run: `python regenerate_changelog.py --json`
+2. Creates `changelog_draft.json` with structured commit data
+3. Feed JSON to LLM: "Write user-friendly summaries for these versions"
+4. Copy LLM output to `changelog.md`
+5. Delete `changelog_draft.json` (auto-ignored by git)
+6. Commit polished changelog
+
+**Key Points:**
+
+- Script ONLY generates entries for NEW tags (preserves existing content)
+- Never overwrites curated changelog entries
+- JSON export provides structured data for AI assistance
+- Focus on user benefits, not technical details
+- Use bold formatting (**Feature Name**) for major features
+- **FLAT BULLETS ONLY**: No sub-bullet points (About dialog cannot render indentation)
+
+**Changelog Format Rules:**
+
+```markdown
+### Features
+
+- **Feature Name**: Description with all details in one line, comma-separated sub-points
+- **Another Feature**: Brief description followed by details inline
+
+### Bug Fixes
+
+- Fixed issue with clear description of problem and solution
+```
+
+**WRONG (causes display issues in About dialog):**
+
+```markdown
+- **Feature Name**: Main description
+  - Sub-point one
+  - Sub-point two
+```
+
+**Commits**: See CRITICAL RULE #9 - Conventional Commits format is MANDATORY
 
 **Self-Review Checklist**:
 
@@ -209,6 +298,110 @@ Types: `feat`, `fix`, `refactor`, `docs`, `test`, `chore`, `perf`
 - [ ] Tests pass: `pytest tests/ -v`
 - [ ] Zero type errors: `get_errors` tool
 - [ ] No sensitive data in code/comments
+
+---
+
+## Development Workflow (Spec-Kit + Beads)
+
+**For new features/specs, follow this structured workflow:**
+
+### 1. Specification (Spec-Kit)
+
+**In VS Code Chat** (`Ctrl+Alt+I`):
+
+```
+@speckit.specify <feature description>
+```
+
+Creates `specs/<feature>/spec.md` with user stories and acceptance criteria.
+
+### 2. Planning (Spec-Kit)
+
+**In VS Code Chat**:
+
+```
+@speckit.plan
+```
+
+Generates planning documents: research.md, plan.md, data-model.md, contracts/, quickstart.md
+
+### 3. Task Generation (Spec-Kit)
+
+**In VS Code Chat**:
+
+```
+@speckit.tasks
+```
+
+Generates `specs/<feature>/tasks.md` with 100+ actionable tasks organized by user stories.
+
+### 4. Import to Beads
+
+```powershell
+.\.venv\Scripts\activate; python workflow/tasks_to_beads.py specs/<feature>/tasks.md tasks.jsonl
+bd import -i tasks.jsonl --rename-on-import
+bd sync
+Remove-Item tasks.jsonl
+```
+
+### 5. Task Tracking (Beads)
+
+**Daily commands**:
+
+- `bd ready` - Show available tasks
+- `bd show <id>` - View task details
+- `bd update <id> --status in_progress` - Claim task
+- `bd close <id>` - Complete task
+- `bd sync` - Sync with git
+
+**Commit format**:
+
+```
+feat(scope): description
+
+Closes beads-<issue-id>
+```
+
+### 6. Feature Completion
+
+**When all beads tasks are closed**, finalize the Spec-Kit workflow:
+
+1. **Verify all tasks complete**:
+
+   ```powershell
+   bd list --status open  # Should show 0 open tasks
+   ```
+
+2. **Update tasks.md** - Check off completed tasks in `specs/<feature>/tasks.md`
+
+3. **Update spec.md** - Add completion date and final notes to `specs/<feature>/spec.md`
+
+4. **Run final quality gates**:
+
+   ```powershell
+   pytest tests/ -v          # All tests pass
+   get_errors                # Zero errors
+   ```
+
+5. **Commit documentation updates**:
+
+   ```powershell
+   git add specs/<feature>/
+   git commit -m "docs(spec-kit): mark <feature> as complete"
+   ```
+
+6. **Final sync and push**:
+
+   ```powershell
+   bd sync
+   git push
+   ```
+
+7. **Ready for merge** - Feature branch ready for PR or merge to main
+
+**Complete workflow**: See `workflow/README.md`  
+**Tool setup**: See `workflow/SETUP.md`  
+**Session completion**: See `AGENTS.md` for mandatory checklist
 
 ---
 

@@ -1,13 +1,18 @@
 """
 Version Bump Script
 
-Updates application version across all project files before merging to main.
-Run this script before merging feature branches to ensure version consistency.
+Updates application version across all project files and creates release tag.
+Run this script ON THE MAIN BRANCH after merging your feature branch.
 
 Usage:
     python bump_version.py [major|minor|patch]
 
 If no argument provided, prompts interactively.
+
+Workflow:
+    1. Merge feature branch to main: git checkout main && git merge <feature-branch>
+    2. Run this script ON MAIN: python bump_version.py minor
+    3. Push with tags: git push origin main --tags
 """
 
 import re
@@ -72,6 +77,18 @@ def update_readme_file(new_version: tuple[int, int, int]) -> None:
 
     readme_file.write_text(updated, encoding="utf-8")
     print(f"[OK] Updated readme.md badge to {version_str}")
+
+
+def generate_changelog() -> None:
+    """Regenerate changelog.md from all git tags using regenerate_changelog script."""
+    try:
+        # Import and run the changelog regeneration
+        import regenerate_changelog
+
+        regenerate_changelog.main()
+    except Exception as e:
+        print(f"[WARNING] Could not regenerate changelog: {e}")
+        print("  You can manually run: python regenerate_changelog.py")
 
 
 def main() -> None:
@@ -160,6 +177,23 @@ def main() -> None:
         )
         print(f"[OK] Created tag v{new_version_str}")
 
+        # Now regenerate changelog from all tags (including the new one)
+        print("\nRegenerating changelog from git history...")
+        generate_changelog()
+
+        # Commit the regenerated changelog
+        subprocess.run(
+            ["git", "add", "changelog.md"],
+            check=True,
+            capture_output=True,
+        )
+        subprocess.run(
+            ["git", "commit", "--amend", "--no-edit"],
+            check=True,
+            capture_output=True,
+        )
+        print("[OK] Updated changelog.md")
+
     except subprocess.CalledProcessError as e:
         print(f"\n[WARNING] Could not create git tag automatically: {e}")
         print("  You may need to commit and tag manually.")
@@ -173,8 +207,10 @@ def main() -> None:
     print("\nNext steps:")
     print("  1. Review changes: git log -1 --stat")
     print("  2. Verify tag: git tag -l v{}".format(new_version_str))
-    print("  3. Merge to main: git checkout main && git merge <branch-name>")
-    print("  4. Push changes: git push origin main --tags")
+    print("  3. Push to remote: git push origin main --tags")
+    print(
+        "\nNote: This script should be run ON MAIN after merging your feature branch."
+    )
     print()
 
 

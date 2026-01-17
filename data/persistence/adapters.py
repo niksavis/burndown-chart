@@ -18,17 +18,11 @@ from typing import Dict, Any, List
 # Third-party library imports
 import pandas as pd
 
-# Application imports
-from configuration import (
-    DEFAULT_DATA_POINTS_COUNT,
-    DEFAULT_DEADLINE,
-    DEFAULT_ESTIMATED_ITEMS,
-    DEFAULT_ESTIMATED_POINTS,
-    DEFAULT_PERT_FACTOR,
-    DEFAULT_TOTAL_ITEMS,
-    DEFAULT_TOTAL_POINTS,
-    logger,
-)
+# Application imports - lazy import constants to avoid circular import
+# Constants are imported inside functions to break circular dependency:
+# configuration.settings -> logging_config -> data.installation_context -> data -> adapters
+# Logger is safe to import at module level (doesn't trigger the chain)
+from configuration.settings import logger
 
 # File locking to prevent race conditions during concurrent writes
 _file_locks: Dict[str, threading.Lock] = {}
@@ -172,6 +166,9 @@ def save_app_settings(
         flow_type_mappings: Dict with Flow type classifications (Feature, Defect, etc.)
         cache_metadata: Dict with cache tracking info (last_cache_key, last_cache_timestamp, cache_config_hash)
     """
+    # Lazy import to avoid circular dependency
+    from configuration.settings import DEFAULT_DATA_POINTS_COUNT, DEFAULT_PERT_FACTOR
+
     settings = {
         "pert_factor": pert_factor,
         "deadline": deadline,
@@ -416,6 +413,13 @@ def load_app_settings() -> Dict[str, Any]:
     Returns:
         Dictionary containing app settings or default values if not found
     """
+    # Lazy import to avoid circular dependency
+    from configuration.settings import (
+        DEFAULT_PERT_FACTOR,
+        DEFAULT_DEADLINE,
+        DEFAULT_DATA_POINTS_COUNT,
+    )
+
     default_settings = {
         "pert_factor": DEFAULT_PERT_FACTOR,
         "deadline": DEFAULT_DEADLINE,
@@ -561,6 +565,12 @@ def save_project_data(
     try:
         from data.persistence.factory import get_backend
 
+        # Lazy import to avoid circular dependency
+        from configuration.settings import (
+            DEFAULT_ESTIMATED_ITEMS,
+            DEFAULT_ESTIMATED_POINTS,
+        )
+
         backend = get_backend()
 
         active_profile_id = backend.get_app_state("active_profile_id")
@@ -595,6 +605,14 @@ def load_project_data() -> Dict[str, Any]:
     Returns:
         Dictionary containing project data or default values if not found
     """
+    # Lazy import to avoid circular dependency
+    from configuration.settings import (
+        DEFAULT_TOTAL_ITEMS,
+        DEFAULT_TOTAL_POINTS,
+        DEFAULT_ESTIMATED_ITEMS,
+        DEFAULT_ESTIMATED_POINTS,
+    )
+
     default_data = {
         "total_items": DEFAULT_TOTAL_ITEMS,
         "total_points": DEFAULT_TOTAL_POINTS,
@@ -647,6 +665,13 @@ def save_settings(
 
     This function is kept for backward compatibility only.
     """
+    # Lazy import to avoid circular dependency
+    from configuration.settings import (
+        DEFAULT_DATA_POINTS_COUNT,
+        DEFAULT_ESTIMATED_ITEMS,
+        DEFAULT_ESTIMATED_POINTS,
+    )
+
     logger.warning(
         "[Deprecated] save_settings() called - use save_app_settings() for profile-based storage"
     )
@@ -684,6 +709,17 @@ def load_settings():
 
     This function is kept for backward compatibility only.
     """
+    # Lazy import to avoid circular dependency
+    from configuration.settings import (
+        DEFAULT_PERT_FACTOR,
+        DEFAULT_DEADLINE,
+        DEFAULT_TOTAL_ITEMS,
+        DEFAULT_TOTAL_POINTS,
+        DEFAULT_DATA_POINTS_COUNT,
+        DEFAULT_ESTIMATED_ITEMS,
+        DEFAULT_ESTIMATED_POINTS,
+    )
+
     logger.warning(
         "[Deprecated] load_settings() called - use load_app_settings() for profile-based storage"
     )

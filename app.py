@@ -10,19 +10,27 @@ and serves as the main entry point for running the server.
 #######################################################################
 # Standard library imports
 import logging
+import os
+import signal
+import socket
+import sys
+import threading
+import time
+import webbrowser
+from pathlib import Path
+from typing import Optional
 
 # Third-party library imports
 import dash
 import dash_bootstrap_components as dbc
 from dash import DiskcacheManager
-from waitress import serve
+import atexit
 import diskcache
 
+# Application imports (after third-party, before usage)
 from callbacks import register_all_callbacks
 from configuration.server import get_server_config
 from configuration.logging_config import setup_logging, cleanup_old_logs
-
-# Application imports
 from ui import serve_layout
 from data.profile_manager import (
     get_active_profile,
@@ -30,15 +38,39 @@ from data.profile_manager import (
     list_profiles,
 )
 from data.query_manager import list_queries_for_profile, get_active_query_id
-from utils.version_checker import check_for_updates
+from data.installation_context import get_installation_context
+from data.update_manager import check_for_updates, UpdateProgress, UpdateState
+from utils.license_extractor import extract_license_on_first_run
+
+# Global reference to server for clean shutdown
+_server = None
+
+
+def shutdown_server():
+    """Shutdown the Waitress server gracefully."""
+    if _server:
+        logger.info("Shutting down Waitress server...")
+        try:
+            _server.close()
+        except Exception as e:
+            logger.warning(f"Error closing server: {e}")
+
 
 #######################################################################
 # APPLICATION SETUP
 #######################################################################
 
+# Detect installation context (frozen/source, paths)
+installation_context = get_installation_context()
+logger_init = logging.getLogger(__name__)
+logger_init.info(f"Installation context: {installation_context}")
+
+# Extract LICENSE.txt on first run (frozen executable only)
+extract_license_on_first_run()
+
 # Initialize logging first (before any other operations)
-setup_logging(log_level="INFO")
-cleanup_old_logs(max_age_days=30)
+setup_logging(log_dir=str(installation_context.logs_path), log_level="INFO")
+cleanup_old_logs(log_dir=str(installation_context.logs_path), max_age_days=30)
 
 # Get logger for this module
 logger = logging.getLogger(__name__)
@@ -71,9 +103,55 @@ except Exception as e:
 # VERSION CHECK
 #######################################################################
 
-# Check for updates on startup (once, not on page refresh)
-# Store result globally for footer to access
-VERSION_CHECK_RESULT = check_for_updates()
+# Global variable to store update check result
+# Accessed by UI components to show update notifications
+VERSION_CHECK_RESULT: Optional[UpdateProgress] = None
+
+
+def _check_for_updates_background() -> None:
+    """Background thread function to check for updates.
+
+    Runs update check without blocking app startup. Result is stored
+    in global VERSION_CHECK_RESULT for UI components to display.
+
+    This is a daemon thread, so it will be terminated when the app exits.
+    """
+    global VERSION_CHECK_RESULT
+    try:
+        logger.info("Starting background update check")
+        VERSION_CHECK_RESULT = check_for_updates()
+        logger.info(
+            "Update check complete",
+            extra={
+                "operation": "update_check",
+                "state": VERSION_CHECK_RESULT.state.value,
+                "current_version": VERSION_CHECK_RESULT.current_version,
+                "available_version": VERSION_CHECK_RESULT.available_version,
+            },
+        )
+    except Exception as e:
+        logger.error(
+            f"Update check failed: {e}",
+            exc_info=True,
+            extra={"operation": "update_check"},
+        )
+        # Set error state so UI knows check failed
+        VERSION_CHECK_RESULT = UpdateProgress(
+            state=UpdateState.ERROR,
+            current_version="unknown",
+            error_message=str(e),
+        )
+
+
+# Launch update check in background thread (daemon=True)
+# App UI will appear immediately without waiting for check to complete
+update_check_thread = threading.Thread(
+    target=_check_for_updates_background,
+    daemon=True,
+    name="UpdateCheckThread",
+)
+update_check_thread.start()
+logger.info("Update check thread started")
 
 #######################################################################
 # WORKSPACE VALIDATION
@@ -170,6 +248,7 @@ app = dash.Dash(
         # Using free version CSS-only (no kit system) to prevent checkout code injection
         "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/fontawesome.min.css",  # Font Awesome core (CSS only)
         "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/solid.min.css",  # Solid icons
+        "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/brands.min.css",  # Brand icons (GitHub, etc.)
         "https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css",  # CodeMirror base styles
         "/assets/custom.css",  # Our custom CSS for standardized styling (includes CodeMirror theme overrides)
         "/assets/help_system.css",  # Help system CSS for progressive disclosure
@@ -270,8 +349,53 @@ register_all_callbacks(app)
 # MAIN
 #######################################################################
 
+
+def wait_for_server_ready(host: str, port: int, timeout: float = 3.0) -> bool:
+    """
+    Wait for server to be ready to accept connections.
+
+    Args:
+        host: Server host address
+        port: Server port number
+        timeout: Maximum time to wait in seconds
+
+    Returns:
+        True if server is ready, False if timeout occurred
+    """
+    start_time = time.time()
+    while time.time() - start_time < timeout:
+        try:
+            with socket.create_connection((host, port), timeout=0.5):
+                return True
+        except (socket.error, OSError):
+            time.sleep(0.1)
+    return False
+
+
+def setup_graceful_shutdown():
+    """
+    Setup graceful shutdown handlers for SIGINT (Ctrl+C) and SIGTERM.
+
+    This ensures clean termination when the executable is closed.
+    """
+
+    def shutdown_handler(signum, frame):
+        """Handle shutdown signals gracefully."""
+        sig_name = "SIGINT" if signum == signal.SIGINT else "SIGTERM"
+        logger.info(f"Received {sig_name}, shutting down gracefully...")
+        print("\nShutting down server...", flush=True)
+        sys.exit(0)
+
+    # Register handlers for both SIGINT (Ctrl+C) and SIGTERM (process termination)
+    signal.signal(signal.SIGINT, shutdown_handler)
+    signal.signal(signal.SIGTERM, shutdown_handler)
+
+
 # Run the app
 if __name__ == "__main__":
+    # Setup graceful shutdown handlers
+    setup_graceful_shutdown()
+
     # Clean up stale task progress from previous crashed/killed processes
     # CRITICAL: This must run BEFORE Dash app starts accepting requests
     try:
@@ -306,6 +430,100 @@ if __name__ == "__main__":
     # Get server configuration
     server_config = get_server_config()
 
+    # Initialize system tray icon (frozen executable only)
+    if installation_context.is_frozen:
+        try:
+            import pystray
+            from PIL import Image
+
+            def on_open(icon, item):
+                """Open the application in the default browser."""
+                url = f"http://{server_config['host']}:{server_config['port']}"
+                try:
+                    webbrowser.open(url, new=2, autoraise=True)
+                    logger.info("Browser opened from tray icon")
+                except Exception as e:
+                    logger.error(f"Failed to open browser from tray: {e}")
+
+            def on_quit(icon, item):
+                """Quit the application gracefully."""
+                logger.info("Quit requested from tray icon")
+                # Stop the tray icon first
+                icon.stop()
+                # Shutdown the Waitress server
+                shutdown_server()
+                # Exit the application
+                os._exit(0)  # Force exit all threads
+
+            # Load icon file from PyInstaller bundle (_MEIPASS)
+            # PyInstaller unpacks bundled files to _MEIPASS at runtime
+            meipass = Path(sys._MEIPASS)  # type: ignore[attr-defined]
+            icon_path = meipass / "assets" / "icon.ico"
+
+            if icon_path.exists():
+                tray_icon = pystray.Icon(
+                    "burndown-chart",
+                    Image.open(str(icon_path)),
+                    f"Burndown Chart - Running on http://{server_config['host']}:{server_config['port']}",
+                    menu=pystray.Menu(
+                        pystray.MenuItem("Open in Browser", on_open),
+                        pystray.MenuItem("Quit", on_quit),
+                    ),
+                )
+
+                # Run tray icon in separate daemon thread so it doesn't block server
+                tray_thread = threading.Thread(
+                    target=tray_icon.run, daemon=True, name="TrayIconThread"
+                )
+                tray_thread.start()
+                logger.info(f"System tray icon initialized from {icon_path}")
+            else:
+                logger.warning(
+                    f"Icon file not found at {icon_path}, skipping tray icon"
+                )
+        except ImportError:
+            logger.warning(
+                "pystray not available, skipping tray icon (install with: pip install pystray)"
+            )
+        except Exception as e:
+            logger.error(f"Failed to initialize tray icon: {e}", exc_info=True)
+
+    # Determine if browser should auto-launch
+    # Only auto-launch when running as frozen executable (not in dev mode)
+    # and when BURNDOWN_NO_BROWSER environment variable is not set
+    # Skip auto-launch if post_update_relaunch flag is set (updater will reload existing tabs)
+    should_launch_browser = (
+        installation_context.is_frozen
+        and not server_config["debug"]
+        and os.environ.get("BURNDOWN_NO_BROWSER", "0") != "1"
+    )
+
+    # Check database flag for post-update relaunch
+    if should_launch_browser:
+        try:
+            from data.persistence.factory import get_backend
+
+            backend = get_backend()
+            post_update_flag = backend.get_app_state("post_update_relaunch")
+
+            if post_update_flag:
+                logger.info(
+                    "Skipping browser auto-launch after update (update_reconnect.js will reload existing tabs)"
+                )
+                print(
+                    "Detected post-update restart - reconnecting existing browser tabs...",
+                    flush=True,
+                )
+                should_launch_browser = False
+
+                # Clear flag after reading (one-time use)
+                backend.set_app_state("post_update_relaunch", "")
+                logger.debug("Cleared post_update_relaunch flag")
+        except Exception as e:
+            logger.warning(
+                f"Failed to check post_update_relaunch flag: {e} - proceeding with normal launch"
+            )
+
     if server_config["debug"]:
         logger.info(
             f"Starting development server in DEBUG mode on {server_config['host']}:{server_config['port']}"
@@ -322,5 +540,52 @@ if __name__ == "__main__":
         print(
             f"Starting Waitress production server on {server_config['host']}:{server_config['port']}..."
         )
-        print(f"Open your browser at: {url}", flush=True)
-        serve(app.server, host=server_config["host"], port=server_config["port"])
+        print("\nOpen your browser at:", flush=True)
+        print(f"  {url}", flush=True)
+        print("", flush=True)  # Empty line for better visibility
+
+        # Launch browser in separate thread if running as executable (unless disabled by env var)
+        if should_launch_browser:
+
+            def launch_browser():
+                """Wait for server to be ready, then launch browser."""
+                logger.info("Waiting for server to be ready...")
+                if wait_for_server_ready(
+                    server_config["host"], server_config["port"], timeout=3.0
+                ):
+                    logger.info(f"Server ready, launching browser at {url}")
+                    print("Server ready! Launching browser...", flush=True)
+                    try:
+                        # Try to reuse existing tab by opening with new=2 (new tab if possible)
+                        # This still may open a new tab but at least tries to reuse window
+                        webbrowser.open(url, new=2, autoraise=True)
+                    except Exception as e:
+                        logger.warning(f"Failed to auto-launch browser: {e}")
+                        print(f"Could not auto-launch browser: {e}", flush=True)
+                else:
+                    logger.warning(
+                        "Server readiness check timed out after 3s, browser not launched"
+                    )
+                    print(
+                        "Server startup took longer than expected. Please open browser manually.",
+                        flush=True,
+                    )
+
+            browser_thread = threading.Thread(target=launch_browser, daemon=True)
+            browser_thread.start()
+
+        # Start server in a way that allows graceful shutdown
+        from waitress.server import create_server
+
+        _server = create_server(
+            app.server,
+            host=server_config["host"],
+            port=server_config["port"],
+            threads=4,
+        )
+
+        # Register shutdown handler
+        atexit.register(shutdown_server)
+
+        logger.info("Waitress server starting...")
+        _server.run()

@@ -1,0 +1,364 @@
+name: Release Build
+
+on:
+  push:
+    tags:
+      - "v*" # Trigger on version tags (v1.0.0, v2.1.3, etc.)
+  workflow_dispatch: # Allow manual trigger for testing
+    inputs:
+      test_mode:
+        description: "Test mode (skips actual release creation)"
+        required: false
+        type: boolean
+        default: true
+
+permissions:
+  contents: write # Required for creating releases and uploading assets
+
+jobs:
+  build-and-release:
+    name: Build and Release
+    runs-on: windows-latest
+
+    steps:
+      # Checkout code
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Full history for changelog generation
+
+      # Setup Python 3.13
+      - name: Setup Python 3.13
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: "pip" # Cache pip dependencies for faster builds
+
+      # Install dependencies
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          # Install production dependencies only
+          pip install -r requirements.txt
+          # Install build-only tools (not needed at runtime)
+          pip install pyinstaller>=6.0.0 pip-licenses>=5.0.0 pillow>=10.0.0
+        shell: pwsh
+
+      # Collect third-party licenses
+      - name: Collect licenses
+        run: |
+          .\build\collect_licenses.ps1
+        shell: pwsh
+
+      # Build executables
+      - name: Build executables
+        id: build
+        run: |
+          try {
+            .\build\build.ps1 -VerboseBuild
+            if ($LASTEXITCODE -ne 0) {
+              Write-Error "Build script failed with exit code: $LASTEXITCODE"
+              exit 1
+            }
+          }
+          catch {
+            Write-Error "Build failed: $_"
+            Write-Error "Stack trace: $($_.ScriptStackTrace)"
+            exit 1
+          }
+        shell: pwsh
+        continue-on-error: false
+
+      # Verify build artifacts exist before packaging
+      - name: Verify build artifacts
+        id: verify_build
+        run: |
+          $mainExe = "dist\BurndownChart.exe"
+          if (-not (Test-Path $mainExe)) {
+            Write-Error "Main executable not found at: $mainExe"
+            Write-Error "Build artifacts missing - cannot proceed with packaging"
+            exit 1
+          }
+          $size = (Get-Item $mainExe).Length / 1MB
+          Write-Host "Build verified: $mainExe ($([math]::Round($size, 2)) MB)"
+        shell: pwsh
+        continue-on-error: false
+
+      # Package distribution
+      - name: Create distribution package
+        id: package
+        run: |
+          try {
+            .\build\package.ps1
+            if ($LASTEXITCODE -ne 0) {
+              Write-Error "Package script failed with exit code: $LASTEXITCODE"
+              exit 1
+            }
+          }
+          catch {
+            Write-Error "Packaging failed: $_"
+            Write-Error "Stack trace: $($_.ScriptStackTrace)"
+            exit 1
+          }
+        shell: pwsh
+        continue-on-error: false
+
+      # Extract version from tag
+      - name: Extract version
+        id: version
+        run: |
+          $tag = "${{ github.ref_name }}"
+          $version = $tag -replace '^v', ''
+          echo "VERSION=$version" >> $env:GITHUB_OUTPUT
+          echo "Extracted version: $version"
+        shell: pwsh
+
+      # Find the ZIP file
+      - name: Find ZIP file
+        id: zip
+        run: |
+          $zipFile = Get-ChildItem -Path dist -Filter "BurndownChart-Windows-*.zip" -ErrorAction SilentlyContinue | Select-Object -First 1
+          if (-not $zipFile) {
+            Write-Error "ZIP file not found in dist directory"
+            Write-Host "Contents of dist directory:" -ForegroundColor Yellow
+            Get-ChildItem -Path dist -Recurse | ForEach-Object { Write-Host "  $_" }
+            exit 1
+          }
+          if (-not (Test-Path $zipFile.FullName)) {
+            Write-Error "ZIP file path is invalid: $($zipFile.FullName)"
+            exit 1
+          }
+          $zipSize = (Get-Item $zipFile.FullName).Length / 1MB
+
+          # Use relative path for GitHub Actions (forward slashes)
+          $relativePath = "dist/$($zipFile.Name)"
+
+          echo "ZIP_PATH=$relativePath" >> $env:GITHUB_OUTPUT
+          echo "ZIP_NAME=$($zipFile.Name)" >> $env:GITHUB_OUTPUT
+          Write-Host "Found: $($zipFile.Name) ($([math]::Round($zipSize, 2)) MB)"
+          Write-Host "Relative path: $relativePath"
+        shell: pwsh
+        continue-on-error: false
+
+      # Read changelog from changelog.md
+      - name: Read changelog
+        id: changelog
+        run: |
+          $version = "${{ steps.version.outputs.VERSION }}"
+
+          if (-not (Test-Path "changelog.md")) {
+            Write-Host "No changelog.md found - using default message" -ForegroundColor Yellow
+            echo "CHANGELOG=No changelog available for this release." >> $env:GITHUB_OUTPUT
+            exit 0
+          }
+
+          try {
+            # Read entire changelog
+            $content = Get-Content "changelog.md" -Raw -ErrorAction Stop
+
+            # Extract version-specific section (between ## v{version} and next ## or end)
+            $pattern = "(?s)## v$version\s*\r?\n(.*?)(?=\r?\n## v|\z)"
+            if ($content -match $pattern) {
+              $changelogSection = $matches[1].Trim()
+              Write-Host "Found changelog for v$version"
+            } else {
+              # Fallback: use entire changelog if version section not found
+              $changelogSection = $content
+              Write-Host "Using full changelog (version section not found)" -ForegroundColor Yellow
+            }
+
+            # Save to output
+            echo "CHANGELOG<<EOF" >> $env:GITHUB_OUTPUT
+            echo $changelogSection >> $env:GITHUB_OUTPUT
+            echo "EOF" >> $env:GITHUB_OUTPUT
+          }
+          catch {
+            Write-Error "Failed to read changelog: $_"
+            echo "CHANGELOG=Changelog read error - see build logs." >> $env:GITHUB_OUTPUT
+          }
+        shell: pwsh
+        continue-on-error: false
+
+      # Create release notes
+      - name: Create release notes
+        id: notes
+        run: |
+          try {
+            $version = "${{ steps.version.outputs.VERSION }}"
+            
+            if (-not (Test-Path "changelog.md")) {
+              Write-Host "Changelog not found - using minimal release notes" -ForegroundColor Yellow
+              $changelog = "See commit history for changes."
+            }
+            else {
+              $changelog = Get-Content changelog.md -Raw -ErrorAction Stop
+            }
+
+            $notes = @"
+          ## Installation Instructions
+
+          ### Windows (Standalone Executable)
+
+          **For non-technical users** - No Python installation required:
+
+          1. **Download** ``BurndownChart-Windows-$version.zip`` below
+          2. **Extract** the contents to a folder of your choice (e.g., ``C:\Program Files\BurndownChart``)
+          3. **Run** ``BurndownChart.exe`` to start the application
+          4. **Optional**: Create a desktop shortcut to the executable for easy access
+
+          ### Linux / macOS / Windows (Run from Source)
+
+          **For technical users** - Requires Python 3.13+:
+
+          1. **Download** the source code ZIP below (``Source code (zip)``)
+          2. **Extract** and navigate to the folder
+          3. **Install dependencies**: ``pip install -r requirements.txt``
+          4. **Run**: ``python app.py``
+          5. **Access**: Open browser to ``http://127.0.0.1:8050``
+
+          See the included ``readme.md`` for detailed setup instructions.
+
+          ### First-Time Setup
+
+          When you first run the application:
+
+          1. Navigate to **Settings** tab
+          2. Configure your **JIRA connection**:
+             - JIRA URL (e.g., ``https://your-company.atlassian.net``)
+             - API token (create one in your JIRA server's security settings)
+          3. Create a **query profile** to fetch your project's issues
+          4. Click **Update Data** to load your project data
+
+          $changelog
+
+          ## Requirements
+
+          - **Operating System**: Windows 10/11 (64-bit)
+          - **Web Browser**: Chrome, Firefox, Edge, or any modern browser
+          - **Network Access**: Required to connect to your JIRA server (internet or local network)
+          - **Disk Space**: ~150 MB
+
+          ## Support
+
+          - 📖 **Documentation**: [Full documentation](https://github.com/niksavis/burndown-chart/blob/main/docs/readme.md)
+          - 🐛 **Report Issues & Feature Requests**: [GitHub Issues](https://github.com/niksavis/burndown-chart/issues)
+
+          ## License
+
+          This software is licensed under the [MIT License](https://github.com/niksavis/burndown-chart/blob/main/LICENSE).
+
+          Third-party dependencies and their licenses are included in the package as ``THIRD_PARTY_LICENSES.txt``.
+
+          ---
+
+          **Full Changelog**: https://github.com/niksavis/burndown-chart/commits/v$version
+          "@
+
+            $notes | Out-File -FilePath release_notes.md -Encoding utf8 -ErrorAction Stop
+
+            # For GitHub output
+            echo "NOTES<<EOF" >> $env:GITHUB_OUTPUT
+            echo $notes >> $env:GITHUB_OUTPUT
+            echo "EOF" >> $env:GITHUB_OUTPUT
+            
+            Write-Host "Release notes created successfully"
+          }
+          catch {
+            Write-Error "Failed to create release notes: $_"
+            Write-Error "Stack trace: $($_.ScriptStackTrace)"
+            exit 1
+          }
+        shell: pwsh
+        continue-on-error: false
+
+      # Final validation before release
+      - name: Final validation
+        id: validate
+        run: |
+          Write-Host "Running final validation checks..." -ForegroundColor Cyan
+
+          # Check ZIP file exists and is accessible (use relative path)
+          $zipPath = "${{ steps.zip.outputs.ZIP_PATH }}"
+          if (-not (Test-Path $zipPath)) {
+            Write-Error "ZIP file not found at: $zipPath"
+            Write-Host "Current directory: $(Get-Location)"
+            Write-Host "Contents:" -ForegroundColor Yellow
+            Get-ChildItem -Path . -Recurse | ForEach-Object { Write-Host "  $_" }
+            exit 1
+          }
+
+          # Check ZIP is not empty
+          $zipSize = (Get-Item $zipPath).Length
+          if ($zipSize -lt 1KB) {
+            Write-Error "ZIP file is suspiciously small: $zipSize bytes"
+            exit 1
+          }
+
+          # Check release notes were created
+          if (-not (Test-Path "release_notes.md")) {
+            Write-Error "Release notes file not found"
+            exit 1
+          }
+
+          # Verify all required outputs are set
+          $version = "${{ steps.version.outputs.VERSION }}"
+          $zipName = "${{ steps.zip.outputs.ZIP_NAME }}"
+
+          if ([string]::IsNullOrEmpty($version)) {
+            Write-Error "Version output is empty"
+            exit 1
+          }
+
+          if ([string]::IsNullOrEmpty($zipName)) {
+            Write-Error "ZIP name output is empty"
+            exit 1
+          }
+
+          Write-Host "Validation passed:" -ForegroundColor Green
+          Write-Host "  Version: $version"
+          Write-Host "  ZIP: $zipName ($([math]::Round($zipSize / 1MB, 2)) MB)"
+          Write-Host "  Ready to create release"
+        shell: pwsh
+        continue-on-error: false
+
+      # Create GitHub release (skip in test mode)
+      - name: Create GitHub Release
+        id: create_release
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v1
+        with:
+          name: "Burndown Chart v${{ steps.version.outputs.VERSION }}"
+          body_path: release_notes.md
+          draft: false
+          prerelease: false
+          files: ${{ steps.zip.outputs.ZIP_PATH }}
+          fail_on_unmatched_files: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # Test mode summary
+      - name: Test mode summary
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          Write-Host "`n========================================" -ForegroundColor Yellow
+          Write-Host "TEST MODE - Release creation skipped" -ForegroundColor Yellow
+          Write-Host "========================================" -ForegroundColor Yellow
+          Write-Host "`nBuild artifacts validated successfully:" -ForegroundColor Green
+          Write-Host "  - Executable built: dist\BurndownChart.exe"
+          Write-Host "  - Package created: ${{ steps.zip.outputs.ZIP_NAME }}"
+          Write-Host "  - Release notes generated: release_notes.md"
+          Write-Host "  - Version extracted: ${{ steps.version.outputs.VERSION }}"
+          Write-Host "`nAll error handling checks passed!" -ForegroundColor Green
+          Write-Host "`nTo create actual release, push a version tag:" -ForegroundColor Cyan
+          Write-Host "  git tag v${{ steps.version.outputs.VERSION }}"
+          Write-Host "  git push origin v${{ steps.version.outputs.VERSION }}"
+        shell: pwsh
+
+      # Upload changelog as artifact for reference
+      - name: Upload changelog artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: changelog
+          path: changelog.md
+          retention-days: 90
+        if: always()

@@ -12,6 +12,20 @@ Sync Impact Report:
 
 ## Core Principles
 
+### 0. Zero Errors Policy (NON-NEGOTIABLE)
+
+ALL code MUST be error-free before committing. Type errors, linting errors, and runtime errors are prohibited.
+
+**Rationale**: Errors compound technical debt and break builds. Prevention is cheaper than remediation.
+
+**Verification**: Before ANY commit:
+1. Run `get_errors` on all modified files
+2. Fix ALL errors (zero tolerance)
+3. Re-verify with `get_errors`
+4. Commit ONLY after zero errors confirmed
+
+**Enforcement**: Commits with errors are FORBIDDEN. No exceptions.
+
 ### I. Layered Architecture (NON-NEGOTIABLE)
 
 Business logic MUST reside in `data/` layer. Callbacks in `callbacks/` MUST only delegate to data layer.

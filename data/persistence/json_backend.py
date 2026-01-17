@@ -388,6 +388,68 @@ class JSONBackend(PersistenceBackend):
         )
 
     # ========================================================================
+    # Task State Operations (STUB)
+    # ========================================================================
+
+    def get_task_state(self) -> Optional[Dict]:
+        """NOT SUPPORTED: Task state is runtime-only in SQLite."""
+        raise NotImplementedError(
+            "JSONBackend.get_task_state - Not supported, use SQLiteBackend"
+        )
+
+    def save_task_state(self, state: Dict) -> None:
+        """NOT SUPPORTED: Task state is runtime-only in SQLite."""
+        raise NotImplementedError(
+            "JSONBackend.save_task_state - Not supported, use SQLiteBackend"
+        )
+
+    def clear_task_state(self) -> None:
+        """NOT SUPPORTED: Task state is runtime-only in SQLite."""
+        raise NotImplementedError(
+            "JSONBackend.clear_task_state - Not supported, use SQLiteBackend"
+        )
+
+    # ========================================================================
+    # Budget Operations (STUB)
+    # ========================================================================
+
+    def get_budget_settings(self, profile_id: str, query_id: str) -> Optional[Dict]:
+        """NOT SUPPORTED: Budget settings are SQLite-only."""
+        raise NotImplementedError(
+            "JSONBackend.get_budget_settings - Not supported, use SQLiteBackend"
+        )
+
+    def get_budget_revisions(self, profile_id: str, query_id: str) -> List[Dict]:
+        """NOT SUPPORTED: Budget revisions are SQLite-only."""
+        raise NotImplementedError(
+            "JSONBackend.get_budget_revisions - Not supported, use SQLiteBackend"
+        )
+
+    def save_budget_settings(
+        self, profile_id: str, query_id: str, budget_settings: Dict
+    ) -> None:
+        """NOT SUPPORTED: Budget settings are SQLite-only."""
+        raise NotImplementedError(
+            "JSONBackend.save_budget_settings - Not supported, use SQLiteBackend"
+        )
+
+    def save_budget_revision(
+        self, profile_id: str, query_id: str, revision: Dict
+    ) -> None:
+        """NOT SUPPORTED: Budget revisions are SQLite-only."""
+        raise NotImplementedError(
+            "JSONBackend.save_budget_revision - Not supported, use SQLiteBackend"
+        )
+
+    def save_budget_revisions(
+        self, profile_id: str, query_id: str, revisions: List[Dict]
+    ) -> None:
+        """NOT SUPPORTED: Budget revisions are SQLite-only."""
+        raise NotImplementedError(
+            "JSONBackend.save_budget_revisions - Not supported, use SQLiteBackend"
+        )
+
+    # ========================================================================
     # Transaction Management (NO-OP)
     # ========================================================================
 

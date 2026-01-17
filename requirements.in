@@ -1,3 +1,7 @@
+# Production Dependencies Only
+# These are the packages required for the application to run.
+# Use requirements-dev.in for development/testing/build dependencies.
+
 # Core Dash application dependencies
 dash[diskcache]==3.1.1
 dash-bootstrap-components==2.0.2
@@ -22,18 +26,8 @@ waitress==3.0.2
 # Clipboard support (cross-platform)
 pyperclip==1.8.2
 
-# Environment configuration
-python-dotenv==1.0.1
+# Process utilities (for faster update process detection)
+psutil==6.1.1
 
-# Network analysis (used in the app)
-networkx>=3.0
-
-# Testing dependencies
-pytest==8.3.5
-pytest-cov==6.1.1
-playwright>=1.40.0
-
-# Optional: Additional development and testing tools
-# Uncomment these lines when you need additional tools:
-# pytest-playwright>=0.4.0
-# pip-tools==7.4.1
+# System tray icon (for console-free executable control)
+pystray>=0.19.5

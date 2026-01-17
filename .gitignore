@@ -8,9 +8,14 @@ __pycache__/
 
 # Distribution / packaging
 .Python
-build/
 develop-eggs/
 dist/
+# Note: build/ directory contains build scripts, not build output
+# Build output (PyInstaller temp files) goes in build/temp/ and build/app/
+build/temp/
+build/app/
+build/updater/
+build/*.log
 downloads/
 eggs/
 .eggs/
@@ -30,7 +35,8 @@ MANIFEST
 #  Usually these files are written by a python script from a template
 #  before PyInstaller builds the exe, so as to inject date/other infos into it.
 *.manifest
-*.spec
+# Note: .spec files in build/ directory are intentionally versioned
+# *.spec
 
 # Installer logs
 pip-log.txt
@@ -182,6 +188,9 @@ jira_changelog_cache.json
 jira_query_profiles.json
 metrics_snapshots.json
 
+# Build-generated license files (created by build/collect_licenses.ps1)
+licenses/
+
 # Profile & Query workspace data (Feature 011 - contains customer data)
 # Directory created automatically by migration/profile manager on first run
 profiles/
@@ -232,7 +241,8 @@ sdd-*/
 # Ignore everything in .github/ except specific public files
 .github/*
 !.github/copilot-instructions.md
-!.github/release.yml
+!.github/workflows/
+!.github/changelog-scopes.yml
 
 # Debug and test artifacts (root directory only - not tests/ folder)
 /test_*.py
@@ -252,6 +262,9 @@ temp_reports/
 
 # Task progress tracking (runtime state file)
 task_progress.json
+
+# Changelog generation intermediate file (for LLM processing)
+changelog_draft.json
 
 # Process ID tracking (runtime artifact)
 app_pid.txt

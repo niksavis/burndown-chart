@@ -14,19 +14,8 @@ This package provides data processing and persistence utilities.
 # None
 
 # Application imports
-from data.persistence import (
-    generate_realistic_sample_data,
-    load_app_settings,
-    load_project_data,
-    load_settings,
-    load_statistics,
-    read_and_clean_data,
-    save_app_settings,
-    save_project_data,
-    save_settings,
-    save_statistics,
-    save_statistics_from_csv_import,
-)
+# NOTE: Persistence adapters are NOT imported here to avoid circular imports
+# Import them directly where needed: from data.persistence.adapters import ...
 from data.processing import (
     calculate_performance_trend,
     calculate_total_points,
@@ -37,17 +26,6 @@ from data.processing import (
 
 # Define public API
 __all__ = [
-    "load_app_settings",
-    "load_project_data",
-    "load_settings",
-    "save_app_settings",
-    "save_project_data",
-    "save_settings",
-    "load_statistics",
-    "save_statistics",
-    "save_statistics_from_csv_import",
-    "read_and_clean_data",
-    "generate_realistic_sample_data",
     "calculate_total_points",
     "compute_cumulative_values",
     "calculate_weekly_averages",

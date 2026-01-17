@@ -20,18 +20,70 @@
 
 **All data stays local** - No cloud services, no tracking, no telemetry.
 
-## Quick Start
+## Download
 
-**Requirements:** Python 3.13+ ([download here](https://www.python.org/downloads/))
+**[📥 Download Latest Release](https://github.com/niksavis/burndown-chart/releases/latest)**
 
-1. **Download** - Get the [ZIP file](https://github.com/niksavis/burndown-chart/archive/refs/heads/main.zip) and unzip, or clone with Git
-2. **Install** - Open terminal in the project folder and run:
-   - **Windows:** `python -m venv .venv && .venv\Scripts\activate && pip install -r requirements.txt`
-   - **Mac/Linux:** `python3 -m venv .venv && source .venv/bin/activate && pip install -r requirements.txt`
-3. **Start** - Run `python app.py`
-4. **Open** - Go to [http://127.0.0.1:8050](http://127.0.0.1:8050) in your browser
+**Windows Users:** Download the Windows ZIP package - standalone executable, no Python required
 
-**First-time setup:** Create a profile → Configure JIRA connection (URL + token) → Map JIRA fields (auto-detected) → Define JQL queries → Sync issues → View charts.
+**All Other Platforms:** Download source code (zip/tar.gz) - requires Python 3.13+
+
+See installation instructions below for setup details.
+
+## Installation
+
+### Option 1: Windows (Standalone Executable)
+
+**For non-technical users** - No Python installation required!
+
+1. **Download** the latest Windows release from the [Releases page](https://github.com/niksavis/burndown-chart/releases/latest)
+2. **Extract** the ZIP file to a folder of your choice (e.g., `C:\Program Files\BurndownChart`)
+3. **Run** `BurndownChart\BurndownChart.exe` to start the application
+4. **Open** your browser to [http://127.0.0.1:8050](http://127.0.0.1:8050)
+5. **Optional**: Create a desktop shortcut to the EXE for easy access
+
+**Note:** Windows may show a security warning on first run. Click "More info" → "Run anyway" (the app is not signed).
+
+### Option 2: All Platforms (From Source)
+
+**For technical users (Linux/macOS/Windows)** - Requires Python 3.13+
+
+1. **Download** the source code from the [Releases page](https://github.com/niksavis/burndown-chart/releases/latest)
+   - Click "Source code (zip)" or "Source code (tar.gz)"
+   - Or clone the repository: `git clone https://github.com/niksavis/burndown-chart.git`
+
+2. **Extract** and navigate to the project folder in terminal
+
+3. **Install** - Create a virtual environment and install dependencies:
+   
+   **Windows:**
+   ```powershell
+   python -m venv .venv
+   .venv\Scripts\activate
+   pip install -r requirements-dev.txt
+   ```
+   
+   **Mac/Linux:**
+   ```bash
+   python3 -m venv .venv
+   source .venv/bin/activate
+   pip install -r requirements-dev.txt
+   ```
+
+4. **Start** - Run `python app.py`
+
+5. **Open** - Go to [http://127.0.0.1:8050](http://127.0.0.1:8050) in your browser
+
+**For developers:** Want to work with the latest code? Clone the `main` branch:
+```bash
+git clone https://github.com/niksavis/burndown-chart.git
+cd burndown-chart
+# Follow installation steps above using requirements-dev.txt
+```
+
+**Note:** `requirements-dev.txt` includes testing/build tools. Use `requirements.txt` for production-only dependencies.
+
+## First-Time Setup
 
 ## Connecting to JIRA
 

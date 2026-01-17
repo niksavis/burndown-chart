@@ -24,6 +24,7 @@ from pathlib import Path
 from data.persistence import PersistenceBackend
 from data.persistence.sqlite_backend import SQLiteBackend
 from data.persistence.json_backend import JSONBackend
+from data.installation_context import get_installation_context
 
 logger = logging.getLogger(__name__)
 
@@ -31,9 +32,10 @@ logger = logging.getLogger(__name__)
 _backend_instance: Optional[PersistenceBackend] = None
 _backend_type: Literal["sqlite", "json"] = "sqlite"
 
-# Default paths
-DEFAULT_SQLITE_PATH = "profiles/burndown.db"
-DEFAULT_JSON_PATH = "profiles"
+# Default paths - use installation context for database path
+_installation_context = get_installation_context()
+DEFAULT_SQLITE_PATH = str(_installation_context.database_path)
+DEFAULT_JSON_PATH = str(_installation_context.database_path.parent)
 
 
 def get_backend(
