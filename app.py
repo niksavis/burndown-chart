@@ -491,11 +491,38 @@ if __name__ == "__main__":
     # Determine if browser should auto-launch
     # Only auto-launch when running as frozen executable (not in dev mode)
     # and when BURNDOWN_NO_BROWSER environment variable is not set
+    # Skip auto-launch if post_update_relaunch flag is set (updater will reload existing tabs)
     should_launch_browser = (
         installation_context.is_frozen
         and not server_config["debug"]
         and os.environ.get("BURNDOWN_NO_BROWSER", "0") != "1"
     )
+
+    # Check database flag for post-update relaunch
+    if should_launch_browser:
+        try:
+            from data.persistence.factory import get_backend
+
+            backend = get_backend()
+            post_update_flag = backend.get_app_state("post_update_relaunch")
+
+            if post_update_flag:
+                logger.info(
+                    "Skipping browser auto-launch after update (update_reconnect.js will reload existing tabs)"
+                )
+                print(
+                    "Detected post-update restart - reconnecting existing browser tabs...",
+                    flush=True,
+                )
+                should_launch_browser = False
+
+                # Clear flag after reading (one-time use)
+                backend.set_app_state("post_update_relaunch", "")
+                logger.debug("Cleared post_update_relaunch flag")
+        except Exception as e:
+            logger.warning(
+                f"Failed to check post_update_relaunch flag: {e} - proceeding with normal launch"
+            )
 
     if server_config["debug"]:
         logger.info(
