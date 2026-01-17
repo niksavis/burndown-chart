@@ -415,25 +415,31 @@ $env:VERSION = "2.5.1"
 
 ### Version Bump
 
+**CRITICAL: This workflow must happen ON THE MAIN BRANCH after merging your feature branch.**
+
 ```powershell
-# From main branch
+# Step 1: Merge feature branch to main
 git checkout main
 git pull
+git merge 016-standalone-packaging  # Replace with your feature branch name
 
-# Bump version (creates commit + tag)
+# Step 2: Bump version ON MAIN (creates commit + tag + changelog)
 python bump_version.py patch   # 2.5.0 → 2.5.1
 python bump_version.py minor   # 2.5.0 → 2.6.0
 python bump_version.py major   # 2.5.0 → 3.0.0
 
-# Push to trigger GitHub Actions
+# Step 3: Push to trigger GitHub Actions
 git push origin main --tags
 ```
 
-**What bump_version.py does:**
+**What bump_version.py does (automatically):**
 1. Updates `configuration/__init__.py` (**version** = "X.Y.Z")
-2. Creates git commit: "chore(release): bump version to X.Y.Z"
-3. Creates annotated git tag: vX.Y.Z
-4. Does NOT push (you must push manually)
+2. Updates `readme.md` version badge
+3. Creates git commit: "chore: bump version to X.Y.Z"
+4. Creates annotated git tag: vX.Y.Z
+5. Calls `regenerate_changelog.py` to update changelog.md
+6. Amends commit to include changelog updates
+7. Does NOT push (you must push manually)
 
 ### GitHub Release Verification
 
@@ -553,32 +559,60 @@ Download and test the released ZIP:
 
 ## Changelog Generation Workflow
 
-Burndown Chart uses an incremental changelog system to ensure release notes are accurate and never overwritten. The changelog is generated and updated using the `regenerate_changelog.py` script.
+Burndown Chart uses an incremental changelog system to ensure release notes are accurate and never overwritten. The changelog is **automatically generated** by `bump_version.py`, but you can manually curate entries beforehand if desired.
 
-### How to Generate/Update changelog.md
+### Automatic Changelog Generation (Default)
 
-1. **Incremental Update:**
-- Run: `python regenerate_changelog.py`
-- This will scan all conventional commits since the last tag and append new entries to `changelog.md`.
-- Existing release notes are preserved; only new changes are added.
+**When you run `python bump_version.py`**, it automatically:
+1. Creates the version tag
+2. Calls `regenerate_changelog.py` to generate entries from conventional commits
+3. Updates `changelog.md` with new version section
+4. Amends the version commit to include changelog
 
-2. **LLM-Assisted Summaries (Optional):**
-- Run: `python regenerate_changelog.py --json`
-- This creates `changelog_draft.json` with structured commit data for the new version.
-- Feed the JSON to an LLM (e.g., Copilot Chat): "Write user-friendly summaries for these versions."
-- Copy the LLM output into `changelog.md` for polished release notes.
-- Delete `changelog_draft.json` after use (auto-ignored by git).
+**Important:** The script only generates entries for NEW tags (not already in changelog), so manually curated content is preserved.
 
-3. **Best Practices:**
-- Always update `changelog.md` before bumping the version and creating a release.
-- Never overwrite previous release notes; only add new entries for the current version.
-- Use bold formatting for major features and focus on user benefits.
+### Manual Curation (Optional - Before Version Bump)
+
+If you want to write polished, user-friendly changelog entries instead of auto-generated ones:
+
+**Option A - Manual editing:**
+1. Before running `bump_version.py`, edit `changelog.md` directly
+2. Add a section for the upcoming version (e.g., `## v2.6.0`)
+3. Mark it "Unreleased - In Development"
+4. Write your changelog entries
+5. Run `bump_version.py` - it will see v2.6.0 exists and preserve your content
+6. Manually update the date from "Unreleased" to "Released: YYYY-MM-DD"
+
+**Option B - LLM-assisted (after commits, before bump):**
+1. Run: `python regenerate_changelog.py --json`
+2. This creates `changelog_draft.json` with structured commit data
+3. Feed JSON to LLM: "Write user-friendly summaries for these versions"
+4. Copy LLM output to `changelog.md`
+5. Delete `changelog_draft.json` (auto-ignored by git)
+6. Run `bump_version.py` - sees version exists, preserves your entries
+
+### Best Practices
+
+- **Automatic is fine** for most releases - conventional commits provide good structure
+- **Manual curation** for major releases or complex features - better storytelling
+- **Never overwrite** previous release notes; script only adds new versions
+- **Use bold formatting** (**Feature Name**) for major features
+- **Focus on user benefits**, not technical implementation details
+- **Flat bullets only** - no sub-bullets (About dialog can't render indentation)
+
+### Bug Fix vs Development Iteration
+
+The script intelligently categorizes fixes:
+- **Bug Fixes section**: `fix()` commits for scopes with NO `feat()` commits (fixing released features)
+- **Features section**: `fix()` commits for scopes with `feat()` commits (development iterations rolled into feature)
+
+See `regenerate_changelog.py` docstring for details.
 
 ### Changelog in Release Automation
 
-- The GitHub Actions workflow extracts the correct version section from `changelog.md` for release notes.
-- If the section is missing, it falls back to the full changelog.
-- See `.github/copilot-instructions.md` for detailed changelog workflow.
+- GitHub Actions workflow extracts the version section from `changelog.md` for release notes
+- Falls back to full changelog if version section not found
+- See `.github/copilot-instructions.md` for detailed changelog workflow
 
 ---
 

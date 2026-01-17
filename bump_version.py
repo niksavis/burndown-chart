@@ -1,13 +1,18 @@
 """
 Version Bump Script
 
-Updates application version across all project files before merging to main.
-Run this script before merging feature branches to ensure version consistency.
+Updates application version across all project files and creates release tag.
+Run this script ON THE MAIN BRANCH after merging your feature branch.
 
 Usage:
     python bump_version.py [major|minor|patch]
 
 If no argument provided, prompts interactively.
+
+Workflow:
+    1. Merge feature branch to main: git checkout main && git merge <feature-branch>
+    2. Run this script ON MAIN: python bump_version.py minor
+    3. Push with tags: git push origin main --tags
 """
 
 import re
@@ -202,8 +207,10 @@ def main() -> None:
     print("\nNext steps:")
     print("  1. Review changes: git log -1 --stat")
     print("  2. Verify tag: git tag -l v{}".format(new_version_str))
-    print("  3. Merge to main: git checkout main && git merge <branch-name>")
-    print("  4. Push changes: git push origin main --tags")
+    print("  3. Push to remote: git push origin main --tags")
+    print(
+        "\nNote: This script should be run ON MAIN after merging your feature branch."
+    )
     print()
 
 
