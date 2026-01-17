@@ -400,6 +400,21 @@ def perform_import(import_data, conflict_strategy=None, custom_name=None):
                                 f"Imported {len(statistics)} statistics for query '{query_name}'"
                             )
 
+                    # Import project scope (Settings Panel parameters)
+                    if "project_scope" in query_data:
+                        project_scope = query_data["project_scope"]
+                        if project_scope:
+                            backend.save_scope(
+                                profile_id, created_query_id, project_scope
+                            )
+                            logger.info(
+                                f"Imported project scope for query '{query_name}': "
+                                f"total_items={project_scope.get('total_items')}, "
+                                f"estimated_items={project_scope.get('estimated_items')}, "
+                                f"total_points={project_scope.get('remaining_total_points')}, "
+                                f"estimated_points={project_scope.get('estimated_points')}"
+                            )
+
                 # Import budget data if present in query (query-level budget)
                 if "budget_settings" in query_data:
                     budget_settings = query_data["budget_settings"]
