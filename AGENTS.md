@@ -13,22 +13,25 @@
 bd ready                              # Find work
 bd show <id>                          # View details
 bd update <id> --status in_progress   # Claim
-bd close <id>                         # Complete
-bd sync                               # Sync with git
+bd sync                               # Export→commit→pull→import→push (force immediate)
 ```
 
-**FORBIDDEN**: `bd edit` (opens interactive editor - AI incompatible)
-**Alternative**: `bd update <id> --description "text" --title "text" --notes "text"`
+**FORBIDDEN**: `bd edit` (opens $EDITOR - AI incompatible)
+**UPDATE**: `bd update <id> --description "text" --title "text" --notes "text" --status "status"`
+**SYNC**: Run `bd sync` after batch changes (bypasses 30s debounce)
 
 ## Commit Format
 
-```
-type(scope): description
+```bash
+type(scope): description (bd-XXX)
 
-Closes burndown-chart-<id>
+# Optional extended body
 ```
 
-Types: See `.github/copilot-instructions.md` Rule 9
+**MANDATORY**: Bead ID `(bd-XXX)` at END of first line (enables `bd doctor` orphan detection)
+**NEVER**: Close beads manually - always via commit (maintains traceability)
+
+Types: feat|fix|refactor|docs|test|chore|perf|style|build|ci
 
 ## Session End (Landing the Plane)
 
@@ -37,22 +40,25 @@ Types: See `.github/copilot-instructions.md` Rule 9
 **MANDATORY SEQUENCE**:
 
 1. File remaining work → beads issues
-2. Quality gates (if code changed) → `get_errors`, tests
-3. Update beads → close/update status
-4. **PUSH** (CRITICAL):
+2. Quality gates (if code) → `get_errors`, `pytest`
+3. Close beads via commits (not `bd close`)
+4. **PUSH** (NON-NEGOTIABLE):
    ```bash
-   git pull --rebase && bd sync && git push && git status
-   # MUST show "up to date with origin"
+   git pull --rebase
+   # If .beads/issues.jsonl conflict:
+   #   git checkout --theirs .beads/issues.jsonl
+   #   bd import -i .beads/issues.jsonl
+   bd sync        # Export→commit→pull→import→push
+   git push       # PLANE STILL IN AIR UNTIL THIS SUCCEEDS
+   git status     # MUST: "up to date with origin"
    ```
-5. Clean → stashes, remote branches
-6. Hand off → Provide next prompt:
-   ```
-   Continue work on bd-X: [title]. [done, next]
-   ```
+5. Clean → `git stash clear`, `git remote prune origin`
+6. Verify → `git status` (nothing uncommitted/unpushed)
+7. Hand off → `Continue work on bd-X: [title]. [context]`
 
-**RULES**:
-- ∄ completion before push (leaves work stranded)
-- NEVER delegate push to user
-- Push failure → resolve → retry until success
-- ∀ session ends → ∃ handoff prompt
+**AXIOMS**:
+- Plane NOT landed until `git push` succeeds
+- NEVER "ready to push when you are" (YOU push)
+- Push failure → resolve → retry → success
+- Unpushed work breaks multi-agent coordination
 

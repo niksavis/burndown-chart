@@ -45,11 +45,38 @@
 - Mathematically condense rules: minimum context, maximum clarity
 - Remove redundancy, preserve all rules
 
-### 9. Conventional Commits (MANDATORY)
+### 9. Conventional Commits with Beads Tracking (MANDATORY)
 
-- Format: `type(scope): description`
+- Format: `type(scope): description (bd-XXX)`
 - Types: `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`
-- Changelog generation depends on commit types
+- **MUST include bead ID** in parentheses at end of first line
+- Enables `bd doctor` to detect orphaned issues and provides AI traceability
+
+**Examples**:
+
+```bash
+# Single task
+git commit -m "feat(build): add PyInstaller to requirements (bd-t001)"
+
+# Multiple related tasks (list all in first line)
+git commit -m "feat(build): create project structure (bd-t002, bd-t003, bd-t004)"
+
+# Bug fix
+git commit -m "fix(data): resolve circular import in frozen exe (bd-79a)"
+
+# Extended body for context
+git commit -m "feat(update): add auto-reconnect overlay (bd-xmc)
+
+Implemented WebSocket reconnection overlay that polls server every 2s
+during app restart/update. Shows 'Reconnecting...' message until app
+available. Prevents duplicate browser tabs after updates."
+```
+
+**Why Both**:
+
+- Conventional commits → changelog generation
+- Bead ID in parentheses → `bd doctor` tracking and AI traceability
+- Footer body (optional) → detailed context for complex changes
 
 ---
 
@@ -119,12 +146,12 @@
 2. Planning: `@speckit.plan` → research.md, plan.md, contracts/
 3. Tasks: `@speckit.tasks` → `specs/<feature>/tasks.md`
 4. Import: `python workflow/tasks_to_beads.py specs/<feature>/tasks.md tasks.jsonl; bd import -i tasks.jsonl --rename-on-import; bd sync`
-5. Track: `bd ready`, `bd update <id> --status in_progress`, `bd close <id>`
-6. Complete: Verify `bd list --status open` shows 0 → update spec.md → pytest → commit → merge
+5. Work: `bd ready` → claim → commit with `(bd-XXX)` → `bd sync`
+6. Complete: All beads closed → update spec.md → `pytest` → push
 
-**Commit**: `type(scope): description\n\nCloses beads-<id>`
-
-**Session End** (see `AGENTS.md`): File remaining work issues → quality gates → close issues → **PUSH** → clean up → verify pushed → hand off prompt
+**Commit MUST include bead ID**: `feat(scope): description (bd-XXX)`  
+**NEVER close manually**: Always close via commit (orphan detection requires commit link)  
+**After batch ops**: Run `bd sync` (bypasses 30s debounce, forces immediate export/commit/push)
 
 ---
 

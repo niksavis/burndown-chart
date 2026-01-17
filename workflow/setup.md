@@ -8,11 +8,12 @@ Installation guide for Spec-Kit and Beads - the core tools for our development w
 
 Before installing these tools, ensure you have:
 
-- **Windows 10/11** (workflow tested on Windows)
-- **PowerShell 5.1+** (included with Windows)
 - **Git** (for version control)
 - **VS Code** with GitHub Copilot (for agent workflows)
-- **Python 3.13+** (for project development and workflow scripts)
+- **Shell** (PowerShell on Windows, bash on Linux/macOS)
+
+**Optional** (for Python projects):
+- **Python 3.11+** (for workflow scripts that use tasks_to_beads.py)
 
 ---
 
@@ -75,9 +76,9 @@ Before installing these tools, ensure you have:
 
 ### Initialize Beads in Repository
 
-```powershell
+```bash
 # Navigate to repository root
-cd C:\Development\burndown-chart
+cd /path/to/your/repo
 
 # Initialize Beads
 bd init --quiet
@@ -187,13 +188,13 @@ speckit --version
    - `@speckit.analyze` - Run consistency analysis
 
 **Verify Agents Available**:
-```powershell
-# Check agent files exist
-Get-ChildItem .github\agents\*.agent.md
-# Should show: speckit.plan.agent.md, speckit.tasks.agent.md, etc.
+```bash
+# Check agent files exist (adjust command for your platform)
+# Windows: Get-ChildItem .github\agents\*.agent.md
+# Linux/macOS: ls -l .github/agents/*.agent.md
 
 # Test in VS Code Chat:
-# 1. Open Chat (Ctrl+Alt+I)
+# 1. Open Chat (Ctrl+Alt+I or Cmd+Alt+I)
 # 2. Type @ and look for speckit.plan, speckit.tasks, etc.
 ```
 
@@ -205,7 +206,7 @@ Get-ChildItem .github\agents\*.agent.md
 ```
 
 If missing, add manually:
-```powershell
+```bash
 echo ".beads/issues.jsonl merge=union" >> .gitattributes
 git add .gitattributes
 git commit -m "chore: configure Beads merge strategy"
@@ -219,14 +220,18 @@ git commit -m "chore: configure Beads merge strategy"
 
 Already included in repository at `workflow/tasks_to_beads.py`.
 
-**Verify**:
-```powershell
-.\.venv\Scripts\activate; python workflow/tasks_to_beads.py --help
+**Verify** (if Python project):
+```bash
+# Activate your virtual environment
+# Windows: .venv\Scripts\activate
+# Linux/macOS: source .venv/bin/activate
+
+python workflow/tasks_to_beads.py --help
 ```
 
 **Test**:
-```powershell
-.\.venv\Scripts\activate; python workflow/tasks_to_beads.py specs/016-standalone-packaging/tasks.md test_output.jsonl
+```bash
+python workflow/tasks_to_beads.py specs/<feature-name>/tasks.md test_output.jsonl
 ```
 
 ---
@@ -235,19 +240,10 @@ Already included in repository at `workflow/tasks_to_beads.py`.
 
 Run these commands to verify complete setup:
 
-```powershell
-# Python
-python --version  # Should show 3.13+
-
-# Pip packages
-pip list | Select-String "dash|plotly|pandas"  # Core dependencies
-
+```bash
 # Beads
 bd --version  # Should show beads version
 bd list       # Should show issues (or empty)
-
-# Spec-Kit
-.\.specify\scripts\powershell\check-prerequisites.ps1  # Should output JSON
 
 # Git
 git --version  # Should show git version
@@ -255,16 +251,17 @@ git config user.name  # Should show your name
 
 # VS Code
 code --version  # Should show VS Code version
-code --list-extensions | Select-String "copilot"  # Should show GitHub.copilot
+code --list-extensions | grep copilot  # Should show GitHub.copilot
+
+# Optional: Python (if using Python project)
+python --version  # Should show 3.11+
 ```
 
 **Expected Results**:
 ```
-Python 3.13.1
-dash 3.1.1
 beads version 0.47.1
-Git 2.43.0
-VS Code 1.85.0
+Git 2.43.0+
+VS Code 1.85.0+
 GitHub.copilot
 GitHub.copilot-chat
 ```
@@ -358,11 +355,12 @@ setx PATH "$env:PATH;$env:USERPROFILE\Tools\speckit"
 
 **Fix**:
 1. Verify agent files exist:
-   ```powershell
-   Get-ChildItem .github\agents\*.prompt.md
+   ```bash
+   # Windows: Get-ChildItem .github\agents\*.agent.md
+   # Linux/macOS: ls .github/agents/*.agent.md
    ```
 
-2. Reload VS Code window: `Ctrl+Shift+P` → "Developer: Reload Window"
+2. Reload VS Code window: `Ctrl+Shift+P` (or `Cmd+Shift+P`) → "Developer: Reload Window"
 
 3. Ensure GitHub Copilot extension is installed and active
 
@@ -373,7 +371,7 @@ setx PATH "$env:PATH;$env:USERPROFILE\Tools\speckit"
 **Error**: Conflicts in `.beads/issues.jsonl`
 
 **Fix**:
-```powershell
+```bash
 # Let Beads handle 3-way merge automatically
 bd sync
 

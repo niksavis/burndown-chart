@@ -5,6 +5,26 @@ Convert tasks.md to Beads JSONL format for import.
 Usage:
     python workflow/tasks_to_beads.py specs/<feature>/tasks.md output.jsonl
     python workflow/tasks_to_beads.py specs/<feature>/tasks.md | bd import -i -
+
+ID Conventions:
+    This script preserves the task ID prefix from tasks.md for type identification:
+    - T001 → {prefix}-t001 (task from spec-kit planning)
+    - B001 → {prefix}-b001 (bug)
+    - E001 → {prefix}-e001 (epic/milestone)
+    - F001 → {prefix}-f001 (feature)
+    - C001 → {prefix}-c001 (chore)
+
+    Examples:
+    - burndown-chart-t001 (task from 016 spec)
+    - burndown-chart-b042 (ad-hoc bug)
+
+    Benefits:
+    - Searchability: bd list --id "*-t*" finds all tasks
+    - Human-readable: Type visible in ID
+    - Batch operations: Can target types with glob patterns
+
+    Note: The prefix is read from .beads/config.yaml (issue-prefix),
+    defaulting to 'bd' if not configured.
 """
 
 import argparse
@@ -13,6 +33,23 @@ import re
 import sys
 from pathlib import Path
 from datetime import datetime
+
+
+def get_beads_prefix() -> str:
+    """Get beads project prefix from config or default to 'bd'."""
+    try:
+        config_path = Path(".beads/config.yaml")
+        if config_path.exists():
+            import yaml
+
+            with config_path.open() as f:
+                config = yaml.safe_load(f)
+                prefix = config.get("issue-prefix", "")
+                if prefix:
+                    return prefix
+    except Exception:
+        pass  # Fall back to bd
+    return "bd"
 
 
 def parse_tasks_md(file_path: Path) -> list[dict]:
@@ -77,11 +114,31 @@ def parse_tasks_md(file_path: Path) -> list[dict]:
             if current_phase:
                 labels.append(current_phase.replace(" ", "-").lower())
 
-            # Create Beads issue
+            # Create Beads issue with enhanced description
+            feature_dir = file_path.parent.name  # e.g., "016-standalone-packaging"
+            prefix = get_beads_prefix()  # Dynamic prefix from config
+
+            enhanced_description = f"""{description}
+
+**Context**: {current_phase} - {phases.get(current_phase, "Unknown")}
+**Story**: {story_label or "Setup/Infrastructure"}
+**Parallel**: {"Yes - can run alongside other [P] tasks" if is_parallel else "No - sequential"}
+
+**AI Guidance**:
+- Reference specs/{feature_dir}/ for implementation details
+- When closing: Include '({prefix}-{task_id.lower()})' at end of commit message first line
+- Example: `git commit -m "feat(build): add feature ({prefix}-{task_id.lower()})"`
+- Update notes field with implementation decisions or blockers encountered
+
+**ID Convention**: This task uses '{task_id.lower()}' postfix for type identification.
+When creating new issues manually, consider using:
+- t### for tasks, b### for bugs, e### for epics, f### for features, c### for chores
+"""
+
             issue = {
-                "id": f"burndown-{task_id.lower()}",  # Use task ID as issue ID
+                "id": f"{prefix}-{task_id.lower()}",  # Use dynamic prefix + task ID
                 "title": f"{task_id}: {description[:80]}",  # First 80 chars
-                "description": description,
+                "description": enhanced_description,
                 "status": "open",  # Beads uses 'open' not 'not_started'
                 "priority": priority,
                 "labels": labels,

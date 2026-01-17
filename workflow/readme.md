@@ -35,7 +35,7 @@
 
 ```powershell
 # Create feature branch
-git checkout -b 016-standalone-packaging
+git checkout -b <feature-number>-<feature-name>
 ```
 
 ### Run Spec-Kit Planning
@@ -116,9 +116,12 @@ git commit -m "docs(spec-kit): generate task breakdown for <feature>"
 
 ### Convert tasks.md to Beads Format
 
-```powershell
-# Run conversion script
-.\.venv\Scripts\activate; python workflow/tasks_to_beads.py specs/<feature>/tasks.md tasks_import.jsonl
+```bash
+# Activate virtual environment (if using Python project)
+# Windows: .venv\Scripts\activate
+# Linux/macOS: source .venv/bin/activate
+
+python workflow/tasks_to_beads.py specs/<feature>/tasks.md tasks_import.jsonl
 
 # Import into Beads
 bd import -i tasks_import.jsonl --rename-on-import
@@ -167,46 +170,65 @@ bd update <issue-id> --status in_progress
 # Use GitHub Copilot for code generation
 
 # Test your changes
-.\.venv\Scripts\activate; pytest tests/unit/ -v
-
-# Check for errors
-# GitHub Copilot: get_errors tool
+.\# Test your changes (adapt to your project's test framework)
+# Python: pytest tests/unit/ -v
+# Node.js: npm test
+# Go: go test ./...
 ```
 
 ### Complete Task
 
-```powershell
-# Commit your changes
+```bash
+# Commit your changes (bead closes automatically via commit message)
 git add <files>
-git commit -m "feat(<scope>): <description>
+git commit -m "feat(<scope>): <description> (bd-<id>)
 
-Closes beads-<issue-id>"
+Optional extended explanation of what was done and why.
+Can include implementation details, decisions made, etc."
 
-# Mark task as complete
-bd close <issue-id>
+# Verify bead auto-closed
+bd show <issue-id>  # Should show status: closed
 
 # Sync changes
 bd sync
 ```
 
+**CRITICAL**: Never close beads manually. Always close via commit message with `(bd-<id>)` format. This ensures `bd doctor` can track orphaned issues and AI can trace work.
+
 ### Commit Message Format
 
-```
-type(scope): description
+**Required Format** (per [Beads AGENT_INSTRUCTIONS.md](https://github.com/steveyegge/beads/blob/main/AGENT_INSTRUCTIONS.md)):
 
-- type: feat|fix|refactor|docs|test|chore|perf
-- scope: component affected (build, ui, data, etc.)
-- description: what changed
-- Footer: "Closes beads-<issue-id>" to link commit to task
 ```
+type(scope): description (bd-XXX)
+
+Optional body with extended context, implementation details,
+decisions made, or blockers encountered.
+```
+
+**Format Rules**:
+- **type**: feat|fix|refactor|docs|test|chore|perf
+- **scope**: component affected (build, ui, data, etc.)
+- **description**: what changed (concise, < 50 chars)
+- **(bd-XXX)**: bead ID at END of first line (enables bd doctor tracking)
+- **body**: optional extended explanation (blank line separator)
 
 **Examples**:
-```
-feat(build): add PyInstaller to requirements
+```bash
+# Single task
+git commit -m "feat(build): add PyInstaller to requirements (bd-t001)
 
-Closes beads-t001
+Added PyInstaller>=6.0.0 to requirements.in per T001 specification.
+Regenerated requirements.txt using pip-compile."
 
-fix(app): resolve database path for frozen executable
+# Multiple related tasks
+git commit -m "feat(build): create project structure (bd-t002, bd-t003, bd-t004)
+
+Created build/, updater/, and licenses/ directories with
+initial subdirectory structure per Phase 1 setup tasks."
+
+# Bug fix
+git commit -m "fix(app): resolve database path for frozen executable (bd-t023)
 
 Closes beads-t023
 
@@ -245,15 +267,17 @@ bd list --status open  # Should show 0 open tasks
 
 ### Run Final Quality Gates
 
-```powershell
-# Activate virtual environment
-.\.venv\Scripts\activate
+```bash
+# Run your project's test suite
+# Examples:
+# Python: pytest tests/ -v
+# Node.js: npm test
+# Go: go test ./...
+# Rust: cargo test
 
-# Run all tests
-pytest tests/ -v          # All tests pass
-
-# Check for errors (if using GitHub Copilot)
-# Use get_errors tool to verify zero errors
+# Check for errors using your IDE/tooling
+# VS Code: Problems panel (Ctrl+Shift+M)
+# GitHub Copilot: get_errors tool
 ```
 
 ### Commit Documentation Updates
@@ -297,13 +321,16 @@ git push
 
 ### Create Release (After Feature Branch Merge)
 
-```powershell
+```bash
 # Merge feature branch to main
 git checkout main
 git merge <feature-branch>
 
-# Bump version (on main only)
-.\.venv\Scripts\activate; python bump_version.py minor
+# Bump version using your project's version management
+# Examples:
+# Python: bump2version minor
+# Node.js: npm version minor
+# Semantic Release: npx semantic-release
 
 # Push with tags
 git push origin main --tags
@@ -426,28 +453,5 @@ See [SETUP.md](./SETUP.md) for detailed installation instructions for:
 
 ---
 
-## Example: Feature 016 Workflow
-
-**Feature**: Standalone Executable Packaging
-
-**Timeline**:
-1. ✅ Planning (2026-01-14): Created research.md, plan.md, data-model.md, contracts/, quickstart.md
-2. ✅ Tasks (2026-01-14): Generated tasks.md with 114 tasks across 8 user stories
-3. ✅ Import (2026-01-14): Imported 114 tasks into Beads
-4. 🚧 Development (in progress): Working through MVP tasks (Setup → Foundational → US3 → US1 → US2)
-5. ⏳ Release: After MVP complete, merge to main and bump version
-
-**MVP Scope** (50 tasks):
-- Phase 1: Setup (T001-T005)
-- Phase 2: Foundational (T006-T012)
-- Phase 3: US3 - Build Process (T013-T022)
-- Phase 4: US1 - Download & Run (T023-T035)
-- Phase 9: US2 - GitHub Releases (T079-T093)
-
-**Current Status**: Ready to start T001 (Add PyInstaller to requirements)
-
----
-
 **Version**: 1.0.0  
-**Last Updated**: 2026-01-14  
-**Maintainer**: Burndown Chart Project
+**Last Updated**: 2026-01-17
