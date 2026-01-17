@@ -12,11 +12,19 @@ All changelog entries MUST be flat single-line bullets with inline details:
                - Sub-point one
                - Sub-point two
 
+BUG FIX vs DEVELOPMENT ITERATION:
+When processing commits for a release, the script distinguishes between:
+  - Bug Fixes: fix() commits for already-released features (scope has NO feat commits)
+  - Development Iterations: fix() commits for NEW features being developed in same release
+    (scope HAS feat commits) - these are rolled into the feature description, not listed
+    as separate bug fixes
+
 How it works:
 1. Parses changelog.md to find which versions already have entries
 2. Generates entries ONLY for new tags (not in changelog)
 3. Prepends new entries to the TOP of existing changelog
 4. Groups commits by scope/issue with user-friendly descriptions
+5. Categorizes fix commits intelligently (bug vs development iteration)
 
 Workflow Option A (Direct Markdown):
 1. Run: python regenerate_changelog.py
@@ -191,11 +199,18 @@ def group_commits_by_issue_and_scope(
         feat_count = sum(1 for c in commit_list if c.startswith("feat"))
         fix_count = sum(1 for c in commit_list if c.startswith("fix"))
 
-        # Determine category by dominant type
-        if feat_count >= fix_count:
+        # IMPORTANT: If scope has BOTH feat and fix commits, the fixes are
+        # development iterations (not bugs). Only categorize as "Bug Fixes"
+        # if there are ONLY fix commits (meaning this is fixing released features).
+        if feat_count > 0:
+            # Has new features - all work (including fixes) is part of feature development
             category = "Features"
-        else:
+        elif fix_count > 0:
+            # Only has fixes - these are real bug fixes for released features
             category = "Bug Fixes"
+        else:
+            # Other types (docs, refactor, etc.)
+            category = "Other Changes"
 
         # Don't show commit counts - cleaner output like manual curation
         categorized[category].append((title, None))

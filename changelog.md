@@ -6,12 +6,14 @@
 
 ### Features
 
-- **Background Operation**: Application now runs silently in the background with system tray icon - includes Open and Quit menu options, no terminal window, automatic browser launch when ready
+- **Background Operation**: Application now runs silently in the background with system tray icon - includes Open and Quit menu options, no terminal window, automatic browser launch when ready, proper process termination when quitting
+- **Update Experience Improvements**: Auto-reconnect overlay appears during updates to keep users informed, successful update notifications confirm completion, seamless browser reconnection after updates without manual refresh
+- **Developer Workflow**: Incremental changelog generation with JSON export option for LLM-assisted polishing, improved release documentation and testing infrastructure
 
 ### Bug Fixes
 
-- Fixed system tray icon not appearing in PyInstaller builds
-- Fixed quit menu not properly closing the application
+- Fixed About dialog changelog rendering to support flat bullet format only (removed sub-bullet indentation)
+- Fixed CI-generated release notes to remove redundant headers
 
 ## v2.5.4
 
