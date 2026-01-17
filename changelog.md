@@ -2,18 +2,22 @@
 
 ## v2.6.0
 
-*Unreleased - In Development*
+*Released: 2026-01-17*
 
 ### Features
 
-- **Background Operation**: Application now runs silently in the background with system tray icon - includes Open and Quit menu options, no terminal window, automatic browser launch when ready, proper process termination when quitting
-- **Update Experience Improvements**: Auto-reconnect overlay appears during updates to keep users informed, successful update notifications confirm completion, seamless browser reconnection after updates without manual refresh
-- **Developer Workflow**: Incremental changelog generation with JSON export option for LLM-assisted polishing, improved release documentation and testing infrastructure
+- **System Tray Integration**: Application now runs silently in the background with system tray icon, includes Open and Quit menu options, no terminal window, automatic browser launch when ready, proper process termination when quitting
+- **Seamless Update Experience**: Auto-reconnect overlay appears during updates to keep users informed, successful update notifications confirm completion, browser reconnects automatically after updates without manual refresh, updater sets database flag to prevent duplicate browser tabs
+- **Developer Workflow Improvements**: Incremental changelog generation with JSON export option for LLM-assisted polishing, comprehensive release documentation, improved testing infrastructure with integration tests for executable launch and update workflows
 
 ### Bug Fixes
 
+- Fixed temp directory creation in updater and tests to use system temp with static folder names (prevents temp folder bloat)
+- Fixed test environment variable handling to preserve system variables like TEMP (resolves Windows popup errors)
+- Fixed sqlite3 module missing from updater executable (added to hiddenimports)
 - Fixed About dialog changelog rendering to support flat bullet format only (removed sub-bullet indentation)
 - Fixed CI-generated release notes to remove redundant headers
+- Fixed tray icon path for frozen executable to use correct resource location
 
 ## v2.5.4
 
