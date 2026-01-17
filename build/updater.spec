@@ -22,6 +22,7 @@ hiddenimports = [
     'subprocess',
     'time',
     'pathlib',
+    'sqlite3',  # Needed for database flag updates
 ]
 
 # Exclude everything not needed for updater
@@ -48,8 +49,6 @@ excludes = [
     'wx',
     'PyQt5',
     'PyQt6',
-    # Database (updater doesn't need it)
-    'sqlite3',
 ]
 
 a = Analysis(
