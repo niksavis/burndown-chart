@@ -66,19 +66,28 @@ def update_configuration_file(new_version: tuple[int, int, int]) -> None:
 
 
 def update_readme_file(new_version: tuple[int, int, int]) -> None:
-    """Update version badge in readme.md."""
+    """Update version badge and footer in readme.md."""
     readme_file = Path(__file__).parent / "readme.md"
     content = readme_file.read_text(encoding="utf-8")
 
     version_str = f"{new_version[0]}.{new_version[1]}.{new_version[2]}"
+
+    # Update badge
     updated = re.sub(
         r"(badge/version-)\d+\.\d+\.\d+(-blue\.svg)",
         rf"\g<1>{version_str}\g<2>",
         content,
     )
 
+    # Update footer version
+    updated = re.sub(
+        r"(\*\*Version:\*\* )\d+\.\d+\.\d+",
+        rf"\g<1>{version_str}",
+        updated,
+    )
+
     readme_file.write_text(updated, encoding="utf-8")
-    print(f"[OK] Updated readme.md badge to {version_str}")
+    print(f"[OK] Updated readme.md badge and footer to {version_str}")
 
 
 def generate_changelog() -> None:

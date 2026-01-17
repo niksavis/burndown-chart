@@ -83,8 +83,6 @@ cd burndown-chart
 
 **Note:** `requirements-dev.txt` includes testing/build tools. Use `requirements.txt` for production-only dependencies.
 
-## First-Time Setup
-
 ## Connecting to JIRA
 
 ### Get Your JIRA Token
@@ -129,7 +127,7 @@ Industry-standard DevOps performance:
 - **Change Failure Rate**: % of releases with issues
 - **Recovery Time**: Hours to fix production issues
 
-**Learn more:** See [detailed documentation](docs/metrics_index.md) for formulas and best practices.
+**Learn more:** [Metrics Index](docs/metrics_index.md)
 
 ## Common Tasks
 
@@ -183,14 +181,12 @@ Industry-standard DevOps performance:
 
 ## Documentation
 
-- **[Metrics Guide](docs/metrics_index.md)** - Complete reference for all metrics and formulas
-- **[Health Formula](docs/health_formula.md)** - 6-dimensional health calculation explained
-- **[DORA Metrics](docs/dora_metrics.md)** - DevOps performance benchmarks
-- **[Flow Metrics](docs/flow_metrics.md)** - Team efficiency and process health
-- **[Dashboard Metrics](docs/dashboard_metrics.md)** - Velocity, forecasting, completion tracking
+📚 **[Complete Documentation](docs/readme.md)** - Metrics guides, configuration, and architecture reference
+
+For getting started with metrics, see the [Metrics Index](docs/metrics_index.md).
 
 ---
 
-**License:** MIT | **Python:** 3.13+ | **Version:** 2.4.4
+**License:** MIT | **Python:** 3.13+ | **Version:** 2.6.1
 
 **[⬆ Back to Top](#burndown-chart-)**
