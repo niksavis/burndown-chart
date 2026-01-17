@@ -264,7 +264,7 @@ jobs:
 
           ---
 
-          **Full Changelog**: https://github.com/niksavis/burndown-chart/commits/v$version
+          [Changelog](https://github.com/niksavis/burndown-chart/blob/main/changelog.md) | [Release Commit History](https://github.com/niksavis/burndown-chart/commits/v$version)
           "@
 
             $notes | Out-File -FilePath release_notes.md -Encoding utf8 -ErrorAction Stop
