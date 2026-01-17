@@ -1,8 +1,11 @@
 """
 Version Update Notification Callback
 
-Shows a toast notification when a new version is available,
-triggered after page initialization completes to avoid being
+Shows toast notifications for:
+1. New version available (update check)
+2. Successfully updated (version change on startup)
+
+Triggered after page initialization completes to avoid being
 cleared by other page load callbacks.
 """
 
@@ -11,6 +14,7 @@ from dash import callback, Output, Input, html, no_update
 
 from ui.toast_notifications import create_toast
 from data.update_manager import UpdateState
+from data.version_tracker import check_and_update_version
 
 logger = logging.getLogger(__name__)
 
@@ -24,7 +28,11 @@ logger = logging.getLogger(__name__)
 )
 def show_version_update_toast(app_init_complete, toast_already_shown):
     """
-    Show version update toast after app initialization completes.
+    Show version update notifications after app initialization completes.
+
+    Handles two types of notifications:
+    1. "Successfully updated to vX.Y.Z" - shown when version changed since last run
+    2. "Update available" - shown when new version is available for download
 
     This callback fires after page load callbacks finish, ensuring the
     toast notification is not cleared by other callbacks that output
@@ -47,7 +55,30 @@ def show_version_update_toast(app_init_complete, toast_already_shown):
     if not app_init_complete:
         return no_update, no_update
 
-    # Import app module to access VERSION_CHECK_RESULT
+    # Check if version changed since last run (first priority)
+    version_changed, previous_version, current_version = check_and_update_version()
+
+    if version_changed and previous_version:
+        logger.info(
+            f"Showing successful update toast: {previous_version} -> {current_version}",
+            extra={
+                "operation": "version_update_notification",
+                "previous_version": previous_version,
+                "current_version": current_version,
+            },
+        )
+
+        toast = create_toast(
+            f"Successfully updated from {previous_version} to {current_version}",
+            toast_type="success",
+            header="Update Complete",
+            duration=5000,  # 5 seconds
+            icon="check-circle",
+        )
+
+        return toast, True  # Mark toast as shown
+
+    # Import app module to access VERSION_CHECK_RESULT (second priority)
     import app
 
     if not app.VERSION_CHECK_RESULT:
