@@ -1,5 +1,13 @@
 # Changelog
 
+## v2.6.1
+
+*Released: 2026-01-17*
+
+### Bug Fixes
+
+- Fixed Settings Panel parameters not being restored on import (total_items, estimated_items, total_points, estimated_points now properly imported from project_scope)
+
 ## v2.6.0
 
 *Released: 2026-01-17*
