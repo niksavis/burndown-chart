@@ -263,6 +263,9 @@ temp_reports/
 # Task progress tracking (runtime state file)
 task_progress.json
 
+# Changelog generation intermediate file (for LLM processing)
+changelog_draft.json
+
 # Process ID tracking (runtime artifact)
 app_pid.txt
 

@@ -1,23 +1,31 @@
 """
-Regenerate changelog.md from git history.
+Generate changelog entries for NEW git tags (preserves existing content).
 
-IMPORTANT: This generates a DRAFT changelog that requires manual refinement.
-The automated output groups commits by scope and filters noise, but human
-curation is needed to achieve production-quality release notes.
+IMPORTANT: This generates DRAFT entries for new tags only.
+Existing changelog entries are preserved and never overwritten.
 
-Workflow:
-1. Run during version bump (automatic via bump_version.py)
-2. Review generated changelog.md
-3. Manually refine:
-   - Consolidate related scopes into feature narratives
-   - Add context about user benefits
-   - Remove any remaining technical noise
-   - Polish language for clarity
+How it works:
+1. Parses changelog.md to find which versions already have entries
+2. Generates entries ONLY for new tags (not in changelog)
+3. Prepends new entries to the TOP of existing changelog
+4. Groups commits by scope/issue with user-friendly descriptions
+
+Workflow Option A (Direct Markdown):
+1. Run: python regenerate_changelog.py
+2. Review generated entries in changelog.md
+3. Manually refine for clarity and user-friendliness
+
+Workflow Option B (LLM-Assisted):
+1. Run: python regenerate_changelog.py --json
+2. Creates changelog_draft.json with structured commit data
+3. Use LLM to read JSON and write polished summaries
+4. Copy LLM output to changelog.md
 
 This script is called automatically by bump_version.py during version bumps.
-It can also be run standalone to regenerate the changelog without bumping version.
+It can also be run standalone to catch up on missing tags.
 
-Usage (standalone): python regenerate_changelog.py
+Usage (direct):  python regenerate_changelog.py
+Usage (JSON):    python regenerate_changelog.py --json
 Usage (imported): import regenerate_changelog; regenerate_changelog.main()
 """
 
@@ -236,11 +244,58 @@ def categorize_commit(commit_msg: str) -> tuple[str, str] | None:
     return None
 
 
-def main():
-    """Regenerate changelog from all tags."""
+def parse_existing_versions(changelog_path: Path) -> set[str]:
+    """Parse existing changelog to find versions that already have entries."""
+    if not changelog_path.exists():
+        return set()
+
+    existing_versions = set()
+    content = changelog_path.read_text(encoding="utf-8")
+
+    # Find all version headers (## vX.Y.Z)
+    for match in re.finditer(r"^## (v\d+\.\d+\.\d+)", content, re.MULTILINE):
+        existing_versions.add(match.group(1))
+
+    return existing_versions
+
+
+def export_to_json(tags_data: list[dict], output_path: Path):
+    """Export tag data to JSON for LLM processing.
+
+    Creates a structured JSON file that an LLM can easily read to generate
+    high-quality changelog summaries.
+
+    Args:
+        tags_data: List of tag data dictionaries with commits and metadata
+        output_path: Path to write JSON file
+    """
+    output_path.write_text(
+        json.dumps(tags_data, indent=2, default=str), encoding="utf-8"
+    )
+    print(f"✓ Exported {len(tags_data)} tags to {output_path}")
+    print("\n📝 LLM Prompt Suggestion:")
+    print("─" * 60)
+    print("Please review this changelog data and write user-friendly")
+    print("summaries for each version. Focus on:")
+    print("  • What users can DO with new features")
+    print("  • Problems that bugs fixed")
+    print("  • Group related commits into cohesive narratives")
+    print("  • Use bold (**Feature**) for major features")
+    print("  • Avoid technical jargon")
+    print("─" * 60)
+
+
+def main(export_json: bool = False):
+    """Generate changelog entries for NEW tags only (preserves existing content)."""
+    changelog_path = Path("changelog.md")
+
     # Load scope descriptions
     scope_descriptions = load_scope_descriptions()
     print(f"Loaded {len(scope_descriptions)} scope descriptions")
+
+    # Parse existing changelog to find which versions are already documented
+    existing_versions = parse_existing_versions(changelog_path)
+    print(f"Found {len(existing_versions)} existing changelog entries")
 
     # Get all tags
     result = subprocess.run(
@@ -255,9 +310,23 @@ def main():
         print("No tags found")
         return
 
-    changelog = "# Changelog\n\n"
+    # Filter to only NEW tags (not in existing changelog)
+    new_tags = [tag for tag in tags if tag not in existing_versions]
 
-    for i, tag in enumerate(tags):
+    if not new_tags:
+        print("✓ No new tags to process - changelog is up to date")
+        return
+
+    print(f"Found {len(new_tags)} new tags to process: {', '.join(new_tags)}")
+
+    # Collect data for all new tags
+    tags_data = []
+    new_entries = ""
+
+    for i, tag in enumerate(new_tags):
+        # Find previous tag for commit range
+        tag_index = tags.index(tag)
+        prev_tag = tags[tag_index + 1] if tag_index < len(tags) - 1 else None
         prev_tag = tags[i + 1] if i < len(tags) - 1 else None
 
         # Get tag date
@@ -287,9 +356,31 @@ def main():
         # Group commits by issue/scope and categorize
         categorized = group_commits_by_issue_and_scope(commits, scope_descriptions)
 
-        # Build section
-        changelog += f"## {tag}\n\n"
-        changelog += f"*Released: {tag_date}*\n\n"
+        # Skip if no meaningful content
+        if not categorized or (
+            len(categorized) == 1
+            and "Other Changes" in categorized
+            and len(categorized["Other Changes"]) < 3
+        ):
+            continue
+
+        # Store structured data for JSON export
+        tags_data.append(
+            {
+                "version": tag,
+                "date": tag_date,
+                "commits": commits,
+                "categorized": {
+                    category: [(title, detail) for title, detail in items]
+                    for category, items in categorized.items()
+                },
+                "commit_count": len(commits),
+            }
+        )
+
+        # Build section for this NEW tag
+        new_entries += f"## {tag}\n\n"
+        new_entries += f"*Released: {tag_date}*\n\n"
 
         # Output categories in preferred order
         preferred_order = [
@@ -302,41 +393,64 @@ def main():
 
         for category in preferred_order:
             if category in categorized:
-                changelog += f"### {category}\n\n"
+                new_entries += f"### {category}\n\n"
                 items = categorized[category]
 
                 # Bold major features (5+ commits worth), plain text for others
                 for title, detail in items:
                     # Check if this is a major feature by looking at original scope
                     # For now, just use plain text to match manual style
-                    changelog += f"- {title}\n"
-                changelog += "\n"
+                    new_entries += f"- {title}\n"
+                new_entries += "\n"
                 has_content = True
 
         # Add any other categories not in preferred order
         for category, items in categorized.items():
             if category not in preferred_order:
-                changelog += f"### {category}\n\n"
+                new_entries += f"### {category}\n\n"
                 for title, detail in items:
-                    changelog += f"- {title}\n"
-                changelog += "\n"
+                    new_entries += f"- {title}\n"
+                new_entries += "\n"
                 has_content = True
 
         if not has_content:
-            changelog += "- Minor updates and improvements\n\n"
+            new_entries += "- Minor updates and improvements\n\n"
 
-    # Write to file
-    changelog_file = Path("changelog.md")
-    changelog_file.write_text(changelog, encoding="utf-8")
-    print(f"✓ Regenerated changelog.md from {len(tags)} tags")
-    print(f"  Lines: {len(changelog.splitlines())}")
-    print("\n⚠️  MANUAL REFINEMENT REQUIRED:")
-    print("  1. Review generated entries for clarity and accuracy")
-    print("  2. Consolidate related items into feature narratives")
-    print("  3. Add bold formatting for major features")
-    print("  4. Remove any remaining technical noise")
-    print("  5. Polish language for user-facing communication")
+    # Export JSON if requested (for LLM processing)
+    if export_json and tags_data:
+        json_path = Path("changelog_draft.json")
+        export_to_json(tags_data, json_path)
+        return
+
+    # Prepend new entries to existing changelog (preserve curated content)
+    if new_entries:
+        if changelog_path.exists():
+            existing_content = changelog_path.read_text(encoding="utf-8")
+            # Remove "# Changelog" header if it exists
+            if existing_content.startswith("# Changelog\n"):
+                existing_content = existing_content[12:]  # Remove header
+
+            full_changelog = f"# Changelog\n\n{new_entries}{existing_content}"
+        else:
+            full_changelog = f"# Changelog\n\n{new_entries}"
+
+        changelog_path.write_text(full_changelog, encoding="utf-8")
+        print(
+            f"✓ Added {len(new_tags)} new changelog entries (preserving existing content)"
+        )
+        print(f"  New tags: {', '.join(new_tags)}")
+        print("\n⚠️  MANUAL REFINEMENT RECOMMENDED:")
+        print("  1. Review new entries for clarity and user-friendliness")
+        print("  2. Add bold formatting (**Feature Name**) for major features")
+        print("  3. Consolidate related items into cohesive narratives")
+        print("  4. Polish language for non-technical users")
+    else:
+        print("✓ No new entries to add - all tags already in changelog")
 
 
 if __name__ == "__main__":
-    main()
+    import sys
+
+    # Check for --json flag
+    export_json = "--json" in sys.argv
+    main(export_json=export_json)
