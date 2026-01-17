@@ -42,6 +42,7 @@ import time
 import zipfile
 import shutil
 import subprocess
+import sqlite3
 from pathlib import Path
 from typing import Optional
 
@@ -228,6 +229,45 @@ def replace_executable(new_exe_path: Path, target_exe_path: Path) -> bool:
         return False
 
 
+def set_post_update_flag(exe_path: Path) -> None:
+    """Set post_update_relaunch flag in database before launching app.
+
+    This flag signals the app to skip browser auto-launch, allowing
+    update_reconnect.js to reload existing tabs instead of opening new ones.
+
+    Args:
+        exe_path: Path to executable (used to find database)
+    """
+    try:
+        # Database is in profiles/burndown.db relative to exe directory
+        db_path = exe_path.parent / "profiles" / "burndown.db"
+
+        if not db_path.exists():
+            print_status(
+                f"WARNING: Database not found at {db_path} - skipping flag set"
+            )
+            return
+
+        print_status("Setting post_update_relaunch flag in database")
+
+        # Direct SQLite connection (no need for full backend initialization)
+        conn = sqlite3.connect(str(db_path), timeout=10)
+        cursor = conn.cursor()
+
+        # Set flag in app_state table
+        cursor.execute(
+            "INSERT OR REPLACE INTO app_state (key, value) VALUES (?, ?)",
+            ("post_update_relaunch", "true"),
+        )
+        conn.commit()
+        conn.close()
+
+        print_status("Post-update flag set successfully")
+    except Exception as e:
+        print_status(f"WARNING: Failed to set post-update flag: {e}")
+        print_status("App will launch normally with browser auto-open")
+
+
 def launch_application(exe_path: Path) -> bool:
     """Launch the updated application.
 
@@ -238,6 +278,9 @@ def launch_application(exe_path: Path) -> bool:
         True if launch succeeded, False otherwise
     """
     try:
+        # Set database flag before launching to prevent duplicate browser tabs
+        set_post_update_flag(exe_path)
+
         print_status(f"Launching {exe_path.name}")
 
         if sys.platform == "win32":
