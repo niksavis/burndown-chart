@@ -363,7 +363,6 @@ def handle_update_install(install_clicks: int, status_data: Optional[dict]):
         Toast notification about the update process
     """
     from ui.toast_notifications import create_toast
-    from dash import html
     import app
 
     if not install_clicks:
@@ -417,23 +416,12 @@ def handle_update_install(install_clicks: int, status_data: Optional[dict]):
         logger.info("Updater scheduled to launch - app will close shortly")
 
         # Show message before app closes
+        # Note: This toast shows briefly (~1s) before reconnect overlay replaces it
         return create_toast(
-            [
-                html.Div("Installing update..."),
-                html.Div(
-                    "This may take 10-20 seconds. The application will open in a new browser tab when the update completes.",
-                    className="mt-2",
-                    style={"fontSize": "0.85rem", "opacity": "0.8"},
-                ),
-                html.Div(
-                    "You can close this browser tab now.",
-                    className="mt-1",
-                    style={"fontSize": "0.85rem", "opacity": "0.6"},
-                ),
-            ],
+            "Installing update... This page will reconnect automatically.",
             "info",
             header="Updating",
-            duration=0,  # Don't auto-dismiss - user will close tab or it closes with app
+            duration=3000,  # 3 seconds - brief acknowledgment
             icon="sync fa-spin",
         )
 
