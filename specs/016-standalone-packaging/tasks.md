@@ -243,14 +243,14 @@
 - [ ] T103 [P] Create tests/unit/build/test_build_config.py to validate build configuration YAML schema
 - [ ] T104 [P] Create tests/unit/data/test_update_manager.py to test version comparison logic and update state machine
 - [ ] T105 [P] Create tests/unit/data/test_installation_context.py to test path resolution for frozen vs source modes
-- [ ] T106 [P] Create tests/integration/test_executable_launch.py to test executable launches without errors (smoke test)
+- [X] T106 [P] Create tests/integration/test_executable_launch.py to test executable launches without errors (smoke test)
 - [ ] T107 Test executable on clean Windows 10 VM: verify launches, browser opens, database created, settings persist
 - [ ] T108 Test executable on clean Windows 11 VM: verify all functionality works
 - [ ] T109 Test antivirus scan: run Windows Defender scan on unsigned executable, document any warnings
 - [ ] T110 [P] Update docs/ with packaging documentation: how to build, how to release, troubleshooting guide
 - [ ] T111 [P] Add CHANGELOG.md entry for feature: "Standalone Windows executable packaging with auto-update"
 - [ ] T112 Verify executable size <100MB: if over, investigate large dependencies or enable UPX compression in app.spec
-- [ ] T113 Performance benchmark: measure launch time, browser open time, update check time against requirements
+- [X] T113 Performance benchmark: measure launch time, browser open time, update check time against requirements (See spec.md Performance Benchmarks section - all requirements met)
 - [ ] T114 Create quickstart video or GIF: download → double-click → app opens (for release page)
 
 ---
