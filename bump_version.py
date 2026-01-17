@@ -5,9 +5,10 @@ Updates application version across all project files and creates release tag.
 Run this script ON THE MAIN BRANCH after merging your feature branch.
 
 Usage:
-    python bump_version.py [major|minor|patch]
+    python bump_version.py [major|minor|patch] [--yes]
 
 If no argument provided, prompts interactively.
+Use --yes to skip confirmation (for automation).
 
 Workflow:
     1. Merge feature branch to main: git checkout main && git merge <feature-branch>
@@ -15,6 +16,7 @@ Workflow:
     3. Push with tags: git push origin main --tags
 """
 
+import argparse
 import re
 import subprocess
 import sys
@@ -93,6 +95,25 @@ def generate_changelog() -> None:
 
 def main() -> None:
     """Main entry point."""
+    # Parse arguments
+    parser = argparse.ArgumentParser(
+        description="Bump version and create release tag",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    parser.add_argument(
+        "bump_type",
+        nargs="?",
+        choices=["major", "minor", "patch"],
+        help="Version bump type (major: X.0.0, minor: 0.X.0, patch: 0.0.X)",
+    )
+    parser.add_argument(
+        "--yes",
+        "-y",
+        action="store_true",
+        help="Skip confirmation prompt (for automation)",
+    )
+    args = parser.parse_args()
+
     print("=" * 60)
     print("Burndown Chart Version Bump Utility")
     print("=" * 60)
@@ -107,8 +128,8 @@ def main() -> None:
         sys.exit(1)
 
     # Determine bump type
-    if len(sys.argv) > 1:
-        bump_type = sys.argv[1].lower()
+    if args.bump_type:
+        bump_type = args.bump_type.lower()
     else:
         print("\nSelect version bump type:")
         print("  1. major - Breaking changes (X.0.0)")
@@ -133,11 +154,12 @@ def main() -> None:
 
     print(f"\n{bump_type.upper()} bump: {current_str} → {new_version_str}")
 
-    # Confirm action
-    confirm = input("\nProceed with version update? (y/N): ").strip().lower()
-    if confirm != "y":
-        print("Cancelled.")
-        sys.exit(0)
+    # Confirm action (skip if --yes flag provided)
+    if not args.yes:
+        confirm = input("\nProceed with version update? (y/N): ").strip().lower()
+        if confirm != "y":
+            print("Cancelled.")
+            sys.exit(0)
 
     # Update files
     try:

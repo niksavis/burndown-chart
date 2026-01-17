@@ -1,96 +1,58 @@
-# Agent Instructions
+# Agent Instructions - Beads Workflow
 
-This project uses **bd** (beads) for issue tracking. Run `bd onboard` to get started.
+**Issue Tracker**: bd (beads) | **Init**: `bd onboard`
 
-## Starting a New Session
+## Session Start
 
-**Simple approach** - Let the agent discover work:
-```bash
-What beads tasks are ready to work on?
-```
+**Preferred**: Use handoff prompt from previous agent: `Continue work on bd-123: [title]. [context]`
+**Fallback**: `What beads tasks are ready?` → `bd ready`
 
-**Better approach** - Use the handoff prompt from the previous session:
-```bash
-Continue work on bd-123: [issue title]. [Brief context]
-```
-
-The agent from the previous session should have provided this prompt in their final message.
-
-**Quick discovery commands:**
-```bash
-bd ready                          # See available tasks
-bd list --status in_progress      # See what's currently being worked on
-bd show bd-123                    # View specific issue details
-```
-
-## Quick Reference
+## Beads Commands
 
 ```bash
-bd ready              # Find available work
-bd show <id>          # View issue details
-bd update <id> --status in_progress  # Claim work
-bd close <id>         # Complete work
-bd sync               # Sync with git
+bd ready                              # Find work
+bd show <id>                          # View details
+bd update <id> --status in_progress   # Claim
+bd close <id>                         # Complete
+bd sync                               # Sync with git
 ```
 
-**WARNING**: DO NOT use `bd edit` - it opens an interactive editor which AI agents cannot use.
+**FORBIDDEN**: `bd edit` (opens interactive editor - AI incompatible)
+**Alternative**: `bd update <id> --description "text" --title "text" --notes "text"`
 
-Use `bd update` with flags instead:
-```bash
-bd update <id> --description "new description"
-bd update <id> --title "new title"  
-bd update <id> --notes "additional notes"
-```
-
-## Commit Format (MANDATORY)
-
-All commits MUST follow Conventional Commits format:
+## Commit Format
 
 ```
 type(scope): description
 
-Closes burndown-chart-<issue-id>
+Closes burndown-chart-<id>
 ```
 
-**Valid types**: `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`
+Types: See `.github/copilot-instructions.md` Rule 9
 
-**Examples**:
-```bash
-feat(dashboard): add velocity trend visualization
+## Session End (Landing the Plane)
 
-Closes burndown-chart-abc
-```
+**AXIOM**: Work ≠ Complete until `git push` succeeds
 
-See `.github/copilot-instructions.md` for complete type definitions.
+**MANDATORY SEQUENCE**:
 
-## Landing the Plane (Session Completion)
-
-**When ending a work session**, you MUST complete ALL steps below. Work is NOT complete until `git push` succeeds.
-
-**MANDATORY WORKFLOW:**
-
-1. **File issues for remaining work** - Create issues for anything that needs follow-up
-2. **Run quality gates** (if code changed) - Tests, linters, builds
-3. **Update issue status** - Close finished work, update in-progress items
-4. **PUSH TO REMOTE** - This is MANDATORY:
+1. File remaining work → beads issues
+2. Quality gates (if code changed) → `get_errors`, tests
+3. Update beads → close/update status
+4. **PUSH** (CRITICAL):
    ```bash
-   git pull --rebase
-   bd sync
-   git push
-   git status  # MUST show "up to date with origin"
+   git pull --rebase && bd sync && git push && git status
+   # MUST show "up to date with origin"
    ```
-5. **Clean up** - Clear stashes, prune remote branches
-6. **Verify** - All changes committed AND pushed
-7. **Hand off** - Provide next session prompt to user:
+5. Clean → stashes, remote branches
+6. Hand off → Provide next prompt:
    ```
-   **Next Session Prompt:**
-   "Continue work on bd-X: [issue title]. [What was done, what's next]"
+   Continue work on bd-X: [title]. [done, next]
    ```
 
-**CRITICAL RULES:**
-- Work is NOT complete until `git push` succeeds
-- NEVER stop before pushing - that leaves work stranded locally
-- NEVER say "ready to push when you are" - YOU must push
-- If push fails, resolve and retry until it succeeds
-- ALWAYS provide a specific prompt for the next session
+**RULES**:
+- ∄ completion before push (leaves work stranded)
+- NEVER delegate push to user
+- Push failure → resolve → retry until success
+- ∀ session ends → ∃ handoff prompt
 

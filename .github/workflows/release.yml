@@ -242,6 +242,10 @@ jobs:
           3. Create a **query profile** to fetch your project's issues
           4. Click **Update Data** to load your project data
 
+          ## Changelog
+
+          ## v$version
+
           $changelog
 
           ## Requirements

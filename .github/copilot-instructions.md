@@ -1,461 +1,149 @@
 ﻿# Burndown Chart - AI Agent Guide
 
-**What**: Dash PWA for PERT-based agile forecasting with JIRA integration  
-**Stack**: Python 3.13, Dash Bootstrap Components, Plotly, Waitress
+**Stack**: Python 3.13, Dash, Plotly, Waitress | **DB**: SQLite | **Platform**: Windows
 
-## CRITICAL RULES (Read First)
+## NON-NEGOTIABLE RULES
 
-### 1. Zero Errors Policy (NON-NEGOTIABLE)
+### 1. Zero Errors Policy
 
-ALL errors MUST be fixed immediately: type errors, linting, runtime. Run `get_errors` after every change.
+- Run `get_errors` after every change
+- Fix ALL errors before commit (zero tolerance)
+- Pre-commit: `get_errors` → fix → verify → commit
 
-**Pre-Commit Check (MANDATORY)**: BEFORE any `git add` or `git commit`, you MUST:
+### 2. Layered Architecture
 
-1. Run `get_errors` on all modified files
-2. Fix ALL errors found (zero tolerance)
-3. Verify fixes with another `get_errors` call
-4. Only proceed with commit after confirming zero errors
+- `callbacks/` → event handling ONLY, delegate to `data/`
+- Never implement logic in callbacks
+- `data/` → business logic, API calls, calculations
 
-**If errors exist, commit is FORBIDDEN.** No exceptions.
+### 3. KISS + DRY + Boy Scout
 
-### 2. Layered Architecture (NON-NEGOTIABLE)
+- KISS: Simplify, early returns, break functions >50 lines
+- DRY: Extract duplicates (3+ blocks) → helpers
+- Boy Scout: Every change improves codebase (remove dead code, add type hints, fix smells)
 
-`callbacks/` → event handling ONLY, delegate to `data/` layer. Never implement logic in callbacks.
+### 4. No Customer Data
 
-```python
-# CORRECT: Callback delegates to data layer
-@callback(Output("out", "children"), Input("btn", "n_clicks"))
-def handle(n): return my_data_function(n)  # data/ layer
+- NEVER commit: real company names, domains, JIRA field IDs, credentials
+- Use: "Acme Corp", "example.com", "customfield_10001"
 
-# WRONG: Logic in callback
-@callback(...)
-def handle(n): return sum([x for x in range(n)])  # ❌ NO LOGIC HERE
-```
+### 5. Test Isolation
 
-### 3. KISS + DRY + Boy Scout (NON-NEGOTIABLE)
+- Tests MUST use `tempfile.TemporaryDirectory()`, never project root
 
-- **KISS**: Simplify, early returns, break functions >50 lines
-- **DRY**: Extract duplicated code (3+ blocks) → helpers
-- **Boy Scout**: Every change MUST improve codebase (remove dead code, add type hints, fix smells)
+### 6. No Emoji
 
-**Code smells to fix**: Magic numbers→constants, long parameter lists→config objects, deep nesting→flatten
+- NEVER use emoji (encoding issues, breaks grep)
 
-**Clean Code**: Single Responsibility (one thing well), Low Coupling (interfaces not implementations), High Cohesion (related functionality grouped), Encapsulation (logic in data layer)
+### 7. Terminal Management
 
-### 4. No Customer Data (NON-NEGOTIABLE)
+- If app running, open NEW terminal for other commands
 
-NEVER commit: real company names, production domains, JIRA field IDs, credentials.  
-Use: "Acme Corp", "example.com", "customfield_10001"
+### 8. Self-Healing Documentation
 
-### 5. Test Isolation (NON-NEGOTIABLE)
+- On discovering errors in `copilot-instructions.md`: INFORM → PROPOSE → UPDATE
+- Mathematically condense rules: minimum context, maximum clarity
+- Remove redundancy, preserve all rules
 
-Tests MUST use `tempfile.TemporaryDirectory()` - NEVER create files in project root.
+### 9. Conventional Commits (MANDATORY)
 
-```python
-@pytest.fixture
-def temp_file():
-    with tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".json") as f:
-        temp_file = f.name
-    yield temp_file
-    if os.path.exists(temp_file):
-        os.unlink(temp_file)
-```
-
-### 6. No Emoji (NON-NEGOTIABLE)
-
-NEVER use emoji in code, logs, commits, or comments - causes encoding issues and breaks grep/search.
-
-### 7. Terminal Management (NON-NEGOTIABLE)
-
-When app running (`python app.py`), MUST open NEW terminal for other commands. Never interrupt app process.
-
-### 8. Self-Healing Documentation (NON-NEGOTIABLE)
-
-When discovering errors or outdated information in `copilot-instructions.md`:
-
-1. **INFORM** user immediately about the discrepancy
-2. **PROPOSE** specific correction with evidence from codebase
-3. **UPDATE** instructions after user approval
-
-Keep documentation synchronized with evolving codebase. Examples: wrong file paths, obsolete workflows, incorrect technical details.
-
-### 9. Conventional Commits (NON-NEGOTIABLE)
-
-ALL commits MUST follow Conventional Commits format: `type(scope): description`
-
-**Required format**: `type(scope): description` where scope is optional
-
-**Valid types**:
-
-- `feat`: New features for users
-- `fix`: Bug fixes for users
-- `docs`: Documentation changes
-- `style`: Code style changes (formatting, whitespace, no logic change)
-- `refactor`: Code restructuring (no feature change)
-- `perf`: Performance improvements
-- `test`: Adding or updating tests
-- `build`: Build system changes (package.json, pip, etc.)
-- `ci`: CI/CD pipeline changes (GitHub Actions, etc.)
-- `chore`: Maintenance tasks (tooling, dependencies, cleanup)
-
-**Examples**:
-
-```
-feat(dashboard): add velocity trend visualization
-fix(jira): handle pagination timeout errors
-docs(readme): update installation instructions
-refactor(metrics): extract calculation logic to helper
-chore(deps): update plotly to 5.18.0
-```
-
-**Enforcement**: Changelog generation relies on commit types. Non-conforming commits won't appear in user-facing changelogs.
+- Format: `type(scope): description`
+- Types: `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`
+- Changelog generation depends on commit types
 
 ---
 
 ## Architecture
 
-```
-callbacks/      Event handling ONLY → delegate to data/
-data/           Business logic, JIRA API, persistence, calculations
-ui/             Component rendering (Dash Bootstrap)
-visualization/  Plotly chart generation
-configuration/  Constants, settings, help text
-```
+- `callbacks/` Event handling → delegate to data/
+- `data/` Business logic, JIRA API, persistence
+- `ui/` Component rendering (Dash Bootstrap)
+- `visualization/` Plotly charts
+- `configuration/` Constants, settings
+- **DB**: `profiles/burndown.db` (12 tables)
 
-**Persistence**: SQLite at `profiles/burndown.db` (12 tables: profiles, queries, jira_cache, jira_issues, jira_changelog_entries, project_statistics, project_scope, metrics_data_points, budget_revisions, budget_settings, app_state, task_progress)
+## Key Entry Points
 
----
-
-## Quick Reference
-
-**Run**: `.\.venv\Scripts\activate; python app.py` → http://127.0.0.1:8050  
-**Test**: `.\.venv\Scripts\activate; pytest tests/unit/ -v`
-
-**Key Entry Points**:
-
-- `app.py` - Application entry, initialization, migration
-- `ui/layout.py` - Main layout, serve_layout()
-- `callbacks/__init__.py` - Callback registration hub
-- `data/persistence/` - Persistence layer (SQLite backend)
-- `data/jira_query_manager.py` - JIRA API (use this, not jira_simple.py)
-
-**Features → Files**:
-| Feature | UI | Callback | Data |
-|---------|----|---------| -----|
-| Dashboard | `ui/dashboard_comprehensive.py` | `callbacks/visualization.py` | `data/metrics_calculator.py` |
-| Burndown | - | `callbacks/visualization.py` | `visualization/charts.py` |
-| DORA | `ui/dora_metrics_dashboard.py` | `callbacks/dora_flow_metrics.py` | `data/dora_metrics.py` |
-| Flow | `ui/flow_metrics_dashboard.py` | `callbacks/dora_flow_metrics.py` | `data/flow_metrics.py` |
-| Bugs | `ui/bug_analysis.py` | `callbacks/bug_analysis.py` | `data/bug_processing.py` |
-| Settings | `ui/tabbed_settings_panel.py` | `callbacks/tabbed_settings.py` | `data/profile_manager.py` |
-| Reports | - | `callbacks/report_generation.py` | `data/report_generator.py` |
-| Import/Export | - | `callbacks/import_export.py` | `data/import_export.py` |
-
----
-
-## Essential Workflows
-
-### Add Callback
-
-```python
-# 1. Create callbacks/my_feature.py
-from dash import callback, Output, Input
-from data.processing import my_function
-
-@callback(Output("out", "children"), Input("btn", "n_clicks"))
-def handle(n): return my_function(n)  # Delegate to data/
-
-# 2. Import in callbacks/__init__.py
-from callbacks import my_feature  # noqa: F401
-```
-
-### Add Dependency
-
-```powershell
-# 1. Add to requirements.in with version + comment
-# 2. Compile: .\.venv\Scripts\activate; pip-compile requirements.in
-# 3. Install: pip install -r requirements.txt
-```
-
-### JIRA Integration
-
-Use `data/jira_query_manager.py` (handles pagination, rate limiting, auth). Never call `jira_simple.py` directly.
-
-### Field Mapping (DORA/Flow)
-
-Namespace syntax: `[ProjectFilter.]FieldName[.Property][:ChangelogValue][.Extractor]`
-
-```python
-"*.created"                      # Any project, created field
-"PROJECT.customfield_10100"      # Specific project, custom field
-"*.status.name"                  # Object property access
-"*.Status:Done.DateTime"         # Changelog timestamp
-"DevOps|Platform.resolutiondate" # Multiple projects
-```
-
-See `docs/namespace_syntax.md` for details.
-
----
+- `app.py` - Entry, initialization, migration
+- `ui/layout.py` - Main layout
+- `callbacks/__init__.py` - Callback hub
+- `data/persistence/` - SQLite backend
+- `data/jira_query_manager.py` - JIRA API (not jira_simple.py)
 
 ## Code Standards
 
-**Naming**: Files `snake_case.py`, Classes `PascalCase`, functions/vars `snake_case`, constants `UPPER_CASE`
-
-**Type Hints**: All functions MUST have type annotations
-
-```python
-def calc_velocity(issues: list[dict], days: int) -> float: ...
-```
-
-**Logging**: Follow `docs/LOGGING_STANDARDS.md`
-
-```python
-logger.info("Velocity calculated", extra={"operation": "calc_velocity", "result": velocity})
-# Never log: customer data, credentials, PII
-```
-
-**Performance**: Page load <2s, charts <500ms, interactions <100ms
-
-**Windows**: PowerShell only - no Unix commands (`grep`, `find`, `cat`)
-| Task | PowerShell |
-|------|-----------|
-| Find files | `Get-ChildItem -Recurse -Filter "*.py"` |
-| Search | `Select-String -Path "*.py" -Pattern "pattern"` |
+- **Naming**: `snake_case.py`, `PascalCase`, `snake_case()`, `UPPER_CASE`
+- **Type Hints**: All functions MUST have annotations
+- **Logging**: Follow `docs/LOGGING_STANDARDS.md`, never log customer data/credentials
+- **Performance**: Page <2s, charts <500ms, interactions <100ms
+- **Windows**: PowerShell only (no `grep`, `find`, `cat`)
 
 ---
 
 ## Version Control
 
-**Branch Strategy**: Before implementing features/bugfixes, ask user: "Create feature branch or work on main?" Wait for decision.
+**Branch Strategy**: Ask user "Create feature branch or work on main?" before implementing.
 
-- **Main branch**: Direct commits trigger version update notifications
-- **Feature branches**: Enable isolated development and testing
+**Release Process** (CRITICAL):
 
-**Version Management** (CRITICAL - every main merge):
+1. **Polish changelog FIRST** (create v{X.Y.Z} section with release date in `changelog.md`)
+2. **Automated** (recommended): `python release.py [patch|minor|major]`
+3. **Manual**: `python build/generate_version_info.py` → commit → `python bump_version.py` → push with tags
 
-**IMPORTANT**: Changelog must be polished BEFORE pushing tags to prevent auto-generated drafts in releases.
+**release.py automates**:
 
-1. **Merge feature branch**: `git checkout main && git merge <feature-branch>`
-2. **Polish changelog FIRST** using one of two methods:
+- Regenerates `build/version_info.txt` (bundled in executable)
+- Calls `bump_version.py` (which calls `regenerate_changelog.py`)
+- Recreates tag with consistent message: "Release v{X.Y.Z}"
+- Pushes to trigger GitHub Actions
 
-   **Method A - Manual polish (recommended):**
-   - Edit `changelog.md` and add polished v{X.Y.Z} section with release date
-   - Commit: `git commit -am "docs(changelog): add v{X.Y.Z} release notes"`
-   - Run: `python bump_version.py [major|minor|patch]` (skips regeneration, uses your content)
-   - Push: `git push origin main --tags`
+**Changelog Rules**:
 
-   **Method B - LLM-assisted:**
-   - Run: `python regenerate_changelog.py --json`
-   - Feed `changelog_draft.json` to LLM for polished summaries
-   - Copy LLM output to `changelog.md`, add release date, delete draft JSON
-   - Commit: `git commit -am "docs(changelog): add v{X.Y.Z} release notes"`
-   - Run: `python bump_version.py [major|minor|patch]` (skips regeneration)
-   - Push: `git push origin main --tags`
-
-**Why this order matters**: Pushing tags triggers GitHub Actions release creation. Tags must point to commits with polished changelogs, not auto-generated drafts.
-
-**If you already pushed a draft**: Edit release notes manually on GitHub after workflow completes.
-
-**Key Points:**
-
-- Script ONLY generates entries for NEW tags (preserves existing content)
-- Never overwrites curated changelog entries
-- JSON export provides structured data for AI assistance
+- FLAT BULLETS ONLY (no sub-bullets - About dialog cannot render)
 - Focus on user benefits, not technical details
-- Use bold formatting (**Feature Name**) for major features
-- **FLAT BULLETS ONLY**: No sub-bullet points (About dialog cannot render indentation)
-
-**Changelog Format Rules:**
-
-```markdown
-### Features
-
-- **Feature Name**: Description with all details in one line, comma-separated sub-points
-- **Another Feature**: Brief description followed by details inline
-
-### Bug Fixes
-
-- Fixed issue with clear description of problem and solution
-```
-
-**WRONG (causes display issues in About dialog):**
-
-```markdown
-- **Feature Name**: Main description
-  - Sub-point one
-  - Sub-point two
-```
-
-**Commits**: See CRITICAL RULE #9 - Conventional Commits format is MANDATORY
+- Bold major features: `**Feature Name**`
 
 **Self-Review Checklist**:
 
-- [ ] Code follows project conventions
-- [ ] No debug code (print statements, commented blocks)
-- [ ] Tests pass: `pytest tests/ -v`
-- [ ] Zero type errors: `get_errors` tool
-- [ ] No sensitive data in code/comments
+- [ ] Code conventions followed
+- [ ] No debug code
+- [ ] `pytest tests/ -v` passes
+- [ ] `get_errors` returns zero errors
+- [ ] No sensitive data
 
 ---
 
 ## Development Workflow (Spec-Kit + Beads)
 
-**For new features/specs, follow this structured workflow:**
+1. Specification: `@speckit.specify <feature>` → `specs/<feature>/spec.md`
+2. Planning: `@speckit.plan` → research.md, plan.md, contracts/
+3. Tasks: `@speckit.tasks` → `specs/<feature>/tasks.md`
+4. Import: `python workflow/tasks_to_beads.py specs/<feature>/tasks.md tasks.jsonl; bd import -i tasks.jsonl --rename-on-import; bd sync`
+5. Track: `bd ready`, `bd update <id> --status in_progress`, `bd close <id>`
+6. Complete: Verify `bd list --status open` shows 0 → update spec.md → pytest → commit → merge
 
-### 1. Specification (Spec-Kit)
+**Commit**: `type(scope): description\n\nCloses beads-<id>`
 
-**In VS Code Chat** (`Ctrl+Alt+I`):
-
-```
-@speckit.specify <feature description>
-```
-
-Creates `specs/<feature>/spec.md` with user stories and acceptance criteria.
-
-### 2. Planning (Spec-Kit)
-
-**In VS Code Chat**:
-
-```
-@speckit.plan
-```
-
-Generates planning documents: research.md, plan.md, data-model.md, contracts/, quickstart.md
-
-### 3. Task Generation (Spec-Kit)
-
-**In VS Code Chat**:
-
-```
-@speckit.tasks
-```
-
-Generates `specs/<feature>/tasks.md` with 100+ actionable tasks organized by user stories.
-
-### 4. Import to Beads
-
-```powershell
-.\.venv\Scripts\activate; python workflow/tasks_to_beads.py specs/<feature>/tasks.md tasks.jsonl
-bd import -i tasks.jsonl --rename-on-import
-bd sync
-Remove-Item tasks.jsonl
-```
-
-### 5. Task Tracking (Beads)
-
-**Daily commands**:
-
-- `bd ready` - Show available tasks
-- `bd show <id>` - View task details
-- `bd update <id> --status in_progress` - Claim task
-- `bd close <id>` - Complete task
-- `bd sync` - Sync with git
-
-**Commit format**:
-
-```
-feat(scope): description
-
-Closes beads-<issue-id>
-```
-
-### 6. Feature Completion
-
-**When all beads tasks are closed**, finalize the Spec-Kit workflow:
-
-1. **Verify all tasks complete**:
-
-   ```powershell
-   bd list --status open  # Should show 0 open tasks
-   ```
-
-2. **Update tasks.md** - Check off completed tasks in `specs/<feature>/tasks.md`
-
-3. **Update spec.md** - Add completion date and final notes to `specs/<feature>/spec.md`
-
-4. **Run final quality gates**:
-
-   ```powershell
-   pytest tests/ -v          # All tests pass
-   get_errors                # Zero errors
-   ```
-
-5. **Commit documentation updates**:
-
-   ```powershell
-   git add specs/<feature>/
-   git commit -m "docs(spec-kit): mark <feature> as complete"
-   ```
-
-6. **Final sync and push**:
-
-   ```powershell
-   bd sync
-   git push
-   ```
-
-7. **Ready for merge** - Feature branch ready for PR or merge to main
-
-**Complete workflow**: See `workflow/README.md`  
-**Tool setup**: See `workflow/SETUP.md`  
-**Session completion**: See `AGENTS.md` for mandatory checklist
-
----
-
-## Component Guidelines
-
-**When to Extract Component**: Code duplicated 2+ places, function >50 lines, clear single responsibility, reusable across views
-
-**Code Reuse**: Check existing code before implementing, extract common logic to utilities, composition over inheritance, document with examples
+**Session End** (see `AGENTS.md`): File remaining work issues → quality gates → close issues → **PUSH** → clean up → verify pushed → hand off prompt
 
 ---
 
 ## Testing
 
-**Unit tests**: MUST be written during implementation  
-**Integration tests**: After feature completion  
-**Browser**: Playwright (not Selenium)
-
-```powershell
-pytest tests/unit/ -v                      # Unit tests
-pytest tests/integration/ -v               # Integration
-pytest --cov=data --cov=ui --cov-report=html  # Coverage
-```
-
-### Add Data Source
-
-1. Create `data/my_api.py`
-2. Add caching: `@memoize(max_age_seconds=300)`
-3. Wire to callback
+- Unit tests during implementation
+- Use Playwright (not Selenium)
+- Run: `pytest tests/unit/ -v`
+- Coverage: `pytest --cov=data --cov=ui --cov-report=html`
 
 ---
 
-## Key Technical Decisions
+## Documentation
 
-- **CodeMirror 5** (not v6): CM6 needs ES modules incompatible with Dash
-- **Playwright** (not Selenium): Faster, more reliable browser automation
-- **JIRA**: Paginated (100/page), cached with version tracking
-
----
-
-## Troubleshooting
-
-| Issue                 | Fix                                                 |
-| --------------------- | --------------------------------------------------- |
-| `ModuleNotFoundError` | Activate venv: `.\.venv\Scripts\activate`           |
-| Charts not rendering  | Check browser console, clear cache                  |
-| JIRA 401              | Update token in Settings                            |
-| Stale data            | `python data/clear_metrics_cache.py` or Update Data |
+- **Metrics**: `docs/dashboard_metrics.md`, `docs/dora_metrics.md`, `docs/flow_metrics.md`
+- **Architecture**: `docs/caching_system.md`, `docs/namespace_syntax.md`
+- **Guides**: `docs/defensive_refactoring_guide.md`, `docs/LOGGING_STANDARDS.md`
+- **Index**: `docs/readme.md`, `docs/metrics_index.md`
 
 ---
 
-## Documentation Reference
-
-**Metrics**: `docs/dashboard_metrics.md`, `docs/dora_metrics.md`, `docs/flow_metrics.md`, `docs/budget_metrics.md`  
-**Architecture**: `docs/caching_system.md`, `docs/namespace_syntax.md`  
-**Guides**: `docs/defensive_refactoring_guide.md`, `docs/LOGGING_STANDARDS.md`  
-**Index**: `docs/readme.md`, `docs/metrics_index.md`
-
----
-
-**Version**: 2.2.0 | **Optimized**: 2026-01-14 | Target: <2000 tokens standalone
+**Version**: 2.3.0 | **Condensed**: 2026-01-17 | Target: <1500 tokens
