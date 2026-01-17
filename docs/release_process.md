@@ -548,6 +548,38 @@ Download and test the released ZIP:
 - Rebuild with updated version file
 - Clear browser cache if testing locally
 
+
+---
+
+## Changelog Generation Workflow
+
+Burndown Chart uses an incremental changelog system to ensure release notes are accurate and never overwritten. The changelog is generated and updated using the `regenerate_changelog.py` script.
+
+### How to Generate/Update changelog.md
+
+1. **Incremental Update:**
+- Run: `python regenerate_changelog.py`
+- This will scan all conventional commits since the last tag and append new entries to `changelog.md`.
+- Existing release notes are preserved; only new changes are added.
+
+2. **LLM-Assisted Summaries (Optional):**
+- Run: `python regenerate_changelog.py --json`
+- This creates `changelog_draft.json` with structured commit data for the new version.
+- Feed the JSON to an LLM (e.g., Copilot Chat): "Write user-friendly summaries for these versions."
+- Copy the LLM output into `changelog.md` for polished release notes.
+- Delete `changelog_draft.json` after use (auto-ignored by git).
+
+3. **Best Practices:**
+- Always update `changelog.md` before bumping the version and creating a release.
+- Never overwrite previous release notes; only add new entries for the current version.
+- Use bold formatting for major features and focus on user benefits.
+
+### Changelog in Release Automation
+
+- The GitHub Actions workflow extracts the correct version section from `changelog.md` for release notes.
+- If the section is missing, it falls back to the full changelog.
+- See `.github/copilot-instructions.md` for detailed changelog workflow.
+
 ---
 
 ## Additional Resources
@@ -557,5 +589,7 @@ Download and test the released ZIP:
 - **GitHub Workflow**: `.github/workflows/release.yml`
 - **Version Management**: `bump_version.py`
 - **Documentation**: `docs/` directory
+
+---
 
 For questions or issues, see [GitHub Issues](https://github.com/niksavis/burndown-chart/issues).
