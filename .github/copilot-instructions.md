@@ -55,14 +55,14 @@
 **Examples**:
 
 ```bash
-# Single task
-git commit -m "feat(build): add PyInstaller to requirements (bd-t001)"
+# Single task (hierarchical)
+git commit -m "feat(build): add PyInstaller to requirements (burndown-chart-016.1)"
 
 # Multiple related tasks (list all in first line)
-git commit -m "feat(build): create project structure (bd-t002, bd-t003, bd-t004)"
+git commit -m "feat(build): create project structure (burndown-chart-016.2, 016.3, 016.4)"
 
-# Bug fix
-git commit -m "fix(data): resolve circular import in frozen exe (bd-79a)"
+# Bug fix (hash ID)
+git commit -m "fix(data): resolve circular import in frozen exe (burndown-chart-6np)"
 
 # Extended body for context
 git commit -m "feat(update): add auto-reconnect overlay (bd-xmc)
@@ -145,13 +145,13 @@ available. Prevents duplicate browser tabs after updates."
 1. Specification: `@speckit.specify <feature>` → `specs/<feature>/spec.md`
 2. Planning: `@speckit.plan` → research.md, plan.md, contracts/
 3. Tasks: `@speckit.tasks` → `specs/<feature>/tasks.md`
-4. Import: `python workflow/tasks_to_beads.py specs/<feature>/tasks.md tasks.jsonl; bd import -i tasks.jsonl --rename-on-import; bd sync`
-5. Work: `bd ready` → claim → commit with `(bd-XXX)` → `bd sync`
+4. Import: Create parent feature → `python workflow/tasks_to_beads.py specs/<feature>/tasks.md tasks.jsonl --parent burndown-chart-016; bd import -i tasks.jsonl --rename-on-import; bd sync`
+5. Work: `bd ready` → claim → do work → `bd close burndown-chart-016.X --reason "Completed"` → stage all → commit with `(burndown-chart-016.X)` → push
 6. Complete: All beads closed → update spec.md → `pytest` → push
 
-**Commit MUST include bead ID**: `feat(scope): description (bd-XXX)`  
-**NEVER close manually**: Always close via commit (orphan detection requires commit link)  
-**After batch ops**: Run `bd sync` (bypasses 30s debounce, forces immediate export/commit/push)
+**Workflow**: Close bead BEFORE commit (single commit = work + closed status)  
+**Commit format**: `feat(scope): description (burndown-chart-XXX)` (traceability, orphan detection)  
+**After batch**: `bd sync` (bypass 30s debounce, force immediate export/commit/push)
 
 ---
 

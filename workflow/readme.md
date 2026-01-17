@@ -114,34 +114,63 @@ git commit -m "docs(spec-kit): generate task breakdown for <feature>"
 
 ## Phase 3: Import Tasks to Beads
 
-### Convert tasks.md to Beads Format
+### Step 1: Create Parent Feature
 
-```bash
+```powershell
+# Extract spec number from directory (e.g., specs/016-standalone-packaging/)
+$specDir = "specs/016-standalone-packaging"
+$specNumber = ($specDir -split '/')[-1] -replace '-.*', ''  # "016"
+
+# Read feature title from spec.md or use directory name
+$featureTitle = "016: Standalone Executable Packaging"
+
+# Create parent feature in beads
+bd create "$featureTitle" `
+  -t feature `
+  -p 0 `
+  --id "burndown-chart-$specNumber" `
+  -l "spec-$specNumber"
+
+# Verify creation
+bd show burndown-chart-$specNumber
+```
+
+### Step 2: Convert tasks.md to Hierarchical Children
+
+```powershell
 # Activate virtual environment (if using Python project)
 # Windows: .venv\Scripts\activate
 # Linux/macOS: source .venv/bin/activate
 
-python workflow/tasks_to_beads.py specs/<feature>/tasks.md tasks_import.jsonl
+# Convert tasks with parent reference
+python workflow/tasks_to_beads.py `
+  specs/016-standalone-packaging/tasks.md `
+  tasks_import.jsonl `
+  --parent burndown-chart-016
 
 # Import into Beads
 bd import -i tasks_import.jsonl --rename-on-import
 
-# Verify import
-bd list --json | ConvertFrom-Json | Measure-Object
-bd ready  # Show available tasks
+# Verify import - should show hierarchical IDs
+bd list --id "burndown-chart-016*"
+# Output:
+# burndown-chart-016     (feature)
+# burndown-chart-016.1   (task: T001)
+# burndown-chart-016.2   (task: T002)
+# ...
 
-# Sync to JSONL file
+# Sync to git
 bd sync
 
 # Clean up temporary file
 Remove-Item tasks_import.jsonl
 ```
 
-**Result**: All tasks now tracked in Beads with:
-- Task IDs (T001, T002, ...)
-- Priorities (P1, P2, P3)
-- Story labels (US1, US2, ...)
-- Parallelizable markers
+**Result**: Hierarchical task structure with:
+- Parent: `burndown-chart-016` (type: feature)
+- Children: `burndown-chart-016.1`, `016.2`, ... (type: task)
+- Labels: `phase-1`, `us-3`, `parallel`, `mvp`, `spec-016`
+- Priorities: p0 (MVP), p1 (foundational), p2 (user stories)
 
 ---
 
@@ -178,29 +207,32 @@ bd update <issue-id> --status in_progress
 
 ### Complete Task
 
-```bash
-# Commit your changes (bead closes automatically via commit message)
+```powershell
+# Close bead BEFORE commit (single commit = work + closed status)
+bd close burndown-chart-016.1 --reason "Completed PyInstaller integration"
+
+# Commit your changes with bead ID for traceability
 git add <files>
-git commit -m "feat(<scope>): <description> (bd-<id>)
+git commit -m "feat(build): add PyInstaller to requirements (burndown-chart-016.1)
 
-Optional extended explanation of what was done and why.
-Can include implementation details, decisions made, etc."
+Added PyInstaller 6.3.0 for Windows executable packaging.
+Configured as build-only dependency in requirements.in."
 
-# Verify bead auto-closed
-bd show <issue-id>  # Should show status: closed
+# Push changes
+git push
 
-# Sync changes
+# Sync beads to git
 bd sync
 ```
 
-**CRITICAL**: Never close beads manually. Always close via commit message with `(bd-<id>)` format. This ensures `bd doctor` can track orphaned issues and AI can trace work.
+**Workflow**: Close bead → stage → commit → push (single commit captures work + closed status)
 
 ### Commit Message Format
 
-**Required Format** (per [Beads AGENT_INSTRUCTIONS.md](https://github.com/steveyegge/beads/blob/main/AGENT_INSTRUCTIONS.md)):
+**Required Format**:
 
 ```
-type(scope): description (bd-XXX)
+type(scope): description (burndown-chart-XXX)
 
 Optional body with extended context, implementation details,
 decisions made, or blockers encountered.
@@ -209,32 +241,19 @@ decisions made, or blockers encountered.
 **Format Rules**:
 - **type**: feat|fix|refactor|docs|test|chore|perf
 - **scope**: component affected (build, ui, data, etc.)
-- **description**: what changed (concise, < 50 chars)
-- **(bd-XXX)**: bead ID at END of first line (enables bd doctor tracking)
-- **body**: optional extended explanation (blank line separator)
+- **description**: Brief summary (50-72 chars)
+- **(burndown-chart-XXX)**: Bead ID at END of first line (enables orphan detection)
 
 **Examples**:
-```bash
-# Single task
-git commit -m "feat(build): add PyInstaller to requirements (bd-t001)
+```powershell
+# Task completion
+git commit -m "feat(build): create PyInstaller spec (burndown-chart-016.8)"
 
-Added PyInstaller>=6.0.0 to requirements.in per T001 specification.
-Regenerated requirements.txt using pip-compile."
+# Bug fix (hash ID)
+git commit -m "fix(app): resolve SQLite crash on startup (burndown-chart-6np)"
 
-# Multiple related tasks
-git commit -m "feat(build): create project structure (bd-t002, bd-t003, bd-t004)
-
-Created build/, updater/, and licenses/ directories with
-initial subdirectory structure per Phase 1 setup tasks."
-
-# Bug fix
-git commit -m "fix(app): resolve database path for frozen executable (bd-t023)
-
-Closes beads-t023
-
-test(update): add version comparison unit tests
-
-Closes beads-t104
+# Multiple related tasks (list all IDs)
+git commit -m "feat(build): complete build infrastructure (burndown-chart-016.1, 016.2, 016.3)"
 ```
 
 ---

@@ -28,8 +28,8 @@ type(scope): description (bd-XXX)
 # Optional extended body
 ```
 
-**MANDATORY**: Bead ID `(bd-XXX)` at END of first line (enables `bd doctor` orphan detection)
-**NEVER**: Close beads manually - always via commit (maintains traceability)
+**MANDATORY**: Bead ID at END of first line (enables `bd doctor` orphan detection)
+**WORKFLOW**: Close bead BEFORE commit (single commit = work + closed status)
 
 Types: feat|fix|refactor|docs|test|chore|perf|style|build|ci
 
@@ -41,7 +41,7 @@ Types: feat|fix|refactor|docs|test|chore|perf|style|build|ci
 
 1. File remaining work → beads issues
 2. Quality gates (if code) → `get_errors`, `pytest`
-3. Close beads via commits (not `bd close`)
+3. Close beads → stage → commit with bead ID → push
 4. **PUSH** (NON-NEGOTIABLE):
    ```bash
    git pull --rebase
