@@ -1,7 +1,7 @@
 # Burndown Chart 🔥
 
 [![python](https://img.shields.io/badge/Python-3.13-3776AB.svg?style=flat&logo=python&logoColor=white)](https://www.python.org)
-[![version](https://img.shields.io/badge/version-2.5.0-blue.svg)](https://github.com/niksavis/burndown-chart/releases)
+[![version](https://img.shields.io/badge/version-2.6.0-blue.svg)](https://github.com/niksavis/burndown-chart/releases)
 [![License](https://img.shields.io/badge/License-MIT-green)](LICENSE)
 
 **Forecast your project completion date.** Connect to JIRA and get automatic best/worst/likely scenarios based on your team's velocity. Track progress, spot bottlenecks, and generate shareable HTML reports - all running locally in your browser.
