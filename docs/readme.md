@@ -47,6 +47,10 @@ Documentation for developers extending the application, implementing new metrics
 - **[Logging Standards](logging_standards.md)** - Logging conventions, levels, and security practices
 - **[Defensive Refactoring Guide](defensive_refactoring_guide.md)** - Safely removing unused code and dependencies
 
+### Build & Release
+
+- **[Release Process](release_process.md)** - Build workflow, executable packaging, and release automation
+
 ### Architecture Reference
 
 For detailed implementation guides, see:
@@ -67,8 +71,9 @@ For detailed implementation guides, see:
 | Validate metric relationships | [Metrics Correlation Guide](metrics_correlation_guide.md)     |
 | Map custom JIRA fields        | [Namespace Syntax](namespace_syntax.md)                       |
 | Understand caching behavior   | [Caching System](caching_system.md)                           |
-| Add logging to new features   | [Logging Standards](logging_standards.md)                     |
+| Add logging to new features   | [Logging Standards](LOGGING_STANDARDS.md)                     |
 | Remove unused code safely     | [Defensive Refactoring Guide](defensive_refactoring_guide.md) |
+| Build standalone executable   | [Release Process](release_process.md)                         |
 
 ---
 
