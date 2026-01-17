@@ -4,6 +4,14 @@ Generate changelog entries for NEW git tags (preserves existing content).
 IMPORTANT: This generates DRAFT entries for new tags only.
 Existing changelog entries are preserved and never overwritten.
 
+FORMATTING RULE: FLAT BULLETS ONLY
+The About dialog cannot render sub-bullet points (no indentation support).
+All changelog entries MUST be flat single-line bullets with inline details:
+  CORRECT:   - **Feature**: Description with details inline, comma-separated
+  INCORRECT: - **Feature**: Description
+               - Sub-point one
+               - Sub-point two
+
 How it works:
 1. Parses changelog.md to find which versions already have entries
 2. Generates entries ONLY for new tags (not in changelog)

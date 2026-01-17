@@ -266,6 +266,28 @@ The `bump_version.py` script automatically calls `regenerate_changelog.py` to ge
 - JSON export provides structured data for AI assistance
 - Focus on user benefits, not technical details
 - Use bold formatting (**Feature Name**) for major features
+- **FLAT BULLETS ONLY**: No sub-bullet points (About dialog cannot render indentation)
+
+**Changelog Format Rules:**
+
+```markdown
+### Features
+
+- **Feature Name**: Description with all details in one line, comma-separated sub-points
+- **Another Feature**: Brief description followed by details inline
+
+### Bug Fixes
+
+- Fixed issue with clear description of problem and solution
+```
+
+**WRONG (causes display issues in About dialog):**
+
+```markdown
+- **Feature Name**: Main description
+  - Sub-point one
+  - Sub-point two
+```
 
 **Commits**: See CRITICAL RULE #9 - Conventional Commits format is MANDATORY
 

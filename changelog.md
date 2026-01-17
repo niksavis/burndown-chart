@@ -6,10 +6,7 @@
 
 ### Features
 
-- **Background Operation**: Application now runs silently in the background with system tray icon
-  - System tray menu with Open and Quit options
-  - No terminal window - completely silent operation
-  - Automatic browser launch when ready
+- **Background Operation**: Application now runs silently in the background with system tray icon - includes Open and Quit menu options, no terminal window, automatic browser launch when ready
 
 ### Bug Fixes
 
@@ -22,18 +19,9 @@
 
 ### Features
 
-- **Standalone Windows Executable**: No Python installation required - just download and run
-  - Single executable file (~106MB) with all dependencies included
-  - Portable - stores settings and data alongside the executable
-  - Automatic browser launch when started
-- **Automatic Updates**: Application checks for new versions and can update itself
-  - Notifies you when updates are available
-  - One-click download and installation
-  - Seamless update process with automatic restart
-- **About Dialog**: View application information, changelog, and licenses
-  - See what's new in each version
-  - Browse third-party software licenses
-  - Search through license information
+- **Standalone Windows Executable**: No Python installation required - single executable file (~106MB) with all dependencies included, portable installation with settings stored alongside executable, automatic browser launch
+- **Automatic Updates**: Application checks for new versions and can update itself with one-click download and installation, seamless update process with automatic restart
+- **About Dialog**: View application information, changelog, and licenses with search functionality for third-party software licenses
 
 ### Bug Fixes
 
