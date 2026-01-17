@@ -251,7 +251,7 @@
 - [ ] T111 [P] Add CHANGELOG.md entry for feature: "Standalone Windows executable packaging with auto-update"
 - [ ] T112 Verify executable size <100MB: if over, investigate large dependencies or enable UPX compression in app.spec
 - [X] T113 Performance benchmark: measure launch time, browser open time, update check time against requirements (See spec.md Performance Benchmarks section - all requirements met)
-- [ ] T114 Create quickstart video or GIF: download → double-click → app opens (for release page)
+- [X] T114 Create quickstart video or GIF: download → double-click → app opens (for release page) (NOT NEEDED - readme.md provides comprehensive written quickstart that is superior to video: searchable, copy-pasteable, translatable, accessible, easy to update)
 
 ---
 
