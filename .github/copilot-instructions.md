@@ -239,6 +239,34 @@ logger.info("Velocity calculated", extra={"operation": "calc_velocity", "result"
 
 **MUST verify current branch is main before running bump script.** Bump script auto-updates files, commits, and creates annotated git tag. This sequence ensures tag is on main, not feature branch.
 
+**Changelog Management** (Part of release process):
+
+The `bump_version.py` script automatically calls `regenerate_changelog.py` to generate draft entries for new tags. Two workflows available:
+
+**Option A - Direct Markdown (Quick Draft):**
+
+1. Script runs automatically during bump
+2. Review generated entries in `changelog.md`
+3. Manually refine for clarity and user-friendliness
+4. Commit changelog updates
+
+**Option B - LLM-Assisted (Polished Summaries):**
+
+1. Run: `python regenerate_changelog.py --json`
+2. Creates `changelog_draft.json` with structured commit data
+3. Feed JSON to LLM: "Write user-friendly summaries for these versions"
+4. Copy LLM output to `changelog.md`
+5. Delete `changelog_draft.json` (auto-ignored by git)
+6. Commit polished changelog
+
+**Key Points:**
+
+- Script ONLY generates entries for NEW tags (preserves existing content)
+- Never overwrites curated changelog entries
+- JSON export provides structured data for AI assistance
+- Focus on user benefits, not technical details
+- Use bold formatting (**Feature Name**) for major features
+
 **Commits**: See CRITICAL RULE #9 - Conventional Commits format is MANDATORY
 
 **Self-Review Checklist**:
