@@ -415,7 +415,9 @@ $env:VERSION = "2.5.1"
 
 ### Version Bump
 
-**CRITICAL: This workflow must happen ON THE MAIN BRANCH after merging your feature branch.**
+**CRITICAL: Polish changelog BEFORE pushing tags. Tags trigger GitHub Actions, so they must point to polished content.**
+
+**Workflow:**
 
 ```powershell
 # Step 1: Merge feature branch to main
@@ -423,16 +425,37 @@ git checkout main
 git pull
 git merge 016-standalone-packaging  # Replace with your feature branch name
 
-# Step 2: Bump version ON MAIN (creates commit + tag + changelog)
+# Step 2: Polish changelog FIRST (choose one method)
+
+# METHOD A - Manual polish (recommended):
+# 1. Edit changelog.md manually
+# 2. Add section: ## v2.6.0 with "Released: YYYY-MM-DD"
+# 3. Write user-friendly features and bug fixes
+# 4. Commit polished changelog
+git add changelog.md
+git commit -m "docs(changelog): add v2.6.0 release notes"
+
+# METHOD B - LLM-assisted:
+# 1. Generate draft: python regenerate_changelog.py --json
+# 2. Feed changelog_draft.json to LLM for polished summaries
+# 3. Copy LLM output to changelog.md, add release date
+# 4. Delete changelog_draft.json
+# 5. Commit polished changelog
+git add changelog.md
+git commit -m "docs(changelog): add v2.6.0 release notes"
+
+# Step 3: Bump version (will skip changelog regeneration since section exists)
 python bump_version.py patch   # 2.5.0 → 2.5.1
 python bump_version.py minor   # 2.5.0 → 2.6.0
 python bump_version.py major   # 2.5.0 → 3.0.0
 
-# Step 3: Push to trigger GitHub Actions
+# Step 4: Push to trigger GitHub Actions
 git push origin main --tags
 ```
 
-**What bump_version.py does (automatically):**
+**Why this order?** Pushing tags immediately triggers the GitHub Actions release workflow. If you push before polishing the changelog, the release will contain auto-generated draft content marked "Unreleased - In Development" instead of polished, user-friendly release notes.
+
+**What bump_version.py does:**
 1. Updates `configuration/__init__.py` (**version** = "X.Y.Z")
 2. Updates `readme.md` version badge
 3. Creates git commit: "chore: bump version to X.Y.Z"
@@ -559,60 +582,107 @@ Download and test the released ZIP:
 
 ## Changelog Generation Workflow
 
-Burndown Chart uses an incremental changelog system to ensure release notes are accurate and never overwritten. The changelog is **automatically generated** by `bump_version.py`, but you can manually curate entries beforehand if desired.
+Burndown Chart uses an incremental changelog system to ensure release notes are accurate and never overwritten.
 
-### Automatic Changelog Generation (Default)
+### CRITICAL: Polish Changelog BEFORE Version Bump
 
-**When you run `python bump_version.py`**, it automatically:
-1. Creates the version tag
-2. Calls `regenerate_changelog.py` to generate entries from conventional commits
-3. Updates `changelog.md` with new version section
-4. Amends the version commit to include changelog
+**The changelog must be polished BEFORE running `bump_version.py` and pushing tags.** This ensures GitHub Actions creates releases with polished content, not auto-generated drafts.
 
-**Important:** The script only generates entries for NEW tags (not already in changelog), so manually curated content is preserved.
+### Recommended Workflow (Method A - Manual Polish)
 
-### Manual Curation (Optional - Before Version Bump)
+**Best for:** Most releases, especially when you know what to highlight
 
-If you want to write polished, user-friendly changelog entries instead of auto-generated ones:
+```powershell
+# 1. After merging to main, edit changelog.md
+# 2. Add new version section at the top:
+## v2.6.0
 
-**Option A - Manual editing:**
-1. Before running `bump_version.py`, edit `changelog.md` directly
-2. Add a section for the upcoming version (e.g., `## v2.6.0`)
-3. Mark it "Unreleased - In Development"
-4. Write your changelog entries
-5. Run `bump_version.py` - it will see v2.6.0 exists and preserve your content
-6. Manually update the date from "Unreleased" to "Released: YYYY-MM-DD"
+*Released: 2026-01-17*
 
-**Option B - LLM-assisted (after commits, before bump):**
-1. Run: `python regenerate_changelog.py --json`
-2. This creates `changelog_draft.json` with structured commit data
-3. Feed JSON to LLM: "Write user-friendly summaries for these versions"
-4. Copy LLM output to `changelog.md`
-5. Delete `changelog_draft.json` (auto-ignored by git)
-6. Run `bump_version.py` - sees version exists, preserves your entries
+### Features
+- **Feature Name**: User-friendly description...
 
-### Best Practices
+### Bug Fixes
+- Fixed issue with...
 
-- **Automatic is fine** for most releases - conventional commits provide good structure
-- **Manual curation** for major releases or complex features - better storytelling
-- **Never overwrite** previous release notes; script only adds new versions
+# 3. Commit polished changelog
+git add changelog.md
+git commit -m "docs(changelog): add v2.6.0 release notes"
+
+# 4. Run bump_version.py - it will skip regeneration because v2.6.0 section exists
+python bump_version.py minor
+
+# 5. Push (triggers GitHub Actions with polished content)
+git push origin main --tags
+```
+
+### Alternative Workflow (Method B - LLM-Assisted)
+
+**Best for:** Complex releases with many commits, when you want AI to help summarize
+
+```powershell
+# 1. Generate structured JSON draft
+python regenerate_changelog.py --json
+# Creates: changelog_draft.json
+
+# 2. Feed JSON to LLM with prompt:
+"Write user-friendly changelog summaries for these versions.
+Focus on user benefits, not technical details.
+Use bold formatting for major features."
+
+# 3. Copy LLM output to changelog.md (add release date)
+# 4. Delete changelog_draft.json (auto-ignored by git)
+rm changelog_draft.json
+
+# 5. Commit polished changelog
+git add changelog.md
+git commit -m "docs(changelog): add v2.6.0 release notes"
+
+# 6. Run bump_version.py - skips regeneration
+python bump_version.py minor
+
+# 7. Push
+git push origin main --tags
+```
+
+### What Happens When You Run bump_version.py
+
+1. Updates `configuration/__init__.py` (**version** = "X.Y.Z")
+2. Updates `readme.md` version badge
+3. Creates git commit: "chore: bump version to X.Y.Z"
+4. Creates annotated git tag: vX.Y.Z
+5. Calls `regenerate_changelog.py`:
+   - **If changelog.md already has v{X.Y.Z} section**: SKIPS regeneration (uses your polished content)
+   - **If section missing**: Generates draft from commits (you should have done Method A or B first!)
+6. Amends commit to include changelog (if regenerated)
+7. **Does NOT push** (you must push manually)
+
+### Key Points
+
+- **Script ONLY generates entries for NEW tags** - preserves existing content
+- **Never overwrites curated changelog entries**
+- **JSON export** provides structured data for AI assistance
+- **Focus on user benefits**, not technical details
 - **Use bold formatting** (**Feature Name**) for major features
-- **Focus on user benefits**, not technical implementation details
-- **Flat bullets only** - no sub-bullets (About dialog can't render indentation)
+- **FLAT BULLETS ONLY** - no sub-bullet points (About dialog cannot render indentation)
 
-### Bug Fix vs Development Iteration
+### Why This Order Matters
 
-The script intelligently categorizes fixes:
-- **Bug Fixes section**: `fix()` commits for scopes with NO `feat()` commits (fixing released features)
-- **Features section**: `fix()` commits for scopes with `feat()` commits (development iterations rolled into feature)
+**Problem:** Pushing tags triggers GitHub Actions immediately. If the changelog contains auto-generated draft content marked "Unreleased - In Development", that's what appears in the GitHub release.
 
-See `regenerate_changelog.py` docstring for details.
+**Solution:** Polish the changelog BEFORE running bump_version.py. The script detects existing version sections and skips regeneration, so your polished content is what gets tagged and released.
 
-### Changelog in Release Automation
+### If You Already Pushed a Draft
 
-- GitHub Actions workflow extracts the version section from `changelog.md` for release notes
-- Falls back to full changelog if version section not found
-- See `.github/copilot-instructions.md` for detailed changelog workflow
+If you accidentally pushed a tag before polishing the changelog:
+
+1. Wait for GitHub Actions to complete (~5-10 minutes)
+2. Go to https://github.com/niksavis/burndown-chart/releases
+3. Find the release, click "Edit release"
+4. Replace auto-generated content with polished changelog
+5. Save
+
+The release notes won't match the repository tag exactly, but users will see the polished version.
 
 ---
 

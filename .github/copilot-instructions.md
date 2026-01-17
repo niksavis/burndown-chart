@@ -233,31 +233,28 @@ logger.info("Velocity calculated", extra={"operation": "calc_velocity", "result"
 
 **Version Management** (CRITICAL - every main merge):
 
-1. **FIRST**: `git checkout main && git merge <feature-branch>` (merge to main)
-2. **THEN**: `python bump_version.py [major|minor|patch]` (**on main only**)
-3. **FINALLY**: `git push origin main --tags` (push with tag)
+**IMPORTANT**: Changelog must be polished BEFORE pushing tags to prevent auto-generated drafts in releases.
 
-**MUST verify current branch is main before running bump script.** Bump script auto-updates files, commits, and creates annotated git tag. This sequence ensures tag is on main, not feature branch.
+1. **Merge feature branch**: `git checkout main && git merge <feature-branch>`
+2. **Polish changelog FIRST** using one of two methods:
 
-**Changelog Management** (Part of release process):
+   **Method A - Manual polish (recommended):**
+   - Edit `changelog.md` and add polished v{X.Y.Z} section with release date
+   - Commit: `git commit -am "docs(changelog): add v{X.Y.Z} release notes"`
+   - Run: `python bump_version.py [major|minor|patch]` (skips regeneration, uses your content)
+   - Push: `git push origin main --tags`
 
-The `bump_version.py` script automatically calls `regenerate_changelog.py` to generate draft entries for new tags. Two workflows available:
+   **Method B - LLM-assisted:**
+   - Run: `python regenerate_changelog.py --json`
+   - Feed `changelog_draft.json` to LLM for polished summaries
+   - Copy LLM output to `changelog.md`, add release date, delete draft JSON
+   - Commit: `git commit -am "docs(changelog): add v{X.Y.Z} release notes"`
+   - Run: `python bump_version.py [major|minor|patch]` (skips regeneration)
+   - Push: `git push origin main --tags`
 
-**Option A - Direct Markdown (Quick Draft):**
+**Why this order matters**: Pushing tags triggers GitHub Actions release creation. Tags must point to commits with polished changelogs, not auto-generated drafts.
 
-1. Script runs automatically during bump
-2. Review generated entries in `changelog.md`
-3. Manually refine for clarity and user-friendliness
-4. Commit changelog updates
-
-**Option B - LLM-Assisted (Polished Summaries):**
-
-1. Run: `python regenerate_changelog.py --json`
-2. Creates `changelog_draft.json` with structured commit data
-3. Feed JSON to LLM: "Write user-friendly summaries for these versions"
-4. Copy LLM output to `changelog.md`
-5. Delete `changelog_draft.json` (auto-ignored by git)
-6. Commit polished changelog
+**If you already pushed a draft**: Edit release notes manually on GitHub after workflow completes.
 
 **Key Points:**
 

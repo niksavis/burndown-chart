@@ -191,7 +191,20 @@ jobs:
               $changelog = "See commit history for changes."
             }
             else {
-              $changelog = Get-Content changelog.md -Raw -ErrorAction Stop
+              # Read entire changelog
+              $content = Get-Content "changelog.md" -Raw -ErrorAction Stop
+              
+              # Extract only this version's section (between ## v{version} and next ##)
+              $pattern = "(?s)## v$version\s*\r?\n(.*?)(?=\r?\n## v|\z)"
+              if ($content -match $pattern) {
+                $changelog = $matches[1].Trim()
+                Write-Host "Extracted changelog for v$version ($(($changelog -split '\r?\n').Count) lines)"
+              }
+              else {
+                # Fallback: use entire changelog if version section not found
+                $changelog = $content
+                Write-Host "Using full changelog (version section not found)" -ForegroundColor Yellow
+              }
             }
 
             $notes = @"
