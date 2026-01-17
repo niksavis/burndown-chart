@@ -721,9 +721,10 @@ def launch_updater(update_path: Path) -> bool:
     )
 
     try:
-        # Create temporary extraction directory
-        extract_dir = Path(tempfile.gettempdir()) / "burndown_updater"
-        extract_dir.mkdir(parents=True, exist_ok=True)
+        # Create directory for updater if needed
+        updater_dir = Path(tempfile.gettempdir()) / "burndown_updater"
+        updater_dir.mkdir(parents=True, exist_ok=True)
+        extract_dir = updater_dir
 
         logger.debug(
             "Extracting updater ZIP",

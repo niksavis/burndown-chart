@@ -38,6 +38,7 @@ Exit Codes:
 
 import os
 import sys
+import tempfile
 import time
 import zipfile
 import shutil
@@ -178,7 +179,17 @@ def extract_update(zip_path: Path, extract_dir: Path) -> bool:
         print_status(f"Extracting update from {zip_path.name}")
 
         # Create extraction directory
-        extract_dir.mkdir(parents=True, exist_ok=True)
+        try:
+            extract_dir.mkdir(parents=True, exist_ok=True)
+            print_status(f"Created extraction directory: {extract_dir}")
+        except PermissionError as e:
+            print_status(f"ERROR: Permission denied creating directory: {extract_dir}")
+            print_status(f"Details: {e}")
+            return False
+        except Exception as e:
+            print_status(f"ERROR: Could not create temporary directory: {extract_dir}")
+            print_status(f"Details: {e}")
+            return False
 
         # Extract ZIP
         with zipfile.ZipFile(zip_path, "r") as zip_ref:
@@ -354,9 +365,15 @@ def main() -> int:
         return 3
 
     # Step 3: Extract new version
-    extract_dir = update_zip.parent / "update_temp"
+    # Use system temp directory with static name for reliable access and cleanup
+    extract_dir = Path(tempfile.gettempdir()) / "burndown_update_temp"
     if not extract_update(update_zip, extract_dir):
         print_status("ERROR: Failed to extract update - aborting")
+        # Clean up temp directory on failure
+        try:
+            shutil.rmtree(extract_dir)
+        except Exception:
+            pass
         return 4
 
     # Find new executable in extracted files

@@ -8,6 +8,7 @@ User Story: US3 - Automated Build Process
 Phase: 11 - Testing & Validation
 """
 
+import os
 import subprocess
 import time
 import sys
@@ -59,7 +60,9 @@ def test_executable_launches_without_crash():
         pytest.skip("Executable not found - build required before running this test")
 
     # Launch executable with BURNDOWN_NO_BROWSER to prevent browser opening
-    env = {"BURNDOWN_NO_BROWSER": "1"}
+    # Extend environment (don't replace it) to preserve system vars like TEMP
+    env = os.environ.copy()
+    env["BURNDOWN_NO_BROWSER"] = "1"
     process = subprocess.Popen(
         [str(exe_path)],
         stdout=subprocess.PIPE,

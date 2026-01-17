@@ -20,6 +20,7 @@ hiddenimports = [
     'zipfile',
     'shutil',
     'subprocess',
+    'tempfile',
     'time',
     'pathlib',
     'sqlite3',  # Needed for database flag updates
