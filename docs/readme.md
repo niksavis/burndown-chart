@@ -50,6 +50,7 @@ Documentation for developers extending the application, implementing new metrics
 ### Build & Release
 
 - **[Release Process](release_process.md)** - Build workflow, executable packaging, and release automation
+- **[Updater Architecture](updater_architecture.md)** - Self-updating mechanism, crash recovery, and troubleshooting
 
 ### Architecture Reference
 
@@ -74,6 +75,7 @@ For detailed implementation guides, see:
 | Add logging to new features   | [Logging Standards](LOGGING_STANDARDS.md)                     |
 | Remove unused code safely     | [Defensive Refactoring Guide](defensive_refactoring_guide.md) |
 | Build standalone executable   | [Release Process](release_process.md)                         |
+| Understand update mechanism   | [Updater Architecture](updater_architecture.md)               |
 
 ---
 

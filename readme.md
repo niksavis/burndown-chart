@@ -44,6 +44,8 @@ See installation instructions below for setup details.
 
 **Note:** Windows may show a security warning on first run. Click "More info" → "Run anyway" (the app is not signed).
 
+**Automatic Updates:** The app checks for updates automatically and notifies you when a new version is available. One-click download and install.
+
 ### Option 2: All Platforms (From Source)
 
 **For technical users (Linux/macOS/Windows)** - Requires Python 3.13+

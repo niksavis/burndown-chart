@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Features
+
+- **Improved Updates**: The update mechanism now updates itself automatically, ensuring you always have the latest version without manual intervention. If a download is interrupted, the app remembers your progress and resumes automatically
+
 ## v2.6.1
 
 *Released: 2026-01-17*

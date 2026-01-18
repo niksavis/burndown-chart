@@ -249,7 +249,7 @@ try {
             exit 1
         }
         Write-Success "Updater built successfully"
-        $updaterExe = Join-Path $DistDir "BurndownChartUpdater\BurndownChartUpdater.exe"
+        $updaterExe = Join-Path $DistDir "BurndownChartUpdater.exe"
     }
     finally {
         Pop-Location
