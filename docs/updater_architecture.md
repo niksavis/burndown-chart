@@ -1,14 +1,13 @@
 # Updater Architecture
 
-**Version**: 2.7.0  
-**Last Updated**: 2026-01-18  
-**Status**: Implemented
-
----
+**Audience**: Developers maintaining the build and release pipeline, troubleshooting update failures
+**Purpose**: Understanding the self-updating mechanism and Windows executable replacement strategy
 
 ## Overview
 
 The Burndown Chart application uses a **two-phase update mechanism with temporary updater copy** to enable both the main application (`BurndownChart.exe`) and the updater itself (`BurndownChartUpdater.exe`) to be updated automatically. This architecture solves the Windows file locking problem where a running executable cannot replace itself.
+
+---
 
 ## Architecture Pattern
 
