@@ -26,5 +26,12 @@
       "name": "Burndown Database",
       "database": "profiles/burndown.db"
     }
-  ]
+  ],
+  "continue.enableTabAutocomplete": false,
+  "editor.inlineSuggest.enabled": true,
+  "editor.quickSuggestions": {
+    "other": true,
+    "comments": false,
+    "strings": true
+  }
 }
