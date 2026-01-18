@@ -68,7 +68,8 @@ def test_executable_launches_without_crash():
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         env=env,
-        creationflags=subprocess.CREATE_NEW_CONSOLE if sys.platform == "win32" else 0,
+        # Don't use CREATE_NEW_CONSOLE - it makes cleanup harder
+        creationflags=0,
     )
 
     try:
@@ -84,12 +85,50 @@ def test_executable_launches_without_crash():
         # If we got here, the app launched successfully
 
     finally:
-        # Clean up: terminate the process
+        # Clean up: terminate the process and all children
         try:
-            process.terminate()
-            process.wait(timeout=5)
+            # Use psutil if available for better process tree killing
+            try:
+                import psutil
+
+                parent = psutil.Process(process.pid)
+                children = parent.children(recursive=True)
+
+                # Terminate all children first
+                for child in children:
+                    try:
+                        child.terminate()
+                    except psutil.NoSuchProcess:
+                        pass
+
+                # Terminate parent
+                parent.terminate()
+
+                # Wait for graceful shutdown
+                gone, alive = psutil.wait_procs([parent] + children, timeout=3)
+
+                # Force kill any survivors
+                for p in alive:
+                    try:
+                        p.kill()
+                    except psutil.NoSuchProcess:
+                        pass
+
+            except ImportError:
+                # Fallback: basic terminate/kill
+                process.terminate()
+                process.wait(timeout=3)
+
         except subprocess.TimeoutExpired:
+            # Force kill if graceful termination fails
             process.kill()
+            process.wait(timeout=2)
+        except Exception:
+            # Last resort: force kill
+            try:
+                process.kill()
+            except Exception:
+                pass  # Process might already be dead
 
 
 @pytest.mark.skipif(
