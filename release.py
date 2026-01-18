@@ -2,10 +2,8 @@
 """
 Automated Release Script for Burndown Chart
 
-This script automates the release process to prevent common mistakes:
-1. Regenerates version_info.txt (bundled in executable)
-2. Runs bump_version.py (updates version in code)
-3. Pushes changes and tags to trigger GitHub Actions
+Integrated release workflow that handles version bumping, changelog generation,
+and executable metadata in a single atomic operation to prevent coordination bugs.
 
 Usage:
     python release.py patch   # 2.6.0 → 2.6.1
@@ -13,12 +11,26 @@ Usage:
     python release.py major   # 2.6.0 → 3.0.0
 
 Prerequisites:
-    - Changelog already polished (contains new version section with release date)
     - All changes committed and pushed to main
     - No uncommitted changes in working directory
+
+Flow:
+    1. Preflight checks (clean working dir, on main branch)
+    2. Calculate new version from configuration/__init__.py
+    3. Update configuration/__init__.py and readme.md
+    4. Commit version changes
+    5. Create git tag (once, with correct message)
+    6. Regenerate changelog from git history
+    7. Commit changelog (amend)
+    8. Regenerate version_info.txt with new version
+    9. Commit version_info.txt
+    10. Push everything to origin (main + tag)
+
+Note: bump_version.py is now deprecated. Use this script for releases.
 """
 
 import argparse
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -26,7 +38,6 @@ from pathlib import Path
 # Project paths
 PROJECT_ROOT = Path(__file__).parent
 VERSION_INFO_SCRIPT = PROJECT_ROOT / "build" / "generate_version_info.py"
-BUMP_VERSION_SCRIPT = PROJECT_ROOT / "bump_version.py"
 
 
 def run_command(cmd: list[str], description: str) -> tuple[bool, str]:
@@ -49,6 +60,86 @@ def run_command(cmd: list[str], description: str) -> tuple[bool, str]:
         if e.stderr:
             print(e.stderr, file=sys.stderr)
         return False, str(e)
+
+
+def get_current_version() -> tuple[int, int, int]:
+    """Read current version from configuration/__init__.py."""
+    config_file = PROJECT_ROOT / "configuration" / "__init__.py"
+    content = config_file.read_text(encoding="utf-8")
+
+    match = re.search(r'__version__\s*=\s*["\'](\d+)\.(\d+)\.(\d+)["\']', content)
+    if not match:
+        raise ValueError("Could not find version in configuration/__init__.py")
+
+    return int(match.group(1)), int(match.group(2)), int(match.group(3))
+
+
+def calculate_new_version(
+    current: tuple[int, int, int], bump_type: str
+) -> tuple[int, int, int]:
+    """Calculate new version based on bump type."""
+    major, minor, patch = current
+
+    if bump_type == "major":
+        return (major + 1, 0, 0)
+    elif bump_type == "minor":
+        return (major, minor + 1, 0)
+    elif bump_type == "patch":
+        return (major, minor, patch + 1)
+    else:
+        raise ValueError(f"Invalid bump type: {bump_type}")
+
+
+def update_configuration_file(new_version: tuple[int, int, int]) -> str:
+    """Update version in configuration/__init__.py and return version string."""
+    config_file = PROJECT_ROOT / "configuration" / "__init__.py"
+    content = config_file.read_text(encoding="utf-8")
+
+    version_str = f"{new_version[0]}.{new_version[1]}.{new_version[2]}"
+    updated = re.sub(
+        r'(__version__\s*=\s*["\'])\d+\.\d+\.\d+(["\'])',
+        rf"\g<1>{version_str}\g<2>",
+        content,
+    )
+
+    config_file.write_text(updated, encoding="utf-8")
+    print(f"[OK] Updated configuration/__init__.py to {version_str}")
+    return version_str
+
+
+def update_readme_file(version_str: str) -> None:
+    """Update version badge and footer in readme.md."""
+    readme_file = PROJECT_ROOT / "readme.md"
+    content = readme_file.read_text(encoding="utf-8")
+
+    # Update badge
+    updated = re.sub(
+        r"(badge/version-)\d+\.\d+\.\d+(-blue\.svg)",
+        rf"\g<1>{version_str}\g<2>",
+        content,
+    )
+
+    # Update footer version
+    updated = re.sub(
+        r"(\*\*Version:\*\* )\d+\.\d+\.\d+",
+        rf"\g<1>{version_str}",
+        updated,
+    )
+
+    readme_file.write_text(updated, encoding="utf-8")
+    print(f"[OK] Updated readme.md badge and footer to {version_str}")
+
+
+def regenerate_changelog() -> None:
+    """Regenerate changelog.md from git tags using regenerate_changelog script."""
+    try:
+        print("\n[Regenerating changelog from git history]")
+        import regenerate_changelog
+
+        regenerate_changelog.main()
+    except Exception as e:
+        print(f"[WARNING] Could not regenerate changelog: {e}")
+        print("  You can manually run: python regenerate_changelog.py")
 
 
 def check_git_status() -> bool:
@@ -145,77 +236,78 @@ def regenerate_version_info() -> bool:
 
 
 def bump_version(bump_type: str) -> tuple[bool, str]:
-    """Run bump_version.py to update version and recreate tag with consistent message."""
+    """Bump version, update files, create tag, and regenerate changelog.
+
+    Returns:
+        tuple[bool, str]: (success, new_version_tag)
+    """
     print("\n" + "=" * 60)
     print(f"Bumping Version ({bump_type})")
     print("=" * 60)
 
-    if not BUMP_VERSION_SCRIPT.exists():
-        print(f"ERROR: {BUMP_VERSION_SCRIPT} not found", file=sys.stderr)
-        return False, ""
-
-    # Run bump_version.py with --yes flag to skip confirmation
-    print(f"\nRunning: python bump_version.py {bump_type} --yes")
-
     try:
-        result = subprocess.run(
-            [sys.executable, str(BUMP_VERSION_SCRIPT), bump_type, "--yes"],
-            cwd=PROJECT_ROOT,
-            text=True,
-        )
+        # Get current version
+        current = get_current_version()
+        current_str = f"{current[0]}.{current[1]}.{current[2]}"
+        print(f"\nCurrent version: {current_str}")
 
-        if result.returncode != 0:
-            print(
-                f"\nERROR: bump_version.py failed with code {result.returncode}",
-                file=sys.stderr,
-            )
+        # Calculate new version
+        new_version = calculate_new_version(current, bump_type)
+        new_version_str = f"{new_version[0]}.{new_version[1]}.{new_version[2]}"
+        print(f"{bump_type.upper()} bump: {current_str} → {new_version_str}")
+
+        # Update files
+        version_str = update_configuration_file(new_version)
+        update_readme_file(version_str)
+
+        # Commit version changes
+        success, _ = run_command(
+            ["git", "add", "configuration/__init__.py", "readme.md"],
+            "Stage version changes",
+        )
+        if not success:
             return False, ""
 
-        # Extract new version from configuration/__init__.py (more reliable than git describe)
-        config_file = PROJECT_ROOT / "configuration" / "__init__.py"
-        version_line = None
-        with open(config_file, "r", encoding="utf-8") as f:
-            for line in f:
-                if line.strip().startswith("__version__"):
-                    version_line = line
-                    break
-
-        if not version_line:
-            print(
-                "ERROR: Could not find __version__ in configuration/__init__.py",
-                file=sys.stderr,
-            )
+        success, _ = run_command(
+            ["git", "commit", "-m", f"chore: bump version to {new_version_str}"],
+            "Commit version changes",
+        )
+        if not success:
             return False, ""
 
-        # Parse: __version__ = "2.6.2"
-        new_version = version_line.split("=")[1].strip().strip('"').strip("'")
-        new_version = f"v{new_version}"  # Add 'v' prefix for git tag
-
-        # Recreate tag with consistent message format
-        print(f"\nRecreating tag {new_version} with consistent message...")
-
-        # Delete the tag created by bump_version.py
-        subprocess.run(
-            ["git", "tag", "-d", new_version],
-            check=True,
-            capture_output=True,
-            cwd=PROJECT_ROOT,
+        # Create git tag (once, with correct message)
+        tag_name = f"v{new_version_str}"
+        tag_message = f"Release {tag_name}"
+        success, _ = run_command(
+            ["git", "tag", "-a", tag_name, "-m", tag_message],
+            f"Create tag {tag_name}",
         )
+        if not success:
+            return False, ""
 
-        # Create new tag with standard message format
-        tag_message = f"Release {new_version}"
-        subprocess.run(
-            ["git", "tag", "-a", new_version, "-m", tag_message],
-            check=True,
-            capture_output=True,
-            cwd=PROJECT_ROOT,
+        # Regenerate changelog from git history (includes new tag)
+        regenerate_changelog()
+
+        # Commit the regenerated changelog (amend to include in version bump commit)
+        success, _ = run_command(
+            ["git", "add", "changelog.md"],
+            "Stage changelog",
         )
+        if not success:
+            print("[WARNING] Could not stage changelog")
 
-        print(f"\n[OK] Version bumped to {new_version}")
+        success, _ = run_command(
+            ["git", "commit", "--amend", "--no-edit"],
+            "Commit changelog (amend)",
+        )
+        if not success:
+            print("[WARNING] Could not commit changelog")
+
+        print(f"\n[OK] Version bumped to {tag_name}")
         print(f"[OK] Tag created with message: '{tag_message}'")
-        return True, new_version
+        return True, tag_name
 
-    except subprocess.CalledProcessError as e:
+    except Exception as e:
         print(f"ERROR: {e}", file=sys.stderr)
         return False, ""
 
