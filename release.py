@@ -216,9 +216,19 @@ def push_release(version: str) -> bool:
     print("Pushing to Origin")
     print("=" * 60)
 
+    # Push main branch first
     success, _ = run_command(
-        ["git", "push", "origin", "main", "--tags"],
-        f"Push main branch and {version} tag",
+        ["git", "push", "origin", "main"],
+        "Push main branch",
+    )
+
+    if not success:
+        return False
+
+    # Push only the new tag (not --tags which pushes all local tags)
+    success, _ = run_command(
+        ["git", "push", "origin", version],
+        f"Push {version} tag",
     )
 
     if not success:
