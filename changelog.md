@@ -1,10 +1,12 @@
 # Changelog
 
-## Unreleased
+## v2.6.2
 
-### Features
+*Released: 2026-01-18*
 
-- **Improved Updates**: The update mechanism now updates itself automatically, ensuring you always have the latest version without manual intervention. If a download is interrupted, the app remembers your progress and resumes automatically
+### Bug Fixes
+
+- **Self-Updating Updater**: Fixed updater not updating itself - both application and updater now update automatically, ensuring you always have the latest version without manual intervention. Download state persists across app restarts with graceful fallback if temp files deleted
 
 ## v2.6.1
 
