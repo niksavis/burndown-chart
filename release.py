@@ -171,15 +171,25 @@ def bump_version(bump_type: str) -> tuple[bool, str]:
             )
             return False, ""
 
-        # Extract new version from git tags
-        result = subprocess.run(
-            ["git", "describe", "--tags", "--abbrev=0"],
-            check=True,
-            capture_output=True,
-            text=True,
-            cwd=PROJECT_ROOT,
-        )
-        new_version = result.stdout.strip()
+        # Extract new version from configuration/__init__.py (more reliable than git describe)
+        config_file = PROJECT_ROOT / "configuration" / "__init__.py"
+        version_line = None
+        with open(config_file, "r", encoding="utf-8") as f:
+            for line in f:
+                if line.strip().startswith("__version__"):
+                    version_line = line
+                    break
+
+        if not version_line:
+            print(
+                "ERROR: Could not find __version__ in configuration/__init__.py",
+                file=sys.stderr,
+            )
+            return False, ""
+
+        # Parse: __version__ = "2.6.2"
+        new_version = version_line.split("=")[1].strip().strip('"').strip("'")
+        new_version = f"v{new_version}"  # Add 'v' prefix for git tag
 
         # Recreate tag with consistent message format
         print(f"\nRecreating tag {new_version} with consistent message...")
