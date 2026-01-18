@@ -268,15 +268,15 @@ def main():
     if not check_git_status():
         sys.exit(1)
 
-    # Step 1: Regenerate version_info.txt
-    if not regenerate_version_info():
-        print("\n[FAILED] version_info.txt regeneration", file=sys.stderr)
-        sys.exit(1)
-
-    # Step 2: Bump version (interactive)
+    # Step 1: Bump version first (updates configuration/__init__.py)
     success, new_version = bump_version(args.bump_type)
     if not success:
         print("\n[FAILED] Version bump", file=sys.stderr)
+        sys.exit(1)
+
+    # Step 2: Regenerate version_info.txt with NEW version
+    if not regenerate_version_info():
+        print("\n[FAILED] version_info.txt regeneration", file=sys.stderr)
         sys.exit(1)
 
     # Step 3: Push to origin
