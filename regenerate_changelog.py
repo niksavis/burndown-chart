@@ -37,7 +37,7 @@ Workflow Option B (LLM-Assisted):
 3. Use LLM to read JSON and write polished summaries
 4. Copy LLM output to changelog.md
 
-This script is called automatically by bump_version.py during version bumps.
+This script is called automatically by release.py during version bumps.
 It can also be run standalone to catch up on missing tags.
 
 Usage (direct):  python regenerate_changelog.py

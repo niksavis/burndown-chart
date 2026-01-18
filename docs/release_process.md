@@ -78,21 +78,22 @@ git tag -d v2.6.0-test && git push origin :refs/tags/v2.6.0-test  # Delete after
 - [ ] Feature branch merged to main
 - [ ] `changelog.md` polished (v{X.Y.Z} section with release date)
 
-**Version Bump** (CRITICAL ORDER):
+**Version Bump** (Automated):
 
-1. **Polish changelog FIRST** (creates v{X.Y.Z} section) → commit
-2. **Automated** (recommended): `python release.py [patch|minor|major]`
-   - Regenerates `build/version_info.txt` (bundled in executable)
-   - Calls `bump_version.py --yes` (updates version, creates tag "Release v{X.Y.Z}")
-   - Pushes main + tags → triggers GitHub Actions
+```powershell
+python release.py [patch|minor|major]
+```
 
-3. **Manual** (fallback):
-   ```powershell
-   python build/generate_version_info.py  # Regenerate metadata
-   git add build/version_info.txt && git commit -m "chore(build): update version_info.txt for release"
-   python bump_version.py [patch|minor|major]  # Interactive
-   git push origin main --tags
-   ```
+**What it does**:
+1. Preflight checks (clean working dir, on main)
+2. Bump version in configuration/**init**.py and readme.md
+3. Commit version changes
+4. Create git tag ("Release v{X.Y.Z}")
+5. Regenerate changelog from git history
+6. Commit changelog (amend)
+7. Regenerate version_info.txt (bundled in executable)
+8. Commit version_info.txt
+9. Push to origin → triggers GitHub Actions
 
 **Post-Release**:
 - [ ] GitHub release created with ZIP attached
@@ -101,31 +102,9 @@ git tag -d v2.6.0-test && git push origin :refs/tags/v2.6.0-test  # Delete after
 
 ---
 
-## Changelog Workflow
+## Changelog Generation
 
-**CRITICAL**: Polish changelog BEFORE running `bump_version.py` (tags trigger GitHub Actions with current content)
-
-**Method A - Manual** (recommended):
-```powershell
-# Edit changelog.md: add ## v2.6.0 section with "Released: YYYY-MM-DD" + features/fixes
-git add changelog.md && git commit -m "docs(changelog): add v2.6.0 release notes"
-python bump_version.py minor  # Skips regeneration (section exists)
-git push origin main --tags
-```
-
-**Method B - LLM-Assisted**:
-```powershell
-python regenerate_changelog.py --json  # → changelog_draft.json
-# Feed JSON to LLM: "Write user-friendly summaries. Focus on benefits, bold major features."
-# Copy LLM output to changelog.md (add release date), delete JSON
-git add changelog.md && git commit -m "docs(changelog): add v2.6.0 release notes"
-python bump_version.py minor
-git push origin main --tags
-```
-
-**bump_version.py behavior**:
-- If changelog has v{X.Y.Z} section → uses your polished content
-- If section missing → generates draft from commits (should have polished first!)
+`release.py` automatically regenerates changelog from git commit history.
 
 **Format rules**: Flat bullets only (no sub-bullets), bold major features, focus on user benefits
 
@@ -141,8 +120,8 @@ git push origin main --tags
 
 **Runtime**: Missing deps → add to hiddenimports in build/app.spec, rebuild
 
-**Version mismatch**: Tag ≠ executable version → ensure `python build/generate_version_info.py` ran before bump_version.py
+**Version mismatch**: Tag ≠ executable version → release.py ensures correct order (bump → regenerate version_info.txt)
 
 ---
 
-**Resources**: build/ (scripts), build/*.spec (PyInstaller), .github/workflows/release.yml, bump_version.py, release.py
+**Resources**: build/ (scripts), build/*.spec (PyInstaller), .github/workflows/release.yml, release.py

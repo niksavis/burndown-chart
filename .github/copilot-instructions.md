@@ -115,13 +115,15 @@ available. Prevents duplicate browser tabs after updates."
 
 1. **Polish changelog FIRST** (create v{X.Y.Z} section with release date in `changelog.md`)
 2. **Automated** (recommended): `python release.py [patch|minor|major]`
-3. **Manual**: `python build/generate_version_info.py` → commit → `python bump_version.py` → push with tags
+3. **Automated** (recommended): `python release.py [patch|minor|major]` (handles everything)
+4. **Manual**: Not recommended (release.py ensures correct order and prevents coordination bugs)
 
 **release.py automates**:
 
+- Bumps version in configuration/\_\_init\_\_.py and readme.md
+- Creates git tag with consistent message: "Release v{X.Y.Z}"
+- Calls `regenerate_changelog.py` to update changelog
 - Regenerates `build/version_info.txt` (bundled in executable)
-- Calls `bump_version.py` (which calls `regenerate_changelog.py`)
-- Recreates tag with consistent message: "Release v{X.Y.Z}"
 - Pushes to trigger GitHub Actions
 
 **Changelog Rules**:
