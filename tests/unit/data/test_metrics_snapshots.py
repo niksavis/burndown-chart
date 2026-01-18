@@ -211,19 +211,10 @@ class TestSaveMetricSnapshotWithForecast:
         from data.metrics_snapshots import save_metric_snapshot_with_forecast
         import json
 
-        # Create snapshot with only 1 week (insufficient for forecast)
+        # Create snapshot with NO existing weeks (only current week = 1 week total)
+        # This is below min_weeks=2 threshold, so no forecast should be generated
         with open(temp_snapshots_file, "w") as f:
-            json.dump(
-                {
-                    "2025-W43": {
-                        "flow_velocity": {
-                            "completed_count": 10,
-                            "distribution": {"Feature": 8, "Bug": 2},
-                        }
-                    }
-                },
-                f,
-            )
+            json.dump({}, f)  # Empty history
 
         # Mock database save while preserving file writes
         def mock_save_to_file(snapshots_dict):
@@ -231,9 +222,17 @@ class TestSaveMetricSnapshotWithForecast:
                 json.dump(snapshots_dict, f, indent=2)
             return True
 
+        # Mock database load to return empty history
+        def mock_load_from_file():
+            with open(temp_snapshots_file, "r") as f:
+                return json.load(f)
+
         with (
             patch(
                 "data.metrics_snapshots.save_snapshots", side_effect=mock_save_to_file
+            ),
+            patch(
+                "data.metrics_snapshots.load_snapshots", side_effect=mock_load_from_file
             ),
             patch(
                 "data.metrics_snapshots._get_snapshots_file_path",
@@ -252,7 +251,7 @@ class TestSaveMetricSnapshotWithForecast:
 
             assert success is True
 
-            # Verify snapshot saved but no forecast
+            # Verify snapshot saved but no forecast (only 1 week, below min_weeks=2)
             with open(temp_snapshots_file, "r") as f:
                 snapshots = json.load(f)
 

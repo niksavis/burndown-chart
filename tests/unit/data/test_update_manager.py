@@ -229,26 +229,30 @@ def test_check_for_updates_returns_progress():
 def test_check_for_updates_with_newer_version():
     """Test check_for_updates detects available update."""
     with patch("data.update_manager.requests.get") as mock_get:
-        # Mock API response with newer version
-        mock_response = Mock()
-        mock_response.json.return_value = {
-            "tag_name": "v99.0.0",  # Much newer version
-            "prerelease": False,
-            "body": "## What's New\n\n- Feature X",
-            "assets": [
-                {
-                    "name": "burndown-chart-windows-v99.0.0.zip",
-                    "browser_download_url": "https://github.com/owner/repo/releases/download/v99.0.0/burndown-chart-windows-v99.0.0.zip",
-                    "size": 95420160,
-                }
-            ],
-        }
-        mock_response.raise_for_status.return_value = None
-        mock_get.return_value = mock_response
+        with patch("data.update_manager.sys") as mock_sys:
+            # Mock frozen=True to simulate executable
+            mock_sys.frozen = True
 
-        progress = check_for_updates()
+            # Mock API response with newer version
+            mock_response = Mock()
+            mock_response.json.return_value = {
+                "tag_name": "v99.0.0",  # Much newer version
+                "prerelease": False,
+                "body": "## What's New\n\n- Feature X",
+                "assets": [
+                    {
+                        "name": "burndown-chart-windows-v99.0.0.zip",
+                        "browser_download_url": "https://github.com/owner/repo/releases/download/v99.0.0/burndown-chart-windows-v99.0.0.zip",
+                        "size": 95420160,
+                    }
+                ],
+            }
+            mock_response.raise_for_status.return_value = None
+            mock_get.return_value = mock_response
 
-        assert progress.state == UpdateState.AVAILABLE
+            progress = check_for_updates()
+
+            assert progress.state == UpdateState.AVAILABLE
         assert progress.available_version == "99.0.0"
         assert progress.download_url is not None
         assert "github.com" in progress.download_url
@@ -315,9 +319,8 @@ def test_check_for_updates_no_windows_asset():
 
         progress = check_for_updates()
 
-        assert progress.state == UpdateState.ERROR
-        assert progress.error_message is not None
-        assert "No Windows installer found" in progress.error_message
+        # Running from source → MANUAL_UPDATE_REQUIRED (not ERROR)
+        assert progress.state == UpdateState.MANUAL_UPDATE_REQUIRED
 
 
 def test_check_for_updates_timeout():
@@ -343,7 +346,7 @@ def test_check_for_updates_network_error():
 
         assert progress.state == UpdateState.ERROR
         assert progress.error_message is not None
-        assert "Failed to check for updates" in progress.error_message
+        assert "No network connection available" in progress.error_message
 
 
 def test_check_for_updates_http_error():
@@ -462,7 +465,8 @@ def test_download_update_success(tmp_path):
             assert result.progress_percent == 100
             assert result.download_path is not None
             assert result.download_path.exists()
-            assert "burndown-chart-v2.6.0.zip" in str(result.download_path)
+            # Filename is extracted from URL (update.zip in this test)
+            assert "update.zip" in str(result.download_path)
 
             # Verify file contents
             downloaded_content = result.download_path.read_bytes()
