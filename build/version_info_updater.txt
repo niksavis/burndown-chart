@@ -1,6 +1,6 @@
 # UTF-8
 #
-# Windows version information file for Burndown Chart
+# Windows version information file for Burndown Chart Updater
 # This file is used by PyInstaller to embed metadata into the .exe
 #
 # Auto-generated from configuration/__init__.py version: 2.6.2
@@ -22,12 +22,12 @@ VSVersionInfo(
       StringTable(
         u'040904B0',
         [StringStruct(u'CompanyName', u'Niksa Visic'),
-        StringStruct(u'FileDescription', u'Burndown Chart'),
+        StringStruct(u'FileDescription', u'Burndown Chart Updater'),
         StringStruct(u'FileVersion', u'2.6.2'),
-        StringStruct(u'InternalName', u'BurndownChart'),
+        StringStruct(u'InternalName', u'BurndownChartUpdater'),
         StringStruct(u'LegalCopyright', u'Copyright (c) 2025-2026 Niksa Visic'),
-        StringStruct(u'OriginalFilename', u'BurndownChart.exe'),
-        StringStruct(u'ProductName', u'Burndown Chart'),
+        StringStruct(u'OriginalFilename', u'BurndownChartUpdater.exe'),
+        StringStruct(u'ProductName', u'Burndown Chart Updater'),
         StringStruct(u'ProductVersion', u'2.6.2')])
       ]), 
     VarFileInfo([VarStruct(u'Translation', [1033, 1200])])

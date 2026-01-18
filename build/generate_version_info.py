@@ -39,14 +39,30 @@ def version_to_tuple(version_str):
     return tuple(int(p) for p in parts[:4])
 
 
-def generate_version_info(version_str):
-    """Generate version_info.txt content"""
+def generate_version_info(version_str, exe_type="main"):
+    """Generate version_info.txt content.
+
+    Args:
+        version_str: Version string (e.g., "2.6.2")
+        exe_type: "main" for BurndownChart.exe or "updater" for BurndownChartUpdater.exe
+    """
     version_tuple = version_to_tuple(version_str)
     filevers_str = ", ".join(str(v) for v in version_tuple)
 
+    if exe_type == "updater":
+        file_description = "Burndown Chart Updater"
+        internal_name = "BurndownChartUpdater"
+        original_filename = "BurndownChartUpdater.exe"
+        product_name = "Burndown Chart Updater"
+    else:
+        file_description = "Burndown Chart"
+        internal_name = "BurndownChart"
+        original_filename = "BurndownChart.exe"
+        product_name = "Burndown Chart"
+
     return f"""# UTF-8
 #
-# Windows version information file for BurndownChart executable
+# Windows version information file for {product_name}
 # This file is used by PyInstaller to embed metadata into the .exe
 #
 # Auto-generated from configuration/__init__.py version: {version_str}
@@ -68,12 +84,12 @@ VSVersionInfo(
       StringTable(
         u'040904B0',
         [StringStruct(u'CompanyName', u'Niksa Visic'),
-        StringStruct(u'FileDescription', u'Burndown Chart'),
+        StringStruct(u'FileDescription', u'{file_description}'),
         StringStruct(u'FileVersion', u'{version_str}'),
-        StringStruct(u'InternalName', u'BurndownChart'),
-        StringStruct(u'LegalCopyright', u'Copyright (c) 2025-2026 Niksa Visic. Licensed under MIT License.'),
-        StringStruct(u'OriginalFilename', u'BurndownChart.exe'),
-        StringStruct(u'ProductName', u'Burndown Chart'),
+        StringStruct(u'InternalName', u'{internal_name}'),
+        StringStruct(u'LegalCopyright', u'Copyright (c) 2025-2026 Niksa Visic'),
+        StringStruct(u'OriginalFilename', u'{original_filename}'),
+        StringStruct(u'ProductName', u'{product_name}'),
         StringStruct(u'ProductVersion', u'{version_str}')])
       ]), 
     VarFileInfo([VarStruct(u'Translation', [1033, 1200])])
@@ -83,15 +99,20 @@ VSVersionInfo(
 
 
 def main():
-    """Main entry point"""
+    """Main entry point - generates version info for both executables"""
     version_str = get_version()
-    content = generate_version_info(version_str)
 
-    # Write to build/version_info.txt
-    output_file = Path(__file__).parent / "version_info.txt"
-    output_file.write_text(content, encoding="utf-8")
+    # Generate for main executable
+    content_main = generate_version_info(version_str, exe_type="main")
+    output_file_main = Path(__file__).parent / "version_info.txt"
+    output_file_main.write_text(content_main, encoding="utf-8")
+    print(f"Generated {output_file_main} for version {version_str}")
 
-    print(f"Generated {output_file} for version {version_str}")
+    # Generate for updater executable
+    content_updater = generate_version_info(version_str, exe_type="updater")
+    output_file_updater = Path(__file__).parent / "version_info_updater.txt"
+    output_file_updater.write_text(content_updater, encoding="utf-8")
+    print(f"Generated {output_file_updater} for version {version_str}")
 
 
 if __name__ == "__main__":
