@@ -225,34 +225,34 @@ try {
         Pop-Location
     }
 
-    # Step 11: Build updater
+    # Step 11: Build updater (REQUIRED)
     Write-Step "Building updater (BurndownChartUpdater.exe)"
     
     # Check if updater exists
     $updaterPy = Join-Path $ProjectRoot "updater\updater.py"
     if (-not (Test-Path $updaterPy)) {
-        Write-Host "Updater source not found - skipping updater build" -ForegroundColor Yellow
-        $updaterExe = $null
+        Write-Error "Updater source not found at: $updaterPy"
+        Write-Error "Updater is mandatory - self-updating updater feature requires both executables"
+        exit 1
     }
-    else {
-        Push-Location $ProjectRoot
-        try {
-            $pyinstallerArgs = @($updaterSpec, "--noconfirm")
-            if (-not $VerboseBuild) {
-                $pyinstallerArgs += "--log-level=WARN"
-            }
-            
-            python -m PyInstaller $pyinstallerArgs
-            if ($LASTEXITCODE -ne 0) {
-                Write-Error "Updater build failed"
-                exit 1
-            }
-            Write-Success "Updater built successfully"
-            $updaterExe = Join-Path $DistDir "BurndownChartUpdater\BurndownChartUpdater.exe"
+    
+    Push-Location $ProjectRoot
+    try {
+        $pyinstallerArgs = @($updaterSpec, "--noconfirm")
+        if (-not $VerboseBuild) {
+            $pyinstallerArgs += "--log-level=WARN"
         }
-        finally {
-            Pop-Location
+        
+        python -m PyInstaller $pyinstallerArgs
+        if ($LASTEXITCODE -ne 0) {
+            Write-Error "Updater build failed"
+            exit 1
         }
+        Write-Success "Updater built successfully"
+        $updaterExe = Join-Path $DistDir "BurndownChartUpdater\BurndownChartUpdater.exe"
+    }
+    finally {
+        Pop-Location
     }
 
     # Step 12: Verify output files
@@ -267,14 +267,15 @@ try {
     $mainSizeRounded = [math]::Round($mainSize, 2)
     Write-Success "Main executable: $mainExe ($mainSizeRounded MB)"
     
-    if ($updaterExe -and (Test-Path $updaterExe)) {
-        $updaterSize = (Get-Item $updaterExe).Length / 1MB
-        $updaterSizeRounded = [math]::Round($updaterSize, 2)
-        Write-Success "Updater executable: $updaterExe ($updaterSizeRounded MB)"
+    # Updater is REQUIRED
+    if (-not (Test-Path $updaterExe)) {
+        Write-Error "Updater executable not found at: $updaterExe"
+        Write-Error "Updater build failed or produced no output"
+        exit 1
     }
-    else {
-        Write-Host "Updater executable not built (updater feature not implemented)" -ForegroundColor Yellow
-    }
+    $updaterSize = (Get-Item $updaterExe).Length / 1MB
+    $updaterSizeRounded = [math]::Round($updaterSize, 2)
+    Write-Success "Updater executable: $updaterExe ($updaterSizeRounded MB)"
 
     # Step 13: Code signing (if requested)
     if ($Sign) {

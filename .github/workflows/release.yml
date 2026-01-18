@@ -78,15 +78,15 @@ jobs:
           $mainSize = (Get-Item $mainExe).Length / 1MB
           Write-Host "✓ Main executable verified: $mainExe ($([math]::Round($mainSize, 2)) MB)" -ForegroundColor Green
 
-          # Updater is OPTIONAL (app works without it, just needs manual updates)
+          # Updater is REQUIRED (mandatory for self-updating updater feature)
           if (-not (Test-Path $updaterExe)) {
-            Write-Warning "⚠ Updater executable not found at: $updaterExe"
-            Write-Warning "App will function normally but auto-update feature will be unavailable"
-            Write-Warning "Users will need to manually download and install updates"
-          } else {
-            $updaterSize = (Get-Item $updaterExe).Length / 1MB
-            Write-Host "✓ Updater executable verified: $updaterExe ($([math]::Round($updaterSize, 2)) MB)" -ForegroundColor Green
+            Write-Error "Updater executable not found at: $updaterExe"
+            Write-Error "Updater is mandatory - self-updating updater feature requires both executables"
+            Write-Error "Users without updater will never receive updater updates"
+            exit 1
           }
+          $updaterSize = (Get-Item $updaterExe).Length / 1MB
+          Write-Host "✓ Updater executable verified: $updaterExe ($([math]::Round($updaterSize, 2)) MB)" -ForegroundColor Green
         shell: pwsh
         continue-on-error: false
 
