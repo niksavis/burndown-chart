@@ -4,21 +4,26 @@ Burndown Chart Updater
 Standalone updater executable that replaces the main application with a new version.
 This runs as a separate process after the main app exits.
 
-Usage:
+Usage (Original - app only):
     BurndownChartUpdater.exe <current_exe> <update_zip> <app_pid>
+
+Usage (New - app + updater):
+    BurndownChartUpdater.exe <current_exe> <update_zip> <app_pid> --updater-exe <updater_exe>
 
 Arguments:
     current_exe: Path to the current BurndownChart.exe to be replaced
     update_zip: Path to the ZIP file containing the new version
     app_pid: Process ID of the running app (to wait for exit)
+    --updater-exe: (Optional) Path to current updater executable to be replaced
 
 Flow:
     1. Wait for app.exe to exit (or timeout after 10 seconds)
     2. Backup current exe to .bak file
     3. Extract new version from ZIP
-    4. Replace old exe with new exe
-    5. Restart the application
-    6. Clean up temporary files
+    4. Replace old app exe with new app exe
+    5. If --updater-exe provided, replace old updater exe with new updater exe
+    6. Restart the application
+    7. Clean up temporary files
 
 Error Handling:
     - If backup fails, abort update
@@ -330,19 +335,29 @@ def main() -> int:
     print_status("Burndown Chart Updater")
     print_status("=" * 60)
 
-    # Parse command line arguments
-    if len(sys.argv) != 4:
+    # Parse command line arguments (backward compatible)
+    if len(sys.argv) < 4:
         print_status("ERROR: Invalid arguments")
-        print_status("Usage: updater.exe <current_exe> <update_zip> <app_pid>")
+        print_status(
+            "Usage: updater.exe <current_exe> <update_zip> <app_pid> [--updater-exe <updater_exe>]"
+        )
         return 1
 
     current_exe = Path(sys.argv[1])
     update_zip = Path(sys.argv[2])
     app_pid = int(sys.argv[3])
 
+    # Check for --updater-exe flag (self-update support)
+    updater_exe: Optional[Path] = None
+    if len(sys.argv) >= 6 and sys.argv[4] == "--updater-exe":
+        updater_exe = Path(sys.argv[5])
+        print_status(f"Self-update mode enabled: will replace updater at {updater_exe}")
+
     print_status(f"Current executable: {current_exe}")
     print_status(f"Update ZIP: {update_zip}")
     print_status(f"App process ID: {app_pid}")
+    if updater_exe:
+        print_status(f"Updater executable: {updater_exe}")
 
     # Validate arguments
     if not update_zip.exists():
@@ -376,31 +391,72 @@ def main() -> int:
             pass
         return 4
 
-    # Find new executable in extracted files
+    # Find new app executable in extracted files
     new_exe_candidates = list(extract_dir.glob(f"**/{current_exe.name}"))
     if not new_exe_candidates:
         print_status(f"ERROR: New executable not found in ZIP: {current_exe.name}")
         return 4
 
     new_exe = new_exe_candidates[0]
-    print_status(f"Found new executable: {new_exe}")
+    print_status(f"Found new app executable: {new_exe}")
 
-    # Step 4: Replace old executable with new one
+    # Step 4: Replace old app executable with new one
     if not replace_executable(new_exe, current_exe):
-        print_status("ERROR: Failed to replace executable - restoring backup")
+        print_status("ERROR: Failed to replace app executable - restoring backup")
         restore_from_backup(backup_path, current_exe)
         return 5
 
-    print_status("Update completed successfully!")
+    print_status("App update completed successfully!")
 
-    # Step 5: Launch updated application
+    # Step 5: Replace updater executable (if self-update requested)
+    if updater_exe:
+        print_status("Starting updater self-update...")
+
+        # Backup current updater
+        updater_backup = backup_file(updater_exe)
+        if not updater_backup:
+            print_status(
+                "WARNING: Failed to create updater backup - skipping self-update"
+            )
+        else:
+            # Find new updater in extracted files
+            new_updater_candidates = list(extract_dir.glob(f"**/{updater_exe.name}"))
+            if not new_updater_candidates:
+                print_status(
+                    f"WARNING: New updater not found in ZIP: {updater_exe.name}"
+                )
+                print_status("App has been updated, but updater remains at old version")
+                # Remove updater backup since we're not updating it
+                if updater_backup.exists():
+                    updater_backup.unlink()
+            else:
+                new_updater = new_updater_candidates[0]
+                print_status(f"Found new updater executable: {new_updater}")
+
+                # Replace updater
+                if not replace_executable(new_updater, updater_exe):
+                    print_status("WARNING: Failed to replace updater executable")
+                    print_status(
+                        "App has been updated, but updater remains at old version"
+                    )
+                    # Restore updater backup
+                    restore_from_backup(updater_backup, updater_exe)
+                else:
+                    print_status("Updater self-update completed successfully!")
+                    # Remove updater backup after successful update
+                    if updater_backup.exists():
+                        updater_backup.unlink()
+
+    print_status("All updates completed successfully!")
+
+    # Step 6: Launch updated application
     launch_application(current_exe)
 
-    # Step 6: Clean up
+    # Step 7: Clean up
     try:
         print_status("Cleaning up temporary files...")
 
-        # Remove backup file after successful update
+        # Remove app backup file after successful update
         if backup_path.exists():
             backup_path.unlink()
             print_status("Removed backup file")

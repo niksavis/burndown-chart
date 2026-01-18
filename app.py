@@ -77,6 +77,55 @@ logger = logging.getLogger(__name__)
 logger.info("Starting Burndown Chart application")
 
 #######################################################################
+# TEMP FILE CLEANUP
+#######################################################################
+
+
+def cleanup_orphaned_temp_updaters() -> None:
+    """Remove orphaned temp updater files from previous sessions.
+
+    Temp updater copies (BurndownChartUpdater-temp-*.exe) are created during
+    updates but cannot delete themselves while running. This function cleans
+    up any leftover files from previous update sessions.
+
+    Only deletes files older than 1 hour to avoid interfering with any
+    running update process.
+    """
+    import tempfile
+
+    try:
+        temp_dir = Path(tempfile.gettempdir())
+        pattern = "BurndownChartUpdater-temp-*.exe"
+        cutoff_time = time.time() - (60 * 60)  # 1 hour ago
+
+        cleaned_count = 0
+        for temp_updater in temp_dir.glob(pattern):
+            try:
+                # Only delete if older than 1 hour (safety margin)
+                if temp_updater.stat().st_mtime < cutoff_time:
+                    temp_updater.unlink()
+                    cleaned_count += 1
+                    logger.info(f"Cleaned up orphaned updater: {temp_updater.name}")
+            except (PermissionError, OSError) as e:
+                # File might be in use, skip silently
+                logger.debug(f"Could not delete {temp_updater.name}: {e}")
+
+        if cleaned_count > 0:
+            logger.info(
+                f"Cleanup complete: removed {cleaned_count} orphaned updater(s)"
+            )
+        else:
+            logger.debug("No orphaned temp updaters found")
+
+    except Exception as e:
+        # Don't let cleanup failures block app startup
+        logger.warning(f"Temp updater cleanup failed: {e}")
+
+
+# Clean up orphaned temp updaters from previous sessions
+cleanup_orphaned_temp_updaters()
+
+#######################################################################
 # DATABASE MIGRATION
 #######################################################################
 
@@ -108,6 +157,36 @@ except Exception as e:
 VERSION_CHECK_RESULT: Optional[UpdateProgress] = None
 
 
+def _restore_pending_update() -> None:
+    """Restore pending update state from database.
+
+    If app was closed or crashed after downloading an update but before
+    installation, this restores the download state. Handles graceful
+    fallback if temp files were deleted by Windows.
+    """
+    global VERSION_CHECK_RESULT
+    try:
+        from data.update_manager import _restore_download_state
+
+        restored_progress = _restore_download_state()
+        if restored_progress:
+            VERSION_CHECK_RESULT = restored_progress
+            logger.info(
+                "Restored pending update from previous session",
+                extra={
+                    "operation": "restore_pending_update",
+                    "state": restored_progress.state.value,
+                    "version": restored_progress.available_version,
+                },
+            )
+    except Exception as e:
+        logger.warning(f"Failed to restore pending update: {e}")
+
+
+# Restore pending update state (if any)
+_restore_pending_update()
+
+
 def _check_for_updates_background() -> None:
     """Background thread function to check for updates.
 
@@ -117,6 +196,15 @@ def _check_for_updates_background() -> None:
     This is a daemon thread, so it will be terminated when the app exits.
     """
     global VERSION_CHECK_RESULT
+
+    # Skip check if we already have a pending update
+    if VERSION_CHECK_RESULT and VERSION_CHECK_RESULT.state in (
+        UpdateState.READY,
+        UpdateState.AVAILABLE,
+    ):
+        logger.info("Skipping update check - pending update already available")
+        return
+
     try:
         logger.info("Starting background update check")
         VERSION_CHECK_RESULT = check_for_updates()

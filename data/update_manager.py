@@ -46,9 +46,11 @@ Usage:
 # Standard library imports
 import logging
 import os
+import shutil
 import subprocess
 import sys
 import tempfile
+import uuid
 import zipfile
 from dataclasses import dataclass
 from datetime import datetime
@@ -162,12 +164,139 @@ class UpdateProgress:
             "download_path": str(self.download_path) if self.download_path else None,
             "progress_percent": self.progress_percent,
             "error_message": self.error_message,
-            "last_checked": self.last_checked.isoformat()
-            if self.last_checked
-            else None,
+            "last_checked": (
+                self.last_checked.isoformat() if self.last_checked else None
+            ),
             "release_notes": self.release_notes,
             "file_size": self.file_size,
         }
+
+
+#######################################################################
+# PERSISTENCE HELPERS
+#######################################################################
+
+
+def _persist_download_state(progress: UpdateProgress) -> None:
+    """Persist download state to database for crash recovery.
+
+    Saves download metadata to app_state table so that if the app crashes
+    or is closed, the download state can be restored on next startup.
+
+    Args:
+        progress: UpdateProgress with completed download information
+    """
+    try:
+        from data.persistence import backend
+
+        backend.set_app_state("pending_update_version", progress.available_version)
+        backend.set_app_state("pending_update_path", str(progress.download_path))
+        backend.set_app_state("pending_update_url", progress.download_url)
+        backend.set_app_state(
+            "pending_update_checked_at", datetime.utcnow().isoformat()
+        )
+
+        logger.debug(
+            "Persisted download state to database",
+            extra={
+                "operation": "persist_download_state",
+                "version": progress.available_version,
+                "path": str(progress.download_path),
+            },
+        )
+    except Exception as e:
+        # Don't fail download if persistence fails
+        logger.warning(f"Failed to persist download state: {e}")
+
+
+def _restore_download_state() -> Optional[UpdateProgress]:
+    """Restore pending update state from database.
+
+    Called during app startup to restore download state if app was closed
+    or crashed after download but before installation.
+
+    Returns:
+        UpdateProgress if valid pending update found, None otherwise
+    """
+    try:
+        from data.persistence import backend
+
+        version = backend.get_app_state("pending_update_version")
+        path_str = backend.get_app_state("pending_update_path")
+        url = backend.get_app_state("pending_update_url")
+
+        if not version or not path_str:
+            return None
+
+        download_path = Path(path_str)
+
+        # Check if file still exists (Windows might have cleaned %TEMP%)
+        if download_path.exists():
+            logger.info(
+                "Restored pending update from database",
+                extra={
+                    "operation": "restore_download_state",
+                    "version": version,
+                    "path": str(download_path),
+                },
+            )
+
+            current_version = get_current_version()
+            return UpdateProgress(
+                state=UpdateState.READY,
+                current_version=current_version,
+                available_version=version,
+                download_path=download_path,
+                download_url=url,
+                progress_percent=100,
+            )
+        else:
+            # File deleted - fall back to AVAILABLE state
+            logger.warning(
+                "Pending update file missing, clearing stale state",
+                extra={
+                    "operation": "restore_download_state",
+                    "version": version,
+                    "expected_path": str(download_path),
+                },
+            )
+
+            # Clear stale download path
+            backend.set_app_state("pending_update_path", None)
+
+            # Return AVAILABLE state if we still have the URL
+            if url:
+                current_version = get_current_version()
+                return UpdateProgress(
+                    state=UpdateState.AVAILABLE,
+                    current_version=current_version,
+                    available_version=version,
+                    download_url=url,
+                )
+
+            return None
+
+    except Exception as e:
+        logger.warning(f"Failed to restore download state: {e}")
+        return None
+
+
+def clear_download_state() -> None:
+    """Clear persisted download state after successful update.
+
+    Should be called after update installation completes successfully.
+    """
+    try:
+        from data.persistence import backend
+
+        backend.set_app_state("pending_update_version", None)
+        backend.set_app_state("pending_update_path", None)
+        backend.set_app_state("pending_update_url", None)
+        backend.set_app_state("pending_update_checked_at", None)
+
+        logger.debug("Cleared download state from database")
+    except Exception as e:
+        logger.warning(f"Failed to clear download state: {e}")
 
 
 #######################################################################
@@ -651,6 +780,10 @@ def download_update(progress: UpdateProgress) -> UpdateProgress:
         progress.state = UpdateState.READY
         progress.download_path = download_path
         progress.progress_percent = 100
+
+        # Persist download state to database for crash recovery
+        _persist_download_state(progress)
+
         return progress
 
     except requests.exceptions.Timeout:
@@ -763,14 +896,19 @@ def launch_updater(update_path: Path) -> bool:
             extra={"operation": "launch_updater", "updater_path": str(updater_exe)},
         )
 
-        # Get current executable path
+        # Get current executable paths
         if getattr(sys, "frozen", False):
             # Running as frozen executable
             current_exe = Path(sys.executable)
+            # Find current updater executable (same directory as app)
+            current_updater_exe = current_exe.parent / "BurndownChartUpdater.exe"
         else:
             # Running as script - use placeholder
             # In dev mode, updater won't actually work, but we can test the logic
             current_exe = Path(__file__).parent.parent / "BurndownChart.exe"
+            current_updater_exe = (
+                Path(__file__).parent.parent / "BurndownChartUpdater.exe"
+            )
             logger.warning(
                 "Running in development mode - updater may not work correctly",
                 extra={"operation": "launch_updater"},
@@ -781,20 +919,62 @@ def launch_updater(update_path: Path) -> bool:
             extra={
                 "operation": "launch_updater",
                 "current_exe": str(current_exe),
+                "current_updater": str(current_updater_exe),
                 "update_zip": str(update_path),
             },
         )
 
-        # Launch updater with arguments:
-        # 1. Path to current executable (to be replaced)
-        # 2. Path to update ZIP (contains new version)
+        # SELF-UPDATING MECHANISM:
+        # Copy NEW updater to temp location with unique name
+        # This temp copy will replace BOTH executables, then self-terminate
+        temp_updater_name = f"BurndownChartUpdater-temp-{uuid.uuid4().hex[:8]}.exe"
+        temp_updater_path = Path(tempfile.gettempdir()) / temp_updater_name
+
+        logger.info(
+            "Creating temporary updater copy for self-update",
+            extra={
+                "operation": "launch_updater",
+                "source": str(updater_exe),
+                "temp_copy": str(temp_updater_path),
+            },
+        )
+
+        try:
+            shutil.copy2(updater_exe, temp_updater_path)
+        except Exception as e:
+            logger.error(
+                "Failed to create temporary updater copy",
+                extra={
+                    "operation": "launch_updater",
+                    "error": str(e),
+                },
+            )
+            # Fall back to original updater (won't update itself, but app will update)
+            temp_updater_path = updater_exe
+            logger.warning(
+                "Falling back to original updater - updater will not self-update"
+            )
+
+        # Launch temp updater with arguments:
+        # 1. Path to current app executable (to be replaced)
+        # 2. Path to update ZIP (contains new versions)
         # 3. Process ID (so updater can wait for app to exit)
+        # 4. --updater-exe flag with path to current updater (for self-update)
         args = [
-            str(updater_exe),
+            str(temp_updater_path),
             str(current_exe),
             str(update_path),
             str(os.getpid()),
         ]
+
+        # Add self-update flag if we successfully created temp copy
+        if temp_updater_path != updater_exe:
+            args.extend(["--updater-exe", str(current_updater_exe)])
+            logger.info(
+                "Self-update enabled: temp updater will replace both executables"
+            )
+        else:
+            logger.info("Self-update disabled: only app will be updated")
 
         logger.info(
             "Launching updater process",
