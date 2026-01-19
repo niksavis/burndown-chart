@@ -49,6 +49,9 @@ hiddenimports = [
     'sqlite3',
     'logging.handlers',
     'typing_extensions',
+    'pystray',
+    'PIL',
+    'PIL.Image',
 ]
 
 # Packages to exclude from the bundle
