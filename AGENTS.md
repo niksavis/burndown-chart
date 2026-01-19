@@ -1,6 +1,24 @@
 # Agent Instructions - Beads Workflow
 
-**Issue Tracker**: bd (beads) | **Init**: `bd onboard`
+## Codebase Metrics
+
+**Last Updated**: 2026-01-19
+
+| Category | Files | Lines | Tokens |
+|----------|-------|-------|--------|
+| **Total** | 526 | 231.1K | **~2.0M** |
+| Code (Python + JS/CSS) | 227 | 132.7K | ~1.2M |
+| Python (no tests) | 207 | 124.0K | ~1.1M |
+| Frontend (JS/CSS) | 20 | 8.8K | ~56.8K |
+| Tests | 116 | 35.0K | ~299.8K |
+| Documentation (MD) | 183 | 63.3K | ~576.5K |
+
+**Agent Guidance**:
+- **Too large for context**: Use targeted `semantic_search`, avoid broad reads
+- **File size check**: Prefer reading <500 lines per file
+- **Module focus**: Target specific folders (data/, ui/, callbacks/, etc.)
+- **Test coverage**: 116 test files (15% of codebase)
+
 
 ## Session Start
 

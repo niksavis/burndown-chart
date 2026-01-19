@@ -12,7 +12,10 @@
 .\build\package.ps1           # → dist/BurndownChart-Windows-{version}.zip
 
 # Automated release
-python release.py [patch|minor|major]  # Regenerates version_info.txt → bump → push → triggers CI
+python release.py [patch|minor|major]  # Version bump → changelog → metrics → push → triggers CI
+
+# Update codebase metrics (ad-hoc)
+python update_codebase_metrics.py  # → agents.md (auto-commits)
 ```
 
 ---
@@ -94,12 +97,38 @@ python release.py [patch|minor|major]
 6. Commit changelog (amend)
 7. Regenerate version_info.txt AND version_info_updater.txt (bundled in executables)
 8. Commit version_info files
-9. Push to origin → triggers GitHub Actions
+9. Update codebase metrics in agents.md (auto-commits)
+10. Push to origin → triggers GitHub Actions
 
 **Post-Release**:
 - [ ] GitHub release created with ZIP attached
 - [ ] Release notes show polished changelog (not "Unreleased - In Development")
 - [ ] Download ZIP → test executable → verify version in About dialog
+
+---
+
+## Codebase Metrics
+
+**Script**: `update_codebase_metrics.py`
+
+**Purpose**: Calculates token counts and updates agents.md with codebase statistics for AI agents
+
+**Features**:
+- **Dynamic calibration**: Tests 46 representative files to calculate chars-per-token ratio
+- **Comprehensive breakdown**: Total, code, tests, docs, Python, frontend
+- **Self-contained**: Updates agents.md and auto-commits changes
+
+**Usage**:
+
+```powershell
+# Ad-hoc update (anytime)
+python update_codebase_metrics.py
+
+# Automatic (during release)
+python release.py [patch|minor|major]  # Calls script internally
+```
+
+**Output**: Updates "Codebase Metrics" section in agents.md with current counts
 
 ---
 

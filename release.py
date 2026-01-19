@@ -38,6 +38,7 @@ from pathlib import Path
 # Project paths
 PROJECT_ROOT = Path(__file__).parent
 VERSION_INFO_SCRIPT = PROJECT_ROOT / "build" / "generate_version_info.py"
+METRICS_SCRIPT = PROJECT_ROOT / "update_codebase_metrics.py"
 
 
 def run_command(cmd: list[str], description: str) -> tuple[bool, str]:
@@ -242,6 +243,30 @@ def regenerate_version_info() -> bool:
     return True
 
 
+def update_codebase_metrics() -> bool:
+    """Update codebase metrics in agents.md."""
+    print("\n" + "=" * 60)
+    print("Updating Codebase Metrics")
+    print("=" * 60)
+
+    if not METRICS_SCRIPT.exists():
+        print(f"WARNING: {METRICS_SCRIPT} not found", file=sys.stderr)
+        print("[SKIP] Codebase metrics not updated")
+        return True  # Non-critical, continue release
+
+    success, _ = run_command(
+        [sys.executable, str(METRICS_SCRIPT)],
+        "Calculate and update metrics in agents.md",
+    )
+
+    if not success:
+        print("[WARNING] Could not update metrics (non-critical)")
+        return True  # Non-critical, continue release
+
+    print("[OK] Codebase metrics updated")
+    return True
+
+
 def bump_version(bump_type: str) -> tuple[bool, str]:
     """Bump version, update files, create tag, and regenerate changelog.
 
@@ -388,7 +413,12 @@ def main():
         print("\n[FAILED] version_info.txt regeneration", file=sys.stderr)
         sys.exit(1)
 
-    # Step 3: Push to origin
+    # Step 3: Update codebase metrics in agents.md
+    if not update_codebase_metrics():
+        print("\n[FAILED] Codebase metrics update", file=sys.stderr)
+        sys.exit(1)
+
+    # Step 4: Push to origin
     if not push_release(new_version):
         print("\n[FAILED] Push to origin", file=sys.stderr)
         sys.exit(1)
