@@ -84,4 +84,21 @@ bd automatically syncs with git:
 - ❌ Do NOT use external issue trackers
 - ❌ Do NOT duplicate tracking systems
 
+### Advanced Features
+
+**Duplicate Detection**: Find and merge duplicate issues
+```bash
+bd duplicates                    # Find duplicates
+bd duplicates --auto-merge       # Auto-merge all duplicates
+bd merge bd-42 bd-43 --into bd-41  # Manual merge
+```
+
+**Database Redirects**: Multiple clones share one database
+```bash
+echo "../main-clone/.beads" > .beads/redirect
+bd where  # Verify redirect
+```
+
+**Extensible Database**: Add custom SQLite tables for analytics (see [beads EXTENDING.md](https://github.com/steveyegge/beads/blob/main/docs/EXTENDING.md))
+
 For more details, see [agents.md](../agents.md) and the burndown-chart project documentation.

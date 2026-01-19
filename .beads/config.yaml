@@ -26,6 +26,10 @@ issue-prefix: "burndown-chart"
 # json: false
 
 # Default actor for audit trails (overridden by BD_ACTOR or --actor)
+# The actor name is used for 'created_by' in issues and audit trails
+# Resolution order: --actor flag > BD_ACTOR env > git config user.name > $USER
+# For AI agents: Set BD_ACTOR="agent-name" to track agent work separately
+# For humans: No configuration needed - uses your git identity automatically
 # actor: ""
 
 # Path to database (overridden by BEADS_DB or --db)

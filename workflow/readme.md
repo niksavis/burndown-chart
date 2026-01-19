@@ -176,7 +176,31 @@ Remove-Item tasks_import.jsonl
 
 ## Phase 4: Iterative Development
 
-### Find Work
+### Manual Execution
+
+Traditional hands-on development:
+
+```powershell
+# Find work
+bd ready
+
+# Claim task
+bd update <issue-id> --status in_progress
+
+# Implement (use GitHub Copilot for assistance)
+# ... write code ...
+
+# Test
+pytest tests/unit/ -v
+
+# Complete
+bd close <issue-id> --reason "Implemented with tests"
+git commit -m "feat: description (burndown-chart-XXX)"
+```
+
+---
+
+### Manual Execution Details
 
 ```powershell
 # See available tasks (no blockers)
@@ -459,6 +483,55 @@ bd sync --force
 # Let Beads handle it
 bd sync  # Auto-resolves using 3-way merge
 ```
+
+---
+
+## Actor and Assignee Configuration
+
+### Who Gets Assigned When Working on Beads?
+
+**For Humans (You):**  
+No configuration needed! Beads automatically uses your git identity:
+- **created_by**: Uses `git config user.name` (e.g., "Niksa Visic")  
+- **owner**: Uses `git config user.email` (e.g., "niksavis@live.com")
+
+Your issue authorship matches your commit authorship automatically.
+
+**For AI Agents:**  
+Set the `BD_ACTOR` environment variable to track agent work separately:
+
+```bash
+# Set actor for AI agent
+export BD_ACTOR="github-copilot"  # or "claude", "agent-bot", etc.
+
+# Now all bd commands use this actor
+bd create "Task" -t task -p 1
+bd ready --json
+```
+
+**Actor Resolution Order:**
+1. `--actor` flag (explicit override)
+2. `BD_ACTOR` environment variable  
+3. `git config user.name`
+4. `$USER` system username
+5. `"unknown"` (fallback)
+
+### Multi-Agent Coordination
+
+When multiple agents/people work on the same project:
+
+```bash
+# Find work assigned to specific agent
+bd ready --assignee agent-name --json
+
+# Claim work for agent
+bd update <id> --status in_progress --assignee agent-name
+
+# View all issues by actor
+bd list --created-by "github-copilot"
+```
+
+See [Actor Configuration in config.yaml](.beads/config.yaml) for details.
 
 ---
 

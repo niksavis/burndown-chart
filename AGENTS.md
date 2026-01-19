@@ -33,6 +33,21 @@ type(scope): description (bd-XXX)
 
 Types: feat|fix|refactor|docs|test|chore|perf|style|build|ci
 
+## File Naming Convention
+
+**RULE**: Use lowercase letters with underscores for all file names
+
+**Correct**:
+- `readme.md`, `bd_guide.md`, `advanced_features.md`
+- `agent_automation.py`, `simple_agent.py`
+- `config.yaml`, `tasks.jsonl`
+
+**Incorrect**:
+- `README.md`, `BD_GUIDE.md`, `ADVANCED_FEATURES.md`
+- `AgentAutomation.py`, `SimpleAgent.py`
+
+**Why**: Consistent naming, better cross-platform compatibility, easier grep/search
+
 ## Session End (Landing the Plane)
 
 **AXIOM**: Work ≠ Complete until `git push` succeeds
