@@ -1,6 +1,7 @@
 """Utility to embed external CSS/JS dependencies into HTML reports for offline use."""
 
 import base64
+import sys
 from pathlib import Path
 import re
 
@@ -12,7 +13,11 @@ def embed_report_dependencies() -> dict:
     Returns:
         dict with keys: 'bootstrap_css', 'chartjs', 'chartjs_annotation', 'fontawesome_css'
     """
-    assets_dir = Path(__file__).parent.parent / "report_assets"
+    # Handle PyInstaller frozen executable path
+    if getattr(sys, "frozen", False) and hasattr(sys, "_MEIPASS"):
+        assets_dir = Path(sys._MEIPASS) / "report_assets"  # type: ignore[attr-defined]
+    else:
+        assets_dir = Path(__file__).parent.parent / "report_assets"
 
     # Read CSS files
     bootstrap_css = (assets_dir / "bootstrap.min.css").read_text(encoding="utf-8")

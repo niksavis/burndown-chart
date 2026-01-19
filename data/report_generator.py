@@ -6,6 +6,7 @@ All calculations use consistent time-based filtering and proper data aggregation
 
 import json
 import logging
+import sys
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Dict, List, Any, Optional, Tuple
@@ -2325,7 +2326,11 @@ def _render_template(
     from jinja2 import Environment, FileSystemLoader
 
     # Setup Jinja2 environment with custom filters
-    template_dir = Path(__file__).parent.parent / "report_assets"
+    # Handle PyInstaller frozen executable path
+    if getattr(sys, "frozen", False) and hasattr(sys, "_MEIPASS"):
+        template_dir = Path(sys._MEIPASS) / "report_assets"  # type: ignore[attr-defined]
+    else:
+        template_dir = Path(__file__).parent.parent / "report_assets"
     env = Environment(loader=FileSystemLoader(template_dir))
 
     # Add number formatting filters
