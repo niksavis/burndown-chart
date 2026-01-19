@@ -183,6 +183,19 @@ def extract_update(zip_path: Path, extract_dir: Path) -> bool:
     try:
         print_status(f"Extracting update from {zip_path.name}")
 
+        # Note: extract_dir uses unique UUID name, so conflicts are extremely unlikely
+        # But defensive: clean if somehow exists (e.g., UUID collision, though astronomically rare)
+        if extract_dir.exists():
+            print_status(
+                f"WARNING: Extraction directory already exists (UUID collision?): {extract_dir}"
+            )
+            try:
+                shutil.rmtree(extract_dir)
+                print_status("Removed existing directory")
+            except Exception as e:
+                print_status(f"ERROR: Failed to remove existing directory: {e}")
+                return False  # Fail fast if we can't clean
+
         # Create extraction directory
         try:
             extract_dir.mkdir(parents=True, exist_ok=True)
@@ -380,8 +393,12 @@ def main() -> int:
         return 3
 
     # Step 3: Extract new version
-    # Use system temp directory with static name for reliable access and cleanup
-    extract_dir = Path(tempfile.gettempdir()) / "burndown_update_temp"
+    # Use unique directory name to avoid conflicts with concurrent updates or stale files
+    import uuid
+
+    extract_dir = (
+        Path(tempfile.gettempdir()) / f"burndown_chart_update_{uuid.uuid4().hex[:8]}"
+    )
     if not extract_update(update_zip, extract_dir):
         print_status("ERROR: Failed to extract update - aborting")
         # Clean up temp directory on failure

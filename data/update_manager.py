@@ -976,6 +976,24 @@ def launch_updater(update_path: Path) -> bool:
         else:
             logger.info("Self-update disabled: only app will be updated")
 
+        # Create log file for updater output (for debugging update failures)
+        updater_log_path = Path(tempfile.gettempdir()) / "burndown_chart_updater.log"
+        try:
+            updater_log_file = open(updater_log_path, "w", encoding="utf-8")
+            logger.info(
+                "Updater output will be logged to file",
+                extra={
+                    "operation": "launch_updater",
+                    "log_path": str(updater_log_path),
+                },
+            )
+        except Exception as e:
+            logger.warning(
+                "Failed to create updater log file",
+                extra={"operation": "launch_updater", "error": str(e)},
+            )
+            updater_log_file = subprocess.DEVNULL
+
         logger.info(
             "Launching updater process",
             extra={"operation": "launch_updater", "command_args": args},
@@ -989,15 +1007,15 @@ def launch_updater(update_path: Path) -> bool:
             subprocess.Popen(
                 args,
                 creationflags=DETACHED_PROCESS,
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
+                stdout=updater_log_file,
+                stderr=updater_log_file,
             )
         else:
             # Unix-like systems
             subprocess.Popen(
                 args,
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
+                stdout=updater_log_file,
+                stderr=updater_log_file,
                 start_new_session=True,
             )
 

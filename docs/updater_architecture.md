@@ -426,6 +426,27 @@ def test_restore_download_state_file_missing():
 
 ## Troubleshooting
 
+### Update Fails Silently (No Error Message)
+
+**Symptom**: Download succeeds, backup created (`.bak` file), but update doesn't complete
+
+**Cause**: Updater encountered error during copy phase (e.g., permission denied, disk full, AV interference)
+
+**Solution**:
+1. Check updater log: `%TEMP%\burndown_chart_updater.log`
+2. Look for "ERROR:" or "WARNING:" messages
+3. Check disk space (updater needs ~200MB free)
+4. Check anti-virus (may block file replacement)
+5. Check folder permissions (install directory must be writable)
+
+**Common Errors in Log**:
+- `Permission denied`: Run as Administrator or move app to non-protected folder
+- `No space left on device`: Free up disk space
+- `File not found in ZIP`: Download corrupted - re-download update
+- `Failed to replace executable`: Anti-virus blocking - add exclusion
+
+**Log Location**: `C:\Users\[USERNAME]\AppData\Local\Temp\burndown_chart_updater.log`
+
 ### Update Stuck at "Downloading..."
 
 **Cause**: Network timeout, server unavailable

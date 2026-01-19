@@ -95,11 +95,11 @@ def cleanup_orphaned_temp_updaters() -> None:
 
     try:
         temp_dir = Path(tempfile.gettempdir())
-        pattern = "BurndownChartUpdater-temp-*.exe"
         cutoff_time = time.time() - (60 * 60)  # 1 hour ago
 
+        # Cleanup temp updater executables
         cleaned_count = 0
-        for temp_updater in temp_dir.glob(pattern):
+        for temp_updater in temp_dir.glob("BurndownChartUpdater-temp-*.exe"):
             try:
                 # Only delete if older than 1 hour (safety margin)
                 if temp_updater.stat().st_mtime < cutoff_time:
@@ -110,16 +110,33 @@ def cleanup_orphaned_temp_updaters() -> None:
                 # File might be in use, skip silently
                 logger.debug(f"Could not delete {temp_updater.name}: {e}")
 
+        # Cleanup orphaned extraction directories (burndown_chart_update_*)
+        for extract_dir in temp_dir.glob("burndown_chart_update_*"):
+            if extract_dir.is_dir():
+                try:
+                    # Only delete if older than 1 hour (safety margin)
+                    if extract_dir.stat().st_mtime < cutoff_time:
+                        import shutil
+
+                        shutil.rmtree(extract_dir)
+                        cleaned_count += 1
+                        logger.info(
+                            f"Cleaned up orphaned extraction dir: {extract_dir.name}"
+                        )
+                except (PermissionError, OSError) as e:
+                    # Directory might be in use, skip silently
+                    logger.debug(f"Could not delete {extract_dir.name}: {e}")
+
         if cleaned_count > 0:
             logger.info(
-                f"Cleanup complete: removed {cleaned_count} orphaned updater(s)"
+                f"Cleanup complete: removed {cleaned_count} orphaned file(s)/folder(s)"
             )
         else:
-            logger.debug("No orphaned temp updaters found")
+            logger.debug("No orphaned temp files found")
 
     except Exception as e:
         # Don't let cleanup failures block app startup
-        logger.warning(f"Temp updater cleanup failed: {e}")
+        logger.warning(f"Temp file cleanup failed: {e}")
 
 
 # Clean up orphaned temp updaters from previous sessions
