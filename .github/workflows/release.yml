@@ -250,8 +250,6 @@ jobs:
 
           ## Changelog
 
-          ## v$version
-
           $changelog
 
           ## Requirements
