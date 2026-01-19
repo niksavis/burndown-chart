@@ -74,6 +74,7 @@ git tag -d v2.6.0-test && git push origin :refs/tags/v2.6.0-test  # Delete after
 ## Release Checklist
 
 **Pre-Release**:
+- [ ] Dev dependencies installed (`pip install -r requirements-dev.txt` - needed for PyYAML)
 - [ ] Tests pass, no errors (`pytest`, `get_errors`)
 - [ ] Feature branch merged to main
 - [ ] `changelog.md` polished (v{X.Y.Z} section with release date)
@@ -86,13 +87,13 @@ python release.py [patch|minor|major]
 
 **What it does**:
 1. Preflight checks (clean working dir, on main)
-2. Bump version in configuration/**init**.py and readme.md
+2. Bump version in configuration/__init__.py and readme.md
 3. Commit version changes
 4. Create git tag ("Release v{X.Y.Z}")
-5. Regenerate changelog from git history
+5. Regenerate changelog from git history (requires PyYAML)
 6. Commit changelog (amend)
-7. Regenerate version_info.txt (bundled in executable)
-8. Commit version_info.txt
+7. Regenerate version_info.txt AND version_info_updater.txt (bundled in executables)
+8. Commit version_info files
 9. Push to origin → triggers GitHub Actions
 
 **Post-Release**:
