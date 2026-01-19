@@ -4,14 +4,14 @@
 
 **Last Updated**: 2026-01-19
 
-| Category | Files | Lines | Tokens |
-|----------|-------|-------|--------|
-| **Total** | 526 | 231.1K | **~2.0M** |
-| Code (Python + JS/CSS) | 227 | 132.7K | ~1.2M |
-| Python (no tests) | 207 | 124.0K | ~1.1M |
-| Frontend (JS/CSS) | 20 | 8.8K | ~56.8K |
-| Tests | 116 | 35.0K | ~299.8K |
-| Documentation (MD) | 183 | 63.3K | ~576.5K |
+| Category               | Files | Lines  | Tokens    |
+| ---------------------- | ----- | ------ | --------- |
+| **Total**              | 526   | 231.1K | **~2.0M** |
+| Code (Python + JS/CSS) | 227   | 132.7K | ~1.2M     |
+| Python (no tests)      | 207   | 124.0K | ~1.1M     |
+| Frontend (JS/CSS)      | 20    | 8.8K   | ~56.8K    |
+| Tests                  | 116   | 35.0K  | ~299.8K   |
+| Documentation (MD)     | 183   | 63.3K  | ~576.5K   |
 
 **Agent Guidance**:
 - **Too large for context**: Use targeted `semantic_search`, avoid broad reads
@@ -47,7 +47,11 @@ type(scope): description (bd-XXX)
 ```
 
 **MANDATORY**: Bead ID at END of first line (enables `bd doctor` orphan detection)
-**WORKFLOW**: Close bead BEFORE commit (single commit = work + closed status)
+**WORKFLOW**: Close bead BEFORE push (NOT after release)
+```
+Work → Close bead → Sync → Push → Create release
+       └─ Close here, NOT after release!
+```
 
 Types: feat|fix|refactor|docs|test|chore|perf|style|build|ci
 
