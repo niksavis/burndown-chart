@@ -1,10 +1,13 @@
 # Changelog
 
-## Unreleased
+## v2.6.3
+
+*Released: 2026-01-19*
 
 ### Bug Fixes
 
-- **Report Generation**: Fixed "Generate Report" button not working in packaged executable - report_assets directory now properly bundled, template and asset paths correctly resolved for frozen executables
+- **Report Generation**: Fixed "Generate Report" button not working in packaged executable - report_assets directory now properly bundled, template and asset paths correctly resolved for frozen executables, added user-friendly toast notification when no profile/data exists
+- **System Tray Icon**: Fixed missing system tray icon in packaged executable by explicitly declaring pystray and PIL dependencies in PyInstaller configuration
 
 ## v2.6.2
 
