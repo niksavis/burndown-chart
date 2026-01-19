@@ -4,6 +4,10 @@
 
 This is your starting point for understanding how the application measures project performance. The documentation is organized into focused guides, each covering a specific category of metrics.
 
+**🚀 New User?** Start with the **[Quickstart Guide](quickstart_guide.md)** for complete first-time setup instructions (15 minutes).
+
+---
+
 ## 📚 Documentation Structure
 
 The application tracks four categories of metrics, each documented in its own focused guide:

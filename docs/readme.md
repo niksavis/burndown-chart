@@ -15,7 +15,8 @@ Documentation for project managers, team leads, and users who want to understand
 
 ### Getting Started
 
-- **[Metrics Index](metrics_index.md)** ⭐ **START HERE** - Navigation hub with quick start guide and progressive learning path
+- **[Quickstart Guide](quickstart_guide.md)** ⭐ **NEW USERS START HERE** - Complete first-time setup walkthrough (15 min)
+- **[Metrics Index](metrics_index.md)** - Navigation hub with progressive learning path and metric reference
 
 ### Understanding Metrics
 
