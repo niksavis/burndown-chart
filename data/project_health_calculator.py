@@ -105,7 +105,7 @@ def calculate_comprehensive_project_health(
     project_stage = _determine_project_stage(completion_pct)
 
     logger.info(
-        f"[HEALTH v3.0] Starting comprehensive calculation. "
+        f"[HEALTH] Starting comprehensive calculation. "
         f"Completion: {completion_pct:.1f}%, Stage: {project_stage}"
     )
 
@@ -153,9 +153,7 @@ def calculate_comprehensive_project_health(
         for dim in dimensions.values():
             if dim["weight"] > 0:
                 dim["weight"] = dim["weight"] * scale_factor
-        logger.debug(
-            f"[HEALTH v3.0] Weight redistribution: {total_weight:.1f}% → 100.0%"
-        )
+        logger.debug(f"[HEALTH] Weight redistribution: {total_weight:.1f}% → 100.0%")
 
     # Calculate weighted score: sum(score × weight/100)
     overall_score = sum(d["score"] * d["weight"] / 100 for d in dimensions.values())
@@ -164,7 +162,7 @@ def calculate_comprehensive_project_health(
 
     # Log results
     logger.info(
-        f"[HEALTH v3.0] Overall Score: {overall_score}/100 "
+        f"[HEALTH] Overall Score: {overall_score}/100 "
         f"(Delivery:{delivery_score:.1f}×{delivery_weight:.0f}%, "
         f"Predict:{predictability_score:.1f}×{predictability_weight:.0f}%, "
         f"Quality:{quality_score:.1f}×{quality_weight:.0f}%, "

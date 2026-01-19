@@ -71,8 +71,8 @@ Dimension Categories (max weight %):
    - Quality redistributes: CFR/MTTR weight goes to Bug metrics
    - Efficiency redistributes: Lead Time weight goes to Flow metrics
 
-3. **Dashboard Only** (Legacy mode):
-   - Falls back to v2.2 formula (5-component balanced)
+3. **Dashboard Only** (Minimal data mode):
+   - Focuses on core delivery dimensions with redistributed weights
    - Progress 30%, Trend 20%, Consistency 20%, Schedule 20%, Scope 10%
 
 ## Detailed Signal Specifications
@@ -513,17 +513,17 @@ Status: GOOD 🟢
 
 ## Implementation Status
 
-| Component              | Status        | Notes                                            |
-| ---------------------- | ------------- | ------------------------------------------------ |
-| **Core Calculator**    | ✅ Implemented | `data/project_health_calculator.py`              |
-| **UI Integration**     | ✅ Implemented | `ui/dashboard_comprehensive.py`                  |
-| **v2.2 Fallback**      | ✅ Implemented | Automatic when extended metrics unavailable      |
-| **Dynamic Weighting**  | ✅ Implemented | Weights redistribute across available dimensions |
-| **Context Awareness**  | ✅ Implemented | Project stage adjusts scope penalties            |
-| **DORA Integration**   | ✅ Implemented | Fetched in `callbacks/visualization.py`          |
-| **Flow Integration**   | ✅ Implemented | Calculated from filtered df in callback          |
-| **Bug Integration**    | ✅ Implemented | Fetched from bug_processing cache                |
-| **Budget Integration** | ✅ Implemented | Already available, passed to health calculator   |
+| Component              | Status        | Notes                                                  |
+| ---------------------- | ------------- | ------------------------------------------------------ |
+| **Core Calculator**    | ✅ Implemented | `data/project_health_calculator.py`                    |
+| **UI Integration**     | ✅ Implemented | `ui/dashboard_comprehensive.py`                        |
+| **Adaptive Mode**      | ✅ Implemented | Automatic adjustment when extended metrics unavailable |
+| **Dynamic Weighting**  | ✅ Implemented | Weights redistribute across available dimensions       |
+| **Context Awareness**  | ✅ Implemented | Project stage adjusts scope penalties                  |
+| **DORA Integration**   | ✅ Implemented | Fetched in `callbacks/visualization.py`                |
+| **Flow Integration**   | ✅ Implemented | Calculated from filtered df in callback                |
+| **Bug Integration**    | ✅ Implemented | Fetched from bug_processing cache                      |
+| **Budget Integration** | ✅ Implemented | Already available, passed to health calculator         |
 
 ## Usage
 
@@ -569,16 +569,16 @@ health_score = _calculate_project_health_score(
 )
 # Result: 
 # - If all metrics available → comprehensive multi-dimensional calculation
-# - If only dashboard → fallback to core dimensions with weight redistribution
+# - If only dashboard → focuses on core dimensions with weight redistribution
 # - Graceful degradation for any combination of available metrics
 ```
 
 ## Data Requirements
 
-1. **Backward Compatible**: Automatically falls back to dashboard-only mode when extended metrics unavailable
+1. **Backward Compatible**: Automatically adapts to dashboard-only mode when extended metrics unavailable
 2. **No Breaking Changes**: Works with any combination of available metrics
 3. **Gradual Enhancement**: As data sources connect, health becomes more accurate
-4. **Logging**: Look for `[HEALTH v3.0]` in logs to see formula activity and available metrics
+4. **Logging**: Look for `[HEALTH]` prefix in logs to see formula activity and available metrics
 
 ## References
 

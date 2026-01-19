@@ -141,118 +141,6 @@ def _calculate_project_health_score(
     return health_result["overall_score"]
 
 
-def _calculate_project_health_score_v2(metrics):
-    """Legacy v2.2 health calculation (DEPRECATED - kept for reference only).
-
-    This function is no longer used. All health calculations now use the v3.0
-    comprehensive formula which handles missing extended metrics via dynamic weighting.
-
-    Formula v2.2 - Balanced and context-aware (fallback when extended metrics unavailable):
-    - Progress: 30% (actual completion drives confidence)
-    - Velocity trend: 20% (improving/stable trend is critical)
-    - Consistency: 20% (lower CV = better predictability)
-    - Schedule: 20% (on-time or early = better)
-    - Scope stability: 10% (context-aware penalties for early-stage projects)
-    """
-    import logging
-    import math
-
-    logger = logging.getLogger(__name__)
-    logger.info("[HEALTH v2.2] Using legacy dashboard-only formula (fallback mode)")
-
-    # Get completion percentage (used for context-aware adjustments)
-    completion_pct = metrics.get("completion_percentage", 0)
-
-    # 1. Progress Component (30 points max)
-    # Linear: 0% complete = 0 pts, 100% complete = 30 pts
-    progress_score = (completion_pct / 100) * 30
-    logger.debug(
-        f"[APP HEALTH] completion_pct={completion_pct:.1f}%, progress_score={progress_score:.2f}"
-    )
-
-    # 2. Velocity Trend Component (20 points max)
-    # Improving = 20, stable = 15, declining = 8 (give credit for delivery even when slowing)
-    trend_direction = metrics.get("trend_direction", "stable")
-    recent_change = metrics.get("recent_velocity_change", 0)
-
-    if trend_direction == "improving" or recent_change > 10:
-        trend_score = 20
-    elif trend_direction == "stable" or abs(recent_change) <= 10:
-        trend_score = 15
-    else:  # declining
-        # Even declining projects get 8 base points if still delivering
-        trend_score = 8
-    logger.debug(
-        f"[APP HEALTH] trend_direction={trend_direction}, recent_change={recent_change:.1f}%, trend_score={trend_score}"
-    )
-
-    # 3. Velocity Consistency Component (20 points max)
-    # CV of 0% = 20 pts, CV of 100%+ = 3 pts minimum (give credit for delivery even if erratic)
-    # Gentler curve: high CV projects still get partial credit
-    velocity_cv = metrics.get("velocity_cv", 0)
-    # Use sigmoid: 1 / (1 + e^((cv-70)/20)) scaled to 0-17, plus 3 point floor
-    # This ensures even 139% CV gets ~3-4 points instead of near-zero
-    consistency_factor = 1 / (1 + math.exp((velocity_cv - 70) / 20))
-    consistency_score = (consistency_factor * 17) + 3  # 3-20 point range
-    logger.debug(
-        f"[APP HEALTH] velocity_cv={velocity_cv:.1f}%, consistency_score={consistency_score:.2f}"
-    )
-
-    # 4. Schedule Component (20 points max)
-    # Buffer-based sigmoid: ahead = full points, on-time = ~15 pts, late = penalty
-    schedule_variance = metrics.get("schedule_variance_days", 0)
-    # Sigmoid: tanh(buffer/20) scaled from -1 to +1, then map to 0-20
-    # buffer = deadline - forecast (positive = ahead, negative = behind)
-    buffer_days = -schedule_variance  # Invert: positive buffer is good
-    schedule_factor = (math.tanh(buffer_days / 20) + 1) / 2  # Map to 0-1
-    schedule_score = schedule_factor * 20
-    logger.debug(
-        f"[APP HEALTH] schedule_variance_days={schedule_variance:.1f}, buffer_days={buffer_days:.1f}, schedule_score={schedule_score:.2f}"
-    )
-
-    # 5. Scope Stability Component (10 points max) - CONTEXT-AWARE
-    # Early projects (<50% complete): reduced penalty (high scope change is normal)
-    # Later projects (>50% complete): standard penalty (scope should stabilize)
-    scope_change_rate = metrics.get("scope_change_rate", 0)
-
-    # Context factor: early projects get 70% penalty reduction
-    context_factor = 1.0
-    if completion_pct < 50:
-        # Early stage: reduce penalty significantly
-        context_factor = 0.3  # Only 30% of normal penalty
-    elif completion_pct < 75:
-        # Mid stage: moderate penalty
-        context_factor = 0.6  # 60% of normal penalty
-
-    # Penalty curve: 0-200% change maps to 10 -> 0 points (more forgiving)
-    # Use logarithmic curve to be less aggressive
-    if scope_change_rate <= 100:
-        # Below 100%: minimal penalty
-        scope_penalty = (scope_change_rate / 100) * 3 * context_factor
-    else:
-        # Above 100%: logarithmic penalty
-        scope_penalty = (3 + math.log10(scope_change_rate / 100) * 7) * context_factor
-
-    scope_score = max(0, 10 - scope_penalty)
-    logger.debug(
-        f"[APP HEALTH] scope_change_rate={scope_change_rate:.1f}%, context_factor={context_factor:.2f}, scope_score={scope_score:.2f}"
-    )
-
-    # Calculate total score (sum of all components)
-    total_score = (
-        progress_score + trend_score + consistency_score + schedule_score + scope_score
-    )
-
-    final_score = max(0, min(100, int(total_score)))
-    logger.info(
-        f"[APP HEALTH] FINAL health_score={final_score} "
-        f"(progress={progress_score:.1f} + trend={trend_score:.1f} + "
-        f"consistency={consistency_score:.1f} + schedule={schedule_score:.1f} + scope={scope_score:.1f})"
-    )
-
-    return final_score
-
-
 def _get_health_status(score):
     """Get health status configuration based on score."""
     if score >= 70:
@@ -623,7 +511,7 @@ def _create_executive_summary(
     )
 
     # Extract extended metrics from additional_context (calculated in callback)
-    # These are optional - if not available, falls back to v2.2 formula
+    # These are optional - if not available, uses dashboard-only mode with adaptive weighting
     extended_metrics = settings.get("extended_metrics", {})
 
     dora_metrics = extended_metrics.get("dora")

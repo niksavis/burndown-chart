@@ -97,14 +97,7 @@ Health scores recalculate on data updates:
 - Deadline changes (via Settings)
 - Velocity trend shifts (improving → stable → declining)
 
-**⚠️ Formula Change (v2.1 → v2.2)**:
-- **Added**: Progress component (30 pts) - rewards actual completion
-- **Changed**: Velocity trend increased to 20 pts (from 15 pts combined) - momentum matters more
-- **Changed**: Scope stability reduced to 10 pts (from 20 pts) with context-aware penalties
-- **Changed**: Schedule reduced to 20 pts (from 25 pts) - less weight on forecasts
-- **Result**: More balanced, less aggressive penalties for early-stage projects with scope growth
-
-**Code Location**: `ui/dashboard_cards.py::_calculate_health_score()` and `ui/dashboard_comprehensive.py::_calculate_project_health_score()`
+**Code Location**: `ui/dashboard_comprehensive.py::_calculate_project_health_score()` and `data/project_health_calculator.py`
 
 ---
 
