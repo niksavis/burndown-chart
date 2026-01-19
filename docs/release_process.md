@@ -80,7 +80,8 @@ git tag -d v2.6.0-test && git push origin :refs/tags/v2.6.0-test  # Delete after
 - [ ] Dev dependencies installed (`pip install -r requirements-dev.txt` - needed for PyYAML)
 - [ ] Tests pass, no errors (`pytest`, `get_errors`)
 - [ ] Feature branch merged to main
-- [ ] `changelog.md` polished (v{X.Y.Z} section with release date)
+- [ ] Generate changelog draft: `python regenerate_changelog.py --json` (creates changelog_draft.json)
+- [ ] Polish `changelog.md`: Create v{X.Y.Z} section with release date using JSON as reference
 
 **Version Bump** (Automated):
 
@@ -93,8 +94,8 @@ python release.py [patch|minor|major]
 2. Bump version in configuration/**init**.py and readme.md
 3. Commit version changes
 4. Create git tag ("Release v{X.Y.Z}")
-5. Regenerate changelog from git history (requires PyYAML)
-6. Commit changelog (amend)
+5. Regenerate changelog from git history (skips if v{X.Y.Z} already exists - requires PyYAML)
+6. Commit changelog (if regenerated)
 7. Regenerate version_info.txt AND version_info_updater.txt (bundled in executables)
 8. Commit version_info files
 9. Update codebase metrics in agents.md (auto-commits)
@@ -134,9 +135,33 @@ python release.py [patch|minor|major]  # Calls script internally
 
 ## Changelog Generation
 
-`release.py` automatically regenerates changelog from git commit history.
+**Script**: `regenerate_changelog.py`
+
+**Purpose**: Generate comprehensive changelog entries from git commit history
+
+**Workflow**:
+
+1. **Before release**: `python regenerate_changelog.py --json`
+   - Creates `changelog_draft.json` with ALL commits since last tag
+   - Includes commit message, scope, type, bead ID, description
+   - Use as reference to write polished changelog section
+
+2. **During release**: `release.py` calls `regenerate_changelog.py` automatically
+   - **SKIPS** if v{X.Y.Z} section already exists in changelog.md
+   - Only generates entries for NEW tags not found in changelog
 
 **Format rules**: Flat bullets only (no sub-bullets), bold major features, focus on user benefits
+
+**Example**:
+```powershell
+# Step 1: Generate draft with all commits
+python regenerate_changelog.py --json
+
+# Step 2: Read changelog_draft.json, write polished v2.7.0 section in changelog.md
+
+# Step 3: Run release (changelog regeneration skipped since v2.7.0 exists)
+python release.py minor
+```
 
 ---
 

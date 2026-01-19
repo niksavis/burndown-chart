@@ -113,17 +113,18 @@ available. Prevents duplicate browser tabs after updates."
 
 **Release Process** (CRITICAL):
 
-1. **Polish changelog FIRST** (create v{X.Y.Z} section with release date in `changelog.md`)
-2. **Automated** (recommended): `python release.py [patch|minor|major]`
-3. **Automated** (recommended): `python release.py [patch|minor|major]` (handles everything)
+1. **Generate comprehensive changelog**: `python regenerate_changelog.py --json` (creates changelog_draft.json with ALL commits since last tag)
+2. **Polish changelog**: Use JSON to write v{X.Y.Z} section in `changelog.md` with release date (focus on user benefits, bold major features)
+3. **Automated release** (recommended): `python release.py [patch|minor|major]` (handles everything)
 4. **Manual**: Not recommended (release.py ensures correct order and prevents coordination bugs)
 
 **release.py automates**:
 
 - Bumps version in configuration/\_\_init\_\_.py and readme.md
 - Creates git tag with consistent message: "Release v{X.Y.Z}"
-- Calls `regenerate_changelog.py` to update changelog
-- Regenerates `build/version_info.txt` (bundled in executable)
+- Calls `regenerate_changelog.py` (skips if v{X.Y.Z} already in changelog.md - hence manual polish FIRST)
+- Regenerates `build/version_info.txt` and `build/version_info_updater.txt` (bundled in executables)
+- Updates codebase metrics in agents.md
 - Pushes to trigger GitHub Actions
 
 **Changelog Rules**:
