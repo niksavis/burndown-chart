@@ -202,36 +202,36 @@ def regenerate_version_info() -> bool:
     if not success:
         return False
 
-    # Check if version_info.txt was modified
+    # Check if version_info files were modified
     success, output = run_command(
-        ["git", "status", "--porcelain", "build/version_info.txt"],
-        "Check if version_info.txt changed",
+        ["git", "status", "--porcelain", "build/version_info.txt", "build/version_info_updater.txt"],
+        "Check if version_info files changed",
     )
 
     if not success:
         return False
 
     if not output.strip():
-        print("[OK] version_info.txt is already up to date")
+        print("[OK] version_info files are already up to date")
         return True
 
-    # Commit the change
+    # Commit the changes
     success, _ = run_command(
-        ["git", "add", "build/version_info.txt"], "Stage version_info.txt"
+        ["git", "add", "build/version_info.txt", "build/version_info_updater.txt"], "Stage version_info files"
     )
 
     if not success:
         return False
 
     success, _ = run_command(
-        ["git", "commit", "-m", "chore(build): update version_info.txt for release"],
-        "Commit version_info.txt",
+        ["git", "commit", "-m", "chore(build): update version_info files for release"],
+        "Commit version_info files",
     )
 
     if not success:
         return False
 
-    print("[OK] version_info.txt regenerated and committed")
+    print("[OK] version_info files regenerated and committed")
     return True
 
 
