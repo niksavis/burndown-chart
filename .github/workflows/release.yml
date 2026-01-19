@@ -200,8 +200,14 @@ jobs:
               # Read entire changelog
               $content = Get-Content "changelog.md" -Raw -ErrorAction Stop
               
-              # Extract only this version's section (between ## v{version} and next ##)
-              $pattern = "(?s)## v$version\s*\r?\n(.*?)(?=\r?\n## v|\z)"
+              # Extract only this version's section (between ## v{version} and next ## v)
+              # Pattern explanation:
+              # (?s) - single-line mode (dot matches newlines)
+              # ## v$version - match the version heading
+              # \s*\r?\n - consume whitespace and newline after heading
+              # (.*?) - capture everything (non-greedy)
+              # (?=\r?\n## v|\z) - stop before next version heading or end of file
+              $pattern = "(?s)## v$version\s*\r?\n(.*?)(?=\r?\n##\s+v|\z)"
               if ($content -match $pattern) {
                 $changelog = $matches[1].Trim()
                 Write-Host "Extracted changelog for v$version ($(($changelog -split '\r?\n').Count) lines)"
