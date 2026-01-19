@@ -204,7 +204,13 @@ def regenerate_version_info() -> bool:
 
     # Check if version_info files were modified
     success, output = run_command(
-        ["git", "status", "--porcelain", "build/version_info.txt", "build/version_info_updater.txt"],
+        [
+            "git",
+            "status",
+            "--porcelain",
+            "build/version_info.txt",
+            "build/version_info_updater.txt",
+        ],
         "Check if version_info files changed",
     )
 
@@ -217,7 +223,8 @@ def regenerate_version_info() -> bool:
 
     # Commit the changes
     success, _ = run_command(
-        ["git", "add", "build/version_info.txt", "build/version_info_updater.txt"], "Stage version_info files"
+        ["git", "add", "build/version_info.txt", "build/version_info_updater.txt"],
+        "Stage version_info files",
     )
 
     if not success:

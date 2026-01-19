@@ -87,7 +87,7 @@ python release.py [patch|minor|major]
 
 **What it does**:
 1. Preflight checks (clean working dir, on main)
-2. Bump version in configuration/__init__.py and readme.md
+2. Bump version in configuration/**init**.py and readme.md
 3. Commit version changes
 4. Create git tag ("Release v{X.Y.Z}")
 5. Regenerate changelog from git history (requires PyYAML)
