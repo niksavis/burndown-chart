@@ -1,5 +1,13 @@
 # Changelog
 
+## v2.6.4
+
+*Released: 2026-01-19*
+
+### Bug Fixes
+
+- **Silent Update Failures**: Fixed updates failing silently when stale temp directories from previous failed attempts blocked new extractions - now uses unique extraction directories with automatic cleanup, updater output logged to %TEMP%\burndown_chart_updater.log for debugging, consistent burndown_chart_* namespace prevents collisions with other applications
+
 ## v2.6.3
 
 *Released: 2026-01-19*
