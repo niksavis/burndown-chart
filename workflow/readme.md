@@ -109,7 +109,7 @@ AI: Uses @speckit.specify to generate spec, then @speckit.plan, @speckit.tasks
 **Agent handles git operations automatically** - The @speckit.plan agent will:
 - Create/update all planning documents
 - Stage changes with git add
-- Commit with message: "docs(spec-kit): complete planning for <feature>"
+- Commit with message: "docs(spec-kit): complete planning for `<feature>`"
 
 ---
 
@@ -147,7 +147,7 @@ AI: Uses @speckit.specify to generate spec, then @speckit.plan, @speckit.tasks
 - `[US1]`, `[US2]` - Maps to user story in spec.md
 - `[MVP]` 🎯 - Critical for minimum viable product
 
-**Agent handles git commit automatically** with message: "docs(spec-kit): generate task breakdown for <feature>"
+**Agent handles git commit automatically** with message: "docs(spec-kit): generate task breakdown for `<feature>`"
 
 ---
 
