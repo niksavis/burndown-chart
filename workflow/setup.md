@@ -178,16 +178,50 @@ speckit --version
 
 **Prerequisites**: GitHub Copilot extension installed in VS Code
 
-1. Open VS Code in repository with `.github/agents/` directory
-2. Open Chat panel (`Ctrl+Alt+I` or `Cmd+Alt+I`)
-3. Type `@` to see available agents
-4. Use spec-kit agents:
-   - `@speckit.plan <description>` - Run planning workflow (creates research.md, plan.md, etc.)
-   - `@speckit.tasks` - Generate task breakdown (creates tasks.md)
-   - `@speckit.implement` - Start implementation in phases
-   - `@speckit.analyze` - Run consistency analysis
+**Spec-Kit agents are the primary way to create specifications** - they automate the entire planning workflow through VS Code Chat.
 
-**Verify Agents Available**:
+#### Quick Start - Create a New Feature
+
+1. **Open VS Code Chat**: `Ctrl+Alt+I` (or `Cmd+Alt+I` on macOS)
+
+2. **Create Specification**: Type `@speckit.specify` followed by your feature description
+   ```
+   @speckit.specify Create an AI assistant that helps users configure the app
+   ```
+   - Agent creates feature branch (e.g., `017-ai-assistant`)
+   - Generates `specs/017-ai-assistant/spec.md` with user stories
+   - Commits to git automatically
+
+3. **Generate Implementation Plan**: Type `@speckit.plan`
+   ```
+   @speckit.plan
+   ```
+   - Agent reads the spec.md
+   - Creates research.md, plan.md, quickstart.md
+   - Commits planning documents
+
+4. **Break Down into Tasks**: Type `@speckit.tasks`
+   ```
+   @speckit.tasks
+   ```
+   - Agent generates tasks.md with 50-100+ tasks
+   - Organized by user stories with dependencies
+   - Marks MVP scope and parallelization opportunities
+   - Commits task breakdown
+
+**All agents handle git operations automatically!** You don't need to manually create files or commit.
+
+#### Available Spec-Kit Agents
+
+- `@speckit.specify <description>` - Create feature specification from natural language
+- `@speckit.plan` - Generate implementation plan (research, design, architecture)
+- `@speckit.tasks` - Break down plan into concrete tasks
+- `@speckit.implement` - Start implementation in phases
+- `@speckit.analyze` - Run consistency analysis on specs
+- `@speckit.clarify` - Ask clarifying questions about requirements
+
+#### Verify Agents Available
+
 ```bash
 # Check agent files exist (adjust command for your platform)
 # Windows: Get-ChildItem .github\agents\*.agent.md
@@ -195,8 +229,13 @@ speckit --version
 
 # Test in VS Code Chat:
 # 1. Open Chat (Ctrl+Alt+I or Cmd+Alt+I)
-# 2. Type @ and look for speckit.plan, speckit.tasks, etc.
+# 2. Type @ and look for speckit.specify, speckit.plan, speckit.tasks, etc.
 ```
+
+**Troubleshooting**: If agents don't appear:
+1. Verify `.github/agents/*.agent.md` files exist in repository root
+2. Reload VS Code window: `Ctrl+Shift+P` → "Developer: Reload Window"
+3. Ensure GitHub Copilot extension is active and authenticated
 
 ### Configure Merge Strategy for Beads
 
