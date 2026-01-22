@@ -1,5 +1,13 @@
 # Changelog
 
+## v2.6.5
+
+*Released: 2026-01-22*
+
+### Bug Fixes
+
+- **Flow Metrics Cache Consistency**: Fixed Flow and DORA metrics displaying stale data after changing status mappings or other field configurations - metrics now update immediately when Save Mappings clicked, showing "No Metrics" state until recalculation. Ensures cache cleared consistently across all operations: Save Mappings, Force Refresh, and Update Data
+
 ## v2.6.4
 
 *Released: 2026-01-19*
