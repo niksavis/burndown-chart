@@ -1,4 +1,4 @@
-# Byte-compiled / optimized / DLL files
+﻿# Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
 *$py.class
@@ -246,6 +246,8 @@ sdd-*/
 !.github/copilot-instructions.md
 !.github/workflows/
 !.github/changelog-scopes.yml
+!.github/agents/
+!.github/prompts/
 
 # Debug and test artifacts (root directory only - not tests/ folder)
 /test_*.py
@@ -272,6 +274,13 @@ changelog_draft.json
 # Process ID tracking (runtime artifact)
 app_pid.txt
 
+# LLM model files (Feature 017 - AI Assistant)
+# Downloaded GGUF models (e.g., Phi-3-mini-4k-instruct-q4.gguf ~2.3GB)
+# Note: readme.txt is versioned for installation instructions
+models/*
+!models/readme.txt
+*.gguf
+
 # Additional JSON data files that may be generated during development
 *.json
 !package.json
@@ -287,3 +296,4 @@ playwright-screenshots/
 !tsconfig.json
 !*.example.json
 !spec-kit.json
+!data/ai_assistant/knowledge_base.json
