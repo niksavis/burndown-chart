@@ -972,7 +972,31 @@ def register(app):
                         invalidate_all_cache()
                         logger.info("[Settings] ✓ All global cache files invalidated")
 
-                        # Step 5: Delete profile-specific cache files
+                        # Step 5: Delete metrics for this query (clears cached calculations)
+                        try:
+                            deleted_count = backend.delete_metrics(
+                                active_profile_id, active_query_id
+                            )
+                            logger.info(
+                                f"[Settings] ✓ Deleted {deleted_count} cached metrics"
+                            )
+                        except Exception as e:
+                            logger.warning(f"[Settings] Failed to delete metrics: {e}")
+
+                        # Step 6: Clear in-memory snapshots cache (used by Flow/DORA tabs)
+                        try:
+                            from data.metrics_snapshots import clear_snapshots_cache
+
+                            clear_snapshots_cache()
+                            logger.info(
+                                "[Settings] ✓ Cleared in-memory snapshots cache"
+                            )
+                        except Exception as e:
+                            logger.warning(
+                                f"[Settings] Failed to clear snapshots cache: {e}"
+                            )
+
+                        # Step 7: Delete profile-specific cache files
                         from data.profile_manager import get_active_query_workspace
 
                         query_workspace = get_active_query_workspace()
@@ -1535,8 +1559,12 @@ def register(app):
                 try:
                     # Delete metrics for this specific profile/query combination
                     backend.delete_metrics(active_profile_id, active_query_id)
+                    # Also clear in-memory snapshots cache (used by Flow/DORA tabs)
+                    from data.metrics_snapshots import clear_snapshots_cache
+
+                    clear_snapshots_cache()
                     logger.info(
-                        f"[Settings] Deleted existing metrics for {active_profile_id}/{active_query_id}"
+                        f"[Settings] Deleted existing metrics and cleared snapshots cache for {active_profile_id}/{active_query_id}"
                     )
                 except Exception as e:
                     logger.warning(f"[Settings] Failed to clear metrics cache: {e}")

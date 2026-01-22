@@ -2149,6 +2149,7 @@ def _build_no_fields_alert():
         Output("field-mapping-status", "children", allow_duplicate=True),
         Output("field-mapping-state-store", "data", allow_duplicate=True),
         Output("app-notifications", "children", allow_duplicate=True),
+        Output("metrics-refresh-trigger", "data", allow_duplicate=True),
     ],
     Input("namespace-collected-values", "data"),
     State("field-mapping-state-store", "data"),
@@ -2174,13 +2175,18 @@ def save_or_validate_mappings(namespace_values, state_data):
         state_data: Current form state from state store
 
     Returns:
-        Tuple of (save_success, status_message, updated_state, toast_notification)
+        Tuple of (save_success, status_message, updated_state, toast_notification, metrics_refresh_trigger)
+        - save_success: True if save succeeded, False if failed, no_update otherwise
+        - status_message: Status alert HTML or no_update
+        - updated_state: Updated state store data or no_update
+        - toast_notification: Toast notification HTML or no_update
+        - metrics_refresh_trigger: Timestamp to trigger metrics refresh (on save success), no_update otherwise
     """
     from data.persistence import save_app_settings, load_app_settings
 
     # namespace_values has structure: {trigger: "save"|"validate"|"tab_switch", values: {...}, validationErrors: [...]}
     if not namespace_values or not isinstance(namespace_values, dict):
-        return no_update, no_update, no_update, no_update
+        return no_update, no_update, no_update, no_update, no_update
 
     trigger = namespace_values.get("trigger", "")
     collected_values = namespace_values.get("values", {})
@@ -2189,7 +2195,7 @@ def save_or_validate_mappings(namespace_values, state_data):
     # Handle TAB_SWITCH trigger - just update state store with collected values
     if trigger == "tab_switch":
         if not collected_values:
-            return no_update, no_update, no_update, no_update
+            return no_update, no_update, no_update, no_update, no_update
 
         # Merge collected namespace values into state_data
         state_data = (state_data or {}).copy()
@@ -2208,7 +2214,7 @@ def save_or_validate_mappings(namespace_values, state_data):
         logger.info(
             f"[FieldMapping] Tab switch - saved {len(collected_values)} metric groups to state"
         )
-        return no_update, no_update, state_data, no_update
+        return no_update, no_update, state_data, no_update, no_update
 
     # Handle VALIDATE trigger - comprehensive validation across all tabs
     if trigger == "validate":
@@ -2260,6 +2266,7 @@ def save_or_validate_mappings(namespace_values, state_data):
             _build_comprehensive_validation_alert(validation_result),
             no_update,
             no_update,  # Validation uses inline alert (keeps validation in modal)
+            no_update,  # Don't refresh metrics on validation
         )
 
     # Handle SAVE trigger
@@ -2268,7 +2275,7 @@ def save_or_validate_mappings(namespace_values, state_data):
         logger.info(
             f"[FieldMapping] Unknown trigger detected, ignoring (trigger={trigger})"
         )
-        return no_update, no_update, no_update, no_update
+        return no_update, no_update, no_update, no_update, no_update
 
     # Check for clientside validation errors - reject save if any invalid values
     if validation_errors:
@@ -2278,6 +2285,7 @@ def save_or_validate_mappings(namespace_values, state_data):
         return (
             False,
             _build_validation_error_alert(validation_errors),
+            no_update,
             no_update,
             no_update,
         )
@@ -2318,6 +2326,7 @@ def save_or_validate_mappings(namespace_values, state_data):
             _build_comprehensive_validation_alert(validation_result),
             no_update,
             toast,
+            no_update,
         )
 
     # Log warnings but allow save
@@ -2338,7 +2347,7 @@ def save_or_validate_mappings(namespace_values, state_data):
             "Please configure JIRA connection first (URL) in the Settings panel.",
             header="JIRA Not Configured",
         )
-        return False, "", no_update, toast
+        return False, "", no_update, toast, no_update
 
     # Check if there's at least one meaningful field mapping in CURRENT form values
     # Check BOTH collected_values (namespace inputs) AND state_data (dropdown configs)
@@ -2394,11 +2403,36 @@ def save_or_validate_mappings(namespace_values, state_data):
             "Please configure at least one field mapping before saving.",
             header="No Mappings Configured",
         )
-        return False, "", no_update, toast
+        return False, "", no_update, toast, no_update
 
     logger.info(
         f"[FieldMapping] Validation passed with {total_mapped_fields} configured values"
     )
+
+    # CRITICAL: Invalidate metrics cache after validation passes, before save
+    # This ensures metrics are recalculated with new config on next Update Data
+    # Only invalidated if validation succeeds - avoids clearing cache for rejected changes
+    # Affects ALL field mappings: status configs, project filters, issue types, environment values, etc.
+    try:
+        from data.persistence.factory import get_backend
+        from data.metrics_snapshots import clear_snapshots_cache
+
+        backend = get_backend()
+        active_profile_id = backend.get_app_state("active_profile_id")
+        active_query_id = backend.get_app_state("active_query_id")
+
+        if active_profile_id and active_query_id:
+            deleted_count = backend.delete_metrics(active_profile_id, active_query_id)
+            # ALSO clear in-memory snapshots cache (used by Flow/DORA metrics display)
+            clear_snapshots_cache()
+            logger.info(
+                f"[FieldMapping] Invalidated metrics cache after validation ({deleted_count} records deleted, in-memory cache cleared)"
+            )
+    except Exception as cache_error:
+        # Non-fatal but log it - metrics will eventually be recalculated
+        logger.warning(
+            f"[FieldMapping] Failed to invalidate metrics cache: {cache_error}"
+        )
 
     # DEBUG: Log what we're about to save
     logger.info(
@@ -2613,7 +2647,10 @@ def save_or_validate_mappings(namespace_values, state_data):
         )
 
         # Update state store with saved values so modal shows correct state when reopened
-        return True, "", state_data, toast
+        # Trigger metrics refresh to show "No metrics" state immediately
+        import time
+
+        return True, "", state_data, toast, time.time()
 
     except Exception as e:
         logger.error(f"[FieldMapping] Error saving mappings: {e}")
@@ -2621,7 +2658,7 @@ def save_or_validate_mappings(namespace_values, state_data):
             f"Error saving mappings: {str(e)}",
             header="Save Failed",
         )
-        return False, "", no_update, toast
+        return False, "", no_update, toast, no_update
 
 
 @callback(
