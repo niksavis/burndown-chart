@@ -2,22 +2,22 @@
 
 ## Codebase Metrics
 
-**Last Updated**: 2026-01-19
+**Last Updated**: 2026-01-22
 
 | Category | Files | Lines | Tokens |
 |----------|-------|-------|--------|
-| **Total** | 526 | 231.1K | **~2.0M** |
-| Code (Python + JS/CSS) | 227 | 132.8K | ~1.2M |
-| Python (no tests) | 207 | 124.0K | ~1.1M |
-| Frontend (JS/CSS) | 20 | 8.8K | ~56.8K |
-| Tests | 116 | 35.0K | ~299.7K |
-| Documentation (MD) | 183 | 63.4K | ~576.8K |
+| **Total** | 529 | 239.2K | **~2.1M** |
+| Code (Python + JS/CSS) | 229 | 133.9K | ~1.2M |
+| Python (no tests) | 207 | 124.1K | ~1.1M |
+| Frontend (JS/CSS) | 22 | 9.8K | ~66.0K |
+| Tests | 115 | 34.8K | ~298.0K |
+| Documentation (MD) | 185 | 70.5K | ~629.4K |
 
 **Agent Guidance**:
 - **Too large for context**: Use targeted `semantic_search`, avoid broad reads
 - **File size check**: Prefer reading <500 lines per file
 - **Module focus**: Target specific folders (data/, ui/, callbacks/, etc.)
-- **Test coverage**: 116 test files (15% of codebase)
+- **Test coverage**: 115 test files (14% of codebase)
 
 
 ## Session Start
