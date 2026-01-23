@@ -265,6 +265,91 @@ def register(app):
 
     @app.callback(
         [
+            Output("current-settings", "data", allow_duplicate=True),
+            Output("current-settings", "modified_timestamp", allow_duplicate=True),
+        ],
+        [
+            Input("metrics-refresh-trigger", "data"),  # Reload after import/update
+            Input("profile-switch-trigger", "data"),  # Reload after profile switch
+        ],
+        prevent_initial_call=True,
+    )
+    def reload_settings_after_import_or_switch(metrics_trigger, profile_trigger):
+        """
+        Reload settings from database after import or profile switch.
+
+        This ensures that imported profile settings (show_points, pert_factor, etc.)
+        are loaded into the UI, fixing the bug where imported settings weren't displayed.
+        """
+        from data.persistence import load_app_settings
+        import time
+
+        try:
+            # Load settings from database
+            settings = load_app_settings()
+
+            if not settings:
+                logger.warning(
+                    "[Settings] No settings found in database after import/switch"
+                )
+                raise PreventUpdate
+
+            # Normalize show_points to boolean for consistency
+            settings["show_points"] = _normalize_show_points(
+                settings.get("show_points", True)
+            )
+
+            logger.info(
+                f"[Settings] Reloaded settings from database: "
+                f"show_points={settings.get('show_points')}, "
+                f"pert_factor={settings.get('pert_factor')}, "
+                f"data_points={settings.get('data_points_count')}"
+            )
+
+            return settings, time.time()
+
+        except Exception as e:
+            logger.error(
+                f"[Settings] Error reloading settings after import: {e}", exc_info=True
+            )
+            raise PreventUpdate
+
+    @app.callback(
+        [
+            Output("pert-factor-slider", "value"),
+            Output("deadline-picker", "date"),
+            Output("points-toggle", "value"),
+            Output("data-points-input", "value", allow_duplicate=True),
+            Output("milestone-picker", "date"),
+        ],
+        Input("current-settings", "modified_timestamp"),
+        State("current-settings", "data"),
+        prevent_initial_call=True,
+    )
+    def sync_ui_inputs_with_settings(settings_timestamp, settings):
+        """
+        Update UI input components when current-settings store changes.
+
+        This ensures that when settings are reloaded from database (after import/profile switch),
+        the visible UI inputs reflect the loaded values.
+        """
+        if not settings:
+            raise PreventUpdate
+
+        # Convert show_points boolean back to checklist format
+        show_points = settings.get("show_points", True)
+        points_toggle_value = ["show"] if show_points else []
+
+        return (
+            settings.get("pert_factor", 1.2),
+            settings.get("deadline", ""),
+            points_toggle_value,  # Checklist expects ["show"] or []
+            settings.get("data_points_count", 20),
+            settings.get("milestone", ""),
+        )
+
+    @app.callback(
+        [
             Output("current-settings", "data"),
             Output("current-settings", "modified_timestamp"),
         ],
