@@ -602,6 +602,21 @@ def register(app):
             className="col-md-6 col-12 mb-3 pe-md-2",
         )
 
+    def _create_statistics_tab_content(statistics):
+        """
+        Create the Statistics Data tab content.
+
+        Args:
+            statistics: List of dictionaries containing statistics data
+
+        Returns:
+            Dash component for statistics tab content
+        """
+        from ui.cards import create_statistics_data_card
+
+        # Create the statistics card and return directly (no wrapper needed)
+        return create_statistics_data_card(statistics)
+
     def _create_burndown_tab_content(
         df,
         items_trend,
@@ -2005,11 +2020,8 @@ def register(app):
                 return flow_content, chart_cache, ui_state
 
             elif active_tab == "tab-statistics-data":
-                # Statistics Data table exists in hidden container (statistics-table-container)
-                # Display empty placeholder - table visibility controlled by show/hide callback
-                statistics_content = html.Div(
-                    id="statistics-tab-placeholder", className="d-none"
-                )
+                # Directly render statistics table content (same pattern as other tabs)
+                statistics_content = _create_statistics_tab_content(statistics)
 
                 # Cache the result for next time
                 chart_cache[cache_key] = statistics_content
@@ -2040,22 +2052,6 @@ def register(app):
             )
             ui_state["loading"] = False
             return error_content, chart_cache, ui_state
-
-    # Show/hide statistics table container based on active tab
-    @app.callback(
-        Output("statistics-table-container", "style"),
-        Input("chart-tabs", "active_tab"),
-        prevent_initial_call=False,
-    )
-    def toggle_statistics_table_visibility(active_tab):
-        """
-        Show statistics table container when Statistics Data tab is active.
-        Hide it on all other tabs to keep the table outside tab content flow.
-        """
-        if active_tab == "tab-statistics-data":
-            return {"display": "block", "marginTop": "1rem"}
-        else:
-            return {"display": "none"}
 
     # Enhance the existing update_date_range callback to immediately trigger chart updates
     @app.callback(
