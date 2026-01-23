@@ -85,6 +85,7 @@ def _validate_profile_name(
         Output("rename-profile-btn", "disabled"),
         Output("duplicate-profile-btn", "disabled"),
         Output("delete-profile-btn", "disabled"),
+        Output("profile-empty-state", "className"),
     ],
     [
         Input("profile-form-modal", "is_open"),
@@ -124,7 +125,17 @@ def refresh_profile_selector(
         else (profiles[0]["id"] if profiles else None)
     )
 
-    return options, dropdown_value, buttons_disabled, buttons_disabled, buttons_disabled
+    # Show/hide empty state alert
+    empty_state_class = "mb-0 mt-2 d-none" if has_profiles else "mb-0 mt-2"
+
+    return (
+        options,
+        dropdown_value,
+        buttons_disabled,
+        buttons_disabled,
+        buttons_disabled,
+        empty_state_class,
+    )
 
 
 # ============================================================================
@@ -149,12 +160,17 @@ def refresh_profile_selector(
         Input("create-profile-btn", "n_clicks"),
         Input("rename-profile-btn", "n_clicks"),
         Input("duplicate-profile-btn", "n_clicks"),
+        Input("empty-state-create-profile-link", "n_clicks"),
     ],
     [State("profile-selector", "value")],
     prevent_initial_call=True,
 )
 def open_profile_form_modal(
-    create_clicks, rename_clicks, duplicate_clicks, selected_profile_id
+    create_clicks,
+    rename_clicks,
+    duplicate_clicks,
+    empty_state_clicks,
+    selected_profile_id,
 ):
     """Open modal and configure based on which button was clicked."""
     if not ctx.triggered:
@@ -168,7 +184,7 @@ def open_profile_form_modal(
         (p for p in profiles if p["id"] == selected_profile_id), None
     )
 
-    if triggered_id == "create-profile-btn":
+    if triggered_id in ("create-profile-btn", "empty-state-create-profile-link"):
         return (
             True,  # is_open
             "create",  # mode

@@ -57,7 +57,9 @@ def create_profile_dropdown(id_suffix: str = "") -> dbc.Col:
                 id=f"profile-selector{id_suffix}",
                 options=options,
                 value=value,
-                placeholder="Select a profile...",
+                placeholder="No profiles - click 'New' to create one"
+                if not options
+                else "Select a profile...",
                 clearable=False,
             ),
         ],
@@ -135,6 +137,24 @@ def create_profile_selector_panel(id_suffix: str = "") -> dbc.Card:
                         create_profile_actions(id_suffix),
                     ],
                     className="g-2",
+                ),
+                # Empty state message (hidden by default, shown via callback)
+                dbc.Alert(
+                    [
+                        html.I(className="fas fa-user-plus me-2"),
+                        "No profiles yet. ",
+                        html.A(
+                            "Create your first profile to get started →",
+                            id=f"empty-state-create-profile-link{id_suffix}",
+                            className="alert-link",
+                            href="#",
+                            style={"cursor": "pointer"},
+                        ),
+                    ],
+                    id=f"profile-empty-state{id_suffix}",
+                    color="info",
+                    className="mb-0 mt-2 d-none",
+                    dismissable=False,
                 ),
             ]
         ),
