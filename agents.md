@@ -4,14 +4,14 @@
 
 **Last Updated**: 2026-01-22
 
-| Category | Files | Lines | Tokens |
-|----------|-------|-------|--------|
-| **Total** | 529 | 239.2K | **~2.1M** |
-| Code (Python + JS/CSS) | 229 | 133.9K | ~1.2M |
-| Python (no tests) | 207 | 124.1K | ~1.1M |
-| Frontend (JS/CSS) | 22 | 9.8K | ~66.0K |
-| Tests | 115 | 34.8K | ~298.0K |
-| Documentation (MD) | 185 | 70.5K | ~629.4K |
+| Category               | Files | Lines  | Tokens    |
+| ---------------------- | ----- | ------ | --------- |
+| **Total**              | 529   | 239.2K | **~2.1M** |
+| Code (Python + JS/CSS) | 229   | 133.9K | ~1.2M     |
+| Python (no tests)      | 207   | 124.1K | ~1.1M     |
+| Frontend (JS/CSS)      | 22    | 9.8K   | ~66.0K    |
+| Tests                  | 115   | 34.8K  | ~298.0K   |
+| Documentation (MD)     | 185   | 70.5K  | ~629.4K   |
 
 **Agent Guidance**:
 - **Too large for context**: Use targeted `semantic_search`, avoid broad reads
@@ -22,8 +22,9 @@
 
 ## Session Start
 
-**Preferred**: Use handoff prompt from previous agent: `Continue work on bd-123: [title]. [context]`
-**Fallback**: `What beads tasks are ready?` → `bd ready`
+**AXIOM**: `bd sync` FIRST (multi-machine coordination)
+**Handoff**: `Continue work on bd-123: [title]. [context]`
+**Cold Start**: `bd sync` → `bd ready`
 
 ## Beads Commands
 
