@@ -304,10 +304,12 @@ def create_app_layout(settings, statistics, is_sample_data):
                 ),
                 row_class="mb-4",
             ),
-            # Statistics Data Table - using full width layout
-            create_full_width_layout(
+            # Hidden statistics table for callbacks (must exist in layout)
+            # The visible table is rendered in the Statistics Data tab content
+            html.Div(
                 create_statistics_data_card(statistics),
-                row_class="mb-4",
+                id="statistics-table-container",
+                style={"display": "none"},  # Always hidden - visible one is in tab
             ),
             # Compact footer with clean design
             html.Div(

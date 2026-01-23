@@ -12,7 +12,7 @@ drawer navigation, swipe gestures, and bottom navigation for mobile devices.
 
 # Third-party library imports
 import dash_bootstrap_components as dbc
-from dash import html, dcc
+from dash import html
 
 # Application imports
 # from ui.icon_utils import get_icon_class  # Import removed as not used
@@ -280,6 +280,17 @@ def get_mobile_tabs_config():
             "short_label": "DORA",
             "icon": "fas fa-rocket",
             "color": "#6610f2",  # indigo color
+        }
+    )
+
+    # Add Statistics Data tab
+    tabs.append(
+        {
+            "id": "tab-statistics-data",
+            "label": "Statistics Data",
+            "short_label": "Data",
+            "icon": "fas fa-table",
+            "color": "#6c757d",  # secondary color
         }
     )
 

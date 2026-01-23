@@ -316,11 +316,11 @@ def register(app):
 
     @app.callback(
         [
-            Output("pert-factor-slider", "value"),
-            Output("deadline-picker", "date"),
-            Output("points-toggle", "value"),
+            Output("pert-factor-slider", "value", allow_duplicate=True),
+            Output("deadline-picker", "date", allow_duplicate=True),
+            Output("points-toggle", "value", allow_duplicate=True),
             Output("data-points-input", "value", allow_duplicate=True),
-            Output("milestone-picker", "date"),
+            Output("milestone-picker", "date", allow_duplicate=True),
         ],
         Input("current-settings", "modified_timestamp"),
         State("current-settings", "data"),
@@ -3026,7 +3026,6 @@ def register(app):
                 "total-points-display", "value"
             ),  # FIXED: use Remaining Points (auto) - the calculated total
             Input("data-points-input", "value"),  # Add data points input
-            Input("current-settings", "modified_timestamp"),  # Add to get show_points
         ],
         [State("current-settings", "data")],
         prevent_initial_call=False,  # Update on initial load
@@ -3037,7 +3036,6 @@ def register(app):
         scope_items,
         scope_points,
         data_points,
-        settings_ts,
         settings,
     ):
         """

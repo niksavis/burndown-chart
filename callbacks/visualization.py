@@ -2004,6 +2004,20 @@ def register(app):
                 ui_state["loading"] = False
                 return flow_content, chart_cache, ui_state
 
+            elif active_tab == "tab-statistics-data":
+                # Statistics Data table - render it in tab content
+                # The table component must exist for callbacks, so we render it here
+                from ui.cards import create_statistics_data_card
+
+                statistics_content = html.Div(
+                    [create_statistics_data_card(statistics)], className="p-4"
+                )
+
+                # Cache the result for next time
+                chart_cache[cache_key] = statistics_content
+                ui_state["loading"] = False
+                return statistics_content, chart_cache, ui_state
+
             # Default fallback (should not reach here)
             fallback_content = create_content_placeholder(
                 type="chart", text="Select a tab to view data", height="400px"

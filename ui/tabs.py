@@ -118,6 +118,15 @@ TAB_CONFIG: List[TabConfig] = [
         "requires_data": False,  # Has its own data loading
         "help_content_id": "help-dora",
     },
+    {
+        "id": "tab-statistics-data",
+        "label": "Statistics Data",
+        "icon": "fa-table",
+        "color": get_color("secondary"),
+        "order": 8,
+        "requires_data": True,
+        "help_content_id": "help-statistics-data",
+    },
 ]
 
 
@@ -237,6 +246,7 @@ def create_tab_content(active_tab, charts, statistics_df=None, pert_data=None):
         "tab-bug-analysis",
         "tab-flow-metrics",
         "tab-dora-metrics",
+        "tab-statistics-data",
     ]:
         active_tab = "tab-burndown"
 
@@ -249,6 +259,7 @@ def create_tab_content(active_tab, charts, statistics_df=None, pert_data=None):
         "tab-bug-analysis": html.Div(),  # Bug analysis has its own info cards in the content
         "tab-dora-metrics": html.Div(),  # DORA dashboard has its own info cards in the content
         "tab-flow-metrics": html.Div(),  # Flow dashboard has its own info cards in the content
+        "tab-statistics-data": html.Div(),  # Statistics data is the content itself
     }
 
     # Enhanced tab titles with more descriptive content and icons
@@ -322,6 +333,16 @@ def create_tab_content(active_tab, charts, statistics_df=None, pert_data=None):
                     style={"color": get_color("success")},
                 ),
                 "Flow Metrics",
+            ],
+            className="mb-3 border-bottom pb-2 d-flex align-items-center fw-bold",
+        ),
+        "tab-statistics-data": html.Div(
+            [
+                html.I(
+                    className="fas fa-table me-2",
+                    style={"color": get_color("secondary")},
+                ),
+                "Statistics Data",
             ],
             className="mb-3 border-bottom pb-2 d-flex align-items-center fw-bold",
         ),
