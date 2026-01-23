@@ -40,6 +40,35 @@ from ui.components import create_parameter_bar_collapsed
 #######################################################################
 
 
+def _normalize_show_points(value):
+    """
+    Normalize show_points value to boolean.
+
+    Handles various input types:
+    - List (from checkbox): ["show"] → True, [] → False
+    - Integer (from database): 1 → True, 0 → False
+    - Boolean: True/False → True/False
+
+    Args:
+        value: show_points value from checkbox, database, or settings
+
+    Returns:
+        bool: Normalized boolean value
+    """
+    if isinstance(value, list):
+        # Checkbox format: ["show"] or []
+        return "show" in value
+    elif isinstance(value, int):
+        # Database format: 1 or 0
+        return value != 0
+    elif isinstance(value, bool):
+        # Already boolean
+        return value
+    else:
+        # Unknown format, default to False
+        return False
+
+
 def get_data_points_info(value, min_val, max_val):
     """Helper function to generate info text about data points selection"""
     if min_val == max_val:
@@ -368,9 +397,9 @@ def register(app):
             "data_points_count": data_points_count,
             "show_milestone": show_milestone,  # Automatically set based on milestone date
             "milestone": milestone,
-            "show_points": bool(
-                show_points and (show_points is True or "show" in show_points)
-            ),  # Convert checklist to boolean
+            "show_points": _normalize_show_points(
+                show_points
+            ),  # Convert checklist/int/bool to boolean
         }
 
         # Save app-level settings - load JIRA values from jira_config (Feature 003-jira-config-separation)

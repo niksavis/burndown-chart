@@ -300,6 +300,11 @@ def perform_import(import_data, conflict_strategy=None, custom_name=None):
         if "last_used" not in profile_data:
             profile_data["last_used"] = datetime.now().isoformat()
 
+        # DEBUG: Log show_points value before save
+        logger.info(
+            f"[Import] Saving profile with show_points={profile_data.get('show_points')} (type: {type(profile_data.get('show_points'))})"
+        )
+
         # Save profile to database
         backend.save_profile(profile_data)
         logger.info(f"Imported profile '{profile_id}' to database")
