@@ -2233,7 +2233,7 @@ def _create_quality_scope_section(statistics_df, settings):
                 {
                     "label": "New Items Added",
                     "value": f"{total_created:,}",
-                    "color": "#fd7e14",
+                    "color": COLOR_PALETTE["items"],
                     "icon": "fa-plus-circle",
                     "tooltip": f"Total new work items added to project backlog during {date_range} ({weeks_count} weeks). This represents scope expansion - new features, bugs, or tasks discovered after project start. Monitor this to identify uncontrolled scope growth.",
                 },
