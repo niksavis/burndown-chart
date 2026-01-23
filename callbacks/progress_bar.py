@@ -446,28 +446,39 @@ def cancel_operation(n_clicks):
     [
         Output("statistics-table", "data", allow_duplicate=True),
         Output("jira-cache-status", "children", allow_duplicate=True),
+        Output(
+            "current-statistics", "data", allow_duplicate=True
+        ),  # Clear stores and reload active query data
     ],
     Input("metrics-refresh-trigger", "data"),
     prevent_initial_call=True,
 )
 def reload_data_after_update(refresh_trigger):
     """
-    Reload statistics and update JIRA cache status after Update Data completes.
+    Reload statistics and update JIRA cache status after Update Data or import completes.
 
     This callback is triggered when the task completes (metrics-refresh-trigger is set by
-    the progress polling callback). It reloads the statistics from disk and updates the
-    JIRA cache status, which triggers downstream callbacks to refresh the UI.
+    the progress polling callback or import callback). It clears browser stores and reloads
+    statistics for the currently active profile/query, which triggers downstream callbacks
+    to refresh the UI.
+
+    This ensures correct behavior for all scenarios:
+    - CONFIG_ONLY import: Clears stores, loads data for active query (shows empty if no data)
+    - FULL_DATA import: Clears stores, loads imported data for active query
+    - Update Data: Clears stores, loads fresh data from JIRA
 
     Args:
         refresh_trigger: Timestamp when the refresh was triggered
 
     Returns:
-        tuple: (statistics_data, cache_status)
+        tuple: (statistics_data, cache_status, current_statistics_store)
     """
     if not refresh_trigger:
         raise PreventUpdate
 
-    logger.info("[Progress] Reloading statistics after Update Data completion")
+    logger.info(
+        "[Progress] Reloading statistics after Update Data completion or import"
+    )
 
     try:
         # Load statistics from disk
@@ -477,7 +488,9 @@ def reload_data_after_update(refresh_trigger):
         statistics, is_sample = load_statistics()
 
         if not statistics:
-            logger.warning("[Progress] No statistics found after reload")
+            logger.warning(
+                "[Progress] No statistics found after reload - clearing stores"
+            )
             return (
                 [],
                 html.Div(
@@ -487,6 +500,7 @@ def reload_data_after_update(refresh_trigger):
                     ],
                     className="text-warning small",
                 ),
+                [],  # Clear current-statistics store
             )
 
         logger.info(f"[Progress] Reloaded {len(statistics)} statistics records")
@@ -500,7 +514,7 @@ def reload_data_after_update(refresh_trigger):
             className="text-success small",
         )
 
-        return statistics, cache_status
+        return statistics, cache_status, statistics  # Update current-statistics store
 
     except Exception as e:
         logger.error(f"[Progress] Error reloading statistics: {e}", exc_info=True)
@@ -515,6 +529,7 @@ def reload_data_after_update(refresh_trigger):
                 ],
                 className="text-danger small",
             ),
+            [],  # Clear current-statistics store on error
         )
 
 
