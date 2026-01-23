@@ -497,6 +497,7 @@ def validate_delete_confirmation(confirmation_text):
         Output("delete-confirmation-input", "value"),
         Output("app-notifications", "children", allow_duplicate=True),
         Output("profile-switch-trigger", "data", allow_duplicate=True),
+        Output("metrics-refresh-trigger", "data", allow_duplicate=True),
     ],
     Input("confirm-delete-profile", "n_clicks"),
     [
@@ -521,6 +522,7 @@ def handle_delete_profile(n_clicks, profile_id, confirmation_text):
             no_update,
             create_error_toast("Profile not found"),
             no_update,
+            no_update,
         )
 
     profile_name = profile["name"]
@@ -530,7 +532,7 @@ def handle_delete_profile(n_clicks, profile_id, confirmation_text):
 
         logger.info(f"[UI] Deleted profile: {profile_name}")
 
-        # Trigger dropdown refresh to show new active profile
+        # Trigger dropdown refresh and data reload for newly active profile
         import time
 
         trigger_value = int(time.time() * 1000)
@@ -542,6 +544,7 @@ def handle_delete_profile(n_clicks, profile_id, confirmation_text):
             "",  # clear confirmation input
             create_success_toast(f"Profile '{profile_name}' deleted successfully"),
             trigger_value,  # trigger dropdown refresh
+            trigger_value,  # trigger data reload for newly active profile
         )
 
     except Exception as e:
@@ -554,6 +557,7 @@ def handle_delete_profile(n_clicks, profile_id, confirmation_text):
             no_update,  # keep modal open
             no_update,
             create_error_toast(f"Failed to delete profile: {error_message}"),
+            no_update,
             no_update,
         )
 
