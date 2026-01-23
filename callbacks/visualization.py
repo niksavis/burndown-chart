@@ -2005,12 +2005,10 @@ def register(app):
                 return flow_content, chart_cache, ui_state
 
             elif active_tab == "tab-statistics-data":
-                # Statistics Data table - render it in tab content
-                # The table component must exist for callbacks, so we render it here
-                from ui.cards import create_statistics_data_card
-
+                # Statistics Data table exists in hidden container (statistics-table-container)
+                # Display empty placeholder - table visibility controlled by show/hide callback
                 statistics_content = html.Div(
-                    [create_statistics_data_card(statistics)], className="p-4"
+                    id="statistics-tab-placeholder", className="d-none"
                 )
 
                 # Cache the result for next time
@@ -2042,6 +2040,22 @@ def register(app):
             )
             ui_state["loading"] = False
             return error_content, chart_cache, ui_state
+
+    # Show/hide statistics table container based on active tab
+    @app.callback(
+        Output("statistics-table-container", "style"),
+        Input("chart-tabs", "active_tab"),
+        prevent_initial_call=False,
+    )
+    def toggle_statistics_table_visibility(active_tab):
+        """
+        Show statistics table container when Statistics Data tab is active.
+        Hide it on all other tabs to keep the table outside tab content flow.
+        """
+        if active_tab == "tab-statistics-data":
+            return {"display": "block", "marginTop": "1rem"}
+        else:
+            return {"display": "none"}
 
     # Enhance the existing update_date_range callback to immediately trigger chart updates
     @app.callback(
