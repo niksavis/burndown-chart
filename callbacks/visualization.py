@@ -611,6 +611,7 @@ def register(app):
         points_fig,
         settings,
         show_points=True,
+        has_points_data=True,
     ):
         """
         Create content for the burndown tab with burndown chart, items chart, and points chart.
@@ -621,9 +622,10 @@ def register(app):
             points_trend: Dictionary with points trend and forecast data
             burndown_fig: Burndown chart figure
             items_fig: Weekly items chart figure
-            points_fig: Weekly points chart figure (can be None if show_points is False)
+            points_fig: Weekly points chart figure (None if no data or disabled)
             settings: Settings dictionary
-            show_points: Whether to show points tracking
+            show_points: Whether points tracking is enabled
+            has_points_data: Whether points data exists in selected period
 
         Returns:
             html.Div: Burndown tab content with all three charts
@@ -705,24 +707,77 @@ def register(app):
             ]
         )
 
-        # Add Points per Week chart section if points tracking is enabled
-        if show_points and points_fig is not None:
+        # Add Points per Week section
+        content.extend(
+            [
+                # Section divider
+                html.Hr(className="my-5", style={"borderTop": "2px solid #dee2e6"}),
+                # Points per Week section header
+                html.Div(
+                    [
+                        html.I(
+                            className="fas fa-chart-bar me-2",
+                            style={"color": "#fd7e14"},
+                        ),
+                        "Weekly Completed Points",
+                    ],
+                    className="mb-3 border-bottom pb-2 d-flex align-items-center fw-bold",
+                    style={"fontSize": "1.25rem"},
+                ),
+            ]
+        )
+
+        # Determine which content to show for points section
+        if not show_points:
+            # Case 1: Points tracking disabled
+            content.append(
+                html.Div(
+                    [
+                        html.I(className="fas fa-toggle-off fa-2x text-secondary mb-3"),
+                        html.Div(
+                            "Points Tracking Disabled",
+                            className="fw-bold mb-2",
+                            style={"fontSize": "1.2rem", "color": "#6c757d"},
+                        ),
+                        html.Small(
+                            "Enable Points Tracking in Parameters panel to view story points metrics.",
+                            className="text-muted",
+                            style={"fontSize": "0.9rem"},
+                        ),
+                    ],
+                    className="d-flex align-items-center justify-content-center flex-column",
+                    style={"gap": "0.25rem", "padding": "80px 20px"},
+                )
+            )
+        elif not has_points_data:
+            # Case 2: Points tracking enabled but no data in period
+            content.append(
+                html.Div(
+                    [
+                        html.I(className="fas fa-database fa-lg text-secondary mb-3"),
+                        html.Div(
+                            "No Points Data",
+                            className="fw-bold mb-2",
+                            style={"fontSize": "1.2rem", "color": "#6c757d"},
+                        ),
+                        html.Small(
+                            "No story points data available in the selected time period. Configure story points field in Settings or complete items with point estimates.",
+                            className="text-muted",
+                            style={
+                                "fontSize": "0.9rem",
+                                "textAlign": "center",
+                                "maxWidth": "500px",
+                            },
+                        ),
+                    ],
+                    className="d-flex align-items-center justify-content-center flex-column",
+                    style={"gap": "0.25rem", "padding": "80px 20px"},
+                )
+            )
+        else:
+            # Case 3: Points tracking enabled with data - show chart
             content.extend(
                 [
-                    # Section divider
-                    html.Hr(className="my-5", style={"borderTop": "2px solid #dee2e6"}),
-                    # Points per Week section header
-                    html.Div(
-                        [
-                            html.I(
-                                className="fas fa-chart-bar me-2",
-                                style={"color": "#fd7e14"},
-                            ),
-                            "Weekly Completed Points",
-                        ],
-                        className="mb-3 border-bottom pb-2 d-flex align-items-center fw-bold",
-                        style={"fontSize": "1.25rem"},
-                    ),
                     # Points trend header
                     html.Div(
                         [
@@ -1768,16 +1823,16 @@ def register(app):
                     statistics, pert_factor, data_points_count
                 )
 
-                # Check if points data exists in the filtered time period (treat no data same as disabled)
+                # Check if points data exists in the filtered time period
                 # This respects the Data Points slider to only check the selected weeks
-                effective_show_points = show_points
+                has_points_data = False
                 if show_points:
                     has_points_data = _check_has_points_in_period(
                         statistics, data_points_count
                     )
-                    if not has_points_data:
-                        # No points data in filtered period - hide points traces like when disabled
-                        effective_show_points = False
+
+                # For burndown chart, hide points traces if no data (like when disabled)
+                effective_show_points = show_points and has_points_data
 
                 # Generate burndown chart only when needed
                 # NOTE: Don't pre-compute cumulative values - let create_forecast_plot handle it
@@ -1807,9 +1862,9 @@ def register(app):
                     title="Weekly Items" if not is_mobile else None,
                 )
 
-                # Generate points chart for consolidated view (if points tracking enabled)
+                # Generate points chart for consolidated view (only if enabled AND has data)
                 points_fig = None
-                if effective_show_points:
+                if show_points and has_points_data:
                     points_fig = create_weekly_points_chart(
                         statistics,
                         pert_factor,
@@ -1832,7 +1887,8 @@ def register(app):
                     items_fig,
                     points_fig,
                     settings,
-                    effective_show_points,  # Use effective flag
+                    show_points,  # Original flag
+                    has_points_data,  # Whether data exists
                 )
                 # Cache the result for next time
                 logger.debug(
