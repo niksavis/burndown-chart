@@ -28,7 +28,8 @@ from ui.components import (
     create_parameter_panel,
 )
 from ui.grid_utils import create_full_width_layout
-from ui.tabs import create_tabs
+from ui.tabs import create_desktop_tabs_only
+from ui.mobile_navigation import create_mobile_navigation_system
 from ui.jira_config_modal import create_jira_config_modal
 from ui.query_creation_modal import create_query_creation_modal
 from ui.field_mapping_modal import create_field_mapping_modal
@@ -248,6 +249,8 @@ def create_app_layout(settings, statistics, is_sample_data):
                     create_improved_settings_panel(),
                     # Import/Export flyout panel - separate from Settings (pure data operations)
                     create_import_export_flyout(),
+                    # Desktop tabs - integrated as part of sticky panel
+                    create_desktop_tabs_only(),
                 ],
                 className="param-panel-sticky",
             ),
@@ -286,14 +289,16 @@ def create_app_layout(settings, statistics, is_sample_data):
                 ],
                 id="sample-data-banner",
             ),
-            # Tab Navigation and Charts Row - using full width template
+            # Mobile navigation system - must be outside card for proper fixed positioning
+            create_mobile_navigation_system(),
+            # Tab content container - wrapped in card for styling
             create_full_width_layout(
                 dbc.Card(
                     [
                         dbc.CardBody(
                             [
-                                # Tabbed interface
-                                create_tabs(),
+                                # Content div that will be filled based on active tab
+                                html.Div(id="tab-content"),
                             ]
                         ),
                     ],

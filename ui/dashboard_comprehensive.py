@@ -599,13 +599,13 @@ def _create_executive_summary(
                                             },
                                         ),
                                         _create_progress_ring(
-                                            health_score, health_status["color"], 80
+                                            health_score, health_status["color"], 90
                                         ),
                                         html.Div(
                                             health_status["label"],
                                             className="mt-3 mb-1",
                                             style={
-                                                "fontSize": "1rem",
+                                                "fontSize": "1.25rem",
                                                 "fontWeight": "bold",
                                                 "color": health_status["color"],
                                             },
@@ -641,7 +641,7 @@ def _create_executive_summary(
                                                         ),
                                                     ],
                                                     style={
-                                                        "fontSize": "0.8rem",
+                                                        "fontSize": "0.9rem",
                                                         "color": "#495057",
                                                     },
                                                 ),
@@ -650,7 +650,7 @@ def _create_executive_summary(
                                                         html.I(
                                                             className="fas fa-chart-line me-1",
                                                             style={
-                                                                "fontSize": "0.8rem"
+                                                                "fontSize": "0.9rem"
                                                             },
                                                         ),
                                                         html.Span(
@@ -666,17 +666,18 @@ def _create_executive_summary(
                                                         ),
                                                     ],
                                                     style={
-                                                        "fontSize": "0.8rem",
+                                                        "fontSize": "0.9rem",
                                                         "color": "#495057",
                                                     },
                                                 ),
                                             ],
                                         ),
                                     ],
-                                    className="text-center",
+                                    className="text-center d-flex flex-column align-items-center",
                                     style={
-                                        "padding": "15px 10px",
-                                        "borderRight": "2px solid #dee2e6",
+                                        "padding": "20px 15px",
+                                        "borderRight": "3px solid #ced4da",
+                                        "height": "100%",
                                     },
                                 ),
                                 xs=12,
@@ -712,13 +713,13 @@ def _create_executive_summary(
                                                             _create_progress_ring(
                                                                 completion_percentage,
                                                                 COLOR_PALETTE["items"],
-                                                                80,
+                                                                90,
                                                             ),
                                                             html.Div(
                                                                 f"{completed_items:,}",
                                                                 className="mt-3 mb-1",
                                                                 style={
-                                                                    "fontSize": "1.1rem",
+                                                                    "fontSize": "1.5rem",
                                                                     "fontWeight": "bold",
                                                                     "color": COLOR_PALETTE[
                                                                         "items"
@@ -729,7 +730,7 @@ def _create_executive_summary(
                                                                 "Completed",
                                                                 className="text-muted",
                                                                 style={
-                                                                    "fontSize": "0.85rem"
+                                                                    "fontSize": "0.9rem"
                                                                 },
                                                             ),
                                                         ],
@@ -744,13 +745,13 @@ def _create_executive_summary(
                                                                 100
                                                                 - completion_percentage,
                                                                 COLOR_PALETTE["items"],
-                                                                80,
+                                                                90,
                                                             ),
                                                             html.Div(
                                                                 f"{remaining_items:,}",
                                                                 className="mt-3 mb-1",
                                                                 style={
-                                                                    "fontSize": "1.1rem",
+                                                                    "fontSize": "1.5rem",
                                                                     "fontWeight": "bold",
                                                                     "color": COLOR_PALETTE[
                                                                         "items"
@@ -761,7 +762,7 @@ def _create_executive_summary(
                                                                 "Remaining",
                                                                 className="text-muted",
                                                                 style={
-                                                                    "fontSize": "0.85rem"
+                                                                    "fontSize": "0.9rem"
                                                                 },
                                                             ),
                                                         ],
@@ -793,14 +794,16 @@ def _create_executive_summary(
                                             ],
                                             className="mt-2 text-center",
                                             style={
-                                                "fontSize": "0.8rem",
+                                                "fontSize": "0.95rem",
                                                 "color": "#495057",
                                             },
                                         ),
                                     ],
+                                    className="d-flex flex-column",
                                     style={
-                                        "padding": "15px 10px",
-                                        "borderRight": "2px solid #dee2e6",
+                                        "padding": "20px 15px",
+                                        "borderRight": "3px solid #ced4da",
+                                        "height": "100%",
                                     },
                                 ),
                                 xs=12,
@@ -837,13 +840,13 @@ def _create_executive_summary(
                                                             _create_progress_ring(
                                                                 points_percentage,
                                                                 COLOR_PALETTE["points"],
-                                                                80,
+                                                                90,
                                                             ),
                                                             html.Div(
                                                                 f"{completed_points:,.1f}",
                                                                 className="mt-3 mb-1",
                                                                 style={
-                                                                    "fontSize": "1.1rem",
+                                                                    "fontSize": "1.5rem",
                                                                     "fontWeight": "bold",
                                                                     "color": COLOR_PALETTE[
                                                                         "points"
@@ -854,7 +857,7 @@ def _create_executive_summary(
                                                                 "Completed",
                                                                 className="text-muted",
                                                                 style={
-                                                                    "fontSize": "0.85rem"
+                                                                    "fontSize": "0.9rem"
                                                                 },
                                                             ),
                                                         ],
@@ -868,13 +871,13 @@ def _create_executive_summary(
                                                             _create_progress_ring(
                                                                 100 - points_percentage,
                                                                 COLOR_PALETTE["points"],
-                                                                80,
+                                                                90,
                                                             ),
                                                             html.Div(
                                                                 f"{remaining_points:,.1f}",
                                                                 className="mt-3 mb-1",
                                                                 style={
-                                                                    "fontSize": "1.1rem",
+                                                                    "fontSize": "1.5rem",
                                                                     "fontWeight": "bold",
                                                                     "color": COLOR_PALETTE[
                                                                         "points"
@@ -884,7 +887,7 @@ def _create_executive_summary(
                                                             html.Div(
                                                                 "Remaining",
                                                                 style={
-                                                                    "fontSize": "0.85rem",
+                                                                    "fontSize": "0.9rem",
                                                                     "color": "#6c757d",
                                                                 },
                                                             ),
@@ -977,7 +980,7 @@ def _create_executive_summary(
                                             ],
                                             className="mt-2 text-center",
                                             style={
-                                                "fontSize": "0.8rem",
+                                                "fontSize": "0.95rem",
                                                 "color": "#495057",
                                             },
                                         )
@@ -985,14 +988,18 @@ def _create_executive_summary(
                                         and settings.get("show_points", True)
                                         else None,
                                     ],
-                                    style={"padding": "15px 10px"},
+                                    className="d-flex flex-column",
+                                    style={
+                                        "padding": "20px 15px",
+                                        "height": "100%",
+                                    },
                                 ),
                                 xs=12,
                                 md=5,
                                 className="mb-4 mb-md-0",
                             ),
                         ],
-                        className="mb-3",
+                        className="mb-3 align-items-stretch",
                     ),
                 ]
             )

@@ -425,14 +425,16 @@ a:hover {
   z-index: var(--z-index-sticky);
   background-color: var(--color-white);
   box-shadow: var(--shadow-sm);
-  margin-bottom: var(--spacing-xs);
+  margin-bottom: 0; /* Compact: no margin */
+  padding-bottom: 0; /* Compact: no padding */
   /* Subtle blue accent to indicate interactive panel area */
   border-bottom: 2px solid rgba(13, 110, 253, 0.1); /* Very subtle blue hint */
 }
 
 /* Parameter panel container spacing */
 .parameter-panel-container {
-  margin-bottom: var(--spacing-xs);
+  margin-bottom: 0; /* Compact: no margin */
+  padding: 0; /* Compact: no padding */
 }
 
 /* CRITICAL: Allow parameter collapse to overflow when expanded (not during animation) */
@@ -675,12 +677,14 @@ a:hover {
 /* Settings panel container spacing */
 /* Settings panel container - positioned below parameter panel */
 .settings-panel-container {
-  margin-bottom: var(--spacing-xs);
+  margin-bottom: 0; /* Compact: no margin */
+  padding: 0; /* Compact: no padding */
 }
 
 /* Import/Export panel container - positioned below other panels */
 .import-export-panel-container {
-  margin-bottom: var(--spacing-xs);
+  margin-bottom: 0; /* Compact: no margin */
+  padding: 0; /* Compact: no padding */
 }
 
 /* Allow specific collapse containers to show dropdown menus */
@@ -1312,8 +1316,8 @@ td.cell--editable:not(.cell-selected) .dash-cell-value::after {
   color: var(--color-neutral-700);
   border: 1px solid transparent;
   background: transparent;
-  padding: 0.625rem 1.25rem;
-  font-size: var(--text-base);
+  padding: 0.5rem 0.875rem; /* Compact: reduced from 0.625rem 1.25rem */
+  font-size: var(--text-sm); /* Compact: reduced from var(--text-base) */
   font-weight: var(--font-medium);
   transition:
     all 0.2s cubic-bezier(0.4, 0, 0.2, 1),
@@ -1324,6 +1328,24 @@ td.cell--editable:not(.cell-selected) .dash-cell-value::after {
   cursor: pointer;
   box-shadow: none;
   text-decoration: none;
+}
+
+/* Tabs integrated into sticky panel (desktop only) */
+@media (min-width: 768px) {
+  .param-panel-sticky .nav-tabs-modern {
+    position: relative;
+    padding: 0.25rem 0.75rem; /* Compact padding */
+    gap: var(--space-1); /* Tight gaps */
+    margin-bottom: 0;
+    background: rgba(239, 246, 255, 0.98);
+    backdrop-filter: blur(8px);
+    box-shadow: none;
+    border-top: 1px solid var(--color-neutral-200);
+  }
+
+  .desktop-tab-navigation::after {
+    display: none; /* No placeholder needed */
+  }
 }
 
 .nav-tabs-modern .nav-item .nav-link:hover {
@@ -1367,10 +1389,29 @@ td.cell--editable:not(.cell-selected) .dash-cell-value::after {
   border-radius: var(--radius-md);
 }
 
-/* Specific fix for project health overview card - ensure overflow visible and thick border */
+/* Specific fix for project health overview card - ensure overflow visible */
 #project-health-overview-card {
   overflow: visible !important;
-  border-width: 3px !important; /* Thicker, more prominent border matching mobile design */
+  /* Border color is set dynamically via inline style based on health status */
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1) !important;
+}
+
+/* Enhanced vertical dividers for better visual separation */
+#project-health-overview-card [style*="borderRight"] {
+  position: relative;
+}
+
+/* Mobile: Remove dividers on small screens */
+@media (max-width: 767px) {
+  #project-health-overview-card [style*="borderRight"] {
+    border-right: none !important;
+  }
+  
+  /* Add subtle horizontal dividers instead */
+  #project-health-overview-card .col-12.mb-4:not(:last-child) {
+    border-bottom: 2px solid #ced4da;
+    padding-bottom: 1rem !important;
+  }
 }
 
 /* ===== Form Controls (Phase 2: Enhanced Inputs) ===== */
@@ -1699,9 +1740,11 @@ mark.jql-operator {
 /* ===== General Grid Alignment ===== */
 
 /* Consistent card styling (Phase 1: Signature Style) */
+.card:not(#project-health-overview-card) {
+  border: none !important; /* Override Bootstrap default border, except health card */
+}
+
 .card {
-  border: none;
-  border-left: 4px solid var(--color-brand-500);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-sm);
   background: var(--color-white);
@@ -1724,6 +1767,9 @@ mark.jql-operator {
 /* Prevent hover animation on structural cards (tabs, layout containers) */
 .card:has(.nav-tabs),
 .card:has(.tab-content),
+.card:has(.dash-graph),
+.card:has(.dash-table-container),
+.card:has(#statistics-table),
 .card.card-static,
 .card-no-hover {
   transform: none !important;
@@ -1732,6 +1778,9 @@ mark.jql-operator {
 
 .card:has(.nav-tabs):hover,
 .card:has(.tab-content):hover,
+.card:has(.dash-graph):hover,
+.card:has(.dash-table-container):hover,
+.card:has(#statistics-table):hover,
 .card.card-static:hover,
 .card-no-hover:hover {
   transform: none !important;
@@ -4283,6 +4332,15 @@ label.fw-medium {
 
 /* Mobile-specific adjustments */
 @media (max-width: 767px) {
+  /* Ensure mobile bottom navigation stays fixed at bottom */
+  .mobile-bottom-navigation {
+    position: fixed !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    z-index: 1030 !important;
+  }
+
   /* Add bottom padding to body to account for bottom navigation */
   .container-fluid {
     padding-bottom: 90px !important; /* Space for bottom navigation */
@@ -4641,7 +4699,6 @@ label.fw-medium {
 
 /* Compact metric cards for dashboard headers */
 .compact-metric-card {
-  border-left: 3px solid var(--color-primary);
   transition:
     transform 0.2s ease,
     box-shadow 0.2s ease;
@@ -5142,7 +5199,6 @@ input[id*="namespace-field-input"]::placeholder {
 
 /* Offcanvas (slide-out panels) styling - enhanced with design system */
 .offcanvas {
-  border-left: 4px solid var(--color-brand-500) !important;
   box-shadow: var(--shadow-xl);
   background: white;
 }
@@ -5265,7 +5321,6 @@ input[id*="namespace-field-input"]::placeholder {
 .panel {
   background: white;
   border-radius: var(--radius-lg);
-  border-left: 4px solid var(--color-brand-500);
   box-shadow: var(--shadow-sm);
   padding: var(--space-4);
   margin-bottom: var(--space-4);
@@ -5574,7 +5629,6 @@ body {
   border: none;
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-lg);
-  border-left: 4px solid var(--color-brand-500);
 }
 
 .toast-header {
@@ -5720,8 +5774,6 @@ body {
 .list-group-item-action:hover {
   background-color: var(--color-brand-50);
   color: var(--color-brand-700);
-  border-left: 3px solid var(--color-brand-500);
-  padding-left: calc(var(--space-3) - 2px);
 }
 
 /* Scrollbar styling (webkit browsers) - enhanced with design system */

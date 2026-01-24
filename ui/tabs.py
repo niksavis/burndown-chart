@@ -20,7 +20,6 @@ from configuration.settings import CHART_HELP_TEXTS
 from ui.grid_utils import create_tab_content as grid_create_tab_content
 from ui.tooltip_utils import create_info_tooltip
 from ui.mobile_navigation import (
-    create_mobile_navigation_system,
     get_mobile_tabs_config,
 )
 from ui.style_constants import get_color
@@ -151,6 +150,45 @@ def validate_tab_id(tab_id: str) -> bool:
     return any(tab["id"] == tab_id for tab in TAB_CONFIG)
 
 
+def create_desktop_tabs_only():
+    """
+    Create ONLY desktop tab navigation for integration into sticky panel.
+    Returns just the tabs without mobile nav or content container.
+    """
+    tabs_config = get_tabs_sorted()
+
+    icon_map = {
+        "fa-dashboard": "📊 ",
+        "fa-chart-line": "📈 ",
+        "fa-list": "📋 ",
+        "fa-bug": "🐛 ",
+        "fa-rocket": "🚀 ",
+        "fa-water": "🌊 ",
+        "fa-table": "📊 ",
+    }
+
+    tabs = [
+        dbc.Tab(
+            label=f"{icon_map.get(tab['icon'], '📄 ')}{tab['label']}",
+            tab_id=tab["id"],
+            label_style={"cursor": "pointer"},
+        )
+        for tab in tabs_config
+    ]
+
+    return html.Div(
+        [
+            dbc.Tabs(
+                tabs,
+                id="chart-tabs",
+                active_tab="tab-dashboard",
+                className="mb-0 nav-tabs-modern d-none d-md-flex",
+            )
+        ],
+        className="desktop-tab-navigation",
+    )
+
+
 def create_tabs():
     """
     Create tabs for navigating between different chart views with mobile-first design.
@@ -190,28 +228,10 @@ def create_tabs():
             )
         )
 
-    # Create responsive tab navigation
-    # On mobile: Use drawer + bottom nav, on desktop: Use regular tabs
-    return html.Div(
-        [
-            # Mobile navigation system (drawer + bottom nav) - only visible on mobile
-            create_mobile_navigation_system(),
-            # Regular tab navigation - hidden on mobile, visible on desktop
-            html.Div(
-                [
-                    dbc.Tabs(
-                        tabs,
-                        id="chart-tabs",
-                        active_tab="tab-dashboard",  # User Story 2: Dashboard as default view
-                        className="mb-4 nav-tabs-modern d-none d-md-flex",  # Hidden on mobile
-                    )
-                ],
-                className="desktop-tab-navigation",
-            ),
-            # Content div that will be filled based on active tab
-            html.Div(html.Div(id="tab-content"), className="tab-content-container"),
-        ]
-    )
+    # Create tab content container
+    # Mobile nav is handled separately in layout.py
+    # Desktop tabs are in sticky panel (see create_desktop_tabs_only)
+    return html.Div(id="tab-content", className="tab-content-container")
 
 
 def create_tab_content(active_tab, charts, statistics_df=None, pert_data=None):

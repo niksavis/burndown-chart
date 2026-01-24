@@ -2620,10 +2620,10 @@ def create_parameter_bar_collapsed(
         className="parameter-bar-collapsed",
         id=bar_id,
         style={
-            "padding": DESIGN_TOKENS["spacing"]["sm"],
+            "padding": "0",  # Compact: no padding
             "backgroundColor": DESIGN_TOKENS["colors"]["gray-100"],
             "borderRadius": DESIGN_TOKENS["layout"]["borderRadius"]["md"],
-            "marginBottom": DESIGN_TOKENS["spacing"]["xs"],
+            "marginBottom": "0",  # Compact: no margin
         },
     )
 
