@@ -725,7 +725,7 @@ def create_forecast_plot(
         # Apply layout settings with the specified hover_mode
         fig.update_layout(
             legend=dict(
-                orientation="h", yanchor="bottom", y=1.02, xanchor="center", x=0.5
+                orientation="h", yanchor="bottom", y=1.06, xanchor="center", x=0.5
             ),
             hovermode=hover_mode,
             margin=dict(l=60, r=60, t=80, b=50),
