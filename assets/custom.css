@@ -1302,7 +1302,7 @@ td.cell--editable:not(.cell-selected) .dash-cell-value::after {
   gap: var(--space-2);
   display: flex;
   flex-wrap: wrap;
-  background: var(--color-neutral-100);
+  background: var(--color-brand-50);
   padding: var(--space-1);
   border-radius: var(--radius-lg);
   overflow: visible;
@@ -2036,7 +2036,92 @@ input[type="number"]:focus-visible {
   background: #0d9488;
   box-shadow: 0 4px 8px rgba(16, 185, 129, 0.4);
   color: var(--color-white);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* ===== Outline Button Variants ===== */
+
+/* Primary outline button */
+.btn-outline-primary {
+  background-color: var(--color-brand-50);
+  border-color: var(--color-brand-400);
+  color: var(--color-brand-700);
+}
+
+.btn-outline-primary:hover {
+  background-color: var(--color-brand-600);
+  border-color: var(--color-brand-600);
+  color: white;
+  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.2);
+}
+
+/* Secondary outline button */
+.btn-outline-secondary {
+  background-color: var(--color-neutral-50);
+  border-color: var(--color-neutral-400);
+  color: var(--color-neutral-700);
+}
+
+.btn-outline-secondary:hover {
+  background-color: var(--color-neutral-600);
+  border-color: var(--color-neutral-600);
+  color: white;
+  box-shadow: var(--shadow-xs);
+}
+
+/* Danger outline button */
+.btn-outline-danger {
+  background-color: #fef2f2;
+  border-color: #fca5a5;
+  color: #991b1b;
+}
+
+.btn-outline-danger:hover {
+  background-color: var(--color-danger);
+  border-color: var(--color-danger);
+  color: white;
+  box-shadow: 0 2px 4px rgba(239, 68, 68, 0.2);
+}
+
+/* Success outline button */
+.btn-outline-success {
+  background-color: #f0fdf4;
+  border-color: #86efac;
+  color: #065f46;
+}
+
+.btn-outline-success:hover {
+  background-color: var(--color-success);
+  border-color: var(--color-success);
+  color: white;
+  box-shadow: 0 2px 4px rgba(16, 185, 129, 0.2);
+}
+
+/* Warning outline button */
+.btn-outline-warning {
+  background-color: #fffbeb;
+  border-color: #fcd34d;
+  color: #92400e;
+}
+
+.btn-outline-warning:hover {
+  background-color: var(--color-warning);
+  border-color: var(--color-warning);
+  color: white;
+  box-shadow: 0 2px 4px rgba(245, 158, 11, 0.2);
+}
+
+/* Info outline button */
+.btn-outline-info {
+  background-color: var(--color-accent-50);
+  border-color: var(--color-accent-400);
+  color: var(--color-accent-900);
+}
+
+.btn-outline-info:hover {
+  background-color: var(--color-accent-600);
+  border-color: var(--color-accent-600);
+  color: white;
+  box-shadow: 0 2px 4px rgba(20, 184, 166, 0.2);
 }
 
 /* Subtle hover effects for cards with actions */

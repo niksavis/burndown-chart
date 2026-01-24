@@ -98,7 +98,7 @@ def create_profile_actions(id_suffix: str = "") -> dbc.Col:
                 dbc.Button(
                     [html.I(className="fas fa-copy me-1"), "Duplicate"],
                     id=f"duplicate-profile-btn{id_suffix}",
-                    color="secondary",
+                    color="primary",
                     outline=True,
                     className="me-1",
                 ),
