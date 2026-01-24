@@ -153,6 +153,9 @@ def register_all_callbacks(app):
     # Always register settings callbacks (needed for Parameters panel toggle)
     settings.register(app)
 
+    # Register clientside callbacks for panel button active states
+    settings_panel.register_clientside_callbacks(app)
+
     # Remove this line since 'export' module doesn't exist
     # export.register(app)
     # REMOVED: scope_metrics.register(app) - orphaned callback causing scope tab bug

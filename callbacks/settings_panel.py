@@ -5,9 +5,41 @@ Handles opening/closing of the settings collapsible panel and loading default/la
 """
 
 import logging
-from dash import Input, Output, State, callback, ctx, no_update
+from dash import Input, Output, State, callback, ctx, no_update, ClientsideFunction
 
 logger = logging.getLogger(__name__)
+
+
+def register_clientside_callbacks(app):
+    """Register clientside callbacks for panel button active states."""
+
+    # Parameter panel button active state
+    app.clientside_callback(
+        ClientsideFunction(
+            namespace="panelState", function_name="toggleParameterButton"
+        ),
+        Output("btn-expand-parameters", "className"),
+        Input("parameter-collapse", "is_open"),
+        State("btn-expand-parameters", "className"),
+    )
+
+    # Settings panel button active state
+    app.clientside_callback(
+        ClientsideFunction(
+            namespace="panelState", function_name="toggleSettingsButton"
+        ),
+        Output("settings-button", "className"),
+        Input("settings-collapse", "is_open"),
+        State("settings-button", "className"),
+    )
+
+    # Data panel button active state
+    app.clientside_callback(
+        ClientsideFunction(namespace="panelState", function_name="toggleDataButton"),
+        Output("toggle-import-export-panel", "className"),
+        Input("import-export-collapse", "is_open"),
+        State("toggle-import-export-panel", "className"),
+    )
 
 
 @callback(

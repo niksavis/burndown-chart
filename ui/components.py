@@ -2580,7 +2580,7 @@ def create_parameter_bar_collapsed(
                                     "alignItems": "center",
                                     "justifyContent": "center",
                                 },
-                                title="Configure JIRA and queries",
+                                title="Expand Settings",
                             ),
                             dbc.Button(
                                 [
@@ -2607,7 +2607,7 @@ def create_parameter_bar_collapsed(
                                     "alignItems": "center",
                                     "justifyContent": "center",
                                 },
-                                title="Import or export data",
+                                title="Expand Data",
                             ),
                         ],
                         className="d-flex justify-content-end align-items-center flex-nowrap flex-shrink-0",
@@ -2620,7 +2620,7 @@ def create_parameter_bar_collapsed(
         className="parameter-bar-collapsed",
         id=bar_id,
         style={
-            "padding": "0",  # Compact: no padding
+            "padding": "6px 12px",  # Aligned with tabs row for visual consistency
             "backgroundColor": DESIGN_TOKENS["colors"]["gray-100"],
             "borderRadius": DESIGN_TOKENS["layout"]["borderRadius"]["md"],
             "marginBottom": "0",  # Compact: no margin
