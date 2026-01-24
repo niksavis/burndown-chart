@@ -254,6 +254,8 @@ def create_app_layout(settings, statistics, is_sample_data):
                 ],
                 className="param-panel-sticky",
             ),
+            # Backdrop overlay to dim content when panels are expanded
+            html.Div(id="panel-backdrop", className="panel-backdrop"),
             # Add an empty div to hold the forecast-graph (will be populated by callback)
             html.Div(
                 dcc.Graph(id="forecast-graph", style={"display": "none"}),

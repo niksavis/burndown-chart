@@ -660,6 +660,29 @@ a:hover {
   animation: slideDown var(--transition-base) var(--easing-default);
 }
 
+/* Backdrop overlay with brand-colored tint when panels are expanded */
+.panel-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  /* More visible pale blue tint matching brand colors */
+  background: linear-gradient(
+    to bottom,
+    rgba(13, 110, 253, 0.08) 0%,
+    rgba(13, 110, 253, 0.05) 100%
+  );
+  z-index: 5;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity var(--transition-base) var(--easing-default);
+}
+
+.panel-backdrop.active {
+  opacity: 1;
+}
+
 @keyframes slideDown {
   from {
     opacity: 0;
@@ -777,48 +800,109 @@ a:hover {
 }
 
 /* ========================================
-   Standardized Form Controls (31px height)
-   Applied to all flyout panels for pixel-perfect consistency
+   UNIFIED FORM CONTROL HEIGHT (36px)
+   Single source of truth for ALL form controls in the app
+   Applied globally - DRY principle
    ======================================== */
 
-/* Parameters Panel - All form controls */
-.parameter-panel-expanded .form-control,
-.parameter-panel-expanded .form-select,
-.parameter-panel-expanded .input-group-text,
-.parameter-panel-expanded .btn-sm {
-  height: 31px !important;
+/* Global override for Bootstrap form-control-sm class */
+/* This fixes Parameters tab inputs (Estimated Items, Remaining Items, etc.) */
+.form-control-sm,
+.input-group-sm > .form-control,
+.input-group-sm > .form-select,
+.input-group-sm > .input-group-text,
+.input-group-sm > .btn {
+  height: 36px !important;
+  min-height: 36px !important;
   font-size: 0.875rem !important;
-  padding: 0.25rem 0.5rem !important;
+  padding: 0.375rem 0.5rem !important;
   line-height: 1.5 !important;
 }
 
-.parameter-panel-expanded .input-group-sm > .form-control,
-.parameter-panel-expanded .input-group-sm > .form-select,
-.parameter-panel-expanded .input-group-sm > .input-group-text,
-.parameter-panel-expanded .input-group-sm > .btn {
-  height: 31px !important;
+/* Global override for ALL small buttons - inline with inputs/dropdowns/datepickers */
+/* Slightly smaller (34px) to visually align with dropdown inner height */
+.btn-sm,
+.btn-group-sm > .btn {
+  height: 34px !important;
+  min-height: 34px !important;
   font-size: 0.875rem !important;
-  padding: 0.25rem 0.5rem !important;
+  padding: 0.3rem 0.5rem !important;
+  line-height: 1.5 !important;
 }
 
-/* Import/Export Panel - All form controls */
+/* Inline management buttons - match dropdown height exactly (36px) for perfect alignment */
+#create-profile-btn,
+#rename-profile-btn,
+#duplicate-profile-btn,
+#delete-profile-btn,
+#load-query-data-btn,
+#delete-query-btn,
+#save-query-btn,
+#save-as-query-btn,
+#discard-query-changes-btn {
+  height: 36px !important;
+  min-height: 36px !important;
+  font-size: 0.875rem !important;
+  padding: 0.375rem 0.65rem !important;
+  line-height: 1.5 !important;
+}
+
+/* Fix button group alignment with dropdowns - match label + margin precisely */
+/* Label (fw-bold mb-1): line-height ~1.2 * 1rem = 1.2rem, + mb-1 (0.25rem) = 1.45rem */
+.settings-panel-expanded .btn-group[style*="marginTop"],
+.parameter-panel-expanded .btn-group[style*="marginTop"],
+[id$="-profile-actions"] .btn-group,
+[id*="query-actions"] .btn-group {
+  margin-top: calc(1.2rem + 0.25rem + 1px) !important; /* Label height + mb-1 + 1px nudge */
+}
+
+/* Additional specific targeting for query management buttons */
+#load-query-data-btn,
+#delete-query-btn {
+  vertical-align: top !important;
+}
+
+/* Query button group specific alignment */
+.settings-panel-expanded .mb-2 .btn-group,
+.parameter-panel-expanded .mb-2 .btn-group {
+  margin-top: calc(1.2rem + 0.25rem + 1px) !important;
+}
+
+/* Apply to all sticky panel inputs for consistency */
+.parameter-panel-expanded input,
+.parameter-panel-expanded .form-control,
+.parameter-panel-expanded .form-select,
+.parameter-panel-expanded .input-group-text,
+.parameter-panel-expanded .btn-sm,
+.settings-panel-expanded input,
+.settings-panel-expanded .form-control,
+.settings-panel-expanded .form-select,
+.settings-panel-expanded .input-group-text,
+.import-export-panel-expanded input,
 .import-export-panel-expanded .form-control,
 .import-export-panel-expanded .form-select,
 .import-export-panel-expanded .input-group-text,
 .import-export-panel-expanded .btn-sm {
-  height: 31px !important;
+  height: 36px !important;
+  min-height: 36px !important;
   font-size: 0.875rem !important;
-  padding: 0.25rem 0.5rem !important;
+  padding: 0.375rem 0.5rem !important;
   line-height: 1.5 !important;
 }
 
-.import-export-panel-expanded .input-group-sm > .form-control,
-.import-export-panel-expanded .input-group-sm > .form-select,
-.import-export-panel-expanded .input-group-sm > .input-group-text,
-.import-export-panel-expanded .input-group-sm > .btn {
-  height: 31px !important;
-  font-size: 0.875rem !important;
-  padding: 0.25rem 0.5rem !important;
+/* UNIFIED DROPDOWN (SELECT) HEIGHT (36px) - Match form controls */
+.Select-control,
+.dash-dropdown .Select-control {
+  height: 36px !important;
+  min-height: 36px !important;
+}
+
+.Select-value-container,
+.Select-placeholder,
+.Select-input {
+  height: 34px !important;
+  line-height: 34px !important;
+  padding: 0 0.5rem !important;
 }
 
 /* Settings panel column spacing */
@@ -850,9 +934,9 @@ a:hover {
 
 /* Icon buttons in settings panel (compact design) */
 .settings-panel-expanded .btn-sm {
-  padding: 0.25rem 0.5rem;
-  min-width: 31px;
-  height: 31px;
+  padding: 0.375rem 0.5rem;
+  min-width: 36px;
+  height: 36px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -862,34 +946,15 @@ a:hover {
   margin: 0;
 }
 
-/* Standardize all form controls in settings panel to 31px */
-.settings-panel-expanded .form-control,
-.settings-panel-expanded .form-select,
-.settings-panel-expanded .input-group-text {
-  height: 31px !important;
-  font-size: 0.875rem !important;
-  padding: 0.25rem 0.5rem !important;
-  line-height: 1.5 !important;
-}
-
-.settings-panel-expanded .input-group-sm > .form-control,
-.settings-panel-expanded .input-group-sm > .form-select,
-.settings-panel-expanded .input-group-sm > .input-group-text,
-.settings-panel-expanded .input-group-sm > .btn {
-  height: 31px !important;
-  font-size: 0.875rem !important;
-  padding: 0.25rem 0.5rem !important;
-}
-
-/* Ensure Budget tab inputs are 31px (override any Bootstrap defaults) */
+/* Ensure Budget tab inputs match unified height */
 #budget-time-allocated-input,
 #budget-currency-symbol-input,
 #budget-team-cost-input,
 #budget-total-manual-input,
 #budget-revision-reason-input {
-  height: 31px !important;
+  height: 36px !important;
   font-size: 0.875rem !important;
-  padding: 0.25rem 0.5rem !important;
+  padding: 0.375rem 0.5rem !important;
   line-height: 1.5 !important;
 }
 
@@ -3219,9 +3284,9 @@ input[type="range"]::-moz-range-thumb {
 
 .DateInput_input {
   font-size: 0.875rem !important;
-  padding: 0.25rem 0.5rem !important;
+  padding: 0.375rem 0.5rem !important;
   padding-right: 0.5rem !important;
-  height: 31px !important;
+  height: 36px !important;
   line-height: 1.5 !important;
   border: 1px solid var(--color-gray-400) !important;
   border-radius: 0.25rem !important;
@@ -3260,7 +3325,7 @@ input[type="range"]::-moz-range-thumb {
 /* Exact pixel dimensions for both pickers */
 #deadline-picker,
 #milestone-picker {
-  height: 31px !important; /* Match Bootstrap sm input height */
+  height: 36px !important; /* Match unified form control height */
   padding: 0 !important;
   box-sizing: border-box !important;
   margin: 0 !important;
@@ -3280,9 +3345,9 @@ input[type="range"]::-moz-range-thumb {
 #milestone-picker .DateInput_input {
   font-size: 0.875rem !important;
   line-height: 1.5 !important;
-  padding: 0.25rem 0.5rem !important;
+  padding: 0.375rem 0.5rem !important;
   padding-right: 0.5rem !important;
-  height: 31px !important;
+  height: 36px !important;
 }
 
 /* Ensure consistent borders */
@@ -3539,25 +3604,32 @@ div[class*="__menu"] {
 /* Unified panel styling for all flyouts */
 .parameter-panel-expanded,
 .import-export-panel-expanded {
-  background: #f8fafc;
+  /* Match outline-primary button background color */
+  background: rgba(13, 110, 253, 0.05);
   border-radius: 6px;
   padding: 1rem;
+  /* Enhanced shadow for clear visual separation from content below */
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15), 0 2px 8px rgba(0, 0, 0, 0.1);
+  position: relative;
+  z-index: 10;
 }
 
 .tabbed-settings-panel {
   padding: 0;
-  background: #f8fafc;
+  /* Match outline-primary button background color */
+  background: rgba(13, 110, 253, 0.05);
   border-radius: 6px;
   overflow: hidden;
+  /* Enhanced shadow for clear visual separation from content below */
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15), 0 2px 8px rgba(0, 0, 0, 0.1);
+  position: relative;
+  z-index: 10;
 }
 
 .settings-tabs {
   border-bottom: 2px solid #e9ecef;
-  background: linear-gradient(
-    to bottom,
-    #ffffff,
-    #f8fafc
-  ); /* Subtle gradient for depth */
+  /* Match outline-primary button background color */
+  background: rgba(13, 110, 253, 0.05);
   margin: 0;
   padding: 0.25rem 0.5rem 0; /* Small top/side padding for breathing room */
 }
@@ -3584,7 +3656,7 @@ div[class*="__menu"] {
 }
 
 .settings-tabs .nav-link.active {
-  background-color: #ffffff; /* White background for active tab */
+  background-color: rgba(13, 110, 253, 0.05); /* Match outline-primary button */
   border-bottom-color: #0d6efd;
   color: #0d6efd;
   font-weight: 600;
@@ -3598,7 +3670,7 @@ div[class*="__menu"] {
   overflow: visible !important; /* Allow dropdowns to overflow */
   border: none !important;
   border-radius: 0 0 6px 6px; /* Rounded bottom corners */
-  background: #ffffff; /* White content area for contrast */
+  background: transparent; /* Inherit pale blue from parent panel */
 }
 
 /* CRITICAL: Bootstrap tab-pane must allow overflow */
@@ -3606,7 +3678,7 @@ div[class*="__menu"] {
 .tab-content,
 .settings-tab-content .tab-pane {
   border-radius: 0 0 6px 6px; /* Rounded bottom corners */
-  background: #ffffff; /* White background */
+  background: transparent; /* Inherit pale blue from parent panel */
 }
 .tab-content,
 #settings-tabs .tab-pane,
