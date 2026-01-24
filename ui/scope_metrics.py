@@ -188,14 +188,16 @@ def create_scope_change_indicator(
                                             ),
                                         ]
                                     ),
-                                ]
+                                ],
+                                style={"marginRight": "15px"},
                             ),
                             html.Span(
                                 status_text,
                                 style={
                                     "color": text_color
                                     if value is not None and not pd.isna(value)
-                                    else "inherit"
+                                    else "inherit",
+                                    "marginLeft": "5px",
                                 },
                             ),
                         ],
