@@ -672,8 +672,8 @@ def register(app):
         # Add section divider and Items per Week chart
         content.extend(
             [
-                # Section divider
-                html.Hr(className="my-5", style={"borderTop": "2px solid #dee2e6"}),
+                # Section divider - reduced spacing
+                html.Hr(className="my-4", style={"borderTop": "2px solid #dee2e6"}),
                 # Items per Week section header
                 html.Div(
                     [
@@ -685,19 +685,7 @@ def register(app):
                     className="mb-3 border-bottom pb-2 d-flex align-items-center fw-bold",
                     style={"fontSize": "1.25rem"},
                 ),
-                # Items trend header
-                html.Div(
-                    [
-                        _create_trend_header_with_forecasts(
-                            items_trend,
-                            "Weekly Items Trend",
-                            "fas fa-tasks",
-                            "#20c997",
-                        ),
-                    ],
-                    className="mb-4",
-                ),
-                # Items chart
+                # Items chart (trend header removed - already shown at top)
                 dcc.Graph(
                     id="items-chart",
                     figure=items_fig,
@@ -710,8 +698,8 @@ def register(app):
         # Add Points per Week section
         content.extend(
             [
-                # Section divider
-                html.Hr(className="my-5", style={"borderTop": "2px solid #dee2e6"}),
+                # Section divider - reduced spacing
+                html.Hr(className="my-4", style={"borderTop": "2px solid #dee2e6"}),
                 # Points per Week section header
                 html.Div(
                     [
@@ -776,28 +764,14 @@ def register(app):
             )
         else:
             # Case 3: Points tracking enabled with data - show chart
-            content.extend(
-                [
-                    # Points trend header
-                    html.Div(
-                        [
-                            _create_trend_header_with_forecasts(
-                                points_trend,
-                                "Weekly Points Trend",
-                                "fas fa-chart-bar",
-                                "#fd7e14",
-                            ),
-                        ],
-                        className="mb-4",
-                    ),
-                    # Points chart
-                    dcc.Graph(
-                        id="points-chart",
-                        figure=points_fig,
-                        config=get_weekly_chart_config(),  # type: ignore
-                        style={"height": "700px"},
-                    ),
-                ]
+            # Points trend header removed - already shown at top
+            content.append(
+                dcc.Graph(
+                    id="points-chart",
+                    figure=points_fig,
+                    config=get_weekly_chart_config(),  # type: ignore
+                    style={"height": "700px"},
+                )
             )
 
         return html.Div(content)
