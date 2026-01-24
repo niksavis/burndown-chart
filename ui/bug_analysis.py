@@ -528,7 +528,7 @@ def create_quality_insights_panel(
                         ),
                         "Quality Insights",
                     ],
-                    className="mb-3 mt-2",
+                    className="mb-3 mt-4",
                 ),
                 dbc.Card(
                     dbc.CardBody(message),

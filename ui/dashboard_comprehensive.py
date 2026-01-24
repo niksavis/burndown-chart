@@ -1974,7 +1974,7 @@ def _create_forecast_section(
                     ),
                     "Delivery Forecast",
                 ],
-                className="mb-3",
+                className="mb-3 mt-4",
             ),
             dbc.Row(
                 [
@@ -2184,7 +2184,7 @@ def _create_recent_activity_section(statistics_df, show_points=True):
                         f" (Last {recent_window} Weeks)", className="text-muted ms-2"
                     ),
                 ],
-                className="mb-3 mt-2",
+                className="mb-3 mt-4",
             ),
             dbc.Row(
                 [
@@ -3199,7 +3199,7 @@ def _create_insights_section(
                     ),
                     "Actionable Insights",
                 ],
-                className="mb-3 mt-2",
+                className="mb-3 mt-4",
             ),
             dbc.Card(
                 dbc.CardBody(html.Div(insight_items)),
