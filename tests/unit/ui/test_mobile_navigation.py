@@ -64,8 +64,6 @@ class TestMobileNavigation:
         expected_ids = [
             "tab-dashboard",  # Added in US2
             "tab-burndown",
-            "tab-items",
-            "tab-points",
             "tab-scope-tracking",
             "tab-bug-analysis",  # Added in Feature 004
             "tab-dora-metrics",  # Added in Feature 007

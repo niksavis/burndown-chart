@@ -56,13 +56,13 @@ class TestNavigationStateSchema:
         """Test navigation state with tab history."""
         state: NavigationState = {
             "active_tab": "tab-burndown",
-            "tab_history": ["tab-dashboard", "tab-items"],
-            "previous_tab": "tab-items",
+            "tab_history": ["tab-dashboard", "tab-scope-tracking"],
+            "previous_tab": "tab-scope-tracking",
             "session_start_tab": "tab-dashboard",
         }
 
         assert len(state["tab_history"]) == 2
-        assert state["previous_tab"] == "tab-items"
+        assert state["previous_tab"] == "tab-scope-tracking"
 
 
 class TestParameterPanelStateSchema:
@@ -244,7 +244,7 @@ class TestValidateNavigationState:
         """Test validation with tab history."""
         state = {
             "active_tab": "tab-burndown",
-            "tab_history": ["tab-dashboard", "tab-items"],
+            "tab_history": ["tab-dashboard", "tab-scope-tracking"],
             "session_start_tab": "tab-dashboard",
         }
         assert validate_navigation_state(state) is True

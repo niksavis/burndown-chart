@@ -65,29 +65,11 @@ TAB_CONFIG: List[TabConfig] = [
         "help_content_id": "help-burndown",
     },
     {
-        "id": "tab-items",
-        "label": "Items per Week",
-        "icon": "fa-tasks",
-        "color": get_color("success"),
-        "order": 2,
-        "requires_data": True,
-        "help_content_id": "help-items",
-    },
-    {
-        "id": "tab-points",
-        "label": "Points per Week",
-        "icon": "fa-chart-bar",
-        "color": get_color("warning"),
-        "order": 3,
-        "requires_data": True,
-        "help_content_id": "help-points",
-    },
-    {
         "id": "tab-scope-tracking",
         "label": "Scope Tracking",
         "icon": "fa-project-diagram",
         "color": get_color("secondary"),
-        "order": 4,
+        "order": 2,
         "requires_data": True,
         "help_content_id": "help-scope",
     },
@@ -96,7 +78,7 @@ TAB_CONFIG: List[TabConfig] = [
         "label": "Bug Analysis",
         "icon": "fa-bug",
         "color": get_color("danger"),
-        "order": 5,
+        "order": 3,
         "requires_data": True,
         "help_content_id": "help-bug-analysis",
     },
@@ -105,7 +87,7 @@ TAB_CONFIG: List[TabConfig] = [
         "label": "Flow Metrics",
         "icon": "fa-stream",
         "color": get_color("success"),
-        "order": 6,
+        "order": 4,
         "requires_data": False,  # Has its own data loading
         "help_content_id": "help-flow",
     },
@@ -114,7 +96,7 @@ TAB_CONFIG: List[TabConfig] = [
         "label": "DORA Metrics",
         "icon": "fa-rocket",
         "color": get_color("primary"),
-        "order": 7,
+        "order": 5,
         "requires_data": False,  # Has its own data loading
         "help_content_id": "help-dora",
     },
@@ -232,16 +214,12 @@ def create_tab_content(active_tab, charts, statistics_df=None, pert_data=None):
     """
     # Import forecast info card functions
     from ui.cards import (
-        create_items_forecast_info_card,
-        create_points_forecast_info_card,
         create_forecast_info_card,
     )
 
     # Default to burndown chart if tab is None or invalid
     if active_tab not in [
         "tab-burndown",
-        "tab-items",
-        "tab-points",
         "tab-scope-tracking",
         "tab-bug-analysis",
         "tab-flow-metrics",
@@ -253,8 +231,6 @@ def create_tab_content(active_tab, charts, statistics_df=None, pert_data=None):
     # Tab-specific forecast info cards
     tab_info_cards = {
         "tab-burndown": create_forecast_info_card(),
-        "tab-items": create_items_forecast_info_card(statistics_df, pert_data),
-        "tab-points": create_points_forecast_info_card(statistics_df, pert_data),
         "tab-scope-tracking": html.Div(),  # Always provide a component, even if empty
         "tab-bug-analysis": html.Div(),  # Bug analysis has its own info cards in the content
         "tab-dora-metrics": html.Div(),  # DORA dashboard has its own info cards in the content
@@ -275,25 +251,6 @@ def create_tab_content(active_tab, charts, statistics_df=None, pert_data=None):
                     CHART_HELP_TEXTS["burndown_vs_burnup"],
                     "Burndown vs Burnup chart differences and when to use each approach",
                 ),
-            ],
-            className="mb-3 border-bottom pb-2 d-flex align-items-center fw-bold",
-        ),
-        "tab-items": html.Div(
-            [
-                html.I(
-                    className="fas fa-tasks me-2", style={"color": get_color("success")}
-                ),
-                "Weekly Completed Items",
-            ],
-            className="mb-3 border-bottom pb-2 d-flex align-items-center fw-bold",
-        ),
-        "tab-points": html.Div(
-            [
-                html.I(
-                    className="fas fa-chart-bar me-2",
-                    style={"color": get_color("warning")},
-                ),
-                "Weekly Completed Points",
             ],
             className="mb-3 border-bottom pb-2 d-flex align-items-center fw-bold",
         ),

@@ -121,8 +121,6 @@ class TestTabConfigRegistry:
         expected_tab_ids = [
             "tab-dashboard",
             "tab-burndown",
-            "tab-items",
-            "tab-points",
             "tab-scope-tracking",
             "tab-bug-analysis",
         ]
@@ -140,8 +138,6 @@ class TestTabConfigRegistry:
         expected_colors = {
             "tab-dashboard": get_color("primary"),
             "tab-burndown": get_color("info"),
-            "tab-items": get_color("success"),
-            "tab-points": get_color("warning"),
             "tab-scope-tracking": get_color("secondary"),
             "tab-bug-analysis": get_color("danger"),
         }
@@ -275,8 +271,6 @@ class TestTabConfigIntegration:
         expected_order = [
             "tab-dashboard",
             "tab-burndown",
-            "tab-items",
-            "tab-points",
             "tab-scope-tracking",
             "tab-bug-analysis",
             "tab-flow-metrics",  # Flow before DORA - better workflow

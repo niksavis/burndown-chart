@@ -226,20 +226,6 @@ def get_mobile_tabs_config():
             "color": "#0d6efd",
         },
         {
-            "id": "tab-items",
-            "label": "Items per Week",
-            "short_label": "Items",
-            "icon": "fas fa-tasks",
-            "color": "#20c997",
-        },
-        {
-            "id": "tab-points",
-            "label": "Points per Week",
-            "short_label": "Points",
-            "icon": "fas fa-chart-bar",
-            "color": "#fd7e14",
-        },
-        {
             "id": "tab-scope-tracking",
             "label": "Scope Changes",
             "short_label": "Scope",

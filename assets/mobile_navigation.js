@@ -33,8 +33,6 @@ if (typeof window.mobileTabsConfig === "undefined") {
       short_label: "Dashboard",
     },
     { id: "tab-burndown", label: "Burndown Chart", short_label: "Chart" },
-    { id: "tab-items", label: "Items per Week", short_label: "Items" },
-    { id: "tab-points", label: "Points per Week", short_label: "Points" },
     { id: "tab-scope-tracking", label: "Scope Changes", short_label: "Scope" },
     {
       id: "tab-bug-analysis",
@@ -136,7 +134,7 @@ function initializeSwipeGestures() {
       mobileNavState.touchStartX = e.changedTouches[0].screenX;
       mobileNavState.touchStartY = e.changedTouches[0].screenY;
     },
-    { passive: true }
+    { passive: true },
   );
 
   // Touch end
@@ -150,7 +148,7 @@ function initializeSwipeGestures() {
 
       handleSwipeGesture();
     },
-    { passive: true }
+    { passive: true },
   );
 
   // Prevent swipe during chart interactions
@@ -181,7 +179,7 @@ function handleSwipeGesture() {
     Math.abs(deltaX) > mobileNavState.swipeThreshold
   ) {
     const currentIndex = window.mobileTabsConfig.findIndex(
-      (tab) => tab.id === mobileNavState.currentTab
+      (tab) => tab.id === mobileNavState.currentTab,
     );
 
     if (deltaX > 0 && currentIndex > 0) {
@@ -212,7 +210,7 @@ function initializeTouchOptimizations() {
       function () {
         this.style.transform = "scale(0.95)";
       },
-      { passive: true }
+      { passive: true },
     );
 
     button.addEventListener(
@@ -220,7 +218,7 @@ function initializeTouchOptimizations() {
       function () {
         this.style.transform = "scale(1)";
       },
-      { passive: true }
+      { passive: true },
     );
   });
 }

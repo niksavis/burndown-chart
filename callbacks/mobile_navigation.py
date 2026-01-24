@@ -81,8 +81,6 @@ clientside_callback(
         const tab_mapping = {
             'bottom-nav-tab-dashboard': 'tab-dashboard',
             'bottom-nav-tab-burndown': 'tab-burndown',
-            'bottom-nav-tab-items': 'tab-items', 
-            'bottom-nav-tab-points': 'tab-points',
             'bottom-nav-tab-scope-tracking': 'tab-scope-tracking',
             'bottom-nav-tab-bug-analysis': 'tab-bug-analysis',
             'bottom-nav-tab-dora-metrics': 'tab-dora-metrics',
@@ -108,8 +106,6 @@ clientside_callback(
     [
         Input("bottom-nav-tab-dashboard", "n_clicks"),
         Input("bottom-nav-tab-burndown", "n_clicks"),
-        Input("bottom-nav-tab-items", "n_clicks"),
-        Input("bottom-nav-tab-points", "n_clicks"),
         Input("bottom-nav-tab-scope-tracking", "n_clicks"),
         Input("bottom-nav-tab-bug-analysis", "n_clicks"),
         Input("bottom-nav-tab-dora-metrics", "n_clicks"),
