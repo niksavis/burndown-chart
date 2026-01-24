@@ -184,7 +184,7 @@ def create_tabs():
             dbc.Tab(
                 label=label_with_icon,
                 tab_id=tab["id"],
-                labelClassName="fw-medium tab-with-icon",  # Special class for styling
+                labelClassName="fw-bold tab-with-icon",  # Bold text prevents width shift on tab switch
                 activeLabelClassName="text-primary fw-bold",
                 tab_style={"minWidth": "150px"},
             )

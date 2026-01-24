@@ -639,10 +639,7 @@ def create_quality_insights_panel(
                 ],
                 className="mb-3 mt-2",
             ),
-            dbc.Card(
-                dbc.CardBody(html.Div(insight_items)),
-                className="mb-3",
-            ),
+            html.Div(insight_items, className="mb-3"),
         ]
     )
 

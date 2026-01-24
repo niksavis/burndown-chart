@@ -3201,10 +3201,7 @@ def _create_insights_section(
                 ],
                 className="mb-3 mt-4",
             ),
-            dbc.Card(
-                dbc.CardBody(html.Div(insight_items)),
-                className="mb-4",
-            ),
+            html.Div(insight_items, className="mb-4"),
         ],
     )
 
