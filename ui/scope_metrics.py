@@ -689,12 +689,12 @@ def create_cumulative_scope_chart(
         margin={
             "l": 60,
             "r": 60,
-            "t": 70,
+            "t": 90,
             "b": 60,
         },
         legend={
             "orientation": "h",
-            "y": 1.25,
+            "y": 1.15,
             "xanchor": "center",
             "x": 0.5,
         },
