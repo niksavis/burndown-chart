@@ -183,6 +183,32 @@ def register(app):
         app: Dash application instance
     """
 
+    # Sync button click from display to hidden placeholder
+    app.clientside_callback(
+        "function(n) { return n || 0; }",
+        Output("add-row-button", "n_clicks"),
+        Input("add-row-button-display", "n_clicks"),
+        prevent_initial_call=True,
+    )
+
+    # Sync hidden table to display (one-way: callbacks update hidden, we show in display)
+    app.clientside_callback(
+        "function(data) { return data || []; }",
+        Output("statistics-table-display", "data"),
+        Input("statistics-table", "data"),
+        prevent_initial_call=True,
+    )
+
+    # Sync display table edits back to hidden (when user edits the table)
+    # Use data_timestamp to avoid triggering on programmatic updates
+    app.clientside_callback(
+        "function(timestamp, data) { return data || []; }",
+        Output("statistics-table", "data", allow_duplicate=True),
+        Input("statistics-table-display", "data_timestamp"),
+        State("statistics-table-display", "data"),
+        prevent_initial_call=True,
+    )
+
     @app.callback(
         [
             Output("current-statistics", "data"),

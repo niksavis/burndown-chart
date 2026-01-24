@@ -1641,9 +1641,9 @@ def create_statistics_data_card(current_statistics):
         "created_points": "right",
     }
 
-    # Create the enhanced table with consistent columns
-    # Note: The actual statistics-table ID is in layout.py as a hidden placeholder
-    # This table is just for display in the Statistics tab
+    # Create the enhanced table - uses different ID from hidden placeholder
+    # The hidden statistics-table in layout.py is updated by callbacks
+    # This display table is synced from the hidden one via clientside callback
     statistics_table = create_enhanced_data_table(
         data=statistics_df.to_dict("records"),
         columns=columns,
@@ -1872,13 +1872,13 @@ def create_statistics_data_card(current_statistics):
                     [
                         create_button(
                             text="Add Row",
-                            id="add-row-button",
+                            id="add-row-button-display",
                             variant="primary",
                             icon_class="fas fa-plus",
                         ),
                         dbc.Tooltip(
                             "Adds a new weekly entry with Monday date 7 days after the most recent entry. Enter work completed and created during that week (Monday-Sunday).",
-                            target="add-row-button",
+                            target="add-row-button-display",
                             placement="top",
                         ),
                     ],
