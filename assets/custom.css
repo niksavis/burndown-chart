@@ -871,6 +871,18 @@ a:hover {
   margin-bottom: 0.5rem !important;
 }
 
+/* Compact alerts in modals and small contexts */
+.modal-body .alert,
+.modal-footer .alert,
+#jira-last-test-display .alert,
+.alert.small,
+.alert.fade.small {
+  padding: 0.5rem 0.75rem !important;
+  font-size: 0.875rem !important;
+  line-height: 1.5 !important;
+  margin-bottom: 0.5rem !important;
+}
+
 /* Apply to all sticky panel inputs for consistency */
 .parameter-panel-expanded input,
 .parameter-panel-expanded .form-control,
