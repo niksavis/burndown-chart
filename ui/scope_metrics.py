@@ -1187,19 +1187,20 @@ def create_scope_metrics_dashboard(
                 [
                     html.Div(
                         [
-                            html.H6(
+                            html.H5(
                                 [
                                     html.I(
                                         className="fas fa-chart-area me-2",
                                         style={"color": "#6610f2"},
                                     ),
-                                    "Net Scope Change Over Time ",
+                                    "Net Scope Change Over Time",
+                                    html.Span(" "),
                                     create_info_tooltip(
                                         "cumulative_scope_chart",
                                         SCOPE_HELP_TEXTS["cumulative_chart"],
                                     ),
                                 ],
-                                className="mb-3",
+                                className="mb-3 mt-4",
                             ),
                             create_cumulative_scope_chart(
                                 weekly_growth_data,
@@ -1215,22 +1216,20 @@ def create_scope_metrics_dashboard(
             # Throughput vs Scope Change summary with tooltip
             html.Div(
                 [
-                    html.Div(
-                        className="d-flex align-items-center mb-2",
-                        children=[
+                    html.H5(
+                        [
                             html.I(
                                 className="fas fa-balance-scale me-2",
                                 style={"color": "#6610f2"},
                             ),
-                            html.Span(
-                                "Scope Change vs Team Throughput ",
-                                className="fw-medium",
-                            ),
+                            "Scope Change vs Team Throughput",
+                            html.Span(" "),
                             create_info_tooltip(
                                 "throughput_comparison",
                                 SCOPE_HELP_TEXTS["throughput_ratio"],
                             ),
                         ],
+                        className="mb-3 mt-4",
                     ),
                     dbc.Card(
                         dbc.CardBody(
@@ -1296,19 +1295,20 @@ def create_scope_metrics_dashboard(
                 [
                     html.Div(
                         [
-                            html.H6(
+                            html.H5(
                                 [
                                     html.I(
                                         className="fas fa-chart-bar me-2",
                                         style={"color": "#fd7e14"},
                                     ),
-                                    "Weekly Scope Growth Patterns ",
+                                    "Weekly Scope Growth Patterns",
+                                    html.Span(" "),
                                     create_info_tooltip(
                                         "weekly_growth_chart",
                                         SCOPE_HELP_TEXTS["weekly_growth"],
                                     ),
                                 ],
-                                className="mb-3",
+                                className="mb-3 mt-4",
                             ),
                             create_scope_growth_chart(weekly_growth_data, show_points),
                         ]
@@ -1327,7 +1327,16 @@ def create_scope_metrics_dashboard(
                     "Growth Patterns: Positive spikes show scope additions from new requirements or discoveries. Negative values indicate backlog refinement or completion focus.",
                 ],
             ),
-            # Adaptability Gauges with Tooltips
+            # Adaptability section with title
+            html.H5(
+                [
+                    html.I(
+                        className="fas fa-chart-pie me-2", style={"color": "#20c997"}
+                    ),
+                    "Adaptability",
+                ],
+                className="mb-3 mt-4",
+            ),
             dbc.Row(
                 [
                     dbc.Col(

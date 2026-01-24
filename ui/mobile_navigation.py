@@ -213,14 +213,14 @@ def get_mobile_tabs_config():
     tabs = [
         {
             "id": "tab-dashboard",
-            "label": "Project Dashboard",
+            "label": "Dashboard",
             "short_label": "Dashboard",
             "icon": "fas fa-tachometer-alt",
             "color": "#0d6efd",
         },
         {
             "id": "tab-burndown",
-            "label": "Burndown Chart",
+            "label": "Burndown",
             "short_label": "Chart",
             "icon": "fas fa-chart-line",
             "color": "#0d6efd",
@@ -269,11 +269,11 @@ def get_mobile_tabs_config():
         }
     )
 
-    # Add Statistics Data tab
+    # Add Weekly Data tab
     tabs.append(
         {
             "id": "tab-statistics-data",
-            "label": "Statistics Data",
+            "label": "Weekly Data",
             "short_label": "Data",
             "icon": "fas fa-table",
             "color": "#6c757d",  # secondary color

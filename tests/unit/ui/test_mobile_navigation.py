@@ -27,8 +27,8 @@ class TestMobileNavigation:
         # Test tab configuration
         tabs_config = get_mobile_tabs_config()
         assert (
-            len(tabs_config) == 9
-        )  # Updated: Now includes Dashboard, Bug Analysis, DORA, Flow, and Statistics Data
+            len(tabs_config) == 7
+        )  # Updated: Dashboard, Burndown, Scope Tracking, Bug Analysis, Flow, DORA, Weekly Data
         assert all("id" in tab for tab in tabs_config)
         assert all("label" in tab for tab in tabs_config)
         assert all("icon" in tab for tab in tabs_config)

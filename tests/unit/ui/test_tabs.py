@@ -22,8 +22,8 @@ class TestTabConfigRegistry:
         assert len(TAB_CONFIG) > 0
 
     def test_tab_config_has_seven_tabs(self):
-        """Test that TAB_CONFIG contains exactly 9 tabs (includes Dashboard, Bug Analysis, DORA, Flow, and Statistics Data)."""
-        assert len(TAB_CONFIG) == 9
+        """Test that TAB_CONFIG contains exactly 7 tabs (Dashboard, Burndown, Scope Tracking, Bug Analysis, Flow Metrics, DORA Metrics, Weekly Data)."""
+        assert len(TAB_CONFIG) == 7
 
     def test_tab_config_structure(self):
         """Test that each tab has required fields."""

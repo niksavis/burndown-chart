@@ -14,7 +14,7 @@ from datetime import datetime
 
 # Third-party library imports
 import dash_bootstrap_components as dbc
-from dash import dcc, html
+from dash import dcc, html, dash_table
 
 # Application imports
 from configuration import __version__
@@ -23,9 +23,6 @@ from data.persistence import (
     load_app_settings,
     load_statistics,
     get_project_scope,
-)
-from ui.cards import (
-    create_statistics_data_card,
 )
 from ui.components import (
     create_parameter_panel,
@@ -304,12 +301,27 @@ def create_app_layout(settings, statistics, is_sample_data):
                 ),
                 row_class="mb-4",
             ),
-            # Hidden statistics table for callbacks (must exist in layout)
-            # The visible table is rendered in the Statistics Data tab content
+            # Hidden placeholders for Statistics Data tab components
+            # The actual visible components are rendered in the Statistics Data tab
+            # but these placeholders are required for Dash callback registration
             html.Div(
-                create_statistics_data_card(statistics),
-                id="statistics-table-container",
-                style={"display": "none"},  # Always hidden - visible one is in tab
+                [
+                    # Placeholder DataTable for statistics (required for callbacks)
+                    dash_table.DataTable(
+                        id="statistics-table",
+                        data=[],
+                        columns=[
+                            {"name": "date", "id": "date"},
+                            {"name": "completed_items", "id": "completed_items"},
+                            {"name": "completed_points", "id": "completed_points"},
+                            {"name": "created_items", "id": "created_items"},
+                            {"name": "created_points", "id": "created_points"},
+                        ],
+                    ),
+                    # Placeholder button for adding rows (required for callbacks)
+                    dbc.Button("Add Row", id="add-row-button"),
+                ],
+                style={"display": "none"},
             ),
             # Compact footer with clean design
             html.Div(

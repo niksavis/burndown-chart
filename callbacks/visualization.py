@@ -43,6 +43,7 @@ from data.schema import DEFAULT_SETTINGS
 from data.iso_week_bucketing import get_week_label
 from ui import (
     create_compact_trend_indicator,
+    create_statistics_data_card,
 )
 from ui.loading_utils import (
     create_content_placeholder,
@@ -660,7 +661,16 @@ def register(app):
                 ),
                 className="row mb-3",
             ),
-            # Burndown chart
+            # Burndown chart with title
+            html.H5(
+                [
+                    html.I(
+                        className="fas fa-chart-line me-2", style={"color": "#0d6efd"}
+                    ),
+                    "Forecast Based On Historical Data",
+                ],
+                className="mb-3 mt-4",
+            ),
             dcc.Graph(
                 id="forecast-graph",
                 figure=burndown_fig,
@@ -669,21 +679,18 @@ def register(app):
             ),
         ]
 
-        # Add section divider and Items per Week chart
+        # Add Items per Week chart section
         content.extend(
             [
-                # Section divider - reduced spacing
-                html.Hr(className="my-4", style={"borderTop": "2px solid #dee2e6"}),
-                # Items per Week section header
-                html.Div(
+                # Items per Week section header (standardized H5 styling)
+                html.H5(
                     [
                         html.I(
                             className="fas fa-tasks me-2", style={"color": "#20c997"}
                         ),
                         "Weekly Completed Items",
                     ],
-                    className="mb-3 border-bottom pb-2 d-flex align-items-center fw-bold",
-                    style={"fontSize": "1.25rem"},
+                    className="mb-3 mt-4",
                 ),
                 # Items chart (trend header removed - already shown at top)
                 dcc.Graph(
@@ -698,10 +705,8 @@ def register(app):
         # Add Points per Week section
         content.extend(
             [
-                # Section divider - reduced spacing
-                html.Hr(className="my-4", style={"borderTop": "2px solid #dee2e6"}),
-                # Points per Week section header
-                html.Div(
+                # Points per Week section header (standardized H5 styling)
+                html.H5(
                     [
                         html.I(
                             className="fas fa-chart-bar me-2",
@@ -709,8 +714,7 @@ def register(app):
                         ),
                         "Weekly Completed Points",
                     ],
-                    className="mb-3 border-bottom pb-2 d-flex align-items-center fw-bold",
-                    style={"fontSize": "1.25rem"},
+                    className="mb-3 mt-4",
                 ),
             ]
         )
@@ -2006,12 +2010,8 @@ def register(app):
                 return flow_content, chart_cache, ui_state
 
             elif active_tab == "tab-statistics-data":
-                # Statistics table exists in hidden container (callbacks reference it)
-                # Return placeholder - table visibility controlled by separate callback
-                statistics_content = html.Div(
-                    id="statistics-tab-placeholder",
-                    className="d-none",
-                )
+                # Return the actual statistics table content (consistent with other tabs)
+                statistics_content = create_statistics_data_card(statistics)
 
                 # Cache the result for next time
                 chart_cache[cache_key] = statistics_content
@@ -2042,22 +2042,6 @@ def register(app):
             )
             ui_state["loading"] = False
             return error_content, chart_cache, ui_state
-
-    # Show/hide statistics table based on active tab
-    @app.callback(
-        Output("statistics-table-container", "style"),
-        Input("chart-tabs", "active_tab"),
-        prevent_initial_call=False,
-    )
-    def toggle_statistics_table_visibility(active_tab):
-        """
-        Show statistics table container when Statistics Data tab is active.
-        Hide on all other tabs to prevent duplicate rendering.
-        """
-        if active_tab == "tab-statistics-data":
-            return {"display": "block"}
-        else:
-            return {"display": "none"}
 
     # Enhance the existing update_date_range callback to immediately trigger chart updates
     @app.callback(

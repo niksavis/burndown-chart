@@ -102,10 +102,10 @@ TAB_CONFIG: List[TabConfig] = [
     },
     {
         "id": "tab-statistics-data",
-        "label": "Statistics Data",
+        "label": "Weekly Data",
         "icon": "fa-table",
         "color": get_color("secondary"),
-        "order": 8,
+        "order": 6,
         "requires_data": True,
         "help_content_id": "help-statistics-data",
     },
@@ -161,13 +161,28 @@ def create_tabs():
     # Get mobile-optimized tab configuration
     tab_config = get_mobile_tabs_config()
 
+    # Map Font Awesome icons to Unicode alternatives for tab labels
+    # These provide visual distinction without requiring component labels
+    icon_map = {
+        "fas fa-tachometer-alt": "📊 ",
+        "fas fa-chart-line": "📈 ",
+        "fas fa-project-diagram": "🔀 ",
+        "fas fa-bug": "🐛 ",
+        "fas fa-stream": "🌊 ",
+        "fas fa-rocket": "🚀 ",
+        "fas fa-table": "📋 ",
+    }
+
     # Generate tabs with enhanced markup for better visual feedback
     tabs = []
     for tab in tab_config:
-        # Create a string label rather than a component
+        # Add icon prefix to label using Unicode emoji
+        icon_prefix = icon_map.get(tab["icon"], "")
+        label_with_icon = f"{icon_prefix}{tab['label']}"
+
         tabs.append(
             dbc.Tab(
-                label=tab["label"],
+                label=label_with_icon,
                 tab_id=tab["id"],
                 labelClassName="fw-medium tab-with-icon",  # Special class for styling
                 activeLabelClassName="text-primary fw-bold",
@@ -235,7 +250,7 @@ def create_tab_content(active_tab, charts, statistics_df=None, pert_data=None):
         "tab-bug-analysis": html.Div(),  # Bug analysis has its own info cards in the content
         "tab-dora-metrics": html.Div(),  # DORA dashboard has its own info cards in the content
         "tab-flow-metrics": html.Div(),  # Flow dashboard has its own info cards in the content
-        "tab-statistics-data": html.Div(),  # Statistics data is the content itself
+        "tab-statistics-data": html.Div(),  # Weekly data is the content itself
     }
 
     # Enhanced tab titles with more descriptive content and icons
@@ -299,7 +314,7 @@ def create_tab_content(active_tab, charts, statistics_df=None, pert_data=None):
                     className="fas fa-table me-2",
                     style={"color": get_color("secondary")},
                 ),
-                "Statistics Data",
+                "Weekly Data",
             ],
             className="mb-3 border-bottom pb-2 d-flex align-items-center fw-bold",
         ),
