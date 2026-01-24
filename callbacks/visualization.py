@@ -607,62 +607,145 @@ def register(app):
         items_trend,
         points_trend,
         burndown_fig,
+        items_fig,
+        points_fig,
         settings,
         show_points=True,
     ):
         """
-        Create content for the burndown tab with burndown chart.
+        Create content for the burndown tab with burndown chart, items chart, and points chart.
 
         Args:
             df: DataFrame with statistics data
             items_trend: Dictionary with items trend and forecast data
             points_trend: Dictionary with points trend and forecast data
             burndown_fig: Burndown chart figure
+            items_fig: Weekly items chart figure
+            points_fig: Weekly points chart figure (can be None if show_points is False)
             settings: Settings dictionary
             show_points: Whether to show points tracking
 
         Returns:
-            html.Div: Burndown tab content
+            html.Div: Burndown tab content with all three charts
         """
         chart_height = settings.get("chart_height", 700)
 
-        return html.Div(
+        # Build the content list starting with burndown chart
+        content = [
+            # Weekly trend indicators in a row
+            html.Div(
+                [
+                    # Items trend box
+                    _create_trend_header_with_forecasts(
+                        items_trend,
+                        "Weekly Items Trend",
+                        "fas fa-tasks",
+                        "#20c997",
+                    ),
+                ]
+                + (
+                    [
+                        # Points trend box - only show if points tracking is enabled
+                        _create_trend_header_with_forecasts(
+                            points_trend,
+                            "Weekly Points Trend",
+                            "fas fa-chart-bar",
+                            "#fd7e14",
+                        ),
+                    ]
+                    if show_points
+                    else []
+                ),
+                className="row mb-3",
+            ),
+            # Burndown chart
+            dcc.Graph(
+                id="forecast-graph",
+                figure=burndown_fig,
+                config=get_burndown_chart_config(),  # type: ignore
+                style={"height": f"{chart_height}px"},
+            ),
+        ]
+
+        # Add section divider and Items per Week chart
+        content.extend(
             [
-                # Weekly trend indicators in a row
+                # Section divider
+                html.Hr(className="my-5", style={"borderTop": "2px solid #dee2e6"}),
+                # Items per Week section header
                 html.Div(
                     [
-                        # Items trend box
+                        html.I(
+                            className="fas fa-tasks me-2", style={"color": "#20c997"}
+                        ),
+                        "Weekly Completed Items",
+                    ],
+                    className="mb-3 border-bottom pb-2 d-flex align-items-center fw-bold",
+                    style={"fontSize": "1.25rem"},
+                ),
+                # Items trend header
+                html.Div(
+                    [
                         _create_trend_header_with_forecasts(
                             items_trend,
                             "Weekly Items Trend",
                             "fas fa-tasks",
                             "#20c997",
                         ),
-                    ]
-                    + (
+                    ],
+                    className="mb-4",
+                ),
+                # Items chart
+                dcc.Graph(
+                    id="items-chart",
+                    figure=items_fig,
+                    config=get_weekly_chart_config(),  # type: ignore
+                    style={"height": "700px"},
+                ),
+            ]
+        )
+
+        # Add Points per Week chart section if points tracking is enabled
+        if show_points and points_fig is not None:
+            content.extend(
+                [
+                    # Section divider
+                    html.Hr(className="my-5", style={"borderTop": "2px solid #dee2e6"}),
+                    # Points per Week section header
+                    html.Div(
                         [
-                            # Points trend box - only show if points tracking is enabled
+                            html.I(
+                                className="fas fa-chart-bar me-2",
+                                style={"color": "#fd7e14"},
+                            ),
+                            "Weekly Completed Points",
+                        ],
+                        className="mb-3 border-bottom pb-2 d-flex align-items-center fw-bold",
+                        style={"fontSize": "1.25rem"},
+                    ),
+                    # Points trend header
+                    html.Div(
+                        [
                             _create_trend_header_with_forecasts(
                                 points_trend,
                                 "Weekly Points Trend",
                                 "fas fa-chart-bar",
                                 "#fd7e14",
                             ),
-                        ]
-                        if show_points
-                        else []
+                        ],
+                        className="mb-4",
                     ),
-                    className="row mb-3",
-                ),
-                # Burndown chart
-                dcc.Graph(
-                    id="forecast-graph",
-                    figure=burndown_fig,
-                    config=get_burndown_chart_config(),  # type: ignore
-                    style={"height": f"{chart_height}px"},
-                ),
-            ]
-        )
+                    # Points chart
+                    dcc.Graph(
+                        id="points-chart",
+                        figure=points_fig,
+                        config=get_weekly_chart_config(),  # type: ignore
+                        style={"height": "700px"},
+                    ),
+                ]
+            )
+
+        return html.Div(content)
 
     def _create_items_tab_content(items_trend, items_fig):
         """
@@ -1710,12 +1793,44 @@ def register(app):
                     show_points=effective_show_points,  # Use effective flag
                 )
 
+                # Generate items chart for consolidated view
+                items_fig = create_weekly_items_chart(
+                    statistics,
+                    pert_factor,
+                    data_points_count=data_points_count,
+                )
+                # Apply mobile optimization to items chart
+                items_fig, _ = apply_mobile_optimization(
+                    items_fig,
+                    is_mobile=is_mobile,
+                    is_tablet=is_tablet,
+                    title="Weekly Items" if not is_mobile else None,
+                )
+
+                # Generate points chart for consolidated view (if points tracking enabled)
+                points_fig = None
+                if effective_show_points:
+                    points_fig = create_weekly_points_chart(
+                        statistics,
+                        pert_factor,
+                        data_points_count=data_points_count,
+                    )
+                    # Apply mobile optimization to points chart
+                    points_fig, _ = apply_mobile_optimization(
+                        points_fig,
+                        is_mobile=is_mobile,
+                        is_tablet=is_tablet,
+                        title="Weekly Points" if not is_mobile else None,
+                    )
+
                 # Create burndown tab content with all required data
                 burndown_tab_content = _create_burndown_tab_content(
                     df,
                     items_trend,
                     points_trend,
                     burndown_fig,
+                    items_fig,
+                    points_fig,
                     settings,
                     effective_show_points,  # Use effective flag
                 )
