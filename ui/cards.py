@@ -1642,10 +1642,12 @@ def create_statistics_data_card(current_statistics):
     }
 
     # Create the enhanced table with consistent columns
+    # Note: The actual statistics-table ID is in layout.py as a hidden placeholder
+    # This table is just for display in the Statistics tab
     statistics_table = create_enhanced_data_table(
         data=statistics_df.to_dict("records"),
         columns=columns,
-        id="statistics-table",
+        id="statistics-table-display",
         editable=True,
         row_selectable=False,
         page_size=10,
