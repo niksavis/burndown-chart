@@ -723,12 +723,13 @@ def create_forecast_plot(
         fig = configure_axes(fig, forecast_data)
 
         # Apply layout settings with the specified hover_mode
+        # Increased top margin from 80 to 100px to accommodate legend (y=1.06) and plotly toolbar without overlap
         fig.update_layout(
             legend=dict(
                 orientation="h", yanchor="bottom", y=1.06, xanchor="center", x=0.5
             ),
             hovermode=hover_mode,
-            margin=dict(l=60, r=60, t=80, b=50),
+            margin=dict(l=60, r=60, t=100, b=50),
             height=700,
             template="plotly_white",
         )
