@@ -847,25 +847,28 @@ a:hover {
   line-height: 1.5 !important;
 }
 
-/* Fix button group alignment with dropdowns - match label + margin precisely */
-/* Label (fw-bold mb-1): line-height ~1.2 * 1rem = 1.2rem, + mb-1 (0.25rem) = 1.45rem */
+/* Button group alignment with dropdowns - unified rule */
+/* Formula: Label height (1.2rem with fw-bold) + mb-1 (0.25rem) + 1px alignment nudge */
 .settings-panel-expanded .btn-group[style*="marginTop"],
 .parameter-panel-expanded .btn-group[style*="marginTop"],
+.settings-panel-expanded .mb-2 .btn-group,
+.settings-panel-expanded .mb-3 .btn-group,
+.parameter-panel-expanded .mb-2 .btn-group,
+.parameter-panel-expanded .mb-3 .btn-group,
 [id$="-profile-actions"] .btn-group,
 [id*="query-actions"] .btn-group {
-  margin-top: calc(1.2rem + 0.25rem + 1px) !important; /* Label height + mb-1 + 1px nudge */
-}
-
-/* Additional specific targeting for query management buttons */
-#load-query-data-btn,
-#delete-query-btn {
-  vertical-align: top !important;
-}
-
-/* Query button group specific alignment */
-.settings-panel-expanded .mb-2 .btn-group,
-.parameter-panel-expanded .mb-2 .btn-group {
   margin-top: calc(1.2rem + 0.25rem + 1px) !important;
+}
+
+/* Compact alerts in settings panels */
+.settings-panel-expanded .alert,
+.parameter-panel-expanded .alert,
+#query-save-status .alert,
+#data-operations-alert {
+  padding: 0.5rem 0.75rem !important;
+  font-size: 0.875rem !important;
+  line-height: 1.5 !important;
+  margin-bottom: 0.5rem !important;
 }
 
 /* Apply to all sticky panel inputs for consistency */
@@ -1865,7 +1868,9 @@ mark.jql-operator {
 .card:has(.dash-table-container),
 .card:has(#statistics-table),
 .card.card-static,
-.card-no-hover {
+.card-no-hover,
+#budget-current-card,
+#budget-revision-history-card {
   transform: none !important;
   margin-top: 0 !important; /* No margin adjustment for structural cards */
 }
@@ -1876,7 +1881,9 @@ mark.jql-operator {
 .card:has(.dash-table-container):hover,
 .card:has(#statistics-table):hover,
 .card.card-static:hover,
-.card-no-hover:hover {
+.card-no-hover:hover,
+#budget-current-card:hover,
+#budget-revision-history-card:hover {
   transform: none !important;
   box-shadow: var(--shadow-sm) !important;
   margin-top: 0 !important; /* Keep margin constant */
@@ -3604,8 +3611,8 @@ div[class*="__menu"] {
 /* Unified panel styling for all flyouts */
 .parameter-panel-expanded,
 .import-export-panel-expanded {
-  /* Match outline-primary button background color */
-  background: rgba(13, 110, 253, 0.05);
+  /* Very subtle blue tint - almost white */
+  background: #f8fbff; /* Lighter than btn-outline-primary for subtlety */
   border-radius: 6px;
   padding: 1rem;
   /* Enhanced shadow for clear visual separation from content below */
@@ -3616,8 +3623,8 @@ div[class*="__menu"] {
 
 .tabbed-settings-panel {
   padding: 0;
-  /* Match outline-primary button background color */
-  background: rgba(13, 110, 253, 0.05);
+  /* Very subtle blue tint - almost white */
+  background: #f8fbff; /* Lighter than btn-outline-primary for subtlety */
   border-radius: 6px;
   overflow: hidden;
   /* Enhanced shadow for clear visual separation from content below */
@@ -3628,8 +3635,8 @@ div[class*="__menu"] {
 
 .settings-tabs {
   border-bottom: 2px solid #e9ecef;
-  /* Match outline-primary button background color */
-  background: rgba(13, 110, 253, 0.05);
+  /* Very subtle blue tint - almost white */
+  background: #f8fbff; /* Lighter than btn-outline-primary for subtlety */
   margin: 0;
   padding: 0.25rem 0.5rem 0; /* Small top/side padding for breathing room */
 }
