@@ -2122,13 +2122,13 @@ def _generate_weekly_breakdown_chart(
         {
             "label": "Items Created",
             "data": items_created,
-            "backgroundColor": "#0d6efd",
+            "backgroundColor": "#6ea8fe",  # Light blue for created
             "stack": "items",
         },
         {
             "label": "Items Closed",
             "data": items_closed,
-            "backgroundColor": "#0d6efd",
+            "backgroundColor": "#0d6efd",  # Dark blue for closed
             "stack": "items",
         },
     ]
@@ -2139,13 +2139,13 @@ def _generate_weekly_breakdown_chart(
                 {
                     "label": "Points Created",
                     "data": points_created,
-                    "backgroundColor": "#fd7e14",
+                    "backgroundColor": "#ffb976",  # Light orange for created
                     "stack": "points",
                 },
                 {
                     "label": "Points Closed",
                     "data": points_closed,
-                    "backgroundColor": "#fd7e14",
+                    "backgroundColor": "#fd7e14",  # Dark orange for closed
                     "stack": "points",
                 },
             ]
