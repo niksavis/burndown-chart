@@ -91,6 +91,31 @@ excludes = [
     'docutils',
     # Type checking
     'mypy',
+    # ML/AI libraries (not used, but detected as conditional imports)
+    'torch',
+    'tensorflow',
+    'transformers',
+    'gradio',
+    'sklearn',
+    'scikit-learn',
+    'nltk',
+    'huggingface_hub',
+    'onnxruntime',
+    'pyarrow',
+    'fastapi',
+    'uvicorn',
+    'starlette',
+    'aiohttp',
+    'websockets',
+    'sympy',
+    'matplotlib',
+    'torchgen',
+    # 'narwhals',  # Actually used by plotly - don't exclude
+    'multidict',
+    'yarl',
+    'anyio',
+    'httpx',
+    'opentelemetry',
 ]
 
 a = Analysis(
