@@ -833,28 +833,28 @@
                 </div>
                 {% if metrics.dashboard.deadline or
                 metrics.dashboard.forecast_date %}
-                <div class="progress-details" style="margin-top: 1rem;">
-                  {% if metrics.dashboard.forecast_date_items %}
-                  <div class="progress-detail-item">
-                    <span class="progress-detail-label" style="color: #0d6efd;">Forecast (items):</span>
-                    <span class="progress-detail-value" style="color: #0d6efd;">{{
-                    metrics.dashboard.forecast_date_items }}</span>
-                  </div>
-                  {% endif %}
-                  {% if show_points and metrics.dashboard.forecast_date_points %}
-                  <div class="progress-detail-item">
-                    <span class="progress-detail-label" style="color: var(--color-orange);">Forecast (points):</span>
-                    <span class="progress-detail-value" style="color: var(--color-orange);">{{
-                    metrics.dashboard.forecast_date_points }}</span>
-                  </div>
-                  {% endif %}
-                  {% if metrics.dashboard.deadline %}
-                  <div class="progress-detail-item">
-                    <span class="progress-detail-label" style="color: var(--color-health-critical);">Deadline:</span>
-                    <span class="progress-detail-value" style="color: var(--color-health-critical);">{{ metrics.dashboard.deadline }}</span>
-                  </div>
-                  {% endif %}
-                </div>
+                <table class="table table-sm table-borderless" style="margin: 1rem auto 0; max-width: 220px; font-size: 0.875rem;">
+                  <tbody>
+                    {% if metrics.dashboard.forecast_date_items %}
+                    <tr>
+                      <td style="padding: 0.15rem 0.75rem 0.15rem 0; color: rgba(13, 110, 253, 0.7); font-weight: 600; border: none; background: none;">Forecast (items)</td>
+                      <td style="padding: 0.15rem 0; color: #0d6efd; font-weight: 600; text-align: right; border: none; background: none;">{{ metrics.dashboard.forecast_date_items }}</td>
+                    </tr>
+                    {% endif %}
+                    {% if show_points and metrics.dashboard.forecast_date_points %}
+                    <tr>
+                      <td style="padding: 0.15rem 0.75rem 0.15rem 0; color: rgba(253, 126, 20, 0.7); font-weight: 600; border: none; background: none;">Forecast (points)</td>
+                      <td style="padding: 0.15rem 0; color: var(--color-orange); font-weight: 600; text-align: right; border: none; background: none;">{{ metrics.dashboard.forecast_date_points }}</td>
+                    </tr>
+                    {% endif %}
+                    {% if metrics.dashboard.deadline %}
+                    <tr>
+                      <td style="padding: 0.15rem 0.75rem 0.15rem 0; color: rgba(220, 53, 69, 0.7); font-weight: 600; border: none; background: none;">Deadline</td>
+                      <td style="padding: 0.15rem 0; color: var(--color-health-critical); font-weight: 600; text-align: right; border: none; background: none;">{{ metrics.dashboard.deadline }}</td>
+                    </tr>
+                    {% endif %}
+                  </tbody>
+                </table>
                 {% endif %}
               </div>
             </div>
@@ -881,26 +881,22 @@
                 <div class="health-status-badge health-status-items">
                   ITEMS
                 </div>
-                <div class="progress-details" style="margin-top: 1rem;">
-                  <div class="progress-detail-item">
-                    <span class="progress-detail-label">Completed: </span>
-                    <span class="progress-detail-value"
-                      >{{ metrics.dashboard.completed_items|int }}</span
-                    >
-                  </div>
-                  <div class="progress-detail-item">
-                    <span class="progress-detail-label">Remaining: </span>
-                    <span class="progress-detail-value"
-                      >{{ metrics.dashboard.remaining_items|int }}</span
-                    >
-                  </div>
-                  <div class="progress-detail-item">
-                    <span class="progress-detail-label">Total: </span>
-                    <span class="progress-detail-value"
-                      >{{ metrics.dashboard.total_items|int }}</span
-                    >
-                  </div>
-                </div>
+                <table class="table table-sm table-borderless" style="margin: 1rem auto 0; max-width: 200px; font-size: 0.875rem;">
+                  <tbody>
+                    <tr>
+                      <td style="padding: 0.15rem 0.75rem 0.15rem 0; color: rgba(108, 117, 125, 0.7); font-weight: 600; border: none; background: none;">Completed</td>
+                      <td style="padding: 0.15rem 0; color: rgba(13, 110, 253, 0.8); font-weight: normal; text-align: right; border: none; background: none;">{{ metrics.dashboard.completed_items|int }}</td>
+                    </tr>
+                    <tr>
+                      <td style="padding: 0.15rem 0.75rem 0.15rem 0; color: rgba(108, 117, 125, 0.7); font-weight: 600; border: none; background: none;">Remaining</td>
+                      <td style="padding: 0.15rem 0; color: rgba(13, 110, 253, 0.8); font-weight: normal; text-align: right; border: none; background: none;">{{ metrics.dashboard.remaining_items|int }}</td>
+                    </tr>
+                    <tr>
+                      <td style="padding: 0.15rem 0.75rem 0.15rem 0; color: rgba(108, 117, 125, 0.7); font-weight: 600; border: none; background: none;">Total</td>
+                      <td style="padding: 0.15rem 0; color: rgba(13, 110, 253, 0.8); font-weight: normal; text-align: right; border: none; background: none;">{{ metrics.dashboard.total_items|int }}</td>
+                    </tr>
+                  </tbody>
+                </table>
               </div>
             </div>
 
@@ -927,26 +923,22 @@
                 <div class="health-status-badge health-status-points">
                   POINTS
                 </div>
-                <div class="progress-details" style="margin-top: 1rem;">
-                  <div class="progress-detail-item">
-                    <span class="progress-detail-label">Completed: </span>
-                    <span class="progress-detail-value"
-                      >{{ metrics.dashboard.completed_points|dec1 }}</span
-                    >
-                  </div>
-                  <div class="progress-detail-item">
-                    <span class="progress-detail-label">Remaining: </span>
-                    <span class="progress-detail-value"
-                      >{{ metrics.dashboard.remaining_points|dec1 }}</span
-                    >
-                  </div>
-                  <div class="progress-detail-item">
-                    <span class="progress-detail-label">Total: </span>
-                    <span class="progress-detail-value"
-                      >{{ metrics.dashboard.total_points|dec1 }}</span
-                    >
-                  </div>
-                </div>
+                <table class="table table-sm table-borderless" style="margin: 1rem auto 0; max-width: 200px; font-size: 0.875rem;">
+                  <tbody>
+                    <tr>
+                      <td style="padding: 0.15rem 0.75rem 0.15rem 0; color: rgba(108, 117, 125, 0.7); font-weight: 600; border: none; background: none;">Completed</td>
+                      <td style="padding: 0.15rem 0; color: rgba(253, 126, 20, 0.8); font-weight: normal; text-align: right; border: none; background: none;">{{ metrics.dashboard.completed_points|dec1 }}</td>
+                    </tr>
+                    <tr>
+                      <td style="padding: 0.15rem 0.75rem 0.15rem 0; color: rgba(108, 117, 125, 0.7); font-weight: 600; border: none; background: none;">Remaining</td>
+                      <td style="padding: 0.15rem 0; color: rgba(253, 126, 20, 0.8); font-weight: normal; text-align: right; border: none; background: none;">{{ metrics.dashboard.remaining_points|dec1 }}</td>
+                    </tr>
+                    <tr>
+                      <td style="padding: 0.15rem 0.75rem 0.15rem 0; color: rgba(108, 117, 125, 0.7); font-weight: 600; border: none; background: none;">Total</td>
+                      <td style="padding: 0.15rem 0; color: rgba(253, 126, 20, 0.8); font-weight: normal; text-align: right; border: none; background: none;">{{ metrics.dashboard.total_points|dec1 }}</td>
+                    </tr>
+                  </tbody>
+                </table>
               </div>
             </div>
             {% endif %}
@@ -1376,9 +1368,7 @@
             </div>
             <div class="velocity-card-value" style="color: var(--color-green)">
               {{ metrics.bug_analysis.resolution_rate|dec2 }}%
-              <span class="velocity-card-unit" style="color: var(--color-neutral-600); font-size: 0.75rem; font-weight: 700;">
-                {{ metrics.bug_analysis.closed_bugs|int }} / {{ metrics.bug_analysis.total_bugs|int }}
-              </span>
+              <span class="velocity-card-unit">{{ metrics.bug_analysis.closed_bugs|int }} / {{ metrics.bug_analysis.total_bugs|int }}</span>
             </div>
           </div>
           {% if metrics.bug_analysis.forecast_weeks %}
