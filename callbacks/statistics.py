@@ -9,6 +9,7 @@ This module handles callbacks related to statistics data management.
 #######################################################################
 # Third-party library imports
 from dash import Input, Output, State, html
+from dash.exceptions import PreventUpdate
 import dash_bootstrap_components as dbc
 
 #######################################################################
@@ -165,6 +166,116 @@ def register(app):
     Args:
         app: Dash application instance
     """
+
+    @app.callback(
+        [
+            Output("current-statistics", "data", allow_duplicate=True),
+            Output("current-statistics", "modified_timestamp", allow_duplicate=True),
+            Output(
+                "chart-cache", "data", allow_duplicate=True
+            ),  # Clear cache to force refresh
+        ],
+        [Input("statistics-table", "data")],
+        [State("app-init-complete", "data"), State("chart-tabs", "active_tab")],
+        prevent_initial_call=True,
+    )
+    def save_statistics_on_edit(table_data, init_complete, active_tab):
+        """
+        Save statistics to database when user edits the table.
+
+        This callback watches for changes to the statistics-table data property
+        (triggered when user edits cells in the Weekly Data tab) and saves the
+        updated data to disk. Then clears chart cache to force visualization refresh.
+
+        CRITICAL: Only save when actively in the statistics tab to avoid saving
+        the hidden placeholder's empty data.
+        """
+        from datetime import datetime
+        from data.persistence import save_statistics
+        from configuration import logger
+
+        # CRITICAL FIX: Only save if we're in the statistics tab
+        # This prevents saving when the tab is not active (which would have empty data)
+
+        # Save to database
+        save_statistics(table_data)
+        logger.info(f"Statistics table edited and saved: {len(table_data)} rows")
+
+        # Return updated data, timestamp, and clear chart cache to force refresh
+        return table_data, int(datetime.now().timestamp() * 1000), {}
+
+    @app.callback(
+        Output("statistics-table", "data", allow_duplicate=True),
+        [Input("add-row-button", "n_clicks")],
+        [State("statistics-table", "data")],
+        prevent_initial_call=True,
+    )
+    def add_table_row(n_clicks, current_data):
+        """
+        Add a new row to the statistics table.
+
+        Calculates the next Monday date (7 days after most recent entry)
+        and inserts a new row at the beginning of the table.
+        """
+        from datetime import datetime, timedelta
+        from data.iso_week_bucketing import get_week_label
+        from configuration import logger
+
+        if not n_clicks or not current_data:
+            raise PreventUpdate
+
+        # Find the most recent date
+        try:
+            date_objects = [
+                datetime.strptime(row["date"], "%Y-%m-%d")
+                for row in current_data
+                if row.get("date") and len(row.get("date", "")) == 10
+            ]
+            if date_objects:
+                most_recent_date = max(date_objects)
+                # Set new date to 7 days after the most recent
+                new_date = (most_recent_date + timedelta(days=7)).strftime("%Y-%m-%d")
+
+                # CRITICAL: Prevent future dates beyond today
+                # Statistics for future weeks make no sense (no completed/created items yet)
+                today = datetime.now().replace(
+                    hour=0, minute=0, second=0, microsecond=0
+                )
+                proposed_date = datetime.strptime(new_date, "%Y-%m-%d")
+                if proposed_date > today:
+                    logger.warning(
+                        f"Cannot add row for future date {new_date} (beyond today {today.strftime('%Y-%m-%d')}). "
+                        "Statistics are historical data only."
+                    )
+                    raise PreventUpdate
+            else:
+                new_date = datetime.now().strftime("%Y-%m-%d")
+        except (ValueError, KeyError):
+            # Handle any date parsing errors
+            new_date = datetime.now().strftime("%Y-%m-%d")
+
+        # Calculate week_label for the new row
+        try:
+            date_obj = datetime.strptime(new_date, "%Y-%m-%d")
+            week_label = get_week_label(date_obj)
+        except (ValueError, TypeError) as e:
+            logger.warning(f"Could not calculate week_label for {new_date}: {e}")
+            week_label = ""
+
+        # Insert at beginning (will be at top with desc sorting)
+        new_row = {
+            "date": new_date,
+            "week_label": week_label,
+            "completed_items": 0,
+            "completed_points": 0,
+            "created_items": 0,
+            "created_points": 0,
+        }
+
+        updated_data = [new_row] + current_data
+        logger.info(f"Added new row to statistics table: {new_date} ({week_label})")
+
+        return updated_data
 
     # REMOVED: update_and_save_statistics and update_table callbacks
     # These callbacks referenced statistics-table which only exists in the Weekly Data tab,

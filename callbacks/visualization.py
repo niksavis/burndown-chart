@@ -43,7 +43,6 @@ from data.schema import DEFAULT_SETTINGS
 from data.iso_week_bucketing import get_week_label
 from ui import (
     create_compact_trend_indicator,
-    create_statistics_data_card,
 )
 from ui.loading_utils import (
     create_content_placeholder,
