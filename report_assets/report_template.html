@@ -5,6 +5,39 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>{{ profile_name }} - {{ query_name }} | Project Report</title>
 
+    <!-- Jinja2 Macros for Tier-Based Colors -->
+    {% macro get_flow_velocity_color(value) -%}
+      {%- if value >= 20 -%}#198754{%- elif value >= 10 -%}#0dcaf0{%- elif value >= 5 -%}#ffc107{%- else -%}#fd7e14{%- endif -%}
+    {%- endmacro %}
+
+    {% macro get_flow_time_color(value) -%}
+      {%- if value <= 3 -%}#198754{%- elif value <= 7 -%}#0dcaf0{%- elif value <= 14 -%}#ffc107{%- else -%}#fd7e14{%- endif -%}
+    {%- endmacro %}
+
+    {% macro get_flow_efficiency_color(value) -%}
+      {%- if value >= 60 -%}#198754{%- elif value >= 40 -%}#0dcaf0{%- elif value >= 25 -%}#ffc107{%- else -%}#fd7e14{%- endif -%}
+    {%- endmacro %}
+
+    {% macro get_flow_load_color(value) -%}
+      {%- if value < 10 -%}#198754{%- elif value < 20 -%}#ffc107{%- elif value < 30 -%}#fd7e14{%- else -%}#dc3545{%- endif -%}
+    {%- endmacro %}
+
+    {% macro get_deployment_frequency_color(value) -%}
+      {%- if value >= 7 -%}#198754{%- elif value >= 1.6 -%}#0dcaf0{%- elif value >= 0.25 -%}#ffc107{%- else -%}#fd7e14{%- endif -%}
+    {%- endmacro %}
+
+    {% macro get_lead_time_color(value) -%}
+      {%- if value < 0.04 -%}#198754{%- elif value <= 1 -%}#0dcaf0{%- elif value <= 7 -%}#ffc107{%- else -%}#fd7e14{%- endif -%}
+    {%- endmacro %}
+
+    {% macro get_cfr_color(value) -%}
+      {%- if value <= 15 -%}#198754{%- elif value <= 30 -%}#0dcaf0{%- elif value <= 45 -%}#ffc107{%- else -%}#fd7e14{%- endif -%}
+    {%- endmacro %}
+
+    {% macro get_mttr_color(value_hours) -%}
+      {%- if value_hours < 1 -%}#198754{%- elif value_hours <= 24 -%}#0dcaf0{%- elif value_hours <= 168 -%}#ffc107{%- else -%}#fd7e14{%- endif -%}
+    {%- endmacro %}
+
     <!-- Embedded Dependencies for Offline Use -->
     <style>
       {{ bootstrap_css }}
@@ -180,7 +213,7 @@
         font-weight: 600;
         margin-bottom: var(--space-5);
         color: var(--color-neutral-900);
-        border-bottom: 3px solid var(--color-brand-500);
+        border-bottom: 3px solid var(--color-neutral-400);
         padding-bottom: var(--space-3);
         display: flex;
         align-items: center;
@@ -188,7 +221,7 @@
       }
 
       .section-title i {
-        color: var(--color-brand-500);
+        color: var(--color-neutral-600);
         font-size: 1.5rem;
       }
 
@@ -372,7 +405,7 @@
         border-radius: 12px;
         padding: var(--space-5);
         box-shadow: var(--shadow-md);
-        border-left: 4px solid var(--color-brand-500);
+        border-left: 4px solid #6f42c1;
       }
 
       .velocity-card.points {
@@ -413,7 +446,7 @@
         border-radius: 12px;
         padding: var(--space-5);
         box-shadow: var(--shadow-md);
-        border-left: 4px solid var(--color-brand-500);
+        border-left: 4px solid #6f42c1;
       }
 
       .metric-card-label {
@@ -817,8 +850,8 @@
                   {% endif %}
                   {% if metrics.dashboard.deadline %}
                   <div class="progress-detail-item">
-                    <span class="progress-detail-label">Deadline:</span>
-                    <span class="progress-detail-value">{{ metrics.dashboard.deadline }}</span>
+                    <span class="progress-detail-label" style="color: var(--color-health-critical);">Deadline:</span>
+                    <span class="progress-detail-value" style="color: var(--color-health-critical);">{{ metrics.dashboard.deadline }}</span>
                   </div>
                   {% endif %}
                 </div>
@@ -922,21 +955,21 @@
 
         <!-- Velocity Cards -->
         <div class="velocity-cards">
-          <div class="velocity-card">
+          <div class="velocity-card" style="border-left-color: #0d6efd;">
             <div class="velocity-card-title">
               <i class="fas fa-tachometer-alt"></i> Velocity (Items)
             </div>
-            <div class="velocity-card-value">
+            <div class="velocity-card-value" style="color: #0d6efd;">
               {{ metrics.dashboard.velocity_items|dec2 }}
               <span class="velocity-card-unit">items/week</span>
             </div>
           </div>
           {% if show_points %}
-          <div class="velocity-card points">
+          <div class="velocity-card points" style="border-left-color: var(--color-orange);">
             <div class="velocity-card-title">
               <i class="fas fa-tachometer-alt"></i> Velocity (Points)
             </div>
-            <div class="velocity-card-value">
+            <div class="velocity-card-value" style="color: var(--color-orange);">
               {{ metrics.dashboard.velocity_points|dec2 }}
               <span class="velocity-card-unit">points/week</span>
             </div>
@@ -1158,7 +1191,7 @@
                     class="text-end"
                     style="border-top: none; padding-top: 0.5rem"
                   >
-                    <span class="text-primary"
+                    <span class="text-danger"
                       >+{{ metrics.scope.created_items }}</span
                     >
                   </td>
@@ -1245,7 +1278,7 @@
                     class="text-end"
                     style="border-top: none; padding-top: 0.5rem"
                   >
-                    <span class="text-primary"
+                    <span class="text-danger"
                       >+{{ metrics.scope.created_points|dec1 }}</span
                     >
                   </td>
@@ -1278,21 +1311,21 @@
 
         <!-- Creation/Completion Ratios -->
         <div class="velocity-cards mt-3">
-          <div class="velocity-card">
+          <div class="velocity-card" style="border-left-color: #0d6efd;">
             <div class="velocity-card-title">
               <i class="fas fa-plus-circle"></i> Items Creation Rate
             </div>
-            <div class="velocity-card-value">
+            <div class="velocity-card-value" style="color: #0d6efd;">
               {{ metrics.scope.items_ratio|dec2 }}
               <span class="velocity-card-unit">per completed</span>
             </div>
           </div>
           {% if show_points %}
-          <div class="velocity-card points">
+          <div class="velocity-card points" style="border-left-color: var(--color-orange);">
             <div class="velocity-card-title">
               <i class="fas fa-plus-circle"></i> Points Creation Rate
             </div>
-            <div class="velocity-card-value">
+            <div class="velocity-card-value" style="color: var(--color-orange);">
               {{ metrics.scope.points_ratio|dec2 }}
               <span class="velocity-card-unit">per completed</span>
             </div>
@@ -1343,17 +1376,17 @@
             </div>
             <div class="velocity-card-value" style="color: var(--color-green)">
               {{ metrics.bug_analysis.resolution_rate|dec2 }}%
-              <span class="velocity-card-unit" style="color: var(--color-neutral-600); font-size: 0.75rem;">
+              <span class="velocity-card-unit" style="color: var(--color-neutral-600); font-size: 0.75rem; font-weight: 700;">
                 {{ metrics.bug_analysis.closed_bugs|int }} / {{ metrics.bug_analysis.total_bugs|int }}
               </span>
             </div>
           </div>
           {% if metrics.bug_analysis.forecast_weeks %}
-          <div class="velocity-card" style="border-left-color: var(--color-brand-500);">
+          <div class="velocity-card" style="border-left-color: #6f42c1;">
             <div class="velocity-card-title">
               <i class="fas fa-crystal-ball"></i> Expected Resolution
             </div>
-            <div class="velocity-card-value" style="color: var(--color-brand-500);">
+            <div class="velocity-card-value" style="color: #6f42c1;">
               ~{{ metrics.bug_analysis.forecast_weeks }} weeks
               {% if metrics.bug_analysis.avg_closure_rate %}
               <span class="velocity-card-unit">({{ metrics.bug_analysis.avg_closure_rate|dec2 }} per week)</span>
@@ -1393,29 +1426,29 @@
 
         <!-- Budget Overview -->
         <div class="velocity-cards mb-4">
-          <div class="velocity-card" style="border-left-color: #0d6efd;">
+          <div class="velocity-card" style="border-left-color: #6f42c1;">
             <div class="velocity-card-title">
               <i class="fas fa-wallet"></i> Total Budget
             </div>
-            <div class="velocity-card-value" style="color: #0d6efd;">
+            <div class="velocity-card-value" style="color: #6f42c1;">
               {{ metrics.budget.currency_symbol }}{{ metrics.budget.budget_total|round(0)|int }}
               <span class="velocity-card-unit"></span>
             </div>
           </div>
-          <div class="velocity-card" style="border-left-color: var(--color-orange);">
+          <div class="velocity-card" style="border-left-color: #6f42c1;">
             <div class="velocity-card-title">
               <i class="fas fa-calendar-alt"></i> Time Allocated
             </div>
-            <div class="velocity-card-value" style="color: var(--color-orange);">
+            <div class="velocity-card-value" style="color: #6f42c1;">
               {{ metrics.budget.time_allocated_weeks }}
               <span class="velocity-card-unit">weeks</span>
             </div>
           </div>
-          <div class="velocity-card" style="border-left-color: var(--color-health-good);">
+          <div class="velocity-card" style="border-left-color: #6f42c1;">
             <div class="velocity-card-title">
               <i class="fas fa-chart-line"></i> Team Cost
             </div>
-            <div class="velocity-card-value" style="color: var(--color-health-good);">
+            <div class="velocity-card-value" style="color: #6f42c1;">
               {{ metrics.budget.currency_symbol }}{{ metrics.budget.cost_per_week|round(0)|int }}
               <span class="velocity-card-unit">/week</span>
             </div>
@@ -1424,11 +1457,11 @@
 
         <!-- Cost Efficiency -->
         <div class="velocity-cards mb-4">
-          <div class="velocity-card" style="border-left-color: var(--color-brand-500);">
+          <div class="velocity-card" style="border-left-color: #0d6efd;">
             <div class="velocity-card-title">
               <i class="fas fa-calculator"></i> Cost Per Item
             </div>
-            <div class="velocity-card-value" style="color: var(--color-brand-500);">
+            <div class="velocity-card-value" style="color: #0d6efd;">
               {{ metrics.budget.currency_symbol }}{{ metrics.budget.cost_per_item|dec2 }}
               <span class="velocity-card-unit">(4-week velocity avg)</span>
             </div>
@@ -1517,15 +1550,6 @@
               <tbody>
                 <tr>
                   <td>
-                    <i class="fas fa-check-circle text-success"></i> Consumed
-                  </td>
-                  <td class="text-end">
-                    {{ metrics.budget.currency_symbol }}{{
-                    metrics.budget.consumed_amount|round(0)|int }}
-                  </td>
-                </tr>
-                <tr>
-                  <td>
                     <i class="fas fa-hourglass-half text-primary"></i> Remaining
                   </td>
                   <td class="text-end">
@@ -1536,20 +1560,16 @@
                 <tr>
                   <td><i class="fas fa-fire text-warning"></i> Burn Rate</td>
                   <td class="text-end">
-                    <strong
-                      >{{ metrics.budget.currency_symbol }}{{
-                      metrics.budget.burn_rate|round(0)|int }}/week</strong
-                    >
+                    {{ metrics.budget.currency_symbol }}{{
+                    metrics.budget.burn_rate|round(0)|int }}/week
                   </td>
                 </tr>
                 <tr>
                   <td><i class="fas fa-road text-info"></i> Runway</td>
                   <td class="text-end">
-                    <strong
-                      >{% if metrics.budget.runway_weeks > 999990 %}Unlimited{%
-                      else %}{{ metrics.budget.runway_weeks|dec2 }} weeks{%
-                      endif %}</strong
-                    >
+                    {% if metrics.budget.runway_weeks > 999990 %}Unlimited{%
+                    else %}{{ metrics.budget.runway_weeks|dec2 }} weeks{%
+                    endif %}
                   </td>
                 </tr>
               </tbody>
@@ -1706,39 +1726,43 @@
         <p class="text-center text-muted mb-4">
           <i class="fas fa-info-circle"></i> {{ metrics.flow.weeks_count }}-Week Period • 4-week weighted average (40%, 30%, 20%, 10%)
         </p>
+        {% set velocity_color = get_flow_velocity_color(metrics.flow.velocity) %}
+        {% set time_color = get_flow_time_color(metrics.flow.flow_time) %}
+        {% set efficiency_color = get_flow_efficiency_color(metrics.flow.efficiency) %}
+        {% set load_color = get_flow_load_color(metrics.flow.wip) %}
         <div class="velocity-cards" style="grid-template-columns: repeat(2, 1fr);">
-          <div class="velocity-card" style="border-left-color: #0d6efd;">
+          <div class="velocity-card" style="border-left-color: {{ velocity_color }};">
             <div class="velocity-card-title">
               <i class="fas fa-tachometer-alt"></i> Flow Velocity
             </div>
-            <div class="velocity-card-value" style="color: #0d6efd;">
+            <div class="velocity-card-value" style="color: {{ velocity_color }};">
               {{ metrics.flow.velocity|dec2 }}
               <span class="velocity-card-unit">items/week</span>
             </div>
           </div>
-          <div class="velocity-card" style="border-left-color: var(--color-orange);">
+          <div class="velocity-card" style="border-left-color: {{ time_color }};">
             <div class="velocity-card-title">
               <i class="fas fa-clock"></i> Flow Time
             </div>
-            <div class="velocity-card-value" style="color: var(--color-orange);">
+            <div class="velocity-card-value" style="color: {{ time_color }};">
               {{ metrics.flow.flow_time|dec2 }}
               <span class="velocity-card-unit">days (median)</span>
             </div>
           </div>
-          <div class="velocity-card" style="border-left-color: var(--color-health-good);">
+          <div class="velocity-card" style="border-left-color: {{ efficiency_color }};">
             <div class="velocity-card-title">
               <i class="fas fa-chart-line"></i> Flow Efficiency
             </div>
-            <div class="velocity-card-value" style="color: var(--color-health-good);">
+            <div class="velocity-card-value" style="color: {{ efficiency_color }};">
               {{ metrics.flow.efficiency|dec2 }}%
               <span class="velocity-card-unit"></span>
             </div>
           </div>
-          <div class="velocity-card" style="border-left-color: #6f42c1;">
+          <div class="velocity-card" style="border-left-color: {{ load_color }};">
             <div class="velocity-card-title">
               <i class="fas fa-tasks"></i> Flow Load (WIP)
             </div>
-            <div class="velocity-card-value" style="color: #6f42c1;">
+            <div class="velocity-card-value" style="color: {{ load_color }};">
               {{ metrics.flow.wip }}
               <span class="velocity-card-unit">items (current)</span>
             </div>
@@ -1846,12 +1870,16 @@
         <p class="text-center text-muted mb-4">
           <i class="fas fa-info-circle"></i> {{ metrics.dora.weeks_count }}-Week Period • Lead Time & MTTR: median of weekly medians. Deployment Frequency: average. CFR: aggregate rate.
         </p>
+        {% set df_color = get_deployment_frequency_color(metrics.dora.deployment_frequency) %}
+        {% set lt_color = get_lead_time_color(metrics.dora.lead_time_days if metrics.dora.lead_time_days else 999) %}
+        {% set cfr_color = get_cfr_color(metrics.dora.change_failure_rate) %}
+        {% set mttr_color = get_mttr_color(metrics.dora.mttr_hours if metrics.dora.mttr_hours else 999) %}
         <div class="velocity-cards" style="grid-template-columns: repeat(2, 1fr);">
-          <div class="velocity-card" style="border-left-color: #0d6efd;">
+          <div class="velocity-card" style="border-left-color: {{ df_color }};">
             <div class="velocity-card-title">
               <i class="fas fa-shipping-fast"></i> Deployment Frequency
             </div>
-            <div class="velocity-card-value" style="color: #0d6efd;">
+            <div class="velocity-card-value" style="color: {{ df_color }};">
               {{ metrics.dora.deployment_frequency|dec2 }}
               <span class="velocity-card-unit">releases/wk</span>
             </div>
@@ -1861,12 +1889,12 @@
             </div>
             {% endif %}
           </div>
-          <div class="velocity-card" style="border-left-color: var(--color-health-good);">
+          <div class="velocity-card" style="border-left-color: {{ lt_color }};">
             <div class="velocity-card-title">
               <i class="fas fa-clock"></i> Lead Time For Changes
             </div>
             {% if metrics.dora.lead_time_days %}
-            <div class="velocity-card-value" style="color: var(--color-health-good);">
+            <div class="velocity-card-value" style="color: {{ lt_color }};">
               {{ metrics.dora.lead_time_days|dec2 }}
               <span class="velocity-card-unit">days</span>
             </div>
@@ -1879,21 +1907,21 @@
             </div>
             {% endif %}
           </div>
-          <div class="velocity-card" style="border-left-color: var(--color-health-at-risk);">
+          <div class="velocity-card" style="border-left-color: {{ cfr_color }};">
             <div class="velocity-card-title">
               <i class="fas fa-exclamation-triangle"></i> Change Failure Rate
             </div>
-            <div class="velocity-card-value" style="color: var(--color-health-at-risk);">
+            <div class="velocity-card-value" style="color: {{ cfr_color }};">
               {{ metrics.dora.change_failure_rate|dec2 }}%
               <span class="velocity-card-unit"></span>
             </div>
           </div>
-          <div class="velocity-card" style="border-left-color: var(--color-health-critical);">
+          <div class="velocity-card" style="border-left-color: {{ mttr_color }};">
             <div class="velocity-card-title">
               <i class="fas fa-tools"></i> Mean Time To Recovery
             </div>
             {% if metrics.dora.mttr_hours %}
-            <div class="velocity-card-value" style="color: var(--color-health-critical);">
+            <div class="velocity-card-value" style="color: {{ mttr_color }};">
               {{ metrics.dora.mttr_hours|dec2 }}
               <span class="velocity-card-unit">hours</span>
             </div>
