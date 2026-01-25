@@ -168,6 +168,53 @@ def register(app):
     """
 
     @app.callback(
+        Output("current-statistics", "data"),
+        Input("current-statistics", "modified_timestamp"),
+        prevent_initial_call=True,
+    )
+    def reload_statistics_from_database(timestamp):
+        """
+        Reload statistics from database when modified_timestamp changes.
+
+        This ensures UI reflects database state after external updates like:
+        - Update Data (JIRA sync overwrites manual edits)
+        - Force Refresh (complete data wipe and reload)
+        - Query switching
+
+        Args:
+            timestamp: Timestamp from modified_timestamp trigger
+
+        Returns:
+            List of statistics dictionaries loaded from database
+        """
+        from configuration import logger
+        from data.persistence import load_unified_project_data
+
+        logger.info(
+            f"[Statistics] reload_statistics_from_database triggered by timestamp={timestamp}"
+        )
+
+        try:
+            # Load fresh data from database
+            unified_data = load_unified_project_data()
+            statistics = unified_data.get("statistics", [])
+
+            logger.info(f"[Statistics] Reloaded {len(statistics)} rows from database")
+            if statistics:
+                logger.info(
+                    f"[Statistics] First row: {statistics[0].get('date', 'NO_DATE')}, "
+                    f"Last row: {statistics[-1].get('date', 'NO_DATE')}"
+                )
+
+            return statistics
+
+        except Exception as e:
+            logger.error(
+                f"[Statistics] Failed to reload from database: {e}", exc_info=True
+            )
+            raise PreventUpdate
+
+    @app.callback(
         [
             Output("current-statistics", "data", allow_duplicate=True),
             Output("current-statistics", "modified_timestamp", allow_duplicate=True),
@@ -176,10 +223,13 @@ def register(app):
             ),  # Clear cache to force refresh
         ],
         [Input("statistics-table", "data")],
-        [State("app-init-complete", "data"), State("chart-tabs", "active_tab")],
+        [
+            State("app-init-complete", "data"),
+            State("current-statistics", "data"),
+        ],
         prevent_initial_call=True,
     )
-    def save_statistics_on_edit(table_data, init_complete, active_tab):
+    def save_statistics_on_edit(table_data, init_complete, current_statistics):
         """
         Save statistics to database when user edits the table.
 
@@ -187,22 +237,89 @@ def register(app):
         (triggered when user edits cells in the Weekly Data tab) and saves the
         updated data to disk. Then clears chart cache to force visualization refresh.
 
-        CRITICAL: Only save when actively in the statistics tab to avoid saving
-        the hidden placeholder's empty data.
+        CRITICAL: This callback can be triggered by:
+        1. User manually editing a cell (SHOULD save)
+        2. Tab re-rendering with fresh data from database (SHOULD NOT save - would create loop)
+
+        To distinguish: Compare table_data with current_statistics. If they match,
+        this is a re-render, not a user edit.
         """
         from datetime import datetime
         from data.persistence import save_statistics
         from configuration import logger
 
-        # CRITICAL FIX: Only save if we're in the statistics tab
-        # This prevents saving when the tab is not active (which would have empty data)
+        logger.info(
+            f"[Statistics] save_statistics_on_edit triggered: "
+            f"table_data={'None' if table_data is None else f'{len(table_data)} rows'}, "
+            f"init_complete={init_complete}"
+        )
+
+        # Validate table_data before saving
+        if not table_data:
+            logger.warning("[Statistics] PREVENTING save - table_data is empty")
+            raise PreventUpdate
+
+        # CRITICAL FIX: Prevent save loop when tab re-renders with database data
+        # If table_data matches current_statistics, this is NOT a user edit
+        if current_statistics and len(table_data) == len(current_statistics):
+            # Quick check: compare a few key values to see if data is identical
+            # (full deep comparison would be expensive)
+            if len(table_data) > 0:
+                first_table = table_data[0]
+                first_current = current_statistics[0]
+                last_table = table_data[-1]
+                last_current = current_statistics[-1]
+
+                # Compare key fields to detect if this is the same data
+                if (
+                    first_table.get("date") == first_current.get("date")
+                    and first_table.get("remaining_items")
+                    == first_current.get("remaining_items")
+                    and first_table.get("completed_items")
+                    == first_current.get("completed_items")
+                    and last_table.get("date") == last_current.get("date")
+                    and last_table.get("remaining_items")
+                    == last_current.get("remaining_items")
+                    and last_table.get("completed_items")
+                    == last_current.get("completed_items")
+                ):
+                    logger.info(
+                        "[Statistics] PREVENTING save - table_data matches current_statistics "
+                        "(tab re-render, not user edit)"
+                    )
+                    raise PreventUpdate
+
+        # Validate table_data before saving
+        if not table_data:
+            logger.warning("[Statistics] PREVENTING save - table_data is empty")
+            raise PreventUpdate
+
+        # Log first and last row for debugging
+        if len(table_data) > 0:
+            logger.info(
+                f"[Statistics] Saving {len(table_data)} rows. "
+                f"First: {table_data[0].get('date', 'NO_DATE')}, "
+                f"Last: {table_data[-1].get('date', 'NO_DATE')}"
+            )
 
         # Save to database
-        save_statistics(table_data)
-        logger.info(f"Statistics table edited and saved: {len(table_data)} rows")
+        try:
+            save_statistics(table_data)
+            logger.info(
+                f"[Statistics] ✓ Table edited and saved SUCCESSFULLY to DB: {len(table_data)} rows"
+            )
+        except Exception as e:
+            logger.error(
+                f"[Statistics] ✗ FAILED to save statistics to DB: {e}",
+                exc_info=True,
+            )
+            # Still return the data to update the browser store
+            # But the DB save failed
 
         # Return updated data, timestamp, and clear chart cache to force refresh
-        return table_data, int(datetime.now().timestamp() * 1000), {}
+        timestamp = int(datetime.now().timestamp() * 1000)
+        logger.info(f"[Statistics] Returning updated data with timestamp {timestamp}")
+        return table_data, timestamp, {}
 
     @app.callback(
         Output("statistics-table", "data", allow_duplicate=True),

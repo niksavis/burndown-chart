@@ -20,6 +20,7 @@ logger = logging.getLogger(__name__)
         Output("cancel-operation-btn", "style", allow_duplicate=True),
         Output("trigger-auto-metrics-calc", "data", allow_duplicate=True),
         Output("metrics-refresh-trigger", "data", allow_duplicate=True),
+        Output("current-statistics", "modified_timestamp", allow_duplicate=True),
     ],
     [Input("progress-poll-interval", "n_intervals")],
     prevent_initial_call=True,
@@ -55,6 +56,7 @@ def update_progress_bars(n_intervals):
                 {"display": "none"},  # Hide Cancel button
                 no_update,  # No metrics trigger
                 no_update,  # No metrics refresh
+                no_update,  # No statistics reload
             )
 
         task_id = progress_data.get("task_id")
@@ -74,6 +76,7 @@ def update_progress_bars(n_intervals):
                 {"display": "none"},  # Hide Cancel button
                 no_update,  # No metrics trigger
                 no_update,  # No metrics refresh
+                no_update,  # No statistics reload
             )
 
         status = progress_data.get("status", "idle")
@@ -170,6 +173,7 @@ def update_progress_bars(n_intervals):
                         {"display": "none"},  # Hide Cancel button
                         no_update,  # No metrics trigger
                         int(time.time() * 1000),  # Trigger metrics refresh
+                        int(time.time() * 1000),  # Trigger statistics reload
                     )
                 elif elapsed >= 3:
                     # 3 seconds elapsed - hide progress bar but DON'T delete file
@@ -189,6 +193,7 @@ def update_progress_bars(n_intervals):
                         {"display": "none"},  # Hide Cancel button
                         no_update,  # No metrics trigger
                         int(time.time() * 1000),  # Trigger metrics refresh
+                        int(time.time() * 1000),  # Trigger statistics reload
                     )
                 else:
                     # Show success message
@@ -210,6 +215,7 @@ def update_progress_bars(n_intervals):
                         {"display": "none"},  # Hide Cancel button
                         no_update,  # No metrics trigger
                         int(time.time() * 1000),  # Trigger metrics refresh
+                        int(time.time() * 1000),  # Trigger statistics reload
                     )
             # No complete_time, hide immediately
             logger.info("[Progress] Task complete (no timestamp), hiding immediately")
@@ -227,6 +233,7 @@ def update_progress_bars(n_intervals):
                 {"display": "none"},  # Hide Cancel button
                 no_update,  # No metrics trigger
                 int(time.time() * 1000),  # Trigger metrics refresh
+                int(time.time() * 1000),  # Trigger statistics reload
             )
 
         # Handle error status - show error message briefly then hide
@@ -254,6 +261,7 @@ def update_progress_bars(n_intervals):
                         {"display": "none"},  # Hide Cancel button
                         no_update,  # No metrics trigger
                         no_update,  # No metrics refresh
+                        no_update,  # No statistics reload on error
                     )
                 else:
                     # Show error message
@@ -273,6 +281,7 @@ def update_progress_bars(n_intervals):
                         {"display": "none"},  # Hide Cancel button
                         no_update,  # No metrics trigger
                         no_update,  # No metrics refresh
+                        no_update,  # No statistics reload on error
                     )
             # No error time, hide immediately
             return (
@@ -287,6 +296,7 @@ def update_progress_bars(n_intervals):
                 {"display": "none"},  # Hide Cancel button
                 no_update,  # No metrics trigger
                 no_update,  # No metrics refresh
+                no_update,  # No statistics reload on error
             )
 
         # If task is idle, hide progress bar
@@ -303,6 +313,7 @@ def update_progress_bars(n_intervals):
                 {"display": "none"},  # Hide Cancel button
                 no_update,  # No metrics trigger
                 no_update,  # No metrics refresh
+                no_update,  # No statistics reload when idle
             )
 
         # Show progress container with fixed height
@@ -366,6 +377,7 @@ def update_progress_bars(n_intervals):
             if stuck_metrics_trigger
             else no_update,  # Auto-trigger metrics if stuck
             no_update,  # No metrics refresh during progress
+            no_update,  # No statistics reload during progress
         )
 
     except Exception as e:
@@ -382,6 +394,7 @@ def update_progress_bars(n_intervals):
             {"display": "none"},  # Hide Cancel button
             no_update,  # No metrics trigger on exception
             no_update,  # No metrics refresh on exception
+            no_update,  # No statistics reload on exception
         )
 
 

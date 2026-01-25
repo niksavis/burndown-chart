@@ -1123,6 +1123,7 @@ def register(app):
         # BUT: If we're switching tabs (trigger is from chart-tabs), clear ALL cache
         # to prevent any possibility of cross-tab contamination
         # ALSO: Clear ALL cache when budget changes to ensure fresh render
+        # ALSO: Clear ALL cache when statistics change (table edits) to ensure immediate reactivity
         trigger_info = ctx.triggered[0]["prop_id"] if ctx.triggered else ""
         if "chart-tabs" in trigger_info:
             logger.debug(
@@ -1137,6 +1138,11 @@ def register(app):
         elif "metrics-refresh-trigger" in trigger_info:
             logger.debug(
                 "[CTO DEBUG] Import/refresh detected - CLEARING ALL CACHE to reload data"
+            )
+            chart_cache = {}
+        elif "current-statistics.modified_timestamp" in trigger_info:
+            logger.debug(
+                "[CTO DEBUG] Statistics modified (table edit) - CLEARING ALL CACHE to show changes immediately"
             )
             chart_cache = {}
         elif len(chart_cache) > 5:

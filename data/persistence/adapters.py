@@ -755,8 +755,13 @@ def save_statistics(data: List[Dict[str, Any]]) -> None:
     from data.iso_week_bucketing import get_week_label
     from datetime import datetime
 
+    logger.info(
+        f"[Persistence] save_statistics called with {len(data) if data else 0} rows"
+    )
+
     try:
         df = pd.DataFrame(data)
+        logger.debug(f"[Persistence] Created DataFrame with {len(df)} rows")
 
         # Ensure date column is in proper datetime format for sorting
         df["date"] = pd.to_datetime(df["date"], errors="coerce")
@@ -804,9 +809,12 @@ def save_statistics(data: List[Dict[str, Any]]) -> None:
         # Save the unified data
         save_unified_project_data(unified_data)
 
-        logger.info("[Cache] Statistics saved to database")
+        logger.info(
+            f"[Persistence] ✓ Statistics saved successfully to DB: {len(statistics_data)} rows"
+        )
     except Exception as e:
-        logger.error(f"[Cache] Error saving statistics: {e}")
+        logger.error(f"[Persistence] ✗ FAILED to save statistics: {e}", exc_info=True)
+        raise  # Re-raise so the callback knows it failed
 
 
 def save_statistics_from_csv_import(data: List[Dict[str, Any]]) -> None:
