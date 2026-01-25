@@ -137,26 +137,9 @@ def create_profile_selector_panel(id_suffix: str = "") -> html.Div:
                 ],
                 className="g-2",
             ),
-            # Empty state message (hidden by default, shown via callback)
-            dbc.Alert(
-                [
-                    html.I(className="fas fa-user-plus me-2"),
-                    "No profiles yet. ",
-                    html.A(
-                        "Create your first profile to get started →",
-                        id=f"empty-state-create-profile-link{id_suffix}",
-                        className="alert-link",
-                        href="#",
-                        style={"cursor": "pointer"},
-                    ),
-                ],
-                id=f"profile-empty-state{id_suffix}",
-                color="info",
-                className="mb-0 mt-2 d-none",
-                dismissable=False,
-            ),
         ],
         className="mb-0",
+        style={"position": "relative"},  # For absolute positioning of overlay
     )
 
 

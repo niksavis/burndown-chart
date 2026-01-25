@@ -6614,3 +6614,36 @@ article:hover,
 }
 
 /* ================================================================
+   Profile Empty State - First Profile Creation Guide
+   ================================================================ */
+
+/* Highlight the New button with pulsating glow when no profiles exist */
+#create-profile-btn.highlight-first-action {
+  position: relative;
+  animation: pulse-glow 3s ease-in-out infinite;
+}
+
+@keyframes pulse-glow {
+  0% {
+    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.6),
+                0 0 0 0 rgba(59, 130, 246, 0.4),
+                0 0 10px rgba(59, 130, 246, 0.3);
+  }
+  40% {
+    box-shadow: 0 0 0 10px rgba(59, 130, 246, 0.1),
+                0 0 0 20px rgba(59, 130, 246, 0.05),
+                0 0 30px rgba(59, 130, 246, 0.5);
+  }
+  60% {
+    box-shadow: 0 0 0 10px rgba(59, 130, 246, 0.1),
+                0 0 0 20px rgba(59, 130, 246, 0.05),
+                0 0 30px rgba(59, 130, 246, 0.5);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.6),
+                0 0 0 0 rgba(59, 130, 246, 0.4),
+                0 0 10px rgba(59, 130, 246, 0.3);
+  }
+}
+
+/* ================================================================

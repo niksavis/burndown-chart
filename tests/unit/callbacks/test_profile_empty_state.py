@@ -16,7 +16,7 @@ class TestProfileEmptyState:
     """Test UI and data handling when no profiles exist."""
 
     def test_refresh_profile_selector_with_no_profiles_shows_empty_state(self):
-        """Verify empty state alert is shown when no profiles exist."""
+        """Verify New button gets highlight class when no profiles exist."""
         from callbacks.profile_management import refresh_profile_selector
 
         with patch("callbacks.profile_management.list_profiles", return_value=[]):
@@ -30,7 +30,7 @@ class TestProfileEmptyState:
                     rename_disabled,
                     duplicate_disabled,
                     delete_disabled,
-                    empty_state_class,
+                    new_button_class,
                 ) = refresh_profile_selector(
                     form_modal_open=False,
                     delete_modal_open=False,
@@ -47,12 +47,11 @@ class TestProfileEmptyState:
                 assert duplicate_disabled is True
                 assert delete_disabled is True
 
-                # Verify empty state alert is visible (no d-none class)
-                assert "d-none" not in empty_state_class
-                assert "mb-0 mt-2" in empty_state_class
+                # Verify New button has highlight class
+                assert "highlight-first-action" in new_button_class
 
     def test_refresh_profile_selector_with_profiles_hides_empty_state(self):
-        """Verify empty state alert is hidden when profiles exist."""
+        """Verify New button does NOT get highlight class when profiles exist."""
         from callbacks.profile_management import refresh_profile_selector
 
         mock_profiles = [
@@ -80,7 +79,7 @@ class TestProfileEmptyState:
                     rename_disabled,
                     duplicate_disabled,
                     delete_disabled,
-                    empty_state_class,
+                    new_button_class,
                 ) = refresh_profile_selector(
                     form_modal_open=False,
                     delete_modal_open=False,
@@ -98,8 +97,8 @@ class TestProfileEmptyState:
                 assert duplicate_disabled is False
                 assert delete_disabled is False
 
-                # Verify empty state alert is hidden (has d-none class)
-                assert "d-none" in empty_state_class
+                # Verify New button does NOT have highlight class
+                assert "highlight-first-action" not in new_button_class
 
     def test_load_statistics_returns_empty_when_no_active_profile(self):
         """Verify load_statistics gracefully returns empty list when no active profile."""
@@ -155,42 +154,3 @@ class TestProfileEmptyState:
         # Test with empty string
         result = handle_profile_switch("")
         assert result == (no_update, no_update)
-
-    def test_empty_state_link_opens_create_profile_modal(self):
-        """Verify clicking empty state link opens create profile modal."""
-        from callbacks.profile_management import open_profile_form_modal
-
-        # Mock ctx.triggered to simulate empty state link click
-        with patch("callbacks.profile_management.ctx") as mock_ctx:
-            mock_ctx.triggered = [
-                {"prop_id": "empty-state-create-profile-link.n_clicks"}
-            ]
-
-            with patch("callbacks.profile_management.list_profiles", return_value=[]):
-                # Call the callback
-                (
-                    is_open,
-                    mode,
-                    source_id,
-                    modal_title,
-                    name_label,
-                    name_value,
-                    description_value,
-                    description_style,
-                    context_info,
-                    confirm_btn,
-                ) = open_profile_form_modal(
-                    create_clicks=None,
-                    rename_clicks=None,
-                    duplicate_clicks=None,
-                    empty_state_clicks=1,
-                    selected_profile_id=None,
-                )
-
-                # Verify modal opens in create mode
-                assert is_open is True
-                assert mode == "create"
-                assert source_id is None
-                assert modal_title == "Create New Profile"
-                assert name_value == ""
-                assert description_value == ""
