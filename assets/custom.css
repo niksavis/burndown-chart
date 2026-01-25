@@ -1873,6 +1873,16 @@ mark.jql-operator {
   box-shadow: var(--shadow-md);
 }
 
+/* Enable hover animation for metric cards (DORA, Flow metrics) even if they contain sparklines */
+.metric-card {
+  transition: all 0.2s ease;
+}
+
+.metric-card:hover {
+  transform: translateY(-2px) !important;
+  box-shadow: var(--shadow-md) !important;
+}
+
 /* Enable hover animation for specific budget cards even if they contain dash-graph */
 #cost-breakdown-card,
 #budget-timeline-card {
@@ -1885,10 +1895,9 @@ mark.jql-operator {
   box-shadow: var(--shadow-md) !important;
 }
 
-/* Prevent hover animation on structural cards (tabs, layout containers) */
+/* Prevent hover animation on structural cards (tabs, layout containers, large charts) */
 .card:has(.nav-tabs),
 .card:has(.tab-content),
-.card:has(.dash-graph),
 .card:has(.dash-table-container),
 .card:has(#statistics-table),
 .card.card-static,
@@ -1902,7 +1911,6 @@ mark.jql-operator {
 
 .card:has(.nav-tabs):hover,
 .card:has(.tab-content):hover,
-.card:has(.dash-graph):hover,
 .card:has(.dash-table-container):hover,
 .card:has(#statistics-table):hover,
 .card.card-static:hover,
@@ -1913,6 +1921,16 @@ mark.jql-operator {
   transform: none !important;
   box-shadow: var(--shadow-sm) !important;
   margin-top: 0 !important; /* Keep margin constant */
+}
+
+/* Disable hover for cards with large full-size charts (not sparklines in metric cards) */
+.card:has(.dash-graph):not(.metric-card):not(#cost-breakdown-card):not(#budget-timeline-card) {
+  transform: none !important;
+}
+
+.card:has(.dash-graph):not(.metric-card):not(#cost-breakdown-card):not(#budget-timeline-card):hover {
+  transform: none !important;
+  box-shadow: var(--shadow-sm) !important;
 }
 
 .card-header {
