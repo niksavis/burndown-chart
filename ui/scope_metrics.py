@@ -42,9 +42,6 @@ def create_scope_change_indicator(
     # Generate a unique ID for the indicator based on the title (for tooltip target)
     indicator_id = f"scope-indicator-{title.lower().replace(' ', '-')}"
 
-    # Extract metric name (Items or Points) from title
-    metric_name = "Items" if "Items" in title else "Points"
-
     # Determine status based on value and throughput ratio
     high_throughput_ratio = throughput_ratio and throughput_ratio > 1
 
@@ -118,7 +115,7 @@ def create_scope_change_indicator(
                             html.Div(
                                 [
                                     html.Span(
-                                        f"{metric_name} Scope Change",
+                                        title,
                                         className="fw-medium",
                                         style={"fontSize": "0.9rem"},
                                     ),
@@ -834,24 +831,23 @@ def create_scope_metrics_dashboard(
         total_created_points = 0
 
     # Calculate baselines (initial scope at start of data period)
-    # If total_items_scope is provided, use it as the baseline
-    # Otherwise, calculate baseline as: current remaining + completed - created (during period)
-    # This gives us the initial remaining work at the START of the data range
+    # CRITICAL: Use the baseline passed from callback - it's calculated correctly as:
+    # baseline = current_remaining + total_completed_in_filtered_period
+    # This gives the total work that existed at the START of the filtered time window
+    # DO NOT recalculate with "- created" as that produces negative values!
     if total_items_scope is not None:
-        baseline_items = total_items_scope  # Use provided initial scope
+        baseline_items = total_items_scope  # Use provided initial scope from callback
     else:
-        # Calculate initial scope at start of period
-        # Initial = Current + Completed - Created
-        baseline_items = remaining_items + total_completed_items - total_created_items
+        # Fallback: If not provided, calculate as current + completed
+        # Note: This should always be provided by the callback
+        baseline_items = remaining_items + total_completed_items
 
     if total_points_scope is not None:
-        baseline_points = total_points_scope  # Use provided initial scope
+        baseline_points = total_points_scope  # Use provided initial scope from callback
     else:
-        # Calculate initial scope at start of period
-        # Initial = Current + Completed - Created
-        baseline_points = (
-            remaining_points + total_completed_points - total_created_points
-        )
+        # Fallback: If not provided, calculate as current + completed
+        # Note: This should always be provided by the callback
+        baseline_points = remaining_points + total_completed_points
 
     # Calculate threshold in absolute values - how many items/points can be added
     # before exceeding the threshold percentage
@@ -905,9 +901,13 @@ def create_scope_metrics_dashboard(
     if alert_data["status"] != "ok":
         parts = []
         if items_exceeded:
-            parts.append(f"Items scope change ({scope_change_rate['items_rate']}%)")
+            parts.append(
+                f"Items scope change from baseline ({scope_change_rate['items_rate']}%)"
+            )
         if points_exceeded:
-            parts.append(f"Points scope change ({scope_change_rate['points_rate']}%)")
+            parts.append(
+                f"Points scope change from baseline ({scope_change_rate['points_rate']}%)"
+            )
 
         if parts:
             if alert_data["status"] == "warning":
@@ -950,7 +950,7 @@ def create_scope_metrics_dashboard(
                                         style={"color": "#0d6efd"},  # Blue for items
                                     ),
                                     html.Span(
-                                        "Items Scope Change Metrics",
+                                        "Items Scope Growth",
                                         className="fw-medium",
                                     ),
                                     html.I(
@@ -964,7 +964,7 @@ def create_scope_metrics_dashboard(
                             html.Div(
                                 [
                                     create_scope_change_indicator(
-                                        "Items Scope Change Rate",
+                                        "Items Scope Growth",
                                         scope_change_rate["items_rate"],
                                         threshold,
                                         SCOPE_HELP_TEXTS["scope_change_rate"],
@@ -1061,7 +1061,7 @@ def create_scope_metrics_dashboard(
                                             style={"color": "#fd7e14"},
                                         ),
                                         html.Span(
-                                            "Points Scope Change Metrics",
+                                            "Points Scope Growth",
                                             className="fw-medium",
                                         ),
                                         html.I(
@@ -1075,7 +1075,7 @@ def create_scope_metrics_dashboard(
                                 html.Div(
                                     [
                                         create_scope_change_indicator(
-                                            "Points Scope Change Rate",
+                                            "Points Scope Growth",
                                             scope_change_rate["points_rate"],
                                             threshold,
                                             SCOPE_HELP_TEXTS["scope_change_rate"]

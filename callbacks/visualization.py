@@ -903,9 +903,8 @@ def register(app):
 
         try:
             project_data = load_project_data()
-            project_scope = project_data.get("project_scope", {})
-            current_remaining_items = project_scope.get("remaining_items", 0)
-            current_remaining_points = project_scope.get("remaining_total_points", 0)
+            current_remaining_items = project_data.get("total_items", 0)
+            current_remaining_points = project_data.get("total_points", 0)
         except Exception as e:
             logger.error(f"[SCOPE BASELINE APP] Failed to load project_data: {e}")
             current_remaining_items = 0

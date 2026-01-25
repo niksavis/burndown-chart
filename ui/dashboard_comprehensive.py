@@ -2217,6 +2217,17 @@ def _create_quality_scope_section(statistics_df, settings):
         total_completed = statistics_df["completed_items"].sum()
         scope_growth_rate = _safe_divide(total_created, total_completed) * 100
 
+        # Calculate scope change rate (% of current backlog that's new work)
+        # Use remaining items from last snapshot + completed items as total_items
+        total_items = total_created + (
+            statistics_df["remaining_items"].iloc[-1]
+            if "remaining_items" in statistics_df.columns and not statistics_df.empty
+            else 0
+        )
+        scope_change_rate = (
+            _safe_divide(total_created, total_items) * 100 if total_items > 0 else 0
+        )
+
         # Get date range for context
         if "date" in statistics_df.columns and not statistics_df.empty:
             start_date = statistics_df["date"].min()
@@ -2238,18 +2249,18 @@ def _create_quality_scope_section(statistics_df, settings):
         scope_metrics.extend(
             [
                 {
-                    "label": "New Items Added",
-                    "value": f"{total_created:,}",
-                    "color": COLOR_PALETTE["items"],
-                    "icon": "fa-plus-circle",
-                    "tooltip": f"Total new work items added to project backlog during {date_range} ({weeks_count} weeks). This represents scope expansion - new features, bugs, or tasks discovered after project start. Monitor this to identify uncontrolled scope growth.",
+                    "label": "New Work in Backlog",
+                    "value": f"{scope_change_rate:.1f}%",
+                    "color": "rgb(20, 168, 150)",  # Teal - distinct from items blue
+                    "icon": "fa-chart-area",
+                    "tooltip": f"New work as % of current backlog. Added {total_created:,} of {total_items:,} items during {date_range} ({weeks_count} weeks). Healthy: <15%, Warning: 15-35%, Critical: >35%. Your value: {scope_change_rate:.1f}%",
                 },
                 {
                     "label": "Scope Growth Rate",
                     "value": f"{scope_growth_rate:.1f}%",
                     "color": "#6610f2",
                     "icon": "fa-chart-line",
-                    "tooltip": f"Ratio of new items added vs items completed during {date_range}. Shows {total_created:,} new items added while {total_completed:,} completed. Healthy projects: <20% (balanced scope). Warning: 20-50% (scope creep). Critical: >50% (uncontrolled growth). Your value: {scope_growth_rate:.1f}%",
+                    "tooltip": f"Work creation vs completion rate. Added {total_created:,} items, completed {total_completed:,} during {date_range}. <100% = shrinking backlog, >100% = growing backlog. Your value: {scope_growth_rate:.1f}%",
                 },
             ]
         )

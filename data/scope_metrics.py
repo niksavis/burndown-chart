@@ -430,9 +430,9 @@ def check_scope_change_threshold(
     if status == "warning":
         parts = []
         if items_exceeded:
-            parts.append(f"Items scope change ({scope_change_rate['items_rate']}%)")
+            parts.append(f"Items scope growth ({scope_change_rate['items_rate']}%)")
         if points_exceeded:
-            parts.append(f"Points scope change ({scope_change_rate['points_rate']}%)")
+            parts.append(f"Points scope growth ({scope_change_rate['points_rate']}%)")
 
         if parts:
             message = f"{' and '.join(parts)} exceed threshold ({threshold}%)."

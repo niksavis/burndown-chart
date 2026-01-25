@@ -252,6 +252,346 @@ def _load_report_data(profile_id: str, weeks: int) -> Dict[str, Any]:
     }
 
 
+def _calculate_executive_summary(
+    dashboard_metrics: Dict[str, Any], extended_metrics: Dict[str, Any]
+) -> Dict[str, Any]:
+    """
+    Generate executive summary with top insights and risks.
+
+    Args:
+        dashboard_metrics: Dashboard metrics (health, completion, velocity, forecast)
+        extended_metrics: Extended metrics (DORA, Flow, Bug, Budget, Scope)
+
+    Returns:
+        Dictionary with executive summary data
+    """
+    summary = {
+        "has_data": dashboard_metrics.get("has_data", False),
+        "health_score": dashboard_metrics.get("health_score", 0),
+        "health_status": dashboard_metrics.get("health_status", "Unknown"),
+        "completion_pct": dashboard_metrics.get("items_completion_pct", 0),
+        "forecast_date": dashboard_metrics.get("forecast_date_items"),
+        "deadline": dashboard_metrics.get("deadline"),
+        "budget_runway_weeks": 0,
+        "top_risks": [],
+        "top_wins": [],
+    }
+
+    # Budget runway
+    if "budget" in extended_metrics:
+        budget = extended_metrics["budget"]
+        if budget.get("has_data"):
+            summary["budget_runway_weeks"] = budget.get("runway_weeks", 0)
+
+    # Identify top 3 risks
+    risks = []
+
+    # Schedule risk
+    if summary["forecast_date"] and summary["deadline"]:
+        try:
+            from datetime import datetime
+
+            forecast_dt = datetime.strptime(summary["forecast_date"], "%Y-%m-%d")
+            deadline_dt = datetime.strptime(summary["deadline"], "%Y-%m-%d")
+            buffer_days = (deadline_dt - forecast_dt).days
+            if buffer_days < 0:
+                risks.append(
+                    (
+                        "Schedule",
+                        f"Behind schedule by {abs(buffer_days)} days",
+                        "critical",
+                    )
+                )
+            elif buffer_days < 14:
+                risks.append(
+                    (
+                        "Schedule",
+                        f"Tight schedule, only {buffer_days} days buffer",
+                        "high",
+                    )
+                )
+        except Exception:
+            pass
+
+    # Budget risk
+    if summary["budget_runway_weeks"] > 0:
+        forecast_weeks = dashboard_metrics.get("forecast_weeks_items", 0)
+        if forecast_weeks > summary["budget_runway_weeks"]:
+            shortfall_weeks = forecast_weeks - summary["budget_runway_weeks"]
+            risks.append(
+                (
+                    "Budget",
+                    f"Budget depletes {shortfall_weeks:.0f} weeks before completion",
+                    "critical",
+                )
+            )
+        elif forecast_weeks * 1.2 > summary["budget_runway_weeks"]:
+            risks.append(("Budget", "Budget runway tight if velocity drops", "high"))
+
+    # Quality risk
+    if "bug_analysis" in extended_metrics:
+        bug_metrics = extended_metrics["bug_analysis"]
+        if bug_metrics.get("has_data"):
+            bug_capacity = bug_metrics.get("bug_capacity_consumption_pct", 0)
+            if bug_capacity > 30:
+                risks.append(
+                    (
+                        "Quality",
+                        f"Bugs consuming {bug_capacity:.0f}% of capacity",
+                        "high",
+                    )
+                )
+            elif bug_capacity > 20:
+                risks.append(
+                    (
+                        "Quality",
+                        f"Bug workload elevated at {bug_capacity:.0f}%",
+                        "medium",
+                    )
+                )
+
+    # Velocity risk
+    velocity_cv = dashboard_metrics.get("velocity_cv", 0)
+    if velocity_cv > 50:
+        risks.append(
+            (
+                "Predictability",
+                f"High velocity variance (CV: {velocity_cv:.0f}%)",
+                "medium",
+            )
+        )
+
+    # Sort by severity and take top 3
+    severity_order = {"critical": 0, "high": 1, "medium": 2, "low": 3}
+    risks.sort(key=lambda x: severity_order.get(x[2], 99))
+    summary["top_risks"] = risks[:3]
+
+    # Identify top 3 wins
+    wins = []
+
+    # Health win
+    if summary["health_score"] >= 70:
+        wins.append(
+            (
+                "Project Health",
+                f"Strong overall health score: {summary['health_score']:.0f}%",
+            )
+        )
+    elif summary["health_score"] >= 50:
+        wins.append(
+            ("Project Health", f"Stable health score: {summary['health_score']:.0f}%")
+        )
+
+    # Schedule win
+    if summary["forecast_date"] and summary["deadline"]:
+        try:
+            from datetime import datetime
+
+            forecast_dt = datetime.strptime(summary["forecast_date"], "%Y-%m-%d")
+            deadline_dt = datetime.strptime(summary["deadline"], "%Y-%m-%d")
+            buffer_days = (deadline_dt - forecast_dt).days
+            if buffer_days >= 30:
+                wins.append(
+                    ("Schedule", f"Comfortable schedule buffer: {buffer_days} days")
+                )
+            elif buffer_days >= 14:
+                wins.append(("Schedule", f"On track with {buffer_days} days buffer"))
+        except Exception:
+            pass
+
+    # Velocity win
+    trend = dashboard_metrics.get("trend_direction", "stable")
+    if trend == "improving":
+        change_pct = dashboard_metrics.get("recent_velocity_change", 0)
+        wins.append(("Velocity", f"Team velocity improving: +{change_pct:.0f}%"))
+    elif velocity_cv < 20:
+        wins.append(("Predictability", f"Consistent velocity (CV: {velocity_cv:.0f}%)"))
+
+    # Quality win
+    if "bug_analysis" in extended_metrics:
+        bug_metrics = extended_metrics["bug_analysis"]
+        if bug_metrics.get("has_data"):
+            bug_capacity = bug_metrics.get("bug_capacity_consumption_pct", 0)
+            if bug_capacity < 15:
+                wins.append(
+                    ("Quality", f"Low bug workload: {bug_capacity:.0f}% of capacity")
+                )
+
+    summary["top_wins"] = wins[:3]
+
+    return summary
+
+
+def _calculate_risk_assessment(
+    dashboard_metrics: Dict[str, Any], extended_metrics: Dict[str, Any]
+) -> Dict[str, Any]:
+    """
+    Calculate risk levels for key project dimensions.
+
+    Args:
+        dashboard_metrics: Dashboard metrics
+        extended_metrics: Extended metrics (DORA, Flow, Bug, Budget, Scope)
+
+    Returns:
+        Dictionary with risk assessment data
+    """
+    assessment = {
+        "has_data": dashboard_metrics.get("has_data", False),
+        "schedule_risk": {"level": "unknown", "score": 0, "details": ""},
+        "budget_risk": {"level": "unknown", "score": 0, "details": ""},
+        "quality_risk": {"level": "unknown", "score": 0, "details": ""},
+        "scope_risk": {"level": "unknown", "score": 0, "details": ""},
+    }
+
+    if not assessment["has_data"]:
+        return assessment
+
+    # Schedule risk calculation
+    forecast_date = dashboard_metrics.get("forecast_date_items")
+    deadline = dashboard_metrics.get("deadline")
+    if forecast_date and deadline:
+        try:
+            from datetime import datetime
+
+            forecast_dt = datetime.strptime(forecast_date, "%Y-%m-%d")
+            deadline_dt = datetime.strptime(deadline, "%Y-%m-%d")
+            buffer_days = (deadline_dt - forecast_dt).days
+            confidence = dashboard_metrics.get("completion_confidence", 50)
+
+            if buffer_days < 0:
+                assessment["schedule_risk"] = {
+                    "level": "critical",
+                    "score": 25,
+                    "details": f"Behind schedule by {abs(buffer_days)} days",
+                }
+            elif buffer_days < 7:
+                assessment["schedule_risk"] = {
+                    "level": "high",
+                    "score": 50,
+                    "details": f"Very tight: {buffer_days} days buffer, {confidence:.0f}% confidence",
+                }
+            elif buffer_days < 21:
+                assessment["schedule_risk"] = {
+                    "level": "medium",
+                    "score": 70,
+                    "details": f"Moderate: {buffer_days} days buffer, {confidence:.0f}% confidence",
+                }
+            else:
+                assessment["schedule_risk"] = {
+                    "level": "low",
+                    "score": 90,
+                    "details": f"Comfortable: {buffer_days} days buffer",
+                }
+        except Exception as e:
+            logger.warning(f"Schedule risk calculation failed: {e}")
+
+    # Budget risk calculation
+    if "budget" in extended_metrics and extended_metrics["budget"].get("has_data"):
+        budget = extended_metrics["budget"]
+        runway_weeks = budget.get("runway_weeks", 0)
+        forecast_weeks = dashboard_metrics.get("forecast_weeks_items", 0)
+
+        if runway_weeks > 0 and forecast_weeks > 0:
+            weeks_diff = runway_weeks - forecast_weeks
+            if weeks_diff < 0:
+                assessment["budget_risk"] = {
+                    "level": "critical",
+                    "score": 25,
+                    "details": f"Budget depletes {abs(weeks_diff):.0f} weeks before completion",
+                }
+            elif weeks_diff < 2:
+                assessment["budget_risk"] = {
+                    "level": "high",
+                    "score": 50,
+                    "details": f"Very tight: {weeks_diff:.0f} weeks buffer",
+                }
+            elif weeks_diff < 4:
+                assessment["budget_risk"] = {
+                    "level": "medium",
+                    "score": 70,
+                    "details": f"Moderate: {weeks_diff:.0f} weeks buffer",
+                }
+            else:
+                assessment["budget_risk"] = {
+                    "level": "low",
+                    "score": 90,
+                    "details": f"Comfortable: {weeks_diff:.0f} weeks buffer",
+                }
+
+    # Quality risk calculation
+    if "bug_analysis" in extended_metrics and extended_metrics["bug_analysis"].get(
+        "has_data"
+    ):
+        bug_metrics = extended_metrics["bug_analysis"]
+        bug_capacity = bug_metrics.get("bug_capacity_consumption_pct", 0)
+        critical_count = bug_metrics.get("bug_count_by_severity", {}).get("Critical", 0)
+
+        if bug_capacity > 40 or critical_count > 5:
+            assessment["quality_risk"] = {
+                "level": "critical",
+                "score": 25,
+                "details": f"Critical bugs: {critical_count}, consuming {bug_capacity:.0f}% capacity",
+            }
+        elif bug_capacity > 30 or critical_count > 2:
+            assessment["quality_risk"] = {
+                "level": "high",
+                "score": 50,
+                "details": f"Bugs consuming {bug_capacity:.0f}% of team capacity",
+            }
+        elif bug_capacity > 20:
+            assessment["quality_risk"] = {
+                "level": "medium",
+                "score": 70,
+                "details": f"Elevated bug workload: {bug_capacity:.0f}% capacity",
+            }
+        else:
+            assessment["quality_risk"] = {
+                "level": "low",
+                "score": 90,
+                "details": f"Healthy bug workload: {bug_capacity:.0f}% capacity",
+            }
+
+    # Scope risk calculation
+    if "scope" in extended_metrics and extended_metrics["scope"].get("has_data"):
+        scope_metrics = extended_metrics["scope"]
+        scope_change_rate = scope_metrics.get("scope_change_rate", 0)
+        completion_pct = dashboard_metrics.get("items_completion_pct", 0)
+
+        # Scope risk increases as project progresses (late changes costlier)
+        if completion_pct > 75 and scope_change_rate > 15:
+            assessment["scope_risk"] = {
+                "level": "high",
+                "score": 50,
+                "details": f"Late-stage scope changes: {scope_change_rate:.0f}% at {completion_pct:.0f}% complete",
+            }
+        elif scope_change_rate > 25:
+            assessment["scope_risk"] = {
+                "level": "high",
+                "score": 50,
+                "details": f"High scope volatility: {scope_change_rate:.0f}% change rate",
+            }
+        elif completion_pct > 50 and scope_change_rate > 10:
+            assessment["scope_risk"] = {
+                "level": "medium",
+                "score": 70,
+                "details": f"Mid-stage scope changes: {scope_change_rate:.0f}% at {completion_pct:.0f}% complete",
+            }
+        elif scope_change_rate > 15:
+            assessment["scope_risk"] = {
+                "level": "medium",
+                "score": 70,
+                "details": f"Moderate scope changes: {scope_change_rate:.0f}% change rate",
+            }
+        else:
+            assessment["scope_risk"] = {
+                "level": "low",
+                "score": 90,
+                "details": f"Stable scope: {scope_change_rate:.0f}% change rate",
+            }
+
+    return assessment
+
+
 def _calculate_all_metrics(
     report_data: Dict[str, Any], sections: List[str], time_period_weeks: int
 ) -> Dict[str, Any]:
@@ -332,6 +672,56 @@ def _calculate_all_metrics(
         )
         extended_metrics.pop("budget_needed")
 
+        # CRITICAL FIX: Recalculate health_dimensions now that budget is available
+        # The initial health calculation in _calculate_dashboard_metrics() didn't have budget
+        # This ensures Financial dimension is included when budget is configured
+        from data.project_health_calculator import (
+            calculate_comprehensive_project_health,
+            prepare_dashboard_metrics_for_health,
+        )
+
+        # Prepare same dashboard metrics used in initial calculation
+        dashboard = metrics["dashboard"]
+        items_completion_pct = dashboard.get("items_completion_pct", 0)
+        velocity_items = dashboard.get("velocity_items", 0)
+        velocity_cv = dashboard.get("velocity_cv", 0)
+        trend_direction = dashboard.get("trend_direction", "stable")
+        recent_velocity_change = 0  # Not exposed in dashboard return
+        schedule_variance_days = dashboard.get("schedule_variance_days", 0)
+        completion_confidence = dashboard.get("completion_confidence", 50)
+
+        dashboard_metrics_for_health = prepare_dashboard_metrics_for_health(
+            completion_percentage=items_completion_pct,
+            current_velocity_items=velocity_items,
+            velocity_cv=velocity_cv,
+            trend_direction=trend_direction,
+            recent_velocity_change=recent_velocity_change,
+            schedule_variance_days=schedule_variance_days,
+            completion_confidence=completion_confidence,
+        )
+
+        # Calculate scope_change_rate from dashboard (it's calculated there, not in scope metrics)
+        scope_change_rate = dashboard.get("scope_change_rate", 0)
+
+        # Recalculate comprehensive health WITH budget_metrics
+        health_result = calculate_comprehensive_project_health(
+            dashboard_metrics=dashboard_metrics_for_health,
+            dora_metrics=extended_metrics.get("dora"),
+            flow_metrics=extended_metrics.get("flow"),
+            bug_metrics=extended_metrics.get("bug_analysis"),
+            budget_metrics=extended_metrics.get("budget"),  # NOW has data
+            scope_metrics={"scope_change_rate": scope_change_rate},
+        )
+
+        # Update dashboard metrics with correct health_dimensions including Financial
+        metrics["dashboard"]["health_dimensions"] = health_result.get("dimensions", {})
+        metrics["dashboard"]["health_score"] = health_result["overall_score"]
+
+        logger.info(
+            f"[REPORT HEALTH] Recalculated with budget: health_score={health_result['overall_score']:.1f}%, "
+            f"financial_weight={health_result.get('dimensions', {}).get('financial', {}).get('weight', 0):.1f}%"
+        )
+
     # Burndown metrics
     if "burndown" in sections:
         metrics["burndown"] = _calculate_burndown_metrics(
@@ -362,6 +752,16 @@ def _calculate_all_metrics(
     # Budget metrics (already calculated above)
     if "budget" in sections:
         metrics["budget"] = extended_metrics.get("budget", {})
+
+    # Executive Summary (NEW - always calculated for reports)
+    metrics["executive_summary"] = _calculate_executive_summary(
+        metrics["dashboard"], extended_metrics
+    )
+
+    # Risk Assessment (NEW - always calculated for reports)
+    metrics["risk_assessment"] = _calculate_risk_assessment(
+        metrics["dashboard"], extended_metrics
+    )
 
     return metrics
 
@@ -500,6 +900,7 @@ def _calculate_dashboard_metrics(
 
     # Schedule variance will be calculated after forecast (placeholder for now)
     schedule_variance_days = 0
+    completion_confidence = 50  # Default confidence
 
     # Calculate basic velocity early for health calculation
     # This will be recalculated more precisely later with data_points_count filtering
@@ -830,6 +1231,29 @@ def _calculate_dashboard_metrics(
             f"[REPORT HEALTH] FINAL health_score={health_score}% status={health_status} "
             f"(recalculated with schedule_variance_days={schedule_variance_days:.2f})"
         )
+    else:
+        # No deadline configured - recalculate health with final extended_metrics
+        # This ensures budget_metrics are included even without deadline
+        logger.info(
+            "[REPORT HEALTH] No deadline - recalculating health with all extended metrics"
+        )
+        health_result = calculate_comprehensive_project_health(
+            dashboard_metrics=dashboard_metrics_for_health,
+            dora_metrics=extended_metrics.get("dora"),
+            flow_metrics=extended_metrics.get("flow"),
+            bug_metrics=extended_metrics.get("bug_analysis"),
+            budget_metrics=extended_metrics.get("budget"),
+            scope_metrics={"scope_change_rate": scope_change_rate},
+        )
+        health_score = health_result["overall_score"]
+        if health_score >= 70:
+            health_status = "GOOD"
+        elif health_score >= 50:
+            health_status = "CAUTION"
+        elif health_score >= 30:
+            health_status = "AT RISK"
+        else:
+            health_status = "CRITICAL"
 
     return {
         "has_data": True,
@@ -857,6 +1281,17 @@ def _calculate_dashboard_metrics(
         "pert_time_items_weeks": (pert_time_items / 7.0) if pert_time_items else 0,
         "pert_time_points_weeks": (pert_time_points / 7.0) if pert_time_points else 0,
         "show_points": show_points,  # Pass show_points flag for template
+        "health_dimensions": health_result.get(
+            "dimensions", {}
+        ),  # Pass health dimensions for breakdown visualization
+        "velocity_cv": velocity_cv,  # Pass velocity coefficient of variation
+        "trend_direction": trend_direction,  # Pass trend direction
+        "schedule_variance_days": schedule_variance_days,  # Pass schedule variance
+        "completion_confidence": completion_confidence,  # Pass completion confidence
+        "scope_change_rate": scope_change_rate,  # Pass scope change rate for Sustainability dimension display
+        "forecast_weeks_items": (pert_time_items / 7.0)
+        if pert_time_items
+        else 0,  # Pass forecast weeks for budget alignment
     }
 
 
@@ -1048,6 +1483,9 @@ def _calculate_bug_metrics(
             "closed_bugs": closed_bugs,
             "resolution_rate": resolution_rate_pct,
             "avg_age_days": avg_age_days,
+            "capacity_consumed_by_bugs": bug_summary.get(
+                "capacity_consumed_by_bugs", 0
+            ),
             "forecast_weeks": forecast.get("most_likely_weeks") if forecast else None,
             "forecast_date": forecast.get("most_likely_date") if forecast else None,
             "avg_closure_rate": forecast.get("avg_closure_rate") if forecast else None,
@@ -1486,6 +1924,7 @@ def _calculate_budget_metrics(
         calculate_budget_consumed,
         calculate_runway,
         calculate_cost_breakdown_by_type,
+        get_budget_baseline_vs_actual,
     )
     from data.iso_week_bucketing import get_week_label
     from datetime import datetime
@@ -1528,6 +1967,12 @@ def _calculate_budget_metrics(
             profile_id, query_id, current_week
         )
 
+        # Get variance metrics for health calculator (includes burn_rate_variance_pct, etc.)
+        baseline_vs_actual = get_budget_baseline_vs_actual(
+            profile_id, query_id, current_week, data_points_count=weeks_count
+        )
+        variance_metrics = baseline_vs_actual.get("variance", {})
+
         # Use velocity from dashboard (already calculated in report) for accurate cost per item/point
         # This ensures consistency with the velocity shown in the dashboard section
         cost_per_item = cost_per_week / velocity_items if velocity_items > 0 else 0
@@ -1539,7 +1984,8 @@ def _calculate_budget_metrics(
 
         logger.info(
             f"Budget metrics calculated: consumed={consumed_pct:.1f}%, "
-            f"runway={runway_weeks:.1f}w, burn_rate={burn_rate:.2f}"
+            f"runway={runway_weeks:.1f}w, burn_rate={burn_rate:.2f}, "
+            f"variance_pct={variance_metrics.get('burn_rate_variance_pct', 0):.1f}%"
         )
 
     except Exception as e:
@@ -1552,6 +1998,7 @@ def _calculate_budget_metrics(
         cost_breakdown = {}
         cost_per_item = 0.0
         cost_per_point = 0.0
+        variance_metrics = {}
 
     return {
         "has_data": True,
@@ -1568,6 +2015,10 @@ def _calculate_budget_metrics(
         "cost_per_item": cost_per_item,
         "cost_per_point": cost_per_point,
         "cost_breakdown": cost_breakdown,
+        # Add variance metrics for health calculator
+        "burn_rate_variance_pct": variance_metrics.get("burn_rate_variance_pct", 0),
+        "runway_vs_baseline_pct": variance_metrics.get("runway_vs_baseline_pct", 0),
+        "utilization_vs_pace_pct": variance_metrics.get("utilization_vs_pace_pct", 0),
     }
 
 
@@ -1744,7 +2195,7 @@ def _generate_burndown_chart(
             "label": "Remaining Items",
             "data": items,
             "borderColor": "#0d6efd",
-            "backgroundColor": "rgba(13, 110, 253, 0.1)",
+            "backgroundColor": "rgba(13, 110, 253, 0.7)",
             "tension": 0.4,
             "borderWidth": 2,
             "yAxisID": "y",
@@ -1757,7 +2208,7 @@ def _generate_burndown_chart(
                 "label": "Remaining Points",
                 "data": points,
                 "borderColor": "#fd7e14",
-                "backgroundColor": "rgba(253, 126, 20, 0.1)",
+                "backgroundColor": "rgba(253, 126, 20, 0.7)",
                 "tension": 0.4,
                 "borderWidth": 2,
                 "yAxisID": "y1",
@@ -1954,14 +2405,14 @@ def _generate_scope_changes_chart(metrics: Dict[str, Any]) -> str:
                         {{
                             label: 'Items Created',
                             data: {created_items_js},
-                            backgroundColor: 'rgba(220, 53, 69, 0.6)',
+                            backgroundColor: 'rgba(220, 53, 69, 0.8)',
                             borderColor: 'rgba(220, 53, 69, 1)',
                             borderWidth: 1
                         }},
                         {{
                             label: 'Items Completed',
                             data: {completed_items_js},
-                            backgroundColor: 'rgba(25, 135, 84, 0.6)',
+                            backgroundColor: 'rgba(25, 135, 84, 0.8)',
                             borderColor: 'rgba(25, 135, 84, 1)',
                             borderWidth: 1
                         }}
@@ -2082,7 +2533,7 @@ def _generate_bug_trends_chart(weekly_stats: List[Dict]) -> str:
                             label: 'Bugs Created',
                             data: {bugs_created_js},
                             borderColor: '#dc3545',
-                            backgroundColor: 'rgba(220, 53, 69, 0.1)',
+                            backgroundColor: 'rgba(220, 53, 69, 0.7)',
                             tension: 0.4,
                             borderWidth: 2,
                             fill: false
@@ -2091,7 +2542,7 @@ def _generate_bug_trends_chart(weekly_stats: List[Dict]) -> str:
                             label: 'Bugs Closed',
                             data: {bugs_resolved_js},
                             borderColor: '#28a745',
-                            backgroundColor: 'rgba(40, 167, 69, 0.1)',
+                            backgroundColor: 'rgba(40, 167, 69, 0.7)',
                             tension: 0.4,
                             borderWidth: 2,
                             fill: false
@@ -2220,7 +2671,7 @@ def _generate_work_distribution_chart(flow_metrics: Dict[str, Any]) -> str:
                         {{
                             label: 'Feature',
                             data: {feature_pct_js},
-                            backgroundColor: 'rgba(24, 128, 80, 0.65)',
+                            backgroundColor: 'rgba(24, 128, 80, 0.8)',
                             borderColor: 'white',
                             borderWidth: 0.5,
                             counts: featureCounts
@@ -2228,7 +2679,7 @@ def _generate_work_distribution_chart(flow_metrics: Dict[str, Any]) -> str:
                         {{
                             label: 'Defect',
                             data: {defect_pct_js},
-                            backgroundColor: 'rgba(210, 50, 65, 0.65)',
+                            backgroundColor: 'rgba(210, 50, 65, 0.8)',
                             borderColor: 'white',
                             borderWidth: 0.5,
                             counts: defectCounts
@@ -2236,7 +2687,7 @@ def _generate_work_distribution_chart(flow_metrics: Dict[str, Any]) -> str:
                         {{
                             label: 'Tech Debt',
                             data: {tech_debt_pct_js},
-                            backgroundColor: 'rgba(245, 120, 19, 0.65)',
+                            backgroundColor: 'rgba(245, 120, 19, 0.8)',
                             borderColor: 'white',
                             borderWidth: 0.5,
                             counts: techDebtCounts
@@ -2244,7 +2695,7 @@ def _generate_work_distribution_chart(flow_metrics: Dict[str, Any]) -> str:
                         {{
                             label: 'Risk',
                             data: {risk_pct_js},
-                            backgroundColor: 'rgba(245, 185, 7, 0.65)',
+                            backgroundColor: 'rgba(245, 185, 7, 0.8)',
                             borderColor: 'white',
                             borderWidth: 0.5,
                             counts: riskCounts

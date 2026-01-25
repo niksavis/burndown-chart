@@ -17,6 +17,29 @@ The project health formula represents a **state-of-the-art assessment** that lev
 | **Missing Data**      | Gracefully redistributes weights                                      |
 | **Context Awareness** | Project stage + metric categories                                     |
 
+## Weight Justification (Executive Summary)
+
+**Question**: Why these specific weights (Delivery 25%, Predictability 20%, Quality 20%, Efficiency 15%, Sustainability 10%, Financial 10%)?
+
+**Answer**: Weights reflect **industry research** and **executive priorities** for project success:
+
+| Dimension          | Weight | Rationale                                                                                                                                                                  |
+| ------------------ | ------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Delivery**       | 25%    | **Primary value driver**. Research shows 80% of project failures stem from inability to deliver working software. Highest weight reflects "are we shipping?"               |
+| **Predictability** | 20%    | **Critical for planning**. Chaos Report (Standish Group) cites poor estimation/unpredictability as #2 project failure cause. Enables stakeholder confidence/roadmap trust. |
+| **Quality**        | 20%    | **Risk mitigation**. DORA research correlates quality with organizational performance. Poor quality = technical debt spiral, customer churn, reputational damage.          |
+| **Efficiency**     | 15%    | **Cost optimization**. Lean/Kanban research shows 15-20% efficiency gains possible. Lower weight than delivery/quality as speed without quality/predictability is risky.   |
+| **Sustainability** | 10%    | **Long-term viability**. Agile Manifesto emphasizes "sustainable pace." Prevents burnout, scope creep, technical debt accumulation. Secondary to immediate delivery.       |
+| **Financial**      | 10%    | **Budget adherence**. Important but adaptive - projects can get more budget if delivering value. Lower weight reflects that budget follows value, not vice versa.          |
+
+**Key Research Sources**:
+- **DORA State of DevOps Reports** (2015-2024): Quality/efficiency correlation with performance
+- **Standish Group Chaos Reports** (1994-2024): Delivery/predictability as top success factors
+- **Lean Software Development** (Mary & Tom Poppendieck): Waste elimination, flow efficiency
+- **Agile Manifesto Principles**: Working software, sustainable pace, technical excellence
+
+**Dynamic Adjustment**: If dimensions lack data (e.g., no budget tracking), weights redistribute proportionally to available dimensions, always summing to 100%.
+
 ## Formula Architecture
 
 ### Dimensional Breakdown
@@ -59,21 +82,44 @@ Dimension Categories (max weight %):
 
 ### Dynamic Weighting
 
-**Key Innovation**: Weights automatically adjust when metrics are unavailable.
+**Key Innovation**: Weights automatically adjust when metrics are unavailable, **always summing to 100%** to allow perfect scores to reach 100% overall health.
+
+**How it works**:
+
+1. **Base weights**: Each dimension has a max_weight representing its relative importance (Delivery: 25%, Predictability: 20%, Quality: 20%, Efficiency: 15%, Sustainability: 10%, Financial: 10%)
+
+2. **Missing dimensions**: When dimensions lack data (weight = 0), their max_weights are proportionally redistributed to available dimensions
+
+3. **Cap enforcement**: No dimension can exceed its proportionally adjusted max_weight, maintaining relative importance
+
+4. **100% target**: Weights always sum to 100%, ensuring perfect scores across all available dimensions yield 100% overall health
 
 **Example scenarios**:
 
 1. **Full Data Available** (Dashboard + DORA + Flow + Bug + Budget):
+   - All dimensions at base max_weights
    - Delivery: 25%, Predictability: 20%, Quality: 20%, Efficiency: 15%, Sustainability: 10%, Financial: 10%
+   - Perfect scores → 100% overall health ✓
 
-2. **No DORA Metrics** (Dashboard + Flow + Bug + Budget):
-   - Delivery: 28%, Predictability: 22%, Quality: 14% (bug only), Efficiency: 16% (flow only), Sustainability: 12%, Financial: 10%
-   - Quality redistributes: CFR/MTTR weight goes to Bug metrics
-   - Efficiency redistributes: Lead Time weight goes to Flow metrics
+2. **No Financial Data** (Dashboard + DORA + Flow + Bug):
+   - Financial's 10% redistributed proportionally
+   - Delivery: 25% + (25/90 × 10%) = 27.8%
+   - Predictability: 20% + (20/90 × 10%) = 22.2%
+   - Quality: 20% + (20/90 × 10%) = 22.2%
+   - Efficiency: 15% + (15/90 × 10%) = 16.7%
+   - Sustainability: 10% + (10/90 × 10%) = 11.1%
+   - Total: 100% ✓
+   - Perfect scores → 100% overall health ✓
 
-3. **Dashboard Only** (Minimal data mode):
-   - Focuses on core delivery dimensions with redistributed weights
-   - Progress 30%, Trend 20%, Consistency 20%, Schedule 20%, Scope 10%
+3. **Only Dashboard** (Delivery, Predictability, Sustainability available):
+   - Missing 55% (Quality + Efficiency + Financial) redistributed
+   - Delivery: 25% + (25/55 × 55%) = 45.5%
+   - Predictability: 20% + (20/55 × 55%) = 36.4%
+   - Sustainability: 10% + (10/55 × 55%) = 18.2%
+   - Total: 100% ✓
+   - Perfect scores → 100% overall health ✓
+
+**Key principle**: A project with perfect performance across all available metrics deserves 100% health, regardless of which dimensions have data.
 
 ## Detailed Signal Specifications
 

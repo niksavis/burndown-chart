@@ -148,12 +148,73 @@ def calculate_comprehensive_project_health(
     total_weight = sum(d["weight"] for d in dimensions.values())
 
     if total_weight > 0 and abs(total_weight - 100) > 0.01:
-        # Redistribute weights proportionally to sum to 100%
-        scale_factor = 100.0 / total_weight
-        for dim in dimensions.values():
-            if dim["weight"] > 0:
-                dim["weight"] = dim["weight"] * scale_factor
-        logger.debug(f"[HEALTH] Weight redistribution: {total_weight:.1f}% → 100.0%")
+        # When dimensions are missing, adjust max_weights proportionally
+        # This allows remaining dimensions to reach 100% total while maintaining relative importance
+        available_dims = [name for name, d in dimensions.items() if d["weight"] > 0]
+        missing_weight = 100.0 - sum(
+            dimensions[name]["max_weight"] for name in available_dims
+        )
+
+        if missing_weight > 0.01:
+            # Redistribute missing weight proportionally to available dimensions' max_weights
+            available_max_total = sum(
+                dimensions[name]["max_weight"] for name in available_dims
+            )
+            for name in available_dims:
+                original_max = dimensions[name]["max_weight"]
+                proportion = original_max / available_max_total
+                dimensions[name]["max_weight"] = original_max + (
+                    missing_weight * proportion
+                )
+            logger.debug(
+                f"[HEALTH] Adjusted max_weights due to {len(dimensions) - len(available_dims)} missing dimensions"
+            )
+
+        # Now scale to 100% respecting adjusted caps
+        capped_dims = []
+        max_iterations = 10
+
+        for iteration in range(max_iterations):
+            current_total = sum(d["weight"] for d in dimensions.values())
+
+            if abs(current_total - 100.0) < 0.01:
+                break
+
+            # Calculate how much we need to add/remove
+            adjustment_needed = 100.0 - current_total
+
+            # Find dimensions that can still accept weight
+            adjustable_dims = [
+                (name, dim)
+                for name, dim in dimensions.items()
+                if dim["weight"] > 0 and abs(dim["weight"] - dim["max_weight"]) > 0.01
+            ]
+
+            if not adjustable_dims:
+                # All dimensions at their max, can't reach 100%
+                break
+
+            # Distribute adjustment proportionally to adjustable dimensions
+            adjustable_total = sum(dim["weight"] for name, dim in adjustable_dims)
+
+            for dim_name, dim in adjustable_dims:
+                if adjustable_total > 0:
+                    proportion = dim["weight"] / adjustable_total
+                    adjustment = adjustment_needed * proportion
+                    new_weight = min(
+                        dim["max_weight"], max(0, dim["weight"] + adjustment)
+                    )
+                    dimensions[dim_name]["weight"] = new_weight
+
+                    if abs(new_weight - dim["max_weight"]) < 0.01:
+                        if dim_name not in capped_dims:
+                            capped_dims.append(dim_name)
+
+        final_total = sum(d["weight"] for d in dimensions.values())
+        logger.debug(
+            f"[HEALTH] Weight redistribution: {total_weight:.1f}% → {final_total:.1f}% "
+            f"(capped: {', '.join(capped_dims) if capped_dims else 'none'})"
+        )
 
     # Calculate weighted score: sum(score × weight/100)
     overall_score = sum(d["score"] * d["weight"] / 100 for d in dimensions.values())
