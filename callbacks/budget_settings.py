@@ -228,10 +228,14 @@ def _create_revision_history_table(
         Input("profile-selector", "value"),
         Input("query-selector", "value"),
         Input("parameter-tabs", "active_tab"),
+        Input("profile-switch-trigger", "data"),  # Reload after import
+        Input("metrics-refresh-trigger", "data"),  # Reload after data update
     ],
     prevent_initial_call=False,
 )
-def load_budget_settings(profile_id, query_id, active_tab):
+def load_budget_settings(
+    profile_id, query_id, active_tab, profile_switch, metrics_refresh
+):
     """
     Load budget settings when profile/query changes or Budget tab is opened.
 
