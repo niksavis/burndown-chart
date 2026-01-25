@@ -2010,7 +2010,9 @@ def register(app):
                 return flow_content, chart_cache, ui_state
 
             elif active_tab == "tab-statistics-data":
-                # Return the actual statistics table content (consistent with other tabs)
+                # Load statistics from DB and render table
+                from ui.cards import create_statistics_data_card
+
                 statistics_content = create_statistics_data_card(statistics)
 
                 # Cache the result for next time

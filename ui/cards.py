@@ -1641,13 +1641,12 @@ def create_statistics_data_card(current_statistics):
         "created_points": "right",
     }
 
-    # Create the enhanced table - uses different ID from hidden placeholder
-    # The hidden statistics-table in layout.py is updated by callbacks
-    # This display table is synced from the hidden one via clientside callback
+    # Create the statistics table directly in Weekly Data tab
+    # No hidden placeholder needed - Dash handles components in tabs just fine!
     statistics_table = create_enhanced_data_table(
         data=statistics_df.to_dict("records"),
         columns=columns,
-        id="statistics-table-display",
+        id="statistics-table",
         editable=True,
         row_selectable=False,
         page_size=10,
@@ -1872,28 +1871,17 @@ def create_statistics_data_card(current_statistics):
                     [
                         create_button(
                             text="Add Row",
-                            id="add-row-button-display",
+                            id="add-row-button",
                             variant="primary",
                             icon_class="fas fa-plus",
                         ),
                         dbc.Tooltip(
                             "Adds a new weekly entry with Monday date 7 days after the most recent entry. Enter work completed and created during that week (Monday-Sunday).",
-                            target="add-row-button-display",
+                            target="add-row-button",
                             placement="top",
                         ),
                     ],
-                    className="me-2 mb-2 mb-sm-0",  # Add right margin and bottom margin on mobile
-                    style={"display": "inline-block"},
-                ),
-                # Button to clear filters - resized and repositioned
-                html.Div(
-                    create_button(
-                        text="Clear Filters",
-                        id="clear-filters-button",
-                        variant="outline-secondary",
-                        icon_class="fas fa-filter",
-                    ),
-                    className="me-2 mb-2 mb-sm-0",  # Add right margin and bottom margin on mobile
+                    className="mb-2 mb-sm-0",  # Add bottom margin on mobile
                     style={"display": "inline-block"},
                 ),
             ],

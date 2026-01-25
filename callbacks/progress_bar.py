@@ -444,7 +444,7 @@ def cancel_operation(n_clicks):
 
 @callback(
     [
-        Output("statistics-table", "data", allow_duplicate=True),
+        # Removed Output("statistics-table") - tab loads from DB when activated
         Output("jira-cache-status", "children", allow_duplicate=True),
         Output(
             "current-statistics", "data", allow_duplicate=True
@@ -514,7 +514,10 @@ def reload_data_after_update(refresh_trigger):
             className="text-success small",
         )
 
-        return statistics, cache_status, statistics  # Update current-statistics store
+        return (
+            cache_status,  # jira-cache-status.children
+            statistics,  # current-statistics.data
+        )
 
     except Exception as e:
         logger.error(f"[Progress] Error reloading statistics: {e}", exc_info=True)

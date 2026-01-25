@@ -14,7 +14,7 @@ from datetime import datetime
 
 # Third-party library imports
 import dash_bootstrap_components as dbc
-from dash import dcc, html, dash_table
+from dash import dcc, html
 
 # Application imports
 from configuration import __version__
@@ -307,28 +307,6 @@ def create_app_layout(settings, statistics, is_sample_data):
                     className="shadow-sm",
                 ),
                 row_class="mb-4",
-            ),
-            # Hidden placeholders for Statistics Data tab components
-            # The actual visible components are rendered in the Statistics Data tab
-            # but these placeholders are required for Dash callback registration
-            html.Div(
-                [
-                    # Placeholder DataTable for statistics (required for callbacks)
-                    dash_table.DataTable(
-                        id="statistics-table",
-                        data=[],
-                        columns=[
-                            {"name": "date", "id": "date"},
-                            {"name": "completed_items", "id": "completed_items"},
-                            {"name": "completed_points", "id": "completed_points"},
-                            {"name": "created_items", "id": "created_items"},
-                            {"name": "created_points", "id": "created_points"},
-                        ],
-                    ),
-                    # Placeholder button for adding rows (required for callbacks)
-                    dbc.Button("Add Row", id="add-row-button"),
-                ],
-                style={"display": "none"},
             ),
             # Compact footer with clean design
             html.Div(
