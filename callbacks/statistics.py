@@ -189,12 +189,22 @@ def register(app):
         """
         from configuration import logger
         from data.persistence import load_unified_project_data
+        from data.profile_manager import get_active_profile
+        from dash.exceptions import PreventUpdate
 
         logger.info(
             f"[Statistics] reload_statistics_from_database triggered by timestamp={timestamp}"
         )
 
         try:
+            # Check if we have an active profile - prevent crash when last profile is deleted
+            active_profile = get_active_profile()
+            if not active_profile:
+                logger.info(
+                    "[Statistics] No active profile, skipping statistics reload"
+                )
+                raise PreventUpdate
+
             # Load fresh data from database
             unified_data = load_unified_project_data()
             statistics = unified_data.get("statistics", [])

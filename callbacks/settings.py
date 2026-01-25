@@ -282,9 +282,16 @@ def register(app):
         are loaded into the UI, fixing the bug where imported settings weren't displayed.
         """
         from data.persistence import load_app_settings
+        from data.profile_manager import get_active_profile
         import time
 
         try:
+            # Check if we have an active profile - prevent crash when last profile is deleted
+            active_profile = get_active_profile()
+            if not active_profile:
+                logger.info("[Settings] No active profile, skipping settings reload")
+                raise PreventUpdate
+
             # Load settings from database
             settings = load_app_settings()
 
@@ -444,6 +451,13 @@ def register(app):
         # FIX: Load current remaining work from project_scope (database source of truth)
         try:
             from data.persistence import load_unified_project_data
+            from data.profile_manager import get_active_profile
+
+            # Check if we have an active profile before trying to load data
+            active_profile = get_active_profile()
+            if not active_profile:
+                logger.info("[Settings] No active profile, using default values")
+                raise PreventUpdate
 
             unified_data = load_unified_project_data()
             project_scope = unified_data.get("project_scope", {})
