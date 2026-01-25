@@ -142,7 +142,7 @@ def create_app_layout(settings, statistics, is_sample_data):
                 id="app-notifications",
                 style={
                     "position": "fixed",
-                    "top": "4px",
+                    "top": "0px",
                     "right": "10px",
                     "zIndex": "9999",
                     "width": "320px",
