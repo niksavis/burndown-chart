@@ -505,7 +505,6 @@ def reload_data_after_update(refresh_trigger):
                 "[Progress] No statistics found after reload - clearing stores"
             )
             return (
-                [],
                 html.Div(
                     [
                         html.I(className="fas fa-exclamation-triangle me-2"),
@@ -537,7 +536,6 @@ def reload_data_after_update(refresh_trigger):
         from dash import html
 
         return (
-            no_update,
             html.Div(
                 [
                     html.I(className="fas fa-exclamation-triangle me-2"),
