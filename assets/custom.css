@@ -5709,10 +5709,81 @@ body {
   transform: translateX(2px);
 }
 
-/* Disable row hover animation in cost-breakdown-card table */
+/* Enhanced styling for cost-breakdown-card table */
+#cost-breakdown-card .table {
+  margin-bottom: 0;
+  font-size: var(--text-sm);
+}
+
+#cost-breakdown-card .table > thead > tr > th {
+  background: linear-gradient(to bottom, var(--color-neutral-100), var(--color-neutral-50));
+  border-bottom: 2px solid var(--color-neutral-300);
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  padding: var(--space-3) var(--space-4);
+}
+
+#cost-breakdown-card .table > tbody > tr {
+  border-bottom: 1px solid var(--color-neutral-200);
+  transition: background-color var(--transition-fast);
+}
+
+#cost-breakdown-card .table > tbody > tr:last-child {
+  border-bottom: none;
+}
+
+#cost-breakdown-card .table > tbody > tr > td {
+  padding: var(--space-3) var(--space-4);
+  vertical-align: middle;
+  font-weight: 500;
+}
+
+/* Work Type column - bold with subtle left border accent */
+#cost-breakdown-card .table > tbody > tr > td:first-child {
+  font-weight: 600;
+  color: var(--color-neutral-800);
+  border-left: 3px solid transparent;
+  padding-left: calc(var(--space-4) - 3px);
+}
+
+/* Cost column - prominent with currency color */
+#cost-breakdown-card .table > tbody > tr > td:nth-child(2) {
+  font-weight: 600;
+  color: var(--color-brand-700);
+  font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+  font-size: var(--text-base);
+}
+
+/* Percentage column - badge-style */
+#cost-breakdown-card .table > tbody > tr > td:nth-child(3) {
+  font-weight: 600;
+  color: var(--color-neutral-600);
+}
+
+/* Count column - muted but readable */
+#cost-breakdown-card .table > tbody > tr > td:nth-child(4) {
+  color: var(--color-neutral-600);
+  font-size: var(--text-sm);
+}
+
+/* Hover effect with colored left border */
+#cost-breakdown-card .table > tbody > tr:hover {
+  background-color: rgba(13, 110, 253, 0.03);
+}
+
+#cost-breakdown-card .table > tbody > tr:hover > td:first-child {
+  border-left-color: var(--color-brand-400);
+}
+
+/* Disable row transform animation (already disabled but keep for clarity) */
 #cost-breakdown-card .table-hover > tbody > tr:hover {
   transform: none;
   box-shadow: none;
+}
+
+/* Alternating row colors for better readability */
+#cost-breakdown-card .table > tbody > tr:nth-of-type(even) {
+  background-color: rgba(0, 0, 0, 0.015);
 }
 
 /* Disable row hover animation in budget-timeline-card table */
