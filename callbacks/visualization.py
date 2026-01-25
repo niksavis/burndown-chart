@@ -485,8 +485,8 @@ def register(app):
 
         # Pessimistic forecast pill
         if "pessimistic_forecast" in trend_data:
-            # Use different color based on trend type (items/points)
-            pessimistic_color = "#6610f2" if "items" in title.lower() else "#a52a2a"
+            # Use consistent red color for pessimistic across both items and points
+            pessimistic_color = "#dc3545"  # Danger red for worst case
             forecast_pills.append(
                 create_forecast_pill(
                     "Pessimistic", trend_data["pessimistic_forecast"], pessimistic_color
@@ -642,7 +642,7 @@ def register(app):
                         items_trend,
                         "Weekly Items Trend",
                         "fas fa-tasks",
-                        "#20c997",
+                        "#0d6efd",  # Blue for items
                     ),
                 ]
                 + (
@@ -685,7 +685,8 @@ def register(app):
                 html.H5(
                     [
                         html.I(
-                            className="fas fa-tasks me-2", style={"color": "#20c997"}
+                            className="fas fa-tasks me-2",
+                            style={"color": "#0d6efd"},  # Blue for items
                         ),
                         "Weekly Completed Items",
                     ],
@@ -800,7 +801,7 @@ def register(app):
                             items_trend,
                             "Weekly Items Trend",
                             "fas fa-tasks",
-                            "#20c997",
+                            "#0d6efd",  # Blue for items
                         ),
                     ],
                     className="mb-4",

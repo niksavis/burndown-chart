@@ -947,7 +947,7 @@ def create_scope_metrics_dashboard(
                                 children=[
                                     html.I(
                                         className="fas fa-tasks me-2",
-                                        style={"color": "#20c997"},
+                                        style={"color": "#0d6efd"},  # Blue for items
                                     ),
                                     html.Span(
                                         "Items Scope Change Metrics",
@@ -994,17 +994,17 @@ def create_scope_metrics_dashboard(
                                             create_forecast_pill(
                                                 "Created",
                                                 f"{int(total_created_items)} items",
-                                                "#20c997",
+                                                "#0d6efd",  # Blue for items created
                                             ),
                                             create_forecast_pill(
                                                 "Completed",
                                                 f"{int(total_completed_items)} items",
-                                                "#0d6efd",
+                                                "#20c997",  # Success green for completed
                                             ),
                                             create_forecast_pill(
                                                 "Threshold",
                                                 f"{int(threshold_items)} items",
-                                                "#fd7e14",
+                                                "#ffc107",  # Warning yellow for threshold
                                             ),
                                             html.Div(
                                                 html.Small(
@@ -1112,17 +1112,17 @@ def create_scope_metrics_dashboard(
                                                 create_forecast_pill(
                                                     "Created",
                                                     f"{int(total_created_points)} points",
-                                                    "#fd7e14",
+                                                    "#fd7e14",  # Orange for points created
                                                 ),
                                                 create_forecast_pill(
                                                     "Completed",
                                                     f"{int(total_completed_points)} points",
-                                                    "#0d6efd",
+                                                    "#20c997",  # Success green for completed
                                                 ),
                                                 create_forecast_pill(
                                                     "Threshold",
                                                     f"{int(threshold_points)} points",
-                                                    "#fd7e14",
+                                                    "#ffc107",  # Warning yellow for threshold
                                                 ),
                                                 html.Div(
                                                     html.Small(
