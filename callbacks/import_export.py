@@ -356,13 +356,77 @@ def perform_import(import_data, conflict_strategy=None, custom_name=None):
                             valid_issues = []
                             invalid_count = 0
                             for issue in issues:
-                                # Check for required fields (JIRA uses 'key' not 'issue_key')
-                                if not issue.get("key"):
+                                # Check for required fields - handle both JIRA API format ('key') and SQLite format ('issue_key')
+                                issue_key = issue.get("key") or issue.get("issue_key")
+                                if not issue_key:
                                     invalid_count += 1
                                     logger.warning(
-                                        f"Skipping issue without 'key' field in query '{query_name}'"
+                                        f"Skipping issue without 'key' or 'issue_key' field in query '{query_name}'"
                                     )
                                     continue
+
+                                # Ensure 'key' field exists for JIRA API compatibility
+                                if "key" not in issue and "issue_key" in issue:
+                                    issue["key"] = issue["issue_key"]
+
+                                # Convert flat SQLite format to JIRA API format if needed
+                                # (Export uses flat format from database, but save_issues_batch expects JIRA API format)
+                                if "fields" not in issue:
+                                    # Build JIRA API format from flat fields
+                                    issue["fields"] = {
+                                        "summary": issue.get("summary", ""),
+                                        "status": {"name": issue.get("status", "")},
+                                        "assignee": {
+                                            "displayName": issue.get("assignee")
+                                        }
+                                        if issue.get("assignee")
+                                        else {},
+                                        "issuetype": {
+                                            "name": issue.get("issue_type", "")
+                                        },
+                                        "priority": {"name": issue.get("priority")}
+                                        if issue.get("priority")
+                                        else {},
+                                        "resolution": {"name": issue.get("resolution")}
+                                        if issue.get("resolution")
+                                        else {},
+                                        "created": issue.get("created"),
+                                        "updated": issue.get("updated"),
+                                        "resolutiondate": issue.get("resolved"),
+                                        "project": {
+                                            "key": issue.get("project_key", ""),
+                                            "name": issue.get("project_name", ""),
+                                        },
+                                        "fixVersions": issue.get("fixVersions", [])
+                                        if isinstance(issue.get("fixVersions"), list)
+                                        else json.loads(
+                                            issue.get("fix_versions") or "[]"
+                                        ),
+                                        "labels": issue.get("labels", [])
+                                        if isinstance(issue.get("labels"), list)
+                                        else json.loads(issue.get("labels") or "[]"),
+                                        "components": issue.get("components", [])
+                                        if isinstance(issue.get("components"), list)
+                                        else json.loads(
+                                            issue.get("components") or "[]"
+                                        ),
+                                    }
+
+                                    # Add custom fields from JSON
+                                    if "custom_fields" in issue:
+                                        custom_fields = issue.get("custom_fields")
+                                        if isinstance(custom_fields, str):
+                                            custom_fields = json.loads(custom_fields)
+                                        if isinstance(custom_fields, dict):
+                                            issue["fields"].update(custom_fields)
+
+                                    # Add points field if present
+                                    if (
+                                        "points" in issue
+                                        and issue["points"] is not None
+                                    ):
+                                        # Note: We don't know which customfield is points, so we'll let save_issues_batch handle it
+                                        pass
 
                                 # Add required metadata fields
                                 if "fetched_at" not in issue:
@@ -418,6 +482,17 @@ def perform_import(import_data, conflict_strategy=None, custom_name=None):
                                 f"estimated_items={project_scope.get('estimated_items')}, "
                                 f"total_points={project_scope.get('remaining_total_points')}, "
                                 f"estimated_points={project_scope.get('estimated_points')}"
+                            )
+
+                    # Import metrics data points (DORA, Flow, Bug metrics) - CRITICAL for health score consistency
+                    if "metrics" in query_data:
+                        metrics = query_data["metrics"]
+                        if metrics:
+                            backend.save_metrics_batch(
+                                profile_id, created_query_id, metrics
+                            )
+                            logger.info(
+                                f"Imported {len(metrics)} metrics data points for query '{query_name}'"
                             )
 
                 # Import budget data if present in query (query-level budget)
