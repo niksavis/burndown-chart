@@ -422,176 +422,6 @@ def _calculate_executive_summary(
     return summary
 
 
-def _calculate_risk_assessment(
-    dashboard_metrics: Dict[str, Any], extended_metrics: Dict[str, Any]
-) -> Dict[str, Any]:
-    """
-    Calculate risk levels for key project dimensions.
-
-    Args:
-        dashboard_metrics: Dashboard metrics
-        extended_metrics: Extended metrics (DORA, Flow, Bug, Budget, Scope)
-
-    Returns:
-        Dictionary with risk assessment data
-    """
-    assessment = {
-        "has_data": dashboard_metrics.get("has_data", False),
-        "schedule_risk": {"level": "unknown", "score": 0, "details": ""},
-        "budget_risk": {"level": "unknown", "score": 0, "details": ""},
-        "quality_risk": {"level": "unknown", "score": 0, "details": ""},
-        "scope_risk": {"level": "unknown", "score": 0, "details": ""},
-    }
-
-    if not assessment["has_data"]:
-        return assessment
-
-    # Schedule risk calculation
-    forecast_date = dashboard_metrics.get("forecast_date_items")
-    deadline = dashboard_metrics.get("deadline")
-    if forecast_date and deadline:
-        try:
-            from datetime import datetime
-
-            forecast_dt = datetime.strptime(forecast_date, "%Y-%m-%d")
-            deadline_dt = datetime.strptime(deadline, "%Y-%m-%d")
-            buffer_days = (deadline_dt - forecast_dt).days
-            confidence = dashboard_metrics.get("completion_confidence", 50)
-
-            if buffer_days < 0:
-                assessment["schedule_risk"] = {
-                    "level": "critical",
-                    "score": 25,
-                    "details": f"Behind schedule by {abs(buffer_days)} days",
-                }
-            elif buffer_days < 7:
-                assessment["schedule_risk"] = {
-                    "level": "high",
-                    "score": 50,
-                    "details": f"Very tight: {buffer_days} days buffer, {confidence:.0f}% confidence",
-                }
-            elif buffer_days < 21:
-                assessment["schedule_risk"] = {
-                    "level": "medium",
-                    "score": 70,
-                    "details": f"Moderate: {buffer_days} days buffer, {confidence:.0f}% confidence",
-                }
-            else:
-                assessment["schedule_risk"] = {
-                    "level": "low",
-                    "score": 90,
-                    "details": f"Comfortable: {buffer_days} days buffer",
-                }
-        except Exception as e:
-            logger.warning(f"Schedule risk calculation failed: {e}")
-
-    # Budget risk calculation
-    if "budget" in extended_metrics and extended_metrics["budget"].get("has_data"):
-        budget = extended_metrics["budget"]
-        runway_weeks = budget.get("runway_weeks", 0)
-        forecast_weeks = dashboard_metrics.get("forecast_weeks_items", 0)
-
-        if runway_weeks > 0 and forecast_weeks > 0:
-            weeks_diff = runway_weeks - forecast_weeks
-            if weeks_diff < 0:
-                assessment["budget_risk"] = {
-                    "level": "critical",
-                    "score": 25,
-                    "details": f"Budget depletes {abs(weeks_diff):.0f} weeks before completion",
-                }
-            elif weeks_diff < 2:
-                assessment["budget_risk"] = {
-                    "level": "high",
-                    "score": 50,
-                    "details": f"Very tight: {weeks_diff:.0f} weeks buffer",
-                }
-            elif weeks_diff < 4:
-                assessment["budget_risk"] = {
-                    "level": "medium",
-                    "score": 70,
-                    "details": f"Moderate: {weeks_diff:.0f} weeks buffer",
-                }
-            else:
-                assessment["budget_risk"] = {
-                    "level": "low",
-                    "score": 90,
-                    "details": f"Comfortable: {weeks_diff:.0f} weeks buffer",
-                }
-
-    # Quality risk calculation
-    if "bug_analysis" in extended_metrics and extended_metrics["bug_analysis"].get(
-        "has_data"
-    ):
-        bug_metrics = extended_metrics["bug_analysis"]
-        bug_capacity = bug_metrics.get("bug_capacity_consumption_pct", 0)
-        critical_count = bug_metrics.get("bug_count_by_severity", {}).get("Critical", 0)
-
-        if bug_capacity > 40 or critical_count > 5:
-            assessment["quality_risk"] = {
-                "level": "critical",
-                "score": 25,
-                "details": f"Critical bugs: {critical_count}, consuming {bug_capacity:.0f}% capacity",
-            }
-        elif bug_capacity > 30 or critical_count > 2:
-            assessment["quality_risk"] = {
-                "level": "high",
-                "score": 50,
-                "details": f"Bugs consuming {bug_capacity:.0f}% of team capacity",
-            }
-        elif bug_capacity > 20:
-            assessment["quality_risk"] = {
-                "level": "medium",
-                "score": 70,
-                "details": f"Elevated bug workload: {bug_capacity:.0f}% capacity",
-            }
-        else:
-            assessment["quality_risk"] = {
-                "level": "low",
-                "score": 90,
-                "details": f"Healthy bug workload: {bug_capacity:.0f}% capacity",
-            }
-
-    # Scope risk calculation
-    if "scope" in extended_metrics and extended_metrics["scope"].get("has_data"):
-        scope_metrics = extended_metrics["scope"]
-        scope_change_rate = scope_metrics.get("scope_change_rate", 0)
-        completion_pct = dashboard_metrics.get("items_completion_pct", 0)
-
-        # Scope risk increases as project progresses (late changes costlier)
-        if completion_pct > 75 and scope_change_rate > 15:
-            assessment["scope_risk"] = {
-                "level": "high",
-                "score": 50,
-                "details": f"Late-stage scope changes: {scope_change_rate:.0f}% at {completion_pct:.0f}% complete",
-            }
-        elif scope_change_rate > 25:
-            assessment["scope_risk"] = {
-                "level": "high",
-                "score": 50,
-                "details": f"High scope volatility: {scope_change_rate:.0f}% change rate",
-            }
-        elif completion_pct > 50 and scope_change_rate > 10:
-            assessment["scope_risk"] = {
-                "level": "medium",
-                "score": 70,
-                "details": f"Mid-stage scope changes: {scope_change_rate:.0f}% at {completion_pct:.0f}% complete",
-            }
-        elif scope_change_rate > 15:
-            assessment["scope_risk"] = {
-                "level": "medium",
-                "score": 70,
-                "details": f"Moderate scope changes: {scope_change_rate:.0f}% change rate",
-            }
-        else:
-            assessment["scope_risk"] = {
-                "level": "low",
-                "score": 90,
-                "details": f"Stable scope: {scope_change_rate:.0f}% change rate",
-            }
-
-    return assessment
-
-
 def _calculate_all_metrics(
     report_data: Dict[str, Any], sections: List[str], time_period_weeks: int
 ) -> Dict[str, Any]:
@@ -635,13 +465,12 @@ def _calculate_all_metrics(
             report_data["profile_id"], report_data["weeks_count"]
         )
 
-    # Budget metrics (calculated early for health score)
-    if "budget" in sections:
-        from data.query_manager import get_active_query_id
+    # Budget metrics (always calculated for health score)
+    from data.query_manager import get_active_query_id
 
-        # Note: Budget needs velocity which we calculate in dashboard, so we'll add it later
-        # For now, mark that it's needed
-        extended_metrics["budget_needed"] = True
+    # Note: Budget needs velocity which we calculate in dashboard, so we'll add it later
+    # For now, mark that it's needed
+    extended_metrics["budget_needed"] = True
 
     # Dashboard metrics (always calculated, shows summary)
     # Pass extended metrics for comprehensive health calculation
@@ -735,11 +564,18 @@ def _calculate_all_metrics(
 
     # Scope metrics
     if "burndown" in sections:
-        metrics["scope"] = _calculate_scope_metrics(
+        scope_metrics = _calculate_scope_metrics(
             report_data["statistics"],
             report_data["project_scope"],
             report_data["weeks_count"],
         )
+        metrics["scope"] = scope_metrics
+        # Add to extended_metrics for health score
+        # Include scope_change_rate from dashboard
+        extended_metrics["scope"] = {
+            **scope_metrics,
+            "scope_change_rate": metrics["dashboard"].get("scope_change_rate", 0),
+        }
 
     # Flow metrics (already calculated above for health)
     if "flow" in sections:
@@ -757,12 +593,6 @@ def _calculate_all_metrics(
     metrics["executive_summary"] = _calculate_executive_summary(
         metrics["dashboard"], extended_metrics
     )
-
-    # Risk Assessment (NEW - always calculated for reports)
-    metrics["risk_assessment"] = _calculate_risk_assessment(
-        metrics["dashboard"], extended_metrics
-    )
-
     return metrics
 
 
