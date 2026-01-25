@@ -2530,6 +2530,33 @@ def create_parameter_bar_collapsed(
                             dbc.Button(
                                 [
                                     html.I(
+                                        className="fas fa-cog",
+                                        style={"fontSize": "1rem"},
+                                    ),
+                                    html.Span(
+                                        "Settings",
+                                        className="d-none d-xxl-inline",
+                                        style={"marginLeft": "0.5rem"},
+                                    ),
+                                ],
+                                id="settings-button",
+                                color="primary",
+                                outline=True,
+                                size="sm",
+                                className="me-1",
+                                style={
+                                    "minWidth": "38px",
+                                    "height": "38px",
+                                    "padding": "0 8px",
+                                    "display": "flex",
+                                    "alignItems": "center",
+                                    "justifyContent": "center",
+                                },
+                                title="Expand Settings",
+                            ),
+                            dbc.Button(
+                                [
+                                    html.I(
                                         className="fas fa-sliders-h",
                                         style={"fontSize": "1rem"},
                                     ),
@@ -2554,33 +2581,6 @@ def create_parameter_bar_collapsed(
                                     "flexShrink": "0",
                                 },
                                 title="Adjust project parameters",
-                            ),
-                            dbc.Button(
-                                [
-                                    html.I(
-                                        className="fas fa-cog",
-                                        style={"fontSize": "1rem"},
-                                    ),
-                                    html.Span(
-                                        "Settings",
-                                        className="d-none d-xxl-inline",
-                                        style={"marginLeft": "0.5rem"},
-                                    ),
-                                ],
-                                id="settings-button",
-                                color="primary",
-                                outline=True,
-                                size="sm",
-                                className="me-1",
-                                style={
-                                    "minWidth": "38px",
-                                    "height": "38px",
-                                    "padding": "0 8px",
-                                    "display": "flex",
-                                    "alignItems": "center",
-                                    "justifyContent": "center",
-                                },
-                                title="Expand Settings",
                             ),
                             dbc.Button(
                                 [
