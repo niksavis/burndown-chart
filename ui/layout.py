@@ -142,10 +142,10 @@ def create_app_layout(settings, statistics, is_sample_data):
                 id="app-notifications",
                 style={
                     "position": "fixed",
-                    "top": "0px",
-                    "right": "10px",
+                    "top": "5px",
+                    "right": "5px",
                     "zIndex": "9999",
-                    "width": "320px",
+                    "width": "350px",
                 },
             ),
             # Store version info for callback to display toast after page loads
