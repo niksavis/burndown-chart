@@ -149,7 +149,7 @@ class TestHealthScoreConsistency:
         from unittest.mock import MagicMock, patch
 
         # Setup: Mock database backend
-        with patch("data.import_export.get_backend") as mock_get_backend:
+        with patch("data.persistence.factory.get_backend") as mock_get_backend:
             mock_backend = MagicMock()
             mock_get_backend.return_value = mock_backend
 
