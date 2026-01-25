@@ -576,11 +576,39 @@ STATISTICS_HELP_DETAILED = {
         • Include all work types (features, bugs, technical tasks)
         • Estimate new items promptly for accurate scope tracking
         
+        [!] **Editing Behavior:**
+        
+        **Scenario 1: Manual Edits Only**
+        • Edit cells directly - changes save to database immediately
+        • Charts and metrics update automatically
+        • Row deletions are permanent (stored in database)
+        • Your edits persist until overwritten by JIRA operations
+        
+        **Scenario 2: Update Data (JIRA Sync)**
+        • Click "Update Data" button to fetch latest JIRA data
+        • WARNING: All manual edits are overwritten with fresh JIRA data
+        • Charts and metrics recalculate using JIRA values
+        • Use this when you want current JIRA state
+        
+        **Scenario 3: Force Refresh (Complete Reset)**
+        • Long-press refresh icon to trigger Force Refresh
+        • WARNING: Deletes all data and reloads from JIRA
+        • Manual edits are permanently lost
+        • Use this to completely reset and resynchronize
+        
+        **Important Guidelines:**
+        • No "Save" button - changes persist immediately upon edit
+        • "Update Data" overwrites ALL manual changes
+        • Back up important manual edits before syncing with JIRA
+        • Deleted rows cannot be recovered without JIRA resync
+        • Consider your workflow: manual tracking vs JIRA automation
+        
         [!] **Common Mistakes:**
         • Entering cumulative totals instead of weekly increments
         • Inconsistent item/point estimation practices
         • Missing weeks creating gaps in trend analysis
         • Different "done" definitions across team members
+        • Expecting manual edits to survive Update Data operation
     """,
 }
 

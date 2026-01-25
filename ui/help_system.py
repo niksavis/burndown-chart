@@ -503,7 +503,35 @@ def _is_single_line_formula(line):
 
 
 def _create_section_header(line):
+    """Create section header with icon prefix from placeholder tags."""
     header_text = line.replace("**", "").strip()
+
+    # Map placeholder tags to FontAwesome icons
+    icon_mapping = {
+        "[Stats]": ("fas fa-chart-bar", "text-primary"),
+        "[Calc]": ("fas fa-calculator", "text-success"),
+        "[Trend]": ("fas fa-chart-line", "text-info"),
+        "[!]": ("fas fa-exclamation-triangle", "text-warning"),
+        "[Tip]": ("fas fa-lightbulb", "text-warning"),
+        "[Note]": ("fas fa-info-circle", "text-info"),
+        "[Link]": ("fas fa-link", "text-secondary"),
+    }
+
+    # Find and replace placeholder tag with icon
+    icon_element = None
+    for tag, (icon_class, icon_color) in icon_mapping.items():
+        if tag in header_text:
+            header_text = header_text.replace(tag, "").strip()
+            icon_element = html.I(className=f"{icon_class} {icon_color} me-2")
+            break
+
+    # Create header with icon if found
+    if icon_element:
+        return html.H5(
+            [icon_element, header_text],
+            className="mt-4 mb-3 text-primary border-bottom pb-2",
+        )
+
     return html.H5(header_text, className="mt-4 mb-3 text-primary border-bottom pb-2")
 
 
@@ -557,8 +585,33 @@ def _create_bullet_point(line):
 
 
 def _create_insight_alert(line):
+    """Create alert with icon prefix from placeholder tags."""
     insight_text = line.replace("**", "").strip()
-    return dbc.Alert(insight_text, color="info", className="my-3 border-start border-3")
+
+    # Map placeholder tags to icon and color
+    alert_mapping = {
+        "[!]": ("fas fa-exclamation-triangle", "warning"),
+        "[Note]": ("fas fa-sticky-note", "info"),
+        "[Tip]": ("fas fa-lightbulb", "success"),
+        "[Date]": ("fas fa-calendar-alt", "info"),
+    }
+
+    icon_class = "fas fa-info-circle"
+    alert_color = "info"
+
+    # Find and replace placeholder tag with icon
+    for tag, (icon, color) in alert_mapping.items():
+        if tag in insight_text:
+            insight_text = insight_text.replace(tag, "").strip()
+            icon_class = icon
+            alert_color = color
+            break
+
+    return dbc.Alert(
+        [html.I(className=f"{icon_class} me-2"), insight_text],
+        color=alert_color,
+        className="my-3 border-start border-3",
+    )
 
 
 def _create_paragraph(line):
@@ -616,7 +669,10 @@ def _create_cross_references_footer(category, key):
     return html.Div(
         [
             html.Hr(className="my-4"),
-            html.H6("[Link] Related Topics", className="text-secondary mb-2"),
+            html.H6(
+                [html.I(className="fas fa-link text-secondary me-2"), "Related Topics"],
+                className="text-secondary mb-2",
+            ),
             html.P(
                 [
                     f"For more information, see: {', '.join(topic.replace('_', ' ').title() for topic in related)}"

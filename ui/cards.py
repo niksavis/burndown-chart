@@ -1695,6 +1695,24 @@ def create_statistics_data_card(current_statistics):
                 ],
                 className="text-muted d-block mt-1",
             ),
+            html.Small(
+                [
+                    html.I(className="fas fa-exclamation-triangle me-1 text-warning"),
+                    html.Strong("Important: ", style={"color": "#856404"}),
+                    "Manual edits persist in the database. However, ",
+                    html.Strong("Update Data"),
+                    " will overwrite all edits with fresh JIRA data, and ",
+                    html.Strong("Force Refresh"),
+                    " will delete all data and reload from JIRA. Save important manual changes elsewhere before updating.",
+                ],
+                className="d-block mt-2 p-2",
+                style={
+                    "backgroundColor": "#fff3cd",
+                    "border": "1px solid #ffc107",
+                    "borderRadius": "4px",
+                    "color": "#856404",
+                },
+            ),
         ],
         className="mb-3",
     )
