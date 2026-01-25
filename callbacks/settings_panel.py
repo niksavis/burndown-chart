@@ -41,6 +41,17 @@ def register_clientside_callbacks(app):
         State("toggle-import-export-panel", "className"),
     )
 
+    # CRITICAL: Backdrop visibility - directly controlled by panel states
+    app.clientside_callback(
+        ClientsideFunction(namespace="panelState", function_name="updateBackdropState"),
+        Output("panel-backdrop", "className"),
+        [
+            Input("parameter-collapse", "is_open"),
+            Input("settings-collapse", "is_open"),
+            Input("import-export-collapse", "is_open"),
+        ],
+    )
+
 
 @callback(
     [

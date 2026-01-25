@@ -10,32 +10,19 @@
  * The active class triggers CSS styling for solid background and rotated chevron.
  */
 
-/**
- * Update backdrop visibility based on whether any panel is open
- */
-function updateBackdrop() {
-  const parameterOpen = document
-    .getElementById("parameter-collapse")
-    ?.classList.contains("show");
-  const settingsOpen = document
-    .getElementById("settings-collapse")
-    ?.classList.contains("show");
-  const dataOpen = document
-    .getElementById("import-export-collapse")
-    ?.classList.contains("show");
-
-  const backdrop = document.getElementById("panel-backdrop");
-  if (backdrop) {
-    if (parameterOpen || settingsOpen || dataOpen) {
-      backdrop.classList.add("active");
-    } else {
-      backdrop.classList.remove("active");
-    }
-  }
-}
-
 window.dash_clientside = Object.assign({}, window.dash_clientside, {
   panelState: {
+    /**
+     * Update backdrop visibility directly based on panel states.
+     * This callback is triggered immediately when any panel opens/closes.
+     */
+    updateBackdropState: function (parameterOpen, settingsOpen, dataOpen) {
+      // Return class based on whether any panel is open
+      return parameterOpen || settingsOpen || dataOpen
+        ? "panel-backdrop active"
+        : "panel-backdrop";
+    },
+
     /**
      * Toggle active class on parameter panel button.
      */
@@ -48,9 +35,6 @@ window.dash_clientside = Object.assign({}, window.dash_clientside, {
           button.title = "Expand Parameters";
         }
       }
-
-      // Update backdrop
-      setTimeout(updateBackdrop, 10);
 
       // Update className by adding/removing 'active'
       if (!currentClassName) currentClassName = "";
@@ -76,9 +60,6 @@ window.dash_clientside = Object.assign({}, window.dash_clientside, {
         }
       }
 
-      // Update backdrop
-      setTimeout(updateBackdrop, 10);
-
       // Update className by adding/removing 'active'
       if (!currentClassName) currentClassName = "";
       const classes = currentClassName
@@ -102,9 +83,6 @@ window.dash_clientside = Object.assign({}, window.dash_clientside, {
           button.title = "Expand Data";
         }
       }
-
-      // Update backdrop
-      setTimeout(updateBackdrop, 10);
 
       // Update className by adding/removing 'active'
       if (!currentClassName) currentClassName = "";

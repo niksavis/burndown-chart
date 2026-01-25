@@ -673,7 +673,7 @@ a:hover {
     rgba(13, 110, 253, 0.08) 0%,
     rgba(13, 110, 253, 0.05) 100%
   );
-  z-index: 5;
+  z-index: 5; /* Below param-panel-sticky (z-index: 1020) */
   pointer-events: none;
   opacity: 0;
   transition: opacity var(--transition-base) var(--easing-default);
