@@ -574,18 +574,6 @@ def register(app):
                             id=f"info-tooltip-exponential-weighting-{title.split()[1].lower()}",
                             style={"cursor": "pointer"},
                         ),
-                    ],
-                    className="d-flex align-items-center",
-                    style={"gap": "0.25rem"},
-                ),
-                # Enhanced forecast pills with methodology tooltip
-                html.Div(
-                    [
-                        html.Div(
-                            forecast_pills,
-                            className="d-flex flex-wrap align-items-center",
-                            style={"gap": "0.25rem"},
-                        ),
                         # Add forecast methodology tooltip icon
                         html.I(
                             className="fas fa-chart-bar text-info ms-2",
@@ -593,8 +581,14 @@ def register(app):
                             style={"cursor": "pointer"},
                         ),
                     ],
-                    className="d-flex align-items-center mt-2",
-                    style={"gap": "0.5rem"},
+                    className="d-flex align-items-center",
+                    style={"gap": "0.25rem"},
+                ),
+                # Enhanced forecast pills
+                html.Div(
+                    forecast_pills,
+                    className="d-flex flex-wrap align-items-center mt-2",
+                    style={"gap": "0.25rem"},
                 ),
                 # Add all tooltip components at the end for proper rendering
                 html.Div(tooltip_components, style={"display": "none"}),

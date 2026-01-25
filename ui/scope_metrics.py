@@ -982,41 +982,6 @@ def create_scope_metrics_dashboard(
                                         id="info-tooltip-items-throughput-ratio",
                                         style={"cursor": "pointer"},
                                     ),
-                                ],
-                                className="d-flex align-items-center",
-                                style={"gap": "0.25rem"},
-                            ),
-                            # Enhanced forecast pills with methodology tooltip - matching weekly metrics style
-                            html.Div(
-                                [
-                                    html.Div(
-                                        [
-                                            create_forecast_pill(
-                                                "Created",
-                                                f"{int(total_created_items)} items",
-                                                "#0d6efd",  # Blue for items created
-                                            ),
-                                            create_forecast_pill(
-                                                "Completed",
-                                                f"{int(total_completed_items)} items",
-                                                "#20c997",  # Success green for completed
-                                            ),
-                                            create_forecast_pill(
-                                                "Threshold",
-                                                f"{int(threshold_items)} items",
-                                                "#ffc107",  # Warning yellow for threshold
-                                            ),
-                                            html.Div(
-                                                html.Small(
-                                                    f"baseline: {int(baseline_items)} items",
-                                                    className="text-muted fst-italic",
-                                                ),
-                                                style={"paddingTop": "2px"},
-                                            ),
-                                        ],
-                                        className="d-flex flex-wrap align-items-center",
-                                        style={"gap": "0.25rem"},
-                                    ),
                                     # Add scope breakdown methodology tooltip icon
                                     html.I(
                                         className="fas fa-chart-bar text-info ms-2",
@@ -1024,8 +989,37 @@ def create_scope_metrics_dashboard(
                                         style={"cursor": "pointer"},
                                     ),
                                 ],
-                                className="d-flex align-items-center mt-2",
-                                style={"gap": "0.5rem"},
+                                className="d-flex align-items-center",
+                                style={"gap": "0.25rem"},
+                            ),
+                            # Enhanced forecast pills - matching weekly metrics style
+                            html.Div(
+                                [
+                                    create_forecast_pill(
+                                        "Created",
+                                        f"{int(total_created_items)} items",
+                                        "#0d6efd",  # Blue for items created
+                                    ),
+                                    create_forecast_pill(
+                                        "Completed",
+                                        f"{int(total_completed_items)} items",
+                                        "#20c997",  # Success green for completed
+                                    ),
+                                    create_forecast_pill(
+                                        "Threshold",
+                                        f"{int(threshold_items)} items",
+                                        "#ffc107",  # Warning yellow for threshold
+                                    ),
+                                    html.Div(
+                                        html.Small(
+                                            f"baseline: {int(baseline_items)} items",
+                                            className="text-muted fst-italic",
+                                        ),
+                                        style={"paddingTop": "2px"},
+                                    ),
+                                ],
+                                className="d-flex flex-wrap align-items-center mt-2",
+                                style={"gap": "0.25rem"},
                             ),
                             # Add all tooltip components at the end for proper rendering - matching weekly metrics pattern
                             html.Div(
@@ -1100,41 +1094,6 @@ def create_scope_metrics_dashboard(
                                             id="info-tooltip-points-throughput-ratio",
                                             style={"cursor": "pointer"},
                                         ),
-                                    ],
-                                    className="d-flex align-items-center",
-                                    style={"gap": "0.25rem"},
-                                ),
-                                # Enhanced forecast pills with methodology tooltip - matching weekly metrics style
-                                html.Div(
-                                    [
-                                        html.Div(
-                                            [
-                                                create_forecast_pill(
-                                                    "Created",
-                                                    f"{int(total_created_points)} points",
-                                                    "#fd7e14",  # Orange for points created
-                                                ),
-                                                create_forecast_pill(
-                                                    "Completed",
-                                                    f"{int(total_completed_points)} points",
-                                                    "#20c997",  # Success green for completed
-                                                ),
-                                                create_forecast_pill(
-                                                    "Threshold",
-                                                    f"{int(threshold_points)} points",
-                                                    "#ffc107",  # Warning yellow for threshold
-                                                ),
-                                                html.Div(
-                                                    html.Small(
-                                                        f"baseline: {int(baseline_points)} points",
-                                                        className="text-muted fst-italic",
-                                                    ),
-                                                    style={"paddingTop": "2px"},
-                                                ),
-                                            ],
-                                            className="d-flex flex-wrap align-items-center",
-                                            style={"gap": "0.25rem"},
-                                        ),
                                         # Add scope breakdown methodology tooltip icon
                                         html.I(
                                             className="fas fa-chart-bar text-info ms-2",
@@ -1142,8 +1101,37 @@ def create_scope_metrics_dashboard(
                                             style={"cursor": "pointer"},
                                         ),
                                     ],
-                                    className="d-flex align-items-center mt-2",
-                                    style={"gap": "0.5rem"},
+                                    className="d-flex align-items-center",
+                                    style={"gap": "0.25rem"},
+                                ),
+                                # Enhanced forecast pills - matching weekly metrics style
+                                html.Div(
+                                    [
+                                        create_forecast_pill(
+                                            "Created",
+                                            f"{int(total_created_points)} points",
+                                            "#fd7e14",  # Orange for points created
+                                        ),
+                                        create_forecast_pill(
+                                            "Completed",
+                                            f"{int(total_completed_points)} points",
+                                            "#20c997",  # Success green for completed
+                                        ),
+                                        create_forecast_pill(
+                                            "Threshold",
+                                            f"{int(threshold_points)} points",
+                                            "#ffc107",  # Warning yellow for threshold
+                                        ),
+                                        html.Div(
+                                            html.Small(
+                                                f"baseline: {int(baseline_points)} points",
+                                                className="text-muted fst-italic",
+                                            ),
+                                            style={"paddingTop": "2px"},
+                                        ),
+                                    ],
+                                    className="d-flex flex-wrap align-items-center mt-2",
+                                    style={"gap": "0.25rem"},
                                 ),
                                 # Add all tooltip components at the end for proper rendering - matching weekly metrics pattern
                                 html.Div(
