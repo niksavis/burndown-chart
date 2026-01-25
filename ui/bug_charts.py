@@ -44,12 +44,15 @@ def BugTrendChart(
         # This prevents Bootstrap dismissal issues
         return html.Div(
             [
-                html.Div(
+                html.H5(
                     [
-                        html.I(className="fas fa-chart-line me-2"),
+                        html.I(
+                            className="fas fa-chart-line me-2",
+                            style={"color": "#dc3545"},
+                        ),
                         "Bug Trends Over Time",
                     ],
-                    className="mb-3 border-bottom pb-2 d-flex align-items-center fw-bold",
+                    className="mb-3 mt-4",
                 ),
                 dcc.Graph(
                     id="bug-trend-graph",
@@ -120,12 +123,15 @@ def BugInvestmentChart(
         # Return chart directly without Card wrapper (consistent with BugTrendChart)
         return html.Div(
             [
-                html.Div(
+                html.H5(
                     [
-                        html.I(className="fas fa-coins me-2"),
+                        html.I(
+                            className="fas fa-coins me-2",
+                            style={"color": "#fd7e14"},
+                        ),
                         "Bug Investment: Items vs Points",
                     ],
-                    className="mb-3 border-bottom pb-2 d-flex align-items-center fw-bold",
+                    className="mb-3 mt-4",
                 ),
                 dcc.Graph(
                     id="bug-investment-graph",

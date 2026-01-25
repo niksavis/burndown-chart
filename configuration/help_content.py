@@ -380,28 +380,25 @@ VELOCITY_HELP_DETAILED = {
 
 # SCOPE HELP CONTENT - Comprehensive explanations for help pages
 SCOPE_HELP_DETAILED = {
-    "scope_change_methodology": """
-        Scope change rate measures the percentage increase in project requirements relative to the original baseline.
+    "scope_growth_methodology": """
+        Scope Growth measures new work added vs baseline or completed work.
         
-        [Calc] **Calculation Formula:**
-        Scope Change Rate = (Items Created ÷ Baseline Items) × 100%
+        [Calc] **Two Key Metrics:**
+        1. Items Scope Growth = (Created ÷ Baseline) × 100%
+        2. Scope Growth Rate = (Created ÷ Completed) × 100%
         
-        [Stats] **Example Calculation:**
-        • Original baseline: 100 items
-        • Items added during project: 25 items
-        • Scope change rate: (25 ÷ 100) × 100% = 25%
+        [Stats] **Example:**
+        • Baseline: 500 items, Created: 250, Completed: 200
+        • Items Scope Growth: (250 ÷ 500) = 50% (baseline expansion)
+        • Scope Growth Rate: (250 ÷ 200) = 125% (adding faster than completing)
         
         [Tip] **Agile Context:**
-        In agile projects, scope changes are normal and healthy, representing:
-        • Discovery of new requirements
-        • User feedback integration  
-        • Market responsiveness
-        • Learning and adaptation
+        Scope changes are normal in agile, representing discovery, feedback, and adaptation.
         
         [Trend] **Healthy Ranges:**
-        • 10-30%: Good adaptability without excessive thrash
-        • 30-50%: High responsiveness, monitor for scope creep
-        • >50%: Potential planning or requirements issues
+        • <20%: Stable scope
+        • 20-50%: Active adaptation
+        • >50%: High volatility, review planning
     """,
     "adaptability_index": """
         Adaptability Index measures how well your team balances scope changes with delivery consistency.
@@ -424,10 +421,10 @@ SCOPE_HELP_DETAILED = {
         Use trends over time rather than absolute values for decision making.
     """,
     "throughput_ratio": """
-        Throughput ratio compares the rate of new work creation to work completion.
+        Throughput Ratio compares work creation to completion rate.
         
-        [Calc] **Calculation Formula:**
-        Throughput Ratio = Created Items ÷ Completed Items
+        [Calc] **Formula:**
+        Throughput Ratio = Created ÷ Completed
         
         [Stats] **Ratio Interpretation:**
         • 1.0: Perfect balance (creating = completing)
@@ -576,11 +573,39 @@ STATISTICS_HELP_DETAILED = {
         • Include all work types (features, bugs, technical tasks)
         • Estimate new items promptly for accurate scope tracking
         
+        [!] **Editing Behavior:**
+        
+        **Scenario 1: Manual Edits Only**
+        • Edit cells directly - changes save to database immediately
+        • Charts and metrics update automatically
+        • Row deletions are permanent (stored in database)
+        • Your edits persist until overwritten by JIRA operations
+        
+        **Scenario 2: Update Data (JIRA Sync)**
+        • Click "Update Data" button to fetch latest JIRA data
+        • WARNING: All manual edits are overwritten with fresh JIRA data
+        • Charts and metrics recalculate using JIRA values
+        • Use this when you want current JIRA state
+        
+        **Scenario 3: Force Refresh (Complete Reset)**
+        • Long-press refresh icon to trigger Force Refresh
+        • WARNING: Deletes all data and reloads from JIRA
+        • Manual edits are permanently lost
+        • Use this to completely reset and resynchronize
+        
+        **Important Guidelines:**
+        • No "Save" button - changes persist immediately upon edit
+        • "Update Data" overwrites ALL manual changes
+        • Back up important manual edits before syncing with JIRA
+        • Deleted rows cannot be recovered without JIRA resync
+        • Consider your workflow: manual tracking vs JIRA automation
+        
         [!] **Common Mistakes:**
         • Entering cumulative totals instead of weekly increments
         • Inconsistent item/point estimation practices
         • Missing weeks creating gaps in trend analysis
         • Different "done" definitions across team members
+        • Expecting manual edits to survive Update Data operation
     """,
 }
 
@@ -700,7 +725,7 @@ DASHBOARD_METRICS_TOOLTIPS = {
     "current_velocity": "Average items and points completed per week based on recent historical data. This is your team's current sustainable delivery pace used for forecasting.",
     "pert_expected": "Weighted average of optimistic, most likely, and pessimistic forecasts using the formula: (O + 4×ML + P) ÷ 6. Provides the most statistically reliable single-point estimate.",
     "confidence_range": "Uncertainty band around the forecast showing the range of possible completion dates. Wider ranges indicate higher unpredictability; narrower ranges show consistent velocity.",
-    "scope_changes": "Additions or removals to project scope over time. Tracks how requirements evolve and impacts forecast accuracy and completion dates.",
+    "scope_growth": "New work added vs baseline or completed work. Tracks requirement evolution and impact on forecasts. Two views: growth from baseline and creation vs completion rate.",
     "health_score": "Health score (0-100 points). Automatically adapts to available data sources: Dashboard (Delivery Performance 25%, Predictability 20%), Process Quality (DORA metrics 20%), Delivery Efficiency (Flow metrics 15%), Risk Indicators (Bug Analysis, Scope, Budget 25%). Weights dynamically adjust based on data availability, gracefully handling missing metrics.",
 }
 

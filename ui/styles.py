@@ -952,7 +952,7 @@ def create_card_header_with_tooltip(
                         },
                         size="sm",
                         color="link",
-                        className="text-secondary p-1 ms-2",
+                        className="text-secondary p-1 ms-1",
                         style={
                             "border": "none",
                             "background": "transparent",

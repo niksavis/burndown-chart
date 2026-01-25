@@ -2530,6 +2530,33 @@ def create_parameter_bar_collapsed(
                             dbc.Button(
                                 [
                                     html.I(
+                                        className="fas fa-cog",
+                                        style={"fontSize": "1rem"},
+                                    ),
+                                    html.Span(
+                                        "Settings",
+                                        className="d-none d-xxl-inline",
+                                        style={"marginLeft": "0.5rem"},
+                                    ),
+                                ],
+                                id="settings-button",
+                                color="primary",
+                                outline=True,
+                                size="sm",
+                                className="me-1",
+                                style={
+                                    "minWidth": "38px",
+                                    "height": "38px",
+                                    "padding": "0 8px",
+                                    "display": "flex",
+                                    "alignItems": "center",
+                                    "justifyContent": "center",
+                                },
+                                title="Expand Settings",
+                            ),
+                            dbc.Button(
+                                [
+                                    html.I(
                                         className="fas fa-sliders-h",
                                         style={"fontSize": "1rem"},
                                     ),
@@ -2558,33 +2585,6 @@ def create_parameter_bar_collapsed(
                             dbc.Button(
                                 [
                                     html.I(
-                                        className="fas fa-cog",
-                                        style={"fontSize": "1rem"},
-                                    ),
-                                    html.Span(
-                                        "Settings",
-                                        className="d-none d-xxl-inline",
-                                        style={"marginLeft": "0.5rem"},
-                                    ),
-                                ],
-                                id="settings-button",
-                                color="primary",
-                                outline=True,
-                                size="sm",
-                                className="me-1",
-                                style={
-                                    "minWidth": "38px",
-                                    "height": "38px",
-                                    "padding": "0 8px",
-                                    "display": "flex",
-                                    "alignItems": "center",
-                                    "justifyContent": "center",
-                                },
-                                title="Configure JIRA and queries",
-                            ),
-                            dbc.Button(
-                                [
-                                    html.I(
                                         className="fas fa-exchange-alt",
                                         style={"fontSize": "1rem"},
                                     ),
@@ -2607,7 +2607,7 @@ def create_parameter_bar_collapsed(
                                     "alignItems": "center",
                                     "justifyContent": "center",
                                 },
-                                title="Import or export data",
+                                title="Expand Data",
                             ),
                         ],
                         className="d-flex justify-content-end align-items-center flex-nowrap flex-shrink-0",
@@ -2620,10 +2620,10 @@ def create_parameter_bar_collapsed(
         className="parameter-bar-collapsed",
         id=bar_id,
         style={
-            "padding": DESIGN_TOKENS["spacing"]["sm"],
+            "padding": "6px 12px",  # Aligned with tabs row for visual consistency
             "backgroundColor": DESIGN_TOKENS["colors"]["gray-100"],
             "borderRadius": DESIGN_TOKENS["layout"]["borderRadius"]["md"],
-            "marginBottom": DESIGN_TOKENS["spacing"]["xs"],
+            "marginBottom": "0",  # Compact: no margin
         },
     )
 

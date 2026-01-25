@@ -220,7 +220,6 @@ def get_burndown_chart_config() -> Dict[str, Any]:
             "lasso2d",
             "select2d",
             "toggleSpikelines",
-            "hoverCompareCartesian",
         ],
     )
 
@@ -233,7 +232,6 @@ def get_weekly_chart_config() -> Dict[str, Any]:
             "lasso2d",
             "select2d",
             "toggleSpikelines",
-            "autoScale2d",
         ],
     )
 
@@ -241,14 +239,11 @@ def get_weekly_chart_config() -> Dict[str, Any]:
 def get_scope_metrics_chart_config() -> Dict[str, Any]:
     """Get preset config for scope metrics indicator charts."""
     return get_chart_config(
-        display_mode_bar=True,  # Changed from False to True for consistency
+        display_mode_bar=True,
         modeBarButtonsToRemove=[
             "lasso2d",
             "select2d",
             "toggleSpikelines",
-            "zoom2d",
-            "pan2d",
-            "autoScale2d",
         ],
     )
 

@@ -485,8 +485,8 @@ def register(app):
 
         # Pessimistic forecast pill
         if "pessimistic_forecast" in trend_data:
-            # Use different color based on trend type (items/points)
-            pessimistic_color = "#6610f2" if "items" in title.lower() else "#a52a2a"
+            # Use consistent red color for pessimistic across both items and points
+            pessimistic_color = "#dc3545"  # Danger red for worst case
             forecast_pills.append(
                 create_forecast_pill(
                     "Pessimistic", trend_data["pessimistic_forecast"], pessimistic_color
@@ -574,18 +574,6 @@ def register(app):
                             id=f"info-tooltip-exponential-weighting-{title.split()[1].lower()}",
                             style={"cursor": "pointer"},
                         ),
-                    ],
-                    className="d-flex align-items-center",
-                    style={"gap": "0.25rem"},
-                ),
-                # Enhanced forecast pills with methodology tooltip
-                html.Div(
-                    [
-                        html.Div(
-                            forecast_pills,
-                            className="d-flex flex-wrap align-items-center",
-                            style={"gap": "0.25rem"},
-                        ),
                         # Add forecast methodology tooltip icon
                         html.I(
                             className="fas fa-chart-bar text-info ms-2",
@@ -593,8 +581,14 @@ def register(app):
                             style={"cursor": "pointer"},
                         ),
                     ],
-                    className="d-flex align-items-center mt-2",
-                    style={"gap": "0.5rem"},
+                    className="d-flex align-items-center",
+                    style={"gap": "0.25rem"},
+                ),
+                # Enhanced forecast pills
+                html.Div(
+                    forecast_pills,
+                    className="d-flex flex-wrap align-items-center mt-2",
+                    style={"gap": "0.25rem"},
                 ),
                 # Add all tooltip components at the end for proper rendering
                 html.Div(tooltip_components, style={"display": "none"}),
@@ -607,62 +601,178 @@ def register(app):
         items_trend,
         points_trend,
         burndown_fig,
+        items_fig,
+        points_fig,
         settings,
         show_points=True,
+        has_points_data=True,
     ):
         """
-        Create content for the burndown tab with burndown chart.
+        Create content for the burndown tab with burndown chart, items chart, and points chart.
 
         Args:
             df: DataFrame with statistics data
             items_trend: Dictionary with items trend and forecast data
             points_trend: Dictionary with points trend and forecast data
             burndown_fig: Burndown chart figure
+            items_fig: Weekly items chart figure
+            points_fig: Weekly points chart figure (None if no data or disabled)
             settings: Settings dictionary
-            show_points: Whether to show points tracking
+            show_points: Whether points tracking is enabled
+            has_points_data: Whether points data exists in selected period
 
         Returns:
-            html.Div: Burndown tab content
+            html.Div: Burndown tab content with all three charts
         """
         chart_height = settings.get("chart_height", 700)
 
-        return html.Div(
-            [
-                # Weekly trend indicators in a row
-                html.Div(
+        # Build the content list starting with burndown chart
+        content = [
+            # Weekly trend indicators in a row
+            html.Div(
+                [
+                    # Items trend box
+                    _create_trend_header_with_forecasts(
+                        items_trend,
+                        "Weekly Items Trend",
+                        "fas fa-tasks",
+                        "#0d6efd",  # Blue for items
+                    ),
+                ]
+                + (
                     [
-                        # Items trend box
+                        # Points trend box - only show if points tracking is enabled
                         _create_trend_header_with_forecasts(
-                            items_trend,
-                            "Weekly Items Trend",
-                            "fas fa-tasks",
-                            "#20c997",
+                            points_trend,
+                            "Weekly Points Trend",
+                            "fas fa-chart-bar",
+                            "#fd7e14",
                         ),
                     ]
-                    + (
-                        [
-                            # Points trend box - only show if points tracking is enabled
-                            _create_trend_header_with_forecasts(
-                                points_trend,
-                                "Weekly Points Trend",
-                                "fas fa-chart-bar",
-                                "#fd7e14",
-                            ),
-                        ]
-                        if show_points
-                        else []
-                    ),
-                    className="row mb-3",
+                    if show_points
+                    else []
                 ),
-                # Burndown chart
+                className="row mb-3",
+            ),
+            # Burndown chart with title
+            html.H5(
+                [
+                    html.I(
+                        className="fas fa-chart-line me-2", style={"color": "#0d6efd"}
+                    ),
+                    "Forecast Based On Historical Data",
+                ],
+                className="mb-3 mt-4",
+            ),
+            dcc.Graph(
+                id="forecast-graph",
+                figure=burndown_fig,
+                config=get_burndown_chart_config(),  # type: ignore
+                style={"height": f"{chart_height}px"},
+            ),
+        ]
+
+        # Add Items per Week chart section
+        content.extend(
+            [
+                # Items per Week section header (standardized H5 styling)
+                html.H5(
+                    [
+                        html.I(
+                            className="fas fa-tasks me-2",
+                            style={"color": "#0d6efd"},  # Blue for items
+                        ),
+                        "Weekly Completed Items",
+                    ],
+                    className="mb-3 mt-4",
+                ),
+                # Items chart (trend header removed - already shown at top)
                 dcc.Graph(
-                    id="forecast-graph",
-                    figure=burndown_fig,
-                    config=get_burndown_chart_config(),  # type: ignore
-                    style={"height": f"{chart_height}px"},
+                    id="items-chart",
+                    figure=items_fig,
+                    config=get_weekly_chart_config(),  # type: ignore
+                    style={"height": "700px"},
                 ),
             ]
         )
+
+        # Add Points per Week section
+        content.extend(
+            [
+                # Points per Week section header (standardized H5 styling)
+                html.H5(
+                    [
+                        html.I(
+                            className="fas fa-chart-bar me-2",
+                            style={"color": "#fd7e14"},
+                        ),
+                        "Weekly Completed Points",
+                    ],
+                    className="mb-3 mt-4",
+                ),
+            ]
+        )
+
+        # Determine which content to show for points section
+        if not show_points:
+            # Case 1: Points tracking disabled
+            content.append(
+                html.Div(
+                    [
+                        html.I(className="fas fa-toggle-off fa-2x text-secondary mb-3"),
+                        html.Div(
+                            "Points Tracking Disabled",
+                            className="fw-bold mb-2",
+                            style={"fontSize": "1.2rem", "color": "#6c757d"},
+                        ),
+                        html.Small(
+                            "Enable Points Tracking in Parameters panel to view story points metrics.",
+                            className="text-muted",
+                            style={"fontSize": "0.9rem"},
+                        ),
+                    ],
+                    className="d-flex align-items-center justify-content-center flex-column",
+                    style={"gap": "0.25rem", "padding": "80px 20px"},
+                )
+            )
+        elif not has_points_data:
+            # Case 2: Points tracking enabled but no data in period
+            content.append(
+                html.Div(
+                    [
+                        html.I(className="fas fa-database fa-lg text-secondary mb-3"),
+                        html.Div(
+                            "No Points Data",
+                            className="fw-bold mb-2",
+                            style={"fontSize": "1.2rem", "color": "#6c757d"},
+                        ),
+                        html.Small(
+                            "No story points data available in the selected time period. Configure story points field in Settings or complete items with point estimates.",
+                            className="text-muted",
+                            style={
+                                "fontSize": "0.9rem",
+                                "textAlign": "center",
+                                "maxWidth": "500px",
+                            },
+                        ),
+                    ],
+                    className="d-flex align-items-center justify-content-center flex-column",
+                    style={"gap": "0.25rem", "padding": "80px 20px"},
+                )
+            )
+        else:
+            # Case 3: Points tracking enabled with data - show chart
+            # Points trend header removed - already shown at top
+            content.append(
+                dcc.Graph(
+                    id="points-chart",
+                    figure=points_fig,
+                    config=get_weekly_chart_config(),  # type: ignore
+                    style={"height": "700px"},
+                )
+            )
+
+        return html.Div(content)
 
     def _create_items_tab_content(items_trend, items_fig):
         """
@@ -685,7 +795,7 @@ def register(app):
                             items_trend,
                             "Weekly Items Trend",
                             "fas fa-tasks",
-                            "#20c997",
+                            "#0d6efd",  # Blue for items
                         ),
                     ],
                     className="mb-4",
@@ -793,9 +903,8 @@ def register(app):
 
         try:
             project_data = load_project_data()
-            project_scope = project_data.get("project_scope", {})
-            current_remaining_items = project_scope.get("remaining_items", 0)
-            current_remaining_points = project_scope.get("remaining_total_points", 0)
+            current_remaining_items = project_data.get("total_items", 0)
+            current_remaining_points = project_data.get("total_points", 0)
         except Exception as e:
             logger.error(f"[SCOPE BASELINE APP] Failed to load project_data: {e}")
             current_remaining_items = 0
@@ -1008,6 +1117,7 @@ def register(app):
         # BUT: If we're switching tabs (trigger is from chart-tabs), clear ALL cache
         # to prevent any possibility of cross-tab contamination
         # ALSO: Clear ALL cache when budget changes to ensure fresh render
+        # ALSO: Clear ALL cache when statistics change (table edits) to ensure immediate reactivity
         trigger_info = ctx.triggered[0]["prop_id"] if ctx.triggered else ""
         if "chart-tabs" in trigger_info:
             logger.debug(
@@ -1022,6 +1132,11 @@ def register(app):
         elif "metrics-refresh-trigger" in trigger_info:
             logger.debug(
                 "[CTO DEBUG] Import/refresh detected - CLEARING ALL CACHE to reload data"
+            )
+            chart_cache = {}
+        elif "current-statistics.modified_timestamp" in trigger_info:
+            logger.debug(
+                "[CTO DEBUG] Statistics modified (table edit) - CLEARING ALL CACHE to show changes immediately"
             )
             chart_cache = {}
         elif len(chart_cache) > 5:
@@ -1685,16 +1800,16 @@ def register(app):
                     statistics, pert_factor, data_points_count
                 )
 
-                # Check if points data exists in the filtered time period (treat no data same as disabled)
+                # Check if points data exists in the filtered time period
                 # This respects the Data Points slider to only check the selected weeks
-                effective_show_points = show_points
+                has_points_data = False
                 if show_points:
                     has_points_data = _check_has_points_in_period(
                         statistics, data_points_count
                     )
-                    if not has_points_data:
-                        # No points data in filtered period - hide points traces like when disabled
-                        effective_show_points = False
+
+                # For burndown chart, hide points traces if no data (like when disabled)
+                effective_show_points = show_points and has_points_data
 
                 # Generate burndown chart only when needed
                 # NOTE: Don't pre-compute cumulative values - let create_forecast_plot handle it
@@ -1710,28 +1825,7 @@ def register(app):
                     show_points=effective_show_points,  # Use effective flag
                 )
 
-                # Create burndown tab content with all required data
-                burndown_tab_content = _create_burndown_tab_content(
-                    df,
-                    items_trend,
-                    points_trend,
-                    burndown_fig,
-                    settings,
-                    effective_show_points,  # Use effective flag
-                )
-                # Cache the result for next time
-                logger.debug(
-                    f"[CTO DEBUG] Created NEW burndown content, caching with key={cache_key}"
-                )
-                chart_cache[cache_key] = burndown_tab_content
-                ui_state["loading"] = False
-                return burndown_tab_content, chart_cache, ui_state
-
-            elif active_tab == "tab-items":
-                # Generate trend data and weekly items chart only when needed
-                items_trend, points_trend = _prepare_trend_data(
-                    statistics, pert_factor, data_points_count
-                )
+                # Generate items chart for consolidated view
                 items_fig = create_weekly_items_chart(
                     statistics,
                     pert_factor,
@@ -1744,27 +1838,10 @@ def register(app):
                     is_tablet=is_tablet,
                     title="Weekly Items" if not is_mobile else None,
                 )
-                items_tab_content = _create_items_tab_content(items_trend, items_fig)
-                # Cache the result for next time
-                chart_cache[cache_key] = items_tab_content
-                ui_state["loading"] = False
-                return items_tab_content, chart_cache, ui_state
 
-            elif active_tab == "tab-points":
-                # Check if points data exists in the filtered time period (not just if tracking is enabled)
-                # This respects the Data Points slider to only check the selected weeks
-                has_points_data = False
-                if show_points:
-                    has_points_data = _check_has_points_in_period(
-                        statistics, data_points_count
-                    )
-
+                # Generate points chart for consolidated view (only if enabled AND has data)
+                points_fig = None
                 if show_points and has_points_data:
-                    # Case 1: Points tracking enabled with data
-                    # Generate trend data and weekly points chart only when needed
-                    items_trend, points_trend = _prepare_trend_data(
-                        statistics, pert_factor, data_points_count
-                    )
                     points_fig = create_weekly_points_chart(
                         statistics,
                         pert_factor,
@@ -1777,99 +1854,26 @@ def register(app):
                         is_tablet=is_tablet,
                         title="Weekly Points" if not is_mobile else None,
                     )
-                    points_tab_content = _create_points_tab_content(
-                        points_trend, points_fig
-                    )
-                    # Cache the result for next time
-                    chart_cache[cache_key] = points_tab_content
-                    ui_state["loading"] = False
-                    return points_tab_content, chart_cache, ui_state
-                elif not show_points:
-                    # Case 2: Points tracking disabled - use consistent template
-                    points_disabled_content = html.Div(
-                        html.Div(
-                            [
-                                html.I(
-                                    className="fas fa-toggle-off fa-2x text-secondary mb-3"
-                                ),
-                                html.Div(
-                                    "Points Tracking Disabled",
-                                    className="fw-bold mb-2",
-                                    style={"fontSize": "1.2rem", "color": "#6c757d"},
-                                ),
-                                html.Small(
-                                    "Enable Points Tracking in Parameters panel to view story points metrics.",
-                                    className="text-muted",
-                                    style={"fontSize": "0.9rem"},
-                                ),
-                            ],
-                            className="d-flex align-items-center justify-content-center flex-column",
-                            style={"gap": "0.25rem", "padding": "80px 20px"},
-                        )
-                    )
-                    # Cache the result for next time
-                    chart_cache[cache_key] = points_disabled_content
-                    ui_state["loading"] = False
-                    return points_disabled_content, chart_cache, ui_state
-                else:
-                    # Case 3: Points tracking enabled but no data (0 points)
-                    # Show message with styled container matching other cards
-                    points_no_data_content = html.Div(
-                        html.Div(
-                            [
-                                html.Div(
-                                    [
-                                        html.I(
-                                            className="fas fa-chart-bar me-2",
-                                            style={
-                                                "color": "#6c757d",
-                                                "fontSize": "1.1rem",
-                                            },
-                                        ),
-                                        html.Span(
-                                            "Points-based",
-                                            className="fw-bold text-muted",
-                                            style={"fontSize": "1.1rem"},
-                                        ),
-                                    ],
-                                    className="mb-3",
-                                ),
-                                html.Div(
-                                    [
-                                        html.I(
-                                            className="fas fa-database fa-lg text-secondary"
-                                        ),
-                                        html.Div(
-                                            "No Points Data",
-                                            className="fw-bold",
-                                            style={
-                                                "fontSize": "1rem",
-                                                "color": "#6c757d",
-                                            },
-                                        ),
-                                        html.Small(
-                                            "No story points data available. Configure story points field in Settings or complete items with point estimates.",
-                                            className="text-muted",
-                                            style={"fontSize": "0.85rem"},
-                                        ),
-                                    ],
-                                    className="d-flex align-items-center justify-content-center flex-column",
-                                    style={"gap": "0.25rem"},
-                                ),
-                            ],
-                            className="p-3 mt-3",
-                            style={
-                                "borderRadius": "0.375rem",
-                                "border": "1px solid #dee2e6",
-                                "backgroundColor": "#f8f9fa",
-                            },
-                        ),
-                        style={"padding": "40px 20px"},
-                    )
-                    # Cache the result for next time
-                    chart_cache[cache_key] = points_no_data_content
-                    ui_state["loading"] = False
-                    return points_no_data_content, chart_cache, ui_state
+
+                # Create burndown tab content with all required data
+                burndown_tab_content = _create_burndown_tab_content(
+                    df,
+                    items_trend,
+                    points_trend,
+                    burndown_fig,
+                    items_fig,
+                    points_fig,
+                    settings,
+                    show_points,  # Original flag
+                    has_points_data,  # Whether data exists
+                )
+                # Cache the result for next time
+                logger.debug(
+                    f"[CTO DEBUG] Created NEW burndown content, caching with key={cache_key}"
+                )
+                chart_cache[cache_key] = burndown_tab_content
+                ui_state["loading"] = False
+                return burndown_tab_content, chart_cache, ui_state
 
             elif active_tab == "tab-scope-tracking":
                 # Generate scope tracking content only when needed
@@ -2003,6 +2007,17 @@ def register(app):
                 chart_cache[cache_key] = flow_content
                 ui_state["loading"] = False
                 return flow_content, chart_cache, ui_state
+
+            elif active_tab == "tab-statistics-data":
+                # Load statistics from DB and render table
+                from ui.cards import create_statistics_data_card
+
+                statistics_content = create_statistics_data_card(statistics)
+
+                # Cache the result for next time
+                chart_cache[cache_key] = statistics_content
+                ui_state["loading"] = False
+                return statistics_content, chart_cache, ui_state
 
             # Default fallback (should not reach here)
             fallback_content = create_content_placeholder(

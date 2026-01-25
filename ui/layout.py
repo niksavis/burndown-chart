@@ -24,14 +24,12 @@ from data.persistence import (
     load_statistics,
     get_project_scope,
 )
-from ui.cards import (
-    create_statistics_data_card,
-)
 from ui.components import (
     create_parameter_panel,
 )
 from ui.grid_utils import create_full_width_layout
-from ui.tabs import create_tabs
+from ui.tabs import create_desktop_tabs_only
+from ui.mobile_navigation import create_mobile_navigation_system
 from ui.jira_config_modal import create_jira_config_modal
 from ui.query_creation_modal import create_query_creation_modal
 from ui.field_mapping_modal import create_field_mapping_modal
@@ -144,10 +142,10 @@ def create_app_layout(settings, statistics, is_sample_data):
                 id="app-notifications",
                 style={
                     "position": "fixed",
-                    "top": "10px",
-                    "right": "10px",
+                    "top": "5px",
+                    "right": "5px",
                     "zIndex": "9999",
-                    "width": "320px",
+                    "width": "350px",
                 },
             ),
             # Store version info for callback to display toast after page loads
@@ -251,9 +249,13 @@ def create_app_layout(settings, statistics, is_sample_data):
                     create_improved_settings_panel(),
                     # Import/Export flyout panel - separate from Settings (pure data operations)
                     create_import_export_flyout(),
+                    # Desktop tabs - integrated as part of sticky panel
+                    create_desktop_tabs_only(),
                 ],
                 className="param-panel-sticky",
             ),
+            # Backdrop overlay to dim content when panels are expanded
+            html.Div(id="panel-backdrop", className="panel-backdrop"),
             # Add an empty div to hold the forecast-graph (will be populated by callback)
             html.Div(
                 dcc.Graph(id="forecast-graph", style={"display": "none"}),
@@ -289,24 +291,21 @@ def create_app_layout(settings, statistics, is_sample_data):
                 ],
                 id="sample-data-banner",
             ),
-            # Tab Navigation and Charts Row - using full width template
+            # Mobile navigation system - must be outside card for proper fixed positioning
+            create_mobile_navigation_system(),
+            # Tab content container - wrapped in card for styling
             create_full_width_layout(
                 dbc.Card(
                     [
                         dbc.CardBody(
                             [
-                                # Tabbed interface
-                                create_tabs(),
+                                # Content div that will be filled based on active tab
+                                html.Div(id="tab-content"),
                             ]
                         ),
                     ],
                     className="shadow-sm",
                 ),
-                row_class="mb-4",
-            ),
-            # Statistics Data Table - using full width layout
-            create_full_width_layout(
-                create_statistics_data_card(statistics),
                 row_class="mb-4",
             ),
             # Compact footer with clean design

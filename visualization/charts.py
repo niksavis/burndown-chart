@@ -723,12 +723,13 @@ def create_forecast_plot(
         fig = configure_axes(fig, forecast_data)
 
         # Apply layout settings with the specified hover_mode
+        # Increased top margin from 80 to 100px to accommodate legend (y=1.06) and plotly toolbar without overlap
         fig.update_layout(
             legend=dict(
-                orientation="h", yanchor="bottom", y=1.02, xanchor="center", x=0.5
+                orientation="h", yanchor="bottom", y=1.06, xanchor="center", x=0.5
             ),
             hovermode=hover_mode,
-            margin=dict(l=60, r=60, t=80, b=50),
+            margin=dict(l=60, r=60, t=100, b=50),
             height=700,
             template="plotly_white",
         )
@@ -3579,24 +3580,27 @@ def get_mobile_chart_config(is_mobile=False, is_tablet=False):
         >>> dcc.Graph(figure=fig, config=config)
     """
     if is_mobile:
-        # Mobile configuration: minimal UI, touch-optimized
+        # Mobile configuration: show toolbar with standard buttons
         return {
-            "displayModeBar": False,  # Hide modebar on mobile to save space
-            "responsive": True,  # Enable responsive resizing
-            "scrollZoom": False,  # Disable scroll zoom to avoid interference
-            "doubleClick": "reset",  # Double tap to reset view
-            "showTips": False,  # Hide tips
-            "displaylogo": False,  # Hide Plotly logo
+            "displayModeBar": True,
+            "responsive": True,
+            "scrollZoom": True,
+            "doubleClick": "reset+autosize",
+            "showTips": True,
+            "displaylogo": False,
+            "modeBarButtonsToRemove": [
+                "lasso2d",
+                "select2d",
+                "toggleSpikelines",
+            ],
         }
     elif is_tablet:
-        # Tablet configuration: show minimal modebar
+        # Tablet configuration: show standard toolbar
         return {
-            "displayModeBar": "hover",  # Show modebar on hover
+            "displayModeBar": True,
             "modeBarButtonsToRemove": [
-                "pan2d",
-                "select2d",
                 "lasso2d",
-                "autoScale2d",
+                "select2d",
                 "toggleSpikelines",
             ],
             "responsive": True,
@@ -3605,10 +3609,14 @@ def get_mobile_chart_config(is_mobile=False, is_tablet=False):
             "displaylogo": False,
         }
     else:
-        # Desktop configuration: full features
+        # Desktop configuration: standard toolbar
         return {
-            "displayModeBar": "hover",
-            "modeBarButtonsToRemove": ["select2d", "lasso2d"],
+            "displayModeBar": True,
+            "modeBarButtonsToRemove": [
+                "lasso2d",
+                "select2d",
+                "toggleSpikelines",
+            ],
             "responsive": True,
             "scrollZoom": True,
             "doubleClick": "reset+autosize",

@@ -27,8 +27,8 @@ class TestMobileNavigation:
         # Test tab configuration
         tabs_config = get_mobile_tabs_config()
         assert (
-            len(tabs_config) == 8
-        )  # Updated: Now includes Dashboard, Bug Analysis, DORA, and Flow metrics
+            len(tabs_config) == 7
+        )  # Updated: Dashboard, Burndown, Scope Tracking, Bug Analysis, Flow, DORA, Weekly Data
         assert all("id" in tab for tab in tabs_config)
         assert all("label" in tab for tab in tabs_config)
         assert all("icon" in tab for tab in tabs_config)
@@ -64,12 +64,11 @@ class TestMobileNavigation:
         expected_ids = [
             "tab-dashboard",  # Added in US2
             "tab-burndown",
-            "tab-items",
-            "tab-points",
             "tab-scope-tracking",
             "tab-bug-analysis",  # Added in Feature 004
             "tab-dora-metrics",  # Added in Feature 007
             "tab-flow-metrics",  # Added in Feature 007
+            "tab-statistics-data",  # Added for manual data entry (burndown-chart-jtax)
         ]
         assert set(tab_ids) == set(expected_ids)
 

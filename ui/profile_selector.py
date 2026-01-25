@@ -65,7 +65,7 @@ def create_profile_dropdown(id_suffix: str = "") -> dbc.Col:
         ],
         xs=12,
         lg=6,
-        className="mb-2",
+        className="mb-3",
         id="profile-selector-container",  # ID for CSS z-index stacking context
     )
 
@@ -98,7 +98,7 @@ def create_profile_actions(id_suffix: str = "") -> dbc.Col:
                 dbc.Button(
                     [html.I(className="fas fa-copy me-1"), "Duplicate"],
                     id=f"duplicate-profile-btn{id_suffix}",
-                    color="secondary",
+                    color="primary",
                     outline=True,
                     className="me-1",
                 ),
@@ -114,51 +114,49 @@ def create_profile_actions(id_suffix: str = "") -> dbc.Col:
         ),
         xs=12,
         lg=6,
-        className="mb-2",
+        className="mb-3",
     )
 
 
-def create_profile_selector_panel(id_suffix: str = "") -> dbc.Card:
+def create_profile_selector_panel(id_suffix: str = "") -> html.Div:
     """Create complete profile selector panel with dropdown and actions.
 
     Args:
         id_suffix: Optional suffix for component IDs
 
     Returns:
-        Bootstrap card containing profile management UI
+        Div containing profile management UI (no card wrapper)
     """
     # Use same UI regardless of profile count - simpler and consistent
-    return dbc.Card(
-        dbc.CardBody(
-            [
-                dbc.Row(
-                    [
-                        create_profile_dropdown(id_suffix),
-                        create_profile_actions(id_suffix),
-                    ],
-                    className="g-2",
-                ),
-                # Empty state message (hidden by default, shown via callback)
-                dbc.Alert(
-                    [
-                        html.I(className="fas fa-user-plus me-2"),
-                        "No profiles yet. ",
-                        html.A(
-                            "Create your first profile to get started →",
-                            id=f"empty-state-create-profile-link{id_suffix}",
-                            className="alert-link",
-                            href="#",
-                            style={"cursor": "pointer"},
-                        ),
-                    ],
-                    id=f"profile-empty-state{id_suffix}",
-                    color="info",
-                    className="mb-0 mt-2 d-none",
-                    dismissable=False,
-                ),
-            ]
-        ),
-        className="mb-3",
+    return html.Div(
+        [
+            dbc.Row(
+                [
+                    create_profile_dropdown(id_suffix),
+                    create_profile_actions(id_suffix),
+                ],
+                className="g-2",
+            ),
+            # Empty state message (hidden by default, shown via callback)
+            dbc.Alert(
+                [
+                    html.I(className="fas fa-user-plus me-2"),
+                    "No profiles yet. ",
+                    html.A(
+                        "Create your first profile to get started →",
+                        id=f"empty-state-create-profile-link{id_suffix}",
+                        className="alert-link",
+                        href="#",
+                        style={"cursor": "pointer"},
+                    ),
+                ],
+                id=f"profile-empty-state{id_suffix}",
+                color="info",
+                className="mb-0 mt-2 d-none",
+                dismissable=False,
+            ),
+        ],
+        className="mb-0",
     )
 
 

@@ -6,7 +6,6 @@ This test validates that the implementation meets performance targets without
 directly testing the callback (which requires complex Dash testing setup).
 """
 
-import pytest
 from ui.loading_utils import create_skeleton_loader, create_content_placeholder
 
 
@@ -75,7 +74,7 @@ class TestLazyLoadingImplementation:
 
         # Test different parameters create different keys
         key1 = generate_cache_key("tab-burndown", "hash123", True)
-        key2 = generate_cache_key("tab-items", "hash123", True)
+        key2 = generate_cache_key("tab-scope-tracking", "hash123", True)
         key3 = generate_cache_key("tab-burndown", "hash456", True)
         key4 = generate_cache_key("tab-burndown", "hash123", False)
 

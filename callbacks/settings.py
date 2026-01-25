@@ -316,11 +316,11 @@ def register(app):
 
     @app.callback(
         [
-            Output("pert-factor-slider", "value"),
-            Output("deadline-picker", "date"),
-            Output("points-toggle", "value"),
+            Output("pert-factor-slider", "value", allow_duplicate=True),
+            Output("deadline-picker", "date", allow_duplicate=True),
+            Output("points-toggle", "value", allow_duplicate=True),
             Output("data-points-input", "value", allow_duplicate=True),
-            Output("milestone-picker", "date"),
+            Output("milestone-picker", "date", allow_duplicate=True),
         ],
         Input("current-settings", "modified_timestamp"),
         State("current-settings", "data"),
@@ -579,7 +579,8 @@ def register(app):
             Output("upload-data", "contents", allow_duplicate=True),
             Output("upload-data", "filename", allow_duplicate=True),
             Output("jira-cache-status", "children", allow_duplicate=True),
-            Output("statistics-table", "data", allow_duplicate=True),
+            # Removed Output("statistics-table") - violates separation of concerns
+            # reload_data_after_update handles populating statistics from DB
             Output("total-items-input", "value", allow_duplicate=True),
             Output("estimated-items-input", "value", allow_duplicate=True),
             Output("total-points-display", "value", allow_duplicate=True),
@@ -662,7 +663,6 @@ def register(app):
                 None,  # upload contents
                 None,  # upload filename
                 "",  # cache status (empty)
-                no_update,  # statistics table
                 no_update,  # total items
                 no_update,  # estimated items
                 no_update,  # total points
@@ -698,7 +698,7 @@ def register(app):
                         ],
                         className="text-warning small",
                     ),  # jira-cache-status
-                    no_update,  # statistics-table
+                    no_update,  # statistics-table (don't clear)
                     no_update,  # total-items-input
                     no_update,  # estimated-items-input
                     no_update,  # total-points-display
@@ -733,7 +733,7 @@ def register(app):
                         ],
                         className="text-danger small",
                     ),  # jira-cache-status
-                    no_update,  # statistics-table
+                    no_update,  # statistics-table (don't clear on error)
                     no_update,  # total-items-input
                     no_update,  # estimated-items-input
                     no_update,  # total-points-display
@@ -810,7 +810,6 @@ def register(app):
                     no_update,
                     no_update,
                     no_update,
-                    no_update,
                     no_update,  # Don't update settings
                     False,  # Reset force refresh
                     False,  # Enable button
@@ -819,7 +818,6 @@ def register(app):
                     "",  # Toast notification (empty)
                     None,  # metrics trigger
                     False,  # progress-poll-interval enabled (task completed with error)
-                    no_update,  # current-statistics
                     no_update,  # current-statistics
                 )
 
@@ -961,8 +959,6 @@ def register(app):
                     no_update,
                     no_update,
                     no_update,
-                    no_update,
-                    no_update,
                     no_update,  # Don't update settings
                     False,  # Reset force refresh
                     False,  # Enable button
@@ -971,6 +967,7 @@ def register(app):
                     "",  # Toast notification
                     None,  # metrics trigger
                     False,  # progress-poll-interval enabled (task completed with error)
+                    no_update,  # current-statistics
                 )
 
             # Use sync_jira_scope_and_data to get both scope data and message
@@ -1221,7 +1218,6 @@ def register(app):
                     ],
                     className="text-info small",
                 ),  # cache status
-                no_update,  # statistics-table
                 no_update,  # total-items-input
                 no_update,  # estimated-items-input
                 no_update,  # total-points-display
@@ -1504,6 +1500,8 @@ def register(app):
                 cache_status_message,  # Show error in status area
                 "",  # Toast notification (empty)
                 None,  # metrics trigger
+                False,  # progress-poll-interval enabled (task completed with error)
+                no_update,  # current-statistics
             )
         except Exception as e:
             logger.error(f"[Settings] Error in unified data update: {e}")
@@ -3026,7 +3024,6 @@ def register(app):
                 "total-points-display", "value"
             ),  # FIXED: use Remaining Points (auto) - the calculated total
             Input("data-points-input", "value"),  # Add data points input
-            Input("current-settings", "modified_timestamp"),  # Add to get show_points
         ],
         [State("current-settings", "data")],
         prevent_initial_call=False,  # Update on initial load
@@ -3037,7 +3034,6 @@ def register(app):
         scope_items,
         scope_points,
         data_points,
-        settings_ts,
         settings,
     ):
         """

@@ -12,7 +12,7 @@ drawer navigation, swipe gestures, and bottom navigation for mobile devices.
 
 # Third-party library imports
 import dash_bootstrap_components as dbc
-from dash import html, dcc
+from dash import html
 
 # Application imports
 # from ui.icon_utils import get_icon_class  # Import removed as not used
@@ -213,31 +213,17 @@ def get_mobile_tabs_config():
     tabs = [
         {
             "id": "tab-dashboard",
-            "label": "Project Dashboard",
+            "label": "Dashboard",
             "short_label": "Dashboard",
             "icon": "fas fa-tachometer-alt",
             "color": "#0d6efd",
         },
         {
             "id": "tab-burndown",
-            "label": "Burndown Chart",
+            "label": "Burndown",
             "short_label": "Chart",
             "icon": "fas fa-chart-line",
             "color": "#0d6efd",
-        },
-        {
-            "id": "tab-items",
-            "label": "Items per Week",
-            "short_label": "Items",
-            "icon": "fas fa-tasks",
-            "color": "#20c997",
-        },
-        {
-            "id": "tab-points",
-            "label": "Points per Week",
-            "short_label": "Points",
-            "icon": "fas fa-chart-bar",
-            "color": "#fd7e14",
         },
         {
             "id": "tab-scope-tracking",
@@ -280,6 +266,17 @@ def get_mobile_tabs_config():
             "short_label": "DORA",
             "icon": "fas fa-rocket",
             "color": "#6610f2",  # indigo color
+        }
+    )
+
+    # Add Weekly Data tab
+    tabs.append(
+        {
+            "id": "tab-statistics-data",
+            "label": "Weekly Data",
+            "short_label": "Data",
+            "icon": "fas fa-table",
+            "color": "#6c757d",  # secondary color
         }
     )
 

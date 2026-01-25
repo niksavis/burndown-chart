@@ -20,7 +20,6 @@ from configuration.settings import CHART_HELP_TEXTS
 from ui.grid_utils import create_tab_content as grid_create_tab_content
 from ui.tooltip_utils import create_info_tooltip
 from ui.mobile_navigation import (
-    create_mobile_navigation_system,
     get_mobile_tabs_config,
 )
 from ui.style_constants import get_color
@@ -65,29 +64,11 @@ TAB_CONFIG: List[TabConfig] = [
         "help_content_id": "help-burndown",
     },
     {
-        "id": "tab-items",
-        "label": "Items per Week",
-        "icon": "fa-tasks",
-        "color": get_color("success"),
-        "order": 2,
-        "requires_data": True,
-        "help_content_id": "help-items",
-    },
-    {
-        "id": "tab-points",
-        "label": "Points per Week",
-        "icon": "fa-chart-bar",
-        "color": get_color("warning"),
-        "order": 3,
-        "requires_data": True,
-        "help_content_id": "help-points",
-    },
-    {
         "id": "tab-scope-tracking",
         "label": "Scope Tracking",
         "icon": "fa-project-diagram",
         "color": get_color("secondary"),
-        "order": 4,
+        "order": 2,
         "requires_data": True,
         "help_content_id": "help-scope",
     },
@@ -96,7 +77,7 @@ TAB_CONFIG: List[TabConfig] = [
         "label": "Bug Analysis",
         "icon": "fa-bug",
         "color": get_color("danger"),
-        "order": 5,
+        "order": 3,
         "requires_data": True,
         "help_content_id": "help-bug-analysis",
     },
@@ -105,7 +86,7 @@ TAB_CONFIG: List[TabConfig] = [
         "label": "Flow Metrics",
         "icon": "fa-stream",
         "color": get_color("success"),
-        "order": 6,
+        "order": 4,
         "requires_data": False,  # Has its own data loading
         "help_content_id": "help-flow",
     },
@@ -114,9 +95,18 @@ TAB_CONFIG: List[TabConfig] = [
         "label": "DORA Metrics",
         "icon": "fa-rocket",
         "color": get_color("primary"),
-        "order": 7,
+        "order": 5,
         "requires_data": False,  # Has its own data loading
         "help_content_id": "help-dora",
+    },
+    {
+        "id": "tab-statistics-data",
+        "label": "Weekly Data",
+        "icon": "fa-table",
+        "color": get_color("secondary"),
+        "order": 6,
+        "requires_data": True,
+        "help_content_id": "help-statistics-data",
     },
 ]
 
@@ -160,6 +150,45 @@ def validate_tab_id(tab_id: str) -> bool:
     return any(tab["id"] == tab_id for tab in TAB_CONFIG)
 
 
+def create_desktop_tabs_only():
+    """
+    Create ONLY desktop tab navigation for integration into sticky panel.
+    Returns just the tabs without mobile nav or content container.
+    """
+    tabs_config = get_tabs_sorted()
+
+    icon_map = {
+        "fa-dashboard": "📊 ",
+        "fa-chart-line": "📈 ",
+        "fa-list": "📋 ",
+        "fa-bug": "🐛 ",
+        "fa-rocket": "🚀 ",
+        "fa-water": "🌊 ",
+        "fa-table": "📊 ",
+    }
+
+    tabs = [
+        dbc.Tab(
+            label=f"{icon_map.get(tab['icon'], '📄 ')}{tab['label']}",
+            tab_id=tab["id"],
+            label_style={"cursor": "pointer"},
+        )
+        for tab in tabs_config
+    ]
+
+    return html.Div(
+        [
+            dbc.Tabs(
+                tabs,
+                id="chart-tabs",
+                active_tab="tab-dashboard",
+                className="mb-0 nav-tabs-modern d-none d-md-flex",
+            )
+        ],
+        className="desktop-tab-navigation",
+    )
+
+
 def create_tabs():
     """
     Create tabs for navigating between different chart views with mobile-first design.
@@ -170,42 +199,39 @@ def create_tabs():
     # Get mobile-optimized tab configuration
     tab_config = get_mobile_tabs_config()
 
+    # Map Font Awesome icons to Unicode alternatives for tab labels
+    # These provide visual distinction without requiring component labels
+    icon_map = {
+        "fas fa-tachometer-alt": "📊 ",
+        "fas fa-chart-line": "📈 ",
+        "fas fa-project-diagram": "🔀 ",
+        "fas fa-bug": "🐛 ",
+        "fas fa-stream": "🌊 ",
+        "fas fa-rocket": "🚀 ",
+        "fas fa-table": "📋 ",
+    }
+
     # Generate tabs with enhanced markup for better visual feedback
     tabs = []
     for tab in tab_config:
-        # Create a string label rather than a component
+        # Add icon prefix to label using Unicode emoji
+        icon_prefix = icon_map.get(tab["icon"], "")
+        label_with_icon = f"{icon_prefix}{tab['label']}"
+
         tabs.append(
             dbc.Tab(
-                label=tab["label"],
+                label=label_with_icon,
                 tab_id=tab["id"],
-                labelClassName="fw-medium tab-with-icon",  # Special class for styling
+                labelClassName="fw-bold tab-with-icon",  # Bold text prevents width shift on tab switch
                 activeLabelClassName="text-primary fw-bold",
                 tab_style={"minWidth": "150px"},
             )
         )
 
-    # Create responsive tab navigation
-    # On mobile: Use drawer + bottom nav, on desktop: Use regular tabs
-    return html.Div(
-        [
-            # Mobile navigation system (drawer + bottom nav) - only visible on mobile
-            create_mobile_navigation_system(),
-            # Regular tab navigation - hidden on mobile, visible on desktop
-            html.Div(
-                [
-                    dbc.Tabs(
-                        tabs,
-                        id="chart-tabs",
-                        active_tab="tab-dashboard",  # User Story 2: Dashboard as default view
-                        className="mb-4 nav-tabs-modern d-none d-md-flex",  # Hidden on mobile
-                    )
-                ],
-                className="desktop-tab-navigation",
-            ),
-            # Content div that will be filled based on active tab
-            html.Div(html.Div(id="tab-content"), className="tab-content-container"),
-        ]
-    )
+    # Create tab content container
+    # Mobile nav is handled separately in layout.py
+    # Desktop tabs are in sticky panel (see create_desktop_tabs_only)
+    return html.Div(id="tab-content", className="tab-content-container")
 
 
 def create_tab_content(active_tab, charts, statistics_df=None, pert_data=None):
@@ -223,32 +249,28 @@ def create_tab_content(active_tab, charts, statistics_df=None, pert_data=None):
     """
     # Import forecast info card functions
     from ui.cards import (
-        create_items_forecast_info_card,
-        create_points_forecast_info_card,
         create_forecast_info_card,
     )
 
     # Default to burndown chart if tab is None or invalid
     if active_tab not in [
         "tab-burndown",
-        "tab-items",
-        "tab-points",
         "tab-scope-tracking",
         "tab-bug-analysis",
         "tab-flow-metrics",
         "tab-dora-metrics",
+        "tab-statistics-data",
     ]:
         active_tab = "tab-burndown"
 
     # Tab-specific forecast info cards
     tab_info_cards = {
         "tab-burndown": create_forecast_info_card(),
-        "tab-items": create_items_forecast_info_card(statistics_df, pert_data),
-        "tab-points": create_points_forecast_info_card(statistics_df, pert_data),
         "tab-scope-tracking": html.Div(),  # Always provide a component, even if empty
         "tab-bug-analysis": html.Div(),  # Bug analysis has its own info cards in the content
         "tab-dora-metrics": html.Div(),  # DORA dashboard has its own info cards in the content
         "tab-flow-metrics": html.Div(),  # Flow dashboard has its own info cards in the content
+        "tab-statistics-data": html.Div(),  # Weekly data is the content itself
     }
 
     # Enhanced tab titles with more descriptive content and icons
@@ -264,25 +286,6 @@ def create_tab_content(active_tab, charts, statistics_df=None, pert_data=None):
                     CHART_HELP_TEXTS["burndown_vs_burnup"],
                     "Burndown vs Burnup chart differences and when to use each approach",
                 ),
-            ],
-            className="mb-3 border-bottom pb-2 d-flex align-items-center fw-bold",
-        ),
-        "tab-items": html.Div(
-            [
-                html.I(
-                    className="fas fa-tasks me-2", style={"color": get_color("success")}
-                ),
-                "Weekly Completed Items",
-            ],
-            className="mb-3 border-bottom pb-2 d-flex align-items-center fw-bold",
-        ),
-        "tab-points": html.Div(
-            [
-                html.I(
-                    className="fas fa-chart-bar me-2",
-                    style={"color": get_color("warning")},
-                ),
-                "Weekly Completed Points",
             ],
             className="mb-3 border-bottom pb-2 d-flex align-items-center fw-bold",
         ),
@@ -322,6 +325,16 @@ def create_tab_content(active_tab, charts, statistics_df=None, pert_data=None):
                     style={"color": get_color("success")},
                 ),
                 "Flow Metrics",
+            ],
+            className="mb-3 border-bottom pb-2 d-flex align-items-center fw-bold",
+        ),
+        "tab-statistics-data": html.Div(
+            [
+                html.I(
+                    className="fas fa-table me-2",
+                    style={"color": get_color("secondary")},
+                ),
+                "Weekly Data",
             ],
             className="mb-3 border-bottom pb-2 d-flex align-items-center fw-bold",
         ),

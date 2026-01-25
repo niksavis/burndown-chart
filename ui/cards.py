@@ -1641,7 +1641,8 @@ def create_statistics_data_card(current_statistics):
         "created_points": "right",
     }
 
-    # Create the enhanced table with consistent columns
+    # Create the statistics table directly in Weekly Data tab
+    # No hidden placeholder needed - Dash handles components in tabs just fine!
     statistics_table = create_enhanced_data_table(
         data=statistics_df.to_dict("records"),
         columns=columns,
@@ -1693,6 +1694,24 @@ def create_statistics_data_card(current_statistics):
                     " format (e.g., 2025-09-22 for the week of Sept 22-28, inclusive).",
                 ],
                 className="text-muted d-block mt-1",
+            ),
+            html.Small(
+                [
+                    html.I(className="fas fa-exclamation-triangle me-1 text-warning"),
+                    html.Strong("Important: ", style={"color": "#856404"}),
+                    "Manual edits persist in the database. However, ",
+                    html.Strong("Update Data"),
+                    " will overwrite all edits with fresh JIRA data, and ",
+                    html.Strong("Force Refresh"),
+                    " will delete all data and reload from JIRA. Save important manual changes elsewhere before updating.",
+                ],
+                className="d-block mt-2 p-2",
+                style={
+                    "backgroundColor": "#fff3cd",
+                    "border": "1px solid #ffc107",
+                    "borderRadius": "4px",
+                    "color": "#856404",
+                },
             ),
         ],
         className="mb-3",
@@ -1880,18 +1899,7 @@ def create_statistics_data_card(current_statistics):
                             placement="top",
                         ),
                     ],
-                    className="me-2 mb-2 mb-sm-0",  # Add right margin and bottom margin on mobile
-                    style={"display": "inline-block"},
-                ),
-                # Button to clear filters - resized and repositioned
-                html.Div(
-                    create_button(
-                        text="Clear Filters",
-                        id="clear-filters-button",
-                        variant="outline-secondary",
-                        icon_class="fas fa-filter",
-                    ),
-                    className="me-2 mb-2 mb-sm-0",  # Add right margin and bottom margin on mobile
+                    className="mb-2 mb-sm-0",  # Add bottom margin on mobile
                     style={"display": "inline-block"},
                 ),
             ],

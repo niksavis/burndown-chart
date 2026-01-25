@@ -551,7 +551,7 @@ def trigger_delete_query_modal_from_selector(delete_clicks, selected_query_id):
 
 @callback(
     [
-        Output("statistics-table", "data", allow_duplicate=True),
+        # Removed Output("statistics-table") - tab loads from DB when activated
         Output("total-items-input", "value", allow_duplicate=True),
         Output("estimated-items-input", "value", allow_duplicate=True),
         Output("total-points-display", "value", allow_duplicate=True),
@@ -691,7 +691,6 @@ def load_query_cached_data(n_clicks, selected_query_id):
         )
 
         return (
-            statistics,
             total_items,
             estimated_items,
             total_points_display,
@@ -727,20 +726,21 @@ def load_query_cached_data(n_clicks, selected_query_id):
             no_update,  # Don't update dropdown on error
         )
 
+        # ============================================================================
+        # Auto-Reload Data When Query Switches
+        # ============================================================================
 
-# ============================================================================
-# Auto-Reload Data When Query Switches
-# ============================================================================
+        # DISABLED: Auto-reload on query switch
+        # User requirement: Query dropdown should not trigger data loading automatically
+        # Data should only be loaded via explicit "Load Data" button click
+        # This allows users to select and modify queries without triggering data loads
+        #
+        # @callback(
+        #     [
+        #         Output("statistics-table", "data", allow_duplicate=True),
+        ()
 
 
-# DISABLED: Auto-reload on query switch
-# User requirement: Query dropdown should not trigger data loading automatically
-# Data should only be loaded via explicit "Load Data" button click
-# This allows users to select and modify queries without triggering data loads
-#
-# @callback(
-#     [
-#         Output("statistics-table", "data", allow_duplicate=True),
 #         Output("current-statistics", "data", allow_duplicate=True),
 #         Output("current-settings", "data", allow_duplicate=True),
 #         Output("total-items-input", "value", allow_duplicate=True),

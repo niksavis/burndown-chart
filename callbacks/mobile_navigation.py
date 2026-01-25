@@ -81,12 +81,11 @@ clientside_callback(
         const tab_mapping = {
             'bottom-nav-tab-dashboard': 'tab-dashboard',
             'bottom-nav-tab-burndown': 'tab-burndown',
-            'bottom-nav-tab-items': 'tab-items', 
-            'bottom-nav-tab-points': 'tab-points',
             'bottom-nav-tab-scope-tracking': 'tab-scope-tracking',
             'bottom-nav-tab-bug-analysis': 'tab-bug-analysis',
             'bottom-nav-tab-dora-metrics': 'tab-dora-metrics',
-            'bottom-nav-tab-flow-metrics': 'tab-flow-metrics'
+            'bottom-nav-tab-flow-metrics': 'tab-flow-metrics',
+            'bottom-nav-tab-statistics-data': 'tab-statistics-data'
         };
         
         const target_tab = tab_mapping[trigger_id];
@@ -107,12 +106,11 @@ clientside_callback(
     [
         Input("bottom-nav-tab-dashboard", "n_clicks"),
         Input("bottom-nav-tab-burndown", "n_clicks"),
-        Input("bottom-nav-tab-items", "n_clicks"),
-        Input("bottom-nav-tab-points", "n_clicks"),
         Input("bottom-nav-tab-scope-tracking", "n_clicks"),
         Input("bottom-nav-tab-bug-analysis", "n_clicks"),
         Input("bottom-nav-tab-dora-metrics", "n_clicks"),
         Input("bottom-nav-tab-flow-metrics", "n_clicks"),
+        Input("bottom-nav-tab-statistics-data", "n_clicks"),
     ],
     prevent_initial_call=True,
 )

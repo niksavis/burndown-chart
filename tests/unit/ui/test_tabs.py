@@ -22,8 +22,8 @@ class TestTabConfigRegistry:
         assert len(TAB_CONFIG) > 0
 
     def test_tab_config_has_seven_tabs(self):
-        """Test that TAB_CONFIG contains exactly 8 tabs (added DORA and Flow Metrics separately in Phase 7)."""
-        assert len(TAB_CONFIG) == 8
+        """Test that TAB_CONFIG contains exactly 7 tabs (Dashboard, Burndown, Scope Tracking, Bug Analysis, Flow Metrics, DORA Metrics, Weekly Data)."""
+        assert len(TAB_CONFIG) == 7
 
     def test_tab_config_structure(self):
         """Test that each tab has required fields."""
@@ -121,8 +121,6 @@ class TestTabConfigRegistry:
         expected_tab_ids = [
             "tab-dashboard",
             "tab-burndown",
-            "tab-items",
-            "tab-points",
             "tab-scope-tracking",
             "tab-bug-analysis",
         ]
@@ -140,8 +138,6 @@ class TestTabConfigRegistry:
         expected_colors = {
             "tab-dashboard": get_color("primary"),
             "tab-burndown": get_color("info"),
-            "tab-items": get_color("success"),
-            "tab-points": get_color("warning"),
             "tab-scope-tracking": get_color("secondary"),
             "tab-bug-analysis": get_color("danger"),
         }
@@ -275,12 +271,11 @@ class TestTabConfigIntegration:
         expected_order = [
             "tab-dashboard",
             "tab-burndown",
-            "tab-items",
-            "tab-points",
             "tab-scope-tracking",
             "tab-bug-analysis",
             "tab-flow-metrics",  # Flow before DORA - better workflow
             "tab-dora-metrics",
+            "tab-statistics-data",  # Last position - specialized manual data entry
         ]
 
         actual_order = [tab["id"] for tab in sorted_tabs]

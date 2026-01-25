@@ -1337,13 +1337,48 @@ class SQLiteBackend(PersistenceBackend):
         query_id: str,
         stats: List[Dict],
     ) -> None:
-        """Batch UPSERT weekly statistics."""
-        if not stats:
-            return
+        """
+        Batch save weekly statistics (replaces all existing data for query).
 
+        CRITICAL: This performs a full replacement - deletes all existing statistics
+        for the query, then inserts the new data. This ensures row deletions persist.
+        """
         try:
             with get_db_connection(self.db_path) as conn:
                 cursor = conn.cursor()
+
+                # CRITICAL FIX: Delete all existing statistics for this query first
+                # This ensures row deletions persist (UPSERT only updates, never deletes)
+                cursor.execute(
+                    "DELETE FROM project_statistics WHERE profile_id = ? AND query_id = ?",
+                    (profile_id, query_id),
+                )
+                deleted_count = cursor.rowcount
+                logger.info(
+                    f"Deleted {deleted_count} existing statistics for {profile_id}/{query_id}"
+                )
+
+                # DEBUG: Log sample of data being saved to detect manual edits
+                if stats and len(stats) > 0:
+                    first_stat = stats[0]
+                    last_stat = stats[-1] if len(stats) > 1 else first_stat
+                    logger.info(
+                        f"[SAVE DEBUG] Saving {len(stats)} stats. "
+                        f"First: {first_stat.get('date') or first_stat.get('stat_date')} "
+                        f"remaining_items={first_stat.get('remaining_items')}, "
+                        f"completed_items={first_stat.get('completed_items')}. "
+                        f"Last: {last_stat.get('date') or last_stat.get('stat_date')} "
+                        f"remaining_items={last_stat.get('remaining_items')}, "
+                        f"completed_items={last_stat.get('completed_items')}"
+                    )
+
+                # Now insert the new statistics
+                if not stats:
+                    logger.info(
+                        f"No new statistics to insert for {profile_id}/{query_id}"
+                    )
+                    conn.commit()
+                    return
 
                 for stat in stats:
                     # Handle both "stat_date" (database format) and "date" (legacy format)
@@ -1360,19 +1395,6 @@ class SQLiteBackend(PersistenceBackend):
                             completed_items, completed_points, created_items, created_points,
                             velocity_items, velocity_points, recorded_at
                         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                        ON CONFLICT(profile_id, query_id, stat_date) DO UPDATE SET
-                            week_label = excluded.week_label,
-                            remaining_items = excluded.remaining_items,
-                            remaining_total_points = excluded.remaining_total_points,
-                            items_added = excluded.items_added,
-                            items_completed = excluded.items_completed,
-                            completed_items = excluded.completed_items,
-                            completed_points = excluded.completed_points,
-                            created_items = excluded.created_items,
-                            created_points = excluded.created_points,
-                            velocity_items = excluded.velocity_items,
-                            velocity_points = excluded.velocity_points,
-                            recorded_at = excluded.recorded_at
                     """,
                         (
                             profile_id,

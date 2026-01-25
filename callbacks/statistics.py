@@ -7,26 +7,10 @@ This module handles callbacks related to statistics data management.
 #######################################################################
 # IMPORTS
 #######################################################################
-# Standard library imports
-import io
-import json
-import base64
-from datetime import datetime, timedelta
-
 # Third-party library imports
-import dash
-from dash import Input, Output, State, html, no_update
+from dash import Input, Output, State, html
 from dash.exceptions import PreventUpdate
-import pandas as pd
 import dash_bootstrap_components as dbc
-
-# Application imports
-from configuration import logger
-from data.persistence import (
-    save_statistics,
-    save_statistics_from_csv_import,
-    read_and_clean_data,
-)
 
 #######################################################################
 # HELPER FUNCTIONS
@@ -184,395 +168,243 @@ def register(app):
     """
 
     @app.callback(
-        [
-            Output("current-statistics", "data"),
-            Output("current-statistics", "modified_timestamp"),
-        ],
-        [Input("statistics-table", "data")],
-        [State("app-init-complete", "data")],
-    )
-    def update_and_save_statistics(data, init_complete):
-        """
-        Update current statistics and save to disk when changed.
-        """
-        ctx = dash.callback_context
-
-        # Skip if not initialized or no data
-        if not init_complete or not ctx.triggered or not data:
-            raise PreventUpdate
-
-        # Save to disk
-        save_statistics(data)
-        logger.info("Statistics updated and saved")
-        return data, int(datetime.now().timestamp() * 1000)
-
-    @app.callback(
-        [
-            Output("statistics-table", "data"),
-            Output("is-sample-data", "data"),
-            Output("upload-data", "contents", allow_duplicate=True),
-        ],
-        [
-            Input("add-row-button", "n_clicks"),
-            Input("upload-data", "contents"),
-            Input("statistics-table", "data_timestamp"),
-        ],
-        [
-            State("statistics-table", "data"),
-            State("upload-data", "filename"),
-            State("is-sample-data", "data"),
-        ],
+        Output("current-statistics", "data"),
+        Input("current-statistics", "modified_timestamp"),
         prevent_initial_call=True,
     )
-    def update_table(
-        n_clicks,
-        contents,
-        data_timestamp,
-        rows,
-        filename,
-        is_sample_data,
-    ):
+    def reload_statistics_from_database(timestamp):
         """
-        Update the statistics table data when:
-        - A row is added
-        - Data is uploaded
-        - Cell values are edited (and need empty values converted to zeros)
-        Also update the sample data flag when real data is uploaded.
-        """
-        ctx = dash.callback_context
-        if not ctx.triggered:
-            # No triggers, return unchanged
-            return rows, is_sample_data, no_update
+        Reload statistics from database when modified_timestamp changes.
 
-        trigger_id = ctx.triggered[0]["prop_id"].split(".")[0]
-        trigger_prop = (
-            ctx.triggered[0]["prop_id"].split(".")[1]
-            if "." in ctx.triggered[0]["prop_id"]
-            else None
+        This ensures UI reflects database state after external updates like:
+        - Update Data (JIRA sync overwrites manual edits)
+        - Force Refresh (complete data wipe and reload)
+        - Query switching
+
+        Args:
+            timestamp: Timestamp from modified_timestamp trigger
+
+        Returns:
+            List of statistics dictionaries loaded from database
+        """
+        from configuration import logger
+        from data.persistence import load_unified_project_data
+
+        logger.info(
+            f"[Statistics] reload_statistics_from_database triggered by timestamp={timestamp}"
         )
 
         try:
-            # Always clean numeric values first to prevent errors
-            if rows:
-                for row in rows:
-                    numeric_columns = [
-                        "completed_items",
-                        "completed_points",
-                        "created_items",
-                        "created_points",
-                    ]
-                    for col in numeric_columns:
-                        if col in row:
-                            if row[col] == "" or row[col] is None:
-                                row[col] = 0
-                            else:
-                                try:
-                                    row[col] = int(float(row[col]))
-                                except (ValueError, TypeError):
-                                    row[col] = 0
+            # Load fresh data from database
+            unified_data = load_unified_project_data()
+            statistics = unified_data.get("statistics", [])
 
-            # Add a new row with a smart date calculation
-            if trigger_id == "add-row-button":
-                if not rows:
-                    # If no existing rows, use today's date
-                    new_date = datetime.now().strftime("%Y-%m-%d")
-                else:
-                    # Find the most recent date
-                    try:
-                        date_objects = [
-                            datetime.strptime(row["date"], "%Y-%m-%d")
-                            for row in rows
-                            if row["date"] and len(row["date"]) == 10
-                        ]
-                        if date_objects:
-                            most_recent_date = max(date_objects)
-                            # Set new date to 7 days after the most recent
-                            new_date = (most_recent_date + timedelta(days=7)).strftime(
-                                "%Y-%m-%d"
-                            )
-                        else:
-                            new_date = datetime.now().strftime("%Y-%m-%d")
-                    except ValueError:
-                        # Handle any date parsing errors
-                        new_date = datetime.now().strftime("%Y-%m-%d")
-
-                # Calculate week_label for the new row
-                from data.iso_week_bucketing import get_week_label
-
-                try:
-                    date_obj = datetime.strptime(new_date, "%Y-%m-%d")
-                    week_label = get_week_label(date_obj)
-                except (ValueError, TypeError) as e:
-                    logger.warning(
-                        f"Could not calculate week_label for {new_date}: {e}"
-                    )
-                    week_label = ""
-
-                # Insert at beginning (will be at top with desc sorting)
-                rows.insert(
-                    0,
-                    {
-                        "date": new_date,
-                        "week_label": week_label,
-                        "completed_items": 0,
-                        "completed_points": 0,
-                        "created_items": 0,
-                        "created_points": 0,
-                    },
+            logger.info(f"[Statistics] Reloaded {len(statistics)} rows from database")
+            if statistics:
+                logger.info(
+                    f"[Statistics] First row: {statistics[0].get('date', 'NO_DATE')}, "
+                    f"Last row: {statistics[-1].get('date', 'NO_DATE')}"
                 )
 
-                # If user adds a row, we're no longer using sample data
-                if is_sample_data:
-                    return rows, False, no_update
-                else:
-                    return rows, is_sample_data, no_update
-
-            elif trigger_id == "upload-data" and contents:
-                # Parse uploaded file
-                content_type, content_string = contents.split(",")
-                decoded = base64.b64decode(content_string)
-
-                # Handle ZIP file imports (full profile backup)
-                if filename.lower().endswith(".zip"):
-                    try:
-                        import tempfile
-                        from data.import_export import import_profile_enhanced
-                        from data.query_manager import get_active_profile_id
-
-                        # Write ZIP to temporary file
-                        with tempfile.NamedTemporaryFile(
-                            delete=False, suffix=".zip"
-                        ) as tmp_file:
-                            tmp_file.write(decoded)
-                            tmp_zip_path = tmp_file.name
-
-                        try:
-                            # Import the profile
-                            profile_id = get_active_profile_id()
-                            logger.info(
-                                f"Importing profile from ZIP: {filename} into {profile_id}"
-                            )
-
-                            success, message, new_profile_id = import_profile_enhanced(
-                                import_path=tmp_zip_path, target_profile_id=profile_id
-                            )
-
-                            result = {
-                                "success": success,
-                                "message": message,
-                                "error": message if not success else None,
-                            }
-
-                            if result["success"]:
-                                logger.info(
-                                    f"Profile imported successfully: {result['message']}"
-                                )
-
-                                # Load imported statistics for table display
-                                from data.persistence import load_unified_project_data
-
-                                project_data = load_unified_project_data()
-                                statistics_data = project_data.get("statistics", [])
-
-                                if statistics_data:
-                                    return statistics_data, False, None
-                                else:
-                                    logger.warning(
-                                        "No statistics found in imported profile"
-                                    )
-                                    return rows, is_sample_data, no_update
-                            else:
-                                logger.error(
-                                    f"Profile import failed: {result.get('error', 'Unknown error')}"
-                                )
-                                return rows, is_sample_data, no_update
-
-                        finally:
-                            # Clean up temp file
-                            import os
-
-                            if os.path.exists(tmp_zip_path):
-                                os.unlink(tmp_zip_path)
-
-                    except Exception as e:
-                        logger.error(f"Error importing ZIP file: {e}", exc_info=True)
-                        return rows, is_sample_data, no_update
-
-                elif "csv" in filename.lower():
-                    try:
-                        # Try semicolon separator first
-                        df = pd.read_csv(io.StringIO(decoded.decode("utf-8")), sep=";")
-                        if (
-                            "date" not in df.columns
-                            or "completed_items" not in df.columns
-                            or "completed_points" not in df.columns
-                        ):
-                            # Try with comma separator
-                            df = pd.read_csv(io.StringIO(decoded.decode("utf-8")))
-
-                        # Clean data and ensure date is in YYYY-MM-DD format
-                        df = read_and_clean_data(df)
-
-                        # Ensure created_items and created_points columns exist
-                        if "created_items" not in df.columns:
-                            df["created_items"] = 0
-                        if "created_points" not in df.columns:
-                            df["created_points"] = 0
-
-                        # Convert empty strings to zeros for all numeric columns
-                        numeric_columns = [
-                            "completed_items",
-                            "completed_points",
-                            "created_items",
-                            "created_points",
-                        ]
-                        for col in numeric_columns:
-                            if col in df.columns:
-                                df[col] = (
-                                    pd.to_numeric(df[col], errors="coerce")
-                                    .fillna(0)
-                                    .astype(int)
-                                )
-
-                        # Save CSV data directly with correct metadata
-                        records = df.to_dict("records")
-                        save_statistics_from_csv_import(records)  # type: ignore[arg-type]
-
-                        # When uploading data, we're no longer using sample data
-                        # Clear the upload contents to allow consecutive uploads of the same file
-                        return df.to_dict("records"), False, None
-                    except Exception as e:
-                        logger.error(f"Error loading CSV file: {e}")
-                        # Return unchanged data if there's an error
-                        return rows, is_sample_data, no_update
-
-                elif "json" in filename.lower():
-                    try:
-                        # Parse JSON file
-                        json_data = json.loads(decoded.decode("utf-8"))
-
-                        # Check if this is a full project data structure (exported JSON)
-                        if isinstance(json_data, dict) and "statistics" in json_data:
-                            # This is a full project data export - handle it specially
-                            from data.persistence import save_unified_project_data
-
-                            # Save the full project data
-                            save_unified_project_data(json_data)
-                            logger.info(f"Imported full project data from {filename}")
-
-                            # Extract statistics for the table
-                            statistics_data = json_data.get("statistics", [])
-                            df = pd.DataFrame(statistics_data)
-                        else:
-                            # This is just statistics data (legacy format)
-                            df = pd.DataFrame(json_data)
-
-                        # Validate required columns for statistics
-                        required_columns = [
-                            "date",
-                            "completed_items",
-                            "completed_points",
-                        ]
-
-                        if df.empty:
-                            logger.error("JSON file contains no statistics data")
-                            return rows, is_sample_data, no_update
-
-                        missing_columns = [
-                            col for col in required_columns if col not in df.columns
-                        ]
-
-                        if missing_columns:
-                            logger.error(
-                                f"JSON file missing required columns: {missing_columns}"
-                            )
-                            return rows, is_sample_data, no_update
-
-                        # Clean data and ensure date is in YYYY-MM-DD format
-                        df = read_and_clean_data(df)
-
-                        # Ensure created_items and created_points columns exist
-                        if "created_items" not in df.columns:
-                            df["created_items"] = 0
-                        if "created_points" not in df.columns:
-                            df["created_points"] = 0
-
-                        # Convert empty strings to zeros for all numeric columns
-                        numeric_columns = [
-                            "completed_items",
-                            "completed_points",
-                            "created_items",
-                            "created_points",
-                        ]
-                        for col in numeric_columns:
-                            if col in df.columns:
-                                df[col] = (
-                                    pd.to_numeric(df[col], errors="coerce")
-                                    .fillna(0)
-                                    .astype(int)
-                                )
-
-                        # Check if this was a full project data import to trigger reload
-                        full_project_imported = (
-                            isinstance(json_data, dict) and "statistics" in json_data
-                        )
-
-                        # When uploading JSON data, we're no longer using sample data
-                        # Note: Full project data import now handled by saving directly to disk
-                        # No need for reload trigger - page refresh will pick up changes
-
-                        # Log success message for full project import
-                        if full_project_imported:
-                            logger.info(
-                                "Full project data imported successfully. Statistics table updated. Page refresh recommended to update all charts and project scope metrics."
-                            )
-
-                        # Clear the upload contents to allow consecutive uploads of the same file
-                        return df.to_dict("records"), False, None
-                    except json.JSONDecodeError as e:
-                        logger.error(f"Error parsing JSON file: {e}")
-                        return rows, is_sample_data, no_update
-                    except Exception as e:
-                        logger.error(f"Error loading JSON file: {e}")
-                        return rows, is_sample_data, no_update
-
-                else:
-                    logger.error(
-                        f"Unsupported file type: {filename}. Please upload a CSV or JSON file."
-                    )
-                    return rows, is_sample_data, no_update
-
-            elif trigger_id == "statistics-table" and trigger_prop == "data_timestamp":
-                # This is triggered when a cell is edited and loses focus
-                # We've already cleaned the data at the start of this callback
-                return rows, is_sample_data, no_update
+            return statistics
 
         except Exception as e:
-            logger.error(f"Error in update_table callback: {e}")
-
-        return rows, is_sample_data, no_update
+            logger.error(
+                f"[Statistics] Failed to reload from database: {e}", exc_info=True
+            )
+            raise PreventUpdate
 
     @app.callback(
-        Output("statistics-table", "filter_query"),
-        [Input("clear-filters-button", "n_clicks")],
+        [
+            Output("current-statistics", "data", allow_duplicate=True),
+            Output("current-statistics", "modified_timestamp", allow_duplicate=True),
+            Output(
+                "chart-cache", "data", allow_duplicate=True
+            ),  # Clear cache to force refresh
+        ],
+        [Input("statistics-table", "data")],
+        [
+            State("app-init-complete", "data"),
+            State("current-statistics", "data"),
+        ],
         prevent_initial_call=True,
     )
-    def clear_table_filters(n_clicks):
+    def save_statistics_on_edit(table_data, init_complete, current_statistics):
         """
-        Clear all filters from the statistics table when the clear filters button is clicked.
+        Save statistics to database when user edits the table.
 
-        Args:
-            n_clicks: Number of times the clear-filters button has been clicked
+        This callback watches for changes to the statistics-table data property
+        (triggered when user edits cells in the Weekly Data tab) and saves the
+        updated data to disk. Then clears chart cache to force visualization refresh.
 
-        Returns:
-            Empty string to clear all filters
+        CRITICAL: This callback can be triggered by:
+        1. User manually editing a cell (SHOULD save)
+        2. Tab re-rendering with fresh data from database (SHOULD NOT save - would create loop)
+
+        To distinguish: Compare table_data with current_statistics. If they match,
+        this is a re-render, not a user edit.
         """
-        if n_clicks:
-            # Return empty string to clear all filters from the table
-            return ""
+        from datetime import datetime
+        from data.persistence import save_statistics
+        from configuration import logger
 
-        # This should not be reached due to prevent_initial_call=True
-        raise PreventUpdate
+        logger.info(
+            f"[Statistics] save_statistics_on_edit triggered: "
+            f"table_data={'None' if table_data is None else f'{len(table_data)} rows'}, "
+            f"init_complete={init_complete}"
+        )
+
+        # Validate table_data before saving
+        if not table_data:
+            logger.warning("[Statistics] PREVENTING save - table_data is empty")
+            raise PreventUpdate
+
+        # CRITICAL FIX: Prevent save loop when tab re-renders with database data
+        # If table_data matches current_statistics, this is NOT a user edit
+        if current_statistics and len(table_data) == len(current_statistics):
+            # Quick check: compare a few key values to see if data is identical
+            # (full deep comparison would be expensive)
+            if len(table_data) > 0:
+                first_table = table_data[0]
+                first_current = current_statistics[0]
+                last_table = table_data[-1]
+                last_current = current_statistics[-1]
+
+                # Compare key fields to detect if this is the same data
+                if (
+                    first_table.get("date") == first_current.get("date")
+                    and first_table.get("remaining_items")
+                    == first_current.get("remaining_items")
+                    and first_table.get("completed_items")
+                    == first_current.get("completed_items")
+                    and last_table.get("date") == last_current.get("date")
+                    and last_table.get("remaining_items")
+                    == last_current.get("remaining_items")
+                    and last_table.get("completed_items")
+                    == last_current.get("completed_items")
+                ):
+                    logger.info(
+                        "[Statistics] PREVENTING save - table_data matches current_statistics "
+                        "(tab re-render, not user edit)"
+                    )
+                    raise PreventUpdate
+
+        # Validate table_data before saving
+        if not table_data:
+            logger.warning("[Statistics] PREVENTING save - table_data is empty")
+            raise PreventUpdate
+
+        # Log first and last row for debugging
+        if len(table_data) > 0:
+            logger.info(
+                f"[Statistics] Saving {len(table_data)} rows. "
+                f"First: {table_data[0].get('date', 'NO_DATE')}, "
+                f"Last: {table_data[-1].get('date', 'NO_DATE')}"
+            )
+
+        # Save to database
+        try:
+            save_statistics(table_data)
+            logger.info(
+                f"[Statistics] ✓ Table edited and saved SUCCESSFULLY to DB: {len(table_data)} rows"
+            )
+        except Exception as e:
+            logger.error(
+                f"[Statistics] ✗ FAILED to save statistics to DB: {e}",
+                exc_info=True,
+            )
+            # Still return the data to update the browser store
+            # But the DB save failed
+
+        # Return updated data, timestamp, and clear chart cache to force refresh
+        timestamp = int(datetime.now().timestamp() * 1000)
+        logger.info(f"[Statistics] Returning updated data with timestamp {timestamp}")
+        return table_data, timestamp, {}
+
+    @app.callback(
+        Output("statistics-table", "data", allow_duplicate=True),
+        [Input("add-row-button", "n_clicks")],
+        [State("statistics-table", "data")],
+        prevent_initial_call=True,
+    )
+    def add_table_row(n_clicks, current_data):
+        """
+        Add a new row to the statistics table.
+
+        Calculates the next Monday date (7 days after most recent entry)
+        and inserts a new row at the beginning of the table.
+        """
+        from datetime import datetime, timedelta
+        from data.iso_week_bucketing import get_week_label
+        from configuration import logger
+
+        if not n_clicks or not current_data:
+            raise PreventUpdate
+
+        # Find the most recent date
+        try:
+            date_objects = [
+                datetime.strptime(row["date"], "%Y-%m-%d")
+                for row in current_data
+                if row.get("date") and len(row.get("date", "")) == 10
+            ]
+            if date_objects:
+                most_recent_date = max(date_objects)
+                # Set new date to 7 days after the most recent
+                new_date = (most_recent_date + timedelta(days=7)).strftime("%Y-%m-%d")
+
+                # CRITICAL: Prevent future dates beyond today
+                # Statistics for future weeks make no sense (no completed/created items yet)
+                today = datetime.now().replace(
+                    hour=0, minute=0, second=0, microsecond=0
+                )
+                proposed_date = datetime.strptime(new_date, "%Y-%m-%d")
+                if proposed_date > today:
+                    logger.warning(
+                        f"Cannot add row for future date {new_date} (beyond today {today.strftime('%Y-%m-%d')}). "
+                        "Statistics are historical data only."
+                    )
+                    raise PreventUpdate
+            else:
+                new_date = datetime.now().strftime("%Y-%m-%d")
+        except (ValueError, KeyError):
+            # Handle any date parsing errors
+            new_date = datetime.now().strftime("%Y-%m-%d")
+
+        # Calculate week_label for the new row
+        try:
+            date_obj = datetime.strptime(new_date, "%Y-%m-%d")
+            week_label = get_week_label(date_obj)
+        except (ValueError, TypeError) as e:
+            logger.warning(f"Could not calculate week_label for {new_date}: {e}")
+            week_label = ""
+
+        # Insert at beginning (will be at top with desc sorting)
+        new_row = {
+            "date": new_date,
+            "week_label": week_label,
+            "completed_items": 0,
+            "completed_points": 0,
+            "created_items": 0,
+            "created_points": 0,
+        }
+
+        updated_data = [new_row] + current_data
+        logger.info(f"Added new row to statistics table: {new_date} ({week_label})")
+
+        return updated_data
+
+    # REMOVED: update_and_save_statistics and update_table callbacks
+    # These callbacks referenced statistics-table which only exists in the Weekly Data tab,
+    # causing ReferenceError at app registration (Dash validates all I/O at startup).
+    #
+    # Statistics are now:
+    # - Loaded from database when tab is rendered (callbacks/visualization.py)
+    # - Saved when Update Data runs (callbacks/settings.py)
+    # - Editable in the table (but changes not persisted until Update Data)
+    #
+    # File upload functionality (CSV/JSON/ZIP) needs to be moved to a different callback
+    # that doesn't depend on statistics-table existing in main layout.
 
     # REMOVED: toggle_sample_data_alert callback
     # Sample data alert now uses Bootstrap's built-in dismissable=True behavior.

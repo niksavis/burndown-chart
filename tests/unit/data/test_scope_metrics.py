@@ -649,7 +649,7 @@ class TestCheckScopeChangeThreshold(unittest.TestCase):
 
         # Should return "warning" status
         self.assertEqual(result["status"], "warning")
-        self.assertIn("Items scope change (15.0%)", result["message"])
+        self.assertIn("Items scope growth (15.0%)", result["message"])
         self.assertIn(
             "Scope is growing 1.2x faster than items completion", result["message"]
         )
@@ -667,7 +667,7 @@ class TestCheckScopeChangeThreshold(unittest.TestCase):
 
         # Should return "warning" status
         self.assertEqual(result["status"], "warning")
-        self.assertIn("Points scope change (15.0%)", result["message"])
+        self.assertIn("Points scope growth (15.0%)", result["message"])
         self.assertIn(
             "Scope is growing 1.5x faster than points completion", result["message"]
         )
@@ -685,8 +685,8 @@ class TestCheckScopeChangeThreshold(unittest.TestCase):
 
         # Should return "warning" status with message mentioning both
         self.assertEqual(result["status"], "warning")
-        self.assertIn("Items scope change (15.0%)", result["message"])
-        self.assertIn("Points scope change (20.0%)", result["message"])
+        self.assertIn("Items scope growth (15.0%)", result["message"])
+        self.assertIn("Points scope growth (20.0%)", result["message"])
         self.assertIn(
             "Scope is growing 1.2x faster than items completion and 1.8x faster than points completion",
             result["message"],

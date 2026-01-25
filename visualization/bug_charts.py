@@ -41,15 +41,8 @@ def get_mobile_chart_config(viewport_size: str = "mobile") -> Dict[str, Any]:
         mobile_config = {
             **base_config,
             "modeBarButtonsToRemove": [
-                "pan2d",
-                "select2d",
                 "lasso2d",
-                "resetScale2d",
-                "zoomIn2d",
-                "zoomOut2d",
-                "autoScale2d",
-                "hoverClosestCartesian",
-                "hoverCompareCartesian",
+                "select2d",
                 "toggleSpikelines",
             ],
             "toImageButtonOptions": {
@@ -66,10 +59,9 @@ def get_mobile_chart_config(viewport_size: str = "mobile") -> Dict[str, Any]:
         tablet_config = {
             **base_config,
             "modeBarButtonsToRemove": [
-                "select2d",
                 "lasso2d",
-                "hoverClosestCartesian",
-                "hoverCompareCartesian",
+                "select2d",
+                "toggleSpikelines",
             ],
         }
         return tablet_config
@@ -90,7 +82,6 @@ def get_mobile_chart_layout(viewport_size: str = "mobile") -> Dict[str, Any]:
     """
     if viewport_size == "mobile":
         return {
-            "font": {"size": 11, "family": "system-ui, -apple-system, sans-serif"},
             "margin": {
                 "t": 30,
                 "r": 15,
@@ -116,7 +107,6 @@ def get_mobile_chart_layout(viewport_size: str = "mobile") -> Dict[str, Any]:
         }
     elif viewport_size == "tablet":
         return {
-            "font": {"size": 12, "family": "system-ui, -apple-system, sans-serif"},
             "margin": {
                 "t": 50,
                 "r": 30,
@@ -135,7 +125,6 @@ def get_mobile_chart_layout(viewport_size: str = "mobile") -> Dict[str, Any]:
     else:
         # Desktop layout (existing default)
         return {
-            "font": {"size": 14, "family": "system-ui, -apple-system, sans-serif"},
             "margin": {
                 "t": 80,
                 "r": 60,
@@ -531,7 +520,6 @@ def create_bug_investment_chart(
         Plotly Figure object with dual-axis bug investment visualization
     """
     import plotly.graph_objects as go
-    from plotly.subplots import make_subplots
 
     if not weekly_stats:
         # Return empty chart with message

@@ -682,6 +682,16 @@ def export_profile_with_mode(
                 query_data["project_scope"] = project_scope
                 logger.info(f"Exported project scope for query '{current_query_id}'")
 
+            # Get metrics data points (DORA, Flow, Bug metrics) - CRITICAL for health score consistency
+            metrics = backend.get_metric_values(
+                profile_id, current_query_id, limit=100000
+            )
+            if metrics:
+                query_data["metrics"] = metrics
+                logger.info(
+                    f"Exported {len(metrics)} metrics data points for query '{current_query_id}'"
+                )
+
         # Export budget settings and revisions (query-level data) - only if explicitly requested
         if include_budget:
             budget_settings = backend.get_budget_settings(profile_id, current_query_id)
