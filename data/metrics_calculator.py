@@ -1091,6 +1091,10 @@ def calculate_and_save_weekly_metrics(
                 # Flat format: fixVersions at root level
                 fix_versions = issue.get("fixVersions", [])
 
+            # Ensure fix_versions is iterable (handle None case)
+            if fix_versions is None:
+                fix_versions = []
+
             for fv in fix_versions:
                 fv_name = fv.get("name")
                 if fv_name:
