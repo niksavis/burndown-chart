@@ -1,5 +1,15 @@
 # Changelog
 
+## v2.7.11
+
+*Released: 2026-01-26*
+
+### Bug Fixes
+
+- **Update Success Toast**: Fixed case sensitivity mismatch between updater and app - updater writes "true" but app checked for "True", causing success toast to never appear after updates
+- **Release Process**: Fixed orphaned git tags issue where tags pointed to wrong commits, causing GitHub Actions to build outdated code - tag now created after all commits complete
+- **Changelog Generation**: Added preview mode to regenerate_changelog.py enabling changelog creation before tagging, preventing need to force-move tags after polishing
+
 ## v2.7.10
 
 *Released: 2026-01-26*
