@@ -135,16 +135,23 @@
 
       // Create toast HTML (matching Dash Bootstrap Components style)
       const toastElement = document.createElement("div");
-      toastElement.className = "toast fade show";
+      toastElement.className = "fade toast show";
       toastElement.setAttribute("role", "alert");
+      toastElement.setAttribute("aria-live", "assertive");
+      toastElement.setAttribute("aria-atomic", "true");
+      toastElement.style.minWidth = "280px";
       toastElement.innerHTML = `
-      <div class="toast-header bg-success text-white">
-        <i class="fas fa-check-circle me-2"></i>
-        <strong class="me-auto">Update Complete</strong>
-        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast" aria-label="Close"></button>
+      <div class="toast-header">
+        <svg class="rounded text-success" width="20" height="20" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice" focusable="false" role="img">
+          <rect fill="currentColor" width="100%" height="100%"></rect>
+        </svg>
+        <strong class="me-auto ms-2">Success</strong>
+        <button type="button" class="btn-close" aria-label="Close" data-dismiss="toast"></button>
       </div>
       <div class="toast-body">
-        Successfully updated to v${version}!
+        <div>
+          <i class="fas fa-check-circle me-2 text-success"></i>Successfully updated to v${version}!
+        </div>
       </div>
     `;
 
