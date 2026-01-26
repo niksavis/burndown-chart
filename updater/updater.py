@@ -332,10 +332,14 @@ def replace_executable(new_exe_path: Path, target_exe_path: Path) -> bool:
 
 
 def set_post_update_flag(exe_path: Path) -> None:
-    """Set post_update_relaunch flag in database before launching app.
+    """Set post-update flags in database before launching app.
 
-    This flag signals the app to skip browser auto-launch, allowing
-    update_reconnect.js to reload existing tabs instead of opening new ones.
+    Sets two flags with different lifecycles:
+    - post_update_no_browser: Signals app to skip browser auto-launch (cleared at startup)
+    - post_update_show_toast: Triggers success toast in JavaScript (cleared after display)
+
+    This separation ensures browser tabs reconnect instead of opening new ones,
+    while still displaying the success message after page loads.
 
     Args:
         exe_path: Path to executable (used to find database)
@@ -350,21 +354,27 @@ def set_post_update_flag(exe_path: Path) -> None:
             )
             return
 
-        print_status("Setting post_update_relaunch flag in database")
+        print_status("Setting post-update flags in database")
 
         # Direct SQLite connection (no need for full backend initialization)
         conn = sqlite3.connect(str(db_path), timeout=10)
         cursor = conn.cursor()
 
-        # Set flag in app_state table
+        # Set two flags with different lifecycles:
+        # 1. post_update_no_browser: Prevents browser auto-launch (cleared at startup)
+        # 2. post_update_show_toast: Triggers success toast (cleared by JavaScript)
         cursor.execute(
             "INSERT OR REPLACE INTO app_state (key, value) VALUES (?, ?)",
-            ("post_update_relaunch", "true"),
+            ("post_update_no_browser", "true"),
+        )
+        cursor.execute(
+            "INSERT OR REPLACE INTO app_state (key, value) VALUES (?, ?)",
+            ("post_update_show_toast", "true"),
         )
         conn.commit()
         conn.close()
 
-        print_status("Post-update flag set successfully")
+        print_status("Post-update flags set successfully")
     except Exception as e:
         print_status(f"WARNING: Failed to set post-update flag: {e}")
         print_status("App will launch normally with browser auto-open")

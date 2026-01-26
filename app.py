@@ -470,13 +470,13 @@ def get_version():
     from flask import jsonify
     from data.persistence.factory import get_backend
 
-    # Check post_update_relaunch flag from database
+    # Check post_update_show_toast flag from database (for JavaScript toast display)
     try:
         backend = get_backend()
-        post_update_value = backend.get_app_state("post_update_relaunch")
+        post_update_value = backend.get_app_state("post_update_show_toast")
         post_update = post_update_value == "true" if post_update_value else False
     except Exception as e:
-        logger.warning(f"Failed to load post_update flag: {e}")
+        logger.warning(f"Failed to load post_update_show_toast flag: {e}")
         post_update = False
 
     return jsonify({"version": __version__, "post_update": post_update})
@@ -484,9 +484,10 @@ def get_version():
 
 @app.server.route("/api/clear-post-update", methods=["POST"])
 def clear_post_update():
-    """API endpoint to clear the post_update_relaunch flag.
+    """API endpoint to clear the post_update_show_toast flag.
 
     Called by JavaScript after successfully showing the update success toast.
+    Separate from post_update_no_browser flag (cleared at app startup).
 
     Returns:
         JSON response with success status
@@ -500,9 +501,9 @@ def clear_post_update():
 
     try:
         backend = get_backend()
-        backend.set_app_state("post_update_relaunch", "")  # Clear the flag
+        backend.set_app_state("post_update_show_toast", "")  # Clear the flag
         logger.info(
-            "Cleared post_update_relaunch flag via API",
+            "Cleared post_update_show_toast flag via API",
             extra={"operation": "clear_post_update_flag"},
         )
         return jsonify({"success": True})
@@ -667,15 +668,15 @@ if __name__ == "__main__":
         and os.environ.get("BURNDOWN_NO_BROWSER", "0") != "1"
     )
 
-    # Check database flag for post-update relaunch
+    # Check database flag for post-update relaunch (separate from toast display flag)
     if should_launch_browser:
         try:
             from data.persistence.factory import get_backend
 
             backend = get_backend()
-            post_update_flag = backend.get_app_state("post_update_relaunch")
+            no_browser_flag = backend.get_app_state("post_update_no_browser")
 
-            if post_update_flag:
+            if no_browser_flag:
                 logger.info(
                     "Skipping browser auto-launch after update (update_reconnect.js will reload existing tabs)"
                 )
@@ -685,9 +686,11 @@ if __name__ == "__main__":
                 )
                 should_launch_browser = False
 
-                # Clear flag after reading (one-time use)
-                backend.set_app_state("post_update_relaunch", "")
-                logger.debug("Cleared post_update_relaunch flag")
+                # Clear no-browser flag immediately (one-time use for this startup)
+                backend.set_app_state("post_update_no_browser", "")
+                logger.debug("Cleared post_update_no_browser flag")
+
+                # Note: post_update_show_toast flag remains for JavaScript to read and clear
 
                 # Clear VERSION_CHECK_RESULT to prevent "Update Available" toast
                 # after update completes (update was just installed, no need to show again)
