@@ -24,10 +24,26 @@
 
 **AXIOM**: Check beads state FIRST (multi-machine coordination)
 **Handoff**: `Continue work on bd-123: [title]. [context]`
-**Cold Start**: Check beads-metadata sync status → `bd ready`
+**Cold Start**: Sync beads-metadata → check state → claim work
 
 **CRITICAL**: This project uses **git worktrees** for beads with separate `beads-metadata` branch:
 - Code changes → `main` branch
+- Beads database → `beads-metadata` branch (in `.git/beads-worktrees/beads-metadata/`)
+- **MUST sync BOTH branches** for multi-agent coordination
+
+**MANDATORY SESSION START SEQUENCE**:
+```bash
+# 1. Pull latest beads state (CRITICAL for multi-agent)
+cd .git/beads-worktrees/beads-metadata
+git pull --rebase
+cd ../../..
+
+# 2. Check for ready work
+bd ready
+
+# 3. (Optional) Check main branch updates
+git pull --rebase
+```
 - Beads database → `beads-metadata` branch (in `.git/beads-worktrees/beads-metadata/`)
 - **MUST push BOTH branches** or multi-agent coordination breaks
 
@@ -96,6 +112,9 @@ Types: feat|fix|refactor|docs|test|chore|perf|style|build|ci
    # Navigate to beads-metadata worktree
    cd .git/beads-worktrees/beads-metadata
    
+   # Pull latest changes (other agents may have updated)
+   git pull --rebase
+   
    # Check for uncommitted beads changes
    git status
    
@@ -103,6 +122,9 @@ Types: feat|fix|refactor|docs|test|chore|perf|style|build|ci
    git add .beads/issues.jsonl
    git commit -m "chore(beads): sync metadata - closed [bead-ids]"
    git push
+   
+   # Verify push succeeded
+   git status  # MUST: "up to date with origin"
    
    # Return to project root
    cd ../../..
@@ -113,6 +135,7 @@ Types: feat|fix|refactor|docs|test|chore|perf|style|build|ci
 
 **AXIOMS**:
 - Plane NOT landed until BOTH `main` AND `beads-metadata` pushed
+- ALWAYS pull beads-metadata BEFORE committing (prevents merge conflicts)
 - NEVER skip beads-metadata push (breaks multi-agent coordination)
 - NEVER "ready to push when you are" (YOU push)
 - Push failure → resolve → retry → success
