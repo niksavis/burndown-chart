@@ -1,5 +1,14 @@
 # Changelog
 
+## v2.7.9
+
+*Released: 2026-01-26*
+
+### Bug Fixes
+
+- **Update Success Toast**: Fixed "Successfully updated" toast disappearing immediately after update (0.1s flash) - toast now persists on screen after app restarts by checking post-update state from database instead of lost JavaScript memory
+- **Unnecessary Page Reload**: Removed automatic page reload after non-update reconnections - Dash handles reconnection automatically, eliminating unnecessary refreshes
+
 ## v2.7.8
 
 *Released: 2026-01-26*
