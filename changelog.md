@@ -1,5 +1,13 @@
 # Changelog
 
+## v2.7.14
+
+*Released: 2026-01-26*
+
+### Bug Fixes
+
+- **Update Success Toast**: Fixed JavaScript error preventing toast from displaying - variable declaration was missing line break, putting second let statement inside a comment causing ReferenceError when trying to show success message
+
 ## v2.7.13
 
 *Released: 2026-01-26*
