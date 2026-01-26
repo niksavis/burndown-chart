@@ -1,5 +1,33 @@
 # Changelog
 
+## v2.7.0
+
+*Released: 2026-01-26*
+
+### Features
+
+- **Consolidated Burndown Charts**: Unified Items and Points charts into single Burndown tab with improved layout, removed redundant standalone tabs for cleaner navigation
+- **Statistics Data Tab**: Relocated statistics table to dedicated tab with enhanced editing capabilities, add-row functionality, and user warnings for better data management
+- **Executive Report Redesign**: Phase 1 design overhaul with semantic color system for all metrics, improved Health Overview table with seamless visualization, distinct colors for created/closed items in charts
+- **Enhanced Sticky Panel**: Active button states with visual hierarchy, swapped settings/parameters button positions, improved panel visibility and form controls
+- **Refined UI Design System**: Standardized plotly toolbar across charts, improved tab titles and layout consistency, enhanced button visibility and aesthetics, consistent section title spacing
+- **Mobile Experience**: Backdrop appears immediately when panel opens, improved touch-friendly interactions
+
+### Bug Fixes
+
+- **Import/Export Reliability**: Fixed settings preservation on import/profile switch, corrected budget calculation after import, proper metrics and issues export for health score consistency
+- **Health Score Accuracy**: Black pill badges always shown on progress bars, correct baseline calculation and metric naming
+- **Flow Metrics**: Added None check for fix_versions iteration to prevent crashes
+- **Profile Management**: Handle empty state when last profile is deleted, reload data after profile deletion/switch
+- **Statistics Table**: Prevented save loop that restored manual edits after Update Data, resolved duplicate ID errors
+- **Chart Rendering**: Increased legend spacing to prevent toolbar overlap, fixed Net Scope Change legend positioning
+- **Toast Notifications**: Improved positioning flush with page top, refined width for better readability
+
+### Other Changes
+
+- **Build Optimization**: Excluded ML/AI libraries from PyInstaller bundle for smaller executable size
+- **Code Quality**: Removed statistics table relocation artifacts, cleaned up callback references
+
 ## v2.6.5
 
 *Released: 2026-01-22*
