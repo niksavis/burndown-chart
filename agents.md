@@ -6,18 +6,18 @@
 
 | Category | Files | Lines | Tokens |
 |----------|-------|-------|--------|
-| **Total** | 551 | 236.1K | **~2.1M** |
-| Code (Python + JS/CSS) | 240 | 136.2K | ~1.2M |
-| Python (no tests) | 219 | 125.4K | ~1.1M |
-| Frontend (JS/CSS) | 21 | 10.8K | ~69.6K |
-| Tests | 125 | 35.9K | ~312.4K |
+| **Total** | 535 | 235.2K | **~2.1M** |
+| Code (Python + JS/CSS) | 229 | 135.7K | ~1.2M |
+| Python (no tests) | 207 | 124.8K | ~1.1M |
+| Frontend (JS/CSS) | 22 | 10.9K | ~70.5K |
+| Tests | 120 | 35.6K | ~309.5K |
 | Documentation (MD) | 186 | 64.0K | ~592.9K |
 
 **Agent Guidance**:
 - **Too large for context**: Use targeted `semantic_search`, avoid broad reads
 - **File size check**: Prefer reading <500 lines per file
 - **Module focus**: Target specific folders (data/, ui/, callbacks/, etc.)
-- **Test coverage**: 125 test files (15% of codebase)
+- **Test coverage**: 120 test files (15% of codebase)
 
 
 ## Session Start
