@@ -1,5 +1,13 @@
 # Changelog
 
+## v2.7.6
+
+*Released: 2026-01-26*
+
+### Bug Fixes
+
+- **Update Overlay Reliability**: Completely resolved update overlay interruptions - clicking Update now shows overlay immediately, stays visible during update process, and displays single success toast when complete (no more duplicate notifications or interrupted overlay)
+
 ## v2.7.5
 
 *Released: 2026-01-26*
