@@ -11,7 +11,7 @@
 | Python (no tests) | 207 | 124.8K | ~1.1M |
 | Frontend (JS/CSS) | 22 | 11.1K | ~72.0K |
 | Tests | 120 | 35.6K | ~309.5K |
-| Documentation (MD) | 186 | 64.0K | ~593.2K |
+| Documentation (MD) | 186 | 64.0K | ~593.3K |
 
 **Agent Guidance**:
 - **Too large for context**: Use targeted `semantic_search`, avoid broad reads
