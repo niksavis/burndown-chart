@@ -1,5 +1,13 @@
 # Changelog
 
+## v2.7.10
+
+*Released: 2026-01-26*
+
+### Bug Fixes
+
+- **Update Success Toast**: Fixed critical crash in /api/version endpoint that prevented success toast from showing after update completes - corrected backend API method calls and import paths
+
 ## v2.7.9
 
 *Released: 2026-01-26*
