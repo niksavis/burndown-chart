@@ -1,5 +1,13 @@
 # Changelog
 
+## v2.7.15
+
+*Released: 2026-01-26*
+
+### Bug Fixes
+
+- **Update Success Toast**: Fixed visual appearance to match other toast notifications - was using wrong header styling and class order causing transparency and color differences from normal Dash Bootstrap toasts
+
 ## v2.7.14
 
 *Released: 2026-01-26*
