@@ -1,5 +1,17 @@
 # Changelog
 
+## v2.7.2
+
+*Released: 2026-01-26*
+
+### Bug Fixes
+
+- **Auto-Update Reliability**: Fixed updater crash on admin accounts when antivirus software locks files during download - now implements graceful retry logic with proper error handling for file access violations
+
+### Other Changes
+
+- **Developer Experience**: Enhanced AI agent documentation with visual checkpoint barriers to enforce virtual environment activation, preventing command execution failures
+
 ## v2.7.1
 
 *Released: 2026-01-26*
