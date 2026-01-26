@@ -1,5 +1,17 @@
 # Changelog
 
+## v2.7.8
+
+*Released: 2026-01-26*
+
+### Bug Fixes
+
+- **Toast Notifications**: Eliminated 3 stacked toast messages that briefly appeared after update completes - now shows single success message only
+
+### Other Changes
+
+- **Diagnostics**: Added comprehensive toast creation logging to identify source of any remaining toast issues
+
 ## v2.7.7
 
 *Released: 2026-01-26*
