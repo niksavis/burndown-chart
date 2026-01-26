@@ -41,7 +41,7 @@ def export_full_profile(n_clicks, export_mode, include_token, include_budget):
         query_id = get_active_query_id()
 
         if not profile_id or not query_id:
-            logger.error("No active profile/query for export")
+            logger.error("[Export] Missing active profile/query")
             return no_update, create_toast(
                 "Export Failed", "No active profile or query selected", "danger"
             )

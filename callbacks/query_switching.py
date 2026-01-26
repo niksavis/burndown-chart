@@ -78,7 +78,31 @@ def populate_query_dropdown(_pathname, profile_id):
         # Use provided profile_id if available (from profile-selector change),
         # otherwise get active profile from file system (on page load)
         if profile_id is None or profile_id == "":
-            profile_id = get_active_profile_id()
+            try:
+                profile_id = get_active_profile_id()
+            except ValueError:
+                # App state not yet initialized (first-time startup) - return empty state
+                logger.debug(
+                    "[Query] App state not initialized, returning empty dropdown"
+                )
+                return (
+                    [{"label": "→ Create New Query", "value": "__create_new__"}],
+                    "",
+                    "",
+                    "",
+                    "",
+                )
+
+        # Guard against None profile_id after all checks
+        if not profile_id:
+            logger.debug("[Query] No profile ID available, returning empty dropdown")
+            return (
+                [{"label": "→ Create New Query", "value": "__create_new__"}],
+                "",
+                "",
+                "",
+                "",
+            )
 
         # List queries for this profile
         queries = list_queries_for_profile(profile_id)
@@ -107,14 +131,14 @@ def populate_query_dropdown(_pathname, profile_id):
             options.append({"label": label, "value": value})
 
         logger.info(
-            f"Populated query dropdown: {len(options) - 1} queries + Create New option. Active: {active_value}"
+            f"[Query] Populated dropdown: {len(options) - 1} queries + Create New. Active: {active_value}"
         )
 
         # Return options, active query, and its JQL + name (sync to both editors)
         return options, active_value, active_jql, active_name, active_jql
 
     except Exception as e:
-        logger.error(f"Failed to populate query dropdown: {e}")
+        logger.error(f"[Query] Failed to populate dropdown: {type(e).__name__}: {e}")
         # Return safe defaults with Create New option
         return (
             [{"label": "→ Create New Query", "value": "__create_new__"}],
@@ -219,7 +243,7 @@ def switch_query_callback(selected_query_id, current_options):
             raise PreventUpdate
 
         logger.info(
-            f"Query selected (not switched): '{selected_name}', JQL length: {len(selected_jql)} chars. "
+            f"[Query] Selected (not switched): '{selected_name}', JQL length: {len(selected_jql)} chars. "
             f"Data will load when user clicks 'Load Query Data' button."
         )
         return (
@@ -231,7 +255,7 @@ def switch_query_callback(selected_query_id, current_options):
         )
 
     except ValueError as e:
-        logger.error(f"Query switch validation error: {e}")
+        logger.error(f"[Query] Validation error: {e}")
         return no_update, no_update, no_update, no_update, no_update
 
     except PreventUpdate:
@@ -239,7 +263,7 @@ def switch_query_callback(selected_query_id, current_options):
         raise
 
     except Exception as e:
-        logger.error(f"Failed to switch query: {type(e).__name__}: {e}")
+        logger.error(f"[Query] Switch failed: {type(e).__name__}: {e}")
         return no_update, no_update, no_update, no_update, no_update
 
 
@@ -296,7 +320,7 @@ def toggle_edit_query_modal(
             query = next((q for q in queries if q.get("id") == selected_query_id), None)
 
             if not query:
-                logger.error(f"Query '{selected_query_id}' not found")
+                logger.error(f"[Query] Not found for editing: {selected_query_id}")
                 raise PreventUpdate
 
             return (
@@ -307,7 +331,7 @@ def toggle_edit_query_modal(
             )
 
         except Exception as e:
-            logger.error(f"Failed to load query for editing: {e}")
+            logger.error(f"[Query] Load for editing failed: {type(e).__name__}: {e}")
             raise PreventUpdate
 
     elif triggered in ("cancel-edit-query-button", "confirm-edit-query-button"):
@@ -429,12 +453,12 @@ def create_new_query_callback(save_clicks, query_name, query_jql):
         return "", "", "", options, query_id, toast
 
     except ValueError as e:
-        logger.warning(f"Query creation validation failed: {e}")
+        logger.warning(f"[Query] Validation failed: {e}")
         feedback = create_error_toast(str(e), header="Validation Error")
         return no_update, no_update, "", no_update, no_update, feedback
 
     except Exception as e:
-        logger.error(f"Failed to create query: {e}")
+        logger.error(f"[Query] Creation failed: {type(e).__name__}: {e}")
         feedback = create_error_toast(
             f"Error creating query: {e}",
             header="Creation Failed",
@@ -522,17 +546,15 @@ def trigger_delete_query_modal_from_selector(delete_clicks, selected_query_id):
             display_parts.append(
                 " [!] ACTIVE & LAST QUERY - All charts will be cleared!"
             )
-            logger.warning(
-                f"Opening delete modal for ACTIVE AND LAST query: {query_name}"
-            )
+            logger.warning(f"[Query] Delete modal: ACTIVE AND LAST query: {query_name}")
         elif is_active:
             display_parts.append(" [ACTIVE] - Charts will be cleared")
-            logger.warning(f"Opening delete modal for ACTIVE query: {query_name}")
+            logger.warning(f"[Query] Delete modal: ACTIVE query: {query_name}")
         elif is_last_query:
             display_parts.append(" [!] LAST QUERY - Profile will have no queries")
-            logger.warning(f"Opening delete modal for LAST query: {query_name}")
+            logger.warning(f"[Query] Delete modal: LAST query: {query_name}")
         else:
-            logger.info(f"Opening delete modal for query: {query_name}")
+            logger.info(f"[Query] Delete modal opened: {query_name}")
 
         display_text = "".join(display_parts)
 
@@ -540,7 +562,7 @@ def trigger_delete_query_modal_from_selector(delete_clicks, selected_query_id):
         return True, display_text
 
     except Exception as e:
-        logger.error(f"Failed to trigger delete modal: {e}")
+        logger.error(f"[Query] Delete modal failed: {type(e).__name__}: {e}")
         raise PreventUpdate
 
 
@@ -677,8 +699,8 @@ def load_query_cached_data(n_clicks, selected_query_id):
         )
 
         logger.info(
-            f"Loaded cached data for query {selected_query_id}: "
-            f"{data_points_count} data points, {total_items} items"
+            f"[Query] Loaded cached data: {selected_query_id}, "
+            f"{data_points_count} points, {total_items} items"
         )
 
         # Create cache status message to trigger dashboard refresh
@@ -703,7 +725,7 @@ def load_query_cached_data(n_clicks, selected_query_id):
         )
 
     except Exception as e:
-        logger.error(f"Failed to load query data: {e}")
+        logger.error(f"[Query] Load data failed: {type(e).__name__}: {e}")
         error_message = html.Div(
             [
                 html.I(className="fas fa-exclamation-triangle me-2 text-danger"),
