@@ -1,5 +1,14 @@
 # Changelog
 
+## v2.7.13
+
+*Released: 2026-01-26*
+
+### Bug Fixes
+
+- **Update Success Toast**: Fixed success toast not appearing after update - app was clearing the database flag during startup before browser could read it, now uses two separate flags with distinct lifecycles (one for preventing duplicate browser tabs cleared at startup, one for showing success message cleared after JavaScript displays toast)
+- **Release Process**: Fixed git tag pointing to intermediate commit instead of final release state - tag now created after ALL commits (version, changelog, version_info, metrics) complete
+
 ## v2.7.12
 
 *Released: 2026-01-26*
