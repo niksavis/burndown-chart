@@ -646,6 +646,11 @@ if __name__ == "__main__":
                 # Clear flag after reading (one-time use)
                 backend.set_app_state("post_update_relaunch", "")
                 logger.debug("Cleared post_update_relaunch flag")
+
+                # Clear VERSION_CHECK_RESULT to prevent "Update Available" toast
+                # after update completes (update was just installed, no need to show again)
+                VERSION_CHECK_RESULT = None
+                logger.debug("Cleared VERSION_CHECK_RESULT after update completion")
         except Exception as e:
             logger.warning(
                 f"Failed to check post_update_relaunch flag: {e} - proceeding with normal launch"

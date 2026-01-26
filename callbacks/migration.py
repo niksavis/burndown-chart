@@ -53,32 +53,18 @@ def handle_automatic_migration(app_init_complete, migration_status):
     # Run migration (this happens in the callback, may take a few seconds)
     success, counts, message = run_migration()
 
-    # Show completion toast
     if success:
         total_migrated = sum(counts.values())
-        completion_toast = create_toast(
-            [
-                html.Div(f"Successfully migrated {total_migrated:,} items"),
-                html.Div(
-                    f"Metrics: {counts.get('metrics', 0):,} | "
-                    f"Statistics: {counts.get('statistics', 0):,}",
-                    className="small text-muted mt-1",
-                ),
-            ],
-            toast_type="success",
-            header="Migration Complete",
-            duration=5000,
-            icon="check-circle",
-        )
+        logger.info(f"Migration complete - migrated {total_migrated:,} items")
 
-        return completion_toast, {
+        return no_update, {
             "completed": True,
             "needed": True,
             "success": True,
             "counts": counts,
         }
     else:
-        # Show error toast
+        # Show error toast only on failure
         error_toast = create_toast(
             [
                 html.Div("Migration encountered an error"),

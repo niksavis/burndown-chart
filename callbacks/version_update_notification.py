@@ -55,12 +55,13 @@ def show_version_update_toast(app_init_complete, toast_already_shown):
     if not app_init_complete:
         return no_update, no_update
 
-    # Check if version changed since last run (first priority)
+    # Check if version changed - tracked for logging only
+    # Success toast is shown by update_reconnect.js after reconnect
     version_changed, previous_version, current_version = check_and_update_version()
 
     if version_changed and previous_version:
         logger.info(
-            f"Showing successful update toast: {previous_version} -> {current_version}",
+            f"Version changed: {previous_version} -> {current_version} (toast handled by JS)",
             extra={
                 "operation": "version_update_notification",
                 "previous_version": previous_version,
@@ -68,17 +69,7 @@ def show_version_update_toast(app_init_complete, toast_already_shown):
             },
         )
 
-        toast = create_toast(
-            f"Successfully updated from {previous_version} to {current_version}",
-            toast_type="success",
-            header="Update Complete",
-            duration=5000,  # 5 seconds
-            icon="check-circle",
-        )
-
-        return toast, True  # Mark toast as shown
-
-    # Import app module to access VERSION_CHECK_RESULT (second priority)
+    # Import app module to access VERSION_CHECK_RESULT
     import app
 
     if not app.VERSION_CHECK_RESULT:
