@@ -5,16 +5,18 @@
 ## Quick Reference
 
 ```powershell
+# ALWAYS activate venv FIRST (MANDATORY)
+.venv\Scripts\activate
+
 # Local build (full sequence)
-.\.venv\Scripts\activate
 .\build\collect_licenses.ps1  # → licenses/THIRD_PARTY_LICENSES.txt
 .\build\build.ps1             # → dist/BurndownChart.exe (~101 MB)
 .\build\package.ps1           # → dist/BurndownChart-Windows-{version}.zip
 
-# Automated release
+# Automated release (venv must be active)
 python release.py [patch|minor|major]  # Version bump → changelog → metrics → push → triggers CI
 
-# Update codebase metrics (ad-hoc)
+# Update codebase metrics (venv must be active)
 python update_codebase_metrics.py  # → agents.md (auto-commits)
 ```
 
@@ -77,13 +79,15 @@ git tag -d v2.6.0-test && git push origin :refs/tags/v2.6.0-test  # Delete after
 ## Release Checklist
 
 **Pre-Release**:
+- [ ] **Activate venv**: `.venv\Scripts\activate` (MANDATORY - do this FIRST)
 - [ ] Dev dependencies installed (`pip install -r requirements-dev.txt` - needed for PyYAML)
 - [ ] Tests pass, no errors (`pytest`, `get_errors`)
 - [ ] Feature branch merged to main
 - [ ] Generate changelog draft: `python regenerate_changelog.py --json` (creates changelog_draft.json)
 - [ ] Polish `changelog.md`: Create v{X.Y.Z} section with release date using JSON as reference
+- [ ] **Commit changelog**: `git add changelog.md && git commit -m "docs(changelog): add vX.Y.Z release notes"`
 
-**Version Bump** (Automated):
+**Version Bump** (Automated - venv must be active):
 
 ```powershell
 python release.py [patch|minor|major]
@@ -154,12 +158,19 @@ python release.py [patch|minor|major]  # Calls script internally
 
 **Example**:
 ```powershell
+# Step 0: Activate venv (MANDATORY)
+.venv\Scripts\activate
+
 # Step 1: Generate draft with all commits
 python regenerate_changelog.py --json
 
 # Step 2: Read changelog_draft.json, write polished v2.7.0 section in changelog.md
 
-# Step 3: Run release (changelog regeneration skipped since v2.7.0 exists)
+# Step 3: Commit changelog BEFORE release.py
+git add changelog.md
+git commit -m "docs(changelog): add v2.7.0 release notes"
+
+# Step 4: Run release (changelog regeneration skipped since v2.7.0 exists)
 python release.py minor
 ```
 

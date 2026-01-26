@@ -4,6 +4,13 @@
 
 ## NON-NEGOTIABLE RULES
 
+### 0. Virtual Environment (CRITICAL)
+
+- **ALWAYS activate venv FIRST** before ANY Python command
+- Command: `.venv\Scripts\activate` (PowerShell) or `source .venv/bin/activate` (bash)
+- Applies to: pytest, python scripts, pip install, ALL Python operations
+- **NO EXCEPTIONS** - this prevents 99% of "command failed, run again" issues
+
 ### 1. Zero Errors Policy
 
 - Run `get_errors` after every change
@@ -113,10 +120,12 @@ available. Prevents duplicate browser tabs after updates."
 
 **Release Process** (CRITICAL):
 
-1. **Generate comprehensive changelog**: `python regenerate_changelog.py --json` (creates changelog_draft.json with ALL commits since last tag)
-2. **Polish changelog**: Use JSON to write v{X.Y.Z} section in `changelog.md` with release date (focus on user benefits, bold major features)
-3. **Automated release** (recommended): `python release.py [patch|minor|major]` (handles everything)
-4. **Manual**: Not recommended (release.py ensures correct order and prevents coordination bugs)
+1. **Activate venv**: `.venv\Scripts\activate` (MANDATORY - do this FIRST)
+2. **Generate comprehensive changelog**: `python regenerate_changelog.py --json` (creates changelog_draft.json with ALL commits since last tag)
+3. **Polish changelog**: Use JSON to write v{X.Y.Z} section in `changelog.md` with release date (focus on user benefits, bold major features)
+4. **Commit changelog**: `git add changelog.md && git commit -m "docs(changelog): add vX.Y.Z release notes"` (REQUIRED before release.py)
+5. **Automated release** (recommended): `python release.py [patch|minor|major]` (handles everything)
+6. **Manual**: Not recommended (release.py ensures correct order and prevents coordination bugs)
 
 **release.py automates**:
 
