@@ -1,5 +1,13 @@
 # Changelog
 
+## v2.7.5
+
+*Released: 2026-01-26*
+
+### Bug Fixes
+
+- **Update Overlay**: Replaced timer-based overlay with disconnect-driven state machine - overlay now waits for actual server shutdown before polling, adapting automatically to slow/fast machines (no more arbitrary timeouts)
+
 ## v2.7.4
 
 *Released: 2026-01-26*
