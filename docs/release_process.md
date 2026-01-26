@@ -132,11 +132,12 @@ python release.py [patch|minor|major]
 3. Commit version changes: "chore: bump version to X.Y.Z"
 4. Call regenerate_changelog() - **SKIPS** if vX.Y.Z already in changelog.md
 5. Check if changelog.md changed - **NO AMEND** if changelog already committed
-6. **Create git tag** (AFTER all potential amends - prevents orphaned commits)
-7. Regenerate version_info.txt and version_info_updater.txt (bundled in executables)
-8. Commit version_info files: "chore(build): update version_info files for release"
-9. Update codebase metrics in agents.md (auto-commits)
-10. Push main branch and tag to origin → **triggers GitHub Actions**
+6. Regenerate version_info.txt and version_info_updater.txt (bundled in executables)
+7. Commit version_info files: "chore(build): update version_info files for release"
+8. Update codebase metrics in agents.md (auto-commits: "docs(metrics): update codebase metrics")
+9. **Create final release commit**: "Release vX.Y.Z" (empty commit, tag points here)
+10. **Create git tag** (points to release commit - GitHub Actions shows clean message)
+11. Push main branch and tag to origin → **triggers GitHub Actions**
 
 **Post-Release**:
 - [ ] GitHub Actions workflow completes successfully

@@ -138,7 +138,7 @@ available. Prevents duplicate browser tabs after updates."
 **Release Process** (CRITICAL):
 
 1. **Activate venv**: `.venv\Scripts\activate` (MANDATORY - do this FIRST)
-2. **Generate comprehensive changelog**: `python regenerate_changelog.py --json` (creates changelog_draft.json with ALL commits since last tag)
+2. **Generate comprehensive changelog**: `python regenerate_changelog.py --preview --json` (creates changelog_draft.json with ALL commits since last tag)
 3. **Polish changelog**: Use JSON to write v{X.Y.Z} section in `changelog.md` with release date (focus on user benefits, bold major features)
 4. **Commit changelog**: `git add changelog.md && git commit -m "docs(changelog): add vX.Y.Z release notes"` (REQUIRED before release.py)
 5. **Automated release** (recommended): `python release.py [patch|minor|major]` (handles everything)
@@ -147,10 +147,10 @@ available. Prevents duplicate browser tabs after updates."
 **release.py automates**:
 
 - Bumps version in configuration/\_\_init\_\_.py and readme.md
-- Creates git tag with consistent message: "Release v{X.Y.Z}"
 - Calls `regenerate_changelog.py` (skips if v{X.Y.Z} already in changelog.md - hence manual polish FIRST)
 - Regenerates `build/version_info.txt` and `build/version_info_updater.txt` (bundled in executables)
 - Updates codebase metrics in agents.md
+- Creates final commit "Release vX.Y.Z" → tag points here (GitHub Actions shows clean message)
 - Pushes to trigger GitHub Actions
 
 **Changelog Rules**:

@@ -19,12 +19,13 @@ Flow:
     2. Calculate new version from configuration/__init__.py
     3. Update configuration/__init__.py and readme.md
     4. Commit version changes
-    5. Create git tag (once, with correct message)
-    6. Regenerate changelog from git history
-    7. Commit changelog (amend)
-    8. Regenerate version_info.txt with new version
-    9. Commit version_info.txt
-    10. Push everything to origin (main + tag)
+    5. Regenerate changelog from git history (amend if changed)
+    6. Regenerate version_info.txt with new version
+    7. Commit version_info.txt
+    8. Update codebase metrics in agents.md
+    9. Create final release commit "Release vX.Y.Z" (tag points here)
+    10. Create git tag
+    11. Push everything to origin (main + tag)
 
 Note: bump_version.py is now deprecated. Use this script for releases.
 """
@@ -344,6 +345,30 @@ def bump_version(bump_type: str) -> tuple[bool, str]:
         return False, ""
 
 
+def create_release_commit(version: str) -> bool:
+    """Create a final release commit that the tag will point to.
+
+    This ensures the tagged commit has a clean message "Release vX.Y.Z"
+    instead of implementation details like metrics updates.
+    """
+    print("\n" + "=" * 60)
+    print("Creating Release Commit")
+    print("=" * 60)
+
+    commit_message = f"Release v{version}"
+
+    success, _ = run_command(
+        ["git", "commit", "--allow-empty", "-m", commit_message],
+        "Create release commit",
+    )
+
+    if not success:
+        return False
+
+    print(f"[OK] Release commit created: '{commit_message}'")
+    return True
+
+
 def create_tag(version: str) -> bool:
     """Create git tag after all commits are complete.
 
@@ -443,12 +468,17 @@ def main():
         print("\n[FAILED] Codebase metrics update", file=sys.stderr)
         sys.exit(1)
 
-    # Step 4: Create tag AFTER all commits complete (prevents orphaned tags)
+    # Step 4: Create final release commit (tag will point here)
+    if not create_release_commit(new_version):
+        print("\n[FAILED] Release commit creation", file=sys.stderr)
+        sys.exit(1)
+
+    # Step 5: Create tag pointing to release commit
     if not create_tag(new_version):
         print("\n[FAILED] Tag creation", file=sys.stderr)
         sys.exit(1)
 
-    # Step 5: Push to origin
+    # Step 6: Push to origin
     if not push_release(f"v{new_version}"):
         print("\n[FAILED] Push to origin", file=sys.stderr)
         sys.exit(1)
