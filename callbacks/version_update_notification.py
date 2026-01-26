@@ -68,6 +68,9 @@ def show_version_update_toast(app_init_complete, toast_already_shown):
                 "current_version": current_version,
             },
         )
+        # Return early - success toast already shown by JavaScript during reconnect
+        # Prevents checking VERSION_CHECK_RESULT which is cleared after update
+        return no_update, no_update
 
     # Import app module to access VERSION_CHECK_RESULT
     import app
@@ -112,7 +115,7 @@ def show_version_update_toast(app_init_complete, toast_already_shown):
             icon="arrow-circle-up",
         )
 
-        return toast, True  # Mark toast as shown
+        return toast, True
 
     # Handle automatic update available (executable mode)
     if progress.state == UpdateState.AVAILABLE:
@@ -149,7 +152,7 @@ def show_version_update_toast(app_init_complete, toast_already_shown):
             icon="arrow-circle-up",
         )
 
-        return toast, True  # Mark toast as shown
+        return toast, True
 
     # No update available or other state
     return no_update, no_update
