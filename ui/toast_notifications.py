@@ -42,6 +42,35 @@ def create_toast(
     Returns:
         dbc.Toast component ready to render
     """
+    import logging
+    import traceback
+
+    logger = logging.getLogger(__name__)
+
+    # Log every toast creation with caller info for debugging
+    caller_info = traceback.extract_stack()[-2]
+    caller_file = caller_info.filename.split("\\")[-1]
+    caller_function = caller_info.name
+    caller_line = caller_info.lineno
+
+    message_preview = (
+        str(message)[:100]
+        if isinstance(message, str)
+        else f"[{len(message)} components]"
+    )
+
+    logger.info(
+        f"[TOAST CREATED] type={toast_type}, header={header or 'auto'}, message={message_preview}",
+        extra={
+            "operation": "create_toast",
+            "toast_type": toast_type,
+            "header": header,
+            "caller_file": caller_file,
+            "caller_function": caller_function,
+            "caller_line": caller_line,
+        },
+    )
+
     # Default headers based on type
     default_headers = {
         "success": "Success",
