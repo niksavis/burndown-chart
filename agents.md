@@ -6,12 +6,12 @@
 
 | Category | Files | Lines | Tokens |
 |----------|-------|-------|--------|
-| **Total** | 531 | 234.4K | **~2.1M** |
-| Code (Python + JS/CSS) | 240 | 136.1K | ~1.2M |
+| **Total** | 551 | 236.0K | **~2.1M** |
+| Code (Python + JS/CSS) | 240 | 136.2K | ~1.2M |
 | Python (no tests) | 219 | 125.5K | ~1.1M |
 | Frontend (JS/CSS) | 21 | 10.7K | ~68.6K |
 | Tests | 125 | 35.9K | ~312.3K |
-| Documentation (MD) | 166 | 62.3K | ~573.3K |
+| Documentation (MD) | 186 | 63.8K | ~591.4K |
 
 **Agent Guidance**:
 - **Too large for context**: Use targeted `semantic_search`, avoid broad reads
