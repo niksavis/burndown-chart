@@ -535,6 +535,18 @@
           );
           isUpdateFlow = true; // Mark as update flow (prevents reload)
 
+          // Update footer version (defense in depth - server already rendered correct version)
+          const footerVersionElement = document.getElementById(
+            "footer-version-text",
+          );
+          if (footerVersionElement) {
+            footerVersionElement.textContent = "v" + versionData.version;
+            console.log(
+              "[update_reconnect] Footer version confirmed:",
+              versionData.version,
+            );
+          }
+
           // Show success toast immediately (app already restarted, no blocker needed)
           // Wait a bit for Dash to initialize
           setTimeout(() => {
