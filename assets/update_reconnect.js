@@ -26,7 +26,9 @@
   let overlayElement = null;
   let isUpdateFlow = false; // Track if this is an update (vs normal disconnect)
   let waitingForDisconnect = false; // Track if we're waiting for server to die
-  let disconnectTimeoutId = null; // Timeout for disconnect detection  let toastBlocker = null; // MutationObserver to block toasts during update reconnect
+  let disconnectTimeoutId = null; // Timeout for disconnect detection
+  let toastBlocker = null; // MutationObserver to block toasts during update reconnect
+
   /**
    * Create and show reconnecting overlay
    */
