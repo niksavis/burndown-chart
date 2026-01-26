@@ -1,5 +1,13 @@
 # Changelog
 
+## v2.7.4
+
+*Released: 2026-01-26*
+
+### Bug Fixes
+
+- **Update Overlay**: Fixed race condition where reconnecting overlay failed to appear when clicking Update button - overlay now triggers instantly via direct clientside callback instead of store-based mechanism
+
 ## v2.7.3
 
 *Released: 2026-01-26*
