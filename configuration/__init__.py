@@ -45,7 +45,7 @@ from configuration import dora_config, flow_config
 
 # Application version - used in the UI and for tracking
 # Follow semantic versioning (MAJOR.MINOR.PATCH)
-__version__ = "2.7.15"
+__version__ = "2.7.16"
 
 # Define public API
 __all__ = [
