@@ -4,14 +4,14 @@
 
 **Last Updated**: 2026-01-26
 
-| Category | Files | Lines | Tokens |
-|----------|-------|-------|--------|
-| **Total** | 551 | 236.1K | **~2.1M** |
-| Code (Python + JS/CSS) | 240 | 136.2K | ~1.2M |
-| Python (no tests) | 219 | 125.4K | ~1.1M |
-| Frontend (JS/CSS) | 21 | 10.8K | ~69.6K |
-| Tests | 125 | 35.9K | ~312.4K |
-| Documentation (MD) | 186 | 64.0K | ~592.7K |
+| Category               | Files | Lines  | Tokens    |
+| ---------------------- | ----- | ------ | --------- |
+| **Total**              | 551   | 236.1K | **~2.1M** |
+| Code (Python + JS/CSS) | 240   | 136.2K | ~1.2M     |
+| Python (no tests)      | 219   | 125.4K | ~1.1M     |
+| Frontend (JS/CSS)      | 21    | 10.8K  | ~69.6K    |
+| Tests                  | 125   | 35.9K  | ~312.4K   |
+| Documentation (MD)     | 186   | 64.0K  | ~592.7K   |
 
 **Agent Guidance**:
 - **Too large for context**: Use targeted `semantic_search`, avoid broad reads
@@ -40,12 +40,17 @@
 
 **MANDATORY SESSION START SEQUENCE**:
 ```bash
-# 1. Pull latest beads state (CRITICAL for multi-agent)
+# 1. Ensure daemon running with auto-sync (CRITICAL for multi-machine coordination)
+bd daemon status  # Check if "Sync: ✓ commit ✓ push" present
+# If daemon not running OR Sync shows "none", restart with:
+bd daemon start --auto-commit --auto-push
+
+# 2. Pull latest beads state
 cd .git/beads-worktrees/beads-metadata
 git pull --rebase
 cd ../../..
 
-# 2. Check for ready work
+# 3. Check for ready work
 bd ready
 
 # 3. (Optional) Check main branch updates
