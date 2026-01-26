@@ -468,13 +468,13 @@ def get_version():
     """
     from configuration import __version__
     from flask import jsonify
-    from data.persistence import get_backend
+    from data.persistence.factory import get_backend
 
     # Check post_update_relaunch flag from database
     try:
         backend = get_backend()
-        state = backend.load_app_state()
-        post_update = state.get("post_update_relaunch", False) if state else False
+        post_update_value = backend.get_app_state("post_update_relaunch")
+        post_update = post_update_value == "True" if post_update_value else False
     except Exception as e:
         logger.warning(f"Failed to load post_update flag: {e}")
         post_update = False
@@ -496,13 +496,11 @@ def clear_post_update():
         Response: {"success": true}
     """
     from flask import jsonify
-    from data.persistence import get_backend
+    from data.persistence.factory import get_backend
 
     try:
         backend = get_backend()
-        state = backend.load_app_state() or {}
-        state["post_update_relaunch"] = False
-        backend.save_app_state(state)
+        backend.set_app_state("post_update_relaunch", "")  # Clear the flag
         logger.info(
             "Cleared post_update_relaunch flag via API",
             extra={"operation": "clear_post_update_flag"},
