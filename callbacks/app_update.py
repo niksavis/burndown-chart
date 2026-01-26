@@ -7,7 +7,7 @@ Uses background threading for downloads to provide progress feedback.
 
 import logging
 import threading
-from dash import callback, Input, Output, State, no_update, clientside_callback
+from dash import callback, Input, Output, State, no_update
 from typing import Optional
 import dash_bootstrap_components as dbc
 
@@ -417,16 +417,10 @@ def handle_update_install(install_clicks: int, status_data: Optional[dict]):
 
         logger.info("Updater scheduled to launch - app will close shortly")
 
-        # Return toast - overlay will be triggered by clientside callback on button click
-        toast = create_toast(
-            "Installing update... This page will reconnect automatically.",
-            "info",
-            header="Updating",
-            duration=3000,  # 3 seconds - brief acknowledgment
-            icon="sync fa-spin",
-        )
-
-        return toast
+        # NO toast during update - overlay provides all feedback
+        # Toast rendering blocks Dash UI updates, preventing overlay from appearing
+        # Success toast will show after reconnect (handled by update_reconnect.js)
+        return no_update
 
     except Exception as e:
         logger.error(f"Exception scheduling updater: {e}", exc_info=True)
@@ -482,22 +476,7 @@ def handle_manual_update_instructions(n_clicks: int):
     )
 
 
-# Clientside callback to trigger reconnect overlay IMMEDIATELY when Update button clicked
-# This fires before the Python callback, ensuring overlay shows before app closes
-clientside_callback(
-    """
-    function(n_clicks) {
-        // Only trigger on actual click (n_clicks > 0)
-        if (n_clicks && n_clicks > 0) {
-            console.log('[app_update] Update button clicked - triggering overlay immediately');
-            // Dispatch custom event that update_reconnect.js will listen for
-            const event = new CustomEvent('trigger-update-overlay');
-            window.dispatchEvent(event);
-        }
-        return window.dash_clientside.no_update;
-    }
-    """,
-    Output("install-update-button", "data-dummy", allow_duplicate=True),
-    Input("install-update-button", "n_clicks"),
-    prevent_initial_call=True,
-)
+# NOTE: Overlay trigger is handled by assets/update_button_handler.js
+# which attaches a native click event listener in capture phase.
+# This ensures overlay appears BEFORE Dash's callback queue processes,
+# solving the race condition where toast rendering blocked overlay display.

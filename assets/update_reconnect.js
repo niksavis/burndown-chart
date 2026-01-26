@@ -17,6 +17,7 @@
   const POLL_INTERVAL_MS = 2000; // 2 seconds
   const INITIAL_RETRY_DELAY_MS = 1000; // 1 second before first retry
   const MAX_POLL_ATTEMPTS = 150; // Max 5 minutes (150 * 2s)
+  const DISCONNECT_TIMEOUT_MS = 10000; // Max 10s to wait for disconnect during update
 
   // State
   let isReconnecting = false;
@@ -24,6 +25,8 @@
   let pollIntervalId = null;
   let overlayElement = null;
   let isUpdateFlow = false; // Track if this is an update (vs normal disconnect)
+  let waitingForDisconnect = false; // Track if we're waiting for server to die
+  let disconnectTimeoutId = null; // Timeout for disconnect detection
 
   /**
    * Create and show reconnecting overlay
@@ -162,6 +165,8 @@
       .then((response) => {
         if (response.ok) {
           console.log("[update_reconnect] Server is back online");
+
+          // Server back - proceed with reconnect
           clearInterval(pollIntervalId);
           pollIntervalId = null;
 
@@ -275,6 +280,41 @@
 
     showReconnectingOverlay();
 
+    // For update flows, WAIT for disconnect signal before polling
+    // This prevents race condition where server is still alive
+    if (isUpdate) {
+      waitingForDisconnect = true;
+      updateOverlayStatus("Waiting for update to start...");
+
+      console.log(
+        "[update_reconnect] Update flow - waiting for disconnect signal before polling",
+      );
+
+      // Safety timeout: If disconnect doesn't happen in 10s, start polling anyway
+      disconnectTimeoutId = setTimeout(() => {
+        if (waitingForDisconnect) {
+          console.warn(
+            "[update_reconnect] Disconnect timeout - starting polling anyway",
+          );
+          waitingForDisconnect = false;
+          beginPolling();
+        }
+      }, DISCONNECT_TIMEOUT_MS);
+
+      return; // Don't start polling yet!
+    }
+
+    // Normal reconnect (not update) - start polling immediately
+    beginPolling();
+  }
+
+  /**
+   * Begin polling for server availability
+   */
+  function beginPolling() {
+    console.log("[update_reconnect] Beginning server polling");
+    updateOverlayStatus("Checking server status...");
+
     // Start polling after initial delay
     setTimeout(() => {
       // First immediate poll
@@ -290,6 +330,25 @@
    */
   function handleWebSocketClose() {
     console.log("[update_reconnect] Dash websocket closed");
+
+    // If we were waiting for disconnect (update flow), start polling now!
+    if (waitingForDisconnect) {
+      console.log(
+        "[update_reconnect] Disconnect detected during update - starting polling now",
+      );
+      waitingForDisconnect = false;
+
+      // Clear safety timeout
+      if (disconnectTimeoutId) {
+        clearTimeout(disconnectTimeoutId);
+        disconnectTimeoutId = null;
+      }
+
+      beginPolling();
+      return;
+    }
+
+    // Normal disconnect (not during update wait) - start reconnect flow
     startReconnecting();
   }
 
