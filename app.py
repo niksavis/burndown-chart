@@ -474,7 +474,7 @@ def get_version():
     try:
         backend = get_backend()
         post_update_value = backend.get_app_state("post_update_relaunch")
-        post_update = post_update_value == "True" if post_update_value else False
+        post_update = post_update_value == "true" if post_update_value else False
     except Exception as e:
         logger.warning(f"Failed to load post_update flag: {e}")
         post_update = False
