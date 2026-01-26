@@ -1,5 +1,13 @@
 # Changelog
 
+## v2.7.16
+
+*Released: 2026-01-26*
+
+### Bug Fixes
+
+- **Update Available Notification**: Fixed notification not appearing when new version is ready to download - restores the toast that alerts you when updates are available
+
 ## v2.7.15
 
 *Released: 2026-01-26*
