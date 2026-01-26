@@ -26,8 +26,7 @@
   let overlayElement = null;
   let isUpdateFlow = false; // Track if this is an update (vs normal disconnect)
   let waitingForDisconnect = false; // Track if we're waiting for server to die
-  let disconnectTimeoutId = null; // Timeout for disconnect detection
-
+  let disconnectTimeoutId = null; // Timeout for disconnect detection  let toastBlocker = null; // MutationObserver to block toasts during update reconnect
   /**
    * Create and show reconnecting overlay
    */
@@ -104,36 +103,39 @@
       version,
     );
 
-    // Create toast element directly in the notifications container
-    const notificationsContainer = document.getElementById("app-notifications");
-    if (!notificationsContainer) {
-      console.warn("[update_reconnect] Notifications container not found");
-      return;
-    }
+    // Wait for toast blocker to be removed (if active)
+    const showToast = () => {
+      // Create toast element directly in the notifications container
+      const notificationsContainer =
+        document.getElementById("app-notifications");
+      if (!notificationsContainer) {
+        console.warn("[update_reconnect] Notifications container not found");
+        return;
+      }
 
-    // CRITICAL: Clear any existing toasts before showing success toast
-    // This prevents duplicate/stale toasts from Dash callbacks firing on reconnect
-    const existingToasts = notificationsContainer.querySelectorAll(".toast");
-    if (existingToasts.length > 0) {
-      console.warn(
-        `[update_reconnect] Clearing ${existingToasts.length} existing toast(s) before showing success`,
-      );
-      existingToasts.forEach((toast) => {
-        const header = toast.querySelector(".toast-header strong");
-        const body = toast.querySelector(".toast-body");
-        console.log("[update_reconnect] Removing toast:", {
-          header: header ? header.textContent : "unknown",
-          body: body ? body.textContent.substring(0, 50) : "unknown",
+      // CRITICAL: Clear any existing toasts before showing success toast
+      // This prevents duplicate/stale toasts from Dash callbacks firing on reconnect
+      const existingToasts = notificationsContainer.querySelectorAll(".toast");
+      if (existingToasts.length > 0) {
+        console.warn(
+          `[update_reconnect] Clearing ${existingToasts.length} existing toast(s) before showing success`,
+        );
+        existingToasts.forEach((toast) => {
+          const header = toast.querySelector(".toast-header strong");
+          const body = toast.querySelector(".toast-body");
+          console.log("[update_reconnect] Removing toast:", {
+            header: header ? header.textContent : "unknown",
+            body: body ? body.textContent.substring(0, 50) : "unknown",
+          });
+          toast.remove();
         });
-        toast.remove();
-      });
-    }
+      }
 
-    // Create toast HTML (matching Dash Bootstrap Components style)
-    const toastElement = document.createElement("div");
-    toastElement.className = "toast fade show";
-    toastElement.setAttribute("role", "alert");
-    toastElement.innerHTML = `
+      // Create toast HTML (matching Dash Bootstrap Components style)
+      const toastElement = document.createElement("div");
+      toastElement.className = "toast fade show";
+      toastElement.setAttribute("role", "alert");
+      toastElement.innerHTML = `
       <div class="toast-header bg-success text-white">
         <i class="fas fa-check-circle me-2"></i>
         <strong class="me-auto">Update Complete</strong>
@@ -144,18 +146,34 @@
       </div>
     `;
 
-    // Add to container
-    notificationsContainer.appendChild(toastElement);
+      // Add to container
+      notificationsContainer.appendChild(toastElement);
 
-    // Auto-dismiss after 5 seconds
-    setTimeout(() => {
-      toastElement.classList.remove("show");
+      // Auto-dismiss after 5 seconds
       setTimeout(() => {
-        toastElement.remove();
-      }, 300); // Wait for fade animation
-    }, 5000);
+        toastElement.classList.remove("show");
+        setTimeout(() => {
+          toastElement.remove();
+        }, 300); // Wait for fade animation
+      }, 5000);
 
-    console.log("[update_reconnect] Success toast displayed");
+      console.log("[update_reconnect] Success toast displayed");
+    };
+
+    // If toast blocker is active, wait for it to be removed
+    if (toastBlocker) {
+      console.log(
+        "[update_reconnect] Waiting for toast blocker to be removed before showing success toast",
+      );
+      const checkBlocker = setInterval(() => {
+        if (!toastBlocker) {
+          clearInterval(checkBlocker);
+          showToast();
+        }
+      }, 100);
+    } else {
+      showToast();
+    }
   }
 
   /**
@@ -210,6 +228,55 @@
                   "[update_reconnect] New version:",
                   versionData.version,
                 );
+
+                // CRITICAL: Clear any toasts BEFORE removing overlay
+                // This prevents Dash callbacks from showing toasts during reconnect
+                const notificationsContainer =
+                  document.getElementById("app-notifications");
+                if (notificationsContainer) {
+                  const existingToasts =
+                    notificationsContainer.querySelectorAll(".toast");
+                  if (existingToasts.length > 0) {
+                    console.log(
+                      `[update_reconnect] Pre-clearing ${existingToasts.length} toast(s) before overlay removal`,
+                    );
+                    existingToasts.forEach((toast) => toast.remove());
+                  }
+
+                  // Install toast blocker to prevent Dash from adding toasts during critical window
+                  console.log(
+                    "[update_reconnect] Installing toast blocker for 2 seconds",
+                  );
+                  toastBlocker = new MutationObserver((mutations) => {
+                    mutations.forEach((mutation) => {
+                      mutation.addedNodes.forEach((node) => {
+                        if (
+                          node.nodeType === 1 &&
+                          node.classList &&
+                          node.classList.contains("toast")
+                        ) {
+                          console.warn(
+                            "[update_reconnect] Blocking unwanted toast during update reconnect",
+                            node,
+                          );
+                          node.remove();
+                        }
+                      });
+                    });
+                  });
+                  toastBlocker.observe(notificationsContainer, {
+                    childList: true,
+                  });
+
+                  // Remove blocker after 2 seconds (enough time for Dash callbacks to settle)
+                  setTimeout(() => {
+                    if (toastBlocker) {
+                      toastBlocker.disconnect();
+                      toastBlocker = null;
+                      console.log("[update_reconnect] Toast blocker removed");
+                    }
+                  }, 2000);
+                }
 
                 // Remove overlay
                 hideReconnectingOverlay();
