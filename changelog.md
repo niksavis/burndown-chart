@@ -1,5 +1,19 @@
 # Changelog
 
+## v2.7.1
+
+*Released: 2026-01-26*
+
+### Bug Fixes
+
+- **DORA Metrics**: Fixed badge colors to use performance tier colors (elite/high/medium/low) instead of gray, improving visual clarity and alignment with industry standards
+- **Logging**: Reduced error log noise on first-time startup by handling missing statistics file gracefully
+
+### Other Changes
+
+- **Developer Experience**: Added /speckit.beads slash command for automated tasks-to-beads conversion workflow, regenerated Speckit configuration files
+- **Documentation**: Updated codebase metrics in agents.md, improved markdown highlighting by removing chatagent wrapper
+
 ## v2.7.0
 
 *Released: 2026-01-26*
