@@ -95,7 +95,9 @@ class TestJiraProjectScopeCalculation:
         assert result["completed_points"] == 0  # No story points
         assert result["remaining_items"] == 1
         assert result["remaining_points"] == 0  # No story points
-        assert result["points_field_available"] is False  # Field has no data
+        assert (
+            result["points_field_available"] is True
+        )  # Field is configured (even if no data)
 
     def test_custom_status_configuration(self):
         """Test scope calculation with custom status mapping."""

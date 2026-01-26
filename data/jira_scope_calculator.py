@@ -46,12 +46,19 @@ def calculate_jira_project_scope(
     estimated_items = estimated_points = 0  # Items/points with actual point values
     status_breakdown = {}
 
-    # Check if points field has meaningful data and get detailed stats
-    points_field_available, field_stats = (
-        _validate_points_field_availability_with_stats(issues_data, points_field)
-    )
+    # Points tracking is enabled if user has configured a points_field (not empty)
+    points_field_available = bool(points_field and points_field.strip())
+    field_stats = {
+        "total_issues": len(issues_data),
+        "validation_method": "user_configured"
+        if points_field_available
+        else "disabled",
+    }
 
     logger.info(f"[SCOPE] Starting calculation for {len(issues_data)} issues")
+    logger.info(
+        f"[SCOPE] Points tracking: {'enabled' if points_field_available else 'disabled'} (field: {points_field if points_field_available else 'not configured'})"
+    )
 
     for issue in issues_data:
         try:
@@ -83,8 +90,8 @@ def calculate_jira_project_scope(
                 remaining_items += 1
                 remaining_points += points
 
-                # Only count as "estimated" if it has real point values
-                if has_real_points and points_field_available:
+                # Count as "estimated" if it has real point values (regardless of flag)
+                if has_real_points:
                     estimated_items += 1
                     estimated_points += points
 
@@ -133,12 +140,8 @@ def calculate_jira_project_scope(
         "completed_points": completed_points,
         "remaining_items": remaining_items,  # All non-completed items
         "remaining_points": remaining_points,  # Sum of all remaining item points
-        "estimated_items": estimated_items
-        if points_field_available
-        else 0,  # No items have point values when field is empty
-        "estimated_points": estimated_points
-        if points_field_available
-        else 0,  # No points from estimated items when field is empty
+        "estimated_items": estimated_items,  # Items with actual point values
+        "estimated_points": estimated_points,  # Sum of points from estimated items
         "remaining_total_points": remaining_total_points,  # Calculated total remaining points
         "points_field_available": points_field_available,  # Flag for UI
         "status_breakdown": status_breakdown,
@@ -291,211 +294,10 @@ def _extract_story_points(fields: Dict[str, Any], points_field: str) -> int:
         return 0
 
 
-def _validate_points_field_availability(
-    issues_data: List[Dict[str, Any]], points_field: str
-) -> bool:
-    """
-    Check if points field exists and has meaningful data in the issues.
-
-    Args:
-        issues_data: List of JIRA issues
-        points_field: Field name to check
-
-    Returns:
-        bool: True if points field has meaningful data
-    """
-    if not points_field or points_field.strip() == "":
-        return False
-
-    if not issues_data:
-        return False
-
-    # Check if the points field exists in the JIRA data structure (even if some values are null)
-    field_exists_count = 0
-    valid_points_count = 0
-    sample_size = min(10, len(issues_data))  # Sample first 10 issues or all if fewer
-
-    for issue in issues_data[:sample_size]:
-        try:
-            fields = issue.get("fields", {})
-
-            # Check if field exists in the data structure
-            if points_field in fields:
-                field_exists_count += 1
-
-                # Also count if it has a valid value
-                if points_field == "votes":
-                    votes_data = fields.get("votes")
-                    if (
-                        votes_data and votes_data.get("votes", -1) >= 0
-                    ):  # 0 and positive votes are valid
-                        valid_points_count += 1
-                elif points_field.startswith("customfield_"):
-                    value = fields.get(points_field)
-                    if value is not None:
-                        if isinstance(value, dict):
-                            point_val = value.get(
-                                "value", value.get("count", value.get("total", 0))
-                            )
-                        elif isinstance(value, (int, float)):
-                            point_val = value
-                        elif isinstance(value, str):
-                            try:
-                                point_val = float(value)
-                            except ValueError:
-                                point_val = None  # Invalid string
-                        else:
-                            point_val = None  # Unknown type
-
-                        if (
-                            point_val is not None and point_val >= 0
-                        ):  # 0 and positive values are valid
-                            valid_points_count += 1
-                else:
-                    # Other field types
-                    value = fields.get(points_field)
-                    if (
-                        value is not None and value >= 0
-                    ):  # 0 and positive values are valid
-                        valid_points_count += 1
-        except Exception:
-            continue
-
-    # Return True if valid point values exist in at least 50% of issues
-    # This indicates meaningful data exists (not just None values)
-    return valid_points_count > 0 and (valid_points_count / sample_size) >= 0.5
-
-
-def _validate_points_field_availability_with_stats(
-    issues_data: List[Dict[str, Any]], points_field: str
-) -> tuple[bool, Dict[str, Any]]:
-    """
-    Check if points field exists and has meaningful data, returning detailed statistics.
-
-    Args:
-        issues_data: List of JIRA issues
-        points_field: Field name to check
-
-    Returns:
-        tuple: (is_available: bool, stats: Dict with detailed coverage information)
-    """
-    stats = {
-        "field_exists_count": 0,
-        "valid_points_count": 0,
-        "sample_size": 0,
-        "total_issues": len(issues_data),
-        "field_coverage_percent": 0.0,
-        "valid_coverage_percent": 0.0,
-        "threshold_met": False,
-        "threshold_required": 0.5,
-    }
-
-    if not points_field or points_field.strip() == "":
-        return False, stats
-
-    if not issues_data:
-        return False, stats
-
-    # Check if the points field exists in the JIRA data structure
-    field_exists_count = 0
-    valid_points_count = 0
-    sample_size = min(10, len(issues_data))  # Sample first 10 issues or all if fewer
-    stats["sample_size"] = sample_size
-
-    for issue in issues_data[:sample_size]:
-        try:
-            # Handle both nested (JIRA API) and flat (database) formats
-            if "fields" in issue and isinstance(issue.get("fields"), dict):
-                fields = issue["fields"]
-            else:
-                # Flat format - fields at root level
-                fields = issue
-
-            # Check if field exists in the data structure
-            # For flat format, custom fields are in custom_fields dict
-            field_exists = False
-            if (
-                points_field.startswith("customfield_")
-                and "custom_fields" in fields
-                and isinstance(fields.get("custom_fields"), dict)
-            ):
-                field_exists = points_field in fields["custom_fields"]
-            else:
-                field_exists = points_field in fields
-
-            if field_exists:
-                field_exists_count += 1
-
-                # Also count if it has a valid value
-                if points_field == "votes":
-                    votes_data = fields.get("votes")
-                    if (
-                        votes_data and votes_data.get("votes", -1) >= 0
-                    ):  # 0 and positive votes are valid
-                        valid_points_count += 1
-                elif points_field.startswith("customfield_"):
-                    # Get value from custom_fields dict if available, otherwise root level
-                    value = None
-                    if "custom_fields" in fields and isinstance(
-                        fields.get("custom_fields"), dict
-                    ):
-                        value = fields["custom_fields"].get(points_field)
-                    if value is None:
-                        value = fields.get(points_field)
-                    if value is not None:
-                        if isinstance(value, dict):
-                            point_val = value.get(
-                                "value", value.get("count", value.get("total", 0))
-                            )
-                        elif isinstance(value, (int, float)):
-                            point_val = value
-                        elif isinstance(value, str):
-                            try:
-                                point_val = float(value)
-                            except ValueError:
-                                point_val = None  # Invalid string
-                        else:
-                            point_val = None  # Unknown type
-
-                        if (
-                            point_val is not None and point_val >= 0
-                        ):  # 0 and positive values are valid
-                            valid_points_count += 1
-                else:
-                    # Other field types
-                    value = fields.get(points_field)
-                    if (
-                        value is not None and value >= 0
-                    ):  # 0 and positive values are valid
-                        valid_points_count += 1
-        except Exception:
-            continue
-
-    # Update statistics
-    stats["field_exists_count"] = field_exists_count
-    stats["valid_points_count"] = valid_points_count
-    stats["field_coverage_percent"] = (
-        (field_exists_count / sample_size * 100) if sample_size > 0 else 0
-    )
-    stats["valid_coverage_percent"] = (
-        (valid_points_count / sample_size * 100) if sample_size > 0 else 0
-    )
-
-    # Calculate threshold met (for informational display only - not used to disable features)
-    stats["threshold_required"] = (
-        0.3  # 30% threshold for quality indicator (informational only)
-    )
-    threshold_met = (
-        valid_points_count > 0
-        and (valid_points_count / sample_size) >= stats["threshold_required"]
-    )
-    stats["threshold_met"] = threshold_met
-
-    # Return True if ANY issues have points (even if below threshold)
-    # This lets users decide whether to enable points tracking based on coverage stats
-    # Only return False if literally NO points exist or field isn't configured
-    has_any_points = valid_points_count > 0
-    return has_any_points, stats
+# Validation functions removed (2026-01-26)
+# Points tracking is now controlled by user configuration - if points_field is
+# configured (non-empty), tracking is enabled; if empty, tracking is disabled.
+# This eliminates false negatives from sampling in large queries.
 
 
 def _issue_has_real_points(fields: Dict[str, Any], points_field: str) -> bool:

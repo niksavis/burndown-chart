@@ -1901,7 +1901,7 @@ def register(app):
 
                     status_message = f"Project scope calculated from JIRA with {estimated_items} estimated items out of {total_items} total remaining items."
                 else:
-                    # Fallback when points field is not available
+                    # Points field not configured - fallback to item counts only
                     estimated_items = 0  # Can't determine which items are estimated
                     total_items = project_scope.get(
                         "remaining_items", 0
@@ -1911,25 +1911,9 @@ def register(app):
                     # Get points field from jira_config
                     points_field = jira_config.get("points_field", "")
                     if points_field and points_field.strip():
-                        # Get detailed field statistics from the scope calculation
-                        field_name = points_field.strip()
-                        metadata = project_scope.get("calculation_metadata", {})
-                        field_stats = metadata.get("field_stats", {})
-
-                        # Provide detailed explanation based on field statistics
-                        sample_size = field_stats.get("sample_size", 0)
-                        field_exists_count = field_stats.get("field_exists_count", 0)
-                        valid_points_count = field_stats.get("valid_points_count", 0)
-
-                        field_coverage = field_stats.get("field_coverage_percent", 0)
-
-                        if field_exists_count == 0:
-                            status_message = f"[!] Points field '{field_name}' not found in any JIRA issues. Only total item count ({total_items}) calculated. Check if '{field_name}' exists in your JIRA project and verify your JQL query includes issues with this field."
-                        elif field_coverage < 50:
-                            status_message = f"[!] Points field '{field_name}' has insufficient coverage ({field_coverage:.0f}% of issues have the field, need ≥50%). Found in {field_exists_count} of {sample_size} sample issues, with {valid_points_count} having point values. Only total item count ({total_items}) calculated. Consider refining your JQL query to include more issues with this field, or verify '{field_name}' is the correct custom field name."
-                        else:
-                            # This shouldn't happen if points_field_available is False, but just in case
-                            status_message = f"[!] Points field '{field_name}' validation failed unexpectedly ({field_coverage:.0f}% coverage). Only total item count ({total_items}) calculated."
+                        # Points field is configured but points_field_available=False
+                        # This shouldn't happen with new logic (no sampling validation)
+                        status_message = f"[!] Points field '{points_field.strip()}' is configured but no valid data found. Only total item count ({total_items}) calculated."
                     else:
                         status_message = f"[!] No points field configured. Only total item count ({total_items}) calculated. Configure a valid points field for full scope calculation."
 
