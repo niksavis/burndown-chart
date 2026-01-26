@@ -1015,11 +1015,8 @@
                       aria-valuemax="{{ dimension_data.max_weight }}">
                     </div>
                   </div>
-                  {% if progress_pct < 20 %}
-                  <strong class="position-absolute" style="left: 20%; top: 50%; transform: translate(-50%, -50%); color: #495057; font-size: 0.75rem;">{{ progress_pct|round(0)|int }}%</strong>
-                  {% else %}
-                  <span class="position-absolute badge rounded-pill bg-dark" style="left: {{ progress_pct }}%; top: 50%; transform: translate(-50%, -50%); font-size: 0.7rem; padding: 0 8px; height: 20px; line-height: 20px;">{{ progress_pct|round(0)|int }}%</span>
-                  {% endif %}
+                  {% set pill_position = progress_pct if progress_pct > 0 else 0 %}
+                  <span class="position-absolute badge rounded-pill bg-dark" style="left: {{ pill_position }}%; top: 50%; transform: translateY(-50%){% if pill_position > 0 %} translate(-50%, 0){% endif %}; font-size: 0.7rem; padding: 0 8px; height: 20px; line-height: 20px;">{{ progress_pct|round(0)|int }}%</span>
                 </div>
                 <small class="text-muted flex-grow-1">
                   <strong>Formula:</strong> {{ dimension_data.score|round(1) }}% × {{ dimension_data.weight|round(1) }}% weight = {{ contribution|round(1) }}%<br>
