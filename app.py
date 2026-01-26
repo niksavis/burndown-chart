@@ -451,6 +451,28 @@ app.layout = serve_layout
 register_all_callbacks(app)
 
 #######################################################################
+# FLASK API ENDPOINTS
+#######################################################################
+
+
+@app.server.route("/api/version")
+def get_version():
+    """API endpoint to get current application version.
+
+    Returns:
+        JSON response with current version string
+
+    Example:
+        GET /api/version
+        Response: {"version": "2.7.2"}
+    """
+    from configuration import __version__
+    from flask import jsonify
+
+    return jsonify({"version": __version__})
+
+
+#######################################################################
 # MAIN
 #######################################################################
 
