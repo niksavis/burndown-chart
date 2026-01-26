@@ -154,8 +154,6 @@ def create_app_layout(settings, statistics, is_sample_data):
             dcc.Store(id="update-toast-shown", storage_type="session", data=False),
             # Update status store for tracking download/install progress
             dcc.Store(id="update-status-store", data=None),
-            # Trigger reconnect overlay immediately when update starts
-            dcc.Store(id="trigger-reconnect-overlay", data=None),
             # Migration status tracking (prevents re-running migration)
             dcc.Store(id="migration-status", storage_type="session", data=None),
             # JIRA Configuration Modal (Feature 003-jira-config-separation)

@@ -342,10 +342,7 @@ def poll_download_progress(n_intervals):
 
 
 @callback(
-    [
-        Output("app-notifications", "children", allow_duplicate=True),
-        Output("trigger-reconnect-overlay", "data", allow_duplicate=True),
-    ],
+    Output("app-notifications", "children", allow_duplicate=True),
     Input("install-update-button", "n_clicks"),
     State("update-status-store", "data"),
     prevent_initial_call=True,
@@ -369,7 +366,7 @@ def handle_update_install(install_clicks: int, status_data: Optional[dict]):
     import app
 
     if not install_clicks:
-        return no_update, no_update
+        return no_update
 
     logger.info("User clicked Update button - launching updater")
 
@@ -385,7 +382,7 @@ def handle_update_install(install_clicks: int, status_data: Optional[dict]):
             header="Update Not Ready",
             duration=5000,
         )
-        return toast, no_update
+        return toast
 
     if not progress.download_path:
         logger.error("Download path is missing")
@@ -395,7 +392,7 @@ def handle_update_install(install_clicks: int, status_data: Optional[dict]):
             header="Update Error",
             duration=5000,
         )
-        return toast, no_update
+        return toast
 
     try:
         # Schedule updater launch in background to allow callback to return
@@ -411,17 +408,16 @@ def handle_update_install(install_clicks: int, status_data: Optional[dict]):
             except Exception as e:
                 logger.error(f"Failed to launch updater: {e}", exc_info=True)
 
-        # Start updater in background thread with slight delay
+        # Start updater in background thread with 2 second delay to give overlay time to show
         import threading
 
-        update_thread = threading.Timer(1.0, launch_and_exit)
+        update_thread = threading.Timer(2.0, launch_and_exit)
         update_thread.daemon = True
         update_thread.start()
 
         logger.info("Updater scheduled to launch - app will close shortly")
 
-        # Trigger reconnect overlay immediately and show brief toast
-        # The overlay will be triggered by clientside callback watching trigger-reconnect-overlay store
+        # Return toast - overlay will be triggered by clientside callback on button click
         toast = create_toast(
             "Installing update... This page will reconnect automatically.",
             "info",
@@ -430,8 +426,7 @@ def handle_update_install(install_clicks: int, status_data: Optional[dict]):
             icon="sync fa-spin",
         )
 
-        # Return toast and trigger value to activate overlay
-        return toast, True
+        return toast
 
     except Exception as e:
         logger.error(f"Exception scheduling updater: {e}", exc_info=True)
@@ -441,7 +436,7 @@ def handle_update_install(install_clicks: int, status_data: Optional[dict]):
             header="Update Error",
             duration=10000,
         )
-        return error_toast, no_update
+        return error_toast
 
 
 @callback(
@@ -487,14 +482,14 @@ def handle_manual_update_instructions(n_clicks: int):
     )
 
 
-# Clientside callback to trigger reconnect overlay when update starts
-# This provides immediate visual feedback to the user
+# Clientside callback to trigger reconnect overlay IMMEDIATELY when Update button clicked
+# This fires before the Python callback, ensuring overlay shows before app closes
 clientside_callback(
     """
-    function(trigger) {
-        // Only trigger if value is truthy
-        if (trigger) {
-            console.log('[app_update] Triggering reconnect overlay');
+    function(n_clicks) {
+        // Only trigger on actual click (n_clicks > 0)
+        if (n_clicks && n_clicks > 0) {
+            console.log('[app_update] Update button clicked - triggering overlay immediately');
             // Dispatch custom event that update_reconnect.js will listen for
             const event = new CustomEvent('trigger-update-overlay');
             window.dispatchEvent(event);
@@ -502,7 +497,7 @@ clientside_callback(
         return window.dash_clientside.no_update;
     }
     """,
-    Output("trigger-reconnect-overlay", "data", allow_duplicate=True),
-    Input("trigger-reconnect-overlay", "data"),
+    Output("install-update-button", "data-dummy", allow_duplicate=True),
+    Input("install-update-button", "n_clicks"),
     prevent_initial_call=True,
 )
