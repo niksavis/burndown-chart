@@ -9,7 +9,7 @@
 | **Total** | 535 | 235.8K | **~2.1M** |
 | Code (Python + JS/CSS) | 229 | 136.0K | ~1.2M |
 | Python (no tests) | 207 | 124.9K | ~1.1M |
-| Frontend (JS/CSS) | 22 | 11.1K | ~72.0K |
+| Frontend (JS/CSS) | 22 | 11.1K | ~72.1K |
 | Tests | 120 | 35.6K | ~309.5K |
 | Documentation (MD) | 186 | 64.2K | ~594.7K |
 
