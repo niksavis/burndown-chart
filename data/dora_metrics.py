@@ -396,8 +396,13 @@ def _determine_performance_tier(value: Optional[float], tiers: Dict) -> Dict[str
         Dictionary with tier and color:
         {
             "tier": "Elite" | "High" | "Medium" | "Low" | "Unknown",
-            "color": "success" | "info" | "warning" | "danger" | "secondary"
+            "color": "green" | "blue" | "yellow" | "orange" | "red" | "secondary"
         }
+
+    Note:
+        Returns semantic color names (green/blue/yellow/orange/red) which are mapped
+        to Bootstrap classes in ui/metric_cards.py tier_color_map. This matches the
+        pattern used by Flow metrics for consistent badge rendering.
     """
     if value is None:
         return {"tier": "Unknown", "color": "secondary"}
@@ -407,12 +412,15 @@ def _determine_performance_tier(value: Optional[float], tiers: Dict) -> Dict[str
 
     tier = _classify_performance_tier(value, tiers, higher_is_better)
 
-    # Map tier to color for UI
+    # Map tier to semantic color names (matches Flow metrics pattern)
+    # These are mapped to Bootstrap classes in ui/metric_cards.py:
+    #   green -> success, blue -> tier-high, yellow -> tier-medium, 
+    #   orange -> tier-orange, red -> danger
     tier_colors = {
-        "elite": "success",
-        "high": "info",
-        "medium": "warning",
-        "low": "danger",
+        "elite": "green",    # Elite performance -> green badge
+        "high": "blue",      # High performance -> cyan/blue badge
+        "medium": "yellow",  # Medium performance -> yellow badge
+        "low": "orange",     # Low performance -> orange badge (not red to distinguish from errors)
     }
 
     return {

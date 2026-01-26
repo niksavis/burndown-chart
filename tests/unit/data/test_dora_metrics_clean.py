@@ -266,11 +266,12 @@ class TestPerformanceTierClassification:
         assert tier == "high"
 
     def test_determine_performance_tier_with_color(self):
-        """Test performance tier determination with UI color."""
+        """Test performance tier determination with semantic color (not Bootstrap)."""
         result = _determine_performance_tier(5, LEAD_TIME_TIERS)
 
         assert result["tier"] == "High"
-        assert result["color"] == "info"
+        # Returns semantic color "blue" which is mapped to Bootstrap "tier-high" in UI
+        assert result["color"] == "blue"
 
     def test_determine_performance_tier_unknown(self):
         """Test performance tier with None value."""
