@@ -1,4 +1,3 @@
-````chatagent
 ---
 description: Convert tasks.md to Beads issues with hierarchical structure
 handoffs:
@@ -92,4 +91,3 @@ For feature branch `feature/016-standalone-packaging`:
 8. Cleanup: `Remove-Item tasks.jsonl`
 
 Context for conversion: $ARGUMENTS
-````
