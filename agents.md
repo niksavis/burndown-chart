@@ -8,10 +8,10 @@
 |----------|-------|-------|--------|
 | **Total** | 551 | 236.1K | **~2.1M** |
 | Code (Python + JS/CSS) | 240 | 136.2K | ~1.2M |
-| Python (no tests) | 219 | 125.6K | ~1.1M |
-| Frontend (JS/CSS) | 21 | 10.7K | ~68.6K |
-| Tests | 125 | 35.9K | ~312.3K |
-| Documentation (MD) | 186 | 63.9K | ~592.5K |
+| Python (no tests) | 219 | 125.4K | ~1.1M |
+| Frontend (JS/CSS) | 21 | 10.8K | ~69.6K |
+| Tests | 125 | 35.9K | ~312.4K |
+| Documentation (MD) | 186 | 64.0K | ~592.7K |
 
 **Agent Guidance**:
 - **Too large for context**: Use targeted `semantic_search`, avoid broad reads
