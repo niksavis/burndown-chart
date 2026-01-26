@@ -336,23 +336,37 @@ def bump_version(bump_type: str) -> tuple[bool, str]:
                 "[OK] Changelog already contains version section (skipped regeneration)"
             )
 
-        # Create git tag AFTER all amends (prevents orphaned tag)
-        tag_name = f"v{new_version_str}"
-        tag_message = f"Release {tag_name}"
-        success, _ = run_command(
-            ["git", "tag", "-a", tag_name, "-m", tag_message],
-            f"Create tag {tag_name}",
-        )
-        if not success:
-            return False, ""
-
-        print(f"\n[OK] Version bumped to {tag_name}")
-        print(f"[OK] Tag created with message: '{tag_message}'")
-        return True, tag_name
+        print(f"\n[OK] Version bumped to {new_version_str}")
+        return True, new_version_str
 
     except Exception as e:
         print(f"ERROR: {e}", file=sys.stderr)
         return False, ""
+
+
+def create_tag(version: str) -> bool:
+    """Create git tag after all commits are complete.
+
+    This MUST be called after version bump, changelog, version_info, and metrics
+    commits to prevent orphaned tags pointing to intermediate commits.
+    """
+    print("\n" + "=" * 60)
+    print("Creating Git Tag")
+    print("=" * 60)
+
+    tag_name = f"v{version}"
+    tag_message = f"Release {tag_name}"
+
+    success, _ = run_command(
+        ["git", "tag", "-a", tag_name, "-m", tag_message],
+        f"Create tag {tag_name}",
+    )
+
+    if not success:
+        return False
+
+    print(f"[OK] Tag {tag_name} created with message: '{tag_message}'")
+    return True
 
 
 def push_release(version: str) -> bool:
@@ -429,8 +443,13 @@ def main():
         print("\n[FAILED] Codebase metrics update", file=sys.stderr)
         sys.exit(1)
 
-    # Step 4: Push to origin
-    if not push_release(new_version):
+    # Step 4: Create tag AFTER all commits complete (prevents orphaned tags)
+    if not create_tag(new_version):
+        print("\n[FAILED] Tag creation", file=sys.stderr)
+        sys.exit(1)
+
+    # Step 5: Push to origin
+    if not push_release(f"v{new_version}"):
         print("\n[FAILED] Push to origin", file=sys.stderr)
         sys.exit(1)
 
