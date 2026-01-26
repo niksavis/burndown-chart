@@ -7,7 +7,7 @@ Uses background threading for downloads to provide progress feedback.
 
 import logging
 import threading
-from dash import callback, Input, Output, State, no_update
+from dash import callback, Input, Output, State, no_update, clientside_callback
 from typing import Optional
 import dash_bootstrap_components as dbc
 
@@ -342,7 +342,10 @@ def poll_download_progress(n_intervals):
 
 
 @callback(
-    Output("app-notifications", "children", allow_duplicate=True),
+    [
+        Output("app-notifications", "children", allow_duplicate=True),
+        Output("trigger-reconnect-overlay", "data", allow_duplicate=True),
+    ],
     Input("install-update-button", "n_clicks"),
     State("update-status-store", "data"),
     prevent_initial_call=True,
@@ -366,7 +369,7 @@ def handle_update_install(install_clicks: int, status_data: Optional[dict]):
     import app
 
     if not install_clicks:
-        return no_update
+        return no_update, no_update
 
     logger.info("User clicked Update button - launching updater")
 
@@ -376,21 +379,23 @@ def handle_update_install(install_clicks: int, status_data: Optional[dict]):
         logger.warning(
             f"Cannot install: unexpected state {progress.state if progress else 'None'}"
         )
-        return create_toast(
+        toast = create_toast(
             "Update not ready. Please download the update first.",
             "warning",
             header="Update Not Ready",
             duration=5000,
         )
+        return toast, no_update
 
     if not progress.download_path:
         logger.error("Download path is missing")
-        return create_toast(
+        toast = create_toast(
             "Update file not found. Please download the update again.",
             "danger",
             header="Update Error",
             duration=5000,
         )
+        return toast, no_update
 
     try:
         # Schedule updater launch in background to allow callback to return
@@ -415,9 +420,9 @@ def handle_update_install(install_clicks: int, status_data: Optional[dict]):
 
         logger.info("Updater scheduled to launch - app will close shortly")
 
-        # Show message before app closes
-        # Note: This toast shows briefly (~1s) before reconnect overlay replaces it
-        return create_toast(
+        # Trigger reconnect overlay immediately and show brief toast
+        # The overlay will be triggered by clientside callback watching trigger-reconnect-overlay store
+        toast = create_toast(
             "Installing update... This page will reconnect automatically.",
             "info",
             header="Updating",
@@ -425,14 +430,18 @@ def handle_update_install(install_clicks: int, status_data: Optional[dict]):
             icon="sync fa-spin",
         )
 
+        # Return toast and trigger value to activate overlay
+        return toast, True
+
     except Exception as e:
         logger.error(f"Exception scheduling updater: {e}", exc_info=True)
-        return create_toast(
+        error_toast = create_toast(
             f"Update failed: {str(e)}",
             "danger",
             header="Update Error",
             duration=10000,
         )
+        return error_toast, no_update
 
 
 @callback(
@@ -476,3 +485,24 @@ def handle_manual_update_instructions(n_clicks: int):
         duration=3000,
         icon="external-link-alt",
     )
+
+
+# Clientside callback to trigger reconnect overlay when update starts
+# This provides immediate visual feedback to the user
+clientside_callback(
+    """
+    function(trigger) {
+        // Only trigger if value is truthy
+        if (trigger) {
+            console.log('[app_update] Triggering reconnect overlay');
+            // Dispatch custom event that update_reconnect.js will listen for
+            const event = new CustomEvent('trigger-update-overlay');
+            window.dispatchEvent(event);
+        }
+        return window.dash_clientside.no_update;
+    }
+    """,
+    Output("trigger-reconnect-overlay", "data", allow_duplicate=True),
+    Input("trigger-reconnect-overlay", "data"),
+    prevent_initial_call=True,
+)
