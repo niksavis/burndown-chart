@@ -1,5 +1,14 @@
 # Changelog
 
+## v2.7.7
+
+*Released: 2026-01-26*
+
+### Bug Fixes
+
+- **Toast Notifications**: Fixed flashing toast messages after update completes - now shows single success toast only
+- **Export Error Messages**: Fixed white-on-white text formatting in export error toasts, now properly readable
+
 ## v2.7.6
 
 *Released: 2026-01-26*
