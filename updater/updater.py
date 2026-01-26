@@ -154,20 +154,50 @@ def restore_from_backup(backup_path: Path, target_path: Path) -> bool:
     Returns:
         True if restore succeeded, False otherwise
     """
-    try:
-        print_status(f"Restoring from backup: {backup_path.name}")
+    max_retries = 20
+    retry_delay = 1.0
+    start_time = time.time()
 
-        # Remove corrupted file if it exists
-        if target_path.exists():
-            target_path.unlink()
+    for attempt in range(max_retries):
+        try:
+            if attempt > 0:
+                elapsed = time.time() - start_time
+                print_status(
+                    f"Restore retry attempt {attempt + 1}/{max_retries} (elapsed: {elapsed:.1f}s)..."
+                )
+                time.sleep(retry_delay)
+                retry_delay = min(retry_delay * 1.5, 5.0)
 
-        # Restore from backup
-        shutil.copy2(backup_path, target_path)
-        print_status("Restore successful")
-        return True
-    except Exception as e:
-        print_status(f"ERROR: Failed to restore from backup: {e}")
-        return False
+            print_status(f"Restoring from backup: {backup_path.name}")
+
+            # Remove corrupted file if it exists
+            if target_path.exists():
+                target_path.unlink()
+
+            # Restore from backup
+            shutil.copy2(backup_path, target_path)
+            print_status("Restore successful")
+            return True
+
+        except PermissionError as e:
+            if attempt < max_retries - 1:
+                elapsed = time.time() - start_time
+                print_status(
+                    f"File locked during restore (attempt {attempt + 1}/{max_retries}, elapsed: {elapsed:.1f}s), retrying..."
+                )
+                continue
+            else:
+                elapsed = time.time() - start_time
+                print_status(
+                    f"ERROR: Failed to restore from backup after {max_retries} attempts ({elapsed:.1f}s): {e}"
+                )
+                return False
+
+        except Exception as e:
+            print_status(f"ERROR: Failed to restore from backup: {e}")
+            return False
+
+    return False
 
 
 def extract_update(zip_path: Path, extract_dir: Path) -> bool:
@@ -236,26 +266,69 @@ def replace_executable(new_exe_path: Path, target_exe_path: Path) -> bool:
     Returns:
         True if replacement succeeded, False otherwise
     """
-    try:
-        print_status(f"Replacing {target_exe_path.name} with new version")
+    # Higher retry count for anti-virus scenarios (common with admin privileges)
+    # AV software can lock executables for 10-30 seconds after process exit
+    max_retries = 20
+    retry_delay = 1.0  # Start with 1 second (AV scans need time)
+    start_time = time.time()
 
-        # Verify new exe exists
-        if not new_exe_path.exists():
-            print_status(f"ERROR: New executable not found: {new_exe_path}")
+    for attempt in range(max_retries):
+        try:
+            if attempt > 0:
+                elapsed = time.time() - start_time
+                print_status(
+                    f"Retry attempt {attempt + 1}/{max_retries} (elapsed: {elapsed:.1f}s)..."
+                )
+                time.sleep(retry_delay)
+                retry_delay = min(retry_delay * 1.5, 5.0)  # Exponential backoff, max 5s
+
+            print_status(f"Replacing {target_exe_path.name} with new version")
+
+            # Verify new exe exists
+            if not new_exe_path.exists():
+                print_status(f"ERROR: New executable not found: {new_exe_path}")
+                return False
+
+            # Remove old exe
+            if target_exe_path.exists():
+                target_exe_path.unlink()
+
+            # Copy new exe
+            shutil.copy2(new_exe_path, target_exe_path)
+            print_status("Replacement successful")
+
+            return True
+
+        except PermissionError as e:
+            # Windows file locking - retry
+            if attempt < max_retries - 1:
+                elapsed = time.time() - start_time
+                print_status(
+                    f"File locked (attempt {attempt + 1}/{max_retries}, elapsed: {elapsed:.1f}s), retrying..."
+                )
+                if attempt == 5:
+                    print_status(
+                        "Note: Anti-virus software may be scanning the executable..."
+                    )
+                    print_status("This can take 10-30 seconds with admin privileges")
+                continue
+            else:
+                elapsed = time.time() - start_time
+                print_status(
+                    f"ERROR: Failed to replace executable after {max_retries} attempts ({elapsed:.1f}s): {e}"
+                )
+                print_status("File may be locked by anti-virus or another process")
+                print_status("TROUBLESHOOTING:")
+                print_status("  1. Check if anti-virus is running a scan")
+                print_status("  2. Add install directory to AV exclusions")
+                print_status("  3. Try update again when AV scan completes")
+                return False
+
+        except Exception as e:
+            print_status(f"ERROR: Failed to replace executable: {e}")
             return False
 
-        # Remove old exe
-        if target_exe_path.exists():
-            target_exe_path.unlink()
-
-        # Copy new exe
-        shutil.copy2(new_exe_path, target_exe_path)
-        print_status("Replacement successful")
-
-        return True
-    except Exception as e:
-        print_status(f"ERROR: Failed to replace executable: {e}")
-        return False
+    return False
 
 
 def set_post_update_flag(exe_path: Path) -> None:
@@ -383,8 +456,11 @@ def main() -> int:
         print_status("Please close the application manually and run the updater again")
         return 2
 
-    # App uses os._exit() so file handles are released immediately
-    # No additional delay needed with fast polling
+    # Windows needs extra time to fully release file handles after process exit
+    # Admin processes + anti-virus scanning can hold locks for 10-30 seconds
+    print_status("Waiting for Windows to release file handles...")
+    print_status("(Anti-virus may scan executable - this can take 10-30 seconds)")
+    time.sleep(3.0)  # 3 second grace period (increased for AV scenarios)
 
     # Step 2: Backup current executable
     backup_path = backup_file(current_exe)

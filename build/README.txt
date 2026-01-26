@@ -6,6 +6,15 @@
 GETTING STARTED
 ---------------
 
+INSTALLATION LOCATION RECOMMENDATIONS:
+   - ✓ Recommended: C:\Users\[YourName]\Desktop\BurndownChart
+   - ✓ Recommended: C:\Users\[YourName]\Documents\BurndownChart
+   - ✓ Recommended: D:\MyApps\BurndownChart
+   - ✗ Avoid: C:\Program Files\ (UAC prompts for every update)
+
+   Note: Updates work in any writable location. Anti-virus software may
+   temporarily lock files during updates (especially with admin rights).
+
 1. Run the Application
    - Double-click "BurndownChart.exe" to start
    - A terminal window will open showing status messages
@@ -56,6 +65,14 @@ can't find it.
 
 TROUBLESHOOTING
 ---------------
+
+Q: Update fails with "Access is denied"
+A: Most likely anti-virus software is scanning the executable. The updater will
+   automatically retry for up to 60 seconds. If it still fails, add the install
+   directory to your anti-virus exclusions.
+   
+   Note: Updates may work on non-admin accounts but fail with admin rights
+   because anti-virus scans elevated processes more aggressively.
 
 Q: Port 8050 is already in use
 A: Close other apps using port 8050, or edit app.py to use a different port

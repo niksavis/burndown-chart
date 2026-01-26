@@ -440,10 +440,17 @@ def test_restore_download_state_file_missing():
 5. Check folder permissions (install directory must be writable)
 
 **Common Errors in Log**:
-- `Permission denied`: Run as Administrator or move app to non-protected folder
+- `Access is denied` (WinError 5): 
+  - **Primary Cause**: Anti-virus software locking executable during/after scan (especially common with admin privileges)
+  - **Secondary Cause**: App installed in protected directory requiring admin rights
+  - **Solution 1**: Wait for automatic retry (updater retries 20 times over ~60 seconds)
+  - **Solution 2**: Add install directory to anti-virus exclusions
+  - **Solution 3**: If in protected directory (e.g., `C:\Program Files\`), move to user directory
+  - **Observation**: Updates may work WITHOUT admin rights but fail WITH admin rights (AV scans elevated processes more aggressively)
+- `Permission denied`: UAC issue or directory permissions - check folder security settings
 - `No space left on device`: Free up disk space
 - `File not found in ZIP`: Download corrupted - re-download update
-- `Failed to replace executable`: Anti-virus blocking - add exclusion
+- `Failed to replace executable after 20 attempts`: Persistent anti-virus lock or system issue - try disabling AV temporarily
 
 **Log Location**: `C:\Users\[USERNAME]\AppData\Local\Temp\burndown_chart_updater.log`
 
@@ -459,12 +466,30 @@ def test_restore_download_state_file_missing():
 
 ### Update Fails with "File locked" Error
 
-**Cause**: Anti-virus scanning executable
+**Cause**: Windows file handles not immediately released after process exit, or anti-virus scanning executable
+
+**Admin Rights Paradox**: Updates may work on machines WITHOUT admin rights but fail WITH admin rights because:
+- Windows Defender/AV software scans elevated processes more aggressively
+- Admin processes may trigger deeper security scans (10-30 second delays)
+- File system caching behaves differently for elevated processes
+
+**Fix (v2.7.2+)**: Updater now implements:
+1. **3-second grace period** after process exit (allows AV to start scan)
+2. **20-attempt exponential backoff** - retries up to ~60 seconds
+3. **Progress messages** - informs user when AV scanning is likely cause
+4. **PermissionError-specific handling** - distinguishes file locking from other issues
 
 **Solution**:
-- Wait 30 seconds, retry update
-- Updater has exponential backoff retry (automatic)
-- If persists, add updater to AV exclusions
+- Update to v2.7.2+ (fix is automatic, waits for AV scan to complete)
+- If fails: Add install directory to anti-virus exclusions
+- Alternative: Run update when AV is idle (not during scheduled scan)
+
+**Technical Details**:
+Anti-virus software on Windows can hold file locks for 10-30 seconds after process exit due to:
+- Real-time protection scanning new/modified executables
+- Elevated process reputation checking
+- SmartScreen verification
+- Signature analysis
 
 ### Download Lost After App Crash
 
