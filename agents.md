@@ -22,6 +22,13 @@
 
 ## Session Start
 
+**RULE 0 - VENV ACTIVATION (MANDATORY FIRST STEP)**:
+```powershell
+.venv\Scripts\activate  # PowerShell (Windows)
+# Verify: prompt shows (.venv)
+```
+**CHECKPOINT**: STOP. Is venv activated? If NO → activate NOW. If YES → proceed.
+
 **AXIOM**: Check beads state FIRST (multi-machine coordination)
 **Handoff**: `Continue work on bd-123: [title]. [context]`
 **Cold Start**: Sync beads-metadata → check state → claim work

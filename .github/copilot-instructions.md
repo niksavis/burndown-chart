@@ -4,11 +4,28 @@
 
 ## NON-NEGOTIABLE RULES
 
-### 0. Virtual Environment (CRITICAL)
+```
+╔════════════════════════════════════════════════════════════════════╗
+║  RULE 0: ACTIVATE VENV BEFORE *ANY* PYTHON COMMAND - NO EXCEPTIONS ║
+╚════════════════════════════════════════════════════════════════════╝
+```
 
-- **ALWAYS activate venv FIRST** before ANY Python command
+### 0. Virtual Environment (MANDATORY - CHECKPOINT)
+
+**BEFORE running pytest, python, pip, release.py, ANY .py script**:
+
+```powershell
+# STEP 1: Activate (PowerShell)
+.venv\Scripts\activate
+
+# STEP 2: Verify prompt shows (.venv)
+# STEP 3: Only NOW proceed with Python command
+```
+
+**ENFORCEMENT**: If about to run Python command → STOP → Check venv → Activate if needed
+
 - Command: `.venv\Scripts\activate` (PowerShell) or `source .venv/bin/activate` (bash)
-- Applies to: pytest, python scripts, pip install, ALL Python operations
+- Applies to: pytest, python scripts, pip install, release.py, regenerate_changelog.py, ALL .py
 - **NO EXCEPTIONS** - this prevents 99% of "command failed, run again" issues
 
 ### 1. Zero Errors Policy
