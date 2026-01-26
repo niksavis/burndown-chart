@@ -457,19 +457,63 @@ register_all_callbacks(app)
 
 @app.server.route("/api/version")
 def get_version():
-    """API endpoint to get current application version.
+    """API endpoint to get current application version and post-update state.
 
     Returns:
-        JSON response with current version string
+        JSON response with current version string and post_update flag
 
     Example:
         GET /api/version
-        Response: {"version": "2.7.2"}
+        Response: {"version": "2.7.2", "post_update": true}
     """
     from configuration import __version__
     from flask import jsonify
+    from data.persistence import get_backend
 
-    return jsonify({"version": __version__})
+    # Check post_update_relaunch flag from database
+    try:
+        backend = get_backend()
+        state = backend.load_app_state()
+        post_update = state.get("post_update_relaunch", False) if state else False
+    except Exception as e:
+        logger.warning(f"Failed to load post_update flag: {e}")
+        post_update = False
+
+    return jsonify({"version": __version__, "post_update": post_update})
+
+
+@app.server.route("/api/clear-post-update", methods=["POST"])
+def clear_post_update():
+    """API endpoint to clear the post_update_relaunch flag.
+
+    Called by JavaScript after successfully showing the update success toast.
+
+    Returns:
+        JSON response with success status
+
+    Example:
+        POST /api/clear-post-update
+        Response: {"success": true}
+    """
+    from flask import jsonify
+    from data.persistence import get_backend
+
+    try:
+        backend = get_backend()
+        state = backend.load_app_state() or {}
+        state["post_update_relaunch"] = False
+        backend.save_app_state(state)
+        logger.info(
+            "Cleared post_update_relaunch flag via API",
+            extra={"operation": "clear_post_update_flag"},
+        )
+        return jsonify({"success": True})
+    except Exception as e:
+        logger.error(
+            f"Failed to clear post_update_relaunch flag: {e}",
+            extra={"operation": "clear_post_update_flag"},
+        )
+        return jsonify({"success": False, "error": str(e)}), 500
 
 
 #######################################################################

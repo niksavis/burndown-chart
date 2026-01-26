@@ -315,11 +315,10 @@
                 }, 500);
               });
           } else {
-            // Normal reconnect (not update) - just reload
-            updateOverlayStatus("Reloading...");
-            setTimeout(() => {
-              window.location.reload();
-            }, 500);
+            // Normal reconnect (not update) - just hide overlay
+            // Dash will automatically reconnect and refresh components
+            console.log("[update_reconnect] Normal reconnect - hiding overlay");
+            hideReconnectingOverlay();
           }
         } else {
           console.log(
@@ -516,6 +515,64 @@
     }
 
     console.log("[update_reconnect] Initializing auto-reconnect handler");
+
+    // Check if this is a post-update restart (flag persisted in database)
+    fetch("/api/version", {
+      cache: "no-cache",
+      headers: {
+        "Cache-Control": "no-cache",
+        Pragma: "no-cache",
+      },
+    })
+      .then((response) => response.json())
+      .then((versionData) => {
+        console.log("[update_reconnect] Version check:", versionData);
+
+        // If post_update flag is set, this is a post-update restart
+        if (versionData.post_update) {
+          console.log(
+            "[update_reconnect] Post-update restart detected - showing success toast",
+          );
+          isUpdateFlow = true; // Mark as update flow (prevents reload)
+
+          // Show success toast immediately (app already restarted, no blocker needed)
+          // Wait a bit for Dash to initialize
+          setTimeout(() => {
+            showUpdateSuccessToast(versionData.version);
+          }, 1000);
+
+          // Clear the flag so it doesn't show again
+          fetch("/api/clear-post-update", {
+            method: "POST",
+            cache: "no-cache",
+          })
+            .then((response) => response.json())
+            .then((result) => {
+              if (result.success) {
+                console.log(
+                  "[update_reconnect] Post-update flag cleared successfully",
+                );
+              } else {
+                console.warn(
+                  "[update_reconnect] Failed to clear post-update flag:",
+                  result.error,
+                );
+              }
+            })
+            .catch((error) => {
+              console.error(
+                "[update_reconnect] Error clearing post-update flag:",
+                error,
+              );
+            });
+        }
+      })
+      .catch((error) => {
+        console.warn(
+          "[update_reconnect] Failed to check version/post-update status:",
+          error,
+        );
+      });
 
     // Listen for custom event from update button callback
     window.addEventListener("trigger-update-overlay", function () {
