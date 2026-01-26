@@ -111,6 +111,24 @@
       return;
     }
 
+    // CRITICAL: Clear any existing toasts before showing success toast
+    // This prevents duplicate/stale toasts from Dash callbacks firing on reconnect
+    const existingToasts = notificationsContainer.querySelectorAll(".toast");
+    if (existingToasts.length > 0) {
+      console.warn(
+        `[update_reconnect] Clearing ${existingToasts.length} existing toast(s) before showing success`,
+      );
+      existingToasts.forEach((toast) => {
+        const header = toast.querySelector(".toast-header strong");
+        const body = toast.querySelector(".toast-body");
+        console.log("[update_reconnect] Removing toast:", {
+          header: header ? header.textContent : "unknown",
+          body: body ? body.textContent.substring(0, 50) : "unknown",
+        });
+        toast.remove();
+      });
+    }
+
     // Create toast HTML (matching Dash Bootstrap Components style)
     const toastElement = document.createElement("div");
     toastElement.className = "toast fade show";

@@ -43,7 +43,7 @@ def export_full_profile(n_clicks, export_mode, include_token, include_budget):
         if not profile_id or not query_id:
             logger.error("[Export] Missing active profile/query")
             return no_update, create_toast(
-                "Export Failed", "No active profile or query selected", "danger"
+                "No active profile or query selected", "danger", header="Export Failed"
             )
 
         # Use new T013 export function
@@ -98,7 +98,7 @@ def export_full_profile(n_clicks, export_mode, include_token, include_budget):
     except Exception as e:
         logger.error(f"Profile export failed: {e}", exc_info=True)
         return no_update, create_toast(
-            "Export Failed", f"Could not export profile: {str(e)}", "danger"
+            f"Could not export profile: {str(e)}", "danger", header="Export Failed"
         )
 
 
