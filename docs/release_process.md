@@ -83,9 +83,42 @@ git tag -d v2.6.0-test && git push origin :refs/tags/v2.6.0-test  # Delete after
 - [ ] Dev dependencies installed (`pip install -r requirements-dev.txt` - needed for PyYAML)
 - [ ] Tests pass, no errors (`pytest`, `get_errors`)
 - [ ] Feature branch merged to main
-- [ ] Generate changelog draft: `python regenerate_changelog.py --json` (creates changelog_draft.json)
-- [ ] Polish `changelog.md`: Create v{X.Y.Z} section with release date using JSON as reference
-- [ ] **Commit changelog**: `git add changelog.md && git commit -m "docs(changelog): add vX.Y.Z release notes"`
+- [ ] All changes committed and pushed to main
+- [ ] Working directory clean (`git status`)
+
+**Changelog Creation** (BEFORE release.py):
+
+```powershell
+# Step 1: Preview unreleased commits and generate draft
+python regenerate_changelog.py --preview --json
+
+# This creates changelog_draft.json with:
+# - All commits since last tag (v2.7.10..HEAD)
+# - Grouped by scope/issue
+# - Categorized (Features, Bug Fixes, etc.)
+
+# Step 2: Use LLM to write polished changelog
+# Prompt: "Read changelog_draft.json and write a user-friendly changelog 
+#          section for v2.7.11. Focus on what users can DO, bold major
+#          features (**Feature**), flat bullets only (no sub-bullets)."
+
+# Step 3: Copy LLM output to TOP of changelog.md
+# Format:
+#   ## v2.7.11
+#   *Released: 2026-01-26*
+#   
+#   ### Features
+#   - **Major Feature**: Description inline with details
+#   - Enhancement: Description
+#   
+#   ### Bug Fixes
+#   - Fixed issue preventing X from Y
+
+# Step 4: Commit changelog BEFORE running release.py
+git add changelog.md
+git commit -m "docs(changelog): add v2.7.11 release notes"
+git push
+```
 
 **Version Bump** (Automated - venv must be active):
 
@@ -93,22 +126,24 @@ git tag -d v2.6.0-test && git push origin :refs/tags/v2.6.0-test  # Delete after
 python release.py [patch|minor|major]
 ```
 
-**What it does**:
-1. Preflight checks (clean working dir, on main)
+**What release.py does**:
+1. Preflight checks (clean working dir, on main branch)
 2. Bump version in configuration/**init**.py and readme.md
-3. Commit version changes
-4. Create git tag ("Release v{X.Y.Z}")
-5. Regenerate changelog from git history (skips if v{X.Y.Z} already exists - requires PyYAML)
-6. Commit changelog (if regenerated)
-7. Regenerate version_info.txt AND version_info_updater.txt (bundled in executables)
-8. Commit version_info files
+3. Commit version changes: "chore: bump version to X.Y.Z"
+4. Call regenerate_changelog() - **SKIPS** if vX.Y.Z already in changelog.md
+5. Check if changelog.md changed - **NO AMEND** if changelog already committed
+6. **Create git tag** (AFTER all potential amends - prevents orphaned commits)
+7. Regenerate version_info.txt and version_info_updater.txt (bundled in executables)
+8. Commit version_info files: "chore(build): update version_info files for release"
 9. Update codebase metrics in agents.md (auto-commits)
-10. Push to origin → triggers GitHub Actions
+10. Push main branch and tag to origin → **triggers GitHub Actions**
 
 **Post-Release**:
+- [ ] GitHub Actions workflow completes successfully
 - [ ] GitHub release created with ZIP attached
-- [ ] Release notes show polished changelog (not "Unreleased - In Development")
+- [ ] Release notes extracted from changelog.md (matching version section)
 - [ ] Download ZIP → test executable → verify version in About dialog
+- [ ] Verify success toast appears after update (if testing update flow)
 
 ---
 
@@ -141,37 +176,97 @@ python release.py [patch|minor|major]  # Calls script internally
 
 **Script**: `regenerate_changelog.py`
 
-**Purpose**: Generate comprehensive changelog entries from git commit history
+**Purpose**: Generate changelog entries from git commit history
 
-**Workflow**:
+**Modes**:
 
-1. **Before release**: `python regenerate_changelog.py --json`
-   - Creates `changelog_draft.json` with ALL commits since last tag
-   - Includes commit message, scope, type, bead ID, description
-   - Use as reference to write polished changelog section
+1. **Preview Mode (RECOMMENDED for releases)**:
+   ```powershell
+   python regenerate_changelog.py --preview --json
+   ```
+   - Shows unreleased commits since last tag (v2.7.10..HEAD)
+   - Creates `changelog_draft.json` for LLM processing
+   - Use BEFORE running release.py
+   - Enables manual polish before committing
 
-2. **During release**: `release.py` calls `regenerate_changelog.py` automatically
-   - **SKIPS** if v{X.Y.Z} section already exists in changelog.md
-   - Only generates entries for NEW tags not found in changelog
+2. **Post-Tag Mode (fallback)**:
+   ```powershell
+   python regenerate_changelog.py --json
+   ```
+   - Generates entries for NEW tags not in changelog.md
+   - Use if you forgot to create changelog before release
+   - Requires force-moving tag after editing
 
-**Format rules**: Flat bullets only (no sub-bullets), bold major features, focus on user benefits
+**Format rules**: 
+- Flat bullets only (no sub-bullets - About dialog limitation)
+- Bold major features: `**Feature Name**`
+- Focus on user benefits, not technical details
+- Inline details: `**Feature**: Description with all details inline, comma-separated`
 
-**Example**:
+**Recommended Workflow**:
+
 ```powershell
 # Step 0: Activate venv (MANDATORY)
 .venv\Scripts\activate
 
-# Step 1: Generate draft with all commits
+# Step 1: Ensure all work committed and pushed
+git status                              # Should be clean
+git pull --rebase                       # Get latest
+
+# Step 2: Preview unreleased commits
+python regenerate_changelog.py --preview --json
+
+# Step 3: Use LLM to write changelog
+# Prompt: "Read changelog_draft.json and write v2.7.11 changelog.
+#          Bold major features, flat bullets only, user-friendly."
+
+# Step 4: Add LLM output to TOP of changelog.md
+# Format:
+#   ## v2.7.11
+#   *Released: 2026-01-26*
+#   
+#   ### Features
+#   - **Major Feature**: Complete description inline
+#   
+#   ### Bug Fixes
+#   - Fixed specific issue
+
+# Step 5: Commit changelog BEFORE release.py
+git add changelog.md
+git commit -m "docs(changelog): add v2.7.11 release notes"
+git push
+
+# Step 6: Run automated release
+python release.py patch
+
+# What happens:
+# - release.py calls regenerate_changelog()
+# - Script checks changelog.md for "## v2.7.11"
+# - Found → SKIPS regeneration
+# - No amend needed
+# - Creates tag pointing to correct commit
+# - Pushes everything
+```
+
+**Fallback Workflow** (if forgot to create changelog):
+
+```powershell
+# After running release.py (tag already exists):
+
+# Step 1: Generate from existing tag
 python regenerate_changelog.py --json
 
-# Step 2: Read changelog_draft.json, write polished v2.7.0 section in changelog.md
+# Step 2: Polish generated entries in changelog.md
 
-# Step 3: Commit changelog BEFORE release.py
+# Step 3: Amend commit
 git add changelog.md
-git commit -m "docs(changelog): add v2.7.0 release notes"
+git commit --amend --no-edit
 
-# Step 4: Run release (changelog regeneration skipped since v2.7.0 exists)
-python release.py minor
+# Step 4: Force-move tag to amended commit
+git tag -f v2.7.11
+
+# Step 5: Force push
+git push origin main v2.7.11 --force
 ```
 
 ---
@@ -187,6 +282,43 @@ python release.py minor
 **Runtime**: Missing deps → add to hiddenimports in build/app.spec, rebuild
 
 **Version mismatch**: Tag ≠ executable version → release.py ensures correct order (bump → regenerate version_info.txt)
+
+**Orphaned tag** (tag points to wrong commit):
+```powershell
+# Symptoms: GitHub Actions builds wrong code, executable has old bugs
+
+# Fix:
+git push origin :refs/tags/v2.7.11           # Delete remote tag
+git tag -d v2.7.11                           # Delete local tag
+git tag v2.7.11 <correct-commit-hash>        # Recreate on correct commit
+git push origin v2.7.11                      # Push corrected tag
+```
+
+**Forgot to write changelog before release**:
+```powershell
+# Tag already exists but changelog missing/incomplete
+
+# Option 1: Force-move tag (if release not yet downloaded by users)
+python regenerate_changelog.py --json        # Generate from tag
+# Edit changelog.md to polish
+git add changelog.md
+git commit --amend --no-edit                 # Amend into version bump
+git tag -f v2.7.11                           # Force-move tag
+git push origin main v2.7.11 --force         # Force push
+
+# Option 2: Skip to next version (if release already public)
+# - Leave v2.7.11 as-is
+# - Create v2.7.12 with proper changelog
+```
+
+**Success toast not appearing after update**:
+```powershell
+# Check app.log for errors in /api/version endpoint
+# Check JavaScript console for fetch errors
+# Verify post_update_relaunch flag in database:
+sqlite3 "D:\Utilities\Burndown Chart\profiles\burndown.db" "SELECT * FROM app_state WHERE key='post_update_relaunch';"
+# Should be empty or "True" after update, cleared after toast shown
+```
 
 ---
 

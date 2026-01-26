@@ -307,7 +307,36 @@ def bump_version(bump_type: str) -> tuple[bool, str]:
         if not success:
             return False, ""
 
-        # Create git tag (once, with correct message)
+        # Regenerate changelog from git history (skips if version section exists)
+        regenerate_changelog()
+
+        # Check if changelog.md was modified (only amend if it changed)
+        success, status_output = run_command(
+            ["git", "status", "--porcelain", "changelog.md"],
+            "Check if changelog changed",
+        )
+
+        if status_output.strip():
+            # Changelog was regenerated, amend to include it
+            success, _ = run_command(
+                ["git", "add", "changelog.md"],
+                "Stage changelog",
+            )
+            if not success:
+                print("[WARNING] Could not stage changelog")
+
+            success, _ = run_command(
+                ["git", "commit", "--amend", "--no-edit"],
+                "Commit changelog (amend)",
+            )
+            if not success:
+                print("[WARNING] Could not commit changelog")
+        else:
+            print(
+                "[OK] Changelog already contains version section (skipped regeneration)"
+            )
+
+        # Create git tag AFTER all amends (prevents orphaned tag)
         tag_name = f"v{new_version_str}"
         tag_message = f"Release {tag_name}"
         success, _ = run_command(
@@ -316,24 +345,6 @@ def bump_version(bump_type: str) -> tuple[bool, str]:
         )
         if not success:
             return False, ""
-
-        # Regenerate changelog from git history (includes new tag)
-        regenerate_changelog()
-
-        # Commit the regenerated changelog (amend to include in version bump commit)
-        success, _ = run_command(
-            ["git", "add", "changelog.md"],
-            "Stage changelog",
-        )
-        if not success:
-            print("[WARNING] Could not stage changelog")
-
-        success, _ = run_command(
-            ["git", "commit", "--amend", "--no-edit"],
-            "Commit changelog (amend)",
-        )
-        if not success:
-            print("[WARNING] Could not commit changelog")
 
         print(f"\n[OK] Version bumped to {tag_name}")
         print(f"[OK] Tag created with message: '{tag_message}'")

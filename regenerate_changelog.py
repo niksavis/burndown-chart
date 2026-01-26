@@ -26,22 +26,27 @@ How it works:
 4. Groups commits by scope/issue with user-friendly descriptions
 5. Categorizes fix commits intelligently (bug vs development iteration)
 
-Workflow Option A (Direct Markdown):
-1. Run: python regenerate_changelog.py
-2. Review generated entries in changelog.md
-3. Manually refine for clarity and user-friendliness
+Workflow (RECOMMENDED - Preview Mode):
+1. Run: python regenerate_changelog.py --preview --json
+2. Creates changelog_draft.json with unreleased commits since last tag
+3. Use LLM to read JSON and write polished changelog section
+4. Copy LLM output to changelog.md as ## vX.Y.Z section
+5. Commit: git commit -m "docs(changelog): add vX.Y.Z release notes"
+6. Run: python release.py [patch|minor|major]
 
-Workflow Option B (LLM-Assisted):
-1. Run: python regenerate_changelog.py --json
-2. Creates changelog_draft.json with structured commit data
-3. Use LLM to read JSON and write polished summaries
-4. Copy LLM output to changelog.md
+Workflow (Alternative - Post-Tag):
+1. Run: python release.py [patch|minor|major] (auto-tags first)
+2. Run: python regenerate_changelog.py --json
+3. Edit generated entries in changelog.md
+4. Amend: git commit --amend -a --no-edit
+5. Force-move tag: git tag -f vX.Y.Z
+6. Push: git push origin main vX.Y.Z --force
 
 This script is called automatically by release.py during version bumps.
 It can also be run standalone to catch up on missing tags.
 
-Usage (direct):  python regenerate_changelog.py
-Usage (JSON):    python regenerate_changelog.py --json
+Usage (preview):  python regenerate_changelog.py --preview [--json]
+Usage (post-tag): python regenerate_changelog.py [--json]
 Usage (imported): import regenerate_changelog; regenerate_changelog.main()
 """
 
@@ -308,8 +313,13 @@ def export_to_json(tags_data: list[dict], output_path: Path):
     print("─" * 60)
 
 
-def main(export_json: bool = False):
-    """Generate changelog entries for NEW tags only (preserves existing content)."""
+def main(export_json: bool = False, preview: bool = False):
+    """Generate changelog entries for NEW tags only (preserves existing content).
+
+    Args:
+        export_json: Export structured data to changelog_draft.json for LLM processing
+        preview: Preview unreleased commits since last tag (for pre-release planning)
+    """
     changelog_path = Path("changelog.md")
 
     # Load scope descriptions
@@ -331,6 +341,53 @@ def main(export_json: bool = False):
 
     if not tags or not tags[0]:
         print("No tags found")
+        return
+
+    # PREVIEW MODE: Show unreleased commits since last tag
+    if preview:
+        latest_tag = tags[0]
+        print(f"📋 Preview of unreleased commits since {latest_tag}:\n")
+
+        commits_result = subprocess.run(
+            ["git", "log", f"{latest_tag}..HEAD", "--pretty=format:%s", "--no-merges"],
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        commits = [c for c in commits_result.stdout.strip().split("\n") if c]
+
+        if not commits:
+            print("✓ No unreleased commits")
+            return
+
+        # Group and categorize unreleased commits
+        categorized = group_commits_by_issue_and_scope(commits, scope_descriptions)
+
+        if export_json:
+            # Export to JSON for LLM processing
+            from datetime import date
+
+            tags_data = [
+                {
+                    "version": "vX.Y.Z (UNRELEASED)",
+                    "date": date.today().isoformat(),
+                    "commits": commits,
+                    "categorized": {
+                        category: [(title, detail) for title, detail in items]
+                        for category, items in categorized.items()
+                    },
+                    "commit_count": len(commits),
+                }
+            ]
+            json_path = Path("changelog_draft.json")
+            export_to_json(tags_data, json_path)
+        else:
+            # Print to console
+            for category, items in categorized.items():
+                print(f"### {category}\n")
+                for title, detail in items:
+                    print(f"- {title}")
+                print()
         return
 
     # Filter to only NEW tags (not in existing changelog)
@@ -474,6 +531,7 @@ def main(export_json: bool = False):
 if __name__ == "__main__":
     import sys
 
-    # Check for --json flag
+    # Check for flags
     export_json = "--json" in sys.argv
-    main(export_json=export_json)
+    preview = "--preview" in sys.argv
+    main(export_json=export_json, preview=preview)
