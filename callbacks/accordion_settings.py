@@ -340,6 +340,69 @@ def save_profile_settings(
         )
 
 
+# Callback to load profile settings into UI after import/profile switch
+@callback(
+    [
+        Output("profile-pert-factor-input", "value", allow_duplicate=True),
+        Output("profile-deadline-input", "value", allow_duplicate=True),
+        Output("profile-data-points-input", "value", allow_duplicate=True),
+        Output("profile-show-milestone-checkbox", "value", allow_duplicate=True),
+        Output("profile-milestone-input", "value", allow_duplicate=True),
+    ],
+    [
+        Input("metrics-refresh-trigger", "data"),  # After import
+        Input("profile-switch-trigger", "data"),  # After profile switch
+    ],
+    prevent_initial_call=True,
+)
+def load_profile_settings_after_import(metrics_trigger, profile_trigger):
+    """
+    Load profile settings into Profile Settings Card inputs after import/switch.
+
+    This ensures that when a profile is imported or switched, the Profile Settings
+    Card in the accordion shows the correct values.
+    """
+    from data.persistence import load_app_settings
+    from dash.exceptions import PreventUpdate
+
+    try:
+        settings = load_app_settings()
+
+        if not settings:
+            logger.warning("[Profile Settings] No settings found, skipping UI update")
+            raise PreventUpdate
+
+        # Extract forecast settings
+        pert_factor = settings.get("pert_factor", 1.2)
+        deadline = settings.get("deadline", "")
+        data_points = settings.get("data_points_count", 12)
+        show_milestone = settings.get("show_milestone", False)
+        milestone = settings.get("milestone", "")
+
+        # Convert show_milestone boolean to checkbox value (bool expected, not list)
+        show_milestone_value = bool(show_milestone)
+
+        logger.info(
+            f"[Profile Settings] Loaded into UI: pert_factor={pert_factor}, "
+            f"deadline={deadline}, data_points={data_points}, "
+            f"show_milestone={show_milestone_value}, milestone={milestone}"
+        )
+
+        return (
+            pert_factor,
+            deadline or "",
+            data_points,
+            show_milestone_value,
+            milestone or "",
+        )
+
+    except PreventUpdate:
+        raise
+    except Exception as e:
+        logger.error(f"[Profile Settings] Error loading settings: {e}", exc_info=True)
+        raise PreventUpdate
+
+
 logger.info("[Callbacks] Accordion settings panel callbacks registered")
 
 

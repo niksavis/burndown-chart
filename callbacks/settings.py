@@ -285,6 +285,11 @@ def register(app):
         from data.profile_manager import get_active_profile
         import time
 
+        logger.info(
+            f"[Settings] reload_settings_after_import_or_switch triggered: "
+            f"metrics_trigger={metrics_trigger}, profile_trigger={profile_trigger}"
+        )
+
         try:
             # Check if we have an active profile - prevent crash when last profile is deleted
             active_profile = get_active_profile()
@@ -310,6 +315,8 @@ def register(app):
                 f"[Settings] Reloaded settings from database: "
                 f"show_points={settings.get('show_points')}, "
                 f"pert_factor={settings.get('pert_factor')}, "
+                f"deadline={settings.get('deadline')}, "
+                f"milestone={settings.get('milestone')}, "
                 f"data_points={settings.get('data_points_count')}"
             )
 
@@ -504,8 +511,34 @@ def register(app):
         # Save app-level settings - load JIRA values from jira_config (Feature 003-jira-config-separation)
         from data.persistence import save_app_settings, load_app_settings
 
-        # Load existing settings to preserve last_used_data_source and active_jql_profile_id
+        # Load existing settings to preserve last_used_data_source, active_jql_profile_id,
+        # and most importantly show_milestone/show_points if not explicitly changed
         existing_settings = load_app_settings()
+
+        # CRITICAL: Preserve show_milestone and show_points from database if they weren't
+        # explicitly changed by user input. This prevents overwriting imported values.
+        # The show_milestone and milestone values come from milestone-picker which may not
+        # have been updated yet after import, so we only update if milestone actually changed.
+        from dash import ctx
+
+        if ctx.triggered:
+            triggered_id = ctx.triggered[0]["prop_id"].split(".")[0]
+            # Only update show_milestone/show_points/deadline/milestone if those specific inputs triggered the callback
+            if triggered_id not in [
+                "milestone-picker",
+                "points-toggle",
+                "deadline-picker",
+            ]:
+                # Preserve all values that might not have been updated in UI yet after import
+                show_milestone = existing_settings.get("show_milestone", show_milestone)
+                settings["show_points"] = existing_settings.get(
+                    "show_points", settings["show_points"]
+                )
+                # Also preserve deadline and milestone if they weren't explicitly changed
+                deadline = existing_settings.get("deadline", deadline)
+                milestone = existing_settings.get("milestone", milestone)
+                settings["deadline"] = deadline
+                settings["milestone"] = milestone
 
         # JQL query change detection removed - JQL is now managed per-query in query.json
         # Cache invalidation based on JQL changes is handled in handle_unified_data_update
@@ -514,11 +547,11 @@ def register(app):
             pert_factor,
             deadline,
             data_points_count,
-            show_milestone,  # Automatically calculated
+            show_milestone,  # Automatically calculated OR preserved from existing
             milestone,
             settings[
                 "show_points"
-            ],  # Use the converted boolean from settings dict (NOT raw checklist value)
+            ],  # Use the converted boolean from settings dict (NOT raw checklist value) OR preserved
             jql_query.strip()
             if jql_query and jql_query.strip()
             else "project = JRASERVER",  # Use current JQL input

@@ -2239,6 +2239,13 @@ def create_budget_timeline_card(
 
     # Parse dates
     try:
+        # Validate required date strings
+        if not start_date_str or not allocated_end_str:
+            logger.error(
+                f"Missing required timeline dates: start_date='{start_date_str}', allocated_end='{allocated_end_str}'"
+            )
+            raise ValueError("Missing required timeline dates")
+
         start_date = datetime.fromisoformat(start_date_str)
         allocated_end = datetime.fromisoformat(allocated_end_str)
         current_date = datetime.now()

@@ -826,6 +826,9 @@ def get_budget_baseline_vs_actual(
                 start_date = datetime.fromisoformat(
                     start_date_str.replace("Z", "+00:00")
                 )
+                # Ensure timezone-aware for consistent comparison
+                if start_date.tzinfo is None:
+                    start_date = start_date.replace(tzinfo=timezone.utc)
             except Exception:
                 start_date = datetime.now(timezone.utc)
 
