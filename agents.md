@@ -4,14 +4,14 @@
 
 **Last Updated**: 2026-01-26
 
-| Category | Files | Lines | Tokens |
-|----------|-------|-------|--------|
-| **Total** | 551 | 236.0K | **~2.1M** |
-| Code (Python + JS/CSS) | 240 | 136.2K | ~1.2M |
-| Python (no tests) | 219 | 125.5K | ~1.1M |
-| Frontend (JS/CSS) | 21 | 10.7K | ~68.6K |
-| Tests | 125 | 35.9K | ~312.3K |
-| Documentation (MD) | 186 | 63.8K | ~591.4K |
+| Category               | Files | Lines  | Tokens    |
+| ---------------------- | ----- | ------ | --------- |
+| **Total**              | 551   | 236.0K | **~2.1M** |
+| Code (Python + JS/CSS) | 240   | 136.2K | ~1.2M     |
+| Python (no tests)      | 219   | 125.5K | ~1.1M     |
+| Frontend (JS/CSS)      | 21    | 10.7K  | ~68.6K    |
+| Tests                  | 125   | 35.9K  | ~312.3K   |
+| Documentation (MD)     | 186   | 63.8K  | ~591.4K   |
 
 **Agent Guidance**:
 - **Too large for context**: Use targeted `semantic_search`, avoid broad reads
@@ -22,9 +22,14 @@
 
 ## Session Start
 
-**AXIOM**: `bd sync` FIRST (multi-machine coordination)
+**AXIOM**: Check beads state FIRST (multi-machine coordination)
 **Handoff**: `Continue work on bd-123: [title]. [context]`
-**Cold Start**: `bd sync` → `bd ready`
+**Cold Start**: Check beads-metadata sync status → `bd ready`
+
+**CRITICAL**: This project uses **git worktrees** for beads with separate `beads-metadata` branch:
+- Code changes → `main` branch
+- Beads database → `beads-metadata` branch (in `.git/beads-worktrees/beads-metadata/`)
+- **MUST push BOTH branches** or multi-agent coordination breaks
 
 ## Beads Commands
 
@@ -32,12 +37,12 @@
 bd ready                              # Find work
 bd show <id>                          # View details
 bd update <id> --status in_progress   # Claim
-bd sync                               # Export→commit→pull→import→push (force immediate)
+# NO bd sync in worktree mode - daemon auto-commits to beads-metadata branch
 ```
 
 **FORBIDDEN**: `bd edit` (opens $EDITOR - AI incompatible)
 **UPDATE**: `bd update <id> --description "text" --title "text" --notes "text" --status "status"`
-**SYNC**: Run `bd sync` after batch changes (bypasses 30s debounce)
+**WORKTREE**: Beads changes auto-commit to `.git/beads-worktrees/beads-metadata/` - must push separately
 
 ## Commit Format
 
@@ -73,30 +78,43 @@ Types: feat|fix|refactor|docs|test|chore|perf|style|build|ci
 
 ## Session End (Landing the Plane)
 
-**AXIOM**: Work ≠ Complete until `git push` succeeds
+**AXIOM**: Work ≠ Complete until `git push` succeeds (BOTH main AND beads-metadata branches)
 
 **MANDATORY SEQUENCE**:
 
 1. File remaining work → beads issues
 2. Quality gates (if code) → `get_errors`, `pytest`
-3. Close beads → stage → commit with bead ID → push
-4. **PUSH** (NON-NEGOTIABLE):
+3. Close beads → stage → commit with bead ID → push **main branch**
+4. **PUSH MAIN** (NON-NEGOTIABLE):
    ```bash
    git pull --rebase
-   # If .beads/issues.jsonl conflict:
-   #   git checkout --theirs .beads/issues.jsonl
-   #   bd import -i .beads/issues.jsonl
-   bd sync        # Export→commit→pull→import→push
-   git push       # PLANE STILL IN AIR UNTIL THIS SUCCEEDS
+   git push       # Push main branch
    git status     # MUST: "up to date with origin"
    ```
-5. Clean → `git stash clear`, `git remote prune origin`
-6. Verify → `git status` (nothing uncommitted/unpushed)
-7. Hand off → `Continue work on bd-X: [title]. [context]`
+5. **SYNC BEADS METADATA** (CRITICAL for multi-agent):
+   ```bash
+   # Navigate to beads-metadata worktree
+   cd .git/beads-worktrees/beads-metadata
+   
+   # Check for uncommitted beads changes
+   git status
+   
+   # If changes exist, commit and push
+   git add .beads/issues.jsonl
+   git commit -m "chore(beads): sync metadata - closed [bead-ids]"
+   git push
+   
+   # Return to project root
+   cd ../../..
+   ```
+6. Clean → `git stash clear`, `git remote prune origin`
+7. Verify → Both branches pushed successfully
+8. Hand off → `Continue work on bd-X: [title]. [context]`
 
 **AXIOMS**:
-- Plane NOT landed until `git push` succeeds
+- Plane NOT landed until BOTH `main` AND `beads-metadata` pushed
+- NEVER skip beads-metadata push (breaks multi-agent coordination)
 - NEVER "ready to push when you are" (YOU push)
 - Push failure → resolve → retry → success
-- Unpushed work breaks multi-agent coordination
+- Unpushed beads breaks team synchronization
 
