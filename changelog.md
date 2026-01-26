@@ -1,5 +1,19 @@
 # Changelog
 
+## v2.7.3
+
+*Released: 2026-01-26*
+
+### Features
+
+- **Update Experience**: Update overlay now appears immediately after clicking Update button, providing instant feedback
+- **Version Information**: Footer version info automatically updates after successful app update without requiring browser refresh
+- **Update Notifications**: Toast message now displays after update completes without requiring app restart or browser refresh
+
+### Bug Fixes
+
+- **Points Calculation**: Fixed issue where story points were occasionally not calculated during Update Data operation
+
 ## v2.7.2
 
 *Released: 2026-01-26*
