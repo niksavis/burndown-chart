@@ -353,7 +353,9 @@ def _calculate_predictability_dimension(
     # Signal 2: Schedule Adherence (30 points)
     if dashboard_metrics:
         schedule_variance = dashboard_metrics.get("schedule_variance_days", 0)
-        buffer_days = -schedule_variance  # Positive = ahead
+        buffer_days = (
+            schedule_variance  # Positive = ahead (no negation - already correct sign)
+        )
         schedule_factor = (math.tanh(buffer_days / 20) + 1) / 2  # 0-1
         schedule_score = schedule_factor * 30
         score += schedule_score
