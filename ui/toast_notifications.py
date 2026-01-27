@@ -127,7 +127,7 @@ def create_toast(
         is_open=True,
         dismissable=dismissable,
         duration=duration if duration > 0 else None,
-        style={"minWidth": "300px"},
+        style={"minWidth": "320px"},
     )
 
 

@@ -139,7 +139,7 @@
       toastElement.setAttribute("role", "alert");
       toastElement.setAttribute("aria-live", "assertive");
       toastElement.setAttribute("aria-atomic", "true");
-      toastElement.style.minWidth = "300px";
+      toastElement.style.minWidth = "320px";
       toastElement.innerHTML = `
       <div class="toast-header">
         <svg class="rounded text-success" width="20" height="20" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice" focusable="false" role="img">
