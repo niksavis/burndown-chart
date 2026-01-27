@@ -1,0 +1,11 @@
+/**
+ * Loading Indicators - Custom Colors
+ * 
+ * Custom color classes for loading state visual feedback in banner icons.
+ * Extends Bootstrap color system with project-specific loading states.
+ */
+
+/* Purple color for UI-driven data loading operations (query switch, slider changes) */
+.text-purple {
+  color: #6f42c1 !important; /* Bootstrap purple */
+}

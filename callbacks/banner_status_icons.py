@@ -3,11 +3,16 @@ Banner Status Icons Callback
 
 Animates profile and query icons in the top banner during operations.
 Provides visual feedback even when Settings panel is closed.
+
+Visual States:
+- Default: Blue folder + search (idle)
+- Update Data: Orange folder + spinner (background JIRA sync)
+- UI Operations: Purple fade folder (query/slider changes trigger recalc)
 """
 
 import logging
 import json
-from dash import callback, Output, Input
+from dash import callback, Output, Input, State, ctx
 
 logger = logging.getLogger(__name__)
 
@@ -17,57 +22,84 @@ logger = logging.getLogger(__name__)
         Output("profile-status-icon", "className"),
         Output("query-status-icon", "className"),
     ],
-    Input("progress-poll-interval", "n_intervals"),
+    [
+        Input("progress-poll-interval", "n_intervals"),
+        Input("query-selector", "value"),
+        Input("pert-factor-slider", "value"),
+        Input("data-points-input", "value"),
+        Input("calculation-results", "data"),
+    ],
+    [
+        State("profile-status-icon", "className"),
+    ],
     prevent_initial_call=True,
 )
-def update_banner_status_icons(n_intervals):
-    """Update banner icons based on task progress.
+def update_banner_status_icons(
+    n_intervals,
+    query_value,
+    pert_value,
+    data_points_value,
+    calc_results,
+    current_profile_class,
+):
+    """Update banner icons based on task progress and UI operations.
 
-    Visual feedback:
-    - Profile icon: Changes color during operations (orange during operation)
-    - Query icon: Animates/spins during fetch, changes during calculate
+    Priority:
+    1. Update Data (orange) - background JIRA operations
+    2. UI operations (purple) - query/slider changes
+    3. Idle (blue) - no operations
 
     Args:
-        n_intervals: Polling interval counter
+        n_intervals: Polling interval for Update Data
+        query_value: Query selector (triggers recalc)
+        pert_value: PERT slider (triggers recalc)
+        data_points_value: Data points slider (triggers recalc)
+        calc_results: Signals calculation completion
+        current_profile_class: Current icon state
 
     Returns:
         Tuple of (profile icon class, query icon class)
     """
+    trigger_id = ctx.triggered_id if ctx.triggered else None
+
     try:
         from data.persistence.factory import get_backend
 
         backend = get_backend()
         progress_data = backend.get_task_state()
 
-        if not progress_data:
-            # No operation in progress - return default icons
-            return "fas fa-folder me-1", "fas fa-search me-1"
+        # PRIORITY 1: Update Data operation (highest priority - background sync)
+        if progress_data:
+            status = progress_data.get("status", "idle")
+            phase = progress_data.get("phase", "fetch")
+            cancelled = progress_data.get("cancelled", False)
 
-        status = progress_data.get("status", "idle")
-        phase = progress_data.get("phase", "fetch")
-        cancelled = progress_data.get("cancelled", False)
+            if status == "in_progress" and not cancelled:
+                # Background operation active - orange indicators
+                profile_icon_class = "fas fa-folder me-1 text-warning"
 
-        # Check if operation is in progress AND not cancelled
-        if status != "in_progress" or cancelled:
-            # Operation complete, error, or cancelled - return to default
-            return "fas fa-folder me-1", "fas fa-search me-1"
+                if phase == "fetch":
+                    query_icon_class = "fas fa-spinner fa-spin me-1 text-warning"
+                elif phase == "calculate":
+                    query_icon_class = "fas fa-spinner fa-spin me-1 text-success"
+                else:
+                    query_icon_class = "fas fa-search fa-pulse me-1 text-warning"
 
-        # Operation in progress - apply visual feedback
-        # Profile icon: Change color to indicate activity
-        profile_icon_class = "fas fa-folder me-1 text-warning"
+                return profile_icon_class, query_icon_class
 
-        # Query icon: Different animation based on phase
-        if phase == "fetch":
-            # Fetch phase: Spinning magnifying glass
-            query_icon_class = "fas fa-spinner fa-spin me-1 text-warning"
-        elif phase == "calculate":
-            # Calculate phase: Calculator/chart icon spinning
-            query_icon_class = "fas fa-calculator fa-pulse me-1 text-success"
-        else:
-            # Fallback: Animated search
-            query_icon_class = "fas fa-search fa-pulse me-1 text-warning"
+        # PRIORITY 2: UI operations (query switch, slider changes)
+        if trigger_id in ["query-selector", "pert-factor-slider", "data-points-input"]:
+            # UI change detected - show purple fade (recalculation starting)
+            return "fas fa-folder me-1 text-purple fa-fade", "fas fa-search me-1"
 
-        return profile_icon_class, query_icon_class
+        # PRIORITY 3: Calculation complete - clear loading state
+        if trigger_id == "calculation-results":
+            # If we were showing purple, clear it
+            if current_profile_class and "text-purple" in current_profile_class:
+                return "fas fa-folder me-1", "fas fa-search me-1"
+
+        # DEFAULT: No operation - blue icons
+        return "fas fa-folder me-1", "fas fa-search me-1"
 
     except (json.JSONDecodeError, IOError) as e:
         logger.debug(f"[BannerStatus] Could not read progress file: {e}")
