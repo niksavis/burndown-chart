@@ -81,7 +81,7 @@ git tag -d v2.6.0-test && git push origin :refs/tags/v2.6.0-test  # Delete after
 **Pre-Release**:
 - [ ] **Activate venv**: `.venv\Scripts\activate` (MANDATORY - do this FIRST)
 - [ ] Dev dependencies installed (`pip install -r requirements-dev.txt` - needed for PyYAML)
-- [ ] Tests pass, no errors (`pytest`, `get_errors`)
+- [ ] Tests pass (`pytest tests/ -v`)
 - [ ] Feature branch merged to main
 - [ ] All changes committed and pushed to main
 - [ ] Working directory clean (`git status`)
