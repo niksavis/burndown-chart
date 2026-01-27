@@ -520,7 +520,7 @@ def _calculate_all_metrics(
         velocity_items = dashboard.get("velocity_items", 0)
         velocity_cv = dashboard.get("velocity_cv", 0)
         trend_direction = dashboard.get("trend_direction", "stable")
-        recent_velocity_change = 0  # Not exposed in dashboard return
+        recent_velocity_change = dashboard.get("recent_velocity_change", 0)
         schedule_variance_days = dashboard.get("schedule_variance_days", 0)
         completion_confidence = dashboard.get("completion_confidence", 50)
 
@@ -1134,6 +1134,7 @@ def _calculate_dashboard_metrics(
         ),  # Pass health dimensions for breakdown visualization
         "velocity_cv": velocity_cv,  # Pass velocity coefficient of variation
         "trend_direction": trend_direction,  # Pass trend direction
+        "recent_velocity_change": recent_velocity_change,  # Pass recent velocity change for Delivery dimension
         "schedule_variance_days": schedule_variance_days,  # Pass schedule variance
         "completion_confidence": completion_confidence,  # Pass completion confidence
         "scope_change_rate": scope_change_rate,  # Pass scope change rate for Sustainability dimension display
