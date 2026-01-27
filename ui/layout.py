@@ -145,7 +145,7 @@ def create_app_layout(settings, statistics, is_sample_data):
                     "top": "5px",
                     "right": "5px",
                     "zIndex": "9999",
-                    "width": "420px",
+                    "width": "400px",
                 },
             ),
             # Store version info for callback to display toast after page loads
