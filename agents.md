@@ -2,16 +2,16 @@
 
 ## Codebase Metrics
 
-**Last Updated**: 2026-01-26
+**Last Updated**: 2026-01-27
 
-| Category               | Files | Lines  | Tokens    |
-| ---------------------- | ----- | ------ | --------- |
-| **Total**              | 535   | 235.8K | **~2.1M** |
-| Code (Python + JS/CSS) | 229   | 136.0K | ~1.2M     |
-| Python (no tests)      | 207   | 124.9K | ~1.1M     |
-| Frontend (JS/CSS)      | 22    | 11.1K  | ~72.1K    |
-| Tests                  | 120   | 35.6K  | ~309.5K   |
-| Documentation (MD)     | 186   | 64.2K  | ~594.8K   |
+| Category | Files | Lines | Tokens |
+|----------|-------|-------|--------|
+| **Total** | 536 | 235.9K | **~2.1M** |
+| Code (Python + JS/CSS) | 230 | 136.1K | ~1.2M |
+| Python (no tests) | 207 | 125.0K | ~1.1M |
+| Frontend (JS/CSS) | 23 | 11.1K | ~72.2K |
+| Tests | 120 | 35.6K | ~309.5K |
+| Documentation (MD) | 186 | 64.2K | ~595.1K |
 
 **Agent Guidance**:
 - **Too large for context**: Use targeted `semantic_search`, avoid broad reads
