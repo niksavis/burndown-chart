@@ -1,5 +1,21 @@
 # Changelog
 
+## v2.7.17
+
+*Released: 2026-01-27*
+
+### Features
+
+- **Visual Loading Feedback**: Added purple fade indicator in sticky banner folder icon when switching queries or adjusting data sliders, providing immediate visual feedback during data recalculation - complements existing orange spinner for background Update Data operations
+
+### Improvements
+
+- **Toast Notifications**: Enhanced toast styling with optimized width (400px) to prevent header wrapping and improve readability across all notification types
+
+### Bug Fixes
+
+- **Health Metric Calculation**: Corrected inverted schedule buffer calculation that was showing buffer as concern instead of advantage - now properly reflects project health when ahead of schedule
+
 ## v2.7.16
 
 *Released: 2026-01-26*
