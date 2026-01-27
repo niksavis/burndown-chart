@@ -805,7 +805,9 @@ def _calculate_dashboard_metrics(
     # NOT daily average! The app filters to last N data points then calculates weekly velocity
     from data.processing import calculate_velocity_from_dataframe
 
-    data_points_count = settings.get("data_points_count", weeks_count)
+    # CRITICAL: Use weeks_count parameter (report time period), NOT app settings
+    # The report should respect the user-selected time window, not the app's current slider position
+    data_points_count = weeks_count
 
     # CRITICAL FIX: Filter by week labels (same as dashboard) to ensure exact N weeks
     # This prevents date range filtering from including partial weeks or off-by-one errors
