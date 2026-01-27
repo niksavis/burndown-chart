@@ -276,7 +276,9 @@ def _calculate_delivery_dimension(
         progress_score = (completion_pct / 100) * 30
         score += progress_score
         weight += 10  # 10% weight contribution
-        logger.debug(f"[Delivery] Progress: {progress_score:.1f}/30 pts")
+        logger.info(
+            f"[Delivery] Progress: completion={completion_pct:.2f}%, score={progress_score:.1f}/30 pts"
+        )
 
     # Signal 2: Velocity Trend (35 points)
     if dashboard_metrics:
@@ -292,7 +294,9 @@ def _calculate_delivery_dimension(
 
         score += trend_score
         weight += 10  # 10% weight contribution
-        logger.debug(f"[Delivery] Trend: {trend_score:.1f}/35 pts")
+        logger.info(
+            f"[Delivery] Trend: direction={trend_direction}, change={recent_change:.1f}%, score={trend_score:.1f}/35 pts"
+        )
 
     # Signal 3: Throughput Rate (35 points)
     # Use Flow Velocity if available, fallback to dashboard velocity
@@ -323,6 +327,9 @@ def _calculate_delivery_dimension(
         normalized_score = 50  # Neutral
         weight = 0
 
+    logger.info(
+        f"[Delivery] TOTAL: raw_score={score:.1f}/{max_points}, normalized={normalized_score:.1f}/100, weight={weight}%"
+    )
     return normalized_score, weight
 
 
