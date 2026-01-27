@@ -303,14 +303,18 @@ def _calculate_delivery_dimension(
         throughput_score = throughput_factor * 35
         score += throughput_score
         weight += 5  # 5% weight contribution
-        logger.debug(f"[Delivery] Throughput (flow): {throughput_score:.1f}/35 pts")
+        logger.info(
+            f"[Delivery] Throughput (flow): velocity={flow_velocity:.2f}, factor={throughput_factor:.3f}, score={throughput_score:.1f}/35 pts"
+        )
     elif dashboard_metrics:
         velocity_items = dashboard_metrics.get("current_velocity_items", 0)
         throughput_factor = 1 / (1 + math.exp(-(velocity_items - 3) / 1.5))
         throughput_score = throughput_factor * 35
         score += throughput_score
         weight += 5  # 5% weight contribution
-        logger.debug(f"[Delivery] Throughput (dash): {throughput_score:.1f}/35 pts")
+        logger.info(
+            f"[Delivery] Throughput (dash): velocity={velocity_items:.2f}, factor={throughput_factor:.3f}, score={throughput_score:.1f}/35 pts"
+        )
 
     # Normalize to 0-100 scale
     if weight > 0:

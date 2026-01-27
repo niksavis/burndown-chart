@@ -249,6 +249,9 @@ def _load_report_data(profile_id: str, weeks: int) -> Dict[str, Any]:
         "settings": settings,
         "jira_issues": jira_issues,
         "weeks_count": weeks_count,
+        "week_labels": sorted(
+            week_labels
+        ),  # Pass week labels to ensure consistent filtering
     }
 
 
@@ -456,7 +459,9 @@ def _calculate_all_metrics(
     # Flow metrics
     if "flow" in sections:
         extended_metrics["flow"] = _calculate_flow_metrics(
-            report_data["snapshots"], report_data["weeks_count"]
+            report_data["snapshots"],
+            report_data["weeks_count"],
+            report_data["week_labels"],  # Pass week labels for consistent filtering
         )
 
     # DORA metrics
@@ -1426,7 +1431,9 @@ def _calculate_scope_metrics(
 
 
 def _calculate_flow_metrics(
-    snapshots: Dict[str, Dict], weeks_count: int
+    snapshots: Dict[str, Dict],
+    weeks_count: int,
+    week_labels: Optional[List[str]] = None,
 ) -> Dict[str, Any]:
     """
     Load Flow metrics from snapshots (matches app implementation).
@@ -1437,6 +1444,7 @@ def _calculate_flow_metrics(
     Args:
         snapshots: Filtered weekly snapshots (NOT USED - we read directly from cache)
         weeks_count: Number of weeks to load from snapshots
+        week_labels: Pre-filtered week labels to use (ensures consistency with statistics filtering)
 
     Returns:
         Dictionary with Flow metrics matching app display
@@ -1446,16 +1454,24 @@ def _calculate_flow_metrics(
 
     logger.info(f"Loading Flow metrics from snapshots for {weeks_count} weeks")
 
-    # Generate week labels (same as app)
-    weeks = []
-    current_date = datetime.now()
-    for i in range(weeks_count):
-        year, week = get_iso_week(current_date)
-        week_label = format_year_week(year, week)
-        weeks.append(week_label)
-        current_date = current_date - timedelta(days=7)
+    # Use provided week labels if available (ensures same time window as statistics)
+    if week_labels:
+        week_labels = list(week_labels)  # Use pre-filtered labels
+        logger.info(f"[FLOW METRICS] Using provided week labels: {week_labels}")
+    else:
+        # Fallback: Generate week labels (same as app)
+        weeks = []
+        current_date = datetime.now()
+        for i in range(weeks_count):
+            year, week = get_iso_week(current_date)
+            week_label = format_year_week(year, week)
+            weeks.append(week_label)
+            current_date = current_date - timedelta(days=7)
+        week_labels = list(reversed(weeks))  # Oldest to newest
+        logger.warning(
+            f"[FLOW METRICS] Generated week labels (should use provided): {week_labels}"
+        )
 
-    week_labels = list(reversed(weeks))  # Oldest to newest
     current_week_label = week_labels[-1] if week_labels else ""
 
     # Check if any data exists
