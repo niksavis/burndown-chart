@@ -141,7 +141,7 @@ specs/010-dashboard-readability/
 
 ```text
 # Existing structure - this feature adds tests and minor enhancements
-d:\Development\burndown-chart/
+[project-root]/
 ├── data/
 │   └── processing.py           # ✅ Existing - contains calculate_dashboard_metrics(), calculate_pert_timeline()
 ├── ui/

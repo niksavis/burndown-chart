@@ -11,7 +11,7 @@
 
 - **[P]**: Can run in parallel (different files, no dependencies)
 - **[Story]**: Which user story this task belongs to (US1-US5)
-- All paths relative to repository root `D:\Development\burndown-chart\`
+- All paths relative to repository root
 
 ---
 

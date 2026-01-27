@@ -15,7 +15,7 @@
 
 ## Path Conventions
 
-All paths relative to repository root: `D:\Development\burndown-chart\`
+All paths relative to repository root
 
 ---
 

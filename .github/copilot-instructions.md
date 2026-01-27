@@ -178,9 +178,9 @@ available. Prevents duplicate browser tabs after updates."
 5. Work: `bd ready` → claim → do work → `bd close burndown-chart-016.X --reason "Completed"` → stage all → commit with `(burndown-chart-016.X)` → push
 6. Complete: All beads closed → update spec.md → `pytest` → push
 
-**Workflow**: Close bead BEFORE push (NOT after release): `Work → Close bead → Sync → Push → Create release`  
+**Workflow**: Close bead BEFORE push (NOT after release): `Work → Close bead → Push main → Sync beads-metadata → Create release`  
 **Commit format**: `feat(scope): description (burndown-chart-XXX)` (traceability, orphan detection)  
-**After batch**: `bd sync` (bypass 30s debounce, force immediate export/commit/push)
+**Beads sync**: Daemon auto-commits to beads-metadata; push with: `Push-Location .git/beads-worktrees/beads-metadata; git pull --rebase; git push; Pop-Location`
 
 ---
 

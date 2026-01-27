@@ -4,14 +4,14 @@
 
 **Last Updated**: 2026-01-26
 
-| Category | Files | Lines | Tokens |
-|----------|-------|-------|--------|
-| **Total** | 535 | 235.8K | **~2.1M** |
-| Code (Python + JS/CSS) | 229 | 136.0K | ~1.2M |
-| Python (no tests) | 207 | 124.9K | ~1.1M |
-| Frontend (JS/CSS) | 22 | 11.1K | ~72.1K |
-| Tests | 120 | 35.6K | ~309.5K |
-| Documentation (MD) | 186 | 64.2K | ~594.8K |
+| Category               | Files | Lines  | Tokens    |
+| ---------------------- | ----- | ------ | --------- |
+| **Total**              | 535   | 235.8K | **~2.1M** |
+| Code (Python + JS/CSS) | 229   | 136.0K | ~1.2M     |
+| Python (no tests)      | 207   | 124.9K | ~1.1M     |
+| Frontend (JS/CSS)      | 22    | 11.1K  | ~72.1K    |
+| Tests                  | 120   | 35.6K  | ~309.5K   |
+| Documentation (MD)     | 186   | 64.2K  | ~594.8K   |
 
 **Agent Guidance**:
 - **Too large for context**: Use targeted `semantic_search`, avoid broad reads
@@ -121,25 +121,17 @@ Types: feat|fix|refactor|docs|test|chore|perf|style|build|ci
    ```
 5. **SYNC BEADS METADATA** (CRITICAL for multi-agent):
    ```bash
-   # Navigate to beads-metadata worktree
-   cd .git/beads-worktrees/beads-metadata
-   
-   # Pull latest changes (other agents may have updated)
+   # All commands from PROJECT ROOT only
+   # Navigate, sync, and return in one command sequence
+   Push-Location .git/beads-worktrees/beads-metadata
    git pull --rebase
+   git status  # Check for uncommitted changes
+   # If changes: git add .beads/issues.jsonl && git commit -m "chore(beads): sync" && git push
+   git push  # Push any daemon-committed changes
+   Pop-Location
    
-   # Check for uncommitted beads changes
-   git status
-   
-   # If changes exist, commit and push
-   git add .beads/issues.jsonl
-   git commit -m "chore(beads): sync metadata - closed [bead-ids]"
-   git push
-   
-   # Verify push succeeded
-   git status  # MUST: "up to date with origin"
-   
-   # Return to project root
-   cd ../../..
+   # Verify you're back in project root
+   pwd  # Should show project root
    ```
 6. Clean → `git stash clear`, `git remote prune origin`
 7. Verify → Both branches pushed successfully
