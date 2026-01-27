@@ -519,6 +519,11 @@ def _calculate_all_metrics(
         schedule_variance_days = dashboard.get("schedule_variance_days", 0)
         completion_confidence = dashboard.get("completion_confidence", 50)
 
+        logger.info(
+            f"[REPORT HEALTH THIRD] velocity_items from dashboard={velocity_items:.2f}, "
+            f"velocity_cv={velocity_cv:.2f}, schedule_var={schedule_variance_days:.2f}"
+        )
+
         dashboard_metrics_for_health = prepare_dashboard_metrics_for_health(
             completion_percentage=items_completion_pct,
             current_velocity_items=velocity_items,
@@ -693,6 +698,11 @@ def _calculate_dashboard_metrics(
     data_points_count = weeks_count
     df_for_velocity = df_windowed
 
+    logger.info(
+        f"[REPORT FILTER DEBUG] weeks_count={weeks_count}, df_windowed len={len(df_windowed)}, "
+        f"data_points_count={data_points_count}"
+    )
+
     if (
         data_points_count > 0
         and not df_windowed.empty
@@ -742,6 +752,9 @@ def _calculate_dashboard_metrics(
 
     # Calculate velocity coefficient of variation (CV)
     velocity_cv = 0
+    logger.info(
+        f"[REPORT FILTER DEBUG] After filtering: df_for_velocity len={len(df_for_velocity)}"
+    )
     if not df_for_velocity.empty and len(df_for_velocity) >= 2:
         weekly_velocities = df_for_velocity["completed_items"].tolist()
         mean_vel = (
