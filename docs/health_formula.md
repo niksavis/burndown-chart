@@ -212,6 +212,8 @@ On time (0)     → 15 points (50%)
 
 **Rationale**: Tanh provides symmetric curve. Being ahead is good, being behind penalizes proportionally.
 
+**Reference Date**: Both app and report use the **last statistics date** (most recent Monday data point) as the reference for calculating `days_to_deadline`, not the current datetime. This ensures the health score remains stable between data updates and only changes when new weekly statistics arrive.
+
 #### 2c. Forecast Confidence (20 points)
 
 **Source**: Dashboard completion confidence (0-100%)  
