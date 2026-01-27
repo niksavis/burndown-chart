@@ -688,13 +688,62 @@ def _calculate_dashboard_metrics(
         f"total_items={total_items}, completion_pct={items_completion_pct:.2f}%"
     )
 
+    # CRITICAL: Filter to weeks_count BEFORE any health/velocity calculations
+    # This ensures all health metrics use the same data window as the report request
+    data_points_count = weeks_count
+    df_for_velocity = df_windowed
+
+    if (
+        data_points_count > 0
+        and not df_windowed.empty
+        and "date" in df_windowed.columns
+    ):
+        df_windowed_temp = df_windowed.copy()
+        df_windowed_temp["date"] = pd.to_datetime(
+            df_windowed_temp["date"], format="mixed", errors="coerce"
+        )
+        df_windowed_temp = df_windowed_temp.dropna(subset=["date"]).sort_values(
+            "date", ascending=True
+        )
+
+        # Generate the same week labels that the dashboard uses
+        from data.time_period_calculator import get_iso_week, format_year_week
+
+        weeks = []
+        current_date = df_windowed_temp["date"].max()
+        for i in range(data_points_count):
+            year, week = get_iso_week(current_date)
+            week_label = format_year_week(year, week)
+            weeks.append(week_label)
+            current_date = current_date - timedelta(days=7)
+
+        week_labels = set(reversed(weeks))  # Convert to set for fast lookup
+
+        # Filter by week_label if available, otherwise fall back to date range
+        if "week_label" in df_windowed_temp.columns:
+            df_for_velocity = df_windowed_temp[
+                df_windowed_temp["week_label"].isin(week_labels)
+            ]
+            logger.info(
+                f"[REPORT FILTER EARLY] Filtered to {len(df_for_velocity)} rows for health calculation (requested {data_points_count} weeks)"
+            )
+        else:
+            # Fallback: date range filtering (old behavior for backward compatibility)
+            latest_date = df_windowed_temp["date"].max()
+            cutoff_date = latest_date - timedelta(weeks=data_points_count)
+            df_for_velocity = df_windowed_temp[df_windowed_temp["date"] > cutoff_date]
+            logger.warning(
+                f"[REPORT FILTER EARLY] No week_label column - using date range filtering: {len(df_for_velocity)} rows"
+            )
+
     # Calculate health metrics (same as app's dashboard_comprehensive.py)
     # Health score uses deduction-based formula starting at 100
+    # CRITICAL: Use df_for_velocity (filtered to weeks_count) not df_windowed
 
     # Calculate velocity coefficient of variation (CV)
     velocity_cv = 0
-    if not df_windowed.empty and len(df_windowed) >= 2:
-        weekly_velocities = df_windowed["completed_items"].tolist()
+    if not df_for_velocity.empty and len(df_for_velocity) >= 2:
+        weekly_velocities = df_for_velocity["completed_items"].tolist()
         mean_vel = (
             sum(weekly_velocities) / len(weekly_velocities)
             if len(weekly_velocities) > 0
@@ -707,13 +756,13 @@ def _calculate_dashboard_metrics(
             std_dev = variance**0.5
             velocity_cv = (std_dev / mean_vel) * 100
 
-    # Calculate trend direction from windowed data
+    # Calculate trend direction from filtered data
     trend_direction = "stable"
     recent_velocity_change = 0
-    if not df_windowed.empty and len(df_windowed) >= 6:
-        mid_point = len(df_windowed) // 2
-        older_half = df_windowed.iloc[:mid_point]
-        recent_half = df_windowed.iloc[mid_point:]
+    if not df_for_velocity.empty and len(df_for_velocity) >= 6:
+        mid_point = len(df_for_velocity) // 2
+        older_half = df_for_velocity.iloc[:mid_point]
+        recent_half = df_for_velocity.iloc[mid_point:]
 
         if len(older_half) > 0 and len(recent_half) > 0:
             older_velocity = older_half["completed_items"].sum() / len(older_half)
@@ -732,12 +781,11 @@ def _calculate_dashboard_metrics(
     schedule_variance_days = 0
     completion_confidence = 50  # Default confidence
 
-    # Calculate basic velocity early for health calculation
-    # This will be recalculated more precisely later with data_points_count filtering
+    # Calculate velocity using filtered data (df_for_velocity was already filtered above)
     from data.processing import calculate_velocity_from_dataframe
 
     velocity_items_early = calculate_velocity_from_dataframe(
-        df_windowed, "completed_items"
+        df_for_velocity, "completed_items"
     )
 
     # Calculate comprehensive health score using v3.0 formula (6 dimensions)
@@ -802,60 +850,10 @@ def _calculate_dashboard_metrics(
 
     # Calculate velocity using EXACT SAME method as app dashboard
     # App uses calculate_velocity_from_dataframe() which returns WEEKLY velocity (items per week)
-    # NOT daily average! The app filters to last N data points then calculates weekly velocity
+    # Velocity calculation - df_for_velocity was already filtered earlier (line ~690)
+    # Just calculate velocity from the already-filtered dataframe
     from data.processing import calculate_velocity_from_dataframe
 
-    # CRITICAL: Use weeks_count parameter (report time period), NOT app settings
-    # The report should respect the user-selected time window, not the app's current slider position
-    data_points_count = weeks_count
-
-    # CRITICAL FIX: Filter by week labels (same as dashboard) to ensure exact N weeks
-    # This prevents date range filtering from including partial weeks or off-by-one errors
-    df_for_velocity = df_windowed
-    if (
-        data_points_count > 0
-        and not df_windowed.empty
-        and "date" in df_windowed.columns
-    ):
-        df_windowed_temp = df_windowed.copy()
-        df_windowed_temp["date"] = pd.to_datetime(
-            df_windowed_temp["date"], format="mixed", errors="coerce"
-        )
-        df_windowed_temp = df_windowed_temp.dropna(subset=["date"]).sort_values(
-            "date", ascending=True
-        )
-
-        # Generate the same week labels that the dashboard uses
-        from data.time_period_calculator import get_iso_week, format_year_week
-
-        weeks = []
-        current_date = df_windowed_temp["date"].max()
-        for i in range(data_points_count):
-            year, week = get_iso_week(current_date)
-            week_label = format_year_week(year, week)
-            weeks.append(week_label)
-            current_date = current_date - timedelta(days=7)
-
-        week_labels = set(reversed(weeks))  # Convert to set for fast lookup
-
-        # Filter by week_label if available, otherwise fall back to date range
-        if "week_label" in df_windowed_temp.columns:
-            df_for_velocity = df_windowed_temp[
-                df_windowed_temp["week_label"].isin(week_labels)
-            ]
-            logger.info(
-                f"[REPORT FILTER] Filtered to {len(df_for_velocity)} rows using week_label matching (requested {data_points_count} weeks)"
-            )
-        else:
-            # Fallback: date range filtering (old behavior for backward compatibility)
-            latest_date = df_windowed_temp["date"].max()
-            cutoff_date = latest_date - timedelta(weeks=data_points_count)
-            df_for_velocity = df_windowed_temp[df_windowed_temp["date"] > cutoff_date]
-            logger.warning(
-                f"[REPORT FILTER] No week_label column - using date range filtering (less accurate): {len(df_for_velocity)} rows"
-            )
-
-    # Use the same function as app (returns items PER WEEK, not per day)
     velocity_items = calculate_velocity_from_dataframe(
         df_for_velocity, "completed_items"
     )
