@@ -1,5 +1,18 @@
 # Changelog
 
+## v2.7.18
+
+*Released: 2026-01-27*
+
+### Bug Fixes
+
+- **Health Score Consistency**: Fixed 1-6% discrepancy between app and report health scores - both now use last statistics date (most recent Monday) instead of current datetime for schedule calculations, ensuring identical results and stable scores between data updates
+- **Delivery Dimension Accuracy**: Fixed report showing incorrect velocity trend (stable 0% instead of declining -60%) due to hardcoded placeholder value - now correctly passes recent_velocity_change from dashboard calculations to all three health score computations
+
+### Documentation
+
+- **Health Formula Transparency**: Clarified that schedule adherence calculations use last statistics date as reference point, explaining why health scores remain stable throughout the day and only change when new weekly data arrives
+
 ## v2.7.17
 
 *Released: 2026-01-27*
