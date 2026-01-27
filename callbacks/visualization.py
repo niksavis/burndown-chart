@@ -1311,10 +1311,16 @@ def register(app):
                     if pd.isna(deadline_date):
                         days_to_deadline = 0
                     else:
-                        # Use date() to strip time component for consistency with report calculation
-                        current_date = datetime.now().date()
+                        # CRITICAL: Use last statistics date (not datetime.now()) for consistency with report
+                        # This ensures health score remains stable between data updates
+                        # and matches report calculation exactly
+                        last_date = (
+                            df["date"].iloc[-1].date()
+                            if not df.empty and "date" in df.columns
+                            else datetime.now().date()
+                        )
                         days_to_deadline = max(
-                            0, (deadline_date.date() - current_date).days
+                            0, (deadline_date.date() - last_date).days
                         )
                 except Exception:
                     days_to_deadline = 0
