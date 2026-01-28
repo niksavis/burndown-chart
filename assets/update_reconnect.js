@@ -290,27 +290,14 @@
                 // Remove overlay
                 hideReconnectingOverlay();
 
-                // Update footer version
-                const footerVersionElement = document.getElementById(
-                  "footer-version-text",
+                // Force page reload to trigger clean initialization
+                // This uses the post_update flag mechanism (lines 541-577)
+                // which reliably shows toast + updates footer after Dash initializes
+                // This eliminates race conditions between JS DOM manipulation and Dash re-rendering
+                console.log(
+                  "[update_reconnect] Update complete - forcing page reload to show success",
                 );
-                if (footerVersionElement) {
-                  footerVersionElement.textContent = "v" + versionData.version;
-                  console.log(
-                    "[update_reconnect] Footer version updated to",
-                    versionData.version,
-                  );
-                } else {
-                  console.warn(
-                    "[update_reconnect] Footer version element not found",
-                  );
-                }
-
-                // Show success toast
-                showUpdateSuccessToast(versionData.version);
-
-                // Reset update flow flag
-                isUpdateFlow = false;
+                window.location.reload();
               })
               .catch((error) => {
                 console.error(
