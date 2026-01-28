@@ -60,7 +60,7 @@ def log_performance(func: Callable) -> Callable:
         try:
             result = func(*args, **kwargs)
             elapsed = time.perf_counter() - start_time
-            logger.info(f"⏱️  {func_name} completed in {elapsed:.3f}s")
+            logger.info(f"{func_name} completed in {elapsed:.3f}s")
             return result
 
         except Exception as e:

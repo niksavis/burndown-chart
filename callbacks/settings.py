@@ -1128,7 +1128,7 @@ def register(app):
                         from data.cache_manager import invalidate_all_cache
 
                         invalidate_all_cache()
-                        logger.info("[Settings] ✓ All global cache files invalidated")
+                        logger.info("[Settings] All global cache files invalidated")
 
                         # Step 5: Delete metrics for this query (clears cached calculations)
                         try:
@@ -1167,7 +1167,7 @@ def register(app):
                                 )
 
                         logger.info("=" * 60)
-                        logger.info("[Settings] ✅ COMPLETE DATA WIPE SUCCESSFUL")
+                        logger.info("[Settings] COMPLETE DATA WIPE SUCCESSFUL")
                         logger.info(
                             f"[Settings] Deleted: {issues_deleted} issues, {stats_deleted} stats, {cache_deleted} cache"
                         )

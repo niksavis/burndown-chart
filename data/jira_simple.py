@@ -810,7 +810,7 @@ def fetch_jira_issues(
         use_two_phase, two_phase_reason = should_use_two_phase_fetch(config)
 
         if use_two_phase:
-            logger.info(f"[JIRA] 🚀 Two-phase fetch activated: {two_phase_reason}")
+            logger.info(f"[JIRA] Two-phase fetch activated: {two_phase_reason}")
         else:
             logger.debug(f"[JIRA] Using standard fetch: {two_phase_reason}")
 
