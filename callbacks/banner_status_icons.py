@@ -7,7 +7,7 @@ Provides visual feedback even when Settings panel is closed.
 Visual States:
 - Default: Blue folder + search (idle)
 - Update Data: Orange folder + spinner (background JIRA sync)
-- UI Operations: Purple fade folder (query/slider changes trigger recalc)
+- UI Operations: Purple spinner (query/slider changes trigger recalc)
 """
 
 import logging
@@ -46,7 +46,7 @@ def update_banner_status_icons(
 
     Priority:
     1. Update Data (orange) - background JIRA operations
-    2. UI operations (purple) - query/slider changes
+    2. UI operations (purple spinner) - query/slider changes
     3. Idle (blue) - no operations
 
     Args:
@@ -89,8 +89,8 @@ def update_banner_status_icons(
 
         # PRIORITY 2: UI operations (query switch, slider changes)
         if trigger_id in ["query-selector", "pert-factor-slider", "data-points-input"]:
-            # UI change detected - show purple fade (recalculation starting)
-            return "fas fa-folder me-1 text-purple fa-fade", "fas fa-search me-1"
+            # UI change detected - show purple spinner (recalculation starting)
+            return "fas fa-spinner fa-spin me-1 text-purple", "fas fa-search me-1"
 
         # PRIORITY 3: Calculation complete - clear loading state
         if trigger_id == "calculation-results":
