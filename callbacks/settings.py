@@ -354,12 +354,17 @@ def register(app):
         show_points = settings.get("show_points", True)
         points_toggle_value = ["show"] if show_points else []
 
+        # Date pickers use clearable=True (matching budget effective date)
+        # Can pass None/empty string directly - picker handles it gracefully
+        deadline = settings.get("deadline")  # None, "", or valid date
+        milestone = settings.get("milestone")  # None, "", or valid date
+
         return (
             settings.get("pert_factor", 1.2),
-            settings.get("deadline", ""),
-            points_toggle_value,  # Checklist expects ["show"] or []
+            deadline,
+            points_toggle_value,
             settings.get("data_points_count", 20),
-            settings.get("milestone", ""),
+            milestone,
         )
 
     @app.callback(
@@ -492,6 +497,17 @@ def register(app):
         estimated_points = input_values.get(
             "estimated_points", DEFAULT_ESTIMATED_POINTS
         )
+
+        # CRITICAL: Log when deadline/milestone are None (may indicate invalid user input)
+        if deadline is None:
+            logger.warning(
+                "[Settings] Deadline is None - user may have entered invalid date. "
+                "DatePickerSingle will show 'Invalid date' until valid date entered."
+            )
+        if milestone is not None and not isinstance(milestone, str):
+            logger.warning(
+                f"[Settings] Milestone has unexpected type: {type(milestone)}"
+            )
 
         settings = {
             "pert_factor": pert_factor,
@@ -3087,7 +3103,26 @@ def register(app):
         """
         # Provide defaults for None values
         pert_factor = pert_factor or DEFAULT_PERT_FACTOR
-        deadline = deadline or "2025-12-31"
+
+        # CRITICAL FIX: If deadline from picker is None, user may have entered invalid input
+        # Use deadline from settings store (database) as fallback instead of hardcoded default
+        # NOTE: Deadline is optional - health score uses schedule_variance with graceful degradation
+        if deadline is None:
+            deadline = settings.get("deadline") if settings else None
+            if deadline is None:
+                deadline = (
+                    "2025-12-31"  # Final fallback prevents banner from showing "None"
+                )
+                logger.warning(
+                    "[Banner] Deadline is None (possibly invalid input in date picker). "
+                    "Using default: 2025-12-31 for banner display. "
+                    "NOTE: Deadline is optional - health score and forecasts use graceful degradation."
+                )
+            else:
+                logger.info(
+                    f"[Banner] Deadline from picker is None, using stored value from database: {deadline}"
+                )
+
         scope_items = scope_items or 0
 
         # Parse scope_points - it comes from total-points-display which is a text input

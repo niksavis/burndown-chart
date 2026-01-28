@@ -2922,10 +2922,7 @@ def create_parameter_panel_expanded(
 
     # Extract settings with defaults
     pert_factor = settings.get("pert_factor", 3)
-    deadline = (
-        settings.get("deadline", "2025-12-31") or None
-    )  # Convert empty string to None
-    milestone = settings.get("milestone", None) or None  # Convert empty string to None
+    # Date pickers use date=None and clearable=True (matching budget effective date)
     total_items = settings.get("total_items", 0)
     estimated_items = settings.get("estimated_items", 0)
     total_points = settings.get("total_points", 0)
@@ -3007,10 +3004,6 @@ def create_parameter_panel_expanded(
                                                                         [
                                                                             "Deadline",
                                                                             html.Span(
-                                                                                " *",
-                                                                                className="text-danger",
-                                                                            ),
-                                                                            html.Span(
                                                                                 create_parameter_tooltip(
                                                                                     "deadline",
                                                                                     "deadline-help",
@@ -3027,16 +3020,24 @@ def create_parameter_panel_expanded(
                                                                     ),
                                                                     dcc.DatePickerSingle(
                                                                         id="deadline-picker",
-                                                                        date=deadline,
+                                                                        date=None,
                                                                         display_format="YYYY-MM-DD",
+                                                                        placeholder="Optional",
+                                                                        clearable=True,
                                                                         first_day_of_week=1,
-                                                                        placeholder="Select deadline",
                                                                         min_date_allowed=datetime.now().strftime(
                                                                             "%Y-%m-%d"
                                                                         ),
                                                                         className="w-100",
                                                                         style={
                                                                             "fontSize": "0.875rem"
+                                                                        },
+                                                                    ),
+                                                                    html.Small(
+                                                                        "Leave empty for open-ended timeline",
+                                                                        className="text-muted d-block mt-1",
+                                                                        style={
+                                                                            "fontSize": "0.75rem"
                                                                         },
                                                                     ),
                                                                     html.Div(
@@ -3053,7 +3054,18 @@ def create_parameter_panel_expanded(
                                                             dbc.Col(
                                                                 [
                                                                     html.Label(
-                                                                        "Milestone (optional)",
+                                                                        [
+                                                                            "Milestone (optional)",
+                                                                            html.Span(
+                                                                                create_parameter_tooltip(
+                                                                                    "milestone",
+                                                                                    "milestone-help",
+                                                                                ),
+                                                                                style={
+                                                                                    "marginLeft": "0.25rem"
+                                                                                },
+                                                                            ),
+                                                                        ],
                                                                         className="form-label fw-medium",
                                                                         style={
                                                                             "fontSize": "0.875rem"
@@ -3061,16 +3073,24 @@ def create_parameter_panel_expanded(
                                                                     ),
                                                                     dcc.DatePickerSingle(
                                                                         id="milestone-picker",
-                                                                        date=milestone,
+                                                                        date=None,
                                                                         display_format="YYYY-MM-DD",
+                                                                        placeholder="Optional",
+                                                                        clearable=True,
                                                                         first_day_of_week=1,
-                                                                        placeholder="Select milestone",
                                                                         min_date_allowed=datetime.now().strftime(
                                                                             "%Y-%m-%d"
                                                                         ),
                                                                         className="w-100",
                                                                         style={
                                                                             "fontSize": "0.875rem"
+                                                                        },
+                                                                    ),
+                                                                    html.Small(
+                                                                        "Optional intermediate target date",
+                                                                        className="text-muted d-block mt-1",
+                                                                        style={
+                                                                            "fontSize": "0.75rem"
                                                                         },
                                                                     ),
                                                                     html.Div(
@@ -3676,8 +3696,12 @@ def create_mobile_parameter_bottom_sheet(
     """
     Create mobile-optimized parameter bottom sheet using dbc.Offcanvas.
 
+    NOTE: This component is currently unused (FAB never added to layout).
+    Timeline pickers (Deadline/Milestone) removed - desktop pickers use responsive
+    dbc.Col (xs=12, md=6, lg=3) which already works on mobile, eliminating duplication.
+
     This component provides a touch-friendly alternative to the sticky parameter
-    panel for mobile devices. It slides up from the bottom and contains all
+    panel for mobile devices. It slides up from the bottom and contains
     parameter inputs in a mobile-optimized layout.
 
     Args:
@@ -3688,18 +3712,13 @@ def create_mobile_parameter_bottom_sheet(
         dbc.Offcanvas: Mobile parameter bottom sheet component
 
     Example:
-        >>> settings = {"pert_factor": 3, "deadline": "2025-12-31"}
+        >>> settings = {"pert_factor": 3}
         >>> sheet = create_mobile_parameter_bottom_sheet(settings)
     """
-    from datetime import datetime
     from ui.style_constants import DESIGN_TOKENS
 
     # Extract settings with defaults
     pert_factor = settings.get("pert_factor", 3)
-    deadline = (
-        settings.get("deadline", "2025-12-31") or None
-    )  # Convert empty string to None
-    milestone = settings.get("milestone", None) or None  # Convert empty string to None
     total_items = settings.get("total_items", 0)
     estimated_items = settings.get("estimated_items", 0)
     total_points = settings.get("total_points", 0)
@@ -3756,63 +3775,10 @@ def create_mobile_parameter_bottom_sheet(
             # Scrollable content area
             html.Div(
                 [
-                    # Timeline Section
-                    html.Div(
-                        [
-                            html.H6(
-                                [
-                                    html.I(className="fas fa-calendar-alt me-2"),
-                                    "Timeline",
-                                ],
-                                className="mb-3",
-                            ),
-                            # Deadline
-                            html.Div(
-                                [
-                                    html.Label(
-                                        "Deadline",
-                                        className="form-label fw-medium",
-                                        style={"fontSize": "0.875rem"},
-                                    ),
-                                    dcc.DatePickerSingle(
-                                        id="mobile-deadline-picker",
-                                        date=deadline,
-                                        display_format="YYYY-MM-DD",
-                                        first_day_of_week=1,
-                                        placeholder="Select deadline",
-                                        min_date_allowed=datetime.now().strftime(
-                                            "%Y-%m-%d"
-                                        ),
-                                        className="w-100 mb-3",
-                                    ),
-                                ],
-                                className="mb-3",
-                            ),
-                            # Milestone (optional)
-                            html.Div(
-                                [
-                                    html.Label(
-                                        "Milestone (optional)",
-                                        className="form-label fw-medium",
-                                        style={"fontSize": "0.875rem"},
-                                    ),
-                                    dcc.DatePickerSingle(
-                                        id="mobile-milestone-picker",
-                                        date=milestone,
-                                        display_format="YYYY-MM-DD",
-                                        first_day_of_week=1,
-                                        placeholder="Select milestone",
-                                        min_date_allowed=datetime.now().strftime(
-                                            "%Y-%m-%d"
-                                        ),
-                                        className="w-100 mb-3",
-                                    ),
-                                ],
-                                className="mb-3",
-                            ),
-                        ],
-                        className="mb-4 pb-3 border-bottom",
-                    ),
+                    # NOTE: Timeline section (Deadline/Milestone) removed - desktop pickers
+                    # use responsive dbc.Col (xs=12, md=6, lg=3) which already works on mobile.
+                    # Mobile bottom sheet is unused (FAB never added to layout), so these
+                    # duplicate pickers were dead code. Date inputs now unified in Parameters tab.
                     # Confidence Window Section (formerly PERT Factor)
                     html.Div(
                         [

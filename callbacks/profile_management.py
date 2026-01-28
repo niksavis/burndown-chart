@@ -346,7 +346,7 @@ def handle_profile_form_submit(n_clicks, mode, source_id, name, description):
             settings = {
                 "description": description or "",
                 "pert_factor": 1.2,
-                "deadline": "",
+                "deadline": None,  # CRITICAL: Use None for empty dates (not "")
                 "data_points_count": 20,
                 "jira_config": {},
                 "field_mappings": {},

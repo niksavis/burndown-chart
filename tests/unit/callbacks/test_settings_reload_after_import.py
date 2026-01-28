@@ -60,10 +60,11 @@ def test_ui_sync_logic():
 
     result = (
         settings.get("pert_factor", 1.2),
-        settings.get("deadline", ""),
+        settings.get("deadline") or None,  # CRITICAL: Use None for empty dates (not "")
         settings.get("show_points", True),
         settings.get("data_points_count", 20),
-        settings.get("milestone", ""),
+        settings.get("milestone")
+        or None,  # CRITICAL: Use None for empty dates (not "")
     )
 
     assert result == (1.8, "2027-01-01", True, 25, "2026-09-15")
@@ -72,13 +73,20 @@ def test_ui_sync_logic():
     settings = {}
     result = (
         settings.get("pert_factor", 1.2),
-        settings.get("deadline", ""),
+        settings.get("deadline") or None,  # CRITICAL: Use None for empty dates (not "")
         settings.get("show_points", True),
         settings.get("data_points_count", 20),
-        settings.get("milestone", ""),
+        settings.get("milestone")
+        or None,  # CRITICAL: Use None for empty dates (not "")
     )
 
-    assert result == (1.2, "", True, 20, "")
+    assert result == (
+        1.2,
+        None,
+        True,
+        20,
+        None,
+    )  # FIXED: Empty dates should be None, not ""
 
 
 def test_checklist_conversion_logic():

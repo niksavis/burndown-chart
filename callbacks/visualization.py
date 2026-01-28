@@ -1173,7 +1173,9 @@ def register(app):
         try:
             # Get values from settings with safe defaults
             pert_factor = settings.get("pert_factor", 1.2)
-            deadline = settings.get("deadline", "")
+            deadline = (
+                settings.get("deadline") or None
+            )  # CRITICAL: Use None for empty dates (not "")
             data_points_count = int(
                 settings.get("data_points_count", 12)
             )  # Ensure int, default 12

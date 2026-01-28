@@ -3405,12 +3405,23 @@ input[type="range"]::-moz-range-thumb {
 #milestone-picker .SingleDatePickerInput {
   border: none !important;
   width: 100% !important;
+  display: flex !important;
+  padding-right: 0 !important;
 }
 
 /* Ensure consistent inner DateInput component */
 #deadline-picker .DateInput,
 #milestone-picker .DateInput {
   width: 100% !important;
+  flex: 1 !important;
+}
+
+/* Position clear button inside input box (matching budget effective date) */
+#deadline-picker .SingleDatePickerInput_clearDate,
+#milestone-picker .SingleDatePickerInput_clearDate {
+  position: absolute !important;
+  right: 8px !important;
+  margin: 0 !important;
 }
 
 /* Fix for duplicate DatePickerSingle ID issue */
@@ -3448,6 +3459,29 @@ input[type="range"]::-moz-range-thumb {
 /* Ensure calendar overlay appears above all content */
 .SingleDatePicker_picker {
   z-index: 1060 !important;
+}
+
+/* Calendar day styling - gray out blocked and outside month dates */
+.CalendarDay__blocked_out_of_range,
+.CalendarDay__blocked_out_of_range:active,
+.CalendarDay__blocked_out_of_range:hover {
+  background: #f2f2f2 !important;
+  border: 1px solid #e4e7e7 !important;
+  color: #cacccd !important;
+  cursor: not-allowed !important;
+}
+
+/* Days outside the current month should be lighter */
+.CalendarDay__outside {
+  background: #fff !important;
+  border: 1px solid #e4e7e7 !important;
+  color: #cacccd !important;
+}
+
+.CalendarDay__outside:hover {
+  background: #f2f2f2 !important;
+  border: 1px double #e4e7e7 !important;
+  color: #cacccd !important;
 }
 
 /* Style for DatePickerRange inputs - more compact display */

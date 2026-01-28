@@ -60,17 +60,11 @@ def parse_deadline_milestone(deadline_str, milestone_str=None):
             f"Invalid deadline format: {deadline_str}. Using default."
         )
 
-    # Parse milestone date if provided
+    # Parse milestone date if provided (no restriction - allows visual marker anywhere)
     milestone = None
     if milestone_str:
         try:
             milestone = pd.to_datetime(milestone_str, format="mixed", errors="coerce")
-            # Only reject milestones that are AFTER the deadline, not equal to it
-            if milestone > deadline:
-                logging.getLogger("burndown_chart").warning(
-                    f"Milestone date {milestone_str} is after deadline {deadline_str}. Ignoring milestone."
-                )
-                milestone = None
         except (ValueError, TypeError):
             logging.getLogger("burndown_chart").warning(
                 f"Invalid milestone format: {milestone_str}. Ignoring milestone."

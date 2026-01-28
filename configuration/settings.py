@@ -82,77 +82,6 @@ COLOR_PALETTE = {
     "points_grid": "rgba(255, 127, 14, 0.1)",  # Light orange grid
 }
 
-# Help text definitions
-HELP_TEXTS = {
-    "app_intro": """
-        This application helps you forecast project completion based on historical progress. 
-        It uses the PERT methodology to estimate when your project will be completed based on 
-        optimistic, pessimistic, and most likely scenarios.
-    """,
-    "pert_factor": """
-        The PERT factor determines how many data points to use for optimistic and pessimistic estimates.
-        A higher value considers more historical data points for calculating scenarios.
-        Range: 1-15, dynamically constrained by available data (minimum: 1 for small datasets, 3 for larger datasets)
-    """,
-    "data_points_count": """
-        Select how many historical data points to include in your forecast calculation.
-        The minimum is 2× your PERT Factor to ensure statistically valid results.
-        Using fewer points makes your forecast more responsive to recent trends.
-    """,
-    "deadline": """
-        Set your project deadline here. The app will show if you're on track to meet it.
-        Format: YYYY-MM-DD
-    """,
-    "total_items": """
-        The total number of remaining items (tasks, stories, etc.) yet to be completed in your project.
-        This represents the remaining work quantity needed to complete the project.
-    """,
-    "total_points": """
-        The total number of remaining points (effort, complexity) yet to be completed.
-        This represents the remaining work effort/complexity needed to complete the project.
-    """,
-    "estimated_items": """
-        The number of remaining items that have already been estimated with points.
-        This should be less than or equal to Remaining Total Items.
-    """,
-    "estimated_points": """
-        The sum of points for the remaining items that have been estimated.
-        Used to calculate the average points per item for the remaining work.
-    """,
-    "csv_format": """
-        Your CSV file should contain the following columns:
-        - date: Date of work completed (YYYY-MM-DD format)
-        - completed_items: Number of items completed on that date
-        - completed_points: Number of points completed on that date
-        
-        The file can use semicolon (;) or comma (,) as separators.
-        Example:
-        date;completed_items;completed_points
-        2025-03-01;5;50
-        2025-03-02;7;70
-    """,
-    "statistics_table": """
-        This table shows your historical data. You can:
-        - Edit any cell by clicking on it
-        - Delete rows with the 'x' button
-        - Add new rows with the 'Add Row' button
-        - Sort by clicking column headers
-        
-        Changes to this data will update the forecast immediately.
-    """,
-    "forecast_explanation": """
-        The graph shows your burndown forecast based on historical data:
-        - Solid lines: Historical progress
-        - Dashed lines: Most likely forecast
-        - Dotted lines: Optimistic and pessimistic forecasts
-        - Blue/Green lines: Items tracking
-        - Orange/Yellow lines: Points tracking
-        - Red vertical line: Your deadline
-        
-        Where the forecast lines cross the zero line indicates estimated completion dates.
-    """,
-}
-
 # PERT and Forecasting Help Texts - Phase 9.1 Simplified
 # Note: Comprehensive content moved to configuration/help_content.py for Phase 9.2 help system
 FORECAST_HELP_TEXTS = {
@@ -250,6 +179,15 @@ CHART_HELP_TEXTS = {
     "scope_change_indicators": "Vertical markers show scope changes with automatic forecast adjustments.",
     "data_points_precision": "8-15 recent data points provide optimal forecast accuracy.",
     "burndown_vs_burnup": "Burndown shows remaining work decreasing; Burnup shows completed work increasing.",
+    "forecast_explanation": """The graph shows your burndown forecast based on historical data:
+        - Solid lines: Historical progress
+        - Dashed lines: Most likely forecast
+        - Dotted lines: Optimistic and pessimistic forecasts
+        - Blue/Green lines: Items tracking
+        - Orange/Yellow lines: Points tracking
+        - Red vertical line: Your deadline
+        
+        Where the forecast lines cross the zero line indicates estimated completion dates.""",
 }
 
 
