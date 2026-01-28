@@ -248,6 +248,7 @@ sdd-*/
 !.github/changelog-scopes.yml
 !.github/agents/
 !.github/prompts/
+!.github/instructions/
 
 # Debug and test artifacts (root directory only - not tests/ folder)
 /test_*.py
