@@ -326,7 +326,7 @@ class batch_write_mode:
                     logger.info(f"[Batch] Flushing {num_weeks} weeks to disk...")
                     save_snapshots(_batch_snapshots)
                     logger.info(
-                        f"[Batch] ✅ Batch write complete: {num_weeks} weeks saved in single write"
+                        f"[Batch] Batch write complete: {num_weeks} weeks saved in single write"
                     )
                 else:
                     # Exception occurred - discard changes

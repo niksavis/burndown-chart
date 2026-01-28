@@ -549,7 +549,7 @@ def fetch_jira_issues_two_phase(
 
         elapsed_time = time.time() - start_time
         logger.info(
-            f"[TWO-PHASE] ✅ Fetch complete: {len(merged_issues)} total issues "
+            f"[TWO-PHASE] Fetch complete: {len(merged_issues)} total issues "
             f"({len(dev_issues)} dev + {len(devops_issues)} devops) in {elapsed_time:.2f}s"
         )
 
@@ -557,7 +557,7 @@ def fetch_jira_issues_two_phase(
         if len(devops_issues) > 0:
             estimated_full_devops = len(devops_issues) * 10  # Conservative estimate
             logger.info(
-                f"[TWO-PHASE] 📊 Performance: Fetched ~{len(devops_issues)} DevOps issues "
+                f"[TWO-PHASE] Performance: Fetched ~{len(devops_issues)} DevOps issues "
                 f"instead of potentially {estimated_full_devops}+ (10x+ reduction)"
             )
 
@@ -1863,7 +1863,7 @@ def _try_delta_fetch(
 
         elapsed_time = time.time() - start_time
         logger.info(
-            f"[Delta] ✅ Merge complete: {len(merged_issues)} total issues ({len(delta_issues)} updated) in {elapsed_time:.2f}s"
+            f"[Delta] Merge complete: {len(merged_issues)} total issues ({len(delta_issues)} updated) in {elapsed_time:.2f}s"
         )
 
         return True, merged_issues, changed_keys
