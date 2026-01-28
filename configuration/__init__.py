@@ -32,7 +32,6 @@ from configuration.settings import (
     DEFAULT_TOTAL_POINTS,
     # File paths
     APP_SETTINGS_FILE,
-    HELP_TEXTS,
     CHART_HELP_TEXTS,
     SCOPE_HELP_TEXTS,
     PROJECT_DATA_FILE,
@@ -61,7 +60,6 @@ __all__ = [
     "SETTINGS_FILE",
     "SAMPLE_DATA",
     "COLOR_PALETTE",
-    "HELP_TEXTS",
     "CHART_HELP_TEXTS",
     "SCOPE_HELP_TEXTS",
     "logger",

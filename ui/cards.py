@@ -103,7 +103,7 @@ import pandas as pd
 from dash import dcc, html
 
 # Application imports
-from configuration import COLOR_PALETTE, HELP_TEXTS
+from configuration import COLOR_PALETTE
 from configuration.settings import (
     CHART_HELP_TEXTS,
     PROJECT_HELP_TEXTS,
@@ -638,7 +638,7 @@ def create_forecast_graph_card():
     header_content = create_card_header_with_tooltip(
         "Forecast Graph",
         tooltip_id="forecast-graph",
-        tooltip_text=HELP_TEXTS["forecast_explanation"],
+        tooltip_text=CHART_HELP_TEXTS["forecast_explanation"],
         help_key="forecast_graph_overview",
         help_category="forecast",
     )
