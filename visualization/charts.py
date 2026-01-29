@@ -10,7 +10,6 @@ with all its components like traces, markers, and metrics annotations.
 #######################################################################
 # Standard library imports
 import logging
-import traceback
 from datetime import datetime, timedelta
 
 # Third-party library imports
@@ -21,75 +20,17 @@ from plotly.subplots import make_subplots
 # Application imports
 from configuration import COLOR_PALETTE
 from data import (
-    calculate_weekly_averages,
     generate_weekly_forecast,
 )
 from ui.tooltip_utils import create_hoverlabel_config, format_hover_template
+from visualization.helpers import (
+    fill_missing_weeks,
+    safe_numeric_convert,
+    parse_deadline_milestone,
+    get_weekly_metrics,
+    handle_forecast_error,
+)
 # Mobile optimization removed for simplicity - will implement via CSS and responsive config
-
-#######################################################################
-# HELPER FUNCTIONS
-#######################################################################
-
-
-def _fill_missing_weeks(weekly_df, start_date, end_date, value_columns):
-    """Fill in missing weeks with zero values to show complete time range.
-
-    Args:
-        weekly_df: DataFrame with aggregated weekly data (may have gaps)
-        start_date: Start date of the time range
-        end_date: End date of the time range
-        value_columns: List of column names to fill with zeros (e.g., ['items', 'points'])
-
-    Returns:
-        DataFrame with all weeks in the range, missing weeks filled with zeros
-    """
-    if weekly_df.empty:
-        return weekly_df
-
-    # Create complete week range
-    all_weeks = []
-    current = start_date
-    while current <= end_date:
-        # Get ISO week info
-        iso_calendar = current.isocalendar()
-        year_week = f"{iso_calendar.year}-W{iso_calendar.week:02d}"
-        all_weeks.append(
-            {
-                "year_week": year_week,
-                "start_date": current
-                - timedelta(days=current.weekday()),  # Monday of the week
-            }
-        )
-        current += timedelta(weeks=1)
-
-    # Create DataFrame with all weeks
-    all_weeks_df = pd.DataFrame(all_weeks)
-
-    # Merge with actual data, filling missing values with 0
-    result_df = all_weeks_df.merge(
-        weekly_df, on="year_week", how="left", suffixes=("", "_actual")
-    )
-
-    # Use the actual start_date if it exists, otherwise use the computed one
-    if "start_date_actual" in result_df.columns:
-        result_df["start_date"] = result_df["start_date_actual"].fillna(
-            result_df["start_date"]
-        )
-        result_df = result_df.drop("start_date_actual", axis=1)
-
-    # Ensure start_date is datetime type
-    result_df["start_date"] = pd.to_datetime(
-        result_df["start_date"], format="mixed", errors="coerce"
-    )
-
-    # Fill missing value columns with 0
-    for col in value_columns:
-        if col in result_df.columns:
-            result_df[col] = result_df[col].fillna(0)
-
-    return result_df.sort_values("start_date")
-
 
 #######################################################################
 # CHART CREATION FUNCTIONS
@@ -676,12 +617,12 @@ def create_forecast_plot(
                 df = pd.DataFrame()
 
         # Ensure numeric types for calculations with explicit conversion
-        total_items = _safe_numeric_convert(total_items, default=0.0)
-        total_points = _safe_numeric_convert(total_points, default=0.0)
-        pert_factor = int(_safe_numeric_convert(pert_factor, default=3.0))
+        total_items = safe_numeric_convert(total_items, default=0.0)
+        total_points = safe_numeric_convert(total_points, default=0.0)
+        pert_factor = int(safe_numeric_convert(pert_factor, default=3.0))
 
         # Parse deadline and milestone dates
-        deadline, milestone = _parse_deadline_milestone(deadline_str, milestone_str)
+        deadline, milestone = parse_deadline_milestone(deadline_str, milestone_str)
 
         # Prepare all data needed for the visualization
         forecast_data = prepare_visualization_data(
@@ -744,7 +685,7 @@ def create_forecast_plot(
 
         # Calculate weekly metrics
         avg_weekly_items, avg_weekly_points, med_weekly_items, med_weekly_points = (
-            _get_weekly_metrics(df, data_points_count)
+            get_weekly_metrics(df, data_points_count)
         )
 
         # Calculate enhanced formatted strings for PERT estimates
@@ -752,8 +693,8 @@ def create_forecast_plot(
         pert_time_points = forecast_data.get("pert_time_points", 0.0)
 
         # Ensure valid numbers for PERT times
-        pert_time_items = _safe_numeric_convert(pert_time_items, default=0.0)
-        pert_time_points = _safe_numeric_convert(pert_time_points, default=0.0)
+        pert_time_items = safe_numeric_convert(pert_time_items, default=0.0)
+        pert_time_points = safe_numeric_convert(pert_time_points, default=0.0)
 
         # Get formatted completion date strings
         items_completion_enhanced, points_completion_enhanced = (
@@ -845,187 +786,7 @@ def create_forecast_plot(
         return fig, pert_data
 
     except Exception as e:
-        return _handle_forecast_error(e)
-
-
-def _safe_numeric_convert(value, default=0.0):
-    """
-    Safely convert a value to a float with error handling.
-
-    Args:
-        value: Value to convert
-        default: Default value if conversion fails
-
-    Returns:
-        Converted float value
-    """
-    try:
-        return float(value) if value is not None else default
-    except (ValueError, TypeError):
-        return default
-
-
-def _parse_deadline_milestone(deadline_str, milestone_str=None):
-    """
-    Parse deadline and optional milestone dates.
-
-    Args:
-        deadline_str: Deadline date string (YYYY-MM-DD)
-        milestone_str: Optional milestone date string (YYYY-MM-DD)
-
-    Returns:
-        Tuple of (deadline, milestone) as datetime objects
-    """
-    # Parse deadline with error handling
-    try:
-        deadline = pd.to_datetime(deadline_str, format="mixed", errors="coerce")
-    except (ValueError, TypeError):
-        # Use fallback date 30 days from now if deadline format is invalid
-        deadline = pd.Timestamp.now() + pd.Timedelta(days=30)
-        logging.getLogger("burndown_chart").warning(
-            f"Invalid deadline format: {deadline_str}. Using default."
-        )
-
-    # Parse milestone date if provided (no restriction - allows visual marker anywhere)
-    milestone = None
-    if milestone_str:
-        try:
-            milestone = pd.to_datetime(milestone_str, format="mixed", errors="coerce")
-        except (ValueError, TypeError):
-            logging.getLogger("burndown_chart").warning(
-                f"Invalid milestone format: {milestone_str}. Ignoring milestone."
-            )
-
-    return deadline, milestone
-
-
-def _get_weekly_metrics(df, data_points_count=None):
-    """
-    Calculate weekly metrics from the data frame.
-
-    Args:
-        df: DataFrame with historical data
-        data_points_count: Number of most recent data points to use (defaults to all)
-
-    Returns:
-        Tuple of (avg_weekly_items, avg_weekly_points, med_weekly_items, med_weekly_points)
-    """
-    avg_weekly_items, avg_weekly_points, med_weekly_items, med_weekly_points = (
-        0.0,
-        0.0,
-        0.0,
-        0.0,
-    )
-
-    if not df.empty:
-        # Get all four values from calculate_weekly_averages with data_points_count
-        results = calculate_weekly_averages(
-            df.to_dict("records"), data_points_count=data_points_count
-        )
-        if isinstance(results, (list, tuple)) and len(results) >= 4:
-            avg_weekly_items, avg_weekly_points, med_weekly_items, med_weekly_points = (
-                results  # Ensure all are valid float values with preserved decimal places
-            )
-        avg_weekly_items = round(
-            float(avg_weekly_items if avg_weekly_items is not None else 0.0), 2
-        )
-        avg_weekly_points = round(
-            float(avg_weekly_points if avg_weekly_points is not None else 0.0), 2
-        )
-        med_weekly_items = round(
-            float(med_weekly_items if med_weekly_items is not None else 0.0), 2
-        )
-        med_weekly_points = round(
-            float(med_weekly_points if med_weekly_points is not None else 0.0), 2
-        )
-
-    return avg_weekly_items, avg_weekly_points, med_weekly_items, med_weekly_points
-
-
-def _handle_forecast_error(e):
-    """
-    Handle exceptions in forecast plot creation with detailed error reporting.
-
-    Args:
-        e: Exception that occurred
-
-    Returns:
-        Tuple of (error_figure, safe_data_dict)
-    """
-    # Get full stack trace
-    error_trace = traceback.format_exc()
-    logger = logging.getLogger("burndown_chart")
-    logger.error(f"[Visualization] Error in create_forecast_plot: {str(e)}")
-
-    # Create an empty figure with detailed error message
-    fig = go.Figure()
-    fig.add_annotation(
-        text=f"Error in forecast plot generation:<br>{str(e)}",
-        xref="paper",
-        yref="paper",
-        x=0.5,
-        y=0.5,
-        showarrow=False,
-        font=dict(size=14, color="red"),
-    )
-
-    # Add button to show/hide detailed error info
-    fig.update_layout(
-        updatemenus=[
-            dict(
-                type="buttons",
-                direction="right",
-                x=0.5,
-                y=0.4,
-                xanchor="center",
-                yanchor="top",
-                buttons=[
-                    dict(
-                        label="Show Error Details",
-                        method="update",
-                        args=[
-                            {},
-                            {
-                                "annotations": [
-                                    {
-                                        "text": f"Error in forecast plot generation:<br>{str(e)}<br><br>Stack trace (for developers):<br>{error_trace.replace(chr(10), '<br>')}",
-                                        "xref": "paper",
-                                        "yref": "paper",
-                                        "x": 0.5,
-                                        "y": 0.5,
-                                        "showarrow": False,
-                                        "font": dict(size=12, color="red"),
-                                        "align": "left",
-                                        "bgcolor": "rgba(255, 255, 255, 0.9)",
-                                        "bordercolor": "red",
-                                        "borderwidth": 1,
-                                        "borderpad": 4,
-                                    }
-                                ]
-                            },
-                        ],
-                    )
-                ],
-            )
-        ]
-    )
-
-    # Return safe fallback values with consistent types
-    safe_pert_data = {
-        "pert_time_items": 0.0,
-        "pert_time_points": 0.0,
-        "items_completion_enhanced": "Error in calculation",
-        "points_completion_enhanced": "Error in calculation",
-        "days_to_deadline": 0,
-        "avg_weekly_items": 0.0,  # Ensure consistent with non-error case
-        "avg_weekly_points": 0.0,  # Ensure consistent with non-error case
-        "med_weekly_items": 0.0,  # Keep as float
-        "med_weekly_points": 0.0,  # Keep as float
-        "error": str(e),
-        "forecast_timestamp": datetime.now().isoformat(),
-    }
-
-    return fig, safe_pert_data
+        return handle_forecast_error(e)
 
 
 def create_weekly_items_chart(
@@ -1122,9 +883,9 @@ def create_weekly_items_chart(
     if not weekly_df.empty:
         weekly_start = weekly_df["start_date"].min()
         weekly_end = weekly_df["start_date"].max()
-        weekly_df = _fill_missing_weeks(weekly_df, weekly_start, weekly_end, ["items"])
+        weekly_df = fill_missing_weeks(weekly_df, weekly_start, weekly_end, ["items"])
     else:
-        weekly_df = _fill_missing_weeks(weekly_df, start_date, latest_date, ["items"])
+        weekly_df = fill_missing_weeks(weekly_df, start_date, latest_date, ["items"])
 
     # Sort by date
     weekly_df = weekly_df.sort_values("start_date")
@@ -1398,9 +1159,9 @@ def create_weekly_points_chart(
     if not weekly_df.empty:
         weekly_start = weekly_df["start_date"].min()
         weekly_end = weekly_df["start_date"].max()
-        weekly_df = _fill_missing_weeks(weekly_df, weekly_start, weekly_end, ["points"])
+        weekly_df = fill_missing_weeks(weekly_df, weekly_start, weekly_end, ["points"])
     else:
-        weekly_df = _fill_missing_weeks(weekly_df, start_date, latest_date, ["points"])
+        weekly_df = fill_missing_weeks(weekly_df, start_date, latest_date, ["points"])
 
     # Sort by date
     weekly_df = weekly_df.sort_values("start_date")
@@ -1677,9 +1438,9 @@ def create_weekly_items_forecast_chart(
     if not weekly_df.empty:
         weekly_start = weekly_df["start_date"].min()
         weekly_end = weekly_df["start_date"].max()
-        weekly_df = _fill_missing_weeks(weekly_df, weekly_start, weekly_end, ["items"])
+        weekly_df = fill_missing_weeks(weekly_df, weekly_start, weekly_end, ["items"])
     else:
-        weekly_df = _fill_missing_weeks(weekly_df, start_date, latest_date, ["items"])
+        weekly_df = fill_missing_weeks(weekly_df, start_date, latest_date, ["items"])
 
     # Sort by date
     weekly_df = weekly_df.sort_values("start_date")
@@ -1933,9 +1694,9 @@ def create_weekly_points_forecast_chart(
     if not weekly_df.empty:
         weekly_start = weekly_df["start_date"].min()
         weekly_end = weekly_df["start_date"].max()
-        weekly_df = _fill_missing_weeks(weekly_df, weekly_start, weekly_end, ["points"])
+        weekly_df = fill_missing_weeks(weekly_df, weekly_start, weekly_end, ["points"])
     else:
-        weekly_df = _fill_missing_weeks(weekly_df, start_date, latest_date, ["points"])
+        weekly_df = fill_missing_weeks(weekly_df, start_date, latest_date, ["points"])
 
     # Sort by date
     weekly_df = weekly_df.sort_values("start_date")
@@ -2881,7 +2642,7 @@ def prepare_visualization_data(
 
     # Filter out zero-value weeks before calculating rates
     # Filter separately for items and points to support projects with only one tracking type
-    # Zero weeks (often from _fill_missing_weeks) shouldn't influence rate calculations
+    # Zero weeks (often from fill_missing_weeks) shouldn't influence rate calculations
     grouped_items_non_zero = grouped[grouped["completed_items"] > 0].copy()
     grouped_points_non_zero = grouped[grouped["completed_points"] > 0].copy()
 

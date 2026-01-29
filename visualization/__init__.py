@@ -28,6 +28,7 @@ from visualization.elements import (
     create_historical_trace,
 )
 from visualization.helpers import (
+    fill_missing_weeks,
     safe_numeric_convert,
     parse_deadline_milestone,
     get_weekly_metrics,
@@ -53,6 +54,7 @@ __all__ = [
     "add_deadline_marker",
     "create_empty_figure",
     # Helper functions
+    "fill_missing_weeks",
     "safe_numeric_convert",
     "parse_deadline_milestone",
     "get_weekly_metrics",
