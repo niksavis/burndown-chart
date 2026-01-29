@@ -2974,53 +2974,59 @@ def fetch_changelog_on_demand(
                     histories = changelog_full.get("histories", [])
                     total_histories_before += len(histories)
 
-                    # Filter to ONLY histories that contain status changes
-                    status_histories = []
+                    # Filter to ONLY histories that contain tracked field changes
+                    # TRACKED FIELDS: status (for Flow metrics), sprint (for Sprint Tracker)
+                    tracked_fields = ["status", "sprint"]
+                    filtered_histories = []
                     for history in histories:
                         items = history.get("items", [])
 
-                        # Keep only status change items
-                        status_items = [
-                            item for item in items if item.get("field") == "status"
+                        # Keep only tracked field change items
+                        tracked_items = [
+                            item
+                            for item in items
+                            if item.get("field") in tracked_fields
                         ]
 
-                        if status_items:
+                        if tracked_items:
                             # Build minimal history entry with only what we need
-                            status_histories.append(
+                            filtered_histories.append(
                                 {
                                     "created": history.get("created"),
                                     "items": [
                                         {
-                                            "field": "status",
+                                            "field": item.get("field"),
                                             "fromString": item.get("fromString"),
                                             "toString": item.get("toString"),
                                         }
-                                        for item in status_items
+                                        for item in tracked_items
                                     ],
                                 }
                             )
 
-                    total_histories_after += len(status_histories)
+                    total_histories_after += len(filtered_histories)
 
-                    # CRITICAL: Include ALL fields needed for DORA and Flow metrics
+                    # CRITICAL: Include ALL fields needed for DORA, Flow, and Sprint metrics
                     # - project: Filter Development vs DevOps projects
                     # - fixVersions: Match dev issues with operational tasks
-                    # - status: Filter completed/deployed issues
+                    # - status: Filter completed/deployed issues, track state transitions
+                    # - sprint: Track sprint assignment changes (Sprint Tracker feature)
                     # - issuetype: Filter "Operational Task" issues
                     # - created: Used in some calculations
                     # - resolutiondate: Fallback for deployment dates
                     # Prepare changelog entries for database batch insert
-                    for history in status_histories:
+                    for history in filtered_histories:
                         change_date = history.get("created", "")
                         items = history.get("items", [])
                         for item in items:
-                            if item.get("field") == "status":
+                            field_name = item.get("field")
+                            if field_name in tracked_fields:
                                 changelog_entries_batch.append(
                                     {
                                         "issue_key": issue_key,
                                         "change_date": change_date,
                                         "author": "",  # Not stored in optimized cache
-                                        "field_name": "status",
+                                        "field_name": field_name,
                                         "field_type": "jira",
                                         "old_value": item.get("fromString"),
                                         "new_value": item.get("toString"),
