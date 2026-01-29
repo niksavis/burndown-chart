@@ -1,0 +1,414 @@
+"""Sprint data manager for Sprint Tracker feature.
+
+This module provides functions to construct sprint snapshots from changelog history,
+track sprint changes (add/remove/move), and calculate sprint progress metrics.
+
+Uses existing changelog infrastructure - no new JIRA API calls needed.
+Sprint field changes are tracked via jira_changelog_entries table.
+
+Key Functions:
+    get_sprint_snapshots() -> Dict: Build sprint snapshots from changelog
+    detect_sprint_changes() -> Dict: Detect add/remove/move events
+    calculate_sprint_progress() -> Dict: Calculate sprint completion metrics
+    filter_sprint_issues() -> List: Filter issues to Story/Task/Bug only
+"""
+
+import logging
+from typing import Dict, List, Optional
+from collections import defaultdict
+
+logger = logging.getLogger(__name__)
+
+
+def get_sprint_snapshots(
+    issues: List[Dict],
+    changelog_entries: List[Dict],
+    sprint_field: str = "customfield_10020",
+) -> Dict[str, Dict]:
+    """Build sprint snapshots from changelog history.
+
+    Reconstructs current and historical sprint composition by analyzing
+    sprint field changes in changelog entries.
+
+    Args:
+        issues: List of JIRA issues (from backend.get_issues())
+        changelog_entries: Changelog entries filtered to sprint field changes
+        sprint_field: Sprint custom field ID (default: customfield_10020)
+
+    Returns:
+        Dict of sprint_id -> snapshot:
+        {
+            "Sprint 23": {
+                "name": "Sprint 23",
+                "current_issues": ["PROJ-1", "PROJ-3"],
+                "added_issues": [
+                    {"issue_key": "PROJ-1", "timestamp": "2025-01-10T10:00:00Z"}
+                ],
+                "removed_issues": [
+                    {"issue_key": "PROJ-2", "timestamp": "2025-01-15T14:00:00Z"}
+                ],
+                "issue_states": {
+                    "PROJ-1": {"status": "Done", "story_points": 5}
+                }
+            }
+        }
+    """
+    logger.info(
+        f"Building sprint snapshots from {len(changelog_entries)} changelog entries"
+    )
+
+    # Sort changelog by date to process in chronological order
+    sorted_entries = sorted(changelog_entries, key=lambda x: x.get("change_date", ""))
+
+    # Track sprint events and current state
+    sprint_snapshots: Dict[str, Dict] = {}
+    issue_current_sprint = {}  # issue_key -> current sprint_id
+
+    def _get_or_create_snapshot(sprint_id: str) -> Dict:
+        """Helper to create sprint snapshot structure if not exists."""
+        if sprint_id not in sprint_snapshots:
+            sprint_snapshots[sprint_id] = {
+                "added_issues": [],
+                "removed_issues": [],
+                "current_issues": set(),
+                "issue_states": {},
+            }
+        return sprint_snapshots[sprint_id]
+
+    # Process changelog to detect sprint changes
+    for entry in sorted_entries:
+        issue_key = entry.get("issue_key")
+        old_value = entry.get("old_value")
+        new_value = entry.get("new_value")
+        timestamp = entry.get("change_date")
+
+        if not issue_key or not timestamp:
+            continue
+
+        # Parse sprint name from JIRA sprint format
+        # Format: "com.atlassian.greenhopper.service.sprint.Sprint@14b3c[id=23,name=Sprint 23,...]"
+        old_sprint = _parse_sprint_name(old_value)
+        new_sprint = _parse_sprint_name(new_value)
+
+        # Case 1: Issue added to sprint (null -> Sprint X)
+        if not old_sprint and new_sprint:
+            snapshot = _get_or_create_snapshot(new_sprint)
+            snapshot["added_issues"].append(
+                {"issue_key": issue_key, "timestamp": timestamp}
+            )
+            snapshot["current_issues"].add(issue_key)
+            issue_current_sprint[issue_key] = new_sprint
+
+        # Case 2: Issue removed from sprint (Sprint X -> null)
+        elif old_sprint and not new_sprint:
+            snapshot = _get_or_create_snapshot(old_sprint)
+            snapshot["removed_issues"].append(
+                {"issue_key": issue_key, "timestamp": timestamp}
+            )
+            snapshot["current_issues"].discard(issue_key)
+            issue_current_sprint[issue_key] = None
+
+        # Case 3: Issue moved between sprints (Sprint X -> Sprint Y)
+        elif old_sprint and new_sprint and old_sprint != new_sprint:
+            old_snapshot = _get_or_create_snapshot(old_sprint)
+            old_snapshot["removed_issues"].append(
+                {"issue_key": issue_key, "timestamp": timestamp}
+            )
+            old_snapshot["current_issues"].discard(issue_key)
+
+            new_snapshot = _get_or_create_snapshot(new_sprint)
+            new_snapshot["added_issues"].append(
+                {"issue_key": issue_key, "timestamp": timestamp}
+            )
+            new_snapshot["current_issues"].add(issue_key)
+
+            issue_current_sprint[issue_key] = new_sprint
+
+    # Enrich snapshots with current issue states from issues list
+    issues_by_key = {issue.get("key"): issue for issue in issues}
+
+    for sprint_id, snapshot in sprint_snapshots.items():
+        # Convert set to list for JSON serialization
+        snapshot["current_issues"] = list(snapshot["current_issues"])
+        snapshot["name"] = sprint_id
+
+        # Add current state for each issue in sprint
+        for issue_key in snapshot["current_issues"]:
+            if issue_key in issues_by_key:
+                issue = issues_by_key[issue_key]
+
+                # Extract status from nested fields
+                status = (
+                    issue.get("fields", {}).get("status", {}).get("name", "Unknown")
+                )
+
+                # Extract story points (try common custom field IDs)
+                story_points = None
+                custom_fields = issue.get("custom_fields", {})
+                if isinstance(custom_fields, dict):
+                    # Try common story points field IDs
+                    for field in ["customfield_10016", "customfield_10026"]:
+                        story_points = custom_fields.get(field)
+                        if story_points is not None:
+                            break
+
+                # Extract issue type
+                issue_type = (
+                    issue.get("fields", {}).get("issuetype", {}).get("name", "Unknown")
+                )
+
+                # Extract summary
+                summary = issue.get("fields", {}).get("summary", "")
+
+                snapshot["issue_states"][issue_key] = {
+                    "status": status,
+                    "story_points": story_points,
+                    "issue_type": issue_type,
+                    "summary": summary,
+                }
+
+    logger.info(f"Built snapshots for {len(sprint_snapshots)} sprints")
+
+    return sprint_snapshots
+
+
+def _parse_sprint_name(sprint_value: Optional[str]) -> Optional[str]:
+    """Parse sprint name from JIRA sprint field value.
+
+    JIRA returns sprint as serialized object string:
+    "com.atlassian.greenhopper.service.sprint.Sprint@14b3c[id=23,name=Sprint 23,...]"
+
+    Args:
+        sprint_value: Raw sprint value from JIRA
+
+    Returns:
+        Sprint name (e.g., "Sprint 23") or None
+    """
+    if not sprint_value:
+        return None
+
+    # Handle JIRA sprint object format
+    if "name=" in sprint_value:
+        # Extract name value between "name=" and next comma
+        try:
+            name_start = sprint_value.index("name=") + 5
+            name_end = sprint_value.index(",", name_start)
+            return sprint_value[name_start:name_end]
+        except ValueError:
+            # Fallback: try to extract until closing bracket
+            try:
+                name_start = sprint_value.index("name=") + 5
+                name_end = sprint_value.index("]", name_start)
+                return sprint_value[name_start:name_end]
+            except ValueError:
+                pass
+
+    # Fallback: return as-is if simple string
+    return sprint_value
+
+
+def detect_sprint_changes(
+    changelog_entries: List[Dict],
+) -> Dict[str, Dict[str, List[Dict]]]:
+    """Detect sprint lifecycle events from changelog.
+
+    Analyzes changelog to identify when issues were added, removed, or moved
+    between sprints.
+
+    Args:
+        changelog_entries: Changelog entries filtered to sprint field changes
+
+    Returns:
+        Dict of event types per sprint:
+        {
+            "Sprint 23": {
+                "added": [{"issue_key": "PROJ-1", "timestamp": "...", "from": null}],
+                "removed": [{"issue_key": "PROJ-2", "timestamp": "...", "to": null}],
+                "moved_in": [{"issue_key": "PROJ-3", "timestamp": "...", "from": "Sprint 22"}],
+                "moved_out": [{"issue_key": "PROJ-4", "timestamp": "...", "to": "Sprint 24"}]
+            }
+        }
+    """
+    logger.info(f"Detecting sprint changes from {len(changelog_entries)} entries")
+
+    # Sort by change date
+    sorted_entries = sorted(changelog_entries, key=lambda x: x.get("change_date", ""))
+
+    sprint_changes = defaultdict(
+        lambda: {"added": [], "removed": [], "moved_in": [], "moved_out": []}
+    )
+
+    for entry in sorted_entries:
+        issue_key = entry.get("issue_key")
+        old_value = entry.get("old_value")
+        new_value = entry.get("new_value")
+        timestamp = entry.get("change_date")
+
+        if not issue_key or not timestamp:
+            continue
+
+        old_sprint = _parse_sprint_name(old_value)
+        new_sprint = _parse_sprint_name(new_value)
+
+        # Case 1: Issue added to sprint (null -> Sprint X)
+        if not old_sprint and new_sprint:
+            sprint_changes[new_sprint]["added"].append(
+                {"issue_key": issue_key, "timestamp": timestamp, "from": None}
+            )
+
+        # Case 2: Issue removed from sprint (Sprint X -> null)
+        elif old_sprint and not new_sprint:
+            sprint_changes[old_sprint]["removed"].append(
+                {"issue_key": issue_key, "timestamp": timestamp, "to": None}
+            )
+
+        # Case 3: Issue moved between sprints (Sprint X -> Sprint Y)
+        elif old_sprint and new_sprint and old_sprint != new_sprint:
+            sprint_changes[old_sprint]["moved_out"].append(
+                {"issue_key": issue_key, "timestamp": timestamp, "to": new_sprint}
+            )
+            sprint_changes[new_sprint]["moved_in"].append(
+                {"issue_key": issue_key, "timestamp": timestamp, "from": old_sprint}
+            )
+
+    logger.info(f"Detected changes for {len(sprint_changes)} sprints")
+    return dict(sprint_changes)
+
+
+def calculate_sprint_progress(
+    sprint_snapshot: Dict,
+    flow_end_statuses: Optional[List[str]] = None,
+) -> Dict:
+    """Calculate sprint progress metrics.
+
+    Analyzes issue states to calculate completion percentage, story points
+    progress, and issue breakdown by status.
+
+    Args:
+        sprint_snapshot: Sprint snapshot from get_sprint_snapshots()
+        flow_end_statuses: List of statuses considered "done" (default: ["Done", "Closed"])
+
+    Returns:
+        Progress metrics:
+        {
+            "total_issues": 10,
+            "completed_issues": 7,
+            "completion_percentage": 70.0,
+            "total_points": 50.0,
+            "completed_points": 35.0,
+            "points_completion_percentage": 70.0,
+            "by_status": {
+                "Done": {"count": 7, "points": 35.0},
+                "In Progress": {"count": 2, "points": 10.0},
+                "To Do": {"count": 1, "points": 5.0}
+            },
+            "by_issue_type": {
+                "Story": {"count": 5, "points": 30.0},
+                "Bug": {"count": 3, "points": 15.0},
+                "Task": {"count": 2, "points": 5.0}
+            }
+        }
+    """
+    if flow_end_statuses is None:
+        flow_end_statuses = ["Done", "Closed", "Resolved"]
+
+    issue_states = sprint_snapshot.get("issue_states", {})
+
+    total_issues = len(issue_states)
+    completed_issues = 0
+    total_points = 0.0
+    completed_points = 0.0
+
+    by_status = defaultdict(lambda: {"count": 0, "points": 0.0})
+    by_issue_type = defaultdict(lambda: {"count": 0, "points": 0.0})
+
+    for issue_key, state in issue_states.items():
+        status = state.get("status", "Unknown")
+        story_points = state.get("story_points", 0) or 0
+        issue_type = state.get("issue_type", "Unknown")
+
+        # Count completion
+        if status in flow_end_statuses:
+            completed_issues += 1
+            completed_points += story_points
+
+        # Aggregate totals
+        total_points += story_points
+
+        # Breakdown by status
+        by_status[status]["count"] += 1
+        by_status[status]["points"] += story_points
+
+        # Breakdown by issue type
+        by_issue_type[issue_type]["count"] += 1
+        by_issue_type[issue_type]["points"] += story_points
+
+    # Calculate percentages
+    completion_percentage = (
+        (completed_issues / total_issues * 100.0) if total_issues > 0 else 0.0
+    )
+    points_completion_percentage = (
+        (completed_points / total_points * 100.0) if total_points > 0 else 0.0
+    )
+
+    return {
+        "total_issues": total_issues,
+        "completed_issues": completed_issues,
+        "completion_percentage": round(completion_percentage, 1),
+        "total_points": total_points,
+        "completed_points": completed_points,
+        "points_completion_percentage": round(points_completion_percentage, 1),
+        "by_status": dict(by_status),
+        "by_issue_type": dict(by_issue_type),
+    }
+
+
+def filter_sprint_issues(
+    issues: List[Dict],
+    tracked_issue_types: Optional[List[str]] = None,
+) -> List[Dict]:
+    """Filter issues to tracked issue types (exclude sub-tasks).
+
+    Args:
+        issues: List of JIRA issues
+        tracked_issue_types: Issue types to include (default: ["Story", "Task", "Bug"])
+
+    Returns:
+        Filtered list of issues excluding sub-tasks and other excluded types
+    """
+    if tracked_issue_types is None:
+        tracked_issue_types = ["Story", "Task", "Bug"]
+
+    filtered = []
+
+    for issue in issues:
+        # Extract issue type from nested fields or flat structure
+        if "fields" in issue:
+            issue_type = issue.get("fields", {}).get("issuetype", {}).get("name", "")
+        else:
+            issue_type = issue.get("issue_type", "")
+
+        # Include only tracked issue types
+        if issue_type in tracked_issue_types:
+            filtered.append(issue)
+
+    logger.info(
+        f"Filtered {len(filtered)} issues from {len(issues)} total "
+        f"(types: {tracked_issue_types})"
+    )
+
+    return filtered
+
+
+def get_sprint_field_from_config(config: Dict) -> Optional[str]:
+    """Extract sprint field ID from configuration.
+
+    Args:
+        config: App settings configuration dict
+
+    Returns:
+        Sprint field ID (e.g., "customfield_10020") or None if not configured
+    """
+    field_mappings = config.get("field_mappings", {})
+    sprint_tracker_mappings = field_mappings.get("sprint_tracker", {})
+    return sprint_tracker_mappings.get("sprint_field")
