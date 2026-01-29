@@ -1,5 +1,21 @@
 # Changelog
 
+## v2.7.19
+
+*Released: 2026-01-29*
+
+### Features
+
+- **Query Timestamps**: Query dropdown now shows when each query was last updated (e.g., "Just now", "2 hours ago") making it easy to see data freshness at a glance
+- **Improved Loading Indicators**: Replaced static violet folder icon with animated spinner during long-running operations for better visual feedback
+
+### Bug Fixes
+
+- **Query Selection Workflow**: Update Data now automatically switches to dropdown-selected query even when Load Query Data button hasn't been clicked, preventing data from saving to wrong query and ensuring correct query data loads automatically
+- **Footer Visual Fix**: Fixed gradient background tiling issue in application footer
+- **Date Picker UX**: Unified date picker implementation across all date fields and resolved focus/interaction issues
+- **Auto-Update Reliability**: App now forces page reload after update completion to prevent race conditions and ensure all components reinitialize properly
+
 ## v2.7.18
 
 *Released: 2026-01-27*
