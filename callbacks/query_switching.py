@@ -85,8 +85,10 @@ def populate_query_dropdown(_pathname, profile_id):
                 logger.debug(
                     "[Query] App state not initialized, returning empty dropdown"
                 )
+                from data.query_manager import get_query_dropdown_options
+
                 return (
-                    [{"label": "→ Create New Query", "value": "__create_new__"}],
+                    get_query_dropdown_options(None),
                     "",
                     "",
                     "",
@@ -96,8 +98,10 @@ def populate_query_dropdown(_pathname, profile_id):
         # Guard against None profile_id after all checks
         if not profile_id:
             logger.debug("[Query] No profile ID available, returning empty dropdown")
+            from data.query_manager import get_query_dropdown_options
+
             return (
-                [{"label": "→ Create New Query", "value": "__create_new__"}],
+                get_query_dropdown_options(None),
                 "",
                 "",
                 "",
@@ -107,8 +111,10 @@ def populate_query_dropdown(_pathname, profile_id):
         # List queries for this profile
         queries = list_queries_for_profile(profile_id)
 
-        # Build dropdown options with "Create New" at the top
-        options = [{"label": "→ Create New Query", "value": "__create_new__"}]
+        # Build dropdown options with "Create New" at the top and timestamps
+        from data.query_manager import get_query_dropdown_options
+
+        options = get_query_dropdown_options(profile_id)
         active_value = ""
         active_jql = ""
         active_name = ""
@@ -117,18 +123,13 @@ def populate_query_dropdown(_pathname, profile_id):
             # Only show "Create New" option - select it by default
             return options, "__create_new__", "", "", ""
 
+        # Find active query details
         for query in queries:
-            label = query.get("name", "Unnamed Query")
-            value = query.get("id", "")
-
-            # Mark active query
             if query.get("is_active", False):
-                label += " [Active]"
-                active_value = value
+                active_value = query.get("id", "")
                 active_jql = query.get("jql", "")
                 active_name = query.get("name", "")
-
-            options.append({"label": label, "value": value})
+                break
 
         logger.info(
             f"[Query] Populated dropdown: {len(options) - 1} queries + Create New. Active: {active_value}"
@@ -214,25 +215,18 @@ def switch_query_callback(selected_query_id, current_options):
         profile_id = get_active_profile_id()
         queries = list_queries_for_profile(profile_id)
 
-        options = [{"label": "→ Create New Query", "value": "__create_new__"}]
+        from data.query_manager import get_query_dropdown_options
+
+        options = get_query_dropdown_options(profile_id)
         selected_jql = ""
         selected_name = ""
 
-        # Build dropdown options and find the selected query's details
+        # Find the selected query's details
         for query in queries:
-            label = query.get("name", "Unnamed Query")
-            value = query.get("id", "")
-
-            # Mark active query with [Active] indicator
-            if query.get("is_active", False):
-                label += " [Active]"
-
-            # Store JQL and name for the selected query
-            if value == selected_query_id:
+            if query.get("id", "") == selected_query_id:
                 selected_jql = query.get("jql", "")
                 selected_name = query.get("name", "")
-
-            options.append({"label": label, "value": value})
+                break
 
         # Validate that we found the selected query
         if not selected_jql and not selected_name:
@@ -622,7 +616,6 @@ def load_query_cached_data(n_clicks, selected_query_id):
         from data.query_manager import (
             switch_query,
             get_active_profile_id,
-            list_queries_for_profile,
         )
         from data.persistence import load_unified_project_data, load_app_settings
 
@@ -632,14 +625,9 @@ def load_query_cached_data(n_clicks, selected_query_id):
 
         # Refresh dropdown to show [Active] indicator on the newly active query
         profile_id = get_active_profile_id()
-        queries = list_queries_for_profile(profile_id)
-        dropdown_options = [{"label": "→ Create New Query", "value": "__create_new__"}]
-        for query in queries:
-            label = query.get("name", "Unnamed Query")
-            value = query.get("id", "")
-            if query.get("is_active", False):
-                label += " [Active]"
-            dropdown_options.append({"label": label, "value": value})
+        from data.query_manager import get_query_dropdown_options
+
+        dropdown_options = get_query_dropdown_options(profile_id)
 
         # Load cached data for this query
         unified_data = load_unified_project_data()

@@ -902,6 +902,13 @@ def fetch_jira_issues(
                 )
                 if delta_success:
                     _save_delta_fetch_result(merged_issues, changed_keys, jql, fields)
+                    # CRITICAL: Update database timestamp
+                    cache_jira_response(
+                        data=merged_issues,
+                        jql_query=jql,
+                        fields_requested=fields,
+                        config=config,
+                    )
                     return True, merged_issues
                 # Delta fetch failed, fall through to full fetch
             else:
@@ -928,6 +935,15 @@ def fetch_jira_issues(
                             _save_delta_fetch_result(
                                 merged_issues, changed_keys, jql, fields
                             )
+                            # CRITICAL: Update database timestamp even if 0 issues changed
+                            # This ensures "last checked" timestamp reflects when Update Data was clicked,
+                            # not just when data last changed
+                            cache_jira_response(
+                                data=merged_issues,
+                                jql_query=jql,
+                                fields_requested=fields,
+                                config=config,
+                            )
                             return True, merged_issues
                         # Delta fetch failed, fall through to full fetch
                     else:
@@ -944,6 +960,13 @@ def fetch_jira_issues(
                             _save_delta_fetch_result(
                                 merged_issues, changed_keys, jql, fields
                             )
+                            # CRITICAL: Update database timestamp even if few issues changed
+                            cache_jira_response(
+                                data=merged_issues,
+                                jql_query=jql,
+                                fields_requested=fields,
+                                config=config,
+                            )
                             return True, merged_issues
                         # Delta fetch failed, fall through to full fetch
                 else:
@@ -958,6 +981,13 @@ def fetch_jira_issues(
                         # Save merged issues with changed keys metadata
                         _save_delta_fetch_result(
                             merged_issues, changed_keys, jql, fields
+                        )
+                        # CRITICAL: Update database timestamp even if count check failed
+                        cache_jira_response(
+                            data=merged_issues,
+                            jql_query=jql,
+                            fields_requested=fields,
+                            config=config,
                         )
                         logger.info(
                             "[JIRA] Delta fetch succeeded despite count check failure"

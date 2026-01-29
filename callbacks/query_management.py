@@ -125,7 +125,6 @@ def manage_button_states(
             # This is the first query in profile - enable Save/Save As when JQL is entered
             has_name = bool(current_name and current_name.strip())
             has_jql = bool(current_jql and current_jql.strip())
-            has_both = has_name and has_jql
             has_any_content = has_name or has_jql
 
             # For first query: Enable Save when JQL present (name will be auto-generated)
@@ -366,14 +365,9 @@ def save_query_overwrite(
             )
 
             # Refresh dropdown and select new query
-            queries = list_queries_for_profile(profile_id)
-            options = [{"label": "→ Create New Query", "value": "__create_new__"}]
-            for query in queries:
-                label = query.get("name", "Unnamed Query")
-                value = query.get("id", "")
-                if query.get("is_active", False):
-                    label += " [Active]"
-                options.append({"label": label, "value": value})
+            from data.query_manager import get_query_dropdown_options
+
+            options = get_query_dropdown_options(profile_id)
 
             toast = create_success_toast(
                 f"Query '{query_name}' created successfully!",
@@ -431,14 +425,9 @@ def save_query_overwrite(
             )
 
             # Refresh dropdown and select new query
-            queries = list_queries_for_profile(profile_id)
-            options = [{"label": "→ Create New Query", "value": "__create_new__"}]
-            for query in queries:
-                label = query.get("name", "Unnamed Query")
-                value = query.get("id", "")
-                if query.get("is_active", False):
-                    label += " [Active]"
-                options.append({"label": label, "value": value})
+            from data.query_manager import get_query_dropdown_options
+
+            options = get_query_dropdown_options(profile_id)
 
             toast = create_success_toast(
                 f"Query '{query_name}' created successfully!",
@@ -493,14 +482,9 @@ def save_query_overwrite(
         logger.info(f"Query '{selected_query_id}' updated successfully")
 
         # Refresh dropdown
-        queries = list_queries_for_profile(profile_id)
-        options = [{"label": "→ Create New Query", "value": "__create_new__"}]
-        for query in queries:
-            label = query.get("name", "Unnamed Query")
-            value = query.get("id", "")
-            if query.get("is_active", False):
-                label += " [Active]"
-            options.append({"label": label, "value": value})
+        from data.query_manager import get_query_dropdown_options
+
+        options = get_query_dropdown_options(profile_id)
 
         toast = create_success_toast(
             f"Query '{query_name}' saved successfully!",
@@ -605,14 +589,9 @@ def save_query_as_new(
         logger.info(f"New query '{query_id}' created successfully")
 
         # Refresh dropdown and select new query
-        queries = list_queries_for_profile(profile_id)
-        options = [{"label": "→ Create New Query", "value": "__create_new__"}]
-        for query in queries:
-            label = query.get("name", "Unnamed Query")
-            value = query.get("id", "")
-            if query.get("is_active", False):
-                label += " [Active]"
-            options.append({"label": label, "value": value})
+        from data.query_manager import get_query_dropdown_options
+
+        options = get_query_dropdown_options(profile_id)
 
         toast = create_success_toast(
             f"New query '{query_name}' created successfully!",

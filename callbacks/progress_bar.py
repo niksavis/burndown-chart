@@ -462,6 +462,9 @@ def cancel_operation(n_clicks):
         Output(
             "current-statistics", "data", allow_duplicate=True
         ),  # Clear stores and reload active query data
+        Output(
+            "query-selector", "options", allow_duplicate=True
+        ),  # Refresh dropdown with timestamps
     ],
     Input("metrics-refresh-trigger", "data"),
     prevent_initial_call=True,
@@ -497,8 +500,14 @@ def reload_data_after_update(refresh_trigger):
         # Load statistics from disk
         from data.persistence import load_statistics
         from dash import html
+        from data.query_manager import get_query_dropdown_options
 
         statistics, is_sample = load_statistics()
+
+        # Build dropdown options with timestamps
+        logger.info("[DROPDOWN] Refreshing dropdown after Update Data completion")
+        dropdown_options = get_query_dropdown_options()
+        logger.info(f"[DROPDOWN] Built {len(dropdown_options)} dropdown options")
 
         if not statistics:
             logger.warning(
@@ -513,6 +522,7 @@ def reload_data_after_update(refresh_trigger):
                     className="text-warning small",
                 ),
                 [],  # Clear current-statistics store
+                dropdown_options,  # Refresh dropdown
             )
 
         logger.info(f"[Progress] Reloaded {len(statistics)} statistics records")
@@ -529,11 +539,20 @@ def reload_data_after_update(refresh_trigger):
         return (
             cache_status,  # jira-cache-status.children
             statistics,  # current-statistics.data
+            dropdown_options,  # query-selector.options
         )
 
     except Exception as e:
         logger.error(f"[Progress] Error reloading statistics: {e}", exc_info=True)
         from dash import html
+
+        # Try to build dropdown even on error
+        try:
+            from data.query_manager import get_query_dropdown_options
+
+            dropdown_options = get_query_dropdown_options()
+        except Exception:
+            dropdown_options = []
 
         return (
             html.Div(
@@ -544,6 +563,7 @@ def reload_data_after_update(refresh_trigger):
                 className="text-danger small",
             ),
             [],  # Clear current-statistics store on error
+            dropdown_options,  # Refresh dropdown
         )
 
 

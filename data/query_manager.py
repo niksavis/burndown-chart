@@ -192,6 +192,101 @@ def list_queries_for_profile(profile_id: Optional[str] = None) -> List[Dict]:
     return queries
 
 
+def get_query_dropdown_options(profile_id: Optional[str] = None) -> List[Dict]:
+    """
+    Build dropdown options with timestamps for query selector.
+
+    Formats queries as dropdown options with:
+    - "→ Create New Query" at top
+    - Query name with [Active] postfix
+    - Timestamp after [Active] (e.g., "Query Name [Active] (2h ago)")
+
+    Args:
+        profile_id: Profile ID (defaults to active profile)
+
+    Returns:
+        List[Dict]: Dropdown options with 'label' and 'value' keys
+
+    Example:
+        >>> get_query_dropdown_options("kafka")
+        [
+            {"label": "→ Create New Query", "value": "__create_new__"},
+            {"label": "Main Query [Active] (2h ago)", "value": "q_123"},
+            {"label": "Bug Queries (Jan 28)", "value": "q_456"}
+        ]
+    """
+    from data.persistence.factory import get_backend
+    from data.time_formatting import get_relative_time_string
+    from data.database import get_db_connection
+    import logging
+
+    logger = logging.getLogger(__name__)
+
+    backend = get_backend()
+    if profile_id is None:
+        profile_id = backend.get_app_state("active_profile_id")
+
+    if not profile_id:
+        return [{"label": "→ Create New Query", "value": "__create_new__"}]
+
+    # Get base queries
+    queries = list_queries_for_profile(profile_id)
+
+    # Build dropdown options
+    options = [{"label": "→ Create New Query", "value": "__create_new__"}]
+
+    for query in queries:
+        label = query.get("name", "Unnamed Query")
+        query_id = query.get("id", "")
+
+        logger.info(
+            f"[DROPDOWN] Processing query: id={query_id}, name='{label}', is_active={query.get('is_active', False)}"
+        )
+
+        # Add [Active] postfix
+        if query.get("is_active", False):
+            label += " [Active]"
+
+        # Add timestamp for ALL queries (not just active)
+        try:
+            from pathlib import Path
+
+            db_path = getattr(backend, "db_path", Path("profiles/burndown.db"))
+
+            with get_db_connection(Path(db_path)) as conn:
+                cursor = conn.cursor()
+                cursor.execute(
+                    """
+                    SELECT fetched_at
+                    FROM jira_issues
+                    WHERE profile_id = ? AND query_id = ?
+                    ORDER BY fetched_at DESC
+                    LIMIT 1
+                    """,
+                    (profile_id, query_id),
+                )
+                row = cursor.fetchone()
+
+                if row:
+                    timestamp_iso = row[0]
+                    logger.info(
+                        f"[DROPDOWN] Found timestamp for {query_id}: {timestamp_iso}"
+                    )
+                    relative_time = get_relative_time_string(timestamp_iso)
+                    label += f" ({relative_time})"
+                else:
+                    logger.debug(f"[DROPDOWN] No data fetched yet for query {query_id}")
+        except Exception as e:
+            logger.error(
+                f"[DROPDOWN] Failed to get timestamp for query {query_id}: {e}",
+                exc_info=True,
+            )
+
+        options.append({"label": label, "value": query_id})
+
+    return options
+
+
 def create_query(profile_id: str, name: str, jql: str, description: str = "") -> str:
     """
     Create a new query in a profile.

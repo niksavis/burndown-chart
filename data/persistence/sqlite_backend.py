@@ -748,7 +748,7 @@ class SQLiteBackend(PersistenceBackend):
                             json.dumps(fields.get("components")),
                             custom_fields_json,  # ← Raw data (all customfield_* preserved)
                             expires_at.isoformat(),
-                            datetime.now().isoformat(),
+                            datetime.now(timezone.utc).isoformat(),
                         ),
                     )
 
