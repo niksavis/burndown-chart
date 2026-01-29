@@ -197,6 +197,9 @@ body {
   line-height: var(--leading-normal);
   color: var(--color-neutral-700);
   background: linear-gradient(180deg, var(--color-neutral-50) 0%, #ffffff 100%);
+  background-attachment: fixed;
+  background-repeat: no-repeat;
+  min-height: 100vh;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
