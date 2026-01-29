@@ -1,5 +1,17 @@
 # Changelog
 
+## v2.7.20
+
+*Released: 2026-01-29*
+
+### Features
+
+- **Unified Field Mapping**: Relocated Estimate field from JIRA Configuration modal to Field Mapping modal under General Options, consolidating all field mappings in one location for easier configuration
+
+### Improvements
+
+- **Codebase Maintenance**: Removed deprecated JSON file caching code and cleaned up test file structure for improved maintainability
+
 ## v2.7.19
 
 *Released: 2026-01-29*
