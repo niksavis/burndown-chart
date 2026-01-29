@@ -40,18 +40,22 @@ def create_no_sprints_state() -> html.Div:
                     html.H4("No Sprint Data Found", className="text-center mb-3"),
                     html.P(
                         [
-                            "Sprint tracking requires sprint field configuration. ",
-                            "Go to ",
-                            html.Strong("Settings → Field Mappings"),
-                            " to configure your JIRA sprint field.",
+                            "Sprint tracking requires your JIRA instance to have Agile/Scrum boards with active sprints. ",
+                            "The sprint field (typically ",
+                            html.Code("customfield_10020"),
+                            ") should be auto-detected, or you can configure it manually.",
                         ],
                         className="text-center text-muted mb-3",
                     ),
                     html.P(
                         [
-                            "After configuration, click ",
+                            "To configure: Go to ",
+                            html.Strong(
+                                "Configure JIRA Mappings → Fields → General Fields → Sprint"
+                            ),
+                            ". After configuration, click ",
                             html.Strong("Update Data"),
-                            " to fetch sprint information from JIRA.",
+                            " to fetch sprint changelog from JIRA.",
                         ],
                         className="text-center text-muted",
                     ),

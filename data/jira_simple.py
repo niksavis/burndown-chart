@@ -2975,8 +2975,20 @@ def fetch_changelog_on_demand(
                     total_histories_before += len(histories)
 
                     # Filter to ONLY histories that contain tracked field changes
-                    # TRACKED FIELDS: status (for Flow metrics), sprint (for Sprint Tracker)
-                    tracked_fields = ["status", "sprint"]
+                    # TRACKED FIELDS: status (for Flow metrics), sprint field ID (for Sprint Tracker)
+                    # Note: Sprint is a custom field (typically customfield_10020) that varies by instance
+                    tracked_fields = ["status"]  # Always track status
+
+                    # Add sprint field if detected (from field mappings)
+                    sprint_field_id = (
+                        config.get("field_mappings", {})
+                        .get("general", {})
+                        .get("sprint_field")
+                    )
+                    if sprint_field_id:
+                        tracked_fields.append(sprint_field_id)
+                        logger.info(f"[JIRA] Tracking sprint field: {sprint_field_id}")
+
                     filtered_histories = []
                     for history in histories:
                         items = history.get("items", [])
