@@ -108,6 +108,15 @@ TAB_CONFIG: List[TabConfig] = [
         "requires_data": True,
         "help_content_id": "help-statistics-data",
     },
+    {
+        "id": "tab-sprint-tracker",
+        "label": "Sprint Tracker",
+        "icon": "fa-running",
+        "color": get_color("warning"),
+        "order": 7,
+        "requires_data": True,
+        "help_content_id": "help-sprint-tracker",
+    },
 ]
 
 
