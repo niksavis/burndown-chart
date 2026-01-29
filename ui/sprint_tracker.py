@@ -203,7 +203,6 @@ def create_sprint_summary_cards(
     # Add story points cards if enabled
     if show_points:
         total_points = summary_data.get("total_points", 0.0)
-        completed_points = summary_data.get("completed_points", 0.0)
         points_completion_pct = summary_data.get("points_completion_pct", 0.0)
 
         cards.extend(
