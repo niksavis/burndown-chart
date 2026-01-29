@@ -678,6 +678,7 @@ def register(app):
             State(
                 "jira-jql-query", "value"
             ),  # JQL textarea uses standard "value" property
+            State("query-selector", "value"),  # Get selected query from dropdown
         ],
         prevent_initial_call="initial_duplicate",  # Run on initial load with duplicate outputs
     )
@@ -685,6 +686,7 @@ def register(app):
         n_clicks,
         force_refresh,
         jql_query,
+        selected_query_id,
     ):
         """
         Handle unified data update button click (JIRA data source only).
@@ -693,6 +695,7 @@ def register(app):
             n_clicks (int): Number of clicks on unified update button
             force_refresh (bool): Force cache refresh flag from clientside store
             jql_query (str): JQL query for JIRA data source
+            selected_query_id (str): Currently selected query from dropdown
 
         Returns:
             Tuple: Upload contents, filename, cache status, statistics table data,
@@ -831,6 +834,21 @@ def register(app):
             from data.persistence import load_jira_configuration
 
             jira_config = load_jira_configuration()
+
+            # CRITICAL FIX: Switch to selected query BEFORE fetching data
+            # This ensures that cache_jira_response() saves to the correct query_id
+            if selected_query_id and selected_query_id != "__create_new__":
+                try:
+                    from data.query_manager import switch_query
+
+                    switch_query(selected_query_id)
+                    logger.info(
+                        f"[Settings] Switched to query '{selected_query_id}' before Update Data"
+                    )
+                except Exception as e:
+                    logger.error(
+                        f"[Settings] Failed to switch query before Update Data: {e}"
+                    )
 
             # Check if JIRA is configured (FR-018: Error handling for unconfigured state)
             # Token is optional for public JIRA servers
