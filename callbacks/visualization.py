@@ -1309,7 +1309,7 @@ def register(app):
 
                 # Calculate days to deadline
                 try:
-                    deadline_date = pd.to_datetime(deadline)
+                    deadline_date = pd.to_datetime(deadline) if deadline else pd.NaT
                     if pd.isna(deadline_date):
                         days_to_deadline = 0
                     else:
@@ -2026,6 +2026,25 @@ def register(app):
                 chart_cache[cache_key] = statistics_content
                 ui_state["loading"] = False
                 return statistics_content, chart_cache, ui_state
+
+            elif active_tab == "tab-sprint-tracker":
+                # Generate Sprint Tracker content directly (no placeholder loading)
+                from callbacks.sprint_tracker import _render_sprint_tracker_content
+
+                # Get data_points_count from settings
+                data_points_count = int(
+                    settings.get("data_points_count", 12)
+                )  # Ensure int
+
+                # Render the actual content immediately
+                sprint_tracker_content = _render_sprint_tracker_content(
+                    data_points_count, show_points
+                )
+
+                # Cache the result for next time
+                chart_cache[cache_key] = sprint_tracker_content
+                ui_state["loading"] = False
+                return sprint_tracker_content, chart_cache, ui_state
 
             # Default fallback (should not reach here)
             fallback_content = create_content_placeholder(
