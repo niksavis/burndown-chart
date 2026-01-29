@@ -48,9 +48,7 @@ from ui.component_utilities import (
     create_export_buttons,
     create_error_alert,
 )
-
-# Remaining components (PERT and parameter panel still in components.py)
-from ui.components import (
+from ui.pert_components import (
     create_pert_info_table,
 )
 from ui.layout import create_app_layout, serve_layout
