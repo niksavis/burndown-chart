@@ -7,10 +7,56 @@ Follows Bug Analysis pattern for conditional tab display.
 """
 
 import logging
+from typing import Dict
 from dash import html, dcc
 import dash_bootstrap_components as dbc
 
 logger = logging.getLogger(__name__)
+
+
+def _apply_sprint_filters(
+    sprint_data: Dict, issue_type_filter: str = "all", status_filter: str = "all"
+) -> Dict:
+    """Apply filters to sprint data.
+
+    Args:
+        sprint_data: Sprint snapshot from get_sprint_snapshots()
+        issue_type_filter: Issue type to filter ("all", "Story", "Task", "Bug")
+        status_filter: Status to filter ("all", or specific status)
+
+    Returns:
+        Filtered sprint data
+    """
+    if issue_type_filter == "all" and status_filter == "all":
+        return sprint_data
+
+    # Create filtered copy
+    filtered_data = {
+        "name": sprint_data.get("name"),
+        "current_issues": [],
+        "added_issues": sprint_data.get("added_issues", []),
+        "removed_issues": sprint_data.get("removed_issues", []),
+        "issue_states": {},
+    }
+
+    # Filter issue_states
+    issue_states = sprint_data.get("issue_states", {})
+    for issue_key, state in issue_states.items():
+        # Apply issue type filter
+        if issue_type_filter != "all":
+            if state.get("issue_type") != issue_type_filter:
+                continue
+
+        # Apply status filter
+        if status_filter != "all":
+            if state.get("status") != status_filter:
+                continue
+
+        # Issue passes filters
+        filtered_data["issue_states"][issue_key] = state
+        filtered_data["current_issues"].append(issue_key)
+
+    return filtered_data
 
 
 def _render_sprint_tracker_content(
@@ -120,6 +166,7 @@ def _render_sprint_tracker_content(
             create_sprint_summary_cards,
             create_sprint_selector,
             create_sprint_change_indicators,
+            create_sprint_filters,
         )
         from visualization.sprint_charts import (
             create_sprint_progress_bars,
@@ -163,6 +210,9 @@ def _render_sprint_tracker_content(
             create_sprint_selector(sprint_ids) if len(sprint_ids) > 1 else html.Div()
         )
 
+        # Create filter controls
+        filter_controls = create_sprint_filters()
+
         # Assemble the complete layout
         return html.Div(
             [
@@ -174,6 +224,8 @@ def _render_sprint_tracker_content(
                         summary_cards,
                         # Change indicators
                         change_indicators,
+                        # Filter controls
+                        filter_controls,
                         # Progress bars
                         dbc.Row(
                             [

@@ -11,7 +11,7 @@ Follows Bug Analysis pattern for conditional tab display.
 
 from dash import html, dcc
 import dash_bootstrap_components as dbc
-from typing import Dict, List, Optional
+from typing import Dict, List
 
 
 def create_sprint_tracker_tab() -> html.Div:
