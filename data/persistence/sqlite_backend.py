@@ -797,37 +797,48 @@ class SQLiteBackend(PersistenceBackend):
     def get_jira_cache(
         self, profile_id: str, query_id: str, cache_key: str
     ) -> Optional[Dict]:
-        """LEGACY: Get JIRA cache - returns aggregated normalized data with metadata."""
+        """
+        Get JIRA cache - returns aggregated normalized data with metadata.
+
+        Note: Metadata (timestamp, config_hash) is derived from jira_issues table.
+        The jira_cache table is no longer used as issues table has all needed info.
+        """
         try:
             with get_db_connection(self.db_path) as conn:
                 cursor = conn.cursor()
 
-                # Get cache metadata
+                # Get cache metadata derived from jira_issues table
+                # Use fetched_at as timestamp (when data was fetched)
+                # Note: config_hash is not stored in jira_issues, but cache_key already
+                # encodes configuration, so we use empty string (validated by cache_key match)
                 cursor.execute(
                     """
-                    SELECT timestamp, config_hash, issue_count, expires_at
-                    FROM jira_cache
+                    SELECT 
+                        MIN(fetched_at) as timestamp,
+                        COUNT(*) as issue_count
+                    FROM jira_issues
                     WHERE profile_id = ? AND query_id = ? AND cache_key = ?
                     """,
                     (profile_id, query_id, cache_key),
                 )
                 row = cursor.fetchone()
 
-                if not row:
+                if not row or row[1] == 0:  # No issues found
                     return None
 
-                timestamp, config_hash, issue_count, expires_at = row
+                timestamp, issue_count = row
 
                 # Get issues from normalized table
                 issues = self.get_issues(profile_id, query_id)
 
                 # Return in cache_manager expected format
+                # Note: config_hash is empty since cache_key already encodes config
                 return {
                     "issues": issues,
                     "metadata": {
                         "timestamp": timestamp,
                         "cache_key": cache_key,
-                        "config_hash": config_hash,
+                        "config_hash": "",  # Not needed - cache_key encodes config
                     },
                 }
 
@@ -845,13 +856,15 @@ class SQLiteBackend(PersistenceBackend):
         expires_at: datetime,
     ) -> None:
         """
-        Save JIRA cache - saves issues, changelog, and metadata.
+        Save JIRA cache - saves issues and changelog.
 
         This is the main entry point for saving JIRA data to the database.
         It handles both issues and changelog extraction from the JIRA API response.
+
+        Note: Cache metadata (timestamp, config_hash) is no longer stored separately
+        in jira_cache table. It can be derived from jira_issues table when needed.
         """
         issues = response.get("issues", [])
-        metadata = response.get("metadata", {})
 
         # Save normalized issues (with two-layer storage: raw + normalized)
         self.save_issues_batch(profile_id, query_id, cache_key, issues, expires_at)
@@ -867,32 +880,6 @@ class SQLiteBackend(PersistenceBackend):
             )
         else:
             logger.debug(f"No changelog data found in {len(issues)} issues")
-
-        # Save cache metadata
-        try:
-            with get_db_connection(self.db_path) as conn:
-                cursor = conn.cursor()
-                cursor.execute(
-                    """
-                    INSERT OR REPLACE INTO jira_cache (
-                        profile_id, query_id, cache_key, timestamp, config_hash,
-                        issue_count, expires_at
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?)
-                    """,
-                    (
-                        profile_id,
-                        query_id,
-                        cache_key,
-                        metadata.get("timestamp", datetime.now().isoformat()),
-                        metadata.get("config_hash", ""),
-                        len(issues),
-                        expires_at.isoformat(),
-                    ),
-                )
-                conn.commit()
-        except Exception as e:
-            logger.error(f"Failed to save cache metadata: {e}")
-            raise
 
     def _extract_changelog_from_issues(self, issues: List[Dict]) -> List[Dict]:
         """

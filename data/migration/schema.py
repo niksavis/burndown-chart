@@ -151,26 +151,6 @@ def create_schema(conn: sqlite3.Connection) -> None:
     cursor.execute(
         "CREATE INDEX IF NOT EXISTS idx_jira_issues_assignee ON jira_issues(profile_id, query_id, assignee)"
     )
-
-    # Table 4b: jira_cache (metadata for cache validation)
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS jira_cache (
-            profile_id TEXT NOT NULL,
-            query_id TEXT NOT NULL,
-            cache_key TEXT NOT NULL,
-            timestamp TEXT NOT NULL,
-            config_hash TEXT NOT NULL,
-            issue_count INTEGER NOT NULL,
-            expires_at TEXT NOT NULL,
-            PRIMARY KEY (profile_id, query_id, cache_key),
-            FOREIGN KEY (profile_id, query_id) REFERENCES queries(profile_id, id) ON DELETE CASCADE
-        )
-    """)
-
-    # Index for jira_cache
-    cursor.execute(
-        "CREATE INDEX IF NOT EXISTS idx_jira_cache_key ON jira_cache(profile_id, query_id, cache_key)"
-    )
     cursor.execute(
         "CREATE INDEX IF NOT EXISTS idx_jira_issues_type ON jira_issues(profile_id, query_id, issue_type)"
     )
@@ -420,6 +400,40 @@ def set_schema_version(conn: sqlite3.Connection, version: str) -> None:
         (version,),
     )
     conn.commit()
+
+
+def drop_jira_cache_table(conn: sqlite3.Connection) -> None:
+    """
+    Drop jira_cache table if it exists.
+
+    The jira_cache table stored metadata (timestamp, config_hash, issue_count)
+    that is now derived from jira_issues table on demand. This table is no
+    longer needed and can be safely dropped.
+
+    Safe to call multiple times (idempotent).
+
+    Args:
+        conn: SQLite connection
+
+    Example:
+        >>> with get_db_connection() as conn:
+        ...     drop_jira_cache_table(conn)
+    """
+    cursor = conn.cursor()
+
+    # Check if jira_cache table exists
+    cursor.execute(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name='jira_cache'"
+    )
+    if cursor.fetchone():
+        logger.info("Dropping jira_cache table (metadata now derived from jira_issues)")
+        cursor.execute("DROP TABLE jira_cache")
+        conn.commit()
+        logger.info("jira_cache table dropped successfully")
+    else:
+        logger.debug(
+            "jira_cache table does not exist (already removed or new database)"
+        )
 
 
 def ensure_budget_velocity_columns(conn: sqlite3.Connection) -> None:

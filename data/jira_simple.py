@@ -2631,11 +2631,7 @@ def sync_jira_scope_and_data(
                         )
                         stats_deleted = cursor.rowcount
 
-                        cursor.execute(
-                            "DELETE FROM jira_cache WHERE profile_id = ? AND query_id = ?",
-                            (active_profile_id, active_query_id),
-                        )
-                        cache_deleted = cursor.rowcount
+                        # Note: jira_cache table removed - cache metadata derived from jira_issues
 
                         cursor.execute(
                             "DELETE FROM jira_changelog_entries WHERE profile_id = ? AND query_id = ?",
@@ -2666,7 +2662,7 @@ def sync_jira_scope_and_data(
 
                         logger.info(
                             f"[JIRA] Force refresh atomically deleted: {deleted_count} issues, "
-                            f"{stats_deleted} statistics, {cache_deleted} cache entries, "
+                            f"{stats_deleted} statistics, "
                             f"{changelog_deleted} changelog entries, {metrics_deleted} metrics, "
                             f"{scope_deleted} scope, {task_deleted} tasks from database"
                         )

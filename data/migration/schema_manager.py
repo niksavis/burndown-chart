@@ -24,6 +24,7 @@ from data.migration.schema import (
     get_schema_version,
     set_schema_version,
     ensure_budget_velocity_columns,
+    drop_jira_cache_table,
 )
 
 logger = logging.getLogger(__name__)
@@ -92,6 +93,7 @@ def initialize_schema(db_path: Path = DEFAULT_DB_PATH, force: bool = False) -> b
                 )
                 logger.info("Running schema migrations")
                 ensure_budget_velocity_columns(conn)
+                drop_jira_cache_table(conn)
                 set_schema_version(conn, CURRENT_SCHEMA_VERSION)
                 logger.info("Schema migrations completed")
                 return True

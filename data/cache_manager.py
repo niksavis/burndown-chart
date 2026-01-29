@@ -6,7 +6,7 @@ This module provides enhanced caching functionality with:
 - Cache validation (age, config hash, version)
 - Automatic invalidation on configuration changes
 - Cache metadata tracking
-- **Database backend integration**: Uses SQLite when available, falls back to JSON files
+- **Database backend integration**: Uses SQLite database for persistent cache storage
 
 Usage:
     from data.cache_manager import (
@@ -75,7 +75,7 @@ def _get_backend():
         _backend_available = True
         return _backend_instance
     except Exception as e:
-        logger.debug(f"Backend not available, using JSON fallback: {e}")
+        logger.debug(f"Backend not available: {e}")
         _backend_available = False
         return None
 
@@ -217,10 +217,10 @@ def load_cache_with_validation(
     Load cache data with validation checks.
 
     **Backend Integration**: If backend is available, automatically retrieves
-    active profile/query from app state and loads from database. Falls back to JSON file.
+    active profile/query from app state and loads from database.
 
     Validates cache by checking:
-    - File/record exists
+    - Record exists in database
     - Not expired (within max_age_hours)
     - Config hash matches (same configuration)
 
@@ -228,7 +228,7 @@ def load_cache_with_validation(
         cache_key: MD5 hash identifying this cache
         config_hash: Hash of current configuration
         max_age_hours: Maximum age in hours before cache expires (default: 24)
-        cache_dir: Directory containing cache files (default: "cache")
+        cache_dir: Directory containing cache files (unused, kept for backwards compatibility)
         profile_id: Optional profile ID (auto-fetched if not provided)
         query_id: Optional query ID (auto-fetched if not provided)
 
@@ -271,8 +271,11 @@ def load_cache_with_validation(
                     else:
                         metadata = cache_response["metadata"]
 
-                        # Check config hash
-                        if metadata.get("config_hash") != config_hash:
+                        # Check config hash (skip if empty - cache_key already validates config)
+                        # Note: After jira_cache table removal, config_hash is not stored
+                        # but cache_key matching already ensures config matches
+                        cached_config_hash = metadata.get("config_hash", "")
+                        if cached_config_hash and cached_config_hash != config_hash:
                             logger.debug(
                                 f"Database cache invalid: config mismatch ({cache_key})"
                             )
@@ -304,68 +307,11 @@ def load_cache_with_validation(
                 else:
                     logger.debug(f"Database cache miss: no record found ({cache_key})")
         except Exception as e:
-            logger.warning(f"Database cache load failed, falling back to JSON: {e}")
-            # Fall through to JSON file load
+            logger.error(f"Database cache load failed: {e}")
 
-    # Fallback to JSON file
-    cache_file = os.path.join(cache_dir, f"{cache_key}.json")
-
-    # Check if cache file exists
-    if not os.path.exists(cache_file):
-        logger.debug(f"JSON cache miss: file not found ({cache_key})")
-        return False, None
-
-    try:
-        # Load cache file
-        with open(cache_file, "r", encoding="utf-8") as f:
-            cache_data = json.load(f)
-
-        # Validate structure
-        if "metadata" not in cache_data or "data" not in cache_data:
-            logger.warning(
-                f"JSON cache invalid: missing metadata or data ({cache_key})"
-            )
-            return False, None
-
-        metadata = cache_data["metadata"]
-
-        # Check config hash
-        if metadata.get("config_hash") != config_hash:
-            logger.debug(f"JSON cache invalid: config mismatch ({cache_key})")
-            return False, None
-
-        # Check timestamp
-        timestamp_str = metadata.get("timestamp")
-        if not timestamp_str:
-            logger.warning(f"JSON cache invalid: missing timestamp ({cache_key})")
-            return False, None
-
-        # Parse timestamp and check age
-        cache_timestamp = datetime.fromisoformat(timestamp_str)
-
-        # Make timestamps timezone-aware for comparison
-        if cache_timestamp.tzinfo is None:
-            # Naive timestamp - assume UTC
-            cache_timestamp = cache_timestamp.replace(tzinfo=timezone.utc)
-
-        now_utc = datetime.now(timezone.utc)
-        age_hours = (now_utc - cache_timestamp).total_seconds() / 3600
-
-        if age_hours > max_age_hours:
-            logger.debug(
-                f"JSON cache expired: {age_hours:.1f}h old (max: {max_age_hours}h) ({cache_key})"
-            )
-            return False, None
-
-        # Cache is valid
-        logger.info(
-            f"JSON cache hit: loaded {len(cache_data['data'])} items ({age_hours:.1f}h old)"
-        )
-        return True, cache_data["data"]
-
-    except (json.JSONDecodeError, ValueError, KeyError) as e:
-        logger.error(f"JSON cache read error: {e} ({cache_key})", exc_info=True)
-        return False, None
+    # No cache available
+    logger.debug(f"Cache miss: no valid cache found ({cache_key})")
+    return False, None
 
 
 def save_cache(
@@ -435,56 +381,30 @@ def save_cache(
                 logger.info(f"Cache saved to database: {len(data)} items ({cache_key})")
                 return
         except Exception as e:
-            logger.warning(f"Database cache save failed, falling back to JSON: {e}")
-            # Fall through to JSON file save
+            logger.error(f"Database cache save failed: {e}")
 
-    # Fallback to JSON file
-    # Ensure cache directory exists
-    os.makedirs(cache_dir, exist_ok=True)
-
-    # Create cache data with metadata
-    cache_data = {
-        "metadata": {
-            "timestamp": datetime.now(timezone.utc).isoformat(),
-            "cache_key": cache_key,
-            "config_hash": config_hash,
-        },
-        "data": data,
-    }
-
-    # Write to cache file
-    cache_file = os.path.join(cache_dir, f"{cache_key}.json")
-    try:
-        with open(cache_file, "w", encoding="utf-8") as f:
-            json.dump(cache_data, f, indent=2)
-
-        logger.info(f"Cache saved to JSON: {len(data)} items ({cache_key})")
-
-    except (IOError, OSError) as e:
-        logger.error(f"Cache write error: {e} ({cache_key})", exc_info=True)
+    # If we reach here, cache save failed (no backend or no profile/query IDs)
+    logger.warning(
+        f"Cache not saved: database backend unavailable or no active profile/query ({cache_key})"
+    )
 
 
 def invalidate_cache(cache_key: str, cache_dir: str = "cache") -> None:
     """
-    Invalidate (delete) cache file.
+    [DEPRECATED] This function is no longer used.
+
+    Cache is now stored in database and is automatically invalidated
+    when configuration changes or queries are deleted.
+
+    Legacy JSON file-based cache invalidation - kept for backwards compatibility.
 
     Args:
-        cache_key: MD5 hash identifying cache to invalidate
-        cache_dir: Directory containing cache files (default: "cache")
-
-    Example:
-        >>> invalidate_cache("abc123...")
+        cache_key: MD5 hash identifying cache to invalidate (unused)
+        cache_dir: Directory containing cache files (unused)
     """
-    cache_file = os.path.join(cache_dir, f"{cache_key}.json")
-
-    if os.path.exists(cache_file):
-        try:
-            os.remove(cache_file)
-            logger.info(f"Cache invalidated: {cache_key}")
-        except (IOError, OSError) as e:
-            logger.error(f"Cache deletion error: {e} ({cache_key})", exc_info=True)
-    else:
-        logger.debug(f"Cache file not found for invalidation: {cache_key}")
+    logger.debug(
+        f"invalidate_cache called but deprecated - cache managed by database ({cache_key})"
+    )
 
 
 def invalidate_metrics_cache_only() -> None:

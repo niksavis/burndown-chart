@@ -1145,18 +1145,11 @@ def register(app):
                                 f"[Settings] ✓ Deleted {stats_deleted} project statistics"
                             )
 
-                        # Step 3: Delete JIRA cache for this query
-                        with get_db_connection() as conn:
-                            cursor = conn.cursor()
-                            cursor.execute(
-                                "DELETE FROM jira_cache WHERE profile_id = ? AND query_id = ?",
-                                (active_profile_id, active_query_id),
-                            )
-                            cache_deleted = cursor.rowcount
-                            conn.commit()
-                            logger.info(
-                                f"[Settings] ✓ Deleted {cache_deleted} JIRA cache entries"
-                            )
+                        # Step 3: JIRA cache is automatically cleaned via CASCADE DELETE
+                        # (jira_issues, jira_changelog_entries are CASCADE deleted when query deleted)
+                        logger.debug(
+                            "[Settings] JIRA cache will be cascade deleted with query"
+                        )
 
                         # Step 4: Invalidate global cache files
                         from data.cache_manager import invalidate_all_cache
@@ -1203,7 +1196,7 @@ def register(app):
                         logger.info("=" * 60)
                         logger.info("[Settings] COMPLETE DATA WIPE SUCCESSFUL")
                         logger.info(
-                            f"[Settings] Deleted: {issues_deleted} issues, {stats_deleted} stats, {cache_deleted} cache"
+                            f"[Settings] Deleted: {issues_deleted} issues, {stats_deleted} stats from database"
                         )
                         logger.info(
                             "[Settings] All data will be re-fetched fresh from JIRA"

@@ -21,19 +21,18 @@ The burndown chart app uses a SQLite database for persistent storage and caching
 
 **Note**: The `cache/` folder contains `cache.db`, which is created by Dash's diskcache library for background callback management. This is framework infrastructure and not part of the application data model.
 
-**Key Tables** (12 total):
+**Key Tables** (11 total):
 1. `app_state` - Application settings (key-value store)
 2. `profiles` - Profile configurations
 3. `queries` - Query definitions (JQL, name, timestamps)
 4. `jira_issues` - Normalized JIRA issue data (replaces jira_cache.json)
-5. `jira_cache` - Cache metadata (timestamps, expiry, config hashes)
-6. `jira_changelog_entries` - Issue change history (replaces jira_changelog_cache.json)
-7. `project_statistics` - Weekly statistics (replaces project_data.json statistics array)
-8. `project_scope` - Project scope data (JSON aggregate)
-9. `metrics_data_points` - Historical metrics (replaces metrics_snapshots.json)
-10. `budget_settings` - Profile-level budget configuration
-11. `budget_revisions` - Budget change event log
-12. `task_progress` - Runtime task progress tracking
+5. `jira_changelog_entries` - Issue change history (replaces jira_changelog_cache.json)
+6. `project_statistics` - Weekly statistics (replaces project_data.json statistics array)
+7. `project_scope` - Project scope data (JSON aggregate)
+8. `metrics_data_points` - Historical metrics (replaces metrics_snapshots.json)
+9. `budget_settings` - Profile-level budget configuration
+10. `budget_revisions` - Budget change event log
+11. `task_progress` - Runtime task progress tracking
 
 **Why database storage**:
 - **Performance** - Indexed queries, no full-file parsing
@@ -441,24 +440,9 @@ CREATE INDEX idx_jira_issues_expiry ON jira_issues(expires_at);
 CREATE INDEX idx_jira_issues_cache ON jira_issues(cache_key);
 ```
 
-#### 5. jira_cache (metadata table)
-```sql
-CREATE TABLE IF NOT EXISTS jira_cache (
-    profile_id TEXT NOT NULL,
-    query_id TEXT NOT NULL,
-    cache_key TEXT NOT NULL,
-    timestamp TEXT NOT NULL,
-    config_hash TEXT NOT NULL,
-    issue_count INTEGER NOT NULL,
-    expires_at TEXT NOT NULL,
-    PRIMARY KEY (profile_id, query_id, cache_key),
-    FOREIGN KEY (profile_id, query_id) REFERENCES queries(profile_id, id) ON DELETE CASCADE
-);
+**Note**: Cache metadata (timestamp, config_hash) is derived from jira_issues table when needed, not stored separately.
 
-CREATE INDEX idx_jira_cache_key ON jira_cache(profile_id, query_id, cache_key);
-```
-
-#### 6. jira_changelog_entries (normalized - replaces jira_changelog_cache.json)
+#### 5. jira_changelog_entries (normalized - replaces jira_changelog_cache.json)
 ```sql
 CREATE TABLE IF NOT EXISTS jira_changelog_entries (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -484,7 +468,7 @@ CREATE INDEX idx_changelog_status ON jira_changelog_entries(field_name, new_valu
 CREATE INDEX idx_changelog_expiry ON jira_changelog_entries(expires_at);
 ```
 
-#### 7. project_statistics (normalized - replaces project_data.statistics)
+#### 6. project_statistics (normalized - replaces project_data.json statistics array)
 ```sql
 CREATE TABLE IF NOT EXISTS project_statistics (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -512,7 +496,7 @@ CREATE INDEX idx_project_stats_date ON project_statistics(profile_id, query_id, 
 CREATE INDEX idx_project_stats_week ON project_statistics(week_label);
 ```
 
-#### 8. project_scope
+#### 7. project_scope
 ```sql
 CREATE TABLE IF NOT EXISTS project_scope (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -527,7 +511,7 @@ CREATE TABLE IF NOT EXISTS project_scope (
 CREATE INDEX idx_project_scope_query ON project_scope(profile_id, query_id);
 ```
 
-#### 9. metrics_data_points (normalized - replaces metrics_snapshots.json)
+#### 8. metrics_data_points (normalized - replaces metrics_snapshots.json)
 ```sql
 CREATE TABLE IF NOT EXISTS metrics_data_points (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -555,7 +539,7 @@ CREATE INDEX idx_metrics_category ON metrics_data_points(metric_category);
 CREATE INDEX idx_metrics_value ON metrics_data_points(metric_name, metric_value);
 ```
 
-#### 10. budget_settings (query-level budget configuration)
+#### 9. budget_settings (query-level budget configuration)
 ```sql
 CREATE TABLE IF NOT EXISTS budget_settings (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -575,7 +559,7 @@ CREATE TABLE IF NOT EXISTS budget_settings (
 CREATE INDEX idx_budget_settings_profile_query ON budget_settings(profile_id, query_id);
 ```
 
-#### 11. budget_revisions (budget change event log)
+#### 10. budget_revisions (budget change event log)
 ```sql
 CREATE TABLE IF NOT EXISTS budget_revisions (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -596,7 +580,7 @@ CREATE INDEX idx_budget_revisions_profile_query ON budget_revisions(profile_id, 
 CREATE INDEX idx_budget_revisions_week ON budget_revisions(profile_id, query_id, week_label);
 ```
 
-#### 12. task_progress
+#### 11. task_progress
 ```sql
 CREATE TABLE IF NOT EXISTS task_progress (
     task_name TEXT PRIMARY KEY,
