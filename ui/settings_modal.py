@@ -15,7 +15,10 @@ import dash_bootstrap_components as dbc
 from dash import dcc, html
 
 from ui.button_utils import create_button
-from ui.components import create_character_count_display, should_show_character_warning
+from ui.jql_components import (
+    create_character_count_display,
+    should_show_character_warning,
+)
 from ui.jql_editor import create_jql_editor
 
 

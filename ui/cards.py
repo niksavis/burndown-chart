@@ -112,7 +112,7 @@ from configuration.settings import (
 from ui.button_utils import create_button
 
 # Import character count components (Feature 001-add-jql-query)
-from ui.components import (
+from ui.jql_components import (
     create_character_count_display,
     should_show_character_warning,
 )
