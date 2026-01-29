@@ -35,7 +35,7 @@ import sqlite3
 from functools import wraps
 from pathlib import Path
 from typing import Dict, List, Optional, Any, Callable
-from datetime import datetime
+from datetime import datetime, timezone
 
 from data.persistence import (
     PersistenceBackend,
