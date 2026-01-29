@@ -8,18 +8,9 @@ Tests the cache management system for JIRA data including:
 - Cache invalidation triggers
 """
 
-import pytest
-import os
-import json
-import tempfile
-from datetime import datetime, timedelta
-
 # Import all cache manager functions
 from data.cache_manager import (
     generate_cache_key,
-    load_cache_with_validation,
-    save_cache,
-    invalidate_cache,
     CacheInvalidationTrigger,
 )
 
