@@ -884,6 +884,21 @@ def render_tab_content(
             ),
         }
 
+        # Backward compatibility: prefill Estimate from jira_config if not mapped
+        jira_points_field = (
+            settings.get("jira_config", {}).get("points_field", "").strip()
+        )
+        if jira_points_field:
+            if "field_mappings" not in state_data:
+                state_data["field_mappings"] = {}
+            if "general" not in state_data["field_mappings"]:
+                state_data["field_mappings"]["general"] = {}
+            if not state_data["field_mappings"]["general"].get("estimate"):
+                state_data["field_mappings"]["general"]["estimate"] = jira_points_field
+                logger.info(
+                    "[FieldMapping] Prefilled Estimate from jira_config points_field"
+                )
+
         # Merge in any field_mappings collected from namespace inputs
         # These take precedence over saved settings (user just typed them)
         if existing_field_mappings:
@@ -1541,9 +1556,15 @@ def auto_configure_from_metadata(
         if "field_mappings" in defaults:
             new_state["field_mappings"] = defaults["field_mappings"]
 
-        # Points field - store separately for jira_config (NOT in field_mappings)
+        # Points field - store in General Fields mapping (Estimate)
         if "points_field" in defaults:
-            new_state["points_field"] = defaults["points_field"]
+            if "field_mappings" not in new_state:
+                new_state["field_mappings"] = {}
+            if "general" not in new_state["field_mappings"]:
+                new_state["field_mappings"]["general"] = {}
+            new_state["field_mappings"]["general"]["estimate"] = defaults[
+                "points_field"
+            ]
 
         # Field values - store for dropdown population
         if "field_values" in defaults:
@@ -2601,14 +2622,18 @@ def save_or_validate_mappings(namespace_values, state_data):
                 "production_environment_values"
             ]
 
-        # Points field - goes in jira_config, NOT field_mappings
-        if "points_field" in state_data:
-            if "jira_config" not in settings:
-                settings["jira_config"] = {}
-            settings["jira_config"]["points_field"] = state_data["points_field"]
-            logger.info(
-                f"[FieldMapping] Updated points_field in jira_config: {state_data['points_field']}"
-            )
+        # Points field - read from General > Estimate mapping, stored in jira_config
+        estimate_field = (
+            settings.get("field_mappings", {}).get("general", {}).get("estimate", "")
+        )
+        if "jira_config" not in settings:
+            settings["jira_config"] = {}
+        settings["jira_config"]["points_field"] = (
+            estimate_field.strip() if isinstance(estimate_field, str) else ""
+        )
+        logger.info(
+            "[FieldMapping] Updated points_field in jira_config from Estimate mapping"
+        )
 
         # Save to disk - extract individual parameters from settings dict
         save_app_settings(

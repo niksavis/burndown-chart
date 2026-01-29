@@ -5236,11 +5236,21 @@ input[id*="namespace-field-input"]::placeholder {
 /* Namespace suggestion list styling - IDE-style autocomplete */
 .namespace-suggestions-dropdown {
   position: absolute;
-  z-index: 1050;
+  z-index: 1200;
   width: 100%;
   max-height: 200px;
   overflow-y: auto;
   margin-top: 2px;
+}
+
+/* Ensure namespace dropdowns overlay other modal content */
+#field-mapping-modal .namespace-input-container {
+  overflow: visible !important;
+  z-index: 1200;
+}
+
+#field-mapping-modal .namespace-suggestions-dropdown {
+  z-index: 1210;
 }
 
 /* Only show styling when dropdown has content */

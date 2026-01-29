@@ -605,7 +605,7 @@ class SQLiteBackend(PersistenceBackend):
         # Load profile configuration to get points field mapping and general field mappings
         profile_data = self.get_profile(profile_id)
         jira_config = {}
-        points_field = None
+        points_field = ""
         field_mappings = {}
 
         if profile_data:
@@ -632,6 +632,10 @@ class SQLiteBackend(PersistenceBackend):
         general_mappings = field_mappings.get("general", {})
         if not isinstance(general_mappings, dict):
             general_mappings = {}
+
+        estimate_field = general_mappings.get("estimate", "")
+        if isinstance(estimate_field, str) and estimate_field.strip():
+            points_field = estimate_field.strip()
 
         completed_date_field = general_mappings.get("completed_date", "resolutiondate")
         created_date_field = general_mappings.get("created_date", "created")
@@ -1031,19 +1035,29 @@ class SQLiteBackend(PersistenceBackend):
         if not profile:
             raise ValueError(f"Profile not found: {profile_id}")
 
-        # Profile is a dict from sqlite Row, jira_config is already a string
-        jira_config_str = profile.get("jira_config") or "{}"
-        try:
-            # Only parse if it's a string
-            if isinstance(jira_config_str, str):
-                jira_config = json.loads(jira_config_str) if jira_config_str else {}
-            else:
-                jira_config = jira_config_str  # Already a dict
-        except json.JSONDecodeError:
-            logger.error(f"Invalid jira_config JSON for profile {profile_id}")
-            return 0
+        jira_config = profile.get("jira_config") or {}
+        if isinstance(jira_config, str):
+            try:
+                jira_config = json.loads(jira_config) if jira_config else {}
+            except json.JSONDecodeError:
+                logger.error(f"Invalid jira_config JSON for profile {profile_id}")
+                return 0
 
-        points_field = jira_config.get("points_field", "").strip()
+        field_mappings = profile.get("field_mappings") or {}
+        if isinstance(field_mappings, str):
+            try:
+                field_mappings = json.loads(field_mappings) if field_mappings else {}
+            except json.JSONDecodeError:
+                logger.error(f"Invalid field_mappings JSON for profile {profile_id}")
+                return 0
+
+        estimate_field = ""
+        if isinstance(field_mappings, dict):
+            estimate_field = field_mappings.get("general", {}).get("estimate", "")
+
+        points_field = (
+            estimate_field.strip() if isinstance(estimate_field, str) else ""
+        ) or jira_config.get("points_field", "").strip()
 
         if not points_field:
             logger.warning(

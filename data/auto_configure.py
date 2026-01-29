@@ -281,9 +281,10 @@ def generate_smart_defaults(
                     f"[AutoConfigure] Found custom {field_name} field - using {field_detections[detection_key]}"
                 )
 
-        # Store points_field separately for jira_config
+        # Store points field for Estimate mapping (General Fields)
         if "points_field" in field_detections:
             defaults["points_field"] = field_detections["points_field"]
+            general_mappings["estimate"] = field_detections["points_field"]
             logger.info(
                 f"[AutoConfigure] Detected points field: {field_detections['points_field']}"
             )

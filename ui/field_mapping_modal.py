@@ -476,6 +476,12 @@ def create_field_mapping_form(
                 "datetime",
                 "When issue was last modified | OPTIONAL for Delta Calculations | Standard field: updated | Type: datetime",
             ),
+            (
+                "estimate",
+                "Estimate",
+                "number",
+                "Story points or effort estimate | OPTIONAL for points tracking | Type: number",
+            ),
         ],
         field_options,
         current_mappings.get("field_mappings", {}).get("general", {}),  # type: ignore
@@ -504,8 +510,6 @@ def create_field_mapping_form(
                 "select",
                 "Secondary work classification | OPTIONAL for enhanced Flow Distribution | Type: select",
             ),
-            # NOTE: Estimate/Story Points field is configured in JIRA Connection modal, not here
-            # This avoids duplicate configuration and confusion
             # NOTE: work_started_date is obsolete.
             # Flow Time now uses flow_start_statuses and flow_end_statuses lists
             # from Project Classification to find status transitions in changelog.

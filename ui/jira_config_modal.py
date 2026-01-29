@@ -173,31 +173,6 @@ def create_jira_config_modal():
                         ],
                         className="mb-3",
                     ),
-                    # Field Mapping (Full width for technical field)
-                    dbc.Row(
-                        [
-                            dbc.Col(
-                                [
-                                    dbc.Label(
-                                        "Estimate Field",
-                                        html_for="jira-points-field-input",
-                                        className="fw-bold",
-                                    ),
-                                    dbc.Input(
-                                        id="jira-points-field-input",
-                                        type="text",
-                                        placeholder="customfield_10016",
-                                    ),
-                                    dbc.FormText(
-                                        "JIRA custom field ID for story points or effort estimate (e.g., customfield_10016)",
-                                        color="muted",
-                                    ),
-                                ],
-                                width=12,
-                            ),
-                        ],
-                        className="mb-3",
-                    ),
                     # Save status feedback area
                     html.Div(id="jira-save-status"),
                 ]

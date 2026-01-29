@@ -21,7 +21,7 @@ window.dash_clientside.namespace_autocomplete = {
   buildAutocompleteData: function (metadata) {
     console.log(
       "[Autocomplete] buildAutocompleteData CALLED with:",
-      metadata ? "data" : "null"
+      metadata ? "data" : "null",
     );
 
     if (!metadata || metadata.error) {
@@ -71,7 +71,7 @@ window.dash_clientside.namespace_autocomplete = {
       result.projects.length,
       "projects,",
       result.statuses.length,
-      "statuses"
+      "statuses",
     );
 
     return result;
@@ -92,7 +92,7 @@ window.dash_clientside.namespace_autocomplete = {
     inputValue,
     autocompleteData,
     metric,
-    field
+    field,
   ) {
     // Expected field type CATEGORIES for each metric variable
     // Using categories instead of exact types because JIRA has many type variants
@@ -102,6 +102,10 @@ window.dash_clientside.namespace_autocomplete = {
       code_commit_date: "datetime",
       incident_detected_at: "datetime",
       incident_resolved_at: "datetime",
+      // General fields
+      completed_date: "datetime",
+      created_date: "datetime",
+      updated_date: "datetime",
       // DORA Metrics - boolean/option fields
       deployment_successful: "option",
       change_failure: "option",
@@ -213,7 +217,7 @@ window.dash_clientside.namespace_autocomplete = {
 
     // Find field in metadata
     const fieldInfo = autocompleteData.fields.find(
-      (f) => f.id === fieldId || f.name.toLowerCase() === fieldId.toLowerCase()
+      (f) => f.id === fieldId || f.name.toLowerCase() === fieldId.toLowerCase(),
     );
 
     if (!fieldInfo) {
@@ -430,14 +434,14 @@ window.dash_clientside.namespace_autocomplete = {
       const validProject = autocompleteData.projects.find(
         (p) =>
           p.key === projectPrefix || // Exact match for project key
-          p.key.toUpperCase() === projectPrefix.toUpperCase() // Case-insensitive for keys
+          p.key.toUpperCase() === projectPrefix.toUpperCase(), // Case-insensitive for keys
       );
       if (!validProject) {
         // Check for partial match
         const partialMatches = autocompleteData.projects.filter(
           (p) =>
             p.key.toUpperCase().startsWith(projectPrefix.toUpperCase()) ||
-            p.name.toLowerCase().startsWith(projectPrefix.toLowerCase())
+            p.name.toLowerCase().startsWith(projectPrefix.toLowerCase()),
         );
         if (partialMatches.length > 0) {
           return `Unknown project "${projectPrefix}" - did you mean "${partialMatches[0].key}"?`;
@@ -467,7 +471,7 @@ window.dash_clientside.namespace_autocomplete = {
           f.id === fieldPart || // Exact ID match
           f.id.toLowerCase() === fieldLower || // Case-insensitive ID
           f.name === fieldPart || // Exact name match
-          f.name.toLowerCase() === fieldLower // Case-insensitive name
+          f.name.toLowerCase() === fieldLower, // Case-insensitive name
       );
       if (fieldInfo) {
         fieldValid = true;
@@ -485,7 +489,7 @@ window.dash_clientside.namespace_autocomplete = {
         const partialMatches = autocompleteData.fields.filter(
           (f) =>
             f.id.toLowerCase().startsWith(fieldLower) ||
-            f.name.toLowerCase().startsWith(fieldLower)
+            f.name.toLowerCase().startsWith(fieldLower),
         );
         if (partialMatches.length > 0) {
           return `Unknown field "${fieldPart}" - did you mean "${partialMatches[0].name}" (${partialMatches[0].id})?`;
@@ -504,12 +508,12 @@ window.dash_clientside.namespace_autocomplete = {
         const validStatus = autocompleteData.statuses.find(
           (s) =>
             s.name === changelogValue || // Exact match
-            s.name.toLowerCase() === changelogValue.toLowerCase() // Case-insensitive
+            s.name.toLowerCase() === changelogValue.toLowerCase(), // Case-insensitive
         );
         if (!validStatus) {
           // Check for partial match
           const partialMatches = autocompleteData.statuses.filter((s) =>
-            s.name.toLowerCase().startsWith(changelogValue.toLowerCase())
+            s.name.toLowerCase().startsWith(changelogValue.toLowerCase()),
           );
           if (partialMatches.length > 0) {
             return `Unknown status "${changelogValue}" - did you mean "${partialMatches[0].name}"?`;
@@ -520,7 +524,7 @@ window.dash_clientside.namespace_autocomplete = {
               s.name.toLowerCase().includes(changelogValue.toLowerCase()) ||
               changelogValue
                 .toLowerCase()
-                .includes(s.name.toLowerCase().substring(0, 3))
+                .includes(s.name.toLowerCase().substring(0, 3)),
           );
           if (similarMatches.length > 0) {
             return `Unknown status "${changelogValue}" - similar: "${similarMatches[0].name}"`;
@@ -537,11 +541,11 @@ window.dash_clientside.namespace_autocomplete = {
         const validType = autocompleteData.issueTypes.find(
           (t) =>
             t.name === changelogValue ||
-            t.name.toLowerCase() === changelogValue.toLowerCase()
+            t.name.toLowerCase() === changelogValue.toLowerCase(),
         );
         if (!validType) {
           const partialMatches = autocompleteData.issueTypes.filter((t) =>
-            t.name.toLowerCase().startsWith(changelogValue.toLowerCase())
+            t.name.toLowerCase().startsWith(changelogValue.toLowerCase()),
           );
           if (partialMatches.length > 0) {
             return `Unknown issue type "${changelogValue}" - did you mean "${partialMatches[0].name}"?`;
@@ -556,11 +560,11 @@ window.dash_clientside.namespace_autocomplete = {
           const validPriority = autocompleteData.priorities.find(
             (p) =>
               p.name === changelogValue ||
-              p.name.toLowerCase() === changelogValue.toLowerCase()
+              p.name.toLowerCase() === changelogValue.toLowerCase(),
           );
           if (!validPriority) {
             const partialMatches = autocompleteData.priorities.filter((p) =>
-              p.name.toLowerCase().startsWith(changelogValue.toLowerCase())
+              p.name.toLowerCase().startsWith(changelogValue.toLowerCase()),
             );
             if (partialMatches.length > 0) {
               return `Unknown priority "${changelogValue}" - did you mean "${partialMatches[0].name}"?`;
@@ -577,11 +581,11 @@ window.dash_clientside.namespace_autocomplete = {
           const validResolution = autocompleteData.resolutions.find(
             (r) =>
               r.name === changelogValue ||
-              r.name.toLowerCase() === changelogValue.toLowerCase()
+              r.name.toLowerCase() === changelogValue.toLowerCase(),
           );
           if (!validResolution) {
             const partialMatches = autocompleteData.resolutions.filter((r) =>
-              r.name.toLowerCase().startsWith(changelogValue.toLowerCase())
+              r.name.toLowerCase().startsWith(changelogValue.toLowerCase()),
             );
             if (partialMatches.length > 0) {
               return `Unknown resolution "${changelogValue}" - did you mean "${partialMatches[0].name}"?`;
@@ -629,7 +633,7 @@ window.dash_clientside.namespace_autocomplete = {
     // For tab switches, only collect if we're leaving the Fields tab
     // (inputs must exist in DOM to be collected)
     const inputs = document.querySelectorAll(
-      '.namespace-input-container input[type="text"]'
+      '.namespace-input-container input[type="text"]',
     );
 
     // If no namespace inputs found (not on Fields tab or modal closed)
@@ -638,7 +642,7 @@ window.dash_clientside.namespace_autocomplete = {
     if (inputs.length === 0) {
       if (trigger === "tab_switch") {
         console.log(
-          "[Autocomplete] No namespace inputs found, skipping tab switch collection"
+          "[Autocomplete] No namespace inputs found, skipping tab switch collection",
         );
         return window.dash_clientside.no_update;
       }
@@ -646,7 +650,7 @@ window.dash_clientside.namespace_autocomplete = {
       // so other tabs (Status, Project, Issue Types) can still be validated
       console.log(
         "[Autocomplete] No namespace inputs found, continuing with empty field values for " +
-          trigger
+          trigger,
       );
     }
 
@@ -671,7 +675,7 @@ window.dash_clientside.namespace_autocomplete = {
               const error =
                 window.dash_clientside.namespace_autocomplete.isValidForSave(
                   value,
-                  autocompleteData
+                  autocompleteData,
                 );
               if (error) {
                 validationErrors.push({
@@ -711,7 +715,7 @@ window.dash_clientside.namespace_autocomplete = {
               "[Autocomplete] Collected:",
               metric + "." + field,
               "=",
-              value
+              value,
             );
           }
         }
@@ -724,7 +728,7 @@ window.dash_clientside.namespace_autocomplete = {
       "[Autocomplete] Collected namespace values (trigger=" + trigger + "):",
       values,
       "errors:",
-      validationErrors
+      validationErrors,
     );
 
     return {
@@ -891,12 +895,12 @@ window.dash_clientside.namespace_autocomplete = {
         s.type === "project"
           ? "📁"
           : s.type === "field"
-          ? "📋"
-          : s.type === "status"
-          ? "🔄"
-          : s.type === "extractor"
-          ? "⏱️"
-          : "📄";
+            ? "📋"
+            : s.type === "status"
+              ? "🔄"
+              : s.type === "extractor"
+                ? "⏱️"
+                : "📄";
       html += `
                 <button type="button" 
                         class="list-group-item list-group-item-action py-2" 
@@ -910,13 +914,13 @@ window.dash_clientside.namespace_autocomplete = {
                         ${
                           s.fieldType
                             ? `<span class="badge bg-secondary">${escapeHtml(
-                                s.fieldType
+                                s.fieldType,
                               )}</span>`
                             : ""
                         }
                     </div>
                     <small class="text-muted">${escapeHtml(
-                      s.description
+                      s.description,
                     )}</small>
                 </button>
             `;
@@ -1006,7 +1010,7 @@ function tryBuildFromMetadata() {
       const metadata = JSON.parse(rawData);
       if (metadata && !metadata.error && metadata.fields) {
         window.dash_clientside.namespace_autocomplete.buildAutocompleteData(
-          metadata
+          metadata,
         );
         console.log("[Autocomplete] Built data from metadata store on change");
       }
@@ -1026,7 +1030,7 @@ function initNamespaceAutocomplete() {
 
       const input = container.querySelector("input");
       const dropdown = container.querySelector(
-        ".namespace-suggestions-dropdown"
+        ".namespace-suggestions-dropdown",
       );
 
       if (!input || !dropdown) return;
@@ -1045,13 +1049,13 @@ function initNamespaceAutocomplete() {
             type: "field-validation-message",
           });
           validationContainer = document.querySelector(
-            `[id='${validationId}']`
+            `[id='${validationId}']`,
           );
           console.log(
             "[Autocomplete] Looking for validation container:",
             validationId,
             "found:",
-            !!validationContainer
+            !!validationContainer,
           );
         }
       } catch (e) {
@@ -1073,7 +1077,7 @@ function initNamespaceAutocomplete() {
                   input.value,
                   window._namespaceAutocompleteData,
                   idObj.metric,
-                  idObj.field
+                  idObj.field,
                 );
               validationContainer.innerHTML = validationHtml;
             } catch (e) {
@@ -1091,7 +1095,7 @@ function initNamespaceAutocomplete() {
           return;
         }
         selectedIndex = -1;
-        updateSuggestions(input.value, dropdown);
+        updateSuggestions(input.value, dropdown, input);
         runValidation();
 
         // Clear any save validation error when user starts typing
@@ -1123,7 +1127,7 @@ function initNamespaceAutocomplete() {
                 input.value,
                 window._namespaceAutocompleteData,
                 idObj.metric,
-                idObj.field
+                idObj.field,
               );
             validationContainer.innerHTML = validationHtml;
           } catch (e) {
@@ -1161,7 +1165,7 @@ function initNamespaceAutocomplete() {
             }
             break;
           case "Escape":
-            dropdown.innerHTML = "";
+            hideDropdown(dropdown, input);
             selectedIndex = -1;
             break;
         }
@@ -1223,11 +1227,11 @@ function initNamespaceAutocomplete() {
                 "[Autocomplete] Restoring reverted value:",
                 lastSelectedValue,
                 "current:",
-                input.value
+                input.value,
               );
               const nativeInputValueSetter = Object.getOwnPropertyDescriptor(
                 window.HTMLInputElement.prototype,
-                "value"
+                "value",
               ).set;
               nativeInputValueSetter.call(input, lastSelectedValue);
               input.dispatchEvent(new Event("input", { bubbles: true }));
@@ -1247,7 +1251,7 @@ function initNamespaceAutocomplete() {
       input.addEventListener("blur", function () {
         setTimeout(() => {
           if (!container.contains(document.activeElement)) {
-            dropdown.innerHTML = "";
+            hideDropdown(dropdown, input);
             selectedIndex = -1;
           }
         }, 200);
@@ -1258,14 +1262,28 @@ function initNamespaceAutocomplete() {
         // Don't reopen dropdown if we just completed a selection
         if (input.dataset.programmaticUpdate === "true") {
           console.log(
-            "[Autocomplete] Skipping focus suggestions - programmatic update"
+            "[Autocomplete] Skipping focus suggestions - programmatic update",
           );
           return;
         }
         if (input.value.trim().length > 0) {
-          updateSuggestions(input.value, dropdown);
+          updateSuggestions(input.value, dropdown, input);
         }
       });
+
+      // Reposition dropdown on scroll/resize (only if visible)
+      const repositionDropdown = () => {
+        if (
+          dropdown.innerHTML &&
+          dropdown.innerHTML.trim() &&
+          dropdown.parentElement === document.body
+        ) {
+          positionDropdown(dropdown, input);
+        }
+      };
+
+      window.addEventListener("scroll", repositionDropdown, true); // Use capture to catch all scrolls
+      window.addEventListener("resize", repositionDropdown);
 
       console.log("[Autocomplete] Initialized container for:", input.id);
     });
@@ -1274,7 +1292,7 @@ function initNamespaceAutocomplete() {
 /**
  * Update suggestions dropdown based on input value
  */
-function updateSuggestions(inputValue, dropdown) {
+function updateSuggestions(inputValue, dropdown, input) {
   // First try the global variable (set by clientside callback)
   let autocompleteData = window._namespaceAutocompleteData;
 
@@ -1295,7 +1313,7 @@ function updateSuggestions(inputValue, dropdown) {
             // Build autocomplete data from metadata
             autocompleteData =
               window.dash_clientside.namespace_autocomplete.buildAutocompleteData(
-                metadata
+                metadata,
               );
             console.log("[Autocomplete] Built data from metadata store");
           }
@@ -1303,7 +1321,7 @@ function updateSuggestions(inputValue, dropdown) {
       } catch (e) {
         console.log(
           "[Autocomplete] Could not parse metadata store:",
-          e.message
+          e.message,
         );
       }
     }
@@ -1322,10 +1340,52 @@ function updateSuggestions(inputValue, dropdown) {
   const html = window.dash_clientside.namespace_autocomplete.filterSuggestions(
     inputValue,
     autocompleteData,
-    0 // trigger count (unused, for callback signature)
+    0, // trigger count (unused, for callback signature)
   );
 
   dropdown.innerHTML = html;
+  positionDropdown(dropdown, input);
+}
+
+function positionDropdown(dropdown, input) {
+  if (!dropdown || !input) {
+    return;
+  }
+
+  if (!dropdown.innerHTML || !dropdown.innerHTML.trim()) {
+    // If empty, make sure it's back in its container and hidden
+    if (dropdown.parentElement !== input.parentElement) {
+      input.parentElement.appendChild(dropdown);
+    }
+    return;
+  }
+
+  // Move dropdown to document.body to escape any overflow:hidden constraints
+  if (dropdown.parentElement !== document.body) {
+    document.body.appendChild(dropdown);
+  }
+
+  // Position using fixed coordinates relative to the input
+  const rect = input.getBoundingClientRect();
+  dropdown.style.position = "fixed";
+  dropdown.style.top = `${rect.bottom + 2}px`;
+  dropdown.style.left = `${rect.left}px`;
+  dropdown.style.width = `${rect.width}px`;
+  dropdown.style.zIndex = "1200";
+}
+
+/**
+ * Hide dropdown and move it back to its original container
+ */
+function hideDropdown(dropdown, input) {
+  if (!dropdown || !input) return;
+
+  dropdown.innerHTML = "";
+
+  // Move back to original container if it was moved to body
+  if (dropdown.parentElement === document.body) {
+    input.parentElement.appendChild(dropdown);
+  }
 }
 
 function updateSelection(items, selectedIndex) {
@@ -1346,14 +1406,14 @@ function selectItem(input, item, dropdown) {
       "[Autocomplete] Selecting:",
       value,
       "current input:",
-      input.value
+      input.value,
     );
 
     // Set flag BEFORE any value changes to prevent input handler from reopening dropdown
     input.dataset.programmaticUpdate = "true";
 
     // Clear dropdown FIRST to prevent any race conditions
-    dropdown.innerHTML = "";
+    hideDropdown(dropdown, input);
 
     // For dcc.Input (React controlled), we need to properly update React's state
     // The key is to use the native setter AND dispatch the right events
@@ -1362,7 +1422,7 @@ function selectItem(input, item, dropdown) {
       // Get the native value setter
       const nativeInputValueSetter = Object.getOwnPropertyDescriptor(
         window.HTMLInputElement.prototype,
-        "value"
+        "value",
       ).set;
 
       // Set the value using native setter
@@ -1425,7 +1485,7 @@ function selectItem(input, item, dropdown) {
           const idObj = JSON.parse(inputId);
           if (idObj.metric && idObj.field) {
             const validationContainer = document.getElementById(
-              `validation-${idObj.metric}-${idObj.field}`
+              `validation-${idObj.metric}-${idObj.field}`,
             );
             if (validationContainer && window._autocompleteData) {
               const validationResult =
@@ -1433,12 +1493,12 @@ function selectItem(input, item, dropdown) {
                   value,
                   window._autocompleteData,
                   idObj.metric,
-                  idObj.field
+                  idObj.field,
                 );
               validationContainer.innerHTML = validationResult;
               console.log(
                 "[Autocomplete] Validation after select for",
-                inputId
+                inputId,
               );
             }
           }
@@ -1449,7 +1509,7 @@ function selectItem(input, item, dropdown) {
             const metric = match[1];
             const field = match[2];
             const validationContainer = document.getElementById(
-              `validation-${metric}-${field}`
+              `validation-${metric}-${field}`,
             );
             if (validationContainer && window._autocompleteData) {
               const validationResult =
@@ -1457,7 +1517,7 @@ function selectItem(input, item, dropdown) {
                   value,
                   window._autocompleteData,
                   metric,
-                  field
+                  field,
                 );
               validationContainer.innerHTML = validationResult;
             }

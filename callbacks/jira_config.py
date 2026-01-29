@@ -63,7 +63,6 @@ def open_jira_config_modal(n_clicks):
         Output("jira-token-input", "value"),
         Output("jira-cache-size-input", "value"),
         Output("jira-max-results-input", "value"),
-        Output("jira-points-field-input", "value"),
     ],
     Input("jira-config-modal", "is_open"),
 )
@@ -75,7 +74,7 @@ def load_jira_config(is_open):
         is_open: Whether the modal is currently open
 
     Returns:
-        Tuple of (base_url, api_version, token, cache_size, max_results, points_field)
+        Tuple of (base_url, api_version, token, cache_size, max_results)
     """
     if not is_open:
         raise PreventUpdate
@@ -90,12 +89,11 @@ def load_jira_config(is_open):
             config.get("token", ""),
             config.get("cache_size_mb", 100),
             config.get("max_results_per_call", 100),
-            config.get("points_field", ""),
         )
     except Exception as e:
         logger.error(f"Error loading JIRA configuration: {e}")
         # Return defaults on error
-        return ("", "v3", "", 100, 100, "")
+        return ("", "v3", "", 100, 100)
 
 
 #######################################################################
@@ -221,7 +219,6 @@ def test_jira_connection_callback(n_clicks, base_url, api_version, token):
         State("jira-token-input", "value"),
         State("jira-cache-size-input", "value"),
         State("jira-max-results-input", "value"),
-        State("jira-points-field-input", "value"),
         State("jira-config-save-trigger", "data"),  # Current trigger value
     ],
     prevent_initial_call=True,
@@ -233,7 +230,6 @@ def save_jira_configuration_callback(
     token,
     cache_size,
     max_results,
-    points_field,
     current_trigger,
 ):
     """
@@ -246,7 +242,6 @@ def save_jira_configuration_callback(
         token: Personal access token
         cache_size: Cache size limit in MB
         max_results: Maximum results per API call
-        points_field: Custom field ID for story points
         current_trigger: Current trigger value for incrementing
 
     Returns:
@@ -268,7 +263,6 @@ def save_jira_configuration_callback(
             "token": token.strip() if token else "",
             "cache_size_mb": int(cache_size) if cache_size else 100,
             "max_results_per_call": int(max_results) if max_results else 100,
-            "points_field": points_field.strip() if points_field else "",
             "configured": True,
         }
 
@@ -301,7 +295,7 @@ def save_jira_configuration_callback(
         try:
             existing_config = load_jira_configuration()
             # Preserve fields like last_test_timestamp, last_test_success
-            for key in ["last_test_timestamp", "last_test_success"]:
+            for key in ["last_test_timestamp", "last_test_success", "points_field"]:
                 if key in existing_config and key not in config:
                     config[key] = existing_config[key]
         except Exception as e:

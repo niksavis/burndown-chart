@@ -210,6 +210,13 @@ def get_jira_config(settings_jql_query: str | None = None) -> Dict:
             "JIRA_API_ENDPOINT", "https://jira.atlassian.com/rest/api/2/search"
         )
 
+    field_mappings = app_settings.get("field_mappings", {})
+    estimate_field = (
+        field_mappings.get("general", {}).get("estimate", "")
+        if isinstance(field_mappings, dict)
+        else ""
+    )
+
     config = {
         "jql_query": jql_query,
         "api_endpoint": api_endpoint,
@@ -219,7 +226,8 @@ def get_jira_config(settings_jql_query: str | None = None) -> Dict:
             or ""  # Default
         ),
         "story_points_field": (
-            jira_config.get("points_field", "")  # jira_config (new structure)
+            estimate_field  # Field mappings (General > Estimate)
+            or jira_config.get("points_field", "")  # jira_config (legacy)
             or os.getenv("JIRA_STORY_POINTS_FIELD", "")  # Environment variable
             or ""  # Default
         ),
@@ -241,9 +249,7 @@ def get_jira_config(settings_jql_query: str | None = None) -> Dict:
         "devops_task_types": app_settings.get(
             "devops_task_types", []
         ),  # Load DevOps task types (e.g., "Operational Task")
-        "field_mappings": app_settings.get(
-            "field_mappings", {}
-        ),  # Load field mappings for DORA/Flow metrics
+        "field_mappings": field_mappings,  # Load field mappings for DORA/Flow metrics
     }
 
     return config
