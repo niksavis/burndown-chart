@@ -51,6 +51,14 @@ from ui.component_utilities import (
 from ui.pert_components import (
     create_pert_info_table,
 )
+from ui.parameter_panel import (
+    create_parameter_panel,
+    create_parameter_bar_collapsed,
+    create_settings_tab_content,
+    create_parameter_panel_expanded,
+    create_mobile_parameter_fab,
+    create_mobile_parameter_bottom_sheet,
+)
 from ui.layout import create_app_layout, serve_layout
 from ui.tabs import create_tab_content, create_tabs
 
@@ -86,8 +94,15 @@ __all__ = [
     # Component Utilities
     "create_export_buttons",
     "create_error_alert",
-    # PERT Components (still in components.py)
+    # PERT Components
     "create_pert_info_table",
+    # Parameter Panel Components (User Story 1)
+    "create_parameter_panel",
+    "create_parameter_bar_collapsed",
+    "create_settings_tab_content",
+    "create_parameter_panel_expanded",
+    "create_mobile_parameter_fab",
+    "create_mobile_parameter_bottom_sheet",
     # Cards
     "create_forecast_graph_card",
     "create_forecast_info_card",

@@ -33,7 +33,7 @@ from configuration import (
     logger,
 )
 from data import calculate_total_points
-from ui.components import create_parameter_bar_collapsed
+from ui.parameter_panel import create_parameter_bar_collapsed
 
 #######################################################################
 # HELPER FUNCTIONS
