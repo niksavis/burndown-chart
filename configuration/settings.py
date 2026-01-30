@@ -85,6 +85,7 @@ COLOR_PALETTE = {
     "success": "rgb(25, 135, 84)",  # Bootstrap success green (#198754)
     "warning": "rgb(255, 193, 7)",  # Bootstrap warning yellow (#ffc107)
     "secondary": "rgb(108, 117, 125)",  # Bootstrap secondary gray (#6c757d)
+    "muted": "rgb(108, 117, 125)",  # Muted text color (same as secondary)
 }
 
 # PERT and Forecasting Help Texts - Phase 9.1 Simplified
