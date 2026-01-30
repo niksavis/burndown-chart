@@ -737,9 +737,9 @@ def create_forecast_plot(
     Returns:
         Tuple of (figure, pert_data_dict) where pert_data_dict contains all PERT forecast information
     """
-    # Import helper functions from charts.py (to avoid circular dependency)
+    # Import helper functions (to avoid circular dependency)
+    from visualization.data_preparation import prepare_visualization_data
     from visualization.charts import (
-        prepare_visualization_data,
         _calculate_forecast_completion_dates,
         _prepare_metrics_data,
     )

@@ -29,6 +29,11 @@ from visualization.elements import (
     create_forecast_trace,
     create_historical_trace,
 )
+from visualization.data_preparation import (
+    identify_significant_scope_growth,
+    generate_burndown_forecast,
+    prepare_visualization_data,
+)
 from visualization.helpers import (
     fill_missing_weeks,
     safe_numeric_convert,
@@ -36,10 +41,8 @@ from visualization.helpers import (
     get_weekly_metrics,
     calculate_forecast_completion_dates,
     prepare_metrics_data,
-    generate_burndown_forecast,
     format_hover_template_fix,
     handle_forecast_error,
-    identify_significant_scope_growth,
 )
 
 # Define public API
@@ -62,8 +65,10 @@ __all__ = [
     "get_weekly_metrics",
     "calculate_forecast_completion_dates",
     "prepare_metrics_data",
-    "generate_burndown_forecast",
     "format_hover_template_fix",
     "handle_forecast_error",
+    # Data preparation functions
     "identify_significant_scope_growth",
+    "generate_burndown_forecast",
+    "prepare_visualization_data",
 ]
