@@ -9,7 +9,7 @@ Reference: specs/namespace-syntax-analysis.md - Intellisense/Autocomplete Suppor
 import logging
 from typing import Dict, List, Optional
 
-from data.jira_metadata import JiraMetadataFetcher
+from data.jira.metadata_fetcher import JiraMetadataFetcher
 
 logger = logging.getLogger(__name__)
 

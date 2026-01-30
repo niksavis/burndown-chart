@@ -100,6 +100,9 @@ from data.jira.rate_limiter import (
     MAX_RETRY_DELAY,
 )
 
+# Phase 9: Metadata fetcher
+from data.jira.metadata_fetcher import JiraMetadataFetcher, create_metadata_fetcher
+
 __all__ = [
     # Configuration
     "get_jira_config",
@@ -158,6 +161,9 @@ __all__ = [
     "MAX_RETRY_ATTEMPTS",
     "INITIAL_RETRY_DELAY",
     "MAX_RETRY_DELAY",
+    # Phase 9: Metadata fetcher
+    "JiraMetadataFetcher",
+    "create_metadata_fetcher",
     # Constants
     "JIRA_CACHE_FILE",
     "JIRA_CHANGELOG_CACHE_FILE",

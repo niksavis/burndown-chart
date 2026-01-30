@@ -77,7 +77,7 @@ def _fetch_field_values(field_id: str, jira_config: Dict[str, Any]) -> List[str]
         return []
 
     try:
-        from data.jira_metadata import create_metadata_fetcher
+        from data.jira.metadata_fetcher import create_metadata_fetcher
 
         fetcher = create_metadata_fetcher(
             jira_url=jira_config.get("base_url", ""),
