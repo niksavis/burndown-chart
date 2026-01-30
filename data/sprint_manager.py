@@ -20,7 +20,9 @@ from collections import defaultdict
 logger = logging.getLogger(__name__)
 
 
-def get_active_sprint_from_issues(issues: List[Dict], sprint_field: str = "customfield_10005") -> Optional[str]:
+def get_active_sprint_from_issues(
+    issues: List[Dict], sprint_field: str = "customfield_10005"
+) -> Optional[str]:
     """Determine the active sprint from current issue sprint field data.
 
     JIRA stores full sprint objects with state in issue fields.
@@ -190,7 +192,8 @@ def get_sprint_snapshots(
             issue_current_sprint[issue_key] = new_sprint
 
     # Enrich snapshots with current issue states from issues list
-    issues_by_key = {issue.get("key"): issue for issue in issues}
+    # Backend returns flattened structure with 'issue_key' (not 'key')
+    issues_by_key = {issue.get("issue_key"): issue for issue in issues}
 
     for sprint_id, snapshot in sprint_snapshots.items():
         # Convert set to list for JSON serialization
@@ -202,28 +205,31 @@ def get_sprint_snapshots(
             if issue_key in issues_by_key:
                 issue = issues_by_key[issue_key]
 
-                # Extract status from nested fields
-                status = (
-                    issue.get("fields", {}).get("status", {}).get("name", "Unknown")
-                )
+                # Backend returns flattened structure, not nested fields
+                status = issue.get("status", "Unknown")
 
-                # Extract story points (try common custom field IDs)
-                story_points = None
-                custom_fields = issue.get("custom_fields", {})
-                if isinstance(custom_fields, dict):
-                    # Try common story points field IDs
-                    for field in ["customfield_10016", "customfield_10026"]:
-                        story_points = custom_fields.get(field)
-                        if story_points is not None:
-                            break
+                # Extract story points from custom_fields or direct 'points' field
+                story_points = issue.get("points")  # Backend stores normalized points
 
-                # Extract issue type
-                issue_type = (
-                    issue.get("fields", {}).get("issuetype", {}).get("name", "Unknown")
-                )
+                # If points is None, try custom_fields as fallback
+                if story_points is None:
+                    custom_fields = issue.get("custom_fields", {})
+                    if isinstance(custom_fields, dict):
+                        # Try common story points field IDs
+                        for field in [
+                            "customfield_10002",
+                            "customfield_10016",
+                            "customfield_10026",
+                        ]:
+                            story_points = custom_fields.get(field)
+                            if story_points is not None:
+                                break
 
-                # Extract summary
-                summary = issue.get("fields", {}).get("summary", "")
+                # Extract issue type (backend returns flattened)
+                issue_type = issue.get("issue_type", "Unknown")
+
+                # Extract summary (backend returns flattened)
+                summary = issue.get("summary", "")
 
                 snapshot["issue_states"][issue_key] = {
                     "status": status,
