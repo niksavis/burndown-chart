@@ -175,8 +175,12 @@ def get_sprint_snapshots(
 def _parse_sprint_name(sprint_value: Optional[str]) -> Optional[str]:
     """Parse sprint name from JIRA sprint field value.
 
-    JIRA returns sprint as serialized object string:
-    "com.atlassian.greenhopper.service.sprint.Sprint@14b3c[id=23,name=Sprint 23,...]"
+    JIRA returns sprint in different formats:
+    1. Serialized object: "com.atlassian.greenhopper.service.sprint.Sprint@14b3c[id=23,name=Sprint 23,...]"
+    2. Simple name: "Gravity Sprint 256"
+    3. Multiple sprints: "Gravity Sprint 254, Gravity Sprint 255, Gravity Sprint 256"
+
+    For multiple sprints, returns the LAST sprint (typically the active/current one).
 
     Args:
         sprint_value: Raw sprint value from JIRA
@@ -203,8 +207,14 @@ def _parse_sprint_name(sprint_value: Optional[str]) -> Optional[str]:
             except ValueError:
                 pass
 
+    # Handle comma-separated multiple sprints (e.g., "Sprint 254, Sprint 255, Sprint 256")
+    # Return the LAST sprint as it's typically the active/current one
+    if "," in sprint_value:
+        sprints = [s.strip() for s in sprint_value.split(",")]
+        return sprints[-1] if sprints else None
+
     # Fallback: return as-is if simple string
-    return sprint_value
+    return sprint_value.strip()
 
 
 def detect_sprint_changes(
