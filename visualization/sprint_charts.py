@@ -125,7 +125,9 @@ def create_sprint_progress_bars(
         title=f"Sprint Progress: {sprint_data.get('name', 'Sprint')}",
         xaxis_title="Time Spent (hours)",
         yaxis_title="Issues",
-        height=max(400, len(issue_keys) * 40),  # Dynamic height
+        height=max(
+            400, min(len(issue_keys) * 25, 800)
+        ),  # Dynamic height, capped at 800px
         showlegend=True,
         legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
         hovermode="closest",
@@ -196,12 +198,15 @@ def _calculate_state_segments(
     return segments
 
 
-def create_sprint_summary_card(progress_data: Dict, show_points: bool = False) -> Dict:
+def create_sprint_summary_card(
+    progress_data: Dict, show_points: bool = False, wip_statuses: List[str] = None
+) -> Dict:
     """Create summary statistics card data for sprint.
 
     Args:
         progress_data: Progress metrics from sprint_manager.calculate_sprint_progress()
         show_points: Whether to include story points metrics
+        wip_statuses: List of WIP statuses from flow mappings (default: ["In Progress"])
 
     Returns:
         Dict with card display data:
@@ -214,19 +219,21 @@ def create_sprint_summary_card(progress_data: Dict, show_points: bool = False) -
             "completed_points": 35.0
         }
     """
+    if wip_statuses is None:
+        wip_statuses = ["In Progress"]
+
     card_data = {
         "total_issues": progress_data.get("total_issues", 0),
         "completed": progress_data.get("completed_issues", 0),
         "completion_pct": progress_data.get("completion_percentage", 0.0),
     }
 
-    # Calculate in-progress count
+    # Calculate in-progress count using WIP status mappings
     by_status = progress_data.get("by_status", {})
     in_progress_count = sum(
         status_data.get("count", 0)
         for status, status_data in by_status.items()
-        if status
-        not in ["Done", "Closed", "Resolved", "To Do", "Open", "Backlog", "Selected"]
+        if status in wip_statuses
     )
     card_data["in_progress"] = in_progress_count
 

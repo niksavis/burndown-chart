@@ -11,7 +11,7 @@ Follows Bug Analysis pattern for conditional tab display.
 
 from dash import html, dcc
 import dash_bootstrap_components as dbc
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 
 def create_sprint_tracker_tab() -> html.Div:
@@ -282,17 +282,27 @@ def create_sprint_summary_cards(
     )
 
 
-def create_sprint_selector(available_sprints: List[str]) -> html.Div:
+def create_sprint_selector(
+    available_sprints: List[str], selected_sprint: Optional[str] = None
+) -> html.Div:
     """Create sprint selection dropdown.
 
     Args:
         available_sprints: List of sprint names/IDs
+        selected_sprint: Currently selected sprint (to set as dropdown value)
 
     Returns:
         Dropdown component for sprint selection
     """
     if not available_sprints:
         return html.Div()
+
+    # Use selected sprint if provided, otherwise default to first
+    dropdown_value = (
+        selected_sprint
+        if selected_sprint in available_sprints
+        else (available_sprints[0] if available_sprints else None)
+    )
 
     return html.Div(
         [
@@ -302,7 +312,7 @@ def create_sprint_selector(available_sprints: List[str]) -> html.Div:
                 options=[
                     {"label": sprint, "value": sprint} for sprint in available_sprints
                 ],
-                value=available_sprints[0] if available_sprints else None,
+                value=dropdown_value,
                 clearable=False,
                 className="mb-3",
             ),

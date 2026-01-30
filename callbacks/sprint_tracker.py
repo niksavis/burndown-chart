@@ -201,6 +201,7 @@ def _render_sprint_tracker_content(
         settings = load_app_settings()
         flow_mappings = settings.get("field_mappings", {}).get("flow", {})
         flow_end_statuses = flow_mappings.get("flow_end_statuses", ["Done", "Closed"])
+        flow_wip_statuses = flow_mappings.get("flow_wip_statuses", ["In Progress"])
 
         progress_data = calculate_sprint_progress(sprint_data, flow_end_statuses)
 
@@ -223,7 +224,9 @@ def _render_sprint_tracker_content(
         )
 
         # Build summary card data
-        summary_card_data = create_sprint_summary_card(progress_data, show_points)
+        summary_card_data = create_sprint_summary_card(
+            progress_data, show_points, flow_wip_statuses
+        )
 
         # Create sprint summary cards
         summary_cards = create_sprint_summary_cards(
@@ -254,7 +257,9 @@ def _render_sprint_tracker_content(
 
         # Create sprint selector if multiple sprints
         sprint_selector = (
-            create_sprint_selector(sprint_ids) if len(sprint_ids) > 1 else html.Div()
+            create_sprint_selector(sprint_ids, selected_sprint_id)
+            if len(sprint_ids) > 1
+            else html.Div()
         )
 
         # Create filter controls
