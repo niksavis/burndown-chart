@@ -175,7 +175,9 @@ def _render_sprint_tracker_content(
         active_sprint = get_active_sprint_from_issues(tracked_issues, sprint_field)
 
         # Select active sprint if found, otherwise use first sprint
-        sprint_ids = sorted(sprint_snapshots.keys(), reverse=True)  # Newest first by name
+        sprint_ids = sorted(
+            sprint_snapshots.keys(), reverse=True
+        )  # Newest first by name
         if active_sprint and active_sprint in sprint_snapshots:
             selected_sprint_id = active_sprint
             logger.info(f"Selected active sprint: {selected_sprint_id}")
@@ -185,6 +187,7 @@ def _render_sprint_tracker_content(
         else:
             logger.warning("No sprint snapshots available")
             from ui.sprint_tracker import create_no_sprints_state
+
             return create_no_sprints_state()
 
         sprint_data = sprint_snapshots[selected_sprint_id]
