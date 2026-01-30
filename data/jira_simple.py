@@ -2986,6 +2986,16 @@ def fetch_changelog_on_demand(
                         tracked_fields.append(sprint_field_id)
                         logger.info(f"[JIRA] Tracking sprint field: {sprint_field_id}")
 
+                    # DEBUG: Log unique field names from first issue to diagnose sprint field mismatch
+                    if issues_processed == 0 and histories:
+                        unique_fields = set()
+                        for hist in histories[:5]:  # Check first 5 histories
+                            for item in hist.get("items", []):
+                                unique_fields.add(item.get("field"))
+                        logger.info(
+                            f"[JIRA] Sample changelog field names for {issue_key}: {sorted(unique_fields)}"
+                        )
+
                     filtered_histories = []
                     for history in histories:
                         items = history.get("items", [])
