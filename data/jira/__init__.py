@@ -39,6 +39,16 @@ from data.jira.validation import (
     test_jql_query,
 )
 
+# Cache validation
+from data.jira.cache_validator import (
+    validate_cache_file,
+    get_cache_status,
+    invalidate_changelog_cache,
+)
+
+# Issue counter
+from data.jira.issue_counter import check_jira_issue_count
+
 __all__ = [
     # Configuration
     "get_jira_config",
@@ -52,6 +62,12 @@ __all__ = [
     # Validation
     "validate_jql_for_scriptrunner",
     "test_jql_query",
+    # Cache validation
+    "validate_cache_file",
+    "get_cache_status",
+    "invalidate_changelog_cache",
+    # Issue counter
+    "check_jira_issue_count",
     # Constants
     "JIRA_CACHE_FILE",
     "JIRA_CHANGELOG_CACHE_FILE",
