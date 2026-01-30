@@ -3010,10 +3010,15 @@ def fetch_changelog_on_demand(
                         items = history.get("items", [])
 
                         # Keep only tracked field change items
+                        # JIRA changelog items have BOTH:
+                        #   "field": "Sprint" (display name)
+                        #   "fieldId": "customfield_10005" (actual field ID)
+                        # We must check BOTH to catch all changes
                         tracked_items = [
                             item
                             for item in items
                             if item.get("field") in tracked_fields
+                            or item.get("fieldId") in tracked_fields
                         ]
 
                         if tracked_items:
@@ -3047,19 +3052,30 @@ def fetch_changelog_on_demand(
                         change_date = history.get("created", "")
                         items = history.get("items", [])
                         for item in items:
+                            # Check both field name and fieldId
                             field_name = item.get("field")
-                            if field_name in tracked_fields:
-                                changelog_entries_batch.append(
-                                    {
-                                        "issue_key": issue_key,
-                                        "change_date": change_date,
-                                        "author": "",  # Not stored in optimized cache
-                                        "field_name": field_name,
-                                        "field_type": "jira",
-                                        "old_value": item.get("fromString"),
-                                        "new_value": item.get("toString"),
-                                    }
-                                )
+                            field_id = item.get("fieldId")
+                            
+                            # Use fieldId if it matches tracked fields (for custom fields like sprint)
+                            # Otherwise use field name (for standard fields like status)
+                            if field_id and field_id in tracked_fields:
+                                final_field_name = field_id
+                            elif field_name and field_name in tracked_fields:
+                                final_field_name = field_name
+                            else:
+                                continue  # Skip if neither matches
+                                
+                            changelog_entries_batch.append(
+                                {
+                                    "issue_key": issue_key,
+                                    "change_date": change_date,
+                                    "author": "",  # Not stored in optimized cache
+                                    "field_name": final_field_name,
+                                    "field_type": "jira",
+                                    "old_value": item.get("fromString"),
+                                    "new_value": item.get("toString"),
+                                }
+                            )
 
                     issues_processed += 1
 
