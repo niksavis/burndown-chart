@@ -106,6 +106,7 @@ def create_sprint_progress_bars(
 
     # Fixed responsive layout
     fig.update_layout(
+        autosize=False,  # Critical: disable autosize
         barmode="stack",
         showlegend=True,
         legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="center", x=0.5),
@@ -114,12 +115,14 @@ def create_sprint_progress_bars(
             showgrid=False,
             zeroline=False,
             fixedrange=True,
+            range=[0, len(issue_states)],  # Fixed range
         ),
         yaxis=dict(
             showgrid=False,
-            fixedrange=False,
+            fixedrange=True,  # Prevent zooming
         ),
         height=400,  # Fixed height
+        width=None,  # Let width be responsive
         margin=dict(l=120, r=20, t=40, b=20),
         plot_bgcolor="white",
         paper_bgcolor="white",
@@ -293,14 +296,25 @@ def create_sprint_timeline_chart(sprint_changes: Dict) -> go.Figure:
     )
 
     fig.update_layout(
+        autosize=False,  # Critical: disable autosize
         showlegend=False,
         xaxis_title="",
         yaxis_title="Issue Count",
+        xaxis=dict(
+            fixedrange=True,
+        ),
+        yaxis=dict(
+            gridcolor="lightgray",
+            fixedrange=True,
+            range=[0, max(values) * 1.2]
+            if values
+            else [0, 10],  # Fixed range with 20% padding
+        ),
         height=350,  # Fixed height
+        width=None,  # Let width be responsive
         margin=dict(l=60, r=20, t=20, b=60),
         plot_bgcolor="white",
         paper_bgcolor="white",
-        yaxis=dict(gridcolor="lightgray"),
     )
 
     return fig
@@ -339,9 +353,11 @@ def create_status_distribution_pie(progress_data: Dict) -> go.Figure:
     )
 
     fig.update_layout(
+        autosize=False,  # CRITICAL: disable autosize
         showlegend=True,
         legend=dict(orientation="v", yanchor="middle", y=0.5, xanchor="left", x=1.05),
         height=400,  # Fixed height
+        width=None,  # Let width be responsive
         margin=dict(l=20, r=100, t=20, b=20),
     )
 

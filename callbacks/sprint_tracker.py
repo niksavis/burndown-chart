@@ -290,6 +290,7 @@ def _render_sprint_tracker_content(
                                                 "displayModeBar": False,
                                                 "responsive": True,
                                             },
+                                            style={"height": "450px"},
                                         ),
                                     ],
                                     xs=12,
@@ -309,6 +310,7 @@ def _render_sprint_tracker_content(
                                         dcc.Graph(
                                             figure=timeline_chart,
                                             config={"displayModeBar": False},
+                                            style={"height": "400px"},
                                         ),
                                     ],
                                     xs=12,
@@ -323,6 +325,7 @@ def _render_sprint_tracker_content(
                                         dcc.Graph(
                                             figure=status_pie,
                                             config={"displayModeBar": False},
+                                            style={"height": "450px"},
                                         ),
                                     ],
                                     xs=12,
