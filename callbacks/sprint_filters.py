@@ -82,7 +82,9 @@ def filter_sprint_by_issue_type(
         else:
             tracked_types = [issue_type_filter]
 
-        filtered_issues = filter_sprint_issues(all_issues, tracked_issue_types=tracked_types)
+        filtered_issues = filter_sprint_issues(
+            all_issues, tracked_issue_types=tracked_types
+        )
 
         if not filtered_issues:
             return html.Div(
@@ -200,18 +202,20 @@ def filter_sprint_by_issue_type(
                 html.Small(
                     [
                         html.Strong("Added: "),
-                        "Issues created directly in this sprint (from null → this sprint).",
+                        "Issues that were added to this sprint.",
                         html.Br(),
                         html.Strong("Moved In: "),
                         "Issues transferred from another sprint to this sprint.",
                         html.Br(),
                         html.Strong("Moved Out: "),
-                        "Issues transferred from this sprint to another sprint.",
+                        "Issues moved from this sprint to a different sprint (e.g., moved to a future sprint).",
                         html.Br(),
                         html.Strong("Removed: "),
-                        "Issues removed from this sprint entirely (sprint → null).",
+                        "Issues moved back to backlog (no sprint assigned).",
                         html.Br(),
-                        html.Em(f"Note: Showing {issue_type_filter} issue type{'s' if issue_type_filter == 'all' else ''} only (sub-tasks excluded)."),
+                        html.Em(
+                            f"Note: Showing {issue_type_filter} issue type{'s' if issue_type_filter == 'all' else ''} only (sub-tasks excluded)."
+                        ),
                     ]
                 ),
             ],

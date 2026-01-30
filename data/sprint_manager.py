@@ -637,4 +637,3 @@ def calculate_issue_status_timeline(
             seg["duration_pct"] = (seg["duration_hours"] / total_hours) * 100.0
 
     return segments
-

@@ -164,16 +164,16 @@ def update_sprint_selection(
                 html.Small(
                     [
                         html.Strong("Added: "),
-                        "Issues created directly in this sprint (from null → this sprint).",
+                        "Issues that were added to this sprint.",
                         html.Br(),
                         html.Strong("Moved In: "),
                         "Issues transferred from another sprint to this sprint.",
                         html.Br(),
                         html.Strong("Moved Out: "),
-                        "Issues transferred from this sprint to another sprint.",
+                        "Issues moved from this sprint to a different sprint (e.g., moved to a future sprint).",
                         html.Br(),
                         html.Strong("Removed: "),
-                        "Issues removed from this sprint entirely (sprint → null).",
+                        "Issues moved back to backlog (no sprint assigned).",
                         html.Br(),
                         html.Em(
                             "Note: Only Story, Task, and Bug issue types are tracked (sub-tasks excluded)."

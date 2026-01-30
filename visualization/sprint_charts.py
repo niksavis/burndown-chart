@@ -88,7 +88,9 @@ def create_sprint_progress_bars(
                     x=[100],  # 100% in current status
                     y=[issue_key],
                     orientation="h",
-                    marker_color=STATUS_COLORS.get(current_status, COLOR_PALETTE["muted"]),
+                    marker_color=STATUS_COLORS.get(
+                        current_status, COLOR_PALETTE["muted"]
+                    ),
                     text=[current_status],
                     textposition="inside",
                     hovertemplate=(
