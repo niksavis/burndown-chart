@@ -1,213 +1,106 @@
-"""Sprint Tracker Callbacks Module
+"""Sprint Tracker Dropdown Callback
 
-This module provides callback functions for the Sprint Tracker feature,
-handling sprint data rendering and filtering.
-
-Follows Bug Analysis pattern for conditional tab display.
+Handles sprint selection changes in the Sprint Tracker tab.
 """
 
 import logging
-from typing import Dict
-from dash import html, dcc
+from dash import callback, Input, Output, State, html, dcc, no_update
 import dash_bootstrap_components as dbc
 
 logger = logging.getLogger(__name__)
 
 
-def _apply_sprint_filters(
-    sprint_data: Dict, issue_type_filter: str = "all", status_filter: str = "all"
-) -> Dict:
-    """Apply filters to sprint data.
+@callback(
+    Output("sprint-tracker-tab-content", "children", allow_duplicate=True),
+    Input("sprint-selector-dropdown", "value"),
+    State("timeline-slider", "value"),
+    State("points-toggle", "value"),
+    prevent_initial_call=True,
+)
+def update_sprint_selection(
+    selected_sprint: str, data_points_count: int, show_points_list: list
+):
+    """Update Sprint Tracker tab when user selects a different sprint.
 
     Args:
-        sprint_data: Sprint snapshot from get_sprint_snapshots()
-        issue_type_filter: Issue type to filter ("all", "Story", "Task", "Bug")
-        status_filter: Status to filter ("all", or specific status)
+        selected_sprint: Sprint name/ID selected from dropdown
+        data_points_count: Number of weeks from timeline slider (not used here)
+        show_points_list: Story points toggle state
 
     Returns:
-        Filtered sprint data
+        Updated Sprint Tracker content for the selected sprint
     """
-    if issue_type_filter == "all" and status_filter == "all":
-        return sprint_data
+    if not selected_sprint:
+        return no_update
 
-    # Create filtered copy
-    filtered_data = {
-        "name": sprint_data.get("name"),
-        "current_issues": [],
-        "added_issues": sprint_data.get("added_issues", []),
-        "removed_issues": sprint_data.get("removed_issues", []),
-        "issue_states": {},
-    }
+    logger.info(f"Sprint selection changed to: {selected_sprint}")
 
-    # Filter issue_states
-    issue_states = sprint_data.get("issue_states", {})
-    for issue_key, state in issue_states.items():
-        # Apply issue type filter
-        if issue_type_filter != "all":
-            if state.get("issue_type") != issue_type_filter:
-                continue
+    # Determine if story points should be shown
+    show_points = "points" in (show_points_list or [])
 
-        # Apply status filter
-        if status_filter != "all":
-            if state.get("status") != status_filter:
-                continue
-
-        # Issue passes filters
-        filtered_data["issue_states"][issue_key] = state
-        filtered_data["current_issues"].append(issue_key)
-
-    return filtered_data
-
-
-def _render_sprint_tracker_content(
-    data_points_count: int, show_points: bool = False
-) -> html.Div:
-    """Render Sprint Tracker tab content.
-
-    This is called directly from the main visualization callback for instant
-    rendering without loading placeholder.
-
-    Args:
-        data_points_count: Number of weeks to include (from timeline filter)
-        show_points: Whether to show story points metrics
-
-    Returns:
-        Complete Sprint Tracker tab content (html.Div)
-    """
-    logger.info(
-        f"Rendering Sprint Tracker content with data_points: {data_points_count}"
-    )
-
+    # Re-render the entire sprint tracker with the selected sprint
+    # We need to reload data and filter to the selected sprint
     try:
-        # Load issues and changelog from database
         from data.persistence.factory import get_backend
+        from data.sprint_manager import filter_sprint_issues, get_sprint_snapshots
+        from data.persistence import load_app_settings
 
         backend = get_backend()
         active_profile_id = backend.get_app_state("active_profile_id")
         active_query_id = backend.get_app_state("active_query_id")
 
         if not active_profile_id or not active_query_id:
-            logger.warning("No active profile/query configured")
-            from ui.sprint_tracker import create_no_sprints_state
+            return no_update
 
-            return create_no_sprints_state()
-
-        # Load issues from database
+        # Load issues
         all_issues = backend.get_issues(active_profile_id, active_query_id)
-
-        if not all_issues:
-            logger.warning("No issues found in database")
-            from ui.sprint_tracker import create_no_sprints_state
-
-            return create_no_sprints_state()
-
-        logger.info(f"Loaded {len(all_issues)} issues from database")
-
-        # Filter to tracked issue types (Story, Task, Bug - exclude sub-tasks)
-        from data.sprint_manager import filter_sprint_issues
-
         tracked_issues = filter_sprint_issues(all_issues)
 
         if not tracked_issues:
-            logger.warning("No tracked issue types (Story/Task/Bug) found")
-            from ui.sprint_tracker import create_no_sprints_state
+            return no_update
 
-            return create_no_sprints_state()
-
-        # Get configured sprint field from settings
-        from data.persistence import load_app_settings
-
+        # Get sprint field
         settings = load_app_settings()
         field_mappings = settings.get("field_mappings", {})
-
-        # Sprint field is in general mappings (saved by field mapping UI)
         general_mappings = field_mappings.get("general", {})
         sprint_field = general_mappings.get("sprint_field")
 
         if not sprint_field:
-            logger.warning("Sprint field not configured in field mappings")
-            from ui.sprint_tracker import create_no_sprints_state
+            return no_update
 
-            return create_no_sprints_state()
-
-        logger.info(f"Using sprint field: {sprint_field}")
-
-        # Load sprint changelog entries using configured sprint field
-        # Try both custom field ID and "Sprint" display name (JIRA uses display name in changelog)
+        # Load changelog (try both custom field ID and "Sprint" display name)
         changelog_entries = backend.get_changelog_entries(
             active_profile_id, active_query_id, field_name=sprint_field
         )
 
-        # If no entries with custom field ID, try "Sprint" display name
         if not changelog_entries:
             changelog_entries = backend.get_changelog_entries(
                 active_profile_id, active_query_id, field_name="Sprint"
             )
-            if changelog_entries:
-                logger.info(
-                    f"Found {len(changelog_entries)} sprint entries using 'Sprint' field name"
-                )
 
-        if not changelog_entries or len(changelog_entries) == 0:
-            logger.info("No sprint changelog data found - sprints not configured")
-            from ui.sprint_tracker import create_no_sprints_state
+        if not changelog_entries:
+            return no_update
 
-            return create_no_sprints_state()
-
-        logger.info(f"Loaded {len(changelog_entries)} sprint changelog entries")
-
-        # Build sprint snapshots from changelog
-        from data.sprint_manager import get_sprint_snapshots, detect_sprint_changes
-
+        # Build sprint snapshots
         sprint_snapshots = get_sprint_snapshots(tracked_issues, changelog_entries)
 
-        if not sprint_snapshots:
-            logger.warning("No sprint snapshots built from changelog")
-            from ui.sprint_tracker import create_no_sprints_state
+        if selected_sprint not in sprint_snapshots:
+            logger.warning(f"Selected sprint {selected_sprint} not found in snapshots")
+            return no_update
 
-            return create_no_sprints_state()
+        # Get selected sprint data
+        sprint_data = sprint_snapshots[selected_sprint]
 
-        logger.info(f"Built {len(sprint_snapshots)} sprint snapshots")
+        # Calculate progress
+        from data.sprint_manager import calculate_sprint_progress, detect_sprint_changes
 
-        # Determine active sprint from issue data (uses JIRA state field)
-        from data.sprint_manager import get_active_sprint_from_issues
-
-        active_sprint = get_active_sprint_from_issues(tracked_issues, sprint_field)
-
-        # Select active sprint if found, otherwise use first sprint
-        sprint_ids = sorted(
-            sprint_snapshots.keys(), reverse=True
-        )  # Newest first by name
-        if active_sprint and active_sprint in sprint_snapshots:
-            selected_sprint_id = active_sprint
-            logger.info(f"Selected active sprint: {selected_sprint_id}")
-        elif sprint_ids:
-            selected_sprint_id = sprint_ids[0]
-            logger.info(f"No active sprint found, selected first: {selected_sprint_id}")
-        else:
-            logger.warning("No sprint snapshots available")
-            from ui.sprint_tracker import create_no_sprints_state
-
-            return create_no_sprints_state()
-
-        sprint_data = sprint_snapshots[selected_sprint_id]
-
-        logger.info(f"Selected sprint: {selected_sprint_id}")
-
-        # Calculate sprint progress
-        from data.sprint_manager import calculate_sprint_progress
-        from data.persistence import load_app_settings
-
-        settings = load_app_settings()
         flow_mappings = settings.get("field_mappings", {}).get("flow", {})
         flow_end_statuses = flow_mappings.get("flow_end_statuses", ["Done", "Closed"])
         flow_wip_statuses = flow_mappings.get("flow_wip_statuses", ["In Progress"])
 
         progress_data = calculate_sprint_progress(sprint_data, flow_end_statuses)
-
-        # Detect sprint changes
         sprint_changes = detect_sprint_changes(changelog_entries)
-        selected_sprint_changes = sprint_changes.get(selected_sprint_id, {})
+        selected_sprint_changes = sprint_changes.get(selected_sprint, {})
 
         # Create UI components
         from ui.sprint_tracker import (
@@ -228,12 +121,11 @@ def _render_sprint_tracker_content(
             progress_data, show_points, flow_wip_statuses
         )
 
-        # Create sprint summary cards
+        # Create components
         summary_cards = create_sprint_summary_cards(
-            selected_sprint_id, summary_card_data, show_points
+            selected_sprint, summary_card_data, show_points
         )
 
-        # Create change indicators
         change_indicators = create_sprint_change_indicators(
             len(selected_sprint_changes.get("added", [])),
             len(selected_sprint_changes.get("removed", [])),
@@ -241,7 +133,7 @@ def _render_sprint_tracker_content(
             len(selected_sprint_changes.get("moved_out", [])),
         )
 
-        # Load status changelog for time-in-status calculation
+        # Load status changelog
         status_changelog = backend.get_changelog_entries(
             active_profile_id, active_query_id, field_name="status"
         )
@@ -250,14 +142,13 @@ def _render_sprint_tracker_content(
         progress_bars = create_sprint_progress_bars(
             sprint_data, status_changelog, show_points
         )
-
         timeline_chart = create_sprint_timeline_chart(selected_sprint_changes)
-
         status_pie = create_status_distribution_pie(progress_data)
 
-        # Create sprint selector if multiple sprints
+        # Create sprint selector (keep all sprints available)
+        sprint_ids = sorted(sprint_snapshots.keys(), reverse=True)
         sprint_selector = (
-            create_sprint_selector(sprint_ids, selected_sprint_id)
+            create_sprint_selector(sprint_ids, selected_sprint)
             if len(sprint_ids) > 1
             else html.Div()
         )
@@ -265,7 +156,7 @@ def _render_sprint_tracker_content(
         # Create filter controls
         filter_controls = create_sprint_filters()
 
-        # Add explanation for sprint changes
+        # Add explanation tooltips
         explanation_note = dbc.Alert(
             [
                 html.Strong("Sprint Changes Explained:", className="me-2"),
@@ -294,20 +185,15 @@ def _render_sprint_tracker_content(
             className="mb-3 mt-3",
         )
 
-        # Assemble the complete layout
+        # Assemble layout
         return html.Div(
             [
                 dbc.Container(
                     [
-                        # Sprint selector
                         sprint_selector,
-                        # Summary cards
                         summary_cards,
-                        # Change indicators
                         change_indicators,
-                        # Explanation note
                         explanation_note,
-                        # Filter controls
                         filter_controls,
                         # Progress bars
                         dbc.Row(
@@ -375,20 +261,15 @@ def _render_sprint_tracker_content(
     except Exception as e:
         import traceback
 
-        logger.error(f"Error rendering Sprint Tracker content: {e}")
+        logger.error(f"Error updating sprint selection: {e}")
         logger.error(traceback.format_exc())
 
-        # Return error state
-        return html.Div(
+        return dbc.Alert(
             [
-                dbc.Alert(
-                    [
-                        html.I(className="fas fa-exclamation-triangle me-2"),
-                        html.Strong("Error: "),
-                        f"Failed to load Sprint Tracker data: {str(e)}",
-                    ],
-                    color="danger",
-                    className="m-4",
-                )
-            ]
+                html.I(className="fas fa-exclamation-triangle me-2"),
+                html.Strong("Error: "),
+                f"Failed to load sprint data: {str(e)}",
+            ],
+            color="danger",
+            className="m-4",
         )

@@ -1,0 +1,271 @@
+"""Sprint Tracker Filter Callbacks
+
+Handles filtering of sprint data by issue type.
+"""
+
+import logging
+from dash import callback, Input, Output, State, no_update, html
+import dash_bootstrap_components as dbc
+
+logger = logging.getLogger(__name__)
+
+
+@callback(
+    Output("sprint-tracker-tab-content", "children", allow_duplicate=True),
+    Input("sprint-issue-type-filter", "value"),
+    State("sprint-selector-dropdown", "value"),
+    State("timeline-slider", "value"),
+    State("points-toggle", "value"),
+    prevent_initial_call=True,
+)
+def filter_sprint_by_issue_type(
+    issue_type_filter: str,
+    selected_sprint: str,
+    data_points_count: int,
+    show_points_list: list,
+):
+    """Filter Sprint Tracker by issue type.
+
+    Args:
+        issue_type_filter: Issue type selected ("all", "Story", "Task", "Bug")
+        selected_sprint: Currently selected sprint name
+        data_points_count: Timeline slider value (not used)
+        show_points_list: Story points toggle state
+
+    Returns:
+        Updated Sprint Tracker content filtered by issue type
+    """
+    if not issue_type_filter:
+        return no_update
+
+    logger.info(f"Filtering sprint by issue type: {issue_type_filter}")
+
+    try:
+        from data.persistence.factory import get_backend
+        from data.sprint_manager import (
+            filter_sprint_issues,
+            get_sprint_snapshots,
+            detect_sprint_changes,
+            calculate_sprint_progress,
+            get_active_sprint_from_issues,
+        )
+        from data.persistence import load_app_settings
+        from ui.sprint_tracker import (
+            create_sprint_summary_cards,
+            create_sprint_selector,
+            create_sprint_change_indicators,
+            create_sprint_filters,
+            create_no_sprints_state,
+        )
+        from visualization.sprint_charts import (
+            create_sprint_progress_bars,
+            create_sprint_timeline_chart,
+            create_status_distribution_pie,
+            create_sprint_summary_card,
+        )
+
+        backend = get_backend()
+        active_profile_id = backend.get_app_state("active_profile_id")
+        active_query_id = backend.get_app_state("active_query_id")
+
+        if not active_profile_id or not active_query_id:
+            return create_no_sprints_state()
+
+        # Load issues and changelog
+        all_issues = backend.get_issues(active_profile_id, active_query_id)
+        if not all_issues:
+            return create_no_sprints_state()
+
+        # Filter to tracked issue types (Story/Task/Bug only)
+        if issue_type_filter == "all":
+            tracked_types = ["Story", "Task", "Bug"]
+        else:
+            tracked_types = [issue_type_filter]
+
+        filtered_issues = filter_sprint_issues(all_issues, tracked_issue_types=tracked_types)
+
+        if not filtered_issues:
+            return html.Div(
+                [
+                    dbc.Alert(
+                        [
+                            html.I(className="fas fa-filter fa-2x mb-3"),
+                            html.H5(f"No {issue_type_filter} Issues Found"),
+                            html.P(
+                                f"No issues of type '{issue_type_filter}' in current sprint. "
+                                "Try selecting 'All' or a different issue type."
+                            ),
+                        ],
+                        color="info",
+                        className="text-center p-5",
+                    )
+                ],
+                className="container mt-5",
+            )
+
+        # Load sprint changelog
+        settings = load_app_settings()
+        field_mappings = settings.get("field_mappings", {})
+        sprint_field = field_mappings.get("sprint_tracker", {}).get(
+            "sprint_field", "customfield_10005"
+        )
+
+        sprint_changelog = backend.get_changelog_entries(
+            active_profile_id, active_query_id, field_name="Sprint"
+        )
+
+        # Build sprint snapshots from filtered issues
+        sprint_snapshots = get_sprint_snapshots(
+            filtered_issues, sprint_changelog, sprint_field
+        )
+
+        if not sprint_snapshots:
+            return create_no_sprints_state()
+
+        # Use provided sprint or detect active sprint
+        if selected_sprint and selected_sprint in sprint_snapshots:
+            selected_sprint_id = selected_sprint
+        else:
+            active_sprint = get_active_sprint_from_issues(filtered_issues, sprint_field)
+            sprint_ids = sorted(sprint_snapshots.keys(), reverse=True)
+            if active_sprint and active_sprint in sprint_snapshots:
+                selected_sprint_id = active_sprint
+            elif sprint_ids:
+                selected_sprint_id = sprint_ids[0]
+            else:
+                return create_no_sprints_state()
+
+        sprint_data = sprint_snapshots[selected_sprint_id]
+
+        # Calculate sprint progress
+        flow_mappings = field_mappings.get("flow", {})
+        flow_end_statuses = flow_mappings.get("flow_end_statuses", ["Done", "Closed"])
+        flow_wip_statuses = flow_mappings.get("flow_wip_statuses", ["In Progress"])
+
+        progress_data = calculate_sprint_progress(sprint_data, flow_end_statuses)
+
+        # Detect sprint changes
+        sprint_changes = detect_sprint_changes(sprint_changelog)
+        selected_sprint_changes = sprint_changes.get(selected_sprint_id, {})
+
+        # Determine if story points should be shown
+        show_points = "points" in (show_points_list or [])
+
+        # Build summary card data
+        summary_card_data = create_sprint_summary_card(
+            progress_data, show_points, flow_wip_statuses
+        )
+
+        # Create UI components
+        summary_cards = create_sprint_summary_cards(
+            selected_sprint_id, summary_card_data, show_points
+        )
+
+        change_indicators = create_sprint_change_indicators(
+            len(selected_sprint_changes.get("added", [])),
+            len(selected_sprint_changes.get("removed", [])),
+            len(selected_sprint_changes.get("moved_in", [])),
+            len(selected_sprint_changes.get("moved_out", [])),
+        )
+
+        # Load status changelog for timeline
+        status_changelog = backend.get_changelog_entries(
+            active_profile_id, active_query_id, field_name="status"
+        )
+
+        # Create visualizations
+        progress_bars = create_sprint_progress_bars(
+            sprint_data, status_changelog, show_points
+        )
+
+        timeline_chart = create_sprint_timeline_chart(selected_sprint_changes)
+        status_pie = create_status_distribution_pie(progress_data)
+
+        # Create sprint selector
+        sprint_ids_list = sorted(sprint_snapshots.keys(), reverse=True)
+        sprint_selector = (
+            create_sprint_selector(sprint_ids_list, selected_sprint_id)
+            if len(sprint_ids_list) > 1
+            else html.Div()
+        )
+
+        # Filter controls
+        filter_controls = create_sprint_filters()
+
+        # Explanation note
+        explanation_note = dbc.Alert(
+            [
+                html.Strong("Sprint Changes Explained:", className="me-2"),
+                html.Br(),
+                html.Small(
+                    [
+                        html.Strong("Added: "),
+                        "Issues created directly in this sprint (from null → this sprint).",
+                        html.Br(),
+                        html.Strong("Moved In: "),
+                        "Issues transferred from another sprint to this sprint.",
+                        html.Br(),
+                        html.Strong("Moved Out: "),
+                        "Issues transferred from this sprint to another sprint.",
+                        html.Br(),
+                        html.Strong("Removed: "),
+                        "Issues removed from this sprint entirely (sprint → null).",
+                        html.Br(),
+                        html.Em(f"Note: Showing {issue_type_filter} issue type{'s' if issue_type_filter == 'all' else ''} only (sub-tasks excluded)."),
+                    ]
+                ),
+            ],
+            color="info",
+            className="mb-3 mt-3",
+        )
+
+        # Assemble layout
+        from dash import dcc
+
+        return html.Div(
+            [
+                dbc.Container(
+                    [
+                        sprint_selector,
+                        summary_cards,
+                        change_indicators,
+                        explanation_note,
+                        filter_controls,
+                        # Issue Progress Timeline
+                        html.H5("Issue Status Timeline", className="mt-4 mb-3"),
+                        dcc.Graph(
+                            figure=progress_bars,
+                            config={"displayModeBar": False},
+                            style={"height": "450px"},
+                        ),
+                        # Sprint Composition Changes
+                        html.H5("Sprint Composition Changes", className="mt-4 mb-3"),
+                        dcc.Graph(
+                            figure=timeline_chart,
+                            config={"displayModeBar": False},
+                            style={"height": "400px"},
+                        ),
+                        # Status Distribution
+                        html.H5("Status Distribution", className="mt-4 mb-3"),
+                        dcc.Graph(
+                            figure=status_pie,
+                            config={"displayModeBar": False},
+                            style={"height": "450px"},
+                        ),
+                    ],
+                    fluid=True,
+                    className="p-4",
+                )
+            ]
+        )
+
+    except Exception as e:
+        logger.error(f"Error filtering sprint by issue type: {e}", exc_info=True)
+        return dbc.Alert(
+            [
+                html.H5("Error Filtering Sprint"),
+                html.P(f"An error occurred while filtering the sprint: {str(e)}"),
+            ],
+            color="danger",
+            className="m-4",
+        )

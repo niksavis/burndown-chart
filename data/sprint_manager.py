@@ -537,3 +537,104 @@ def get_sprint_field_from_config(config: Dict) -> Optional[str]:
     field_mappings = config.get("field_mappings", {})
     sprint_tracker_mappings = field_mappings.get("sprint_tracker", {})
     return sprint_tracker_mappings.get("sprint_field")
+
+
+def calculate_issue_status_timeline(
+    issue_key: str,
+    changelog_entries: List[Dict],
+    include_current: bool = True,
+) -> List[Dict]:
+    """Calculate time spent in each status as percentages for timeline visualization.
+
+    This function creates timeline segments showing how an issue moved through
+    different statuses over time, with each segment representing a percentage
+    of total time spent.
+
+    Args:
+        issue_key: JIRA issue key
+        changelog_entries: List of status changelog entries from database
+        include_current: Whether to calculate time up to now for current status
+
+    Returns:
+        List of timeline segments:
+        [
+            {
+                "status": "To Do",
+                "start_time": datetime,
+                "end_time": datetime,
+                "duration_hours": 24.5,
+                "duration_pct": 10.0,  # Percentage of total time
+            },
+            ...
+        ]
+        Empty list if no status changes found
+    """
+    from datetime import datetime, timezone
+
+    # Filter to this issue's status changes
+    issue_changes = [
+        entry
+        for entry in changelog_entries
+        if entry.get("issue_key") == issue_key and entry.get("field_name") == "status"
+    ]
+
+    if not issue_changes:
+        return []
+
+    # Sort chronologically
+    issue_changes.sort(key=lambda x: x.get("change_date", ""))
+
+    # Build timeline segments
+    segments = []
+    for i, change in enumerate(issue_changes):
+        status = change.get("new_value", "Unknown")
+        change_date_str = change.get("change_date", "")
+
+        try:
+            start_time = datetime.fromisoformat(change_date_str.replace("Z", "+00:00"))
+        except (ValueError, AttributeError):
+            logger.warning(
+                f"Invalid date format for {issue_key}: {change_date_str}, skipping"
+            )
+            continue
+
+        # Determine end time - next change or now
+        if i < len(issue_changes) - 1:
+            next_change_date_str = issue_changes[i + 1].get("change_date", "")
+            try:
+                end_time = datetime.fromisoformat(
+                    next_change_date_str.replace("Z", "+00:00")
+                )
+            except (ValueError, AttributeError):
+                logger.warning(
+                    f"Invalid next date format for {issue_key}: {next_change_date_str}, using now"
+                )
+                end_time = datetime.now(timezone.utc)
+        else:
+            # Last change - use current time if include_current
+            end_time = datetime.now(timezone.utc) if include_current else start_time
+
+        # Calculate duration
+        duration = end_time - start_time
+        duration_hours = duration.total_seconds() / 3600
+
+        segments.append(
+            {
+                "status": status,
+                "start_time": start_time,
+                "end_time": end_time,
+                "duration_hours": duration_hours,
+                "duration_pct": 0.0,  # Will calculate after total known
+            }
+        )
+
+    # Calculate total time
+    total_hours = sum(seg["duration_hours"] for seg in segments)
+
+    # Calculate percentages
+    if total_hours > 0:
+        for seg in segments:
+            seg["duration_pct"] = (seg["duration_hours"] / total_hours) * 100.0
+
+    return segments
+

@@ -350,25 +350,6 @@ def create_sprint_filters() -> html.Div:
                         xs=12,
                         md=6,
                     ),
-                    dbc.Col(
-                        [
-                            dbc.Label("Status:"),
-                            dcc.Dropdown(
-                                id="sprint-status-filter",
-                                options=[
-                                    {"label": "All", "value": "all"},
-                                    {"label": "To Do", "value": "To Do"},
-                                    {"label": "In Progress", "value": "In Progress"},
-                                    {"label": "Done", "value": "Done"},
-                                ],
-                                value="all",
-                                clearable=False,
-                                className="mb-2",
-                            ),
-                        ],
-                        xs=12,
-                        md=6,
-                    ),
                 ],
                 className="g-2",
             )

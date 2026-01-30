@@ -34,96 +34,147 @@ def create_sprint_progress_bars(
     changelog_entries: Optional[List[Dict]] = None,
     show_points: bool = False,
 ) -> go.Figure:
-    """Create simple horizontal bars for sprint issues grouped by status.
+    """Create timeline bars showing status transitions for each issue over time.
+
+    Each bar is horizontally stacked showing colored segments representing
+    the percentage of time the issue spent in each status. This visualizes
+    how issues progressed through the workflow.
 
     Args:
         sprint_data: Sprint snapshot from sprint_manager.get_sprint_snapshots()
-        changelog_entries: Status change history (not used)
+        changelog_entries: Status change history (REQUIRED for timeline)
         show_points: Whether to show story points in labels
 
     Returns:
-        Plotly Figure with horizontal bars - fixed 400px height
+        Plotly Figure with stacked horizontal bars - fixed 400px height
     """
     logger.info(
-        f"Creating progress bars for sprint: {sprint_data.get('name', 'Unknown')}"
+        f"Creating timeline progress bars for sprint: {sprint_data.get('name', 'Unknown')}"
     )
 
     issue_states = sprint_data.get("issue_states", {})
     if not issue_states:
         return _create_empty_sprint_chart("No issues in sprint")
 
-    # Group issues by status
-    status_groups = {}
-    for issue_key, state in issue_states.items():
-        status = state.get("status", "Unknown")
-        if status not in status_groups:
-            status_groups[status] = []
-
-        summary = state.get("summary", "")
-        story_points = state.get("story_points", 0)
-
-        if show_points and story_points:
-            label = f"{issue_key} ({story_points}pts)"
-        else:
-            label = issue_key
-
-        status_groups[status].append(
-            {
-                "key": issue_key,
-                "label": label,
-                "summary": summary,
-                "points": story_points,
-            }
+    if not changelog_entries:
+        logger.warning("No changelog provided for timeline visualization")
+        return _create_empty_sprint_chart(
+            "No status history available - update data to fetch changelog"
         )
 
-    # Create figure with bars per status
+    # Import timeline calculation function
+    from data.sprint_manager import calculate_issue_status_timeline
+
+    # Build timeline data for each issue
     fig = go.Figure()
 
-    for status, issues in sorted(status_groups.items()):
-        labels = [issue["label"] for issue in issues]
-        summaries = [issue["summary"] for issue in issues]
+    issue_keys = sorted(issue_states.keys(), reverse=True)  # Newest at top
 
-        fig.add_trace(
-            go.Bar(
-                name=status,
-                y=labels,
-                x=[1] * len(labels),
-                orientation="h",
-                marker_color=STATUS_COLORS.get(status, COLOR_PALETTE["muted"]),
-                text=labels,
-                textposition="inside",
-                textangle=0,
-                insidetextanchor="start",
-                hovertemplate="<b>%{y}</b><br>"
-                + "<b>Status:</b> "
-                + status
-                + "<br>"
-                + "<b>Summary:</b> %{customdata}<br>"
-                + "<extra></extra>",
-                customdata=summaries,
-            )
+    for issue_key in issue_keys:
+        state = issue_states[issue_key]
+        summary = state.get("summary", "")
+
+        # Calculate timeline segments
+        timeline_segments = calculate_issue_status_timeline(
+            issue_key, changelog_entries, include_current=True
         )
+
+        if not timeline_segments:
+            # No status history - show single bar with current status
+            current_status = state.get("status", "Unknown")
+            fig.add_trace(
+                go.Bar(
+                    name=current_status,
+                    x=[100],  # 100% in current status
+                    y=[issue_key],
+                    orientation="h",
+                    marker_color=STATUS_COLORS.get(current_status, COLOR_PALETTE["muted"]),
+                    text=[current_status],
+                    textposition="inside",
+                    hovertemplate=(
+                        f"<b>{issue_key}</b><br>"
+                        f"<b>Status:</b> {current_status}<br>"
+                        f"<b>Summary:</b> {summary}<br>"
+                        f"<b>Time:</b> No status history<br>"
+                        "<extra></extra>"
+                    ),
+                    showlegend=True,
+                )
+            )
+        else:
+            # Show timeline segments
+            for segment in timeline_segments:
+                status = segment["status"]
+                duration_pct = segment["duration_pct"]
+                duration_hours = segment["duration_hours"]
+                start_time = segment["start_time"]
+                end_time = segment["end_time"]
+
+                # Format time display
+                duration_days = duration_hours / 24.0
+                if duration_hours < 1:
+                    time_str = f"{duration_hours * 60:.0f}min"
+                elif duration_hours < 24:
+                    time_str = f"{duration_hours:.1f}h"
+                else:
+                    time_str = f"{duration_days:.1f}d"
+
+                # Create hover text
+                hover_text = (
+                    f"<b>{issue_key}</b><br>"
+                    f"<b>Status:</b> {status}<br>"
+                    f"<b>Duration:</b> {time_str} ({duration_pct:.1f}%)<br>"
+                    f"<b>From:</b> {start_time.strftime('%Y-%m-%d %H:%M')}<br>"
+                    f"<b>To:</b> {end_time.strftime('%Y-%m-%d %H:%M')}<br>"
+                    f"<b>Summary:</b> {summary}<br>"
+                    "<extra></extra>"
+                )
+
+                fig.add_trace(
+                    go.Bar(
+                        name=status,
+                        x=[duration_pct],
+                        y=[issue_key],
+                        orientation="h",
+                        marker_color=STATUS_COLORS.get(status, COLOR_PALETTE["muted"]),
+                        text=[f"{duration_pct:.0f}%" if duration_pct > 5 else ""],
+                        textposition="inside",
+                        textangle=0,
+                        hovertemplate=hover_text,
+                        showlegend=True,
+                        legendgroup=status,  # Group same statuses
+                    )
+                )
 
     # Fixed responsive layout
     fig.update_layout(
         autosize=False,  # Critical: disable autosize
-        barmode="stack",
+        barmode="stack",  # Stack segments horizontally
         showlegend=True,
-        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="center", x=0.5),
+        legend=dict(
+            orientation="h",
+            yanchor="bottom",
+            y=1.02,
+            xanchor="center",
+            x=0.5,
+            title_text="Status",
+        ),
         xaxis=dict(
-            showticklabels=False,
-            showgrid=False,
+            title="Time Distribution (%)",
+            showticklabels=True,
+            showgrid=True,
             zeroline=False,
             fixedrange=True,
-            range=[0, len(issue_states)],  # Fixed range
+            range=[0, 100],  # Percentage scale
         ),
         yaxis=dict(
+            title="Issue",
             showgrid=False,
             fixedrange=True,  # Prevent zooming
         ),
-        height=400,  # Fixed height
+        height=max(400, len(issue_keys) * 25),  # Dynamic height based on issue count
         width=None,  # Let width be responsive
-        margin=dict(l=120, r=20, t=40, b=20),
+        margin=dict(l=120, r=20, t=60, b=40),
         plot_bgcolor="white",
         paper_bgcolor="white",
         hovermode="closest",
