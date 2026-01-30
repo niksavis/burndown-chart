@@ -114,9 +114,25 @@ def _render_sprint_tracker_content(
 
             return create_no_sprints_state()
 
-        # Load sprint changelog entries
+        # Get configured sprint field from settings
+        from data.persistence import load_app_settings
+
+        settings = load_app_settings()
+        field_mappings = settings.get("field_mappings", {})
+        sprint_tracker_mappings = field_mappings.get("sprint_tracker", {})
+        sprint_field = sprint_tracker_mappings.get("sprint_field")
+
+        if not sprint_field:
+            logger.warning("Sprint field not configured in field mappings")
+            from ui.sprint_tracker import create_no_sprints_state
+
+            return create_no_sprints_state()
+
+        logger.info(f"Using sprint field: {sprint_field}")
+
+        # Load sprint changelog entries using configured sprint field
         changelog_entries = backend.get_changelog_entries(
-            active_profile_id, active_query_id, field_name="sprint"
+            active_profile_id, active_query_id, field_name=sprint_field
         )
 
         if not changelog_entries or len(changelog_entries) == 0:
