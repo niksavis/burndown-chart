@@ -4,14 +4,14 @@
 
 **Last Updated**: 2026-01-29
 
-| Category | Files | Lines | Tokens |
-|----------|-------|-------|--------|
-| **Total** | 551 | 236.9K | **~2.1M** |
-| Code (Python + JS/CSS) | 242 | 136.8K | ~1.2M |
-| Python (no tests) | 219 | 125.6K | ~1.1M |
-| Frontend (JS/CSS) | 23 | 11.2K | ~72.9K |
-| Tests | 122 | 35.7K | ~310.6K |
-| Documentation (MD) | 187 | 64.5K | ~597.0K |
+| Category               | Files | Lines  | Tokens    |
+| ---------------------- | ----- | ------ | --------- |
+| **Total**              | 551   | 236.9K | **~2.1M** |
+| Code (Python + JS/CSS) | 242   | 136.8K | ~1.2M     |
+| Python (no tests)      | 219   | 125.6K | ~1.1M     |
+| Frontend (JS/CSS)      | 23    | 11.2K  | ~72.9K    |
+| Tests                  | 122   | 35.7K  | ~310.6K   |
+| Documentation (MD)     | 187   | 64.5K  | ~597.0K   |
 
 **Agent Guidance**:
 - **Too large for context**: Use targeted `semantic_search`, avoid broad reads
@@ -71,6 +71,40 @@ bd update <id> --status in_progress   # Claim
 **FORBIDDEN**: `bd edit` (opens $EDITOR - AI incompatible)
 **UPDATE**: `bd update <id> --description "text" --title "text" --notes "text" --status "status"`
 **WORKTREE**: Beads changes auto-commit to `.git/beads-worktrees/beads-metadata/` - must push separately
+
+## Architectural Guidelines (MANDATORY)
+
+**BEFORE creating/editing code**: Check architectural guidelines for file size limits and patterns
+
+These guidelines are **agent skills** that ensure quality code by enforcing:
+- **Cognitive clarity**: Files sized for comprehension and AI context windows
+- **Single responsibility**: Each module/class/function has one clear purpose
+- **Maintainability**: Safe modifications without cascading failures
+- **Testability**: Focused components easy to test in isolation
+- **Discoverability**: Intuitive structure and naming patterns
+
+```
+docs/architecture/
+├── readme.md              # Index and quick reference
+├── python_guidelines.md   # Python: 500 line limit, type hints, layered architecture
+├── javascript_guidelines.md  # JavaScript: 400 line limit, ES6 modules, clientside patterns
+├── html_guidelines.md     # HTML: 300 line limit, semantic HTML5, ARIA mandatory
+├── css_guidelines.md      # CSS: 500 line limit, BEM naming, variables
+└── sql_guidelines.md      # SQL: 50 line queries, foreign keys, indexes
+```
+
+**Quick limits**:
+- Python: 500 lines/file, 50 lines/function → [python_guidelines.md](../docs/architecture/python_guidelines.md)
+- JavaScript: 400 lines/file, 40 lines/function → [javascript_guidelines.md](../docs/architecture/javascript_guidelines.md)
+- HTML: 300 lines/component → [html_guidelines.md](../docs/architecture/html_guidelines.md)
+- CSS: 500 lines/file, BEM naming → [css_guidelines.md](../docs/architecture/css_guidelines.md)
+- SQL: 50 lines/query, indexes mandatory → [sql_guidelines.md](../docs/architecture/sql_guidelines.md)
+
+**Agent workflow**:
+1. Check existing file size: `wc -l path/to/file`
+2. If file > 80% of limit → create NEW file (don't append)
+3. Follow naming conventions from guidelines
+4. Verify patterns match guidelines before committing
 
 ## Commit Format
 

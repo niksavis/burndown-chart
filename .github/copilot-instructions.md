@@ -34,42 +34,63 @@
 - Fix ALL errors before commit (zero tolerance)
 - Pre-commit: `get_errors` → fix → verify → commit
 
-### 2. Layered Architecture
+### 2. Architectural Guidelines (MANDATORY)
+
+**BEFORE creating/editing code**: Check architectural guidelines in `docs/architecture/`
+
+These guidelines are **skills** that make agents more effective by ensuring:
+
+- **Cognitive clarity**: Code sized for comprehension and AI context windows
+- **Maintainability**: Safe modifications without cascading effects
+- **Modularity**: Independent, reusable components
+- **Quality**: Consistent standards across all languages
+
+| Language   | Max File       | Max Function | Key Document                                                              |
+| ---------- | -------------- | ------------ | ------------------------------------------------------------------------- |
+| Python     | 500 lines      | 50 lines     | [python_guidelines.md](../docs/architecture/python_guidelines.md)         |
+| JavaScript | 400 lines      | 40 lines     | [javascript_guidelines.md](../docs/architecture/javascript_guidelines.md) |
+| HTML       | 300 lines      | N/A          | [html_guidelines.md](../docs/architecture/html_guidelines.md)             |
+| CSS        | 500 lines      | N/A          | [css_guidelines.md](../docs/architecture/css_guidelines.md)               |
+| SQL        | 50 lines/query | N/A          | [sql_guidelines.md](../docs/architecture/sql_guidelines.md)               |
+
+**Enforcement**: If file > 80% of limit → create NEW file (don't append)
+
+### 3. Layered Architecture
 
 - `callbacks/` → event handling ONLY, delegate to `data/`
 - Never implement logic in callbacks
 - `data/` → business logic, API calls, calculations
 
-### 3. KISS + DRY + Boy Scout
+### 4. KISS + DRY + Boy Scout
 
 - KISS: Simplify, early returns, break functions >50 lines
 - DRY: Extract duplicates (3+ blocks) → helpers
 - Boy Scout: Every change improves codebase (remove dead code, add type hints, fix smells)
 
-### 4. No Customer Data
+### 5. No Customer Data
 
 - NEVER commit: real company names, domains, JIRA field IDs, credentials
 - Use: "Acme Corp", "example.com", "customfield_10001"
 
-### 5. Test Isolation
+### 6. Test Isolation
 
 - Tests MUST use `tempfile.TemporaryDirectory()`, never project root
 
-### 6. No Emoji
+### 7. No Emoji
 
 - NEVER use emoji (encoding issues, breaks grep)
 
-### 7. Terminal Management
+### 8. Terminal Management
 
 - If app running, open NEW terminal for other commands
 
-### 8. Self-Healing Documentation
+### 9. Self-Healing Documentation
 
 - On discovering errors in `copilot-instructions.md`: INFORM → PROPOSE → UPDATE
 - Mathematically condense rules: minimum context, maximum clarity
 - Remove redundancy, preserve all rules
 
-### 9. Conventional Commits with Beads Tracking (MANDATORY)
+### 10. Conventional Commits with Beads Tracking (MANDATORY)
 
 - Format: `type(scope): description (bd-XXX)`
 - Types: `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`
