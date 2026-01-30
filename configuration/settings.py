@@ -80,6 +80,11 @@ COLOR_PALETTE = {
     "deadline": "rgb(220, 20, 60)",  # Crimson for deadline
     "items_grid": "rgba(0, 99, 178, 0.1)",  # Light blue grid
     "points_grid": "rgba(255, 127, 14, 0.1)",  # Light orange grid
+    # Bootstrap-style status colors for UI components
+    "info": "rgb(13, 110, 253)",  # Bootstrap primary/info blue (#0d6efd)
+    "success": "rgb(25, 135, 84)",  # Bootstrap success green (#198754)
+    "warning": "rgb(255, 193, 7)",  # Bootstrap warning yellow (#ffc107)
+    "secondary": "rgb(108, 117, 125)",  # Bootstrap secondary gray (#6c757d)
 }
 
 # PERT and Forecasting Help Texts - Phase 9.1 Simplified
