@@ -36,6 +36,29 @@ STATUS_COLORS = {
 }
 
 
+def _get_issue_type_icon(issue_type: str) -> tuple:
+    """Get Font Awesome icon and color for issue type.
+
+    Args:
+        issue_type: Issue type (Bug, Task, Story, etc.)
+
+    Returns:
+        Tuple of (icon_class, color_hex)
+    """
+    issue_type_lower = issue_type.lower()
+
+    if "bug" in issue_type_lower or "defect" in issue_type_lower:
+        return ("fa-bug", "#dc3545")  # Red for bugs
+    elif "task" in issue_type_lower or "sub-task" in issue_type_lower:
+        return ("fa-tasks", "#0d6efd")  # Blue for tasks
+    elif "story" in issue_type_lower or "user story" in issue_type_lower:
+        return ("fa-book", "#198754")  # Green for stories
+    elif "epic" in issue_type_lower:
+        return ("fa-flag", "#6f42c1")  # Purple for epics
+    else:
+        return ("fa-circle", "#6c757d")  # Gray circle for unknown
+
+
 def _get_status_color(
     status: str,
     flow_start_statuses: List[str],
@@ -330,6 +353,7 @@ def create_sprint_progress_bars(
         summary = state.get("summary", "")
         points = state.get("points", 0) if show_points else None
         current_status = state.get("status", "Unknown")
+        issue_type = state.get("issue_type", "Unknown")
 
         # Get status changes for this issue
         issue_changes = [
@@ -352,6 +376,7 @@ def create_sprint_progress_bars(
                     flow_start_statuses,
                     flow_wip_statuses,
                     flow_end_statuses,
+                    issue_type=issue_type,
                     sprint_start=sprint_start,
                     sprint_end=sprint_end,
                     now=now,
@@ -388,6 +413,7 @@ def create_sprint_progress_bars(
                     flow_start_statuses,
                     flow_wip_statuses,
                     flow_end_statuses,
+                    issue_type=issue_type,
                     sprint_start=sprint_start,
                     sprint_end=sprint_end,
                     now=now,
@@ -461,6 +487,7 @@ def create_sprint_progress_bars(
                     flow_start_statuses,
                     flow_wip_statuses,
                     flow_end_statuses,
+                    issue_type=issue_type,
                     sprint_start=sprint_start,
                     sprint_end=sprint_end,
                     now=now,
@@ -499,6 +526,7 @@ def create_sprint_progress_bars(
                 flow_start_statuses,
                 flow_wip_statuses,
                 flow_end_statuses,
+                issue_type=issue_type,
             )
         )
 
@@ -612,11 +640,15 @@ def _create_single_status_bar(
     flow_start_statuses: List[str],
     flow_wip_statuses: List[str],
     flow_end_statuses: List[str],
+    issue_type: str = "Unknown",
     sprint_start: Optional[datetime] = None,
     sprint_end: Optional[datetime] = None,
     now: Optional[datetime] = None,
 ):
     """Create a single-color progress bar for issues with no history."""
+    # Get issue type icon and color
+    icon_class, icon_color = _get_issue_type_icon(issue_type)
+
     # Use dynamic color based on flow configuration
     color = _get_status_color(
         status, flow_start_statuses, flow_wip_statuses, flow_end_statuses
@@ -703,6 +735,14 @@ def _create_single_status_bar(
             # Issue header
             html.Div(
                 [
+                    html.I(
+                        className=f"fas {icon_class} me-2",
+                        style={
+                            "color": icon_color,
+                            "fontSize": "0.85rem",
+                        },
+                        title=issue_type,
+                    ),
                     html.Span(
                         issue_key,
                         className="fw-bold",
@@ -750,6 +790,7 @@ def _create_multi_segment_bar(
     flow_start_statuses: List[str],
     flow_wip_statuses: List[str],
     flow_end_statuses: List[str],
+    issue_type: str = "Unknown",
 ):
     """Create a multi-segment progress bar scaled to sprint timeline.
 
@@ -767,7 +808,11 @@ def _create_multi_segment_bar(
         flow_start_statuses: Start statuses
         flow_wip_statuses: WIP statuses
         flow_end_statuses: End statuses
+        issue_type: Issue type (Bug, Task, Story, etc.)
     """
+    # Get issue type icon and color
+    icon_class, icon_color = _get_issue_type_icon(issue_type)
+
     # Truncate long summaries
     display_summary = summary[:80] + "..." if len(summary) > 80 else summary
 
@@ -850,6 +895,14 @@ def _create_multi_segment_bar(
             # Issue header
             html.Div(
                 [
+                    html.I(
+                        className=f"fas {icon_class} me-2",
+                        style={
+                            "color": icon_color,
+                            "fontSize": "0.85rem",
+                        },
+                        title=issue_type,
+                    ),
                     html.Span(
                         issue_key,
                         className="fw-bold",
@@ -909,6 +962,7 @@ def _create_simple_html_bars(
         summary = state.get("summary", "")
         points = state.get("points", 0) if show_points else None
         status = state.get("status", "Unknown")
+        issue_type = state.get("issue_type", "Unknown")
 
         bars.append(
             _create_single_status_bar(
@@ -920,6 +974,7 @@ def _create_simple_html_bars(
                 flow_start_statuses,
                 flow_wip_statuses,
                 flow_end_statuses,
+                issue_type=issue_type,
                 sprint_start=sprint_start,
                 sprint_end=sprint_end,
                 now=now,
