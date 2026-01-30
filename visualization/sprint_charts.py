@@ -151,7 +151,36 @@ def create_sprint_progress_bars(
         # Add segment from sprint start to first change
         first_timestamp = sorted_changes[0].get("timestamp")
         if not first_timestamp:
+            # No valid timestamp - fall back to showing current status for full sprint
+            logger.warning(
+                f"Issue {issue_key} has changelog but no valid timestamps, showing current status"
+            )
+            color = STATUS_COLORS.get(current_status, COLOR_PALETTE["secondary"])
+            fig.add_trace(
+                go.Bar(
+                    x=[100],
+                    y=[label],
+                    orientation="h",
+                    marker_color=color,
+                    text=[current_status],
+                    textposition="inside",
+                    hovertemplate=(
+                        f"<b>{issue_key}</b><br>"
+                        f"<b>Status:</b> {current_status}<br>"
+                        f"<b>Timeline:</b> Entire sprint (no timestamp data)<br>"
+                        f"<b>Summary:</b> {summary}<br>"
+                        + (
+                            f"<b>Points:</b> {points}<br>"
+                            if show_points and points
+                            else ""
+                        )
+                        + "<extra></extra>"
+                    ),
+                    showlegend=False,
+                )
+            )
             continue
+
         first_change_time = datetime.fromisoformat(first_timestamp)
         first_change_pct = max(
             0, (first_change_time - sprint_start).total_seconds() / total_duration * 100
