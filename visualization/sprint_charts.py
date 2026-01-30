@@ -71,12 +71,9 @@ def create_sprint_progress_bars(
 
     try:
         # JIRA dates are ISO format with timezone: "2026-02-10T09:00:00.000+01:00"
-        sprint_start = datetime.fromisoformat(
-            sprint_start_date.replace("+", " +").replace("000 ", "000+")
-        )
-        sprint_end = datetime.fromisoformat(
-            sprint_end_date.replace("+", " +").replace("000 ", "000+")
-        )
+        # Python's fromisoformat handles this directly (Python 3.7+)
+        sprint_start = datetime.fromisoformat(sprint_start_date)
+        sprint_end = datetime.fromisoformat(sprint_end_date)
         now = datetime.now(timezone.utc)
 
         # Calculate sprint progress (0-100%)
