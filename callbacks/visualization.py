@@ -52,6 +52,8 @@ from ui.loading_utils import (
 from ui.tooltip_utils import create_info_tooltip
 from visualization import (
     create_forecast_plot,
+)
+from visualization.weekly_charts import (
     create_weekly_items_chart,
     create_weekly_points_chart,
 )
