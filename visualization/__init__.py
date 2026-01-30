@@ -14,7 +14,7 @@ This package provides chart creation and visualization utilities.
 # None
 
 # Application imports
-from visualization.charts import (
+from visualization.forecast_chart import (
     create_forecast_plot,
 )
 from visualization.weekly_charts import (
