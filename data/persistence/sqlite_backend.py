@@ -733,8 +733,12 @@ class SQLiteBackend(PersistenceBackend):
                             if fields.get("assignee")
                             else None,
                             fields.get("issuetype", {}).get("name", ""),
-                            fields.get("priority", {}).get("name"),
-                            fields.get("resolution", {}).get("name"),
+                            fields.get("priority", {}).get("name")
+                            if fields.get("priority")
+                            else None,
+                            fields.get("resolution", {}).get("name")
+                            if fields.get("resolution")
+                            else None,
                             _extract_nested_field(
                                 fields, created_date_field
                             ),  # Supports nested: "created"
