@@ -120,6 +120,8 @@ window.dash_clientside.namespace_autocomplete = {
       work_completed_date: "datetime",
       effort_category: "option",
       estimate: "number",
+      // Sprint Tracker
+      sprint_field: "option", // Sprint field (array type) for Sprint Tracker
     };
 
     // Map JIRA field types to categories
