@@ -23,7 +23,7 @@ from datetime import datetime, timedelta
 from ui.budget_section import _create_budget_section
 
 # Import section creation functions from refactored package
-from ui.dashboard_comprehensive import (
+from ui.dashboard import (
     create_executive_summary_section,
     create_throughput_analytics_section,
     create_recent_activity_section,
