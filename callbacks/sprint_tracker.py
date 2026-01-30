@@ -119,8 +119,10 @@ def _render_sprint_tracker_content(
 
         settings = load_app_settings()
         field_mappings = settings.get("field_mappings", {})
-        sprint_tracker_mappings = field_mappings.get("sprint_tracker", {})
-        sprint_field = sprint_tracker_mappings.get("sprint_field")
+
+        # Sprint field is in general mappings (saved by field mapping UI)
+        general_mappings = field_mappings.get("general", {})
+        sprint_field = general_mappings.get("sprint_field")
 
         if not sprint_field:
             logger.warning("Sprint field not configured in field mappings")
