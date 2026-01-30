@@ -610,9 +610,7 @@ def _fetch_jira_paginated(
             # - Two-phase fetch filtering (extract from dev, use in DevOps query)
             # - Deployment Frequency (fixVersion.releaseDate)
             # - Lead Time for Changes (link dev issues to deployments via fixVersion)
-            base_fields = (
-                "key,project,created,resolutiondate,status,issuetype,fixVersions"
-            )
+            base_fields = "key,summary,project,created,updated,resolutiondate,status,issuetype,assignee,priority,resolution,labels,components,fixVersions"
             additional_fields = []
 
             if (
@@ -780,7 +778,8 @@ def fetch_jira_issues(
         else:
             # Base fields: always fetch these standard fields
             # CRITICAL: Include 'project' to enable filtering DevOps vs Development projects
-            base_fields = "key,project,created,resolutiondate,status,issuetype"
+            # Include summary, assignee, priority, resolution, labels, components for Sprint Tracker and Portfolio view
+            base_fields = "key,summary,project,created,updated,resolutiondate,status,issuetype,assignee,priority,resolution,labels,components,fixVersions"
 
             # Add story points field if specified
             additional_fields = []
@@ -1367,9 +1366,7 @@ def fetch_jira_issues_with_changelog(
         # Fields to fetch (same as regular fetch + changelog)
         # NOTE: fixVersions is critical for DORA Lead Time calculation (matching dev issues to operational tasks)
         # NOTE: project is critical for filtering DevOps vs Development projects in DORA metrics
-        base_fields = (
-            "key,project,created,resolutiondate,status,issuetype,resolution,fixVersions"
-        )
+        base_fields = "key,summary,project,created,updated,resolutiondate,status,issuetype,assignee,priority,resolution,labels,components,fixVersions"
 
         # Add story points field if specified
         additional_fields = []
@@ -1850,7 +1847,7 @@ def _try_delta_fetch(
         fields = config.get("fields", "")
         if not fields:
             # Use base fields
-            base_fields = "key,summary,status,issuetype,created,updated,resolutiondate,project,assignee,priority,fixVersions"
+            base_fields = "key,summary,project,created,updated,resolutiondate,status,issuetype,assignee,priority,resolution,labels,components,fixVersions"
             fields = base_fields
 
         params = {
@@ -2564,7 +2561,7 @@ def sync_jira_scope_and_data(
             return False, "Cache file validation failed", {}
 
         # Calculate current fields that would be requested (MUST match fetch_jira_issues logic)
-        base_fields = "key,created,resolutiondate,status,issuetype"
+        base_fields = "key,summary,project,created,updated,resolutiondate,status,issuetype,assignee,priority,resolution,labels,components,fixVersions"
         additional_fields = []
 
         # Add story points field
