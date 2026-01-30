@@ -127,13 +127,21 @@ def filter_sprint_by_issue_type(
         # Use provided sprint or detect active sprint
         if selected_sprint and selected_sprint in sprint_snapshots:
             selected_sprint_id = selected_sprint
+            sprint_start_date = None
+            sprint_end_date = None
         else:
-            active_sprint = get_active_sprint_from_issues(filtered_issues, sprint_field)
+            active_sprint_info = get_active_sprint_from_issues(
+                filtered_issues, sprint_field
+            )
             sprint_ids = sorted(sprint_snapshots.keys(), reverse=True)
-            if active_sprint and active_sprint in sprint_snapshots:
-                selected_sprint_id = active_sprint
+            if active_sprint_info and active_sprint_info["name"] in sprint_snapshots:
+                selected_sprint_id = active_sprint_info["name"]
+                sprint_start_date = active_sprint_info.get("start_date")
+                sprint_end_date = active_sprint_info.get("end_date")
             elif sprint_ids:
                 selected_sprint_id = sprint_ids[0]
+                sprint_start_date = None
+                sprint_end_date = None
             else:
                 return create_no_sprints_state()
 
@@ -177,7 +185,11 @@ def filter_sprint_by_issue_type(
 
         # Create visualizations
         progress_bars = create_sprint_progress_bars(
-            sprint_data, status_changelog, show_points
+            sprint_data,
+            status_changelog,
+            show_points,
+            sprint_start_date=sprint_start_date,
+            sprint_end_date=sprint_end_date,
         )
 
         timeline_chart = create_sprint_timeline_chart(selected_sprint_changes)

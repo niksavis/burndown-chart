@@ -33,150 +33,232 @@ def create_sprint_progress_bars(
     sprint_data: Dict,
     changelog_entries: Optional[List[Dict]] = None,
     show_points: bool = False,
+    sprint_start_date: Optional[str] = None,
+    sprint_end_date: Optional[str] = None,
 ) -> go.Figure:
-    """Create timeline bars showing status transitions for each issue over time.
+    """Create progress bars showing issue progression through sprint timeline.
 
-    Each bar is horizontally stacked showing colored segments representing
-    the percentage of time the issue spent in each status. This visualizes
-    how issues progressed through the workflow.
+    Each bar represents one issue. Bar length = sprint duration (start to end).
+    Bar fills from left to right as time progresses through the sprint.
+    Color indicates current status of the issue.
 
     Args:
         sprint_data: Sprint snapshot from sprint_manager.get_sprint_snapshots()
-        changelog_entries: Status change history (REQUIRED for timeline)
+        changelog_entries: Status change history (for current status if needed)
         show_points: Whether to show story points in labels
+        sprint_start_date: Sprint start date from JIRA (ISO string)
+        sprint_end_date: Sprint end date from JIRA (ISO string)
 
     Returns:
-        Plotly Figure with stacked horizontal bars - fixed 400px height
+        Plotly Figure with horizontal progress bars - fixed height
     """
     logger.info(
-        f"Creating timeline progress bars for sprint: {sprint_data.get('name', 'Unknown')}"
+        f"Creating sprint progress bars for: {sprint_data.get('name', 'Unknown')}"
     )
 
     issue_states = sprint_data.get("issue_states", {})
     if not issue_states:
         return _create_empty_sprint_chart("No issues in sprint")
 
-    if not changelog_entries:
-        logger.warning("No changelog provided for timeline visualization")
-        return _create_empty_sprint_chart(
-            "No status history available - update data to fetch changelog"
+    if not sprint_start_date or not sprint_end_date:
+        logger.warning(
+            "Sprint dates not available - showing current status only (no timeline)"
+        )
+        return _create_simple_status_bars(issue_states, show_points)
+
+    # Parse sprint dates
+    from datetime import datetime, timezone
+
+    try:
+        # JIRA dates are ISO format with timezone: "2026-02-10T09:00:00.000+01:00"
+        sprint_start = datetime.fromisoformat(
+            sprint_start_date.replace("+", " +").replace("000 ", "000+")
+        )
+        sprint_end = datetime.fromisoformat(
+            sprint_end_date.replace("+", " +").replace("000 ", "000+")
+        )
+        now = datetime.now(timezone.utc)
+
+        # Calculate sprint progress (0-100%)
+        total_duration = (sprint_end - sprint_start).total_seconds()
+        if total_duration <= 0:
+            logger.warning("Invalid sprint duration - start >= end")
+            return _create_simple_status_bars(issue_states, show_points)
+
+        elapsed = (now - sprint_start).total_seconds()
+        progress_pct = min(100, max(0, (elapsed / total_duration) * 100))
+
+        logger.info(
+            f"Sprint progress: {progress_pct:.1f}% "
+            f"({sprint_start.strftime('%Y-%m-%d')} → {sprint_end.strftime('%Y-%m-%d')})"
         )
 
-    # Import timeline calculation function
-    from data.sprint_manager import calculate_issue_status_timeline
+    except (ValueError, AttributeError) as e:
+        logger.error(f"Failed to parse sprint dates: {e}")
+        return _create_simple_status_bars(issue_states, show_points)
 
-    # Build timeline data for each issue
+    # Build progress bars
     fig = go.Figure()
 
     issue_keys = sorted(issue_states.keys(), reverse=True)  # Newest at top
 
     for issue_key in issue_keys:
         state = issue_states[issue_key]
+        status = state.get("status", "Unknown")
         summary = state.get("summary", "")
+        points = state.get("points", 0) if show_points else None
 
-        # Calculate timeline segments
-        timeline_segments = calculate_issue_status_timeline(
-            issue_key, changelog_entries, include_current=True
-        )
+        # Label: issue key + points (if enabled)
+        label = issue_key
+        if show_points and points:
+            label = f"{issue_key} ({points}pt)"
 
-        if not timeline_segments:
-            # No status history - show single bar with current status
-            current_status = state.get("status", "Unknown")
-            fig.add_trace(
-                go.Bar(
-                    name=current_status,
-                    x=[100],  # 100% in current status
-                    y=[issue_key],
-                    orientation="h",
-                    marker_color=STATUS_COLORS.get(
-                        current_status, COLOR_PALETTE["muted"]
-                    ),
-                    text=[current_status],
-                    textposition="inside",
-                    hovertemplate=(
-                        f"<b>{issue_key}</b><br>"
-                        f"<b>Status:</b> {current_status}<br>"
-                        f"<b>Summary:</b> {summary}<br>"
-                        f"<b>Time:</b> No status history<br>"
-                        "<extra></extra>"
-                    ),
-                    showlegend=True,
-                )
-            )
-        else:
-            # Show timeline segments
-            for segment in timeline_segments:
-                status = segment["status"]
-                duration_pct = segment["duration_pct"]
-                duration_hours = segment["duration_hours"]
-                start_time = segment["start_time"]
-                end_time = segment["end_time"]
+        # Color based on current status
+        color = STATUS_COLORS.get(status, COLOR_PALETTE["muted"])
 
-                # Format time display
-                duration_days = duration_hours / 24.0
-                if duration_hours < 1:
-                    time_str = f"{duration_hours * 60:.0f}min"
-                elif duration_hours < 24:
-                    time_str = f"{duration_hours:.1f}h"
-                else:
-                    time_str = f"{duration_days:.1f}d"
-
-                # Create hover text
-                hover_text = (
+        # Filled portion (how far through sprint)
+        fig.add_trace(
+            go.Bar(
+                name=status,
+                x=[progress_pct],
+                y=[label],
+                orientation="h",
+                marker_color=color,
+                text=[status],
+                textposition="inside",
+                textangle=0,
+                hovertemplate=(
                     f"<b>{issue_key}</b><br>"
                     f"<b>Status:</b> {status}<br>"
-                    f"<b>Duration:</b> {time_str} ({duration_pct:.1f}%)<br>"
-                    f"<b>From:</b> {start_time.strftime('%Y-%m-%d %H:%M')}<br>"
-                    f"<b>To:</b> {end_time.strftime('%Y-%m-%d %H:%M')}<br>"
+                    f"<b>Sprint Progress:</b> {progress_pct:.1f}%<br>"
                     f"<b>Summary:</b> {summary}<br>"
-                    "<extra></extra>"
-                )
+                    + (f"<b>Points:</b> {points}<br>" if show_points and points else "")
+                    + "<extra></extra>"
+                ),
+                showlegend=False,
+            )
+        )
 
-                fig.add_trace(
-                    go.Bar(
-                        name=status,
-                        x=[duration_pct],
-                        y=[issue_key],
-                        orientation="h",
-                        marker_color=STATUS_COLORS.get(status, COLOR_PALETTE["muted"]),
-                        text=[f"{duration_pct:.0f}%" if duration_pct > 5 else ""],
-                        textposition="inside",
-                        textangle=0,
-                        hovertemplate=hover_text,
-                        showlegend=True,
-                        legendgroup=status,  # Group same statuses
-                    )
+        # Unfilled portion (remaining sprint time)
+        remaining_pct = 100 - progress_pct
+        if remaining_pct > 0:
+            fig.add_trace(
+                go.Bar(
+                    name="Remaining",
+                    x=[remaining_pct],
+                    y=[label],
+                    orientation="h",
+                    marker_color="rgba(200, 200, 200, 0.3)",  # Light gray
+                    text=[""],
+                    textposition="none",
+                    hovertemplate=(
+                        f"<b>Sprint Remaining:</b> {remaining_pct:.1f}%<br>"
+                        "<extra></extra>"
+                    ),
+                    showlegend=False,
                 )
+            )
 
-    # Fixed responsive layout
+    # Layout configuration
     fig.update_layout(
-        autosize=False,  # Critical: disable autosize
-        barmode="stack",  # Stack segments horizontally
-        showlegend=True,
-        legend=dict(
-            orientation="h",
-            yanchor="bottom",
-            y=1.02,
-            xanchor="center",
-            x=0.5,
-            title_text="Status",
-        ),
+        autosize=False,
+        barmode="stack",  # Stack filled + unfilled portions
+        showlegend=False,  # No legend needed (colors obvious from status text)
         xaxis=dict(
-            title="Time Distribution (%)",
+            title=f"Sprint Timeline: {sprint_start.strftime('%b %d')} → {sprint_end.strftime('%b %d, %Y')} (Progress: {progress_pct:.0f}%)",
             showticklabels=True,
             showgrid=True,
             zeroline=False,
             fixedrange=True,
-            range=[0, 100],  # Percentage scale
+            range=[0, 100],
+            ticksuffix="%",
         ),
         yaxis=dict(
             title="Issue",
             showgrid=False,
-            fixedrange=True,  # Prevent zooming
+            fixedrange=True,
+            automargin=True,
         ),
-        height=max(400, len(issue_keys) * 25),  # Dynamic height based on issue count
-        width=None,  # Let width be responsive
-        margin=dict(l=120, r=20, t=60, b=40),
+        height=max(400, len(issue_keys) * 35),  # Dynamic height
+        width=None,  # Responsive width
+        margin=dict(l=150, r=20, t=60, b=60),
+        plot_bgcolor="white",
+        paper_bgcolor="white",
+        hovermode="closest",
+    )
+
+    return fig
+
+
+def _create_simple_status_bars(
+    issue_states: Dict, show_points: bool = False
+) -> go.Figure:
+    """Fallback visualization when sprint dates unavailable.
+
+    Shows simple bars colored by current status without timeline progression.
+
+    Args:
+        issue_states: Issue state dict from sprint snapshot
+        show_points: Whether to show story points
+
+    Returns:
+        Plotly Figure with simple status bars
+    """
+    fig = go.Figure()
+
+    issue_keys = sorted(issue_states.keys(), reverse=True)
+
+    for issue_key in issue_keys:
+        state = issue_states[issue_key]
+        status = state.get("status", "Unknown")
+        summary = state.get("summary", "")
+        points = state.get("points", 0) if show_points else None
+
+        label = issue_key
+        if show_points and points:
+            label = f"{issue_key} ({points}pt)"
+
+        color = STATUS_COLORS.get(status, COLOR_PALETTE["muted"])
+
+        fig.add_trace(
+            go.Bar(
+                x=[100],
+                y=[label],
+                orientation="h",
+                marker_color=color,
+                text=[status],
+                textposition="inside",
+                hovertemplate=(
+                    f"<b>{issue_key}</b><br>"
+                    f"<b>Status:</b> {status}<br>"
+                    f"<b>Summary:</b> {summary}<br>"
+                    + (f"<b>Points:</b> {points}<br>" if show_points and points else "")
+                    + "<extra></extra>"
+                ),
+                showlegend=False,
+            )
+        )
+
+    fig.update_layout(
+        autosize=False,
+        barmode="overlay",
+        showlegend=False,
+        xaxis=dict(
+            title="Current Status (Sprint dates unavailable)",
+            showticklabels=False,
+            showgrid=False,
+            fixedrange=True,
+            range=[0, 100],
+        ),
+        yaxis=dict(
+            title="Issue",
+            showgrid=False,
+            fixedrange=True,
+            automargin=True,
+        ),
+        height=max(400, len(issue_keys) * 35),
+        width=None,
+        margin=dict(l=150, r=20, t=60, b=60),
         plot_bgcolor="white",
         paper_bgcolor="white",
         hovermode="closest",

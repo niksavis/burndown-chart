@@ -172,17 +172,21 @@ def _render_sprint_tracker_content(
         # Determine active sprint from issue data (uses JIRA state field)
         from data.sprint_manager import get_active_sprint_from_issues
 
-        active_sprint = get_active_sprint_from_issues(tracked_issues, sprint_field)
+        active_sprint_info = get_active_sprint_from_issues(tracked_issues, sprint_field)
 
         # Select active sprint if found, otherwise use first sprint
         sprint_ids = sorted(
             sprint_snapshots.keys(), reverse=True
         )  # Newest first by name
-        if active_sprint and active_sprint in sprint_snapshots:
-            selected_sprint_id = active_sprint
+        if active_sprint_info and active_sprint_info["name"] in sprint_snapshots:
+            selected_sprint_id = active_sprint_info["name"]
+            sprint_start_date = active_sprint_info.get("start_date")
+            sprint_end_date = active_sprint_info.get("end_date")
             logger.info(f"Selected active sprint: {selected_sprint_id}")
         elif sprint_ids:
             selected_sprint_id = sprint_ids[0]
+            sprint_start_date = None
+            sprint_end_date = None
             logger.info(f"No active sprint found, selected first: {selected_sprint_id}")
         else:
             logger.warning("No sprint snapshots available")
@@ -248,7 +252,11 @@ def _render_sprint_tracker_content(
 
         # Create visualizations
         progress_bars = create_sprint_progress_bars(
-            sprint_data, status_changelog, show_points
+            sprint_data,
+            status_changelog,
+            show_points,
+            sprint_start_date=sprint_start_date,
+            sprint_end_date=sprint_end_date,
         )
 
         timeline_chart = create_sprint_timeline_chart(selected_sprint_changes)

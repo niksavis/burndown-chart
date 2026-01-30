@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 
 def get_active_sprint_from_issues(
     issues: List[Dict], sprint_field: str = "customfield_10005"
-) -> Optional[str]:
+) -> Optional[Dict]:
     """Determine the active sprint from current issue sprint field data.
 
     JIRA stores full sprint objects with state in issue fields.
@@ -34,9 +34,10 @@ def get_active_sprint_from_issues(
         sprint_field: Sprint custom field ID (default: customfield_10005)
 
     Returns:
-        Name of the active sprint, or None if no active sprint found
+        Dict with {"name": str, "start_date": str, "end_date": str} or None
+        Dates are ISO strings from JIRA sprint object
     """
-    sprint_counts = {}  # sprint_name -> (count, state)
+    sprint_counts = {}  # sprint_name -> {count, state, start_date, end_date}
 
     for issue in issues:
         custom_fields = issue.get("custom_fields", {})
@@ -57,34 +58,51 @@ def get_active_sprint_from_issues(
             if sprint_obj:
                 name = sprint_obj["name"]
                 state = sprint_obj["state"]
+                start_date = sprint_obj.get("start_date")
+                end_date = sprint_obj.get("end_date")
 
                 # Track sprint counts and their states
                 if name not in sprint_counts:
-                    sprint_counts[name] = {"count": 0, "state": state}
+                    sprint_counts[name] = {
+                        "count": 0,
+                        "state": state,
+                        "start_date": start_date,
+                        "end_date": end_date,
+                    }
                 sprint_counts[name]["count"] += 1
 
     # Find sprint with state=ACTIVE (highest priority)
-    active_sprint = None
+    active_sprint_name = None
+    active_sprint_data = None
     max_count = 0
 
     for sprint_name, data in sprint_counts.items():
         if data["state"] == "ACTIVE" and data["count"] > max_count:
-            active_sprint = sprint_name
+            active_sprint_name = sprint_name
+            active_sprint_data = data
             max_count = data["count"]
 
     # If no active sprint, fall back to the sprint with most issues
-    if not active_sprint:
+    if not active_sprint_name:
         for sprint_name, data in sprint_counts.items():
             if data["count"] > max_count:
-                active_sprint = sprint_name
+                active_sprint_name = sprint_name
+                active_sprint_data = data
                 max_count = data["count"]
 
-    if active_sprint:
-        logger.info(f"Determined active sprint: {active_sprint} ({max_count} issues)")
+    if active_sprint_name and active_sprint_data:
+        logger.info(
+            f"Determined active sprint: {active_sprint_name} ({max_count} issues), "
+            f"dates: {active_sprint_data['start_date']} to {active_sprint_data['end_date']}"
+        )
+        return {
+            "name": active_sprint_name,
+            "start_date": active_sprint_data["start_date"],
+            "end_date": active_sprint_data["end_date"],
+        }
     else:
         logger.warning("No active sprint found in issues")
-
-    return active_sprint
+        return None
 
 
 def get_sprint_snapshots(
@@ -289,19 +307,21 @@ def _parse_sprint_name(sprint_value: Optional[str]) -> Optional[str]:
 
 
 def _parse_sprint_object(sprint_value: str) -> Optional[Dict]:
-    """Parse JIRA sprint object string to extract name and state.
+    """Parse JIRA sprint object string to extract name, state, and dates.
 
     JIRA returns serialized sprint objects like:
     "com.atlassian.greenhopper.service.sprint.Sprint@44f88702[activatedDate=<null>,
     autoStartStop=false,completeDate=<null>,endDate=2026-02-24T19:19:00.000+01:00,
-    goal=<null>,id=50477,name=Gravity Sprint 257,state=FUTURE,...]"
+    goal=<null>,id=50477,name=Gravity Sprint 257,startDate=2026-02-10T09:00:00.000+01:00,
+    state=FUTURE,...]"
 
     Args:
         sprint_value: Serialized JIRA sprint object string
 
     Returns:
-        Dict with {"name": str, "state": str} or None
+        Dict with {"name": str, "state": str, "start_date": str, "end_date": str} or None
         State is one of: "ACTIVE", "FUTURE", "CLOSED"
+        Dates are ISO strings or None if <null>
     """
     if not sprint_value or "[" not in sprint_value:
         return None
@@ -319,12 +339,22 @@ def _parse_sprint_object(sprint_value: str) -> Optional[Dict]:
                 key, value = prop.split("=", 1)
                 sprint_data[key.strip()] = value.strip()
 
-        # Extract name and state
+        # Extract name, state, and dates
         name = sprint_data.get("name")
         state = sprint_data.get("state")
+        start_date = sprint_data.get("startDate")
+        end_date = sprint_data.get("endDate")
 
         if name and state:
-            return {"name": name, "state": state.upper()}
+            result = {
+                "name": name,
+                "state": state.upper(),
+                "start_date": start_date
+                if start_date and start_date != "<null>"
+                else None,
+                "end_date": end_date if end_date and end_date != "<null>" else None,
+            }
+            return result
 
     except (ValueError, IndexError) as e:
         logger.debug(f"Failed to parse sprint object: {e}")
