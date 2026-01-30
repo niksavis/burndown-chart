@@ -230,7 +230,7 @@ class TestHealthConsistency:
         # These keys must be used consistently in both:
         # - callbacks/visualization.py (app)
         # - data/report_generator.py (report)
-        # - ui/dashboard_comprehensive.py (dashboard)
+        # - ui/dashboard.py (dashboard)
 
         # Verify the keys are documented
         assert "dora" in expected_keys

@@ -1771,7 +1771,7 @@ def register(app):
                     )
 
                 # Import and use comprehensive dashboard
-                from ui.dashboard_comprehensive import create_comprehensive_dashboard
+                from ui.dashboard import create_comprehensive_dashboard
 
                 # Create the comprehensive dashboard layout
                 dashboard_content = create_comprehensive_dashboard(

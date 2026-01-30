@@ -751,7 +751,7 @@ def _calculate_dashboard_metrics(
                 f"[REPORT FILTER EARLY] No week_label column - using date range filtering: {len(df_for_velocity)} rows"
             )
 
-    # Calculate health metrics (same as app's dashboard_comprehensive.py)
+    # Calculate health metrics (same as app's dashboard.py)
     # Health score uses deduction-based formula starting at 100
     # CRITICAL: Use df_for_velocity (filtered to weeks_count) not df_windowed
 
@@ -887,7 +887,7 @@ def _calculate_dashboard_metrics(
     )
 
     # Calculate scope change rate from FILTERED data (same as app)
-    # This must match the app's calculation in dashboard_comprehensive.py
+    # This must match the app's calculation in dashboard.py
     scope_change_rate = 0
     if not df_for_velocity.empty and "created_items" in df_for_velocity.columns:
         total_created = df_for_velocity["created_items"].sum()
@@ -905,7 +905,7 @@ def _calculate_dashboard_metrics(
 
     # Calculate PERT forecast using EXACT SAME method as app comprehensive dashboard
     # App uses calculate_rates() which returns empirical PERT days (not simplified formula)
-    # This is in ui/dashboard_comprehensive.py and data/processing.py calculate_rates()
+    # This is in ui/dashboard.py and data/processing.py calculate_rates()
     from data.processing import compute_weekly_throughput, calculate_rates
 
     forecast_date = None
@@ -1018,7 +1018,7 @@ def _calculate_dashboard_metrics(
 
         # Calculate confidence based on schedule buffer (same logic as dashboard)
         # Calculate completion confidence from schedule variance buffer
-        # CRITICAL: Must match ui/dashboard_comprehensive.py lines 592-601 EXACTLY
+        # CRITICAL: Must match ui/dashboard.py confidence calculation EXACTLY
         # Any difference in thresholds causes health score divergence
         # Positive buffer (ahead of schedule) = higher confidence
         # Negative buffer (behind schedule) = lower confidence
