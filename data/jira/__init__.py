@@ -7,9 +7,9 @@ into focused, maintainable sub-modules following architectural guidelines.
 
 Public API:
 - Configuration: get_jira_config, validate_jira_config, test_jira_connection
-- Data fetching: fetch_jira_issues, fetch_jira_issues_with_changelog
-- Synchronization: sync_jira_scope_and_data, sync_jira_data, fetch_changelog_on_demand
-- Transformation: jira_to_csv_format
+- Data transformation: jira_to_csv_format
+- Field utilities: extract_jira_field_id, extract_story_points_value
+- Cache management: validate_cache_file, get_cache_status, invalidate_changelog_cache
 """
 
 # Configuration management
@@ -49,6 +49,9 @@ from data.jira.cache_validator import (
 # Issue counter
 from data.jira.issue_counter import check_jira_issue_count
 
+# Data transformation
+from data.jira.data_transformer import jira_to_csv_format
+
 __all__ = [
     # Configuration
     "get_jira_config",
@@ -68,6 +71,8 @@ __all__ = [
     "invalidate_changelog_cache",
     # Issue counter
     "check_jira_issue_count",
+    # Data transformation
+    "jira_to_csv_format",
     # Constants
     "JIRA_CACHE_FILE",
     "JIRA_CHANGELOG_CACHE_FILE",
