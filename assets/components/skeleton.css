@@ -1,0 +1,137 @@
+/* ====================
+   SKELETON
+   ==================== */
+
+/* ================================================================
+   Skeleton Loading Animation
+   ================================================================ */
+
+/* Shimmer animation for visible skeleton loaders */
+@keyframes skeleton-shimmer {
+  0% {
+    background-position: -1000px 0;
+  }
+  100% {
+    background-position: 1000px 0;
+  }
+}
+
+.skeleton-shimmer {
+  background: linear-gradient(
+    to right,
+    #e9ecef 0%,
+    #f8f9fa 20%,
+    #e9ecef 40%,
+    #e9ecef 100%
+  );
+  background-size: 1000px 100%;
+  animation: skeleton-shimmer 2s linear infinite;
+  border-radius: 4px;
+}
+
+/* Skeleton container - show immediately to prevent flash of empty content */
+.metric-cards-skeleton {
+  opacity: 1; /* Start visible immediately */
+  /* Remove animation - skeleton should be visible right away */
+  margin-top: 0.75rem; /* 12px spacing at top - MUST match .metric-cards-grid */
+  padding-top: 0.25rem; /* Minimal padding for animation buffer - MUST match .metric-cards-grid */
+  padding-left: 0.5rem; /* Horizontal padding for shadow clearance - MUST match .metric-cards-grid */
+  padding-right: 0.5rem; /* Horizontal padding for shadow clearance - MUST match .metric-cards-grid */
+  margin-left: -0.25rem; /* Compensate for added padding - MUST match .metric-cards-grid */
+  margin-right: -0.25rem; /* Compensate for added padding - MUST match .metric-cards-grid */
+}
+
+/* Content that replaces skeleton - smooth fade-in to prevent flicker */
+.metric-cards-grid,
+.empty-state-banner {
+  animation: smoothFadeIn 0.15s ease-out;
+}
+
+/* Add top spacing so cards don't get cut off when they "fly up" */
+.metric-cards-grid {
+  margin-top: 0.75rem; /* 12px spacing at top - reduced from 1.5rem */
+  padding-top: 0.25rem; /* Minimal padding for animation buffer */
+  padding-left: 0.5rem; /* Horizontal padding to prevent shadow clipping on outer edges */
+  padding-right: 0.5rem; /* Horizontal padding to prevent shadow clipping on outer edges */
+  margin-left: -0.25rem; /* Compensate for added padding to maintain grid alignment */
+  margin-right: -0.25rem; /* Compensate for added padding to maintain grid alignment */
+}
+
+/* Container for metric cards - prevent layout shift during updates */
+#dora-metrics-cards-container,
+#flow-metrics-cards-container,
+#flow-distribution-chart-container {
+  min-height: 400px; /* Reserve space to prevent layout shift */
+  transition: min-height 0.2s ease-out;
+  overflow: visible !important; /* Allow cards to fly up without clipping */
+}
+
+/* Force text-style rendering for arrow characters to prevent emoji blue box backgrounds */
+.metric-card .small span:first-child,
+.metric-trend-arrow {
+  font-family: inherit;
+  font-variant-emoji: text; /* Force text presentation, not emoji */
+  -webkit-font-variant-emoji: text;
+  -moz-font-variant-emoji: text;
+}
+
+@keyframes smoothFadeIn {
+  0% {
+    opacity: 0;
+    transform: translateY(-5px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Fade animations for smooth skeleton replacement */
+@keyframes fadeIn {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+@keyframes delayedFadeIn {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+@keyframes fadeOut {
+  0% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+/* Old skeleton animation (kept for compatibility) */
+@keyframes skeleton-loading {
+  0% {
+    background-color: rgba(200, 200, 200, 0.2);
+  }
+  50% {
+    background-color: rgba(200, 200, 200, 0.4);
+  }
+  100% {
+    background-color: rgba(200, 200, 200, 0.2);
+  }
+}
+
+/* DISABLED - Old approach with manual animation control */
+/*
+.metric-cards-grid,
+.empty-state-banner,
+#bug-analysis-tab-content {
+  animation: fadeIn 0.3s ease-in;
+}
+*/

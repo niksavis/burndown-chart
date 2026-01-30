@@ -1,0 +1,18 @@
+/* ====================
+   FOOTER
+   ==================== */
+
+/* ================================================================
+   Footer Link Hover Effects
+   ================================================================ */
+
+/* App footer link hover - subtle opacity change */
+.mt-2.mb-1.py-2 a.text-primary:hover {
+  opacity: 0.7;
+  text-decoration: none;
+}
+
+/* Ensure smooth transition on hover */
+.mt-2.mb-1.py-2 a.text-primary {
+  transition: opacity 0.2s ease-in-out;
+}

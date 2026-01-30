@@ -1,0 +1,168 @@
+/* ====================
+   PAGINATION COMPONENT
+   ==================== */
+
+/* ===== Pagination Controls ===== */
+/* Consolidated pagination styling in one place */
+
+/* Reset and clean up pagination styling */
+.dash-table-container .dash-pagination,
+.dash-table-container .dash-pagination-links,
+.dash-table-container .previous-next-container,
+.dash-table-container .page-number,
+.dash-table-container .current-page-container {
+  all: initial;
+  font-family: inherit;
+  box-sizing: border-box;
+}
+
+/* Style the buttons container */
+.previous-next-container {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  margin: 15px auto !important;
+  gap: 5px !important;
+  height: 31px !important; /* Match form controls */
+}
+
+/* Style navigation buttons consistently */
+.first-page,
+.previous-page,
+.next-page,
+.last-page {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 31px !important; /* Match form controls */
+  height: 31px !important; /* Match form controls */
+  border: 1px solid var(--color-gray-300) !important;
+  border-radius: 4px !important;
+  background-color: var(--color-gray-100) !important;
+  color: var(--color-gray-700) !important;
+  cursor: pointer !important;
+  transition:
+    background-color 0.15s ease-in-out,
+    border-color 0.15s ease-in-out,
+    color 0.15s ease-in-out; /* Smooth transition */
+}
+
+/* Hover effects for pagination buttons */
+.dash-table-container .previous-page:hover,
+.dash-table-container .next-page:hover,
+.dash-table-container .first-page:hover,
+.dash-table-container .last-page:hover {
+  background-color: var(--color-gray-200) !important;
+  border-color: var(--color-gray-400) !important;
+  color: var(--color-primary) !important;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+/* Disabled state for pagination buttons */
+.first-page[disabled],
+.previous-page[disabled],
+.next-page[disabled],
+.last-page[disabled] {
+  cursor: not-allowed !important;
+  opacity: 0.65 !important;
+  background-color: var(
+    --color-gray-100
+  ) !important; /* Keep background consistent */
+  color: var(--color-gray-600) !important; /* Muted color */
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+/* Page number input/display */
+.page-number {
+  display: flex !important; /* Force flex display */
+  align-items: center !important;
+  justify-content: center !important;
+  height: 31px !important;
+  margin: 0 5px !important; /* Spacing around page number */
+  gap: 6px !important; /* Add space between elements */
+  position: relative !important;
+  width: auto !important;
+  min-width: 100px !important; /* Ensure enough space */
+}
+
+.page-number input[type="number"] {
+  height: 31px !important; /* Match form controls */
+  border: 1px solid var(--color-gray-300) !important;
+  border-radius: 4px !important;
+  padding: 0.375rem 0.75rem !important;
+  text-align: center !important;
+  max-width: 70px; /* Limit width */
+  font-size: 1rem;
+  color: var(--color-gray-700);
+  background-color: var(--color-white);
+  /* Remove spinner arrows */
+  appearance: textfield;
+  -moz-appearance: textfield;
+}
+.page-number input[type="number"]::-webkit-outer-spin-button,
+.page-number input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* Current page display (if used) */
+.current-page-container {
+  margin: 0 10px !important;
+  color: var(--color-gray-600);
+  font-size: 0.9rem;
+}
+
+/* Fix for overlapping pagination numbers */
+/* Fix the page number container to display elements horizontally with proper spacing */
+.page-number > *:not(.current-page-container):not(.last-page) {
+  margin: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  height: 31px !important;
+}
+
+/* Style the current page input to prevent overlap */
+.current-page {
+  position: relative !important;
+  z-index: 3 !important;
+  width: 31px !important;
+  height: 31px !important;
+  border: 1px solid var(--color-gray-300) !important;
+  border-radius: 4px !important;
+  background-color: var(--color-white) !important;
+  text-align: center !important;
+  font-size: 14px !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+/* Completely hide the shadow input that causes issues */
+.current-page-shadow {
+  position: absolute !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  min-width: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  border: none !important;
+}
+
+/* Style the total pages indicator */
+.page-number .last-page {
+  width: 31px !important;
+  height: 31px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-size: 14px !important;
+  position: relative !important;
+  z-index: 1 !important;
+  text-align: center !important;
+  margin: 0 !important;
+}

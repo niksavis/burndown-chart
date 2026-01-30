@@ -1,0 +1,183 @@
+/* ====================
+   GRID LAYOUT SYSTEM
+   ==================== */
+
+/* ===== General Grid Alignment ===== */
+
+/* Consistent card styling (Phase 1: Signature Style) */
+.card:not(#project-health-overview-card) {
+  border: none !important; /* Override Bootstrap default border, except health card */
+}
+
+.card {
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  background: var(--color-white);
+  transition: all var(--transition-base);
+  overflow: visible; /* Allow shadow and lift to extend beyond bounds */
+}
+
+/* Card inner content should clip if needed */
+.card-body,
+.card-header,
+.card-footer {
+  overflow: hidden;
+}
+
+.card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+/* Enable hover animation for metric cards (DORA, Flow metrics) even if they contain sparklines */
+.metric-card {
+  transition: all 0.2s ease;
+}
+
+.metric-card:hover {
+  transform: translateY(-2px) !important;
+  box-shadow: var(--shadow-md) !important;
+}
+
+/* Enable hover animation for specific budget cards even if they contain dash-graph */
+#cost-breakdown-card,
+#budget-timeline-card {
+  transform: none;
+}
+
+#cost-breakdown-card:hover,
+#budget-timeline-card:hover {
+  transform: translateY(-2px) !important;
+  box-shadow: var(--shadow-md) !important;
+}
+
+/* Prevent hover animation on structural cards (tabs, layout containers, large charts) */
+.card:has(.nav-tabs),
+.card:has(.tab-content),
+.card:has(.dash-table-container),
+.card:has(#statistics-table),
+.card.card-static,
+.card-no-hover,
+#budget-current-card,
+#budget-revision-history-card,
+#column-explanations-collapse .card {
+  transform: none !important;
+  margin-top: 0 !important; /* No margin adjustment for structural cards */
+}
+
+.card:has(.nav-tabs):hover,
+.card:has(.tab-content):hover,
+.card:has(.dash-table-container):hover,
+.card:has(#statistics-table):hover,
+.card.card-static:hover,
+.card-no-hover:hover,
+#budget-current-card:hover,
+#budget-revision-history-card:hover,
+#column-explanations-collapse .card:hover {
+  transform: none !important;
+  box-shadow: var(--shadow-sm) !important;
+  margin-top: 0 !important; /* Keep margin constant */
+}
+
+/* Disable hover for cards with large full-size charts (not sparklines in metric cards) */
+.card:has(.dash-graph):not(.metric-card):not(#cost-breakdown-card):not(#budget-timeline-card) {
+  transform: none !important;
+}
+
+.card:has(.dash-graph):not(.metric-card):not(#cost-breakdown-card):not(#budget-timeline-card):hover {
+  transform: none !important;
+  box-shadow: var(--shadow-sm) !important;
+}
+
+.card-header {
+  background-color: var(--color-neutral-50);
+  border-bottom: 1px solid var(--color-neutral-200);
+  padding: var(--space-3);
+  color: var(--color-neutral-900);
+}
+
+.card-body {
+  padding: var(--space-3);
+}
+
+.card-footer {
+  background-color: var(--color-neutral-50);
+  border-top: 1px solid var(--color-neutral-200);
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--text-sm);
+  color: var(--color-neutral-600);
+}
+
+/* Card variants with different accent colors */
+.card.card-success {
+  border-left-color: var(--color-success);
+}
+
+.card.card-warning {
+  border-left-color: var(--color-warning);
+}
+
+.card.card-danger {
+  border-left-color: var(--color-danger);
+}
+
+.card.card-info {
+  border-left-color: var(--color-info);
+}
+
+/* Card title enhancement */
+.card-title {
+  font-size: var(--text-lg);
+  font-weight: var(--font-semibold);
+  color: var(--color-neutral-900);
+  margin-bottom: var(--space-2);
+}
+
+.card-subtitle {
+  font-size: var(--text-sm);
+  color: var(--color-neutral-600);
+  margin-bottom: var(--space-3);
+}
+
+/* Card with icon header */
+.card-header-icon {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.card-header-icon i {
+  font-size: var(--text-xl);
+  color: var(--color-brand-500);
+}
+
+/* Compact card variant */
+.card-compact .card-body {
+  padding: var(--space-2);
+}
+
+.card-compact .card-header {
+  padding: var(--space-2);
+}
+
+/* Flat card variant (no shadow/border) */
+.card-flat {
+  box-shadow: none;
+  border-left: none;
+  border: 1px solid var(--color-neutral-200);
+}
+
+.card-flat:hover {
+  transform: none;
+  box-shadow: var(--shadow-xs);
+}
+
+/* Ensure consistent form element spacing */
+.form-group:not(:last-child) {
+  margin-bottom: 1rem;
+}
+
+/* Ensure SVG elements align properly */
+svg {
+  vertical-align: middle;
+}

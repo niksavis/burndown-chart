@@ -1,0 +1,11 @@
+/* ====================
+   SETTINGS PANEL LAYOUT
+   Styles were already included in other layout files during refactoring.
+   This file exists to satisfy imports but contains no additional rules.
+   ==================== */
+
+/* Settings panel layout rules are in:
+   - layout/parameter-panel.css (shared panel styles)
+   - components/settings-tabs.css (tab navigation)
+   - components/dropdown-fixes.css (overflow fixes)
+*/

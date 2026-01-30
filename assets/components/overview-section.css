@@ -1,0 +1,33 @@
+/* ====================
+   OVERVIEW SECTION
+   ==================== */
+
+/* ================================================================
+   Overview Section Container (DORA & Flow Metrics)
+   ================================================================ */
+
+/* Overview section with distinct background for metric overview cards */
+.overview-section {
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%) !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05) !important;
+  transition: box-shadow 0.3s ease;
+  overflow: visible !important; /* Allow cards to lift without clipping */
+  padding-top: 8px !important; /* Extra space at top for hover lift */
+  padding-bottom: 8px !important; /* Extra space at bottom for shadow */
+}
+
+.overview-section:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08) !important;
+}
+
+/* Ensure CardBody inside overview section allows overflow */
+.overview-section .card-body {
+  overflow: visible !important;
+  padding-top: 1rem !important; /* Maintain spacing but allow overflow */
+}
+
+/* Ensure compact cards inside overview section have proper spacing */
+.overview-section .compact-metric-card {
+  background-color: white !important;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+}

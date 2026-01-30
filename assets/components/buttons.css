@@ -1,0 +1,134 @@
+/* ====================
+   BUTTON VARIANTS
+   ==================== */
+
+/* ===== Outline Button Variants ===== */
+
+/* Primary outline button */
+.btn-outline-primary {
+  background-color: var(--color-brand-50);
+  border-color: var(--color-brand-400);
+  color: var(--color-brand-700);
+}
+
+.btn-outline-primary:hover {
+  background-color: var(--color-brand-600);
+  border-color: var(--color-brand-600);
+  color: white;
+  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.2);
+}
+
+/* Secondary outline button */
+.btn-outline-secondary {
+  background-color: var(--color-neutral-50);
+  border-color: var(--color-neutral-400);
+  color: var(--color-neutral-700);
+}
+
+.btn-outline-secondary:hover {
+  background-color: var(--color-neutral-600);
+  border-color: var(--color-neutral-600);
+  color: white;
+  box-shadow: var(--shadow-xs);
+}
+
+/* Danger outline button */
+.btn-outline-danger {
+  background-color: #fef2f2;
+  border-color: #fca5a5;
+  color: #991b1b;
+}
+
+.btn-outline-danger:hover {
+  background-color: var(--color-danger);
+  border-color: var(--color-danger);
+  color: white;
+  box-shadow: 0 2px 4px rgba(239, 68, 68, 0.2);
+}
+
+/* Success outline button */
+.btn-outline-success {
+  background-color: #f0fdf4;
+  border-color: #86efac;
+  color: #065f46;
+}
+
+.btn-outline-success:hover {
+  background-color: var(--color-success);
+  border-color: var(--color-success);
+  color: white;
+  box-shadow: 0 2px 4px rgba(16, 185, 129, 0.2);
+}
+
+/* Warning outline button */
+.btn-outline-warning {
+  background-color: #fffbeb;
+  border-color: #fcd34d;
+  color: #92400e;
+}
+
+.btn-outline-warning:hover {
+  background-color: var(--color-warning);
+  border-color: var(--color-warning);
+  color: white;
+  box-shadow: 0 2px 4px rgba(245, 158, 11, 0.2);
+}
+
+/* Info outline button */
+.btn-outline-info {
+  background-color: var(--color-accent-50);
+  border-color: var(--color-accent-400);
+  color: var(--color-accent-900);
+}
+
+.btn-outline-info:hover {
+  background-color: var(--color-accent-600);
+  border-color: var(--color-accent-600);
+  color: white;
+  box-shadow: 0 2px 4px rgba(20, 184, 166, 0.2);
+}
+
+/* Subtle hover effects for cards with actions */
+.card.interactive {
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.card.interactive:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.12);
+}
+
+/* Enhance form control hover effects */
+.form-control:hover,
+.Select-control:hover,
+.DateInput_input:hover {
+  border-color: #86b7fe;
+}
+
+/* Table row hover enhancement */
+.dash-spreadsheet-container .dash-spreadsheet-inner tr:hover {
+  background-color: rgba(13, 110, 253, 0.08) !important;
+  cursor: default;
+}
+
+/* Control hover effects */
+.dash-table-container .previous-page:hover,
+.dash-table-container .next-page:hover,
+.dash-table-container .first-page:hover,
+.dash-table-container .last-page:hover {
+  background-color: var(--color-gray-200) !important;
+  border-color: var(--color-gray-400) !important;
+  color: var(--color-primary) !important;
+}
+
+/* Icon hover effects */
+.icon-btn:hover {
+  opacity: 0.8;
+  transform: scale(1.1);
+}
+
+/* Ensure SVG elements align properly */
+svg {
+  vertical-align: middle;
+}

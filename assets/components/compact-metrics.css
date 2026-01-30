@@ -1,0 +1,32 @@
+/* ====================
+   COMPACT METRICS
+   ==================== */
+
+/* ================================================================
+   Compact Metric Overview Cards
+   ================================================================ */
+
+/* Compact metric cards for dashboard headers */
+.compact-metric-card {
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.compact-metric-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 0.25rem 0.5rem rgba(0, 0, 0, 0.1) !important;
+}
+
+.compact-metric-card .card-body {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+/* Responsive adjustments for compact cards */
+@media (max-width: 767px) {
+  .compact-metric-card {
+    min-height: 70px;
+  }
+}

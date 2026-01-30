@@ -1,0 +1,125 @@
+/* ====================
+   NAMESPACE SYNTAX
+   ==================== */
+
+/* ================================================================
+   Namespace Syntax Styling (Feature 012)
+   ================================================================ */
+
+/* Namespace input field styling */
+input[id*="namespace-field-input"] {
+  font-family: "Courier New", Consolas, Monaco, monospace;
+  font-size: 0.9rem;
+  background-color: #f8f9fa;
+  border: 2px solid #dee2e6;
+  padding: 0.5rem 0.75rem;
+  transition: all 0.2s ease;
+}
+
+input[id*="namespace-field-input"]:focus {
+  background-color: #fff;
+  border-color: #0d6efd;
+  box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.15);
+  outline: none;
+}
+
+input[id*="namespace-field-input"]::placeholder {
+  color: #6c757d;
+  font-style: italic;
+}
+
+/* Namespace suggestion list styling - IDE-style autocomplete */
+.namespace-suggestions-dropdown {
+  position: absolute;
+  z-index: 1200;
+  width: 100%;
+  max-height: 200px;
+  overflow-y: auto;
+  margin-top: 2px;
+}
+
+/* Ensure namespace dropdowns overlay other modal content */
+#field-mapping-modal .namespace-input-container {
+  overflow: visible !important;
+  z-index: 1200;
+}
+
+#field-mapping-modal .namespace-suggestions-dropdown {
+  z-index: 1210;
+}
+
+/* Only show styling when dropdown has content */
+.namespace-suggestions-dropdown:empty {
+  display: none;
+}
+
+.namespace-suggestions-dropdown:not(:empty) {
+  background-color: white;
+  border: 1px solid #dee2e6;
+  border-radius: 0.25rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.namespace-suggestions-dropdown .list-group {
+  margin-bottom: 0;
+  border-radius: 0.25rem;
+}
+
+.namespace-suggestions-dropdown .list-group-item {
+  padding: 0.5rem 0.75rem;
+  border: none;
+  border-bottom: 1px solid #f0f0f0;
+  cursor: pointer;
+  transition: background-color 0.1s ease;
+  font-family: "Courier New", Consolas, Monaco, monospace;
+  font-size: 0.9rem;
+}
+
+.namespace-suggestions-dropdown .list-group-item:last-child {
+  border-bottom: none;
+}
+
+.namespace-suggestions-dropdown .list-group-item:hover,
+.namespace-suggestions-dropdown .list-group-item.active {
+  background-color: #0d6efd;
+  color: white;
+}
+
+.namespace-suggestions-dropdown .list-group-item:hover .text-muted,
+.namespace-suggestions-dropdown .list-group-item.active .text-muted {
+  color: rgba(255, 255, 255, 0.8) !important;
+}
+
+.namespace-suggestions-dropdown .list-group-item strong {
+  font-weight: 600;
+}
+
+/* Namespace input styling */
+.namespace-input:focus {
+  border-color: #0d6efd;
+  box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+}
+
+/* Legacy styles kept for backwards compatibility */
+.namespace-suggestions {
+  position: relative;
+  z-index: 1000;
+}
+
+.namespace-suggestions .list-group {
+  border-radius: 0.25rem;
+  box-shadow: 0 0.25rem 0.5rem rgba(0, 0, 0, 0.15);
+}
+
+.namespace-suggestions .list-group-item {
+  transition: background-color 0.15s ease;
+}
+
+.namespace-suggestions .list-group-item:hover {
+  background-color: #e7f1ff;
+  cursor: pointer;
+}
+
+.namespace-suggestions .list-group-item:active {
+  background-color: #cfe2ff;
+}

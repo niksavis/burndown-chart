@@ -1,0 +1,139 @@
+/* ====================
+   JQL SYNTAX
+   ==================== */
+
+/* ===== JQL Syntax Highlighting Tokens ===== */
+/* WCAG AA compliant colors for syntax highlighting in JQL editor */
+/* Contrast ratios tested against #ffffff background */
+
+.cm-jql-keyword {
+  color: color-mix(
+    in srgb,
+    var(--color-primary) 80%,
+    black
+  ); /* Blue for keywords (AND, OR, NOT, IN, IS, WAS, etc.) */
+  font-weight: 600;
+}
+
+.cm-jql-string {
+  color: var(
+    --color-success
+  ); /* Green for string literals ("Done", 'TEST', etc.) */
+}
+
+.cm-jql-operator {
+  color: var(
+    --color-gray-600
+  ); /* Gray for operators (=, !=, ~, !~, <, >, <=, >=) */
+}
+
+.cm-jql-function {
+  color: color-mix(
+    in srgb,
+    var(--color-primary) 60%,
+    var(--color-danger) 40%
+  ); /* Purple for standard JQL functions (currentUser(), now(), etc.) */
+  font-weight: 500;
+}
+
+.cm-jql-scriptrunner {
+  color: color-mix(
+    in srgb,
+    var(--color-primary) 50%,
+    var(--color-danger) 50%
+  ); /* Distinct purple for ScriptRunner functions (linkedIssuesOf, issueFunction, etc.) */
+  font-weight: 600;
+}
+
+.cm-jql-field {
+  color: var(
+    --color-gray-900
+  ); /* Dark gray for field names (project, status, assignee, etc.) */
+}
+
+.cm-jql-error {
+  color: var(--color-danger); /* Red for syntax errors */
+  text-decoration: wavy underline;
+  text-decoration-color: var(--color-danger);
+}
+
+/* CodeMirror editor container styling */
+.jql-editor-container {
+  border: 1px solid var(--color-gray-400);
+  border-radius: 4px;
+  padding: 8px;
+  min-height: 40px;
+  font-family: "Monaco", "Menlo", "Ubuntu Mono", "Consolas", monospace;
+  font-size: 14px;
+  line-height: 1.5;
+  background-color: var(--color-white);
+}
+
+.jql-editor-container:focus-within {
+  border-color: var(--color-primary);
+  outline: 0;
+  box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+}
+
+/* Native CodeMirror container - match initialized size */
+.jql-codemirror-container {
+  min-height: 32px; /* Match single line height */
+  padding: 0; /* CodeMirror adds its own padding */
+  overflow: hidden; /* Prevent scroll bars before init */
+}
+
+.jql-codemirror-container .CodeMirror {
+  border: none; /* Container already has border */
+  border-radius: 0; /* Container already has border-radius */
+}
+
+/* Mobile responsiveness for JQL editor */
+@media (max-width: 767px) {
+  .jql-editor-container {
+    font-size: 13px;
+    padding: 6px;
+    min-height: 32px;
+  }
+
+  .jql-codemirror-container {
+    min-height: 28px;
+  }
+}
+
+/* CodeMirror height reduction - target the actual CodeMirror DOM elements */
+.CodeMirror {
+  height: auto !important;
+  min-height: 20px !important; /* Reduced from default 50px by 60% */
+}
+
+.CodeMirror-sizer {
+  min-height: 20px !important; /* Reduced from default 50px by 60% */
+}
+
+.CodeMirror-scroll {
+  min-height: 20px !important; /* Reduced from default 50px by 60% */
+  height: auto !important;
+}
+
+.CodeMirror-gutters {
+  height: 20px !important; /* Match the reduced height */
+}
+
+/* Mobile CodeMirror height adjustment */
+@media (max-width: 767px) {
+  .CodeMirror {
+    min-height: 16px !important; /* Even smaller on mobile */
+  }
+
+  .CodeMirror-sizer {
+    min-height: 16px !important;
+  }
+
+  .CodeMirror-scroll {
+    min-height: 16px !important;
+  }
+
+  .CodeMirror-gutters {
+    height: 16px !important;
+  }
+}

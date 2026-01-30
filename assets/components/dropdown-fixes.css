@@ -1,0 +1,100 @@
+/* ====================
+   DROPDOWN FIXES
+   ==================== */
+
+/* ===== ACCORDION SETTINGS PANEL DROPDOWN FIX ===== */
+/* CRITICAL FIX: Accordion collapse sections should hide overflow during animation */
+/* This prevents content overlap when switching between accordion sections */
+#settings-accordion .accordion-collapse,
+#settings-accordion .accordion-collapse.collapsing {
+  overflow: hidden !important;
+}
+
+/* CRITICAL: Allow accordion items AND body to overflow so dropdowns appear above next item */
+#settings-accordion .accordion-item,
+#settings-accordion .accordion-body,
+#profile-section-accordion,
+#jira-section-accordion,
+#field-mapping-section-accordion,
+#query-section-accordion {
+  overflow: visible !important;
+}
+
+/* Remove any overflow clipping from accordion headers that might interfere */
+#settings-accordion .accordion-header,
+#settings-accordion .accordion-button {
+  overflow: visible !important;
+}
+
+/* Allow parent containers and card bodies to overflow for dropdowns */
+.accordion-settings-panel,
+.accordion-settings-panel .card,
+.accordion-settings-panel .card-body,
+.accordion-settings-panel .row,
+.accordion-settings-panel [class*="col-"],
+.settings-panel-expanded {
+  overflow: visible !important;
+}
+
+/* CRITICAL FIX: Profile section accordion needs extra height for dropdown */
+/* When profile dropdown opens with 3+ items, it needs ~200px of space */
+#profile-section-accordion .accordion-body {
+  min-height: 250px !important; /* Ensure enough room for dropdown to expand */
+}
+
+/* CRITICAL FIX: Profile selector column needs higher stacking context than next accordion item */
+#profile-selector-container {
+  position: relative !important;
+  z-index: 1050 !important; /* Higher than accordion items (default ~1) */
+}
+
+/* CRITICAL: ONLY the profile dropdown menu gets fixed positioning (via JavaScript) */
+/* Other dropdowns in accordion should use normal absolute positioning */
+.accordion div[class*="__menu"]:not(.profile-dropdown-fixed),
+.accordion .Select-menu-outer:not(.profile-dropdown-fixed),
+#settings-accordion div[class*="__menu"]:not(.profile-dropdown-fixed),
+#settings-accordion .Select-menu-outer:not(.profile-dropdown-fixed) {
+  z-index: 1080 !important; /* High but not extreme */
+  position: absolute !important; /* Normal absolute for other dropdowns */
+}
+
+/* Responsive Toggle Switch ===== */
+
+/* Force both flex containers in timeline to have the same height */
+.mb-3.row .col-md-6 .d-flex.align-items-center.mb-2 {
+  min-height: 44px !important; /* Force same height for both deadline and milestone containers */
+  align-items: center !important;
+}
+
+/* Clean toggle switch styling without complex positioning */
+.responsive-toggle {
+  min-height: 44px; /* Touch target size */
+  display: flex !important;
+  align-items: center !important;
+  margin-bottom: 0 !important; /* Remove default Bootstrap margin */
+  flex-shrink: 0 !important; /* Prevent shrinking */
+  transform: translateY(-1px) !important; /* Fine-tune positioning 1px higher */
+}
+
+/* Ensure labels have consistent baseline alignment */
+label.fw-medium {
+  margin-bottom: 0 !important; /* Remove margin - flex container handles spacing */
+  line-height: 1.5 !important; /* Consistent line height */
+  flex-shrink: 0 !important; /* Prevent shrinking */
+}
+
+/* Date picker alignment rule moved up - see above */
+
+/* Ensure consistent height for picker containers */
+.deadline-datepicker,
+.milestone-datepicker {
+  height: 44px !important;
+}
+
+/* Mobile-specific adjustments */
+@media (max-width: 767px) {
+  .responsive-toggle {
+    transform: translateY(4px); /* Slightly more adjustment on mobile */
+    min-height: 44px; /* Maintain touch target size */
+  }
+}

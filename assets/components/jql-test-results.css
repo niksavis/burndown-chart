@@ -1,0 +1,12 @@
+/* ====================
+   JQL TEST RESULTS
+   ==================== */
+
+/* ================================================================
+   JQL Test Results Visibility Control (Feature 002-finish-jql-syntax)
+   ================================================================ */
+
+/* Hide test results when user types (prevents conflicts with Dash callbacks) */
+.jql-test-results-hidden {
+  display: none !important;
+}
