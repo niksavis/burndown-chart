@@ -1,8 +1,13 @@
 """
-JIRA API Integration Module
+JIRA Fetch Utilities Module
 
-This module provides minimal JIRA API integration for the burndown chart application.
-It fetches JIRA issues and transforms them to match the existing CSV statistics format.
+This module provides low-level JIRA pagination utilities.
+Core fetch operations have been moved to focused modules:
+- Main fetch: data.jira.main_fetch
+- Sync operations: data.jira.scope_sync
+- Changelog: data.jira.changelog_fetcher
+
+This module contains only the paginated fetch helper used by two-phase fetch.
 """
 
 #######################################################################
@@ -14,27 +19,15 @@ import requests
 
 from configuration import logger
 from data.jira import (
-    get_jira_config,
-    validate_jira_config,
     generate_config_hash,
     extract_jira_field_id,
-    validate_cache_file,
-    invalidate_changelog_cache,
-    check_jira_issue_count,
-    jira_to_csv_format,
 )
 
 # Main fetch with caching and optimization
-from data.jira.main_fetch import fetch_jira_issues
 
 # Scope sync and data sync
-from data.jira.scope_sync import sync_jira_scope_and_data, sync_jira_data
 
 # Changelog fetching
-from data.jira.changelog_fetcher import (
-    fetch_jira_issues_with_changelog,
-    fetch_changelog_on_demand,
-)
 
 # Aliasing for backward compatibility within this file
 _extract_jira_field_id = extract_jira_field_id
@@ -212,16 +205,16 @@ def _fetch_jira_paginated(
 
 
 #######################################################################
-# EXTRACTED FUNCTIONS NOW AVAILABLE VIA IMPORTS
+# MAIN FUNCTIONS NOW IN FOCUSED MODULES
 #######################################################################
 
-# The following functions have been extracted to focused modules:
+# All major JIRA operations have been extracted to focused modules:
 # - fetch_jira_issues → data.jira.main_fetch (550 lines)
 # - sync_jira_scope_and_data, sync_jira_data → data.jira.scope_sync (319 lines)
 # - fetch_changelog_on_demand → data.jira.changelog_fetcher (351 lines)
 
-# Import them from data.jira_simple to use:
-#   from data.jira_simple import fetch_jira_issues, sync_jira_scope_and_data, etc.
+# Import them from data.jira package:
+#   from data.jira import fetch_jira_issues, sync_jira_scope_and_data, etc.
 
 
 #######################################################################

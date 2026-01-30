@@ -323,8 +323,8 @@ def fetch_jira_issues(
         # Use two-phase fetch if applicable, otherwise standard fetch
         if use_two_phase:
             logger.info("[JIRA] Executing two-phase fetch...")
-            # Import paginated function from parent module (moved from pagination module)
-            from data.jira_simple import fetch_jira_paginated
+            # Import paginated function from fetch utilities module
+            from data.jira.fetch_utils import fetch_jira_paginated
 
             success, all_issues = fetch_jira_issues_two_phase(
                 config,

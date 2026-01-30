@@ -66,6 +66,9 @@ from data.jira.changelog_fetcher import (
     fetch_changelog_on_demand,
 )
 
+# Fetch utilities (paginated fetch helper)
+from data.jira.fetch_utils import fetch_jira_paginated
+
 __all__ = [
     # Configuration
     "get_jira_config",
@@ -96,6 +99,8 @@ __all__ = [
     "sync_jira_data",
     "fetch_jira_issues_with_changelog",
     "fetch_changelog_on_demand",
+    # Fetch utilities
+    "fetch_jira_paginated",
     # Constants
     "JIRA_CACHE_FILE",
     "JIRA_CHANGELOG_CACHE_FILE",
