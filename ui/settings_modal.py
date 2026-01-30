@@ -64,7 +64,7 @@ def _get_default_jql_profile_id():
 def _get_query_profile_options():
     """Get query profile dropdown options."""
     try:
-        from data.jira_query_manager import load_query_profiles
+        from data.jira.query_profiles import load_query_profiles
 
         profiles = load_query_profiles()
         options = []

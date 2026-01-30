@@ -1410,7 +1410,7 @@ def calculate_project_scope_from_jira(
             validate_jira_config,
             fetch_jira_issues,
         )
-        from data.jira_scope_calculator import calculate_jira_project_scope
+        from data.jira.scope_calculator import calculate_jira_project_scope
 
         # Load configuration
         if ui_config:

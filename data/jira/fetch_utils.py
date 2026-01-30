@@ -78,7 +78,7 @@ def _fetch_jira_paginated(
     Returns:
         Tuple of (success: bool, issues: List[Dict])
     """
-    from data.jira_query_manager import get_rate_limiter, retry_with_backoff
+    from data.jira.rate_limiter import get_rate_limiter, retry_with_backoff
 
     try:
         # Get configuration

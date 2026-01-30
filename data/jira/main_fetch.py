@@ -60,7 +60,7 @@ def fetch_jira_issues(
     Returns:
         Tuple of (success: bool, issues: List[Dict])
     """
-    from data.jira_query_manager import get_rate_limiter, retry_with_backoff
+    from data.jira.rate_limiter import get_rate_limiter, retry_with_backoff
     from data.jira.field_utils import extract_jira_field_id
     from data.jira.issue_counter import check_jira_issue_count
     from data.jira.two_phase_fetch import (

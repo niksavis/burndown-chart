@@ -40,7 +40,7 @@ def sync_jira_scope_and_data(
     from data.jira.field_utils import extract_jira_field_id
     from data.jira.main_fetch import fetch_jira_issues
     from data.jira.changelog_fetcher import fetch_changelog_on_demand
-    from data.jira_scope_calculator import calculate_jira_project_scope
+    from data.jira.scope_calculator import calculate_jira_project_scope
     from data.jira.data_transformer import jira_to_csv_format
     from data.jira.cache_validator import invalidate_changelog_cache
     from data.persistence import save_jira_data_unified

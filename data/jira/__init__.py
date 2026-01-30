@@ -69,6 +69,37 @@ from data.jira.changelog_fetcher import (
 # Fetch utilities (paginated fetch helper)
 from data.jira.fetch_utils import fetch_jira_paginated
 
+# Phase 9: Scope calculator and adapter
+from data.jira.scope_calculator import calculate_jira_project_scope
+from data.jira.adapter import adapt_jira_issue
+
+# Phase 9: Query profiles and rate limiting
+from data.jira.query_profiles import (
+    load_query_profiles,
+    get_query_profile_by_id,
+    save_query_profile,
+    delete_query_profile,
+    update_query_profile,
+    update_profile_last_used,
+    get_profile_names,
+    validate_profile_name_unique,
+    set_default_query,
+    get_default_query,
+    remove_default_query,
+    QUERY_PROFILES_FILE,
+)
+from data.jira.rate_limiter import (
+    TokenBucket,
+    get_rate_limiter,
+    reset_rate_limiter,
+    retry_with_backoff,
+    RATE_LIMIT_MAX_TOKENS,
+    RATE_LIMIT_REFILL_RATE,
+    MAX_RETRY_ATTEMPTS,
+    INITIAL_RETRY_DELAY,
+    MAX_RETRY_DELAY,
+)
+
 __all__ = [
     # Configuration
     "get_jira_config",
@@ -101,6 +132,32 @@ __all__ = [
     "fetch_changelog_on_demand",
     # Fetch utilities
     "fetch_jira_paginated",
+    # Phase 9: Scope calculator and adapter
+    "calculate_jira_project_scope",
+    "adapt_jira_issue",
+    # Phase 9: Query profiles
+    "load_query_profiles",
+    "get_query_profile_by_id",
+    "save_query_profile",
+    "delete_query_profile",
+    "update_query_profile",
+    "update_profile_last_used",
+    "get_profile_names",
+    "validate_profile_name_unique",
+    "set_default_query",
+    "get_default_query",
+    "remove_default_query",
+    "QUERY_PROFILES_FILE",
+    # Phase 9: Rate limiting
+    "TokenBucket",
+    "get_rate_limiter",
+    "reset_rate_limiter",
+    "retry_with_backoff",
+    "RATE_LIMIT_MAX_TOKENS",
+    "RATE_LIMIT_REFILL_RATE",
+    "MAX_RETRY_ATTEMPTS",
+    "INITIAL_RETRY_DELAY",
+    "MAX_RETRY_DELAY",
     # Constants
     "JIRA_CACHE_FILE",
     "JIRA_CHANGELOG_CACHE_FILE",

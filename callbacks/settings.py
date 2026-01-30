@@ -2106,11 +2106,11 @@ def register(app):
             )
 
         try:
-            from data.jira_query_manager import (
+            from data.jira.query_profiles import (
                 load_query_profiles,
                 set_default_query,
             )
-            from data.jira_query_manager import (
+            from data.jira.query_profiles import (
                 save_query_profile as save_profile_func,
             )
 
@@ -2230,7 +2230,7 @@ def register(app):
         # When user selects a profile from dropdown, save both the profile ID and its JQL
         try:
             from data.persistence import load_app_settings, save_app_settings
-            from data.jira_query_manager import get_query_profile_by_id
+            from data.jira.query_profiles import get_query_profile_by_id
 
             app_settings = load_app_settings()
             current_profile_id = app_settings.get("active_jql_profile_id", "")
@@ -2270,7 +2270,7 @@ def register(app):
         visible_style = {"display": "inline-block"}
 
         try:
-            from data.jira_query_manager import get_default_query, load_query_profiles
+            from data.jira.query_profiles import get_default_query, load_query_profiles
 
             profiles = load_query_profiles()
             default_query = get_default_query()
@@ -2385,7 +2385,7 @@ def register(app):
             raise PreventUpdate
 
         try:
-            from data.jira_query_manager import (
+            from data.jira.query_profiles import (
                 delete_query_profile,
                 load_query_profiles,
             )
@@ -2502,7 +2502,7 @@ def register(app):
             raise PreventUpdate
 
         try:
-            from data.jira_query_manager import get_query_profile_by_id
+            from data.jira.query_profiles import get_query_profile_by_id
 
             profile = get_query_profile_by_id(selected_profile_id)
             if profile:
@@ -2532,7 +2532,7 @@ def register(app):
             return ""  # Empty when no query is selected
 
         try:
-            from data.jira_query_manager import get_query_profile_by_id
+            from data.jira.query_profiles import get_query_profile_by_id
 
             profile = get_query_profile_by_id(selected_profile_id)
             if profile:
@@ -2601,7 +2601,7 @@ def register(app):
             )
 
         try:
-            from data.jira_query_manager import (
+            from data.jira.query_profiles import (
                 load_query_profiles,
                 save_query_profile,
             )
@@ -2669,7 +2669,7 @@ def register(app):
             raise PreventUpdate
 
         try:
-            from data.jira_query_manager import get_default_query
+            from data.jira.query_profiles import get_default_query
 
             default_query = get_default_query()
             if default_query:
