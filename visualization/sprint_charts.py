@@ -87,6 +87,8 @@ def create_sprint_progress_bars(
     fig = go.Figure()
     issue_keys = sorted(issue_states.keys(), reverse=True)
 
+    logger.info(f"Building progress bars for {len(issue_keys)} issues: {issue_keys}")
+
     for issue_key in issue_keys:
         state = issue_states[issue_key]
         summary = state.get("summary", "")
@@ -297,6 +299,12 @@ def create_sprint_progress_bars(
             f" ({sprint_start.strftime('%b %d')} → {sprint_end.strftime('%b %d')})"
         )
 
+    # Calculate dynamic height: 50px per issue (was 35px)
+    chart_height = max(500, len(issue_keys) * 50)
+    logger.info(
+        f"Setting chart height to {chart_height}px for {len(issue_keys)} issues"
+    )
+
     fig.update_layout(
         autosize=False,
         barmode="stack",
@@ -316,7 +324,7 @@ def create_sprint_progress_bars(
             fixedrange=True,
             automargin=True,
         ),
-        height=max(400, len(issue_keys) * 35),
+        height=chart_height,  # Dynamic height based on issue count
         width=None,
         margin=dict(l=150, r=20, t=60, b=60),
         plot_bgcolor="white",
