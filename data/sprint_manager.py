@@ -207,6 +207,9 @@ def get_sprint_snapshots(
             }
         return sprint_snapshots[sprint_id]
 
+    # Create set of issue keys from filtered issues (for O(1) lookup)
+    filtered_issue_keys = {issue.get("issue_key") for issue in issues}
+
     # Process changelog to detect sprint changes
     for entry in sorted_entries:
         issue_key = entry.get("issue_key")
@@ -215,6 +218,11 @@ def get_sprint_snapshots(
         timestamp = entry.get("change_date")
 
         if not issue_key or not timestamp:
+            continue
+
+        # CRITICAL: Only process changelog entries for issues in the filtered list
+        # This ensures issue type filtering works correctly
+        if issue_key not in filtered_issue_keys:
             continue
 
         # Parse sprint name from JIRA sprint format
