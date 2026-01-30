@@ -36,23 +36,23 @@ def create_sprint_progress_bars(
     sprint_start_date: Optional[str] = None,
     sprint_end_date: Optional[str] = None,
 ) -> go.Figure:
-    """Create progress bars showing status history over sprint timeline.
+    """Create progress bars showing time proportion spent in each status.
 
-    Each bar represents one issue. Bar shows stacked colored segments representing
-    the status at different points in the sprint timeline (0-100%).
+    Each bar represents one issue. Bar segments show the PERCENTAGE of time
+    the issue spent in each status (like a pie chart spread out horizontally).
 
-    Example: Issue starts To Do (blue 0-30%), moves to In Progress (yellow 30-80%),
-    then Done (green 80-100%).
+    Example: Issue spent 30% in To Do, 50% in Progress, 20% in Done
+    Bar shows: [Blue 30%][Yellow 50%][Green 20%]
 
     Args:
         sprint_data: Sprint snapshot from sprint_manager.get_sprint_snapshots()
-        changelog_entries: Status change history (REQUIRED for timeline)
+        changelog_entries: Status change history (REQUIRED for time calculation)
         show_points: Whether to show story points in labels
-        sprint_start_date: Sprint start date from JIRA (ISO string)
-        sprint_end_date: Sprint end date from JIRA (ISO string)
+        sprint_start_date: Sprint start date from JIRA (ISO string) - for context
+        sprint_end_date: Sprint end date from JIRA (ISO string) - for context
 
     Returns:
-        Plotly Figure with stacked horizontal bars showing status over time
+        Plotly Figure with stacked horizontal bars showing time proportions
     """
     logger.info(
         f"Creating sprint progress bars for: {sprint_data.get('name', 'Unknown')}"
@@ -62,39 +62,28 @@ def create_sprint_progress_bars(
     if not issue_states:
         return _create_empty_sprint_chart("No issues in sprint")
 
-    if not sprint_start_date or not sprint_end_date:
-        logger.warning(
-            "Sprint dates not available - showing current status only (no timeline)"
-        )
-        return _create_simple_status_bars(issue_states, show_points)
-
     if not changelog_entries:
-        logger.warning("No status changelog - cannot show status history")
+        logger.warning("No status changelog - showing current status only")
         return _create_simple_status_bars(issue_states, show_points)
 
-    # Parse sprint dates
+    # Parse sprint dates for duration calculation
     from datetime import datetime, timezone
 
     try:
-        sprint_start = datetime.fromisoformat(sprint_start_date)
-        sprint_end = datetime.fromisoformat(sprint_end_date)
-        now = datetime.now(timezone.utc)
-
-        total_duration = (sprint_end - sprint_start).total_seconds()
-        if total_duration <= 0:
-            logger.warning("Invalid sprint duration - start >= end")
-            return _create_simple_status_bars(issue_states, show_points)
-
-        logger.info(
-            f"Sprint timeline: {sprint_start.strftime('%Y-%m-%d')} → {sprint_end.strftime('%Y-%m-%d')} "
-            f"({total_duration / 86400:.1f} days)"
+        sprint_start = (
+            datetime.fromisoformat(sprint_start_date) if sprint_start_date else None
         )
-
+        sprint_end = (
+            datetime.fromisoformat(sprint_end_date) if sprint_end_date else None
+        )
+        now = datetime.now(timezone.utc)
     except (ValueError, AttributeError) as e:
         logger.error(f"Failed to parse sprint dates: {e}")
-        return _create_simple_status_bars(issue_states, show_points)
+        sprint_start = None
+        sprint_end = None
+        now = datetime.now(timezone.utc)
 
-    # Build status timeline for each issue
+    # Build time proportion bars for each issue
     fig = go.Figure()
     issue_keys = sorted(issue_states.keys(), reverse=True)
 
@@ -127,7 +116,7 @@ def create_sprint_progress_bars(
                     hovertemplate=(
                         f"<b>{issue_key}</b><br>"
                         f"<b>Status:</b> {current_status}<br>"
-                        f"<b>Timeline:</b> Entire sprint<br>"
+                        f"<b>Time:</b> 100% (no history)<br>"
                         f"<b>Summary:</b> {summary}<br>"
                         + (
                             f"<b>Points:</b> {points}<br>"
@@ -141,20 +130,25 @@ def create_sprint_progress_bars(
             )
             continue
 
-        # Build timeline segments
-        segments = []
+        # Calculate time spent in each status
         sorted_changes = sorted(issue_changes, key=lambda x: x.get("timestamp", ""))
 
-        # Find initial status (before sprint or first change)
-        initial_status = sorted_changes[0].get("from_value") or "To Do"
+        # Build time segments
+        time_segments = []  # {status, start_time, end_time, duration_seconds}
 
-        # Add segment from sprint start to first change
-        first_timestamp = sorted_changes[0].get("timestamp")
+        # Get first valid timestamp
+        first_timestamp = None
+        initial_status = None
+        for change in sorted_changes:
+            ts = change.get("timestamp")
+            if ts:
+                first_timestamp = ts
+                initial_status = change.get("from_value") or "To Do"
+                break
+
         if not first_timestamp:
-            # No valid timestamp - fall back to showing current status for full sprint
-            logger.warning(
-                f"Issue {issue_key} has changelog but no valid timestamps, showing current status"
-            )
+            # No valid timestamps - show current status
+            logger.warning(f"Issue {issue_key} has changelog but no valid timestamps")
             color = STATUS_COLORS.get(current_status, COLOR_PALETTE["secondary"])
             fig.add_trace(
                 go.Bar(
@@ -167,7 +161,7 @@ def create_sprint_progress_bars(
                     hovertemplate=(
                         f"<b>{issue_key}</b><br>"
                         f"<b>Status:</b> {current_status}<br>"
-                        f"<b>Timeline:</b> Entire sprint (no timestamp data)<br>"
+                        f"<b>Time:</b> 100% (no timestamp data)<br>"
                         f"<b>Summary:</b> {summary}<br>"
                         + (
                             f"<b>Points:</b> {points}<br>"
@@ -181,99 +175,108 @@ def create_sprint_progress_bars(
             )
             continue
 
-        first_change_time = datetime.fromisoformat(first_timestamp)
-        first_change_pct = max(
-            0, (first_change_time - sprint_start).total_seconds() / total_duration * 100
-        )
+        # Process status changes to build time segments
+        first_time = datetime.fromisoformat(first_timestamp)
+        current_seg_status = initial_status
+        current_seg_start = first_time
 
-        if first_change_pct > 0:
-            segments.append(
-                {
-                    "status": initial_status,
-                    "start_pct": 0,
-                    "end_pct": first_change_pct,
-                    "start_date": sprint_start,
-                    "end_date": first_change_time,
-                }
-            )
-
-        # Process each status change
-        for i, change in enumerate(sorted_changes):
-            change_timestamp = change.get("timestamp")
-            if not change_timestamp:
+        for change in sorted_changes:
+            ts = change.get("timestamp")
+            if not ts:
                 continue
-            change_time = datetime.fromisoformat(change_timestamp)
-            change_pct = (
-                (change_time - sprint_start).total_seconds() / total_duration * 100
-            )
+
+            change_time = datetime.fromisoformat(ts)
             new_status = change.get("to_value", "Unknown")
 
-            # Find next change or use sprint end
-            if i + 1 < len(sorted_changes):
-                next_timestamp = sorted_changes[i + 1].get("timestamp")
-                if not next_timestamp:
-                    next_change_time = min(now, sprint_end)
-                    next_pct = min(
-                        100,
-                        (next_change_time - sprint_start).total_seconds()
-                        / total_duration
-                        * 100,
-                    )
-                else:
-                    next_change_time = datetime.fromisoformat(next_timestamp)
-                    next_pct = (
-                        (next_change_time - sprint_start).total_seconds()
-                        / total_duration
-                        * 100
-                    )
-            else:
-                # Last segment goes to sprint end (or now if sprint still active)
-                next_change_time = min(now, sprint_end)
-                next_pct = min(
-                    100,
-                    (next_change_time - sprint_start).total_seconds()
-                    / total_duration
-                    * 100,
+            # Close previous segment
+            duration = (change_time - current_seg_start).total_seconds()
+            if duration > 0:
+                time_segments.append(
+                    {
+                        "status": current_seg_status,
+                        "start_time": current_seg_start,
+                        "end_time": change_time,
+                        "duration_seconds": duration,
+                    }
                 )
 
-            segments.append(
+            # Start new segment
+            current_seg_status = new_status
+            current_seg_start = change_time
+
+        # Close final segment (to now)
+        final_duration = (now - current_seg_start).total_seconds()
+        if final_duration > 0:
+            time_segments.append(
                 {
-                    "status": new_status,
-                    "start_pct": change_pct,
-                    "end_pct": next_pct,
-                    "start_date": change_time,
-                    "end_date": next_change_time,
+                    "status": current_seg_status,
+                    "start_time": current_seg_start,
+                    "end_time": now,
+                    "duration_seconds": final_duration,
                 }
             )
 
-        # Create stacked bar from segments
-        for segment in segments:
-            width = segment["end_pct"] - segment["start_pct"]
-            if width <= 0:
-                continue
-
-            status = segment["status"]
-            color = STATUS_COLORS.get(status, COLOR_PALETTE["secondary"])
-
-            duration_days = (
-                segment["end_date"] - segment["start_date"]
-            ).total_seconds() / 86400
-
+        # Calculate total time and percentages
+        total_duration = sum(seg["duration_seconds"] for seg in time_segments)
+        if total_duration == 0:
+            # Fallback
+            color = STATUS_COLORS.get(current_status, COLOR_PALETTE["secondary"])
             fig.add_trace(
                 go.Bar(
-                    x=[width],
+                    x=[100],
                     y=[label],
                     orientation="h",
                     marker_color=color,
-                    text=[status if width > 8 else ""],
+                    text=[current_status],
+                    textposition="inside",
+                    hovertemplate=(
+                        f"<b>{issue_key}</b><br>"
+                        f"<b>Status:</b> {current_status}<br>"
+                        f"<b>Summary:</b> {summary}<br>"
+                        + (
+                            f"<b>Points:</b> {points}<br>"
+                            if show_points and points
+                            else ""
+                        )
+                        + "<extra></extra>"
+                    ),
+                    showlegend=False,
+                )
+            )
+            continue
+
+        # Create stacked bar segments
+        for segment in time_segments:
+            status = segment["status"]
+            duration_pct = (segment["duration_seconds"] / total_duration) * 100
+            duration_days = segment["duration_seconds"] / 86400
+
+            if duration_pct < 0.5:  # Skip tiny segments
+                continue
+
+            color = STATUS_COLORS.get(status, COLOR_PALETTE["secondary"])
+
+            # Format duration display
+            if duration_days < 1:
+                duration_str = f"{segment['duration_seconds'] / 3600:.1f}h"
+            else:
+                duration_str = f"{duration_days:.1f}d"
+
+            fig.add_trace(
+                go.Bar(
+                    x=[duration_pct],
+                    y=[label],
+                    orientation="h",
+                    marker_color=color,
+                    text=[status if duration_pct > 8 else ""],
                     textposition="inside",
                     textangle=0,
                     hovertemplate=(
                         f"<b>{issue_key}</b><br>"
                         f"<b>Status:</b> {status}<br>"
-                        f"<b>Duration:</b> {duration_days:.1f} days ({width:.1f}%)<br>"
-                        f"<b>From:</b> {segment['start_date'].strftime('%b %d')}<br>"
-                        f"<b>To:</b> {segment['end_date'].strftime('%b %d')}<br>"
+                        f"<b>Time in Status:</b> {duration_str} ({duration_pct:.1f}%)<br>"
+                        f"<b>From:</b> {segment['start_time'].strftime('%b %d, %H:%M')}<br>"
+                        f"<b>To:</b> {segment['end_time'].strftime('%b %d, %H:%M')}<br>"
                         f"<b>Summary:</b> {summary}<br>"
                         + (
                             f"<b>Points:</b> {points}<br>"
@@ -287,12 +290,19 @@ def create_sprint_progress_bars(
             )
 
     # Layout
+    # Layout
+    sprint_info = ""
+    if sprint_start and sprint_end:
+        sprint_info = (
+            f" ({sprint_start.strftime('%b %d')} → {sprint_end.strftime('%b %d')})"
+        )
+
     fig.update_layout(
         autosize=False,
         barmode="stack",
         showlegend=False,
         xaxis=dict(
-            title=f"Sprint Timeline: {sprint_start.strftime('%b %d')} → {sprint_end.strftime('%b %d, %Y')}",
+            title=f"Time Distribution by Status{sprint_info}",
             showticklabels=True,
             showgrid=True,
             zeroline=False,
