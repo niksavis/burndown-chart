@@ -286,10 +286,9 @@ def _render_sprint_tracker_content(
                                         html.H5("Issue Progress", className="mb-3"),
                                         dcc.Graph(
                                             figure=progress_bars,
-                                            config={"displayModeBar": False},
-                                            style={
-                                                "maxHeight": "600px",
-                                                "overflowY": "auto",
+                                            config={
+                                                "displayModeBar": False,
+                                                "responsive": True,
                                             },
                                         ),
                                     ],

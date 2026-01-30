@@ -1,11 +1,11 @@
 """Sprint Tracker Visualization Module
 
 This module provides functions to create sprint progress visualizations including:
-- Horizontal stacked progress bars showing issue state transitions
+- Simple horizontal bars showing issue status
 - Sprint summary cards with completion metrics
 - Timeline charts showing sprint composition changes
 
-Uses Plotly for interactive charts following app design patterns.
+Uses Plotly with proper responsive configuration following app design patterns.
 """
 
 import logging
@@ -34,18 +34,15 @@ def create_sprint_progress_bars(
     changelog_entries: Optional[List[Dict]] = None,
     show_points: bool = False,
 ) -> go.Figure:
-    """Create horizontal progress bars for sprint issues showing current status.
-
-    Each issue is represented as a horizontal bar colored by current status.
-    Simple visualization without time tracking to avoid layout issues.
+    """Create simple horizontal bars for sprint issues grouped by status.
 
     Args:
         sprint_data: Sprint snapshot from sprint_manager.get_sprint_snapshots()
-        changelog_entries: Status change history (not used in simplified version)
+        changelog_entries: Status change history (not used)
         show_points: Whether to show story points in labels
 
     Returns:
-        Plotly Figure with horizontal bars
+        Plotly Figure with horizontal bars - fixed 400px height
     """
     logger.info(
         f"Creating progress bars for sprint: {sprint_data.get('name', 'Unknown')}"
@@ -55,77 +52,79 @@ def create_sprint_progress_bars(
     if not issue_states:
         return _create_empty_sprint_chart("No issues in sprint")
 
-    # Build progress bar data
-    issue_keys = []
-    statuses = []
-    colors = []
-    story_points_list = []
-
+    # Group issues by status
+    status_groups = {}
     for issue_key, state in issue_states.items():
+        status = state.get("status", "Unknown")
+        if status not in status_groups:
+            status_groups[status] = []
+
         summary = state.get("summary", "")
         story_points = state.get("story_points", 0)
-        current_status = state.get("status", "Unknown")
 
-        # Build issue label
         if show_points and story_points:
-            label = f"{issue_key} ({story_points}pts): {summary[:50]}"
+            label = f"{issue_key} ({story_points}pts)"
         else:
-            label = f"{issue_key}: {summary[:60]}"
+            label = issue_key
 
-        issue_keys.append(label)
-        statuses.append(current_status)
-        colors.append(STATUS_COLORS.get(current_status, COLOR_PALETTE["muted"]))
-        story_points_list.append(story_points if story_points else 0)
+        status_groups[status].append(
+            {
+                "key": issue_key,
+                "label": label,
+                "summary": summary,
+                "points": story_points,
+            }
+        )
 
-    # Create figure with simple bars (value of 1 for each, colored by status)
+    # Create figure with bars per status
     fig = go.Figure()
 
-    # Group by status for legend
-    status_groups = {}
-    for idx, (status, color) in enumerate(zip(statuses, colors)):
-        if status not in status_groups:
-            status_groups[status] = {"indices": [], "color": color}
-        status_groups[status]["indices"].append(idx)
+    for status, issues in sorted(status_groups.items()):
+        labels = [issue["label"] for issue in issues]
+        summaries = [issue["summary"] for issue in issues]
 
-    # Add one trace per status group
-    for status, group_data in status_groups.items():
-        indices = group_data["indices"]
         fig.add_trace(
             go.Bar(
                 name=status,
-                y=[issue_keys[i] for i in indices],
-                x=[1] * len(indices),  # Uniform width
+                y=labels,
+                x=[1] * len(labels),
                 orientation="h",
-                marker_color=group_data["color"],
+                marker_color=STATUS_COLORS.get(status, COLOR_PALETTE["muted"]),
+                text=labels,
+                textposition="inside",
+                textangle=0,
+                insidetextanchor="start",
                 hovertemplate="<b>%{y}</b><br>"
-                + f"<b>Status:</b> {status}<br>"
+                + "<b>Status:</b> "
+                + status
+                + "<br>"
+                + "<b>Summary:</b> %{customdata}<br>"
                 + "<extra></extra>",
-                showlegend=True,
+                customdata=summaries,
             )
         )
 
-    # Update layout
+    # Fixed responsive layout
     fig.update_layout(
         barmode="stack",
-        title=f"Sprint Progress: {sprint_data.get('name', 'Sprint')}",
+        showlegend=True,
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="center", x=0.5),
         xaxis=dict(
             showticklabels=False,
             showgrid=False,
             zeroline=False,
+            fixedrange=True,
         ),
-        yaxis_title="Issues",
-        height=max(
-            300, min(len(issue_keys) * 20, 500)
-        ),  # Dynamic height, capped at 500px
-        showlegend=True,
-        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
-        hovermode="closest",
+        yaxis=dict(
+            showgrid=False,
+            fixedrange=False,
+        ),
+        height=400,  # Fixed height
+        margin=dict(l=120, r=20, t=40, b=20),
         plot_bgcolor="white",
         paper_bgcolor="white",
-        margin=dict(l=200, r=50, t=80, b=50),  # Extra left margin for issue labels
+        hovermode="closest",
     )
-
-    fig.update_yaxes(showgrid=False)
 
     return fig
 
@@ -239,145 +238,70 @@ def create_sprint_summary_card(
 
 
 def create_sprint_timeline_chart(sprint_changes: Dict) -> go.Figure:
-    """Create timeline showing when issues were added/removed from sprint.
+    """Create bar chart showing sprint composition changes.
 
     Args:
         sprint_changes: Sprint changes from sprint_manager.detect_sprint_changes()
 
     Returns:
-        Plotly Figure with timeline markers
+        Plotly Figure with bar chart - fixed 350px height
     """
-    from datetime import datetime
+    added_count = len(sprint_changes.get("added", []))
+    removed_count = len(sprint_changes.get("removed", []))
+    moved_in_count = len(sprint_changes.get("moved_in", []))
+    moved_out_count = len(sprint_changes.get("moved_out", []))
 
-    added_issues = sprint_changes.get("added", [])
-    removed_issues = sprint_changes.get("removed", [])
-    moved_in = sprint_changes.get("moved_in", [])
-    moved_out = sprint_changes.get("moved_out", [])
-
-    if not any([added_issues, removed_issues, moved_in, moved_out]):
+    if not any([added_count, removed_count, moved_in_count, moved_out_count]):
         return _create_empty_sprint_chart("No sprint changes detected")
 
+    # Create simple bar chart
     fig = go.Figure()
 
-    # Add "Added" events
-    if added_issues:
-        dates = [
-            datetime.fromisoformat(e["timestamp"].replace("Z", "+00:00"))
-            for e in added_issues
-        ]
-        fig.add_trace(
-            go.Scatter(
-                x=dates,
-                y=[1] * len(dates),
-                mode="markers",
-                name="Added to Sprint",
-                marker=dict(
-                    size=12,
-                    color=COLOR_PALETTE["success"],
-                    symbol="circle",
-                    line=dict(width=2, color="white"),
-                ),
-                text=[e["issue_key"] for e in added_issues],
-                hovertemplate="<b>Added:</b> %{text}<br>"
-                + "<b>Date:</b> %{x}<br>"
-                + "<extra></extra>",
-            )
-        )
+    categories = []
+    values = []
+    colors_list = []
 
-    # Add "Removed" events
-    if removed_issues:
-        dates = [
-            datetime.fromisoformat(e["timestamp"].replace("Z", "+00:00"))
-            for e in removed_issues
-        ]
-        fig.add_trace(
-            go.Scatter(
-                x=dates,
-                y=[2] * len(dates),
-                mode="markers",
-                name="Removed from Sprint",
-                marker=dict(
-                    size=12,
-                    color=COLOR_PALETTE["danger"],
-                    symbol="x",
-                    line=dict(width=2, color="white"),
-                ),
-                text=[e["issue_key"] for e in removed_issues],
-                hovertemplate="<b>Removed:</b> %{text}<br>"
-                + "<b>Date:</b> %{x}<br>"
-                + "<extra></extra>",
-            )
-        )
+    if added_count > 0:
+        categories.append("Added to Sprint")
+        values.append(added_count)
+        colors_list.append(COLOR_PALETTE["success"])
 
-    # Add "Moved In" events
-    if moved_in:
-        dates = [
-            datetime.fromisoformat(e["timestamp"].replace("Z", "+00:00"))
-            for e in moved_in
-        ]
-        fig.add_trace(
-            go.Scatter(
-                x=dates,
-                y=[1.5] * len(dates),
-                mode="markers",
-                name="Moved In",
-                marker=dict(
-                    size=10,
-                    color=COLOR_PALETTE["info"],
-                    symbol="triangle-up",
-                    line=dict(width=2, color="white"),
-                ),
-                text=[f"{e['issue_key']} (from {e['from']})" for e in moved_in],
-                hovertemplate="<b>Moved In:</b> %{text}<br>"
-                + "<b>Date:</b> %{x}<br>"
-                + "<extra></extra>",
-            )
-        )
+    if moved_in_count > 0:
+        categories.append("Moved In")
+        values.append(moved_in_count)
+        colors_list.append(COLOR_PALETTE["info"])
 
-    # Add "Moved Out" events
-    if moved_out:
-        dates = [
-            datetime.fromisoformat(e["timestamp"].replace("Z", "+00:00"))
-            for e in moved_out
-        ]
-        fig.add_trace(
-            go.Scatter(
-                x=dates,
-                y=[2.5] * len(dates),
-                mode="markers",
-                name="Moved Out",
-                marker=dict(
-                    size=10,
-                    color=COLOR_PALETTE["warning"],
-                    symbol="triangle-down",
-                    line=dict(width=2, color="white"),
-                ),
-                text=[f"{e['issue_key']} (to {e['to']})" for e in moved_out],
-                hovertemplate="<b>Moved Out:</b> %{text}<br>"
-                + "<b>Date:</b> %{x}<br>"
-                + "<extra></extra>",
-            )
-        )
+    if moved_out_count > 0:
+        categories.append("Moved Out")
+        values.append(moved_out_count)
+        colors_list.append(COLOR_PALETTE["warning"])
 
-    # Update layout
-    fig.update_layout(
-        title="Sprint Composition Changes",
-        xaxis_title="Date",
-        yaxis=dict(
-            showticklabels=False,
-            showgrid=False,
-            zeroline=False,
-            range=[0.5, 3],
-        ),
-        height=300,
-        showlegend=True,
-        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
-        hovermode="closest",
-        plot_bgcolor="white",
-        paper_bgcolor="white",
+    if removed_count > 0:
+        categories.append("Removed")
+        values.append(removed_count)
+        colors_list.append(COLOR_PALETTE["danger"])
+
+    fig.add_trace(
+        go.Bar(
+            x=categories,
+            y=values,
+            marker_color=colors_list,
+            text=values,
+            textposition="outside",
+            hovertemplate="<b>%{x}</b><br>Count: %{y}<extra></extra>",
+        )
     )
 
-    fig.update_xaxes(showgrid=True, gridcolor="lightgray")
+    fig.update_layout(
+        showlegend=False,
+        xaxis_title="",
+        yaxis_title="Issue Count",
+        height=350,  # Fixed height
+        margin=dict(l=60, r=20, t=20, b=60),
+        plot_bgcolor="white",
+        paper_bgcolor="white",
+        yaxis=dict(gridcolor="lightgray"),
+    )
 
     return fig
 
@@ -389,7 +313,7 @@ def create_status_distribution_pie(progress_data: Dict) -> go.Figure:
         progress_data: Progress metrics from sprint_manager.calculate_sprint_progress()
 
     Returns:
-        Plotly Figure with pie chart
+        Plotly Figure with pie chart - fixed 400px height
     """
     by_status = progress_data.get("by_status", {})
 
@@ -398,29 +322,27 @@ def create_status_distribution_pie(progress_data: Dict) -> go.Figure:
 
     statuses = list(by_status.keys())
     counts = [by_status[s].get("count", 0) for s in statuses]
-    colors = [STATUS_COLORS.get(s, COLOR_PALETTE["muted"]) for s in statuses]
+    colors_list = [STATUS_COLORS.get(s, COLOR_PALETTE["muted"]) for s in statuses]
 
     fig = go.Figure(
         data=[
             go.Pie(
                 labels=statuses,
                 values=counts,
-                marker=dict(colors=colors, line=dict(color="white", width=2)),
-                textposition="inside",
+                marker=dict(colors=colors_list, line=dict(color="white", width=2)),
+                hole=0.3,  # Donut chart
+                textposition="auto",
                 textinfo="label+percent",
-                hovertemplate="<b>%{label}</b><br>"
-                + "Count: %{value}<br>"
-                + "Percentage: %{percent}<br>"
-                + "<extra></extra>",
+                hovertemplate="<b>%{label}</b><br>Count: %{value}<br>Percentage: %{percent}<extra></extra>",
             )
         ]
     )
 
     fig.update_layout(
-        title="Issue Distribution by Status",
-        height=400,
         showlegend=True,
         legend=dict(orientation="v", yanchor="middle", y=0.5, xanchor="left", x=1.05),
+        height=400,  # Fixed height
+        margin=dict(l=20, r=100, t=20, b=20),
     )
 
     return fig
