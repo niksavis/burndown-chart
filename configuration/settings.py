@@ -84,6 +84,7 @@ COLOR_PALETTE = {
     "info": "rgb(13, 110, 253)",  # Bootstrap primary/info blue (#0d6efd)
     "success": "rgb(25, 135, 84)",  # Bootstrap success green (#198754)
     "warning": "rgb(255, 193, 7)",  # Bootstrap warning yellow (#ffc107)
+    "danger": "rgb(220, 53, 69)",  # Bootstrap danger red (#dc3545)
     "secondary": "rgb(108, 117, 125)",  # Bootstrap secondary gray (#6c757d)
     "muted": "rgb(108, 117, 125)",  # Muted text color (same as secondary)
 }
