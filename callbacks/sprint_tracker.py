@@ -8,7 +8,7 @@ Follows Bug Analysis pattern for conditional tab display.
 
 import logging
 from typing import Dict
-from dash import html, dcc
+from dash import html
 import dash_bootstrap_components as dbc
 
 logger = logging.getLogger(__name__)
@@ -222,8 +222,6 @@ def _render_sprint_tracker_content(
         )
         from visualization.sprint_charts import (
             create_sprint_progress_bars,
-            create_sprint_timeline_chart,
-            create_status_distribution_pie,
             create_sprint_summary_card,
         )
 
@@ -250,6 +248,18 @@ def _render_sprint_tracker_content(
             active_profile_id, active_query_id, field_name="status"
         )
 
+        logger.info(
+            f"[SPRINT TRACKER] Loaded {len(status_changelog)} status changelog entries for sprint"
+        )
+
+        # Load flow configuration for dynamic status colors
+        from data.persistence import load_app_settings
+
+        app_settings = load_app_settings()
+        flow_start_statuses = app_settings.get("flow_start_statuses", [])
+        flow_wip_statuses = app_settings.get("wip_statuses", [])
+        flow_end_statuses = app_settings.get("flow_end_statuses", [])
+
         # Create visualizations
         progress_bars = create_sprint_progress_bars(
             sprint_data,
@@ -257,11 +267,10 @@ def _render_sprint_tracker_content(
             show_points,
             sprint_start_date=sprint_start_date,
             sprint_end_date=sprint_end_date,
+            flow_start_statuses=flow_start_statuses,
+            flow_wip_statuses=flow_wip_statuses,
+            flow_end_statuses=flow_end_statuses,
         )
-
-        timeline_chart = create_sprint_timeline_chart(selected_sprint_changes)
-
-        status_pie = create_status_distribution_pie(progress_data)
 
         # Create sprint selector if multiple sprints
         sprint_selector = (
@@ -317,62 +326,9 @@ def _render_sprint_tracker_content(
                         explanation_note,
                         # Filter controls
                         filter_controls,
-                        # Progress bars
-                        dbc.Row(
-                            [
-                                dbc.Col(
-                                    [
-                                        html.H5("Issue Progress", className="mb-3"),
-                                        dcc.Graph(
-                                            figure=progress_bars,
-                                            config={
-                                                "displayModeBar": False,
-                                                "responsive": True,
-                                            },
-                                            style={"height": "450px"},
-                                        ),
-                                    ],
-                                    xs=12,
-                                    className="mb-4",
-                                )
-                            ]
-                        ),
-                        # Timeline and distribution
-                        dbc.Row(
-                            [
-                                dbc.Col(
-                                    [
-                                        html.H5(
-                                            "Sprint Composition Changes",
-                                            className="mb-3",
-                                        ),
-                                        dcc.Graph(
-                                            figure=timeline_chart,
-                                            config={"displayModeBar": False},
-                                            style={"height": "400px"},
-                                        ),
-                                    ],
-                                    xs=12,
-                                    md=6,
-                                    className="mb-4",
-                                ),
-                                dbc.Col(
-                                    [
-                                        html.H5(
-                                            "Status Distribution", className="mb-3"
-                                        ),
-                                        dcc.Graph(
-                                            figure=status_pie,
-                                            config={"displayModeBar": False},
-                                            style={"height": "450px"},
-                                        ),
-                                    ],
-                                    xs=12,
-                                    md=6,
-                                    className="mb-4",
-                                ),
-                            ]
-                        ),
+                        # Progress bars (HTML component)
+                        html.H5("Issue Progress", className="mt-4 mb-3"),
+                        progress_bars,
                     ],
                     fluid=True,
                     className="mt-4",

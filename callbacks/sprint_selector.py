@@ -4,7 +4,7 @@ Handles sprint selection changes in the Sprint Tracker tab.
 """
 
 import logging
-from dash import callback, Input, Output, State, html, dcc, no_update
+from dash import callback, Input, Output, State, html, no_update
 import dash_bootstrap_components as dbc
 
 logger = logging.getLogger(__name__)
@@ -111,8 +111,6 @@ def update_sprint_selection(
         )
         from visualization.sprint_charts import (
             create_sprint_progress_bars,
-            create_sprint_timeline_chart,
-            create_status_distribution_pie,
             create_sprint_summary_card,
         )
 
@@ -138,12 +136,32 @@ def update_sprint_selection(
             active_profile_id, active_query_id, field_name="status"
         )
 
+        # Get sprint dates for the selected sprint
+        from data.sprint_manager import get_sprint_dates
+
+        sprint_dates = get_sprint_dates(selected_sprint, tracked_issues, sprint_field)
+        sprint_start_date = sprint_dates.get("start_date") if sprint_dates else None
+        sprint_end_date = sprint_dates.get("end_date") if sprint_dates else None
+
+        # Load flow configuration for dynamic status colors
+        from data.persistence import load_app_settings
+
+        app_settings = load_app_settings()
+        flow_start_statuses = app_settings.get("flow_start_statuses", [])
+        flow_wip_statuses = app_settings.get("wip_statuses", [])
+        flow_end_statuses = app_settings.get("flow_end_statuses", [])
+
         # Create visualizations
         progress_bars = create_sprint_progress_bars(
-            sprint_data, status_changelog, show_points
+            sprint_data,
+            status_changelog,
+            show_points,
+            sprint_start_date=sprint_start_date,
+            sprint_end_date=sprint_end_date,
+            flow_start_statuses=flow_start_statuses,
+            flow_wip_statuses=flow_wip_statuses,
+            flow_end_statuses=flow_end_statuses,
         )
-        timeline_chart = create_sprint_timeline_chart(selected_sprint_changes)
-        status_pie = create_status_distribution_pie(progress_data)
 
         # Create sprint selector (keep all sprints available)
         sprint_ids = sorted(sprint_snapshots.keys(), reverse=True)
@@ -195,62 +213,9 @@ def update_sprint_selection(
                         change_indicators,
                         explanation_note,
                         filter_controls,
-                        # Progress bars
-                        dbc.Row(
-                            [
-                                dbc.Col(
-                                    [
-                                        html.H5("Issue Progress", className="mb-3"),
-                                        dcc.Graph(
-                                            figure=progress_bars,
-                                            config={
-                                                "displayModeBar": False,
-                                                "responsive": True,
-                                            },
-                                            style={"height": "450px"},
-                                        ),
-                                    ],
-                                    xs=12,
-                                    className="mb-4",
-                                )
-                            ]
-                        ),
-                        # Timeline and distribution
-                        dbc.Row(
-                            [
-                                dbc.Col(
-                                    [
-                                        html.H5(
-                                            "Sprint Composition Changes",
-                                            className="mb-3",
-                                        ),
-                                        dcc.Graph(
-                                            figure=timeline_chart,
-                                            config={"displayModeBar": False},
-                                            style={"height": "400px"},
-                                        ),
-                                    ],
-                                    xs=12,
-                                    md=6,
-                                    className="mb-4",
-                                ),
-                                dbc.Col(
-                                    [
-                                        html.H5(
-                                            "Status Distribution", className="mb-3"
-                                        ),
-                                        dcc.Graph(
-                                            figure=status_pie,
-                                            config={"displayModeBar": False},
-                                            style={"height": "450px"},
-                                        ),
-                                    ],
-                                    xs=12,
-                                    md=6,
-                                    className="mb-4",
-                                ),
-                            ]
-                        ),
+                        # Progress bars (HTML component)
+                        html.H5("Issue Progress", className="mt-4 mb-3"),
+                        progress_bars,
                     ],
                     fluid=True,
                     className="mt-4",

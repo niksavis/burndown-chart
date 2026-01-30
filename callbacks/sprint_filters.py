@@ -59,8 +59,6 @@ def filter_sprint_by_issue_type(
         )
         from visualization.sprint_charts import (
             create_sprint_progress_bars,
-            create_sprint_timeline_chart,
-            create_status_distribution_pie,
             create_sprint_summary_card,
         )
 
@@ -147,6 +145,15 @@ def filter_sprint_by_issue_type(
 
         sprint_data = sprint_snapshots[selected_sprint_id]
 
+        # Debug: Log issue types in sprint data
+        issue_states = sprint_data.get("issue_states", {})
+        issue_types_in_sprint = set(
+            state.get("issue_type") for state in issue_states.values()
+        )
+        logger.info(
+            f"[Filter Debug] Issue types in sprint_data: {issue_types_in_sprint}, Filter: {issue_type_filter}"
+        )
+
         # Calculate sprint progress
         flow_mappings = field_mappings.get("flow", {})
         flow_end_statuses = flow_mappings.get("flow_end_statuses", ["Done", "Closed"])
@@ -183,6 +190,23 @@ def filter_sprint_by_issue_type(
             active_profile_id, active_query_id, field_name="status"
         )
 
+        # Get sprint dates for the selected sprint
+        from data.sprint_manager import get_sprint_dates
+
+        sprint_dates = get_sprint_dates(
+            selected_sprint_id, filtered_issues, sprint_field
+        )
+        sprint_start_date = sprint_dates.get("start_date") if sprint_dates else None
+        sprint_end_date = sprint_dates.get("end_date") if sprint_dates else None
+
+        # Load flow configuration for dynamic status colors
+        from data.persistence import load_app_settings
+
+        app_settings = load_app_settings()
+        flow_start_statuses = app_settings.get("flow_start_statuses", [])
+        flow_wip_statuses = app_settings.get("wip_statuses", [])
+        flow_end_statuses = app_settings.get("flow_end_statuses", [])
+
         # Create visualizations
         progress_bars = create_sprint_progress_bars(
             sprint_data,
@@ -190,10 +214,10 @@ def filter_sprint_by_issue_type(
             show_points,
             sprint_start_date=sprint_start_date,
             sprint_end_date=sprint_end_date,
+            flow_start_statuses=flow_start_statuses,
+            flow_wip_statuses=flow_wip_statuses,
+            flow_end_statuses=flow_end_statuses,
         )
-
-        timeline_chart = create_sprint_timeline_chart(selected_sprint_changes)
-        status_pie = create_status_distribution_pie(progress_data)
 
         # Create sprint selector
         sprint_ids_list = sorted(sprint_snapshots.keys(), reverse=True)
@@ -236,8 +260,6 @@ def filter_sprint_by_issue_type(
         )
 
         # Assemble layout
-        from dash import dcc
-
         return html.Div(
             [
                 dbc.Container(
@@ -247,27 +269,9 @@ def filter_sprint_by_issue_type(
                         change_indicators,
                         explanation_note,
                         filter_controls,
-                        # Issue Progress Timeline
-                        html.H5("Issue Status Timeline", className="mt-4 mb-3"),
-                        dcc.Graph(
-                            figure=progress_bars,
-                            config={"displayModeBar": False},
-                            style={"height": "450px"},
-                        ),
-                        # Sprint Composition Changes
-                        html.H5("Sprint Composition Changes", className="mt-4 mb-3"),
-                        dcc.Graph(
-                            figure=timeline_chart,
-                            config={"displayModeBar": False},
-                            style={"height": "400px"},
-                        ),
-                        # Status Distribution
-                        html.H5("Status Distribution", className="mt-4 mb-3"),
-                        dcc.Graph(
-                            figure=status_pie,
-                            config={"displayModeBar": False},
-                            style={"height": "450px"},
-                        ),
+                        # Issue Progress section with heading first, then progress bars
+                        html.H5("Issue Progress", className="mt-4 mb-3"),
+                        progress_bars,  # Contains: sprint progress indicator, legend, then bars
                     ],
                     fluid=True,
                     className="p-4",

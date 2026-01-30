@@ -105,6 +105,53 @@ def get_active_sprint_from_issues(
         return None
 
 
+def get_sprint_dates(
+    sprint_name: str, issues: List[Dict], sprint_field: str = "customfield_10005"
+) -> Optional[Dict]:
+    """Get start and end dates for a specific sprint from issue data.
+
+    Args:
+        sprint_name: Name of the sprint (e.g., "Sprint 256", "Gravity Sprint 256")
+        issues: List of JIRA issues (from backend.get_issues())
+        sprint_field: Sprint custom field ID
+
+    Returns:
+        Dict with {"start_date": str, "end_date": str} or None if sprint not found
+        Dates are ISO strings from JIRA sprint object
+    """
+    for issue in issues:
+        custom_fields = issue.get("custom_fields", {})
+        sprint_value = custom_fields.get(sprint_field)
+
+        if not sprint_value:
+            continue
+
+        # Sprint field is typically a list of sprint objects
+        sprint_list = sprint_value if isinstance(sprint_value, list) else [sprint_value]
+
+        for sprint_str in sprint_list:
+            if not isinstance(sprint_str, str):
+                continue
+
+            # Parse serialized JIRA sprint object
+            sprint_obj = _parse_sprint_object(sprint_str)
+            if sprint_obj and sprint_obj["name"] == sprint_name:
+                start_date = sprint_obj.get("start_date")
+                end_date = sprint_obj.get("end_date")
+
+                if start_date and end_date:
+                    logger.info(
+                        f"Found dates for {sprint_name}: {start_date} to {end_date}"
+                    )
+                    return {
+                        "start_date": start_date,
+                        "end_date": end_date,
+                    }
+
+    logger.warning(f"No dates found for sprint: {sprint_name}")
+    return None
+
+
 def get_sprint_snapshots(
     issues: List[Dict],
     changelog_entries: List[Dict],
