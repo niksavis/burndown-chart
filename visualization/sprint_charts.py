@@ -34,18 +34,18 @@ def create_sprint_progress_bars(
     changelog_entries: Optional[List[Dict]] = None,
     show_points: bool = False,
 ) -> go.Figure:
-    """Create horizontal stacked progress bars for sprint issues.
+    """Create horizontal progress bars for sprint issues showing current status.
 
-    Each issue is represented as a horizontal stacked bar showing time spent
-    in different statuses. Width is proportional to duration.
+    Each issue is represented as a horizontal bar colored by current status.
+    Simple visualization without time tracking to avoid layout issues.
 
     Args:
         sprint_data: Sprint snapshot from sprint_manager.get_sprint_snapshots()
-        changelog_entries: Status change history for time-in-status calculation
+        changelog_entries: Status change history (not used in simplified version)
         show_points: Whether to show story points in labels
 
     Returns:
-        Plotly Figure with stacked horizontal bars
+        Plotly Figure with horizontal bars
     """
     logger.info(
         f"Creating progress bars for sprint: {sprint_data.get('name', 'Unknown')}"
@@ -57,7 +57,9 @@ def create_sprint_progress_bars(
 
     # Build progress bar data
     issue_keys = []
-    bar_data = []
+    statuses = []
+    colors = []
+    story_points_list = []
 
     for issue_key, state in issue_states.items():
         summary = state.get("summary", "")
@@ -66,76 +68,63 @@ def create_sprint_progress_bars(
 
         # Build issue label
         if show_points and story_points:
-            label = f"{issue_key} ({story_points}pts): {summary[:40]}"
+            label = f"{issue_key} ({story_points}pts): {summary[:50]}"
         else:
-            label = f"{issue_key}: {summary[:50]}"
+            label = f"{issue_key}: {summary[:60]}"
 
         issue_keys.append(label)
+        statuses.append(current_status)
+        colors.append(STATUS_COLORS.get(current_status, COLOR_PALETTE["muted"]))
+        story_points_list.append(story_points if story_points else 0)
 
-        # Calculate time segments from changelog
-        if changelog_entries:
-            segments = _calculate_state_segments(issue_key, changelog_entries)
-        else:
-            # Fallback: show current status only
-            segments = [
-                {
-                    "status": current_status,
-                    "duration_hours": 1,  # Placeholder duration
-                    "color": STATUS_COLORS.get(current_status, COLOR_PALETTE["muted"]),
-                }
-            ]
-
-        bar_data.append(segments)
-
-    # Create figure
+    # Create figure with simple bars (value of 1 for each, colored by status)
     fig = go.Figure()
 
-    # Add trace for each status (for legend grouping)
-    status_traces_added = set()
+    # Group by status for legend
+    status_groups = {}
+    for idx, (status, color) in enumerate(zip(statuses, colors)):
+        if status not in status_groups:
+            status_groups[status] = {"indices": [], "color": color}
+        status_groups[status]["indices"].append(idx)
 
-    for idx, segments in enumerate(bar_data):
-        for segment in segments:
-            status = segment["status"]
-            duration = segment["duration_hours"]
-            color = segment["color"]
-
-            # Add trace with legend only once per status
-            show_legend = status not in status_traces_added
-            if show_legend:
-                status_traces_added.add(status)
-
-            fig.add_trace(
-                go.Bar(
-                    name=status,
-                    y=[issue_keys[idx]],
-                    x=[duration],
-                    orientation="h",
-                    marker_color=color,
-                    showlegend=show_legend,
-                    hovertemplate=f"<b>{status}</b><br>"
-                    + f"Duration: {duration:.1f}h<br>"
-                    + "<extra></extra>",
-                    legendgroup=status,
-                )
+    # Add one trace per status group
+    for status, group_data in status_groups.items():
+        indices = group_data["indices"]
+        fig.add_trace(
+            go.Bar(
+                name=status,
+                y=[issue_keys[i] for i in indices],
+                x=[1] * len(indices),  # Uniform width
+                orientation="h",
+                marker_color=group_data["color"],
+                hovertemplate="<b>%{y}</b><br>"
+                + f"<b>Status:</b> {status}<br>"
+                + "<extra></extra>",
+                showlegend=True,
             )
+        )
 
     # Update layout
     fig.update_layout(
         barmode="stack",
         title=f"Sprint Progress: {sprint_data.get('name', 'Sprint')}",
-        xaxis_title="Time Spent (hours)",
+        xaxis=dict(
+            showticklabels=False,
+            showgrid=False,
+            zeroline=False,
+        ),
         yaxis_title="Issues",
         height=max(
-            400, min(len(issue_keys) * 25, 800)
-        ),  # Dynamic height, capped at 800px
+            300, min(len(issue_keys) * 20, 500)
+        ),  # Dynamic height, capped at 500px
         showlegend=True,
         legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
         hovermode="closest",
         plot_bgcolor="white",
         paper_bgcolor="white",
+        margin=dict(l=200, r=50, t=80, b=50),  # Extra left margin for issue labels
     )
 
-    fig.update_xaxes(showgrid=True, gridcolor="lightgray")
     fig.update_yaxes(showgrid=False)
 
     return fig
@@ -199,7 +188,9 @@ def _calculate_state_segments(
 
 
 def create_sprint_summary_card(
-    progress_data: Dict, show_points: bool = False, wip_statuses: List[str] = None
+    progress_data: Dict,
+    show_points: bool = False,
+    wip_statuses: Optional[List[str]] = None,
 ) -> Dict:
     """Create summary statistics card data for sprint.
 

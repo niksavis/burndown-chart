@@ -287,6 +287,10 @@ def _render_sprint_tracker_content(
                                         dcc.Graph(
                                             figure=progress_bars,
                                             config={"displayModeBar": False},
+                                            style={
+                                                "maxHeight": "600px",
+                                                "overflowY": "auto",
+                                            },
                                         ),
                                     ],
                                     xs=12,
