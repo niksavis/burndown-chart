@@ -115,7 +115,7 @@ def create_sprint_progress_bars(
 
         if not issue_changes:
             # No history - show full bar with current status
-            color = STATUS_COLORS.get(current_status, COLOR_PALETTE["text"])
+            color = STATUS_COLORS.get(current_status, COLOR_PALETTE["secondary"])
             fig.add_trace(
                 go.Bar(
                     x=[100],
@@ -224,7 +224,7 @@ def create_sprint_progress_bars(
                 continue
 
             status = segment["status"]
-            color = STATUS_COLORS.get(status, COLOR_PALETTE["text"])
+            color = STATUS_COLORS.get(status, COLOR_PALETTE["secondary"])
 
             duration_days = (
                 segment["end_date"] - segment["start_date"]
