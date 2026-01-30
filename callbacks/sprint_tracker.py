@@ -169,9 +169,24 @@ def _render_sprint_tracker_content(
 
         logger.info(f"Built {len(sprint_snapshots)} sprint snapshots")
 
-        # Select first sprint (or could add sprint selector logic)
-        sprint_ids = sorted(sprint_snapshots.keys(), reverse=True)  # Newest first
-        selected_sprint_id = sprint_ids[0]
+        # Determine active sprint from issue data (uses JIRA state field)
+        from data.sprint_manager import get_active_sprint_from_issues
+
+        active_sprint = get_active_sprint_from_issues(tracked_issues, sprint_field)
+
+        # Select active sprint if found, otherwise use first sprint
+        sprint_ids = sorted(sprint_snapshots.keys(), reverse=True)  # Newest first by name
+        if active_sprint and active_sprint in sprint_snapshots:
+            selected_sprint_id = active_sprint
+            logger.info(f"Selected active sprint: {selected_sprint_id}")
+        elif sprint_ids:
+            selected_sprint_id = sprint_ids[0]
+            logger.info(f"No active sprint found, selected first: {selected_sprint_id}")
+        else:
+            logger.warning("No sprint snapshots available")
+            from ui.sprint_tracker import create_no_sprints_state
+            return create_no_sprints_state()
+
         sprint_data = sprint_snapshots[selected_sprint_id]
 
         logger.info(f"Selected sprint: {selected_sprint_id}")

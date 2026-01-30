@@ -20,6 +20,71 @@ from collections import defaultdict
 logger = logging.getLogger(__name__)
 
 
+def get_active_sprint_from_issues(issues: List[Dict], sprint_field: str = "customfield_10005") -> Optional[str]:
+    """Determine the active sprint from current issue sprint field data.
+
+    JIRA stores full sprint objects with state in issue fields.
+    This function finds the sprint with state="ACTIVE" which is
+    more reliable than using changelog timestamps.
+
+    Args:
+        issues: List of JIRA issues (from backend.get_issues())
+        sprint_field: Sprint custom field ID (default: customfield_10005)
+
+    Returns:
+        Name of the active sprint, or None if no active sprint found
+    """
+    sprint_counts = {}  # sprint_name -> (count, state)
+
+    for issue in issues:
+        custom_fields = issue.get("custom_fields", {})
+        sprint_value = custom_fields.get(sprint_field)
+
+        if not sprint_value:
+            continue
+
+        # Sprint field is typically a list of sprint objects
+        sprint_list = sprint_value if isinstance(sprint_value, list) else [sprint_value]
+
+        for sprint_str in sprint_list:
+            if not isinstance(sprint_str, str):
+                continue
+
+            # Parse serialized JIRA sprint object
+            sprint_obj = _parse_sprint_object(sprint_str)
+            if sprint_obj:
+                name = sprint_obj["name"]
+                state = sprint_obj["state"]
+
+                # Track sprint counts and their states
+                if name not in sprint_counts:
+                    sprint_counts[name] = {"count": 0, "state": state}
+                sprint_counts[name]["count"] += 1
+
+    # Find sprint with state=ACTIVE (highest priority)
+    active_sprint = None
+    max_count = 0
+
+    for sprint_name, data in sprint_counts.items():
+        if data["state"] == "ACTIVE" and data["count"] > max_count:
+            active_sprint = sprint_name
+            max_count = data["count"]
+
+    # If no active sprint, fall back to the sprint with most issues
+    if not active_sprint:
+        for sprint_name, data in sprint_counts.items():
+            if data["count"] > max_count:
+                active_sprint = sprint_name
+                max_count = data["count"]
+
+    if active_sprint:
+        logger.info(f"Determined active sprint: {active_sprint} ({max_count} issues)")
+    else:
+        logger.warning("No active sprint found in issues")
+
+    return active_sprint
+
+
 def get_sprint_snapshots(
     issues: List[Dict],
     changelog_entries: List[Dict],
@@ -215,6 +280,50 @@ def _parse_sprint_name(sprint_value: Optional[str]) -> Optional[str]:
 
     # Fallback: return as-is if simple string
     return sprint_value.strip()
+
+
+def _parse_sprint_object(sprint_value: str) -> Optional[Dict]:
+    """Parse JIRA sprint object string to extract name and state.
+
+    JIRA returns serialized sprint objects like:
+    "com.atlassian.greenhopper.service.sprint.Sprint@44f88702[activatedDate=<null>,
+    autoStartStop=false,completeDate=<null>,endDate=2026-02-24T19:19:00.000+01:00,
+    goal=<null>,id=50477,name=Gravity Sprint 257,state=FUTURE,...]"
+
+    Args:
+        sprint_value: Serialized JIRA sprint object string
+
+    Returns:
+        Dict with {"name": str, "state": str} or None
+        State is one of: "ACTIVE", "FUTURE", "CLOSED"
+    """
+    if not sprint_value or "[" not in sprint_value:
+        return None
+
+    try:
+        # Extract the part inside brackets
+        start = sprint_value.index("[") + 1
+        end = sprint_value.rindex("]")
+        properties = sprint_value[start:end]
+
+        # Parse key=value pairs
+        sprint_data = {}
+        for prop in properties.split(","):
+            if "=" in prop:
+                key, value = prop.split("=", 1)
+                sprint_data[key.strip()] = value.strip()
+
+        # Extract name and state
+        name = sprint_data.get("name")
+        state = sprint_data.get("state")
+
+        if name and state:
+            return {"name": name, "state": state.upper()}
+
+    except (ValueError, IndexError) as e:
+        logger.debug(f"Failed to parse sprint object: {e}")
+
+    return None
 
 
 def detect_sprint_changes(
