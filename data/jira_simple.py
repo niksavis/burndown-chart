@@ -24,6 +24,29 @@ from data.cache_manager import (
 )
 from data.persistence import load_app_settings, save_app_settings
 
+# Import from new jira module structure
+from data.jira import (
+    get_jira_config,
+    validate_jira_config,
+    construct_jira_endpoint,
+    test_jira_connection,
+    generate_config_hash,
+    extract_jira_field_id,
+    extract_story_points_value,
+    validate_jql_for_scriptrunner,
+    test_jql_query,
+    JIRA_CACHE_FILE,
+    JIRA_CHANGELOG_CACHE_FILE,
+    DEFAULT_CACHE_MAX_SIZE_MB,
+    CACHE_VERSION,
+    CHANGELOG_CACHE_VERSION,
+    CACHE_EXPIRATION_HOURS,
+)
+
+# Aliasing for backward compatibility within this file
+_extract_jira_field_id = extract_jira_field_id
+_generate_config_hash = generate_config_hash
+
 #######################################################################
 # CONFIGURATION
 #######################################################################
@@ -3055,7 +3078,7 @@ def fetch_changelog_on_demand(
                             # Check both field name and fieldId
                             field_name = item.get("field")
                             field_id = item.get("fieldId")
-                            
+
                             # Use fieldId if it matches tracked fields (for custom fields like sprint)
                             # Otherwise use field name (for standard fields like status)
                             if field_id and field_id in tracked_fields:
@@ -3064,7 +3087,7 @@ def fetch_changelog_on_demand(
                                 final_field_name = field_name
                             else:
                                 continue  # Skip if neither matches
-                                
+
                             changelog_entries_batch.append(
                                 {
                                     "issue_key": issue_key,
