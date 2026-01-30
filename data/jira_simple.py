@@ -2977,14 +2977,23 @@ def fetch_changelog_on_demand(
                     tracked_fields = ["status"]  # Always track status
 
                     # Add sprint field if detected (from field mappings)
+                    # CRITICAL: JIRA uses field display name in changelog, not custom field ID
+                    # E.g., changelog has "Sprint", not "customfield_10005"
                     sprint_field_id = (
                         config.get("field_mappings", {})
                         .get("general", {})
                         .get("sprint_field")
                     )
                     if sprint_field_id:
-                        tracked_fields.append(sprint_field_id)
-                        logger.info(f"[JIRA] Tracking sprint field: {sprint_field_id}")
+                        tracked_fields.append(
+                            sprint_field_id
+                        )  # Track custom field ID (for fallback)
+                        tracked_fields.append(
+                            "Sprint"
+                        )  # Track display name (JIRA default)
+                        logger.info(
+                            f"[JIRA] Tracking sprint field: {sprint_field_id} and 'Sprint'"
+                        )
 
                     # DEBUG: Log unique field names from first issue to diagnose sprint field mismatch
                     if issues_processed == 0 and histories:

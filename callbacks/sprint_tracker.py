@@ -133,9 +133,20 @@ def _render_sprint_tracker_content(
         logger.info(f"Using sprint field: {sprint_field}")
 
         # Load sprint changelog entries using configured sprint field
+        # Try both custom field ID and "Sprint" display name (JIRA uses display name in changelog)
         changelog_entries = backend.get_changelog_entries(
             active_profile_id, active_query_id, field_name=sprint_field
         )
+
+        # If no entries with custom field ID, try "Sprint" display name
+        if not changelog_entries:
+            changelog_entries = backend.get_changelog_entries(
+                active_profile_id, active_query_id, field_name="Sprint"
+            )
+            if changelog_entries:
+                logger.info(
+                    f"Found {len(changelog_entries)} sprint entries using 'Sprint' field name"
+                )
 
         if not changelog_entries or len(changelog_entries) == 0:
             logger.info("No sprint changelog data found - sprints not configured")
