@@ -191,7 +191,7 @@ def calculate_and_save_weekly_metrics(
             )
 
             # Load JIRA configuration
-            from data.jira_simple import get_jira_config, fetch_changelog_on_demand
+            from data.jira import get_jira_config, fetch_changelog_on_demand
 
             config = get_jira_config()
             if not config:

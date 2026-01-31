@@ -229,7 +229,7 @@ from data.persistence import (
     save_jira_configuration,
     validate_jira_config
 )
-from data.jira_simple import test_jira_connection
+from data.jira import test_jira_connection
 
 
 @callback(

@@ -1368,7 +1368,7 @@ def update_project_scope_from_jira(
         Tuple (success: bool, message: str)
     """
     try:
-        from data.jira_simple import sync_jira_scope_and_data
+        from data.jira import sync_jira_scope_and_data
 
         # Get JIRA scope data
         success, message, scope_data = sync_jira_scope_and_data(jql_query, ui_config)
@@ -1405,7 +1405,7 @@ def calculate_project_scope_from_jira(
         Tuple (success: bool, message: str, scope_data: dict)
     """
     try:
-        from data.jira_simple import (
+        from data.jira import (
             get_jira_config,
             validate_jira_config,
             fetch_jira_issues,

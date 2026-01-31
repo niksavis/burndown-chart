@@ -46,6 +46,13 @@ from data.jira.cache_validator import (
     invalidate_changelog_cache,
 )
 
+# Cache operations
+from data.jira.cache_operations import (
+    cache_jira_response,
+    load_jira_cache,
+    load_changelog_cache,
+)
+
 # Issue counter
 from data.jira.issue_counter import check_jira_issue_count
 
@@ -120,6 +127,10 @@ __all__ = [
     "validate_cache_file",
     "get_cache_status",
     "invalidate_changelog_cache",
+    # Cache operations
+    "cache_jira_response",
+    "load_jira_cache",
+    "load_changelog_cache",
     # Issue counter
     "check_jira_issue_count",
     # Data transformation

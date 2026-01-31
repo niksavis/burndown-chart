@@ -822,7 +822,7 @@ def register(app):
                 )
 
             # Handle JIRA data import (settings panel only uses JIRA)
-            from data.jira_simple import validate_jira_config
+            from data.jira import validate_jira_config
             from data.persistence import load_app_settings
 
             # CRITICAL DEBUG: Log what we receive from the Store
@@ -952,7 +952,7 @@ def register(app):
             )
 
             # Load JIRA configuration values from jira_config and construct endpoint
-            from data.jira_simple import construct_jira_endpoint
+            from data.jira import construct_jira_endpoint
 
             base_url = jira_config.get("base_url", "https://jira.atlassian.com")
             api_version = jira_config.get("api_version", "v2")
@@ -1052,7 +1052,7 @@ def register(app):
                 )
 
             # Use sync_jira_scope_and_data to get both scope data and message
-            from data.jira_simple import sync_jira_scope_and_data
+            from data.jira import sync_jira_scope_and_data
 
             # Convert checkbox value to boolean (None = False)
             # The force_refresh comes from the clientside callback that reads _forceRefreshPending flag
@@ -1880,7 +1880,7 @@ def register(app):
                 )
 
             # Build UI config from loaded jira_config
-            from data.jira_simple import construct_jira_endpoint
+            from data.jira import construct_jira_endpoint
 
             base_url = jira_config.get("base_url", "https://jira.atlassian.com")
             api_version = jira_config.get("api_version", "v2")
@@ -2761,7 +2761,7 @@ def register(app):
             )
 
         try:
-            from data.jira_simple import test_jql_query, validate_jql_for_scriptrunner
+            from data.jira import test_jql_query, validate_jql_for_scriptrunner
             from data.persistence import load_jira_configuration
 
             # Load JIRA configuration
@@ -2794,7 +2794,7 @@ def register(app):
                 )
 
             # Build JIRA config for testing with current JQL query
-            from data.jira_simple import construct_jira_endpoint
+            from data.jira import construct_jira_endpoint
 
             base_url = loaded_jira_config.get("base_url", "https://jira.atlassian.com")
             api_version = loaded_jira_config.get("api_version", "v2")

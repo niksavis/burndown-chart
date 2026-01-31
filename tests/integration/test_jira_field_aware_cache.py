@@ -15,7 +15,7 @@ import tempfile
 import shutil
 import pytest
 from unittest.mock import patch
-from data.jira_simple import cache_jira_response, load_jira_cache
+from data.jira import cache_jira_response, load_jira_cache
 
 
 @pytest.fixture(autouse=True)

@@ -1448,7 +1448,7 @@ def auto_configure_from_metadata(
         issues = []
         if jql_query:
             try:
-                from data.jira_simple import fetch_jira_issues
+                from data.jira import fetch_jira_issues
 
                 logger.info(
                     "[AutoConfigure] Fetching last 100 issues for field analysis..."
