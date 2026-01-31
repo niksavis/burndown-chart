@@ -19,6 +19,14 @@
 - **Module focus**: Target specific folders (data/, ui/, callbacks/, etc.)
 - **Test coverage**: 122 test files (15% of codebase)
 
+## Visual Design Anti-Patterns
+
+**NEVER use emoji-style icons** (🔴🟠🟡🔵⚪) in CLI output or logs - they cause cognitive overload.
+
+**ALWAYS use small Unicode symbols** with semantic colors:
+- Status: `○ ◐ ● ✓ ❄`
+- Priority: `● P1` (filled circle with text)
+- Progress: `[====    ] 50%`
 
 ## Session Start
 
@@ -33,50 +41,109 @@
 **Handoff**: `Continue work on bd-123: [title]. [context]`
 **Cold Start**: Sync beads-metadata → check state → claim work
 
-**CRITICAL**: This project uses **git worktrees** for beads with separate `beads-metadata` branch:
-- Code changes → `main` branch
-- Beads database → `beads-metadata` branch (in `.git/beads-worktrees/beads-metadata/`)
-- **MUST sync BOTH branches** for multi-agent coordination
+**CRITICAL**: This project uses **git worktrees** with separate branches:
+- Code → `main` branch
+- Beads DB → `beads-metadata` branch (in `.git/beads-worktrees/beads-metadata/`)
+- **INVARIANT**: ∀ sessions: push(main) ∧ push(beads-metadata) (multi-agent coordination)
 
 **MANDATORY SESSION START SEQUENCE**:
-```bash
-# 1. Ensure daemon running with auto-sync (CRITICAL for multi-machine coordination)
-bd daemon status  # Check if "Sync: ✓ commit ✓ push" present
-# If daemon not running OR Sync shows "none", restart with:
-bd daemon start --auto-commit --auto-push
+```powershell
+# 1. Verify daemon auto-sync enabled
+bd daemon status  # REQUIRED: "Sync: ✓ commit ✓ push"
+# If NOT enabled: bd daemon start --auto-commit --auto-push
 
-# 2. Pull latest beads state
-cd .git/beads-worktrees/beads-metadata
+# 2. Sync beads-metadata branch
+Push-Location .git/beads-worktrees/beads-metadata
 git pull --rebase
-cd ../../..
+Pop-Location
 
-# 3. Check for ready work
-bd ready
+# 3. Find ready work
+bd ready --json
 
-# 3. (Optional) Check main branch updates
+# 4. (Optional) Sync main branch
 git pull --rebase
 ```
-- Beads database → `beads-metadata` branch (in `.git/beads-worktrees/beads-metadata/`)
-- **MUST push BOTH branches** or multi-agent coordination breaks
 
 ## Beads Commands
 
 ```bash
-bd ready                              # Find work
-bd show <id>                          # View details
+bd ready --json                       # Find work (JSON for programmatic use)
+bd show <id> --json                   # View details
 bd update <id> --status in_progress   # Claim
+bd create "Title" --description="Context" -p 1-4 -t bug|feature|task --json
+bd close <id> --reason "Done" --json
 # NO bd sync in worktree mode - daemon auto-commits to beads-metadata branch
 ```
 
-**FORBIDDEN**: `bd edit` (opens $EDITOR - AI incompatible)
+**CRITICAL**: ALWAYS include `--description` when creating issues (context for future work)
+**PATTERN**: Link discovered work: `--deps discovered-from:<parent-id>`
+**FORBIDDEN**: `bd edit` (opens $EDITOR - AI incompatible), markdown TODO lists
 **UPDATE**: `bd update <id> --description "text" --title "text" --notes "text" --status "status"`
 **WORKTREE**: Beads changes auto-commit to `.git/beads-worktrees/beads-metadata/` - must push separately
 
-## Architectural Guidelines (MANDATORY)
+**Priority Scale**:
+- `1` - High (major features, important bugs)
+- `2` - Medium (default, nice-to-have)
+- `3` - Low (polish, optimization)
+- `4` - Backlog (future ideas)
 
-**BEFORE creating/editing code**: Check architectural guidelines for file size limits and patterns
+## Beads Conflict Resolution
 
-These guidelines are **agent skills** that ensure quality code by enforcing:
+**CRITICAL**: If you encounter merge conflict in `.beads/issues.jsonl` (in beads-metadata branch):
+
+```bash
+# 1. Navigate to beads-metadata worktree
+Push-Location .git/beads-worktrees/beads-metadata
+
+# 2. Extract 3 versions (base, ours, theirs)
+git show :1:.beads/issues.jsonl > beads.base.jsonl
+git show :2:.beads/issues.jsonl > beads.ours.jsonl
+git show :3:.beads/issues.jsonl > beads.theirs.jsonl
+
+# 3. Run bd merge tool
+bd merge beads.merged.jsonl beads.base.jsonl beads.ours.jsonl beads.theirs.jsonl --debug
+
+# 4. Verify result (exit code 0 = success, 1 = manual edit needed)
+
+# 5. Apply merged result
+Copy-Item beads.merged.jsonl .beads/issues.jsonl
+
+# 6. Complete merge
+git add .beads/issues.jsonl
+git merge --continue
+
+# 7. Cleanup
+Remove-Item beads.*.jsonl
+
+# 8. Return to project root
+Pop-Location
+```
+
+**Alternative (accept-remote)**: If conflict trivial (no data loss risk):
+```powershell
+Push-Location .git/beads-worktrees/beads-metadata
+git checkout --theirs .beads/issues.jsonl
+bd import -i .beads/issues.jsonl
+git add .beads/issues.jsonl
+git merge --continue
+Pop-Location
+```
+
+**Decision criteria**:
+- Use `bd merge` if: local changes must be preserved (default)
+- Use `accept-remote` if: local changes irrelevant OR fresh clone
+- **Frequency**: Rare with daemon auto-sync (∵ 5s push interval)
+
+## Code Creation Prerequisite (MANDATORY)
+
+**RULE**: ∀ code operations: read(architecture_guidelines) → validate(size_limits) → code
+
+**BEFORE any file creation or modification**:
+1. Check `docs/architecture/<language>_guidelines.md` for limits and patterns
+2. If existing file: verify `wc -l <file>` < 80% of limit
+3. If exceeding 80%: create NEW file (append forbidden)
+
+These guidelines ensure:
 - **Cognitive clarity**: Files sized for comprehension and AI context windows
 - **Single responsibility**: Each module/class/function has one clear purpose
 - **Maintainability**: Safe modifications without cascading failures
@@ -100,11 +167,21 @@ docs/architecture/
 - CSS: 500 lines/file, BEM naming → [css_guidelines.md](../docs/architecture/css_guidelines.md)
 - SQL: 50 lines/query, indexes mandatory → [sql_guidelines.md](../docs/architecture/sql_guidelines.md)
 
-**Agent workflow**:
-1. Check existing file size: `wc -l path/to/file`
-2. If file > 80% of limit → create NEW file (don't append)
-3. Follow naming conventions from guidelines
-4. Verify patterns match guidelines before committing
+**Agent workflow** (∀ file operations):
+1. **Size check**: `lines(file) ≤ 0.8 × limit(language)` ?
+   - TRUE → modify existing file
+   - FALSE → create new file (partition by responsibility)
+2. **Naming**: follow `<language>_guidelines.md` conventions
+3. **Patterns**: verify compliance before commit
+4. **Verification**: `get_errors` → fix → commit
+
+## Anti-Patterns (DO NOT)
+
+❌ **Never create markdown TODO lists** - use beads issues instead  
+❌ **Never skip `--description`** - issues without context are useless  
+❌ **Never commit without bead ID** - breaks traceability  
+❌ **Never skip beads-metadata push** - breaks multi-agent coordination  
+❌ **Never use `bd edit`** - opens $EDITOR (AI incompatible)  
 
 ## Commit Format
 
@@ -140,13 +217,15 @@ Types: feat|fix|refactor|docs|test|chore|perf|style|build|ci
 
 ## Session End (Landing the Plane)
 
-**AXIOM**: Work ≠ Complete until `git push` succeeds (BOTH main AND beads-metadata branches)
+**TRIGGER PHRASES**: {"let's land the plane", "wrap up", "end session"} → execute(landing_sequence)
 
-**MANDATORY SEQUENCE**:
+**INVARIANT**: complete(session) ⟺ pushed(main) ∧ pushed(beads-metadata)
 
-1. File remaining work → beads issues
-2. Quality gates (if code) → `get_errors`, `pytest`
-3. Close beads → stage → commit with bead ID → push **main branch**
+**MANDATORY SEQUENCE** (∀ steps required):
+
+1. **Issue remaining work**: ∀ unfinished tasks → `bd create --description`
+2. **Quality gates** (if ∃ code changes): `get_errors` ∧ `pytest` → all pass
+3. **Close work**: `bd close <id>` → `git add -A` → `git commit -m "...(bd-XXX)"`
 4. **PUSH MAIN** (NON-NEGOTIABLE):
    ```bash
    git pull --rebase
@@ -178,4 +257,3 @@ Types: feat|fix|refactor|docs|test|chore|perf|style|build|ci
 - NEVER "ready to push when you are" (YOU push)
 - Push failure → resolve → retry → success
 - Unpushed beads breaks team synchronization
-

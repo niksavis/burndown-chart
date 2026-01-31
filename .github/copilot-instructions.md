@@ -55,6 +55,13 @@ These guidelines are **skills** that make agents more effective by ensuring:
 
 **Enforcement**: If file > 80% of limit → create NEW file (don't append)
 
+**CODE CREATION PREREQUISITE**:
+∀ file operations: Check `docs/architecture/<language>_guidelines.md` FIRST
+
+- Verify size limits before modifying
+- Follow naming conventions
+- Apply layer separation (callbacks/ → data/ delegation)
+
 ### 3. Layered Architecture
 
 - `callbacks/` → event handling ONLY, delegate to `data/`
@@ -76,9 +83,10 @@ These guidelines are **skills** that make agents more effective by ensuring:
 
 - Tests MUST use `tempfile.TemporaryDirectory()`, never project root
 
-### 7. No Emoji
+### 7. Unicode Symbols Only
 
-- NEVER use emoji (encoding issues, breaks grep)
+- NEVER use emoji-style icons (🔴🟠🟡🔵⚪) - causes encoding issues, breaks grep
+- ALWAYS use small Unicode symbols: ○ ◐ ● ✓ ❄ (see agents.md Visual Design)
 
 ### 8. Terminal Management
 
@@ -199,9 +207,21 @@ available. Prevents duplicate browser tabs after updates."
 5. Work: `bd ready` → claim → do work → `bd close burndown-chart-016.X --reason "Completed"` → stage all → commit with `(burndown-chart-016.X)` → push
 6. Complete: All beads closed → update spec.md → `pytest` → push
 
-**Workflow**: Close bead BEFORE push (NOT after release): `Work → Close bead → Push main → Sync beads-metadata → Create release`  
-**Commit format**: `feat(scope): description (burndown-chart-XXX)` (traceability, orphan detection)  
-**Beads sync**: Daemon auto-commits to beads-metadata; push with: `Push-Location .git/beads-worktrees/beads-metadata; git pull --rebase; git push; Pop-Location`
+**Workflow**: Close bead BEFORE push: `Work → bd close → git push main → Push beads-metadata`  
+**Commit format**: `type(scope): description (bd-XXX)` (traceability + orphan detection)  
+**Daemon auto-sync**: Commits to beads-metadata every 5s (no manual `bd sync` in worktree mode)
+
+**CRITICAL - Description Mandate**:
+
+- ALWAYS: `bd create --description="Context"` (issues without context are useless)
+- Link discoveries: `--deps discovered-from:<parent-id>` (traces work relationships)
+
+**Priority system** (1-4):
+
+- `1` High (major features, important bugs)
+- `2` Medium (default)
+- `3` Low (polish)
+- `4` Backlog (future)
 
 ---
 
