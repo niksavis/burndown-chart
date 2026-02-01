@@ -343,7 +343,7 @@ def create_comprehensive_dashboard(
             # Page header
             # Executive Summary
             create_executive_summary_section(
-                statistics_df, settings, forecast_data, avg_weekly_items
+                statistics_df, forecast_data, settings, avg_weekly_items
             ),
             # Throughput Analytics
             create_throughput_analytics_section(

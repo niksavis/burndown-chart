@@ -1,8 +1,7 @@
+"""Collapsed parameter bar component."""
 
-
-#######################################################################
-# PARAMETER PANEL COMPONENTS (User Story 1)
-#######################################################################
+import dash_bootstrap_components as dbc
+from dash import html
 
 
 def create_parameter_bar_collapsed(
@@ -339,5 +338,3 @@ def create_parameter_bar_collapsed(
             "marginBottom": "0",  # Compact: no margin
         },
     )
-
-
