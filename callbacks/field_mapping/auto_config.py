@@ -1,3 +1,18 @@
+"""Auto-configuration from JIRA metadata.
+
+Analyzes JIRA metadata and existing issues to generate smart defaults
+for all configuration sections.
+"""
+
+import logging
+from typing import Dict
+from dash import callback, Output, Input, State, html, no_update
+import dash_bootstrap_components as dbc
+from ui.toast_notifications import create_success_toast, create_error_toast
+
+logger = logging.getLogger(__name__)
+
+
 @callback(
     [
         Output("field-mapping-state-store", "data", allow_duplicate=True),
@@ -395,5 +410,3 @@ def auto_configure_from_metadata(
 # ============================================================================
 # VALIDATE AND SAVE MAPPINGS
 # ============================================================================
-
-
