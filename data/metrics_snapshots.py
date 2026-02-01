@@ -174,6 +174,10 @@ def save_snapshots(snapshots: Dict[str, Dict[str, Any]]) -> bool:
     """
     try:
         from data.persistence.factory import get_backend
+        from data.time_period_calculator import (
+            parse_year_week_label,
+            get_week_start_date,
+        )
 
         backend = get_backend()
 
@@ -187,6 +191,12 @@ def save_snapshots(snapshots: Dict[str, Dict[str, Any]]) -> bool:
 
         # Save each week's snapshots
         for week, metrics in snapshots.items():
+            # Convert week label (e.g., "2025-44" or "2025-W44") to snapshot_date (YYYY-MM-DD)
+            # Use Monday of the week as the snapshot date
+            year, week_num = parse_year_week_label(week)
+            week_start = get_week_start_date(year, week_num)
+            snapshot_date = week_start.strftime("%Y-%m-%d")
+
             # Determine metric type based on metric names (simple heuristic)
             # For now, save as "metrics" category - can be refined later
             metric_type = (
@@ -195,7 +205,7 @@ def save_snapshots(snapshots: Dict[str, Dict[str, Any]]) -> bool:
             backend.save_metrics_snapshot(
                 active_profile_id,
                 active_query_id,
-                week,
+                snapshot_date,  # Now passing proper date format (YYYY-MM-DD)
                 metric_type,
                 metrics,
             )

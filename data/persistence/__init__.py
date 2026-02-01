@@ -25,6 +25,31 @@ from abc import ABC, abstractmethod
 from typing import Dict, List, Optional
 from datetime import datetime
 
+# Module-level backend instance (lazy-loaded to avoid circular import)
+_backend_instance = None
+
+
+def _get_backend_instance():
+    """Get or create backend instance (lazy initialization)."""
+    global _backend_instance
+    if _backend_instance is None:
+        from data.persistence.factory import get_backend
+
+        _backend_instance = get_backend()
+    return _backend_instance
+
+
+# Create module-level backend attribute for backwards compatibility
+# This allows: from data.persistence import backend
+class _BackendProxy:
+    """Proxy object that lazy-loads the backend on attribute access."""
+
+    def __getattr__(self, name):
+        return getattr(_get_backend_instance(), name)
+
+
+backend = _BackendProxy()
+
 
 class PersistenceBackend(ABC):
     """
@@ -1070,5 +1095,11 @@ def __getattr__(name: str):
         from data.persistence import adapters
 
         return getattr(adapters, name)
+
+    # Factory functions
+    if name == "get_backend":
+        from data.persistence.factory import get_backend
+
+        return get_backend
 
     raise AttributeError(f"module '{__name__}' has no attribute '{name}'")
