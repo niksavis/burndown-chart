@@ -1,0 +1,180 @@
+<style>
+  /* Responsive */
+  @media (max-width: 768px) {
+    .header-content {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 0.5rem;
+    }
+
+    .header-right {
+      text-align: left;
+    }
+
+    .project-title {
+      font-size: 1.25rem;
+    }
+
+    .query-title {
+      font-size: 0.9rem;
+    }
+
+    .report-period {
+      font-size: 0.85rem;
+    }
+
+    .velocity-cards {
+      grid-template-columns: 1fr;
+    }
+
+    .metric-cards {
+      grid-template-columns: 1fr;
+    }
+
+    .progress-ring,
+    .health-gauge {
+      transform: scale(0.85);
+    }
+
+    /* Stack dashboard overview columns on mobile */
+    .dashboard-overview .row {
+      margin-bottom: 1rem;
+    }
+
+    .dashboard-overview .col-md-4 {
+      margin-bottom: 1rem;
+    }
+  }
+
+  /* Extra small devices (phones, 320px and up) */
+  @media (max-width: 576px) {
+    .health-gauge-text {
+      font-size: 1.5rem;
+    }
+
+    .progress-ring-text {
+      font-size: 1.5rem;
+    }
+
+    /* Ensure forecast label is readable on small screens */
+    .text-center.mt-2 {
+      font-size: 0.7rem !important;
+    }
+  }
+
+  /* Print Styles */
+  @media print {
+    body {
+      background-color: white;
+    }
+
+    .section {
+      box-shadow: none;
+      border: 1px solid #dee2e6;
+      page-break-inside: avoid;
+    }
+
+    .chart-container {
+      page-break-inside: avoid;
+    }
+  }
+
+  /* Executive Summary Styles */
+  .executive-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: var(--space-4);
+    margin-bottom: var(--space-4);
+  }
+
+  .summary-card {
+    background: white;
+    border-radius: 8px;
+    padding: var(--space-4);
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--color-neutral-200);
+  }
+
+  .summary-card-title {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--color-neutral-600);
+    margin-bottom: var(--space-2);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .summary-card-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--color-neutral-800);
+    margin-bottom: var(--space-1);
+  }
+
+  .summary-card-subtitle {
+    font-size: 0.875rem;
+    color: var(--color-neutral-500);
+  }
+
+  .risks-wins-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-4);
+  }
+
+  .risk-item,
+  .win-item {
+    padding: var(--space-3);
+    border-radius: 6px;
+    margin-bottom: var(--space-2);
+    border-left: 4px solid;
+  }
+
+  .risk-item {
+    background: #fff5f5;
+    border-left-color: var(--color-danger);
+  }
+
+  .risk-item.critical {
+    background: #fee;
+    border-left-color: var(--color-health-critical);
+  }
+
+  .risk-item.high {
+    background: #fff3cd;
+    border-left-color: var(--color-warning);
+  }
+
+  .risk-item.medium {
+    background: #fff8e1;
+    border-left-color: var(--color-health-caution);
+  }
+
+  .win-item {
+    background: #f0f9ff;
+    border-left-color: var(--color-success);
+  }
+
+  .risk-title,
+  .win-title {
+    font-weight: 600;
+    font-size: 0.875rem;
+    margin-bottom: var(--space-1);
+  }
+
+  .risk-description,
+  .win-description {
+    font-size: 0.875rem;
+    color: var(--color-neutral-600);
+  }
+
+  @media (max-width: 768px) {
+    .risks-wins-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .executive-summary-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

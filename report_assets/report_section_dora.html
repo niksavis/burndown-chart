@@ -1,0 +1,79 @@
+<!-- DORA Metrics Section -->
+{% if 'dora' in sections and metrics.dora.has_data %}
+<div class="section">
+  <h2 class="section-title">
+    <i class="fas fa-rocket"></i>
+    DORA Metrics
+  </h2>
+
+  <!-- DORA Metrics: Period aggregates matching app display exactly -->
+  <p class="text-center text-muted mb-4">
+    <i class="fas fa-info-circle"></i> {{ metrics.dora.weeks_count }}-Week Period • Lead Time & MTTR: median of weekly medians. Deployment Frequency: average. CFR: aggregate rate.
+  </p>
+  {% set df_color = macros.get_deployment_frequency_color(metrics.dora.deployment_frequency) %}
+  {% set lt_color = macros.get_lead_time_color(metrics.dora.lead_time_days if metrics.dora.lead_time_days else 999) %}
+  {% set cfr_color = macros.get_cfr_color(metrics.dora.change_failure_rate) %}
+  {% set mttr_color = macros.get_mttr_color(metrics.dora.mttr_hours if metrics.dora.mttr_hours else 999) %}
+  <div class="velocity-cards" style="grid-template-columns: repeat(2, 1fr);">
+    <div class="velocity-card {{ df_color }}">
+      <div class="velocity-card-title">
+        <i class="fas fa-shipping-fast"></i> Deployment Frequency
+      </div>
+      <div class="velocity-card-value">
+        {{ metrics.dora.deployment_frequency|dec2 }}
+        <span class="velocity-card-unit">releases/wk</span>
+      </div>
+      {% if metrics.dora.deployment_frequency_tasks != metrics.dora.deployment_frequency %}
+      <div class="text-muted small mt-1">
+        {{ metrics.dora.deployment_frequency_tasks|dec2 }} deployments/wk
+      </div>
+      {% endif %}
+    </div>
+    <div class="velocity-card {{ lt_color }}">
+      <div class="velocity-card-title">
+        <i class="fas fa-clock"></i> Lead Time For Changes
+      </div>
+      {% if metrics.dora.lead_time_days %}
+      <div class="velocity-card-value">
+        {{ metrics.dora.lead_time_days|dec2 }}
+        <span class="velocity-card-unit">days</span>
+      </div>
+      <div class="text-muted small mt-1">
+        {{ metrics.dora.lead_time_hours|dec2 }} hours
+      </div>
+      {% else %}
+      <div class="velocity-card-value text-muted">
+        N/A
+      </div>
+      {% endif %}
+    </div>
+    <div class="velocity-card {{ cfr_color }}">
+      <div class="velocity-card-title">
+        <i class="fas fa-exclamation-triangle"></i> Change Failure Rate
+      </div>
+      <div class="velocity-card-value">
+        {{ metrics.dora.change_failure_rate|dec2 }}%
+        <span class="velocity-card-unit"></span>
+      </div>
+    </div>
+    <div class="velocity-card {{ mttr_color }}">
+      <div class="velocity-card-title">
+        <i class="fas fa-tools"></i> Mean Time To Recovery
+      </div>
+      {% if metrics.dora.mttr_hours %}
+      <div class="velocity-card-value">
+        {{ metrics.dora.mttr_hours|dec2 }}
+        <span class="velocity-card-unit">hours</span>
+      </div>
+      <div class="text-muted small mt-1">
+        {{ metrics.dora.mttr_days|dec2 }} days
+      </div>
+      {% else %}
+      <div class="velocity-card-value text-muted">
+        N/A
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endif %}

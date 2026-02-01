@@ -1,0 +1,5 @@
+<!-- Budget Section -->
+{% if 'budget' in sections and metrics.budget.has_data %}
+  {% include 'report_section_budget_overview.html' %}
+  {% include 'report_section_budget_details.html' %}
+{% endif %}

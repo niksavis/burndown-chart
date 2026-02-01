@@ -1,0 +1,186 @@
+<!-- Budget Consumption -->
+<div class="row justify-content-center mb-4">
+  <div class="col-md-10">
+    <h5 class="text-center mb-3">Budget Consumption</h5>
+    <div class="mb-3">
+      <div class="d-flex justify-content-between mb-2">
+        <span style="font-size: 1.1rem; font-weight: 500;"><i class="fas fa-fire"></i> Consumed</span>
+        <span>
+          <strong class="{% if metrics.budget.consumed_percentage > 90 %}text-danger{% elif metrics.budget.consumed_percentage > 75 %}text-warning{% else %}text-success{% endif %}" style="font-size: 1.1rem;">
+            {{ metrics.budget.consumed_percentage|dec2 }}%
+          </strong>
+        </span>
+      </div>
+      <div class="progress" style="height: 35px">
+        <div
+          class="progress-bar budget-progress-bar {% if metrics.budget.consumed_percentage > 90 %}bg-danger{% elif metrics.budget.consumed_percentage > 75 %}bg-warning{% else %}bg-success{% endif %}"
+          role="progressbar"
+          data-width="{{ metrics.budget.consumed_percentage }}"
+          aria-valuenow="{{ metrics.budget.consumed_percentage }}"
+          aria-valuemin="0"
+          aria-valuemax="100"
+        >
+          {{ metrics.budget.currency_symbol }}{{ metrics.budget.consumed_amount|round(0)|int }}
+        </div>
+      </div>
+    </div>
+    <table class="table table-sm table-borderless">
+      <tbody>
+        <tr>
+          <td>
+            <i class="fas fa-hourglass-half text-primary"></i> Remaining
+          </td>
+          <td class="text-end">
+            {{ metrics.budget.currency_symbol }}{{ metrics.budget.remaining_amount|round(0)|int }}
+          </td>
+        </tr>
+        <tr>
+          <td><i class="fas fa-fire text-warning"></i> Burn Rate</td>
+          <td class="text-end">
+            {{ metrics.budget.currency_symbol }}{{ metrics.budget.burn_rate|round(0)|int }}/week
+          </td>
+        </tr>
+        <tr>
+          <td><i class="fas fa-road text-info"></i> Runway</td>
+          <td class="text-end">
+            {% if metrics.budget.runway_weeks > 999990 %}Unlimited{% else %}{{ metrics.budget.runway_weeks|dec2 }} weeks{% endif %}
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Cost Breakdown by Work Type -->
+{% if metrics.budget.cost_breakdown %}
+<div class="row justify-content-center mb-4">
+  <div class="col-md-10">
+    <h5 class="text-center mb-3">Cost Breakdown by Work Type</h5>
+    <table class="table table-sm table-striped">
+      <thead>
+        <tr>
+          <th>Work Type</th>
+          <th class="text-end">Items</th>
+          <th class="text-end">Cost</th>
+          <th class="text-end">Percentage</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for work_type, data in metrics.budget.cost_breakdown.items() %}
+        <tr>
+          <td>
+            <i class="fas fa-circle me-2 
+              {% if work_type == 'Feature' %}text-success
+              {% elif work_type == 'Defect' %}text-danger
+              {% elif work_type == 'Technical Debt' %}text-warning
+              {% elif work_type == 'Risk' %}text-warning
+              {% else %}text-muted{% endif %}">
+            </i>{{ work_type }}
+          </td>
+          <td class="text-end">{{ data.count }}</td>
+          <td class="text-end">{{ metrics.budget.currency_symbol }}{{ data.cost|round(0)|int }}</td>
+          <td class="text-end">{{ data.percentage|dec2 }}%</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <p class="text-muted text-center small mt-2 mb-0">
+      <i class="fas fa-info-circle"></i> Cost allocated based on completed work distribution across Flow item types
+    </p>
+  </div>
+</div>
+{% endif %}
+
+<!-- Forecast vs Budget Alignment -->
+{% if metrics.dashboard.pert_time_items_weeks and metrics.budget.runway_weeks %}
+<div class="row mt-4">
+  <div class="col-md-10 mx-auto">
+    <h4 class="text-center mb-3">
+      <i class="fas fa-balance-scale"></i> Forecast vs Budget Alignment
+    </h4>
+    <div class="table-responsive">
+      <table class="table table-bordered">
+        <thead>
+          <tr>
+            <th style="width: 25%">Tracking Method</th>
+            <th class="text-center" style="width: 25%">Forecast (weeks)</th>
+            <th class="text-center" style="width: 25%">Budget Runway (weeks)</th>
+            <th class="text-center" style="width: 25%">Gap</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% if metrics.dashboard.pert_time_items_weeks %}
+          <tr>
+            <td>
+              <i class="fas fa-hashtag" style="color: #0d6efd"></i>
+              <strong>Items</strong>
+            </td>
+            <td class="text-center">
+              {{ metrics.dashboard.pert_time_items_weeks|dec2 }}
+            </td>
+            <td class="text-center">
+              {{ metrics.budget.runway_weeks|dec2 }}
+            </td>
+            <td class="text-center">
+              {% set gap_items = metrics.budget.runway_weeks - metrics.dashboard.pert_time_items_weeks %}
+              {% if gap_items >= 0 %}
+                <span style="color: var(--color-health-good)">
+                  <i class="fas fa-check-circle"></i> +{{ gap_items|dec2 }} weeks
+                </span>
+              {% else %}
+                <span style="color: var(--color-health-critical)">
+                  <i class="fas fa-exclamation-triangle"></i> {{ gap_items|dec2 }} weeks
+                </span>
+              {% endif %}
+            </td>
+          </tr>
+          {% endif %}
+          {% if metrics.dashboard.pert_time_points_weeks %}
+          <tr>
+            <td>
+              <i class="fas fa-star" style="color: var(--color-orange)"></i>
+              <strong>Story Points</strong>
+            </td>
+            <td class="text-center">
+              {{ metrics.dashboard.pert_time_points_weeks|dec2 }}
+            </td>
+            <td class="text-center">
+              {{ metrics.budget.runway_weeks|dec2 }}
+            </td>
+            <td class="text-center">
+              {% set gap_points = metrics.budget.runway_weeks - metrics.dashboard.pert_time_points_weeks %}
+              {% if gap_points >= 0 %}
+                <span style="color: var(--color-health-good)">
+                  <i class="fas fa-check-circle"></i> +{{ gap_points|dec2 }} weeks
+                </span>
+              {% else %}
+                <span style="color: var(--color-health-critical)">
+                  <i class="fas fa-exclamation-triangle"></i> {{ gap_points|dec2 }} weeks
+                </span>
+              {% endif %}
+            </td>
+          </tr>
+          {% endif %}
+        </tbody>
+      </table>
+      <p class="text-muted text-center small mt-2 mb-0">
+        <i class="fas fa-info-circle"></i> 
+        Positive gap indicates budget is sufficient for forecast completion.
+        Negative gap indicates potential budget shortfall.
+      </p>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+{% if metrics.budget.revision_count > 0 %}
+<div class="row justify-content-center">
+  <div class="col-md-8">
+    <p class="text-muted text-center small mb-0">
+      <i class="fas fa-history"></i> {{ metrics.budget.revision_count }}
+      budget revision{{ "s" if metrics.budget.revision_count > 1 else "" }} tracked
+    </p>
+  </div>
+</div>
+{% endif %}
+</div>

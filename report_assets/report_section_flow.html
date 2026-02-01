@@ -1,0 +1,121 @@
+<!-- Flow Metrics Section -->
+{% if 'flow' in sections and metrics.flow.has_data %}
+<div class="section">
+  <h2 class="section-title">
+    <i class="fas fa-water"></i>
+    Flow Metrics
+  </h2>
+
+  <!-- Flow Metrics: Period aggregates matching app display exactly -->
+  <p class="text-center text-muted mb-4">
+    <i class="fas fa-info-circle"></i> {{ metrics.flow.weeks_count }}-Week Period • 4-week weighted average (40%, 30%, 20%, 10%)
+  </p>
+  {% set velocity_color = macros.get_flow_velocity_color(metrics.flow.velocity) %}
+  {% set time_color = macros.get_flow_time_color(metrics.flow.flow_time) %}
+  {% set efficiency_color = macros.get_flow_efficiency_color(metrics.flow.efficiency) %}
+  {% set load_color = macros.get_flow_load_color(metrics.flow.wip) %}
+  <div class="velocity-cards" style="grid-template-columns: repeat(2, 1fr);">
+    <div class="velocity-card {{ velocity_color }}">
+      <div class="velocity-card-title">
+        <i class="fas fa-tachometer-alt"></i> Flow Velocity
+      </div>
+      <div class="velocity-card-value">
+        {{ metrics.flow.velocity|dec2 }}
+        <span class="velocity-card-unit">items/week</span>
+      </div>
+    </div>
+    <div class="velocity-card {{ time_color }}">
+      <div class="velocity-card-title">
+        <i class="fas fa-clock"></i> Flow Time
+      </div>
+      <div class="velocity-card-value">
+        {{ metrics.flow.flow_time|dec2 }}
+        <span class="velocity-card-unit">days (median)</span>
+      </div>
+    </div>
+    <div class="velocity-card {{ efficiency_color }}">
+      <div class="velocity-card-title">
+        <i class="fas fa-chart-line"></i> Flow Efficiency
+      </div>
+      <div class="velocity-card-value">
+        {{ metrics.flow.efficiency|dec2 }}%
+        <span class="velocity-card-unit"></span>
+      </div>
+    </div>
+    <div class="velocity-card {{ load_color }}">
+      <div class="velocity-card-title">
+        <i class="fas fa-tasks"></i> Flow Load (WIP)
+      </div>
+      <div class="velocity-card-value">
+        {{ metrics.flow.wip }}
+        <span class="velocity-card-unit">items (current)</span>
+      </div>
+    </div>
+  </div>
+
+  {% if metrics.flow.work_distribution %}
+  <div class="mt-4">
+    <h5 class="text-center mb-3">Work Distribution</h5>
+
+    {% set total_items = metrics.flow.work_distribution.total %}
+    {% if total_items > 0 %}
+    <div class="row mb-3">
+      <div class="col-12">
+        <small
+          class="text-muted text-center d-block mb-2"
+          style="font-weight: 600"
+        >{{ metrics.flow.weeks_count }}-week aggregate</small>
+      </div>
+      <div class="col-md-3 col-6 mb-3">
+        <div class="text-center">
+          <span class="small text-muted d-block mb-1">Feature</span>
+          <div class="d-flex align-items-baseline justify-content-center">
+            <span class="h4 mb-0 me-2" style="color: rgb(25, 135, 84)">{{ metrics.flow.work_distribution.feature }}</span>
+            <span class="h6 mb-0" style="color: rgb(25, 135, 84)">{{ ((metrics.flow.work_distribution.feature / total_items * 100) | round | int) }}%</span>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-3 col-6 mb-3">
+        <div class="text-center">
+          <span class="small text-muted d-block mb-1">Defect</span>
+          <div class="d-flex align-items-baseline justify-content-center">
+            <span class="h4 mb-0 me-2" style="color: rgb(220, 53, 69)">{{ metrics.flow.work_distribution.defect }}</span>
+            <span class="h6 mb-0" style="color: rgb(220, 53, 69)">{{ ((metrics.flow.work_distribution.defect / total_items * 100) | round | int) }}%</span>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-3 col-6 mb-3">
+        <div class="text-center">
+          <span class="small text-muted d-block mb-1">Tech Debt</span>
+          <div class="d-flex align-items-baseline justify-content-center">
+            <span class="h4 mb-0 me-2" style="color: rgb(253, 126, 20)">{{ metrics.flow.work_distribution.tech_debt }}</span>
+            <span class="h6 mb-0" style="color: rgb(253, 126, 20)">{{ ((metrics.flow.work_distribution.tech_debt / total_items * 100) | round | int) }}%</span>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-3 col-6 mb-3">
+        <div class="text-center">
+          <span class="small text-muted d-block mb-1">Risk</span>
+          <div class="d-flex align-items-baseline justify-content-center">
+            <span class="h4 mb-0 me-2" style="color: rgb(255, 193, 7)">{{ metrics.flow.work_distribution.risk }}</span>
+            <span class="h6 mb-0" style="color: rgb(255, 193, 7)">{{ ((metrics.flow.work_distribution.risk / total_items * 100) | round | int) }}%</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+    <div class="chart-container" style="height: 350px">
+      <canvas id="workDistributionChart"></canvas>
+    </div>
+    <p class="text-muted mt-2 mb-0">
+      <i class="fas fa-info-circle me-1"></i>
+      <small>
+        Stacked bar chart showing percentage distribution of work across
+        Flow item types per week.
+      </small>
+    </p>
+  </div>
+  {% endif %}
+</div>
+{% endif %}

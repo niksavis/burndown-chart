@@ -1,0 +1,19 @@
+<!-- Chart.js Initialization Scripts -->
+<script>
+  {{ chart_script|safe }}
+</script>
+
+<!-- Apply data-attribute positioning -->
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // Apply progress bar widths from data-width attributes
+    document.querySelectorAll('.progress-bar[data-width]').forEach(function(bar) {
+      bar.style.width = bar.getAttribute('data-width') + '%';
+    });
+    
+    // Apply pill positions from data-left attributes
+    document.querySelectorAll('.badge[data-left]').forEach(function(pill) {
+      pill.style.left = pill.getAttribute('data-left') + '%';
+    });
+  });
+</script>

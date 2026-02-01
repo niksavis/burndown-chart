@@ -1,0 +1,62 @@
+<!-- Bug Analysis Section (after Scope Changes) -->
+{% if 'burndown' in sections and metrics.bug_analysis.has_data %}
+<div class="section">
+  <h2 class="section-title">
+    <i class="fas fa-bug"></i>
+    Bug Analysis
+  </h2>
+
+  <div class="velocity-cards">
+    <div class="velocity-card" style="border-left-color: var(--color-red);">
+      <div class="velocity-card-title">
+        <i class="fas fa-exclamation-circle"></i> Open Bugs
+      </div>
+      <div class="velocity-card-value" style="color: var(--color-red)">
+        {{ metrics.bug_analysis.open_bugs|int }}
+        <span class="velocity-card-unit">all time</span>
+      </div>
+    </div>
+    <div class="velocity-card" style="border-left-color: var(--color-green);">
+      <div class="velocity-card-title">
+        <i class="fas fa-check-circle"></i> Resolution Rate
+      </div>
+      <div class="velocity-card-value" style="color: var(--color-green)">
+        {{ metrics.bug_analysis.resolution_rate|dec2 }}%
+        <span class="velocity-card-unit">{{ metrics.bug_analysis.closed_bugs|int }} / {{ metrics.bug_analysis.total_bugs|int }}</span>
+      </div>
+    </div>
+    {% if metrics.bug_analysis.forecast_weeks %}
+    <div class="velocity-card" style="border-left-color: #6f42c1;">
+      <div class="velocity-card-title">
+        <i class="fas fa-crystal-ball"></i> Expected Resolution
+      </div>
+      <div class="velocity-card-value" style="color: #6f42c1;">
+        ~{{ metrics.bug_analysis.forecast_weeks }} weeks
+        {% if metrics.bug_analysis.avg_closure_rate %}
+        <span class="velocity-card-unit">({{ metrics.bug_analysis.avg_closure_rate|dec2 }} per week)</span>
+        {% else %}
+        <span class="velocity-card-unit">weeks</span>
+        {% endif %}
+      </div>
+    </div>
+    {% endif %}
+  </div>
+  {% if metrics.bug_analysis.weekly_stats %}
+  <div class="mt-4">
+    <h4 class="mt-4 mb-3">
+      <i class="fas fa-chart-bar"></i> Bug Trends Over Time
+    </h4>
+    <div class="chart-container">
+      <canvas id="bugTrendsChart"></canvas>
+    </div>
+    <p class="text-muted mt-2 mb-0">
+      <i class="fas fa-info-circle me-1"></i>
+      <small>
+        Orange highlighted areas indicate 3+ consecutive weeks of bugs
+        created exceeding bugs closed.
+      </small>
+    </p>
+  </div>
+  {% endif %}
+</div>
+{% endif %}

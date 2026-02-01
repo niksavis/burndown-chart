@@ -1,0 +1,350 @@
+<style>
+  /* Section Styles */
+  .section {
+    background: white;
+    border-radius: 12px;
+    padding: 2rem;
+    margin-bottom: 2rem;
+    box-shadow: var(--shadow-md);
+    border: 1px solid var(--color-neutral-200);
+  }
+
+  .section-title {
+    font-size: 1.75rem;
+    font-weight: 600;
+    margin-bottom: var(--space-5);
+    color: var(--color-neutral-900);
+    border-bottom: 3px solid var(--color-neutral-400);
+    padding-bottom: var(--space-3);
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+  }
+
+  .section-title i {
+    color: var(--color-neutral-600);
+    font-size: 1.5rem;
+  }
+
+  /* Dashboard Overview Styles */
+  .dashboard-overview {
+    background: linear-gradient(135deg, var(--color-neutral-50) 0%, var(--color-neutral-100) 100%);
+    border-radius: 16px;
+    padding: 2rem;
+    margin-bottom: 2rem;
+    box-shadow: var(--shadow-lg);
+    border: 1px solid var(--color-neutral-200);
+  }
+
+  .health-gauge-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  .health-gauge {
+    width: 160px;
+    height: 160px;
+    border-radius: 50%;
+    background: conic-gradient(
+      from 0deg,
+      var(--gauge-color) 0deg,
+      var(--gauge-color) calc(var(--gauge-percent) * 3.6deg),
+      var(--color-neutral-200) calc(var(--gauge-percent) * 3.6deg),
+      var(--color-neutral-200) 360deg
+    );
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: var(--shadow-lg);
+    position: relative;
+  }
+
+  .health-gauge-inner {
+    width: 116px;
+    height: 116px;
+    border-radius: 50%;
+    background: white;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.1);
+  }
+
+  .health-gauge-text {
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: var(--gauge-color);
+    line-height: 1;
+  }
+
+  .health-gauge-label {
+    font-size: 0.75rem;
+    color: var(--color-neutral-600);
+    margin-top: var(--space-1);
+    font-weight: 500;
+  }
+
+  .health-status-badge {
+    padding: 0.5rem 1.25rem;
+    border-radius: 20px;
+    font-weight: 600;
+    font-size: 0.95rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .health-status-excellent,
+  .health-status-good {
+    background-color: var(--color-green);
+    color: #fff;
+  }
+
+  .health-status-moderate {
+    background-color: var(--color-yellow);
+    color: #fff;
+  }
+
+  .health-status-at-risk {
+    background-color: var(--color-red);
+    color: #fff;
+  }
+
+  .health-status-items {
+    background-color: #0d6efd;
+    color: #ffffff;
+  }
+
+  .health-status-points {
+    background-color: var(--color-orange);
+    color: #ffffff;
+  }
+
+  .metric-color-good {
+    --metric-color: #198754;
+  }
+
+  .metric-color-info {
+    --metric-color: #0dcaf0;
+  }
+
+  .metric-color-warning {
+    --metric-color: #ffc107;
+  }
+
+  .metric-color-attention {
+    --metric-color: #fd7e14;
+  }
+
+  .metric-color-critical {
+    --metric-color: #dc3545;
+  }
+
+  .metric-text {
+    color: var(--metric-color);
+  }
+
+  .progress-ring-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  .progress-ring {
+    width: 160px;
+    height: 160px;
+    border-radius: 50%;
+    background: conic-gradient(
+      from 0deg,
+      var(--progress-color, var(--color-blue)) 0deg,
+      var(--progress-color, var(--color-blue)) var(--progress-deg, 0deg),
+      #e9ecef var(--progress-deg, 0deg),
+      #e9ecef 360deg
+    );
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: var(--shadow-lg);
+    position: relative;
+  }
+
+  .progress-ring-inner {
+    width: 116px;
+    height: 116px;
+    border-radius: 50%;
+    background: white;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.08);
+  }
+
+  .progress-ring-text {
+    font-size: 1.8rem;
+    font-weight: 700;
+    line-height: 1;
+  }
+
+  .progress-ring-subtext {
+    font-size: 0.75rem;
+    color: var(--color-neutral-600);
+    margin-top: var(--space-1);
+  }
+
+  .progress-ring-label {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--color-neutral-900);
+    text-align: center;
+  }
+
+  .progress-details {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    margin-top: var(--space-2);
+  }
+
+  .progress-detail-item {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.875rem;
+  }
+
+  .progress-detail-label {
+    color: var(--color-neutral-600);
+  }
+
+  .progress-detail-value {
+    font-weight: 600;
+    color: var(--color-neutral-900);
+  }
+
+  .progress-pill {
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 0.7rem;
+    padding: 0 8px;
+    height: 20px;
+    line-height: 20px;
+  }
+
+  .progress-pill.progress-pill--center {
+    transform: translate(-50%, -50%);
+  }
+
+  /* Apply data-width and data-left via inline styles set by renderer */
+  .progress-bar[data-width] {
+    width: var(--bar-width, 0%);
+  }
+
+  .badge[data-left] {
+    left: var(--pill-left, 0%);
+  }
+
+  /* Velocity Cards */
+  .velocity-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: var(--space-5);
+    margin-top: 2rem;
+  }
+
+  .velocity-card {
+    background: white;
+    border-radius: 12px;
+    padding: var(--space-5);
+    box-shadow: var(--shadow-md);
+    border-left: 4px solid #6f42c1;
+  }
+
+  .velocity-card.metric-color-good,
+  .velocity-card.metric-color-info,
+  .velocity-card.metric-color-warning,
+  .velocity-card.metric-color-attention,
+  .velocity-card.metric-color-critical {
+    border-left-color: var(--metric-color);
+  }
+
+  .velocity-card.points {
+    border-left-color: var(--color-orange);
+  }
+
+  .velocity-card-title {
+    font-size: 0.875rem;
+    color: var(--color-neutral-600);
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    margin-bottom: var(--space-3);
+    font-weight: 600;
+  }
+
+  .velocity-card-value {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--color-neutral-900);
+  }
+
+  .velocity-card.metric-color-good .velocity-card-value,
+  .velocity-card.metric-color-info .velocity-card-value,
+  .velocity-card.metric-color-warning .velocity-card-value,
+  .velocity-card.metric-color-attention .velocity-card-value,
+  .velocity-card.metric-color-critical .velocity-card-value {
+    color: var(--metric-color);
+  }
+
+  .velocity-card-unit {
+    font-size: 0.875rem;
+    color: var(--color-neutral-600);
+    margin-left: var(--space-2);
+  }
+
+  /* Metric Cards */
+  .metric-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: var(--space-5);
+    margin: var(--space-5) 0;
+  }
+
+  .metric-card {
+    background: white;
+    border-radius: 12px;
+    padding: var(--space-5);
+    box-shadow: var(--shadow-md);
+    border-left: 4px solid #6f42c1;
+  }
+
+  .metric-card-label {
+    font-size: 0.85rem;
+    color: var(--color-neutral-600);
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    margin-bottom: var(--space-2);
+    font-weight: 600;
+  }
+
+  .metric-card-value {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: var(--color-neutral-900);
+  }
+
+  .metric-card-change {
+    font-size: 0.85rem;
+    margin-top: var(--space-2);
+    font-weight: 500;
+  }
+
+  .metric-card-change.positive {
+    color: var(--color-success);
+  }
+
+  .metric-card-change.negative {
+    color: var(--color-danger);
+  }
+</style>
