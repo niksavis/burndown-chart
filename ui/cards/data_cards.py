@@ -35,19 +35,14 @@ from ui.button_utils import create_button
 StyleCellConditional = Dict[str, Any]
 
 
-def create_statistics_data_card(statistics_df: pd.DataFrame) -> dbc.Card:
+def create_statistics_data_card(current_statistics) -> dbc.Card:
     """Create weekly statistics data table card with editing capabilities.
 
     Displays a responsive data table showing weekly work completion and scope changes.
     Includes editable fields, pagination, sorting, filtering, and column explanations.
 
     Args:
-        statistics_df: DataFrame with columns:
-            - date: Week start date (Monday, YYYY-MM-DD)
-            - completed_items: Items finished during week
-            - completed_points: Points finished during week
-            - created_items: New items added during week
-            - created_points: New points added during week
+        current_statistics: List of dictionaries containing current statistics data
 
     Returns:
         Standardized card component containing:
@@ -60,6 +55,9 @@ def create_statistics_data_card(statistics_df: pd.DataFrame) -> dbc.Card:
                 * Mobile-responsive design
             - Add Row button for new weekly entries
     """
+    # Convert to DataFrame for automatic column type detection
+    statistics_df = pd.DataFrame(current_statistics)
+
     # Card header with title and tooltip
     header_content = create_card_header_with_tooltip(
         "Weekly Progress Data",
@@ -69,7 +67,7 @@ def create_statistics_data_card(statistics_df: pd.DataFrame) -> dbc.Card:
         help_category="dashboard",
     )
 
-    # Convert DataFrame to records, ensuring required columns exist
+    # Ensure required columns exist in the DataFrame
     if statistics_df.empty:
         # Initialize with empty structure if no data
         statistics_df = pd.DataFrame(
