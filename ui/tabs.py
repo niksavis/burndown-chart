@@ -257,9 +257,7 @@ def create_tab_content(active_tab, charts, statistics_df=None, pert_data=None):
         Dash component containing the active tab's content with consistent styling
     """
     # Import forecast info card functions
-    from ui.cards import (
-        create_forecast_info_card,
-    )
+    from ui.cards import create_forecast_info_card
 
     # Default to burndown chart if tab is None or invalid
     if active_tab not in [

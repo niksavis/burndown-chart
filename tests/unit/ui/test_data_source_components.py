@@ -8,7 +8,10 @@ Covers the recently implemented UI changes for JIRA API prioritization.
 import pytest
 from unittest.mock import patch
 
-from ui.cards import _get_default_data_source, _get_default_jql_profile_id
+from ui.cards.settings_helpers import (
+    _get_default_data_source,
+    _get_default_jql_profile_id,
+)
 
 
 class TestDataSourceUIComponents:

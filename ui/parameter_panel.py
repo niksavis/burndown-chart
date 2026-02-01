@@ -392,7 +392,7 @@ def create_settings_tab_content(
     import os
 
     sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
-    from ui.cards import (
+    from ui.cards.settings_helpers import (
         _get_default_data_source,
         _get_default_jql_query,
         _get_default_jql_profile_id,
