@@ -50,6 +50,21 @@ class _BackendProxy:
 
 backend = _BackendProxy()
 
+# Explicit imports for commonly used adapter functions (provides type hints)
+# These are imported eagerly to provide proper type information to IDEs
+from data.persistence.adapters.app_settings import (
+    load_app_settings,
+    save_app_settings,
+)
+from data.persistence.adapters.jira_config import (
+    load_jira_configuration,
+    save_jira_configuration,
+)
+from data.persistence.adapters.legacy_data import (
+    save_jira_data_unified,
+    load_unified_project_data,
+)
+
 
 class PersistenceBackend(ABC):
     """
