@@ -88,11 +88,15 @@ def calculate_metrics_for_last_n_weeks(
 
                 if not changelog_exists:
                     # Download changelog once for all weeks
+                    # CRITICAL: Pass explicit profile_id and query_id to avoid race condition
                     config = get_jira_config()
                     if config:
                         changelog_success, changelog_message = (
                             fetch_changelog_on_demand(
-                                config, progress_callback=progress_callback
+                                config,
+                                profile_id=active_profile_id,
+                                query_id=active_query_id,
+                                progress_callback=progress_callback,
                             )
                         )
                         if not changelog_success:

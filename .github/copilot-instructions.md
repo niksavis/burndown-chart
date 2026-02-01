@@ -15,17 +15,22 @@
 **BEFORE running pytest, python, pip, release.py, ANY .py script**:
 
 ```powershell
-# STEP 1: Activate (PowerShell)
-.venv\Scripts\activate
+# CRITICAL: Chain commands with semicolon - each run_in_terminal starts NEW shell
+.venv\Scripts\activate; python app.py
+.venv\Scripts\activate; pytest tests/ -v
+.venv\Scripts\activate; python release.py patch
 
-# STEP 2: Verify prompt shows (.venv)
-# STEP 3: Only NOW proceed with Python command
+# WRONG: Separate commands (venv doesn't persist)
+# .venv\Scripts\activate
+# python app.py  ← This runs in NEW terminal without venv!
 ```
 
-**ENFORCEMENT**: If about to run Python command → STOP → Check venv → Activate if needed
+**ENFORCEMENT**: If about to run Python command → STOP → Chain with activation
 
-- Command: `.venv\Scripts\activate` (PowerShell) or `source .venv/bin/activate` (bash)
+- **Pattern**: `.venv\Scripts\activate; <python command>` (PowerShell)
+- **Pattern**: `source .venv/bin/activate && <python command>` (bash)
 - Applies to: pytest, python scripts, pip install, release.py, regenerate_changelog.py, ALL .py
+- **Reason**: Each `run_in_terminal` call starts NEW shell session (activation doesn't persist)
 - **NO EXCEPTIONS** - this prevents 99% of "command failed, run again" issues
 
 ### 1. Zero Errors Policy
