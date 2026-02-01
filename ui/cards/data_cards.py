@@ -22,7 +22,12 @@ import pandas as pd
 from dash import dash_table, html
 
 from configuration.settings import STATISTICS_HELP_TEXTS
-from ui.styles import create_standardized_card, NEUTRAL_COLORS, get_vertical_rhythm
+from ui.styles import (
+    create_card_header_with_tooltip,
+    create_standardized_card,
+    NEUTRAL_COLORS,
+    get_vertical_rhythm,
+)
 from ui.tooltip_utils import create_info_tooltip
 from ui.button_utils import create_button
 
@@ -56,12 +61,12 @@ def create_statistics_data_card(statistics_df: pd.DataFrame) -> dbc.Card:
             - Add Row button for new weekly entries
     """
     # Card header with title and tooltip
-    header_content = html.Div(
-        [
-            html.H5("Weekly Data", className="mb-0 me-2"),
-            create_info_tooltip("statistics-data-card", STATISTICS_HELP_TEXTS["card"]),
-        ],
-        className="d-flex align-items-center",
+    header_content = create_card_header_with_tooltip(
+        "Weekly Progress Data",
+        tooltip_id="statistics-data",
+        tooltip_text="Weekly tracking of completed and newly created work items and story points. Each Monday date represents work done during that week (Monday through Sunday). This data drives all velocity calculations and forecasting.",
+        help_key="weekly_progress_data_explanation",
+        help_category="dashboard",
     )
 
     # Convert DataFrame to records, ensuring required columns exist
