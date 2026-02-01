@@ -156,6 +156,8 @@ def calculate_and_save_weekly_metrics(
         # Check if changelog data exists in database
         # NOTE: Changelog is OPTIONAL - only needed for Flow Time and Flow Efficiency
         # All other metrics (Flow Velocity, Load, Distribution, ALL DORA metrics) work without it
+        # CRITICAL: Do NOT fetch changelog here - it's pre-fetched in historical_calculator.py
+        # before the week loop to prevent N redundant fetches (one per week)
         changelog_entries = backend.get_changelog_entries(
             active_profile_id, active_query_id
         )
@@ -163,43 +165,15 @@ def calculate_and_save_weekly_metrics(
             changelog_entries is not None and len(changelog_entries) > 0
         )
 
-        if not changelog_available:
-            report_progress(
-                "[Pending] Changelog data not found. Downloading from JIRA..."
+        if changelog_available:
+            logger.info(
+                f"Changelog available: {len(changelog_entries)} entries from database"
             )
-
-            # Load JIRA configuration
-            from data.jira import get_jira_config, fetch_changelog_on_demand
-
-            config = get_jira_config()
-            if not config:
-                logger.warning(
-                    "Failed to load JIRA configuration. Continuing without changelog (Flow Time/Efficiency will be unavailable)."
-                )
-                changelog_available = False
-            else:
-                # Download changelog (this can take 1-2 minutes)
-                # Pass progress callback to get real-time updates
-                changelog_success, changelog_message = fetch_changelog_on_demand(
-                    config, progress_callback=report_progress
-                )
-
-                if not changelog_success:
-                    # DON'T FAIL - just warn and continue without changelog
-                    logger.warning(
-                        f"Failed to download changelog: {changelog_message}. "
-                        "Flow Time and Efficiency metrics will be unavailable. "
-                        "All other metrics (Velocity, Load, Distribution, DORA) will still be calculated."
-                    )
-                    report_progress(
-                        "[!] Changelog download failed. Continuing with available data..."
-                    )
-                    changelog_available = False
-                else:
-                    report_progress(f"[OK] {changelog_message}")
-                    changelog_available = True
         else:
-            logger.info("Changelog cache found, using existing data")
+            logger.info(
+                "Changelog not available. Flow Time and Efficiency metrics will be unavailable. "
+                "All other metrics (Velocity, Load, Distribution, DORA) will still be calculated."
+            )
 
         # Load changelog data from database and merge into issues (if available)
         if changelog_available:
