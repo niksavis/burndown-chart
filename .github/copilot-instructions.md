@@ -95,7 +95,9 @@ These guidelines are **skills** that make agents more effective by ensuring:
 
 ### 8. Terminal Management
 
-- If app running, open NEW terminal for other commands
+- Each `run_in_terminal` starts NEW terminal - commands don't interfere
+- App in background + command to same terminal = app terminates
+- Solution: Subsequent commands auto-use different terminals
 
 ### 9. Self-Healing Documentation
 
