@@ -183,13 +183,15 @@ def try_delta_fetch(
         cached_jql_hash = cache_metadata.get("jql_hash", "")
 
         if not last_updated:
-            logger.debug("[Delta] No last_updated timestamp in cache")
+            logger.warning(
+                "[Delta] No last_updated timestamp in cache - full fetch required"
+            )
             return False, [], []
 
         # Check if JQL query changed
         current_jql_hash = hashlib.sha256(jql.encode()).hexdigest()[:16]
         if current_jql_hash != cached_jql_hash:
-            logger.info(
+            logger.warning(
                 f"[Delta] JQL query changed (hash: {cached_jql_hash} -> {current_jql_hash}), full fetch required"
             )
             return False, [], []
@@ -239,13 +241,17 @@ def try_delta_fetch(
         )
 
         if response.status_code != 200:
-            logger.warning(f"[Delta] Fetch failed with status {response.status_code}")
+            logger.warning(
+                f"[Delta] Fetch failed with status {response.status_code}: {response.text[:200]}"
+            )
             return False, [], []
 
         result = response.json()
         delta_issues = result.get("issues", [])
 
-        logger.info(f"[Delta] Fetched {len(delta_issues)} changed issues")
+        logger.info(
+            f"[Delta] Fetched {len(delta_issues)} changed issues (query: updated >= '{jira_timestamp}')"
+        )
 
         # If delta is too large (>20% of cache), fall back to full fetch
         if len(delta_issues) > len(cached_data) * 0.2:

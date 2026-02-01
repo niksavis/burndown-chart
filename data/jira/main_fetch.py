@@ -196,7 +196,7 @@ def fetch_jira_issues(
                 except Exception as e:
                     logger.warning(f"[JIRA] Cache read error: {e}")
             else:
-                logger.debug("[JIRA] No cache file found")
+                logger.info("[JIRA] No cache file found - will perform full fetch")
 
         if is_valid and cached_data:
             logger.info(

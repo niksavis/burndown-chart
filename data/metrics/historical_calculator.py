@@ -59,6 +59,68 @@ def calculate_metrics_for_last_n_weeks(
             f"Progress will update every {progress_update_interval} week(s) (~{100 * progress_update_interval / max(n_weeks, 1):.1f}% increments)"
         )
 
+        # CRITICAL FIX: Fetch changelog ONCE before the loop (not once per week)
+        # This prevents fetching 324 issues × N weeks = thousands of redundant API calls
+        # The changelog will be cached in database and reused by all week calculations
+        logger.info("[Optimization] Pre-fetching changelog data for all weeks...")
+        if progress_callback:
+            progress_callback(
+                "[Stats] Downloading changelog data (one-time operation)..."
+            )
+
+        try:
+            from data.jira import get_jira_config, fetch_changelog_on_demand
+            from data.persistence.factory import get_backend
+
+            backend = get_backend()
+
+            # Check if changelog already exists in database
+            active_profile_id = backend.get_app_state("active_profile_id")
+            active_query_id = backend.get_app_state("active_query_id")
+
+            if active_profile_id and active_query_id:
+                changelog_entries = backend.get_changelog_entries(
+                    active_profile_id, active_query_id
+                )
+                changelog_exists = (
+                    changelog_entries is not None and len(changelog_entries) > 0
+                )
+
+                if not changelog_exists:
+                    # Download changelog once for all weeks
+                    config = get_jira_config()
+                    if config:
+                        changelog_success, changelog_message = (
+                            fetch_changelog_on_demand(
+                                config, progress_callback=progress_callback
+                            )
+                        )
+                        if not changelog_success:
+                            logger.warning(
+                                f"Changelog fetch failed: {changelog_message}. "
+                                "Flow Time and Efficiency metrics will be unavailable."
+                            )
+                            if progress_callback:
+                                progress_callback(
+                                    "[!] Changelog unavailable - continuing with other metrics..."
+                                )
+                        else:
+                            logger.info(f"[Optimization] {changelog_message}")
+                            if progress_callback:
+                                progress_callback(f"[OK] Changelog ready for all weeks")
+                    else:
+                        logger.warning("JIRA config not available for changelog fetch")
+                else:
+                    logger.info(
+                        f"[Optimization] Changelog already cached ({len(changelog_entries)} entries)"
+                    )
+        except Exception as e:
+            logger.warning(
+                f"[Optimization] Changelog pre-fetch failed: {e}. Continuing without changelog."
+            )
+            if progress_callback:
+                progress_callback("[!] Changelog pre-fetch failed - continuing...")
+
         with batch_write_mode():
             week_number = 0
             for week_label, monday, sunday in weeks:
