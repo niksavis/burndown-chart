@@ -1,26 +1,6 @@
-"""Data persistence adapters - REFACTORED for maintainability.
+"""Data persistence adapters - public API."""
 
-This module is now split into focused submodules for better organization.
-All imports from 'data.persistence.adapters' continue to work via re-exports.
-
-New structure:
-    data/persistence/adapters/
-    ├── core.py              # File locking, JSON encoding, helpers
-    ├── app_settings.py      # App settings save/load
-    ├── project_data.py      # Project data save/load
-    ├── settings.py          # Settings save/load (legacy)
-    ├── statistics.py        # Statistics save/load
-    ├── sample_data.py       # Sample data generation
-    ├── unified_data.py      # Unified project data operations
-    ├── legacy_data.py       # Legacy data migration
-    ├── jira_config.py       # JIRA configuration management
-    ├── metrics_history.py   # Metrics history and snapshots
-    └── parameter_panel.py   # Parameter panel state
-
-All imports from 'data.persistence.adapters' are preserved for backwards compatibility.
-"""
-
-# Re-export all public functions from submodules
+# Re-export all public functions for backwards compatibility
 from data.persistence.adapters.core import (
     DateTimeEncoder,
     convert_timestamps_to_strings,
@@ -50,20 +30,14 @@ from data.persistence.adapters.sample_data import (
 from data.persistence.adapters.unified_data import (
     load_unified_project_data,
     save_unified_project_data,
-    save_jira_data_unified,
 )
 from data.persistence.adapters.legacy_data import (
-    migrate_csv_to_json,
+    save_jira_data_unified,
     load_statistics_legacy,
     load_project_data_legacy,
 )
-from data.persistence.adapters.scope import (
-    get_project_statistics,
-    get_project_scope,
-    update_project_scope,
-    update_project_scope_from_jira,
-    calculate_project_scope_from_jira,
-    add_project_statistic,
+from data.persistence.adapters.jira_config import (
+    migrate_csv_to_json,
 )
 from data.persistence.adapters.jira_config import (
     get_default_jira_config,
@@ -104,12 +78,6 @@ __all__ = [
     "migrate_csv_to_json",
     "load_statistics_legacy",
     "load_project_data_legacy",
-    "get_project_statistics",
-    "get_project_scope",
-    "update_project_scope",
-    "update_project_scope_from_jira",
-    "calculate_project_scope_from_jira",
-    "add_project_statistic",
     "get_default_jira_config",
     "load_jira_configuration",
     "save_jira_configuration",
