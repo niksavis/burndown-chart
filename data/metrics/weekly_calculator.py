@@ -4,6 +4,8 @@ import logging
 from datetime import datetime, timezone, timedelta
 from typing import Tuple, Optional
 
+from data.metrics.helpers import get_current_iso_week
+
 logger = logging.getLogger(__name__)
 
 
@@ -1411,5 +1413,3 @@ def calculate_and_save_weekly_metrics(
         error_msg = f"Error calculating metrics: {str(e)}"
         logger.error(error_msg, exc_info=True)
         return False, error_msg
-
-
