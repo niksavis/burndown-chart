@@ -413,3 +413,48 @@ class TaskProgress:
 
         except Exception as e:
             logger.error(f"Failed to update task progress: {e}")
+
+    @staticmethod
+    def start_postprocess(task_id: str, message: str) -> None:
+        """Start postprocess phase to finalize UI after metrics calculation.
+
+        Args:
+            task_id: Task identifier
+            message: Completion message to show after finalization
+        """
+        try:
+            backend = _get_backend()
+            state = backend.get_task_state()
+
+            if state is None:
+                logger.warning(
+                    f"Task progress state not found for {task_id}, cannot start postprocess"
+                )
+                return
+
+            if state.get("task_id") != task_id:
+                logger.warning(
+                    f"Task ID mismatch: expected {task_id}, got {state.get('task_id')}"
+                )
+                return
+
+            state["phase"] = "postprocess"
+            state["postprocess_time"] = datetime.now().isoformat()
+            state["postprocess_message"] = message
+
+            calculate_progress = state.get("calculate_progress", {})
+            calculate_progress.update(
+                {
+                    "percent": 100,
+                    "message": "Finalizing UI...",
+                }
+            )
+            state["calculate_progress"] = calculate_progress
+
+            if "ui_state" not in state:
+                state["ui_state"] = {"operation_in_progress": True}
+
+            backend.save_task_state(state)
+            logger.info(f"Task {task_id} entering postprocess phase: {message}")
+        except Exception as e:
+            logger.error(f"Failed to start postprocess phase: {e}")

@@ -471,6 +471,15 @@ def _start_background_sync(jql_query, selected_query_id, force_refresh, button_n
                 logger.error(f"[BACKGROUND SYNC] Fetch failed: {message}")
                 TaskProgress.fail_task("update_data", message)
             else:
+                if scope_data.get("skip_metrics"):
+                    logger.info(
+                        "[BACKGROUND SYNC] No changes detected, skipping metrics calculation"
+                    )
+                    TaskProgress.start_postprocess(
+                        "update_data",
+                        message or "No changes detected - using cached data",
+                    )
+                    return
                 logger.info(
                     "[BACKGROUND SYNC] Fetch complete, transitioning to calculate phase"
                 )

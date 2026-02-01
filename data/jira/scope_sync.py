@@ -209,6 +209,32 @@ def sync_jira_scope_and_data(
         except Exception:
             pass
 
+        from data.persistence.factory import get_backend
+
+        backend = get_backend()
+        active_profile_id = backend.get_app_state("active_profile_id")
+        active_query_id = backend.get_app_state("active_query_id")
+        last_delta_key = None
+        if active_profile_id and active_query_id:
+            last_delta_key = (
+                f"last_delta_changed_count:{active_profile_id}:{active_query_id}"
+            )
+
+        if not force_refresh and last_delta_key:
+            last_delta_count = backend.get_app_state(last_delta_key)
+            if last_delta_count == "0":
+                logger.info(
+                    "[JIRA] Delta fetch found no changes, skipping changelog and scope calculation"
+                )
+                return (
+                    True,
+                    "No changes detected - using cached data",
+                    {
+                        "no_changes": True,
+                        "skip_metrics": True,
+                    },
+                )
+
         # CRITICAL: Invalidate changelog cache when we fetch from JIRA
         # Changelog must stay in sync with issue cache
         invalidate_changelog_cache()
@@ -219,9 +245,6 @@ def sync_jira_scope_and_data(
 
         # Fetch it now so metrics calculation has the data it needs
         # CRITICAL: Get profile/query IDs before calling fetch to avoid race condition
-        from data.persistence.factory import get_backend
-
-        backend = get_backend()
         active_profile_id = backend.get_app_state("active_profile_id")
         active_query_id = backend.get_app_state("active_query_id")
 

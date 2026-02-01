@@ -12,6 +12,7 @@ Visual States:
 
 import logging
 import json
+from datetime import datetime
 from dash import callback, Output, Input, State, ctx
 
 logger = logging.getLogger(__name__)
@@ -64,6 +65,7 @@ def update_banner_status_icons(
 
     try:
         from data.persistence.factory import get_backend
+        from utils.datetime_utils import parse_iso_datetime
 
         backend = get_backend()
         progress_data = backend.get_task_state()
@@ -75,6 +77,27 @@ def update_banner_status_icons(
             cancelled = progress_data.get("cancelled", False)
 
             if status == "in_progress" and not cancelled:
+                if phase == "postprocess":
+                    postprocess_time = progress_data.get("postprocess_time")
+                    postprocess_timestamp = parse_iso_datetime(postprocess_time)
+                    if postprocess_timestamp:
+                        elapsed = (
+                            datetime.now() - postprocess_timestamp
+                        ).total_seconds()
+                        if elapsed >= 5:
+                            logger.warning(
+                                "[BannerStatus] Stale postprocess detected, showing idle icons"
+                            )
+                            return (
+                                "fas fa-folder me-1",
+                                "fas fa-search me-1",
+                            )
+                    else:
+                        logger.warning(
+                            "[BannerStatus] Invalid postprocess_time, showing idle icons"
+                        )
+                        return "fas fa-folder me-1", "fas fa-search me-1"
+
                 # Background operation active - orange indicators
                 profile_icon_class = "fas fa-folder me-1 text-warning"
 
@@ -83,7 +106,7 @@ def update_banner_status_icons(
                 elif phase == "calculate":
                     query_icon_class = "fas fa-spinner fa-spin me-1 text-success"
                 else:
-                    query_icon_class = "fas fa-search fa-pulse me-1 text-warning"
+                    query_icon_class = "fas fa-search me-1 text-success"
 
                 return profile_icon_class, query_icon_class
 

@@ -11,8 +11,6 @@ This module handles the primary JIRA API fetch operation with:
 
 import logging
 import time
-import hashlib
-import json
 from typing import Dict, List, Tuple
 from datetime import datetime, timezone
 import requests
@@ -61,16 +59,15 @@ def fetch_jira_issues(
         Tuple of (success: bool, issues: List[Dict])
     """
     from data.jira.rate_limiter import get_rate_limiter, retry_with_backoff
+    from utils.datetime_utils import parse_iso_datetime
     from data.jira.field_utils import extract_jira_field_id
     from data.jira.issue_counter import check_jira_issue_count
     from data.jira.two_phase_fetch import (
         should_use_two_phase_fetch,
         fetch_jira_issues_two_phase,
     )
-    from data.jira.delta_fetch import try_delta_fetch, save_delta_fetch_result
+    from data.jira.delta_fetch import try_delta_fetch
     from data.jira.cache_operations import cache_jira_response
-    from data.cache_manager import generate_jira_data_cache_key
-    from data.profile_manager import get_active_query_workspace
 
     start_time = time.time()
 
@@ -135,14 +132,21 @@ def fetch_jira_issues(
 
         # ===== T051: INCREMENTAL FETCH OPTIMIZATION =====
         # Check if data has changed before doing expensive full fetch
-        # Generate cache key and config hash regardless of force_refresh
-        cache_key = generate_jira_data_cache_key(
-            jql_query=jql,
-            time_period_days=30,  # Default time period
-        )
-        from data.jira.config import generate_config_hash
 
-        config_hash = generate_config_hash(config, fields)
+        # Initialize backend and cache keys BEFORE conditional checks (fix unbound variable errors)
+        from data.persistence.factory import get_backend
+
+        backend = get_backend()
+        active_profile_id = backend.get_app_state("active_profile_id")
+        active_query_id = backend.get_app_state("active_query_id")
+        last_fetch_key = None
+        last_delta_key = None
+
+        if active_profile_id and active_query_id:
+            last_fetch_key = f"last_fetch_time:{active_profile_id}:{active_query_id}"
+            last_delta_key = (
+                f"last_delta_changed_count:{active_profile_id}:{active_query_id}"
+            )
 
         # Skip cache check if force_refresh is True
         if force_refresh:
@@ -154,49 +158,61 @@ def fetch_jira_issues(
         else:
             logger.info("[JIRA] Checking if data has changed (incremental fetch)")
 
-            # Try to load cached data from profile-based cache
-            # Use the same cache file that delta fetch saves to
-            query_workspace = get_active_query_workspace()
-            cache_file = query_workspace / "jira_cache.json"
-
             is_valid = False
             cached_data = None
 
-            if cache_file.exists():
+            if active_profile_id and active_query_id:
                 try:
-                    with open(cache_file, "r") as f:
-                        cache_metadata = json.load(f)
+                    # Load issues from database
+                    db_issues = backend.get_issues(active_profile_id, active_query_id)
 
-                    # Validate cache structure
-                    if "timestamp" in cache_metadata and "issues" in cache_metadata:
-                        # Check age
-                        cache_timestamp = datetime.fromisoformat(
-                            cache_metadata["timestamp"]
-                        )
-                        if cache_timestamp.tzinfo is None:
-                            cache_timestamp = cache_timestamp.replace(
-                                tzinfo=timezone.utc
+                    if db_issues and len(db_issues) > 0:
+                        # Check cache age from first issue's fetched_at timestamp
+                        first_issue = db_issues[0]
+                        cache_timestamp = None
+                        if last_fetch_key:
+                            last_fetch_time = backend.get_app_state(last_fetch_key)
+                            cache_timestamp = parse_iso_datetime(last_fetch_time)
+
+                        if not cache_timestamp and "fetched_at" in first_issue:
+                            cache_timestamp = parse_iso_datetime(
+                                first_issue["fetched_at"]
                             )
+                            if cache_timestamp and cache_timestamp.tzinfo is None:
+                                cache_timestamp = cache_timestamp.replace(
+                                    tzinfo=timezone.utc
+                                )
 
-                        now_utc = datetime.now(timezone.utc)
-                        age_hours = (now_utc - cache_timestamp).total_seconds() / 3600
+                        if cache_timestamp:
+                            now_utc = datetime.now(timezone.utc)
+                            age_hours = (
+                                now_utc - cache_timestamp
+                            ).total_seconds() / 3600
 
-                        if age_hours <= CACHE_EXPIRATION_HOURS:
-                            cached_data = cache_metadata["issues"]
-                            is_valid = True
-                            logger.info(
-                                f"[JIRA] Cache valid: {len(cached_data)} issues ({age_hours:.1f}h old)"
-                            )
+                            if age_hours <= CACHE_EXPIRATION_HOURS:
+                                cached_data = db_issues
+                                is_valid = True
+                                logger.info(
+                                    f"[JIRA] Cache valid: {len(cached_data)} issues ({age_hours:.1f}h old)"
+                                )
+                            else:
+                                logger.debug(
+                                    f"[JIRA] Cache expired: {age_hours:.1f}h old (max: {CACHE_EXPIRATION_HOURS}h)"
+                                )
                         else:
-                            logger.debug(
-                                f"[JIRA] Cache expired: {age_hours:.1f}h old (max: {CACHE_EXPIRATION_HOURS}h)"
+                            logger.warning(
+                                "[JIRA] Issues in database missing fetched_at timestamp"
                             )
                     else:
-                        logger.warning("[JIRA] Cache invalid: missing required fields")
+                        logger.info(
+                            "[JIRA] No issues found in database - will perform full fetch"
+                        )
                 except Exception as e:
-                    logger.warning(f"[JIRA] Cache read error: {e}")
+                    logger.warning(f"[JIRA] Database cache read error: {e}")
             else:
-                logger.info("[JIRA] No cache file found - will perform full fetch")
+                logger.warning(
+                    "[JIRA] No active profile/query - cannot check database cache"
+                )
 
         if is_valid and cached_data:
             logger.info(
@@ -210,18 +226,26 @@ def fetch_jira_issues(
                 logger.info(
                     "[JIRA] Two-phase fetch active, skipping count check, trying delta fetch"
                 )
-                delta_success, merged_issues, changed_keys = try_delta_fetch(
-                    jql, config, cached_data, api_endpoint, start_time
+                delta_success, merged_issues, changed_keys, delta_issues = (
+                    try_delta_fetch(jql, config, cached_data, api_endpoint, start_time)
                 )
                 if delta_success:
-                    save_delta_fetch_result(merged_issues, changed_keys, jql, fields)
-                    # CRITICAL: Update database timestamp
+                    # Update database with raw delta issues
                     cache_jira_response(
-                        data=merged_issues,
+                        data=delta_issues,
                         jql_query=jql,
                         fields_requested=fields,
                         config=config,
                     )
+                    if last_fetch_key and last_delta_key:
+                        backend.set_app_state(
+                            last_fetch_key,
+                            datetime.now(timezone.utc).isoformat(),
+                        )
+                        backend.set_app_state(
+                            last_delta_key,
+                            str(len(delta_issues)),
+                        )
                     return True, merged_issues
                 # Delta fetch failed, fall through to full fetch
             else:
@@ -240,23 +264,28 @@ def fetch_jira_issues(
                         )
                     elif current_count == cached_count:
                         # Try delta fetch - only get issues updated since last cache
-                        delta_success, merged_issues, changed_keys = try_delta_fetch(
-                            jql, config, cached_data, api_endpoint, start_time
+                        delta_success, merged_issues, changed_keys, delta_issues = (
+                            try_delta_fetch(
+                                jql, config, cached_data, api_endpoint, start_time
+                            )
                         )
                         if delta_success:
-                            # Save merged issues with changed keys metadata
-                            save_delta_fetch_result(
-                                merged_issues, changed_keys, jql, fields
-                            )
-                            # CRITICAL: Update database timestamp even if 0 issues changed
-                            # This ensures "last checked" timestamp reflects when Update Data was clicked,
-                            # not just when data last changed
+                            # Update database with raw delta issues
                             cache_jira_response(
-                                data=merged_issues,
+                                data=delta_issues,
                                 jql_query=jql,
                                 fields_requested=fields,
                                 config=config,
                             )
+                            if last_fetch_key and last_delta_key:
+                                backend.set_app_state(
+                                    last_fetch_key,
+                                    datetime.now(timezone.utc).isoformat(),
+                                )
+                                backend.set_app_state(
+                                    last_delta_key,
+                                    str(len(delta_issues)),
+                                )
                             return True, merged_issues
                         # Delta fetch failed, fall through to full fetch
                     else:
@@ -265,17 +294,15 @@ def fetch_jira_issues(
                         logger.info(
                             f"[JIRA] Small count change: {cached_count} -> {current_count}, trying delta fetch"
                         )
-                        delta_success, merged_issues, changed_keys = try_delta_fetch(
-                            jql, config, cached_data, api_endpoint, start_time
+                        delta_success, merged_issues, changed_keys, delta_issues = (
+                            try_delta_fetch(
+                                jql, config, cached_data, api_endpoint, start_time
+                            )
                         )
                         if delta_success:
-                            # Save merged issues with changed keys metadata
-                            save_delta_fetch_result(
-                                merged_issues, changed_keys, jql, fields
-                            )
-                            # CRITICAL: Update database timestamp even if few issues changed
+                            # Update database with raw delta issues
                             cache_jira_response(
-                                data=merged_issues,
+                                data=delta_issues,
                                 jql_query=jql,
                                 fields_requested=fields,
                                 config=config,
@@ -287,21 +314,28 @@ def fetch_jira_issues(
                     logger.warning(
                         "[JIRA] Count check failed, trying delta fetch anyway"
                     )
-                    delta_success, merged_issues, changed_keys = try_delta_fetch(
-                        jql, config, cached_data, api_endpoint, start_time
+                    delta_success, merged_issues, changed_keys, delta_issues = (
+                        try_delta_fetch(
+                            jql, config, cached_data, api_endpoint, start_time
+                        )
                     )
                     if delta_success:
-                        # Save merged issues with changed keys metadata
-                        save_delta_fetch_result(
-                            merged_issues, changed_keys, jql, fields
-                        )
-                        # CRITICAL: Update database timestamp even if count check failed
+                        # Update database with raw delta issues
                         cache_jira_response(
-                            data=merged_issues,
+                            data=delta_issues,
                             jql_query=jql,
                             fields_requested=fields,
                             config=config,
                         )
+                        if last_fetch_key and last_delta_key:
+                            backend.set_app_state(
+                                last_fetch_key,
+                                datetime.now(timezone.utc).isoformat(),
+                            )
+                            backend.set_app_state(
+                                last_delta_key,
+                                str(len(delta_issues)),
+                            )
                         logger.info(
                             "[JIRA] Delta fetch succeeded despite count check failure"
                         )
@@ -337,15 +371,26 @@ def fetch_jira_issues(
                 return False, []
 
             # Cache the two-phase results to profile-specific location
-            query_workspace = get_active_query_workspace()
-            jira_cache_file = str(query_workspace / "jira_cache.json")
+            from data.persistence.factory import get_backend
+
+            backend = get_backend()
+            active_profile_id = backend.get_app_state("active_profile_id")
+            active_query_id = backend.get_app_state("active_query_id")
             cache_jira_response(
                 data=all_issues,
                 jql_query=jql,
                 fields_requested=fields,
-                cache_file=jira_cache_file,
                 config=config,
             )
+            if active_profile_id and active_query_id:
+                backend.set_app_state(
+                    f"last_fetch_time:{active_profile_id}:{active_query_id}",
+                    datetime.now(timezone.utc).isoformat(),
+                )
+                backend.set_app_state(
+                    f"last_delta_changed_count:{active_profile_id}:{active_query_id}",
+                    "-1",
+                )
             return True, all_issues
 
         # Standard fetch for non-two-phase scenarios
@@ -514,49 +559,35 @@ def fetch_jira_issues(
             # Move to next page
             start_at += page_size
 
-        # Save to cache for next time
-        # CRITICAL: Save with metadata needed for delta fetch
-        query_workspace = get_active_query_workspace()
-        cache_file_path = query_workspace / "jira_cache.json"
-
-        # Generate JQL hash for delta fetch validation
-        jql_hash = hashlib.sha256(jql.encode()).hexdigest()[:16]
-
-        # Create cache with metadata including last_updated for delta fetch
-        cache_data = {
-            "timestamp": datetime.now(timezone.utc).isoformat(),
-            "last_updated": datetime.now(timezone.utc).isoformat(),  # For delta fetch
-            "jql_hash": jql_hash,  # For delta fetch validation
-            "jql_query": jql,
-            "cache_key": cache_key,
-            "config_hash": config_hash,
-            "issues": all_issues,
-        }
-
-        try:
-            with open(cache_file_path, "w", encoding="utf-8") as f:
-                json.dump(cache_data, f, indent=2)
-            logger.info(
-                f"[Cache] Saved {len(all_issues)} issues with delta fetch metadata"
-            )
-        except Exception as e:
-            logger.warning(f"[Cache] Failed to save cache file: {e}")
-
         elapsed_time = time.time() - start_time
         logger.info(
             f"[JIRA] Fetch complete: {len(all_issues)} issues in {elapsed_time:.2f}s"
         )
 
-        # CRITICAL FIX: Save issues to database for standard fetch path
-        # Previously only two-phase fetch saved to DB, causing changelog fetch to fail
-        # because it couldn't find any issues in the database
+        # Save issues to database
         cache_jira_response(
             data=all_issues,
             jql_query=jql,
             fields_requested=fields,
-            cache_file=str(cache_file_path),
             config=config,
         )
+        try:
+            from data.persistence.factory import get_backend
+
+            backend = get_backend()
+            active_profile_id = backend.get_app_state("active_profile_id")
+            active_query_id = backend.get_app_state("active_query_id")
+            if active_profile_id and active_query_id:
+                backend.set_app_state(
+                    f"last_fetch_time:{active_profile_id}:{active_query_id}",
+                    datetime.now(timezone.utc).isoformat(),
+                )
+                backend.set_app_state(
+                    f"last_delta_changed_count:{active_profile_id}:{active_query_id}",
+                    "-1",
+                )
+        except Exception as e:
+            logger.debug(f"[JIRA] Failed to update last_fetch_time: {e}")
 
         return True, all_issues
 

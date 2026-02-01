@@ -227,16 +227,16 @@ def _start_background_metrics_calculation(custom_weeks: list, total_weeks: int) 
 
             if metrics_success:
                 logger.info(f"[Metrics] Auto-calculated metrics: {metrics_message}")
-                TaskProgress.complete_task(
-                    "update_data", "✓ Data and metrics updated successfully"
+                TaskProgress.start_postprocess(
+                    "update_data", "Data and metrics updated successfully"
                 )
             else:
                 logger.warning(
                     f"[Metrics] Metrics calculation had issues: {metrics_message}"
                 )
-                TaskProgress.complete_task(
+                TaskProgress.start_postprocess(
                     "update_data",
-                    "⚠ Data updated, metrics calculation had issues",
+                    "Data updated, metrics calculation had issues",
                 )
         except Exception as e:
             logger.error(

@@ -5,13 +5,12 @@ This module provides incremental fetch optimization that only fetches issues
 updated since the last fetch, reducing API calls and data transfer.
 """
 
-import json
 import logging
-import hashlib
 import time
-from datetime import datetime, timedelta, timezone
-from typing import Dict, List, Tuple
+from datetime import datetime, timedelta
+from typing import Any, Dict, List, Tuple
 import requests
+from utils.datetime_utils import parse_iso_datetime
 
 logger = logging.getLogger(__name__)
 
@@ -30,56 +29,59 @@ def get_affected_weeks_from_changed_issues(changed_keys: List[str]) -> set[str]:
         Set of ISO week labels (e.g., {"2025-W50", "2025-W51", "2026-W01"})
     """
     from data.iso_week_bucketing import get_week_label
-    from data.profile_manager import get_active_query_workspace
+    from data.persistence.factory import get_backend
 
     affected_weeks = set()
 
     try:
-        # Load full issue data from cache
-        query_workspace = get_active_query_workspace()
-        cache_file = query_workspace / "jira_cache.json"
+        # Load issue data from database
+        backend = get_backend()
+        active_profile_id = backend.get_app_state("active_profile_id")
+        active_query_id = backend.get_app_state("active_query_id")
 
-        if not cache_file.exists():
-            logger.warning("[Delta Calculate] No cache file found")
+        if not active_profile_id or not active_query_id:
+            logger.warning("[Delta Calculate] No active profile/query")
             return affected_weeks
 
-        with open(cache_file, "r") as f:
-            cache_data = json.load(f)
-
-        issues = cache_data.get("issues", [])
+        issues = backend.get_issues(active_profile_id, active_query_id)
         changed_keys_set = set(changed_keys)
 
         # Find changed issues and extract date-related weeks
         for issue in issues:
-            if issue.get("key") not in changed_keys_set:
+            issue_key = issue.get("issue_key") or issue.get("key")
+            if issue_key not in changed_keys_set:
                 continue
 
-            fields = issue.get("fields", {})
+            fields = (
+                issue.get("fields", {}) if isinstance(issue.get("fields"), dict) else {}
+            )
 
-            # Check created date
-            if fields.get("created"):
+            # Check created date (nested or flat)
+            created_value = fields.get("created") or issue.get("created")
+            if created_value:
                 try:
                     created_dt = datetime.fromisoformat(
-                        fields["created"].replace("Z", "+00:00")
+                        created_value.replace("Z", "+00:00")
                     )
                     week_label = get_week_label(created_dt)
                     affected_weeks.add(week_label)
                 except Exception as e:
                     logger.debug(
-                        f"[Delta Calculate] Could not parse created date for {issue.get('key')}: {e}"
+                        f"[Delta Calculate] Could not parse created date for {issue_key}: {e}"
                     )
 
-            # Check resolved date
-            if fields.get("resolutiondate"):
+            # Check resolved date (nested or flat)
+            resolved_value = fields.get("resolutiondate") or issue.get("resolved")
+            if resolved_value:
                 try:
                     resolved_dt = datetime.fromisoformat(
-                        fields["resolutiondate"].replace("Z", "+00:00")
+                        resolved_value.replace("Z", "+00:00")
                     )
                     week_label = get_week_label(resolved_dt)
                     affected_weeks.add(week_label)
                 except Exception as e:
                     logger.debug(
-                        f"[Delta Calculate] Could not parse resolved date for {issue.get('key')}: {e}"
+                        f"[Delta Calculate] Could not parse resolved date for {issue_key}: {e}"
                     )
 
             # TODO: Also check changelog entries for status transitions
@@ -101,48 +103,57 @@ def get_affected_weeks_from_changed_issues(changed_keys: List[str]) -> set[str]:
         return affected_weeks
 
 
-def save_delta_fetch_result(
-    merged_issues: List[Dict], changed_keys: List[str], jql: str, fields: str
-) -> None:
-    """
-    Save delta fetch results to cache file with updated timestamp.
+def _normalize_issue_for_cache(issue: Dict[str, Any], config: Dict) -> Dict[str, Any]:
+    """Normalize JIRA issue to flat database-like structure for calculations."""
+    from data.jira.field_utils import extract_story_points_value
 
-    This updates the cache file's last_updated timestamp so the next delta fetch
-    will only fetch issues changed since now.
+    fields = issue.get("fields", {}) if isinstance(issue.get("fields"), dict) else {}
+    status = fields.get("status", {}) if isinstance(fields.get("status"), dict) else {}
+    status_category = status.get("statusCategory", {})
+    if not isinstance(status_category, dict):
+        status_category = {}
 
-    Args:
-        merged_issues: Merged issues (cached + delta)
-        changed_keys: List of issue keys that changed
-        jql: JQL query used
-        fields: Fields requested
-    """
-    try:
-        from data.profile_manager import get_active_query_workspace
+    story_points_field = config.get("story_points_field", "")
+    story_points_field = (
+        story_points_field.strip() if isinstance(story_points_field, str) else ""
+    )
+    story_points_value = fields.get(story_points_field) if story_points_field else None
+    points = (
+        extract_story_points_value(story_points_value, story_points_field)
+        if story_points_field
+        else None
+    )
 
-        query_workspace = get_active_query_workspace()
-        cache_file = query_workspace / "jira_cache.json"
+    assignee = fields.get("assignee")
+    priority = fields.get("priority")
+    resolution = fields.get("resolution")
+    issuetype = fields.get("issuetype")
+    project = fields.get("project")
 
-        # Generate JQL hash for validation
-        jql_hash = hashlib.sha256(jql.encode()).hexdigest()[:16]
-
-        # Create updated cache with new timestamp
-        cache_data = {
-            "timestamp": datetime.now(timezone.utc).isoformat(),
-            "last_updated": datetime.now(timezone.utc).isoformat(),  # Updated timestamp
-            "jql_hash": jql_hash,
-            "jql_query": jql,
-            "issues": merged_issues,
-        }
-
-        with open(cache_file, "w", encoding="utf-8") as f:
-            json.dump(cache_data, f, indent=2)
-
-        logger.info(
-            f"[Delta] Updated cache: {len(merged_issues)} issues, {len(changed_keys)} changed"
-        )
-
-    except Exception as e:
-        logger.warning(f"[Delta] Failed to save cache: {e}")
+    return {
+        "issue_key": issue.get("key", ""),
+        "summary": fields.get("summary", ""),
+        "status": status.get("name", ""),
+        "status_category": status_category.get("key", ""),
+        "assignee": assignee.get("displayName") if isinstance(assignee, dict) else None,
+        "issue_type": issuetype.get("name", "") if isinstance(issuetype, dict) else "",
+        "priority": priority.get("name") if isinstance(priority, dict) else None,
+        "resolution": resolution.get("name") if isinstance(resolution, dict) else None,
+        "created": fields.get("created"),
+        "updated": fields.get("updated"),
+        "resolved": fields.get("resolutiondate"),
+        "points": points,
+        "project_key": project.get("key", "") if isinstance(project, dict) else "",
+        "project_name": project.get("name", "") if isinstance(project, dict) else "",
+        "fix_versions": fields.get("fixVersions"),
+        "labels": fields.get("labels"),
+        "components": fields.get("components"),
+        "custom_fields": {
+            k: v
+            for k, v in fields.items()
+            if isinstance(k, str) and k.startswith("customfield_")
+        },
+    }
 
 
 def try_delta_fetch(
@@ -151,7 +162,7 @@ def try_delta_fetch(
     cached_data: List[Dict],
     api_endpoint: str,
     start_time: float,
-) -> Tuple[bool, List[Dict], List[str]]:
+) -> Tuple[bool, List[Dict], List[str], List[Dict]]:
     """
     Try to fetch only issues updated since last cache timestamp.
 
@@ -166,35 +177,53 @@ def try_delta_fetch(
         Tuple of (success: bool, merged_issues: List[Dict], changed_keys: List[str])
     """
     try:
-        # Get cache metadata from query workspace
-        from data.profile_manager import get_active_query_workspace
+        # Get cache metadata from database
+        from data.persistence.factory import get_backend
 
-        query_workspace = get_active_query_workspace()
-        cache_file = query_workspace / "jira_cache.json"
+        backend = get_backend()
+        active_profile_id = backend.get_app_state("active_profile_id")
+        active_query_id = backend.get_app_state("active_query_id")
 
-        if not cache_file.exists():
-            logger.debug("[Delta] No cache file found")
-            return False, [], []
+        if not active_profile_id or not active_query_id:
+            logger.debug("[Delta] No active profile/query")
+            return False, [], [], []
 
-        with open(cache_file, "r") as f:
-            cache_metadata = json.load(f)
+        # Get query info from database to check if JQL changed
+        query_info = backend.get_query(active_profile_id, active_query_id)
+        if not query_info:
+            logger.warning("[Delta] Query not found in database")
+            return False, [], [], []
 
-        last_updated = cache_metadata.get("last_updated")
-        cached_jql_hash = cache_metadata.get("jql_hash", "")
+        stored_jql = query_info.get("jql", "")
+        if stored_jql != jql:
+            logger.warning("[Delta] JQL query changed, full fetch required")
+            return False, [], [], []
+
+        # Get issues from database to determine last fetch time
+        cached_data = backend.get_issues(active_profile_id, active_query_id)
+        if not cached_data:
+            logger.warning("[Delta] No cached issues - full fetch required")
+            return False, [], [], []
+
+        # Get most recent fetched_at timestamp from issues
+        last_updated = max(
+            issue.get("fetched_at", "")
+            for issue in cached_data
+            if issue.get("fetched_at")
+        )
+
+        last_fetch_key = f"last_fetch_time:{active_profile_id}:{active_query_id}"
+        last_fetch_time = backend.get_app_state(last_fetch_key)
+        last_fetch_timestamp = parse_iso_datetime(last_fetch_time)
+
+        if last_fetch_timestamp:
+            last_updated = last_fetch_timestamp.isoformat()
 
         if not last_updated:
             logger.warning(
-                "[Delta] No last_updated timestamp in cache - full fetch required"
+                "[Delta] No fetched_at timestamp in cached issues - full fetch required"
             )
-            return False, [], []
-
-        # Check if JQL query changed
-        current_jql_hash = hashlib.sha256(jql.encode()).hexdigest()[:16]
-        if current_jql_hash != cached_jql_hash:
-            logger.warning(
-                f"[Delta] JQL query changed (hash: {cached_jql_hash} -> {current_jql_hash}), full fetch required"
-            )
-            return False, [], []
+            return False, [], [], []
 
         # Build delta JQL with updated filter
         # Add 1 second to last_updated to avoid precision issues (JIRA only supports minute precision)
@@ -244,7 +273,7 @@ def try_delta_fetch(
             logger.warning(
                 f"[Delta] Fetch failed with status {response.status_code}: {response.text[:200]}"
             )
-            return False, [], []
+            return False, [], [], []
 
         result = response.json()
         delta_issues = result.get("issues", [])
@@ -258,17 +287,28 @@ def try_delta_fetch(
             logger.info(
                 f"[Delta] Too many changes ({len(delta_issues)} > 20% of {len(cached_data)}), full fetch recommended"
             )
-            return False, [], []
+            return False, [], [], []
+
+        normalized_delta_issues = [
+            _normalize_issue_for_cache(issue, config) for issue in delta_issues
+        ]
 
         # Merge delta with cached data
         # Build dict for O(1) lookup and updates
-        merged_dict = {issue["key"]: issue for issue in cached_data}
+        merged_dict = {
+            issue.get("issue_key"): issue
+            for issue in cached_data
+            if issue.get("issue_key")
+        }
 
         # Update or add delta issues
         changed_keys = []
-        for delta_issue in delta_issues:
-            merged_dict[delta_issue["key"]] = delta_issue
-            changed_keys.append(delta_issue["key"])
+        for delta_issue in normalized_delta_issues:
+            issue_key = delta_issue.get("issue_key")
+            if not issue_key:
+                continue
+            merged_dict[issue_key] = delta_issue
+            changed_keys.append(issue_key)
 
         merged_issues = list(merged_dict.values())
 
@@ -277,8 +317,8 @@ def try_delta_fetch(
             f"[Delta] Merge complete: {len(merged_issues)} total issues ({len(delta_issues)} updated) in {elapsed_time:.2f}s"
         )
 
-        return True, merged_issues, changed_keys
+        return True, merged_issues, changed_keys, delta_issues
 
     except Exception as e:
         logger.warning(f"[Delta] Delta fetch failed: {e}, falling back to full fetch")
-        return False, [], []
+        return False, [], [], []

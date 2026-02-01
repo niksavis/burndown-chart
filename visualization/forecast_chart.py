@@ -29,6 +29,7 @@ from visualization.helpers import (
     get_weekly_metrics,
     handle_forecast_error,
 )
+from visualization.elements import create_empty_figure
 
 #######################################################################
 # FORECAST CHART FUNCTIONS
@@ -777,6 +778,25 @@ def create_forecast_plot(
             scope_points=None,
             show_points=show_points,
         )
+
+        df_calc = forecast_data.get("df_calc")
+        if df_calc is None or df_calc.empty or "date" not in df_calc.columns:
+            fig = create_empty_figure("No data available for forecast")
+            pert_data = {
+                "pert_time_items": 0.0,
+                "pert_time_points": 0.0,
+                "items_completion_enhanced": "Unknown",
+                "points_completion_enhanced": "Unknown",
+                "days_to_deadline": 0,
+                "avg_weekly_items": 0.0,
+                "avg_weekly_points": 0.0,
+                "med_weekly_items": 0.0,
+                "med_weekly_points": 0.0,
+                "forecast_timestamp": datetime.now().isoformat(),
+                "velocity_cv": 0.0,
+                "schedule_variance_days": 0.0,
+            }
+            return fig, pert_data
 
         # Create subplot with secondary y-axis
         fig = make_subplots(specs=[[{"secondary_y": True}]])
