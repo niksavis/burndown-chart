@@ -36,6 +36,14 @@ from data.persistence.adapters.legacy_data import (
     load_statistics_legacy,
     load_project_data_legacy,
 )
+from data.persistence.adapters.scope import (
+    get_project_statistics,
+    get_project_scope,
+    update_project_scope,
+    update_project_scope_from_jira,
+    calculate_project_scope_from_jira,
+    add_project_statistic,
+)
 from data.persistence.adapters.jira_config import (
     migrate_csv_to_json,
 )
@@ -78,6 +86,12 @@ __all__ = [
     "migrate_csv_to_json",
     "load_statistics_legacy",
     "load_project_data_legacy",
+    "get_project_statistics",
+    "get_project_scope",
+    "update_project_scope",
+    "update_project_scope_from_jira",
+    "calculate_project_scope_from_jira",
+    "add_project_statistic",
     "get_default_jira_config",
     "load_jira_configuration",
     "save_jira_configuration",
