@@ -1,17 +1,14 @@
 """Data persistence adapters - App settings save/load operations."""
 
 # Standard library imports
-import json
-import os
-import threading
-from datetime import datetime, timedelta
-from typing import Dict, Any, List
+from datetime import datetime
+from typing import Dict, Any
 
 # Third-party library imports
-import pandas as pd
 
 # Application imports
 from configuration.settings import logger
+
 
 def save_app_settings(
     pert_factor,
@@ -443,5 +440,3 @@ def load_app_settings() -> Dict[str, Any]:
     except Exception as e:
         logger.error(f"[Config] Error loading app settings via backend: {e}")
         return default_settings
-
-

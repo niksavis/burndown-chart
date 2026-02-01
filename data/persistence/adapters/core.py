@@ -4,14 +4,12 @@
 import json
 import os
 import threading
-from datetime import datetime, timedelta
-from typing import Dict, Any, List
+from typing import Dict, Any
 
 # Third-party library imports
 import pandas as pd
 
 # Application imports
-from configuration.settings import logger
 
 """
 Data Persistence Module
@@ -21,24 +19,12 @@ It provides functions for managing settings and statistics using JSON files.
 """
 
 #######################################################################
-# IMPORTS
+# FILE LOCKING
 #######################################################################
-# Standard library imports
-import json
-import os
-import threading
-from datetime import datetime, timedelta
-from typing import Dict, Any, List
-
-# Third-party library imports
-import pandas as pd
-
 # Application imports - lazy import constants to avoid circular import
 # Constants are imported inside functions to break circular dependency:
 # configuration.settings -> logging_config -> data.installation_context -> data -> adapters
 # Logger is safe to import at module level (doesn't trigger the chain)
-from configuration.settings import logger
-
 # File locking to prevent race conditions during concurrent writes
 _file_locks: Dict[str, threading.Lock] = {}
 _lock_manager = threading.Lock()
@@ -112,8 +98,6 @@ def should_sync_jira() -> bool:
     Returns:
         bool: True if JIRA is enabled and configured
     """
-    import os
-
     # Check if JIRA is enabled via environment variables
     jira_url = os.getenv("JIRA_URL", "")
     jira_default_jql = os.getenv("JIRA_DEFAULT_JQL", "")
@@ -121,5 +105,3 @@ def should_sync_jira() -> bool:
     return bool(
         jira_url and (jira_default_jql or True)
     )  # Always true if URL exists, JQL has default
-
-

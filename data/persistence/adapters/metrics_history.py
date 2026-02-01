@@ -1,17 +1,18 @@
 """Data persistence adapters - Metrics history and snapshots."""
 
 # Standard library imports
-import json
-import os
-import threading
 from datetime import datetime, timedelta
 from typing import Dict, Any, List
 
 # Third-party library imports
-import pandas as pd
 
 # Application imports
 from configuration.settings import logger
+from data.persistence.adapters.unified_data import (
+    load_unified_project_data,
+    save_unified_project_data,
+)
+
 
 def load_metrics_history() -> Dict[str, List[Dict[str, Any]]]:
     """
@@ -209,5 +210,3 @@ def get_metric_trend_data(
 #######################################################################
 # PARAMETER PANEL STATE PERSISTENCE (User Story 1)
 #######################################################################
-
-

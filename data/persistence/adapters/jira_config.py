@@ -1,17 +1,19 @@
 """Data persistence adapters - JIRA configuration management."""
 
 # Standard library imports
-import json
 import os
-import threading
-from datetime import datetime, timedelta
-from typing import Dict, Any, List
+from datetime import datetime
+from typing import Dict, Any
 
 # Third-party library imports
-import pandas as pd
 
 # Application imports
 from configuration.settings import logger
+from data.persistence.adapters.statistics import load_statistics
+from data.persistence.adapters.project_data import load_project_data
+from data.persistence.adapters.unified_data import save_unified_project_data
+from data.persistence.adapters.app_settings import load_app_settings
+
 
 def migrate_csv_to_json() -> Dict[str, Any]:
     """
@@ -432,5 +434,3 @@ def save_jira_configuration(config: Dict[str, Any]) -> bool:
 #######################################################################
 # DORA/FLOW METRICS HISTORICAL DATA PERSISTENCE (Feature 007)
 #######################################################################
-
-

@@ -1,17 +1,13 @@
 """Data persistence adapters - Settings save/load operations (legacy)."""
 
 # Standard library imports
-import json
-import os
-import threading
-from datetime import datetime, timedelta
-from typing import Dict, Any, List
 
 # Third-party library imports
-import pandas as pd
 
 # Application imports
 from configuration.settings import logger
+from data.persistence.adapters.app_settings import save_app_settings, load_app_settings
+
 
 def save_settings(
     pert_factor,
@@ -109,5 +105,3 @@ def load_settings():
         "show_milestone": app_settings.get("show_milestone", False),
         "milestone": forecast.get("milestone"),
     }
-
-

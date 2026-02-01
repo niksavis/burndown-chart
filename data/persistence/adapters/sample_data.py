@@ -1,17 +1,13 @@
 """Data persistence adapters - Sample data generation and cleaning."""
 
 # Standard library imports
-import json
-import os
-import threading
 from datetime import datetime, timedelta
-from typing import Dict, Any, List
 
 # Third-party library imports
 import pandas as pd
 
 # Application imports
-from configuration.settings import logger
+
 
 def generate_realistic_sample_data():
     """
@@ -177,5 +173,3 @@ def read_and_clean_data(df):
 #######################################################################
 # UNIFIED DATA FUNCTIONS (v2.0)
 #######################################################################
-
-

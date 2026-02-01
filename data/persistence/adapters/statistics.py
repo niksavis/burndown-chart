@@ -1,10 +1,7 @@
 """Data persistence adapters - Statistics save/load operations."""
 
 # Standard library imports
-import json
-import os
-import threading
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Dict, Any, List
 
 # Third-party library imports
@@ -13,10 +10,13 @@ import pandas as pd
 # Application imports
 from configuration.settings import logger
 from data.persistence.adapters.core import (
-    DateTimeEncoder,
     convert_timestamps_to_strings,
-    _get_file_lock,
 )
+from data.persistence.adapters.unified_data import (
+    load_unified_project_data,
+    save_unified_project_data,
+)
+
 
 def save_statistics(data: List[Dict[str, Any]]) -> None:
     """
@@ -220,5 +220,3 @@ def load_statistics() -> tuple:
     except Exception as e:
         logger.error(f"[Cache] Error loading statistics: {e}")
         return [], False
-
-

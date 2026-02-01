@@ -1,17 +1,20 @@
 """Data persistence adapters - Legacy data migration and loaders."""
 
 # Standard library imports
-import json
-import os
-import threading
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Dict, Any, List
 
 # Third-party library imports
-import pandas as pd
 
 # Application imports
 from configuration.settings import logger
+from data.persistence.adapters.unified_data import (
+    load_unified_project_data,
+    save_unified_project_data,
+)
+from data.persistence.adapters.statistics import load_statistics
+from data.persistence.adapters.project_data import load_project_data
+
 
 def _migrate_legacy_project_data(data):
     """
@@ -333,5 +336,3 @@ def save_jira_data_unified(
     except Exception as e:
         logger.error(f"[Cache] Error saving JIRA data to unified structure: {e}")
         return False
-
-

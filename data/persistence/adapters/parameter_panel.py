@@ -1,17 +1,14 @@
 """Data persistence adapters - Parameter panel state management."""
 
 # Standard library imports
-import json
-import os
-import threading
-from datetime import datetime, timedelta
-from typing import Dict, Any, List
+from datetime import datetime
 
 # Third-party library imports
-import pandas as pd
 
 # Application imports
 from configuration.settings import logger
+from data.persistence.adapters.app_settings import load_app_settings
+
 
 def load_parameter_panel_state() -> dict:
     """
