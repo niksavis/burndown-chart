@@ -11,7 +11,7 @@ This package contains all settings-related callbacks, organized into focused mod
 This module provides a single register() function that registers all callbacks.
 """
 
-from . import core_settings
+from . import core_settings, data_update
 
 
 def register(app):
@@ -26,8 +26,10 @@ def register(app):
     # Register core settings callbacks
     core_settings.register(app)
 
+    # Register data update callbacks
+    data_update.register(app)
+
     # TODO: After full refactoring, import and register other modules:
-    # from . import data_update, query_profiles, parameter_panel
-    # data_update.register(app)
+    # from . import query_profiles, parameter_panel
     # query_profiles.register(app)
     # parameter_panel.register(app)
