@@ -4,14 +4,16 @@ Settings Callbacks Package
 This package contains all settings-related callbacks, organized into focused modules:
 - helpers: Utility functions
 - core_settings: Core settings management
-- data_update: Data update and JIRA integration (imported from main settings for now)
-- query_profiles: JQL query profile management (imported from main settings for now)
+- data_update: Data update and JIRA integration
+- metrics: Automatic DORA/Flow metrics calculation
+- jira_scope: Project scope calculation from JIRA
+- query_profiles: JQL query profile management (CRUD operations)
 - parameter_panel: Parameter panel UI (imported from main settings for now)
 
 This module provides a single register() function that registers all callbacks.
 """
 
-from . import core_settings, data_update, metrics, jira_scope
+from . import core_settings, data_update, jira_scope, metrics, query_profiles
 
 
 def register(app):
@@ -35,7 +37,9 @@ def register(app):
     # Register JIRA scope calculation callback
     jira_scope.register(app)
 
+    # Register JQL query profile management callbacks
+    query_profiles.register(app)
+
     # TODO: After full refactoring, import and register other modules:
-    # from . import query_profiles, parameter_panel
-    # query_profiles.register(app)
+    # from . import parameter_panel
     # parameter_panel.register(app)
