@@ -8,16 +8,16 @@ CRITICAL: All tests MUST mock functions that read/write to profile files:
 Without proper mocks, tests will modify real user data in profiles/ directory!
 """
 
-from unittest.mock import patch, MagicMock
-from callbacks.field_mapping import render_tab_content
+from unittest.mock import patch
+from callbacks.field_mapping.tab_rendering import render_tab_content
 
 
 class TestFieldMappingStateInitialization:
     """Test that render_tab_content properly initializes state from saved settings."""
 
-    @patch("callbacks.field_mapping.fetch_available_jira_fields")
+    @patch("data.field_mapper.fetch_available_jira_fields")
     @patch("data.persistence.load_app_settings")
-    @patch("callbacks.field_mapping.callback_context")
+    @patch("callbacks.field_mapping.tab_rendering.callback_context")
     @patch("dash.ctx")
     def test_render_initializes_state_from_saved_settings(
         self, mock_dash_ctx, mock_callback_ctx, mock_load_settings, mock_fetch_fields
@@ -130,9 +130,9 @@ class TestFieldMappingStateInitialization:
         assert returned_state["devops_projects"] == ["DEVOPS"]
         assert returned_state["flow_end_statuses"] == ["Done", "Closed"]
 
-    @patch("callbacks.field_mapping.fetch_available_jira_fields")
+    @patch("data.field_mapper.fetch_available_jira_fields")
     @patch("data.persistence.load_app_settings")
-    @patch("callbacks.field_mapping.callback_context")
+    @patch("callbacks.field_mapping.tab_rendering.callback_context")
     @patch("dash.ctx")
     def test_render_preserves_state_when_already_initialized(
         self, mock_dash_ctx, mock_callback_ctx, mock_load_settings, mock_fetch_fields
@@ -186,9 +186,9 @@ class TestFieldMappingStateInitialization:
         )
         assert returned_state["development_projects"] == ["CHANGED"]
 
-    @patch("callbacks.field_mapping.fetch_available_jira_fields")
+    @patch("data.field_mapper.fetch_available_jira_fields")
     @patch("data.persistence.load_app_settings")
-    @patch("callbacks.field_mapping.callback_context")
+    @patch("callbacks.field_mapping.tab_rendering.callback_context")
     @patch("dash.ctx")
     def test_render_reinitializes_when_profile_tracking_only(
         self, mock_dash_ctx, mock_callback_ctx, mock_load_settings, mock_fetch_fields

@@ -10,7 +10,7 @@ import pandas as pd
 
 from data.processing import calculate_weekly_averages
 from ui.pert_components import create_pert_info_table, _create_velocity_metric_card
-from visualization.charts import _prepare_metrics_data
+from visualization.helpers import prepare_metrics_data as _prepare_metrics_data
 from tests.utils.ui_test_helpers import (
     extract_numeric_value_from_component,
     validate_component_structure,

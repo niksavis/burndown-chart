@@ -16,7 +16,10 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent))
 
 # Import the functions to test
-from visualization.charts import prepare_visualization_data, generate_burndown_forecast
+from visualization.data_preparation import (
+    prepare_visualization_data,
+    generate_burndown_forecast,
+)
 
 
 class TestPrepareVisualizationData(unittest.TestCase):
@@ -359,7 +362,7 @@ class TestGenerateBurndownForecast(unittest.TestCase):
 
     def test_burnup_burndown_consistency(self):
         """Test that burnup and burndown forecasts are consistent."""
-        from visualization.charts import prepare_visualization_data
+        from visualization.data_preparation import prepare_visualization_data
         import logging
 
         # Set up a logger for diagnostics

@@ -26,7 +26,7 @@ from data.scope_metrics import (
     calculate_total_project_scope,
     calculate_weekly_scope_growth,
 )
-from visualization.charts import prepare_visualization_data
+from visualization.data_preparation import prepare_visualization_data
 
 
 # Add the missing compute_weekly_throughput function for the test

@@ -20,7 +20,7 @@ from data.processing import (
     calculate_weekly_averages,
 )
 from data.scope_metrics import calculate_total_project_scope
-from visualization.charts import prepare_visualization_data
+from visualization.data_preparation import prepare_visualization_data
 
 
 class TestDashboardMetricsConsistency(unittest.TestCase):

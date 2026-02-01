@@ -231,20 +231,20 @@ def calculate_forecast_completion_dates(pert_time_items, pert_time_points):
 
 
 def prepare_metrics_data(
-    total_items,
-    total_points,
+    total_items: int,
+    total_points: int,
     deadline,
-    pert_time_items,
-    pert_time_points,
-    data_points_count,
+    pert_time_items: float,
+    pert_time_points: float,
+    data_points_count: int,
     df,
-    items_completion_enhanced,
-    points_completion_enhanced,
-    avg_weekly_items=0,
-    avg_weekly_points=0,
-    med_weekly_items=0,
-    med_weekly_points=0,
-):
+    items_completion_enhanced: str,
+    points_completion_enhanced: str,
+    avg_weekly_items: float = 0.0,
+    avg_weekly_points: float = 0.0,
+    med_weekly_items: float = 0.0,
+    med_weekly_points: float = 0.0,
+) -> dict:
     """
     Prepare metrics data for display in the forecast plot.
 

@@ -7,7 +7,7 @@ import pandas as pd
 from datetime import datetime
 from unittest.mock import patch
 
-from visualization.charts import prepare_visualization_data
+from visualization.data_preparation import prepare_visualization_data
 
 
 # Test data for prepare_visualization_data function
