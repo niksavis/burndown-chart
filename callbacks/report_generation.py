@@ -37,7 +37,7 @@ def generate_and_download_report(n_clicks, sections, data_points):
 
     try:
         from data.query_manager import get_active_profile_id
-        from data.report_generator import generate_html_report
+        from data.report import generate_html_report
         from datetime import datetime
         from ui.toast_notifications import create_warning_toast, create_error_toast
 

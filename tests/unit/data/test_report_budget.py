@@ -26,7 +26,9 @@ def temp_db():
 
 def test_budget_metrics_calculation_with_data(temp_db):
     """Test budget metrics calculation when budget is configured."""
-    from data.report_generator import _calculate_budget_metrics
+    from data.report.helpers import (
+        calculate_budget_metrics as _calculate_budget_metrics,
+    )
     from data.persistence.sqlite_backend import SQLiteBackend
     from unittest.mock import patch
 
@@ -90,7 +92,9 @@ def test_budget_metrics_calculation_with_data(temp_db):
 
 def test_budget_metrics_calculation_no_budget(temp_db):
     """Test budget metrics calculation when no budget is configured."""
-    from data.report_generator import _calculate_budget_metrics
+    from data.report.helpers import (
+        calculate_budget_metrics as _calculate_budget_metrics,
+    )
     from data.persistence.sqlite_backend import SQLiteBackend
 
     backend = SQLiteBackend(str(temp_db))
@@ -118,7 +122,7 @@ def test_budget_metrics_calculation_no_budget(temp_db):
 
 def test_budget_in_report_sections(temp_database):
     """Test that budget section is included in report when requested."""
-    from data.report_generator import _calculate_all_metrics
+    from data.report.generator import calculate_all_metrics as _calculate_all_metrics
 
     # Mock report data
     report_data = {

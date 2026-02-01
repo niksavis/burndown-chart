@@ -3,7 +3,9 @@
 
 def test_dashboard_metrics_uses_comprehensive_health():
     """Test that dashboard metrics uses comprehensive health calculator v3.0."""
-    from data.report_generator import _calculate_dashboard_metrics
+    from data.report.dashboard_metrics import (
+        calculate_dashboard_metrics as _calculate_dashboard_metrics,
+    )
 
     # Sample statistics data
     all_statistics = [
@@ -85,7 +87,9 @@ def test_dashboard_metrics_uses_comprehensive_health():
 
 def test_dashboard_metrics_with_extended_metrics():
     """Test that dashboard metrics uses extended metrics when available."""
-    from data.report_generator import _calculate_dashboard_metrics
+    from data.report.dashboard_metrics import (
+        calculate_dashboard_metrics as _calculate_dashboard_metrics,
+    )
 
     # Sample statistics data
     all_statistics = [
@@ -175,7 +179,9 @@ def test_dashboard_metrics_with_extended_metrics():
 
 def test_dashboard_metrics_graceful_degradation():
     """Test that dashboard metrics works with no data (graceful degradation)."""
-    from data.report_generator import _calculate_dashboard_metrics
+    from data.report.dashboard_metrics import (
+        calculate_dashboard_metrics as _calculate_dashboard_metrics,
+    )
 
     # Call with empty data
     result = _calculate_dashboard_metrics(
