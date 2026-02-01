@@ -8,12 +8,21 @@ This package contains all settings-related callbacks, organized into focused mod
 - metrics: Automatic DORA/Flow metrics calculation
 - jira_scope: Project scope calculation from JIRA
 - query_profiles: JQL query profile management (CRUD operations)
-- parameter_panel: Parameter panel UI (imported from main settings for now)
+- jql_test: JQL query test callback with ScriptRunner validation
+- parameter_panel: Parameter panel UI interactions
 
 This module provides a single register() function that registers all callbacks.
 """
 
-from . import core_settings, data_update, jira_scope, metrics, query_profiles
+from . import (
+    core_settings,
+    data_update,
+    jira_scope,
+    metrics,
+    query_profiles,
+    jql_test,
+    parameter_panel,
+)
 
 
 def register(app):
@@ -40,6 +49,8 @@ def register(app):
     # Register JQL query profile management callbacks
     query_profiles.register(app)
 
-    # TODO: After full refactoring, import and register other modules:
-    # from . import parameter_panel
-    # parameter_panel.register(app)
+    # Register JQL test callback
+    jql_test.register(app)
+
+    # Register parameter panel callbacks
+    parameter_panel.register(app)
