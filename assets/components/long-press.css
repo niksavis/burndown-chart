@@ -21,12 +21,7 @@
   left: 0;
   height: 100%;
   width: var(--progress-width, 0%);
-  background: rgba(
-    255,
-    255,
-    255,
-    0.35
-  ); /* White overlay for clear visibility */
+  background: rgba(10, 88, 202, 0.75); /* Dark blue tint (btn-primary active) */
   z-index: 0;
   transition: none; /* Controlled by JavaScript */
   pointer-events: none;
