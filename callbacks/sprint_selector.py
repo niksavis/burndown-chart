@@ -81,7 +81,7 @@ def update_sprint_selection(selected_sprint: str, show_points_list: list):
             return no_update
 
         # Build sprint snapshots
-        sprint_snapshots = get_sprint_snapshots(tracked_issues, changelog_entries)
+        sprint_snapshots = get_sprint_snapshots(tracked_issues, changelog_entries, sprint_field)
 
         if selected_sprint not in sprint_snapshots:
             logger.warning(f"Selected sprint {selected_sprint} not found in snapshots")

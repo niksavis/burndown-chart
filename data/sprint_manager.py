@@ -267,6 +267,44 @@ def get_sprint_snapshots(
 
             issue_current_sprint[issue_key] = new_sprint
 
+    # CRITICAL FIX: Add issues that are currently in sprint but have no changelog
+    # This handles cases where issues were created directly in a sprint or bulk-added
+    # without generating changelog entries
+    logger.info(f"Checking {len(issues)} issues for missing sprint assignments")
+    added_count = 0
+    for issue in issues:
+        issue_key = issue.get("issue_key")
+        if not issue_key:
+            continue
+
+        # Get current sprint value from issue
+        custom_fields = issue.get("custom_fields", {})
+        sprint_value = custom_fields.get(sprint_field)
+
+        if not sprint_value:
+            continue
+
+        # Parse sprint name from field value
+        sprint_list = sprint_value if isinstance(sprint_value, list) else [sprint_value]
+        for sprint_obj in sprint_list:
+            sprint_name = _parse_sprint_name(sprint_obj)
+            if not sprint_name:
+                continue
+
+            # Check if issue is already tracked in this sprint
+            if issue_current_sprint.get(issue_key) != sprint_name:
+                # Issue is in sprint but not in snapshot - add it
+                logger.info(
+                    f"Adding issue {issue_key} to {sprint_name} (no changelog entry)"
+                )
+                snapshot = _get_or_create_snapshot(sprint_name)
+                if issue_key not in snapshot["current_issues"]:
+                    snapshot["current_issues"].add(issue_key)
+                    issue_current_sprint[issue_key] = sprint_name
+                    added_count += 1
+
+    logger.info(f"Added {added_count} issues with no changelog to sprint snapshots")
+
     # Enrich snapshots with current issue states from issues list
     # Backend returns flattened structure with 'issue_key' (not 'key')
     issues_by_key = {issue.get("issue_key"): issue for issue in issues}
