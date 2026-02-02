@@ -178,7 +178,7 @@ def create_sprint_summary_cards(
             md=3,
             className="mb-3",
         ),
-        # In Progress Card
+        # Work in Progress Card
         dbc.Col(
             [
                 html.Div(
@@ -192,7 +192,7 @@ def create_sprint_summary_cards(
                             className="mb-2",
                         ),
                         html.H2(str(in_progress), className="mb-1 text-warning"),
-                        html.P("In Progress", className="text-muted mb-0 small"),
+                        html.P("Work in Progress", className="text-muted mb-0 small"),
                     ],
                     className="text-center p-3 rounded h-100",
                     style={"backgroundColor": "rgba(255, 193, 7, 0.1)"},
