@@ -21,7 +21,12 @@
   left: 0;
   height: 100%;
   width: var(--progress-width, 0%);
-  background: rgba(0, 0, 0, 0.25); /* Darker overlay for progress */
+  background: rgba(
+    255,
+    255,
+    255,
+    0.35
+  ); /* White overlay for clear visibility */
   z-index: 0;
   transition: none; /* Controlled by JavaScript */
   pointer-events: none;
