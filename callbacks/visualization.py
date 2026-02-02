@@ -56,7 +56,10 @@ from visualization.weekly_charts import (
 from visualization.charts import (
     apply_mobile_optimization,
 )
-from callbacks.visualization_helpers import create_forecast_pill
+from callbacks.visualization_helpers import (
+    create_forecast_pill,
+    check_has_points_in_period,
+)
 
 # Setup logging
 logger = logging.getLogger("burndown_chart")
@@ -202,50 +205,6 @@ def register(app):
         )
 
         return fig
-
-    def _check_has_points_in_period(statistics, data_points_count=None):
-        """
-        Check if there's any points data in the filtered time period.
-
-        This respects the data_points_count slider to check only the selected time period,
-        not the entire dataset. This ensures consistency with dashboard cards.
-
-        Args:
-            statistics: Statistics data (list or DataFrame)
-            data_points_count: Number of weeks to check (None = all data)
-
-        Returns:
-            bool: True if there are any completed points > 0 in the period
-        """
-        if not statistics:
-            return False
-
-        df_check = (
-            pd.DataFrame(statistics)
-            if isinstance(statistics, list)
-            else statistics.copy()
-        )
-
-        if df_check.empty or "completed_points" not in df_check.columns:
-            return False
-
-        # Apply same filtering logic as charts to respect data_points_count
-        if data_points_count is not None and data_points_count > 0:
-            if "date" in df_check.columns:
-                df_check["date"] = pd.to_datetime(
-                    df_check["date"], format="mixed", errors="coerce"
-                )
-                df_check = df_check.dropna(subset=["date"]).sort_values(
-                    "date", ascending=True
-                )
-
-                if not df_check.empty:
-                    latest_date = df_check["date"].max()
-                    cutoff_date = latest_date - timedelta(weeks=data_points_count)
-                    df_check = df_check[df_check["date"] >= cutoff_date]
-
-        # Check if any points in the filtered period
-        return df_check["completed_points"].sum() > 0
 
     def _prepare_trend_data(statistics, pert_factor, data_points_count=None):
         """
@@ -1674,7 +1633,7 @@ def register(app):
                 # This respects the Data Points slider to only check the selected weeks
                 has_points_data = False
                 if show_points:
-                    has_points_data = _check_has_points_in_period(
+                    has_points_data = check_has_points_in_period(
                         statistics, data_points_count
                     )
 
@@ -1812,7 +1771,7 @@ def register(app):
                 # Check if points data exists in the filtered time period (respects Data Points slider)
                 has_points_data = False
                 if show_points:
-                    has_points_data = _check_has_points_in_period(
+                    has_points_data = check_has_points_in_period(
                         statistics, data_points_count
                     )
 
@@ -1840,7 +1799,7 @@ def register(app):
                 # Check if points data exists in the filtered time period
                 has_points_data = False
                 if show_points:
-                    has_points_data = _check_has_points_in_period(
+                    has_points_data = check_has_points_in_period(
                         statistics, data_points_count
                     )
 
