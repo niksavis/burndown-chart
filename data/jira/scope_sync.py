@@ -228,7 +228,7 @@ def sync_jira_scope_and_data(
                 from configuration.settings import load_app_settings
                 import hashlib
                 import json
-                
+
                 current_settings = load_app_settings()
                 # Hash the relevant parts of settings that affect metrics
                 relevant_settings = {
@@ -239,11 +239,13 @@ def sync_jira_scope_and_data(
                 current_hash = hashlib.md5(
                     json.dumps(relevant_settings, sort_keys=True).encode()
                 ).hexdigest()
-                
+
                 # Check if settings hash has changed
-                settings_hash_key = f"settings_hash:{active_profile_id}:{active_query_id}"
+                settings_hash_key = (
+                    f"settings_hash:{active_profile_id}:{active_query_id}"
+                )
                 last_hash = backend.get_app_state(settings_hash_key)
-                
+
                 if last_hash and last_hash == current_hash:
                     # No data changes AND no settings changes - can skip
                     logger.info(
