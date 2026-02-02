@@ -20,19 +20,19 @@ logger = logging.getLogger(__name__)
 
 # Status color mapping (fallback only - prefer dynamic mapping from flow config)
 STATUS_COLORS = {
-    "To Do": "#6c757d",  # Gray (empty state)
-    "Backlog": "#6c757d",  # Gray
-    "Open": "#6c757d",  # Gray
-    "Analysis": "#0dcaf0",  # Cyan
-    "In Progress": "#0d6efd",  # Blue
-    "In Review": "#9b59b6",  # Purple
-    "Code Review": "#9b59b6",  # Purple
-    "Ready for Testing": "#f39c12",  # Amber
-    "Testing": "#e67e22",  # Orange
-    "In Deployment": "#198754",  # Dark green
-    "Done": "#28a745",  # Lighter green (distinct from In Deployment)
-    "Closed": "#28a745",  # Lighter green
-    "Resolved": "#28a745",  # Lighter green
+    "To Do": "#6c757d",  # Gray (start state)
+    "Backlog": "#6c757d",  # Gray (start state)
+    "Open": "#6c757d",  # Gray (start state)
+    "Analysis": "#0dcaf0",  # Cyan (WIP)
+    "In Progress": "#0d6efd",  # Blue (WIP)
+    "In Review": "#9b59b6",  # Purple (WIP)
+    "Code Review": "#9b59b6",  # Purple (WIP)
+    "Ready for Testing": "#f39c12",  # Amber (WIP)
+    "Testing": "#e67e22",  # Orange (WIP)
+    "In Deployment": "#d63384",  # Magenta/Pink (WIP - distinct from green Done)
+    "Done": "#28a745",  # Green (end state)
+    "Closed": "#28a745",  # Green (end state)
+    "Resolved": "#28a745",  # Green (end state)
 }
 
 
@@ -84,7 +84,17 @@ def _get_status_color(
     if status in flow_start_statuses:
         return "#6c757d"  # Gray for start states
     elif status in flow_wip_statuses:
-        return "#0d6efd"  # Blue for WIP states
+        # Cycle through distinct WIP colors (never green or gray)
+        wip_colors = [
+            "#0d6efd",  # Blue
+            "#9b59b6",  # Purple
+            "#f39c12",  # Amber
+            "#e67e22",  # Orange
+            "#0dcaf0",  # Cyan
+            "#d63384",  # Magenta/Pink
+        ]
+        wip_index = flow_wip_statuses.index(status) % len(wip_colors)
+        return wip_colors[wip_index]
     elif status in flow_end_statuses:
         return COLOR_PALETTE["success"]  # Green for done states
 
