@@ -283,16 +283,19 @@ def create_sprint_summary_cards(
 
 
 def create_sprint_selector(
-    available_sprints: List[str], selected_sprint: Optional[str] = None
+    available_sprints: List[str],
+    selected_sprint: Optional[str] = None,
+    sprint_metadata: Optional[Dict[str, Dict]] = None,
 ) -> html.Div:
-    """Create sprint selection dropdown.
+    """Create sprint selection dropdown with status indicators.
 
     Args:
         available_sprints: List of sprint names/IDs
         selected_sprint: Currently selected sprint (to set as dropdown value)
+        sprint_metadata: Dict mapping sprint name to {"state": "ACTIVE/CLOSED/FUTURE", ...}
 
     Returns:
-        Dropdown component for sprint selection
+        Dropdown component for sprint selection with status badges
     """
     if not available_sprints:
         return html.Div()
@@ -304,36 +307,121 @@ def create_sprint_selector(
         else (available_sprints[0] if available_sprints else None)
     )
 
+    # Create dropdown options with status suffixes
+    options = []
+    for sprint in available_sprints:
+        label = sprint
+        if sprint_metadata and sprint in sprint_metadata:
+            state = sprint_metadata[sprint].get("state", "")
+            if state == "ACTIVE":
+                label = f"{sprint} (Open)"
+            elif state == "CLOSED":
+                label = f"{sprint} (Closed)"
+            elif state == "FUTURE":
+                label = f"{sprint} (Future)"
+        options.append({"label": label, "value": sprint})
+
     return html.Div(
         [
             dbc.Label("Select Sprint:", html_for="sprint-selector-dropdown"),
             dcc.Dropdown(
                 id="sprint-selector-dropdown",
-                options=[
-                    {"label": sprint, "value": sprint} for sprint in available_sprints
-                ],
+                options=options,
                 value=dropdown_value,
                 clearable=False,
-                className="mb-3",
             ),
-        ],
-        className="mb-4",
+        ]
     )
 
 
 def create_sprint_filters() -> html.Div:
-    """Create filter controls for sprint view.
+    """Create filter controls for sprint view (issue type only).
 
     Returns:
-        Filter controls (issue type, status filters)
+        Filter controls (issue type dropdown)
     """
+    return html.Div(
+        [
+            dbc.Label("Select Issue Type:", html_for="sprint-issue-type-filter"),
+            dcc.Dropdown(
+                id="sprint-issue-type-filter",
+                options=[
+                    {"label": "All", "value": "all"},
+                    {"label": "Story", "value": "Story"},
+                    {"label": "Task", "value": "Task"},
+                    {"label": "Bug", "value": "Bug"},
+                ],
+                value="all",
+                clearable=False,
+            ),
+        ]
+    )
+
+
+def create_combined_sprint_controls(
+    available_sprints: List[str],
+    selected_sprint: Optional[str] = None,
+    sprint_metadata: Optional[Dict[str, Dict]] = None,
+) -> html.Div:
+    """Create combined sprint selector and issue type filter in one styled container.
+
+    Args:
+        available_sprints: List of sprint names/IDs
+        selected_sprint: Currently selected sprint
+        sprint_metadata: Dict mapping sprint name to {"state": "ACTIVE/CLOSED/FUTURE", ...}
+
+    Returns:
+        Styled container with both dropdowns in one row
+    """
+    if not available_sprints:
+        return html.Div()
+
+    # Use selected sprint if provided, otherwise default to first
+    dropdown_value = (
+        selected_sprint
+        if selected_sprint in available_sprints
+        else (available_sprints[0] if available_sprints else None)
+    )
+
+    # Create sprint dropdown options with status suffixes
+    sprint_options = []
+    for sprint in available_sprints:
+        label = sprint
+        if sprint_metadata and sprint in sprint_metadata:
+            state = sprint_metadata[sprint].get("state", "")
+            if state == "ACTIVE":
+                label = f"{sprint} (Open)"
+            elif state == "CLOSED":
+                label = f"{sprint} (Closed)"
+            elif state == "FUTURE":
+                label = f"{sprint} (Future)"
+        sprint_options.append({"label": label, "value": sprint})
+
     return html.Div(
         [
             dbc.Row(
                 [
                     dbc.Col(
                         [
-                            dbc.Label("Issue Type:"),
+                            dbc.Label(
+                                "Select Sprint:", html_for="sprint-selector-dropdown"
+                            ),
+                            dcc.Dropdown(
+                                id="sprint-selector-dropdown",
+                                options=sprint_options,
+                                value=dropdown_value,
+                                clearable=False,
+                            ),
+                        ],
+                        xs=12,
+                        md=6,
+                    ),
+                    dbc.Col(
+                        [
+                            dbc.Label(
+                                "Select Issue Type:",
+                                html_for="sprint-issue-type-filter",
+                            ),
                             dcc.Dropdown(
                                 id="sprint-issue-type-filter",
                                 options=[
@@ -344,7 +432,6 @@ def create_sprint_filters() -> html.Div:
                                 ],
                                 value="all",
                                 clearable=False,
-                                className="mb-2",
                             ),
                         ],
                         xs=12,

@@ -215,12 +215,43 @@ def _render_sprint_tracker_content(
         sprint_changes = detect_sprint_changes(changelog_entries)
         selected_sprint_changes = sprint_changes.get(selected_sprint_id, {})
 
+        # Extract sprint metadata (states) from issues for all sprints
+        sprint_metadata = {}
+        for issue in tracked_issues:
+            issue_fields = issue.get("fields", {})
+            sprint_field_value = issue_fields.get(sprint_field)
+
+            if not sprint_field_value:
+                continue
+
+            # Sprint field can be a list of sprint objects (JSON strings)
+            sprint_list = (
+                sprint_field_value
+                if isinstance(sprint_field_value, list)
+                else [sprint_field_value]
+            )
+
+            for sprint_obj_str in sprint_list:
+                if not sprint_obj_str or not isinstance(sprint_obj_str, str):
+                    continue
+
+                # Parse sprint object to extract name and state
+                from data.sprint_manager import _parse_sprint_object
+
+                sprint_obj = _parse_sprint_object(sprint_obj_str)
+                if sprint_obj and sprint_obj.get("name"):
+                    sprint_name = sprint_obj["name"]
+                    sprint_metadata[sprint_name] = {
+                        "state": sprint_obj.get("state", ""),
+                        "start_date": sprint_obj.get("start_date"),
+                        "end_date": sprint_obj.get("end_date"),
+                    }
+
         # Create UI components
         from ui.sprint_tracker import (
             create_sprint_summary_cards,
-            create_sprint_selector,
+            create_combined_sprint_controls,
             create_sprint_change_indicators,
-            create_sprint_filters,
         )
         from visualization.sprint_charts import (
             create_sprint_progress_bars,
@@ -275,15 +306,14 @@ def _render_sprint_tracker_content(
             sprint_changes=selected_sprint_changes,  # Pass sprint changes for icons
         )
 
-        # Create sprint selector if multiple sprints
-        sprint_selector = (
-            create_sprint_selector(sprint_ids, selected_sprint_id)
+        # Create combined sprint controls (selector + issue type filter)
+        combined_controls = (
+            create_combined_sprint_controls(
+                sprint_ids, selected_sprint_id, sprint_metadata
+            )
             if len(sprint_ids) > 1
             else html.Div()
         )
-
-        # Create filter controls
-        filter_controls = create_sprint_filters()
 
         # Create compact legend popover for sprint changes info button
         from ui.sprint_tracker import create_sprint_changes_legend
@@ -305,10 +335,8 @@ def _render_sprint_tracker_content(
                         # Control container (not updated by callbacks)
                         html.Div(
                             [
-                                # Sprint selector
-                                sprint_selector,
-                                # Filter controls
-                                filter_controls,
+                                # Combined sprint selector + issue type filter
+                                combined_controls,
                             ],
                             id="sprint-controls-container",
                         ),
