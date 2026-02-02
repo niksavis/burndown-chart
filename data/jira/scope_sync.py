@@ -225,16 +225,51 @@ def sync_jira_scope_and_data(
             if last_delta_count == "0":
                 # Check if field mappings have changed since last update
                 # If they have, we MUST recalculate metrics even with no new data
-                from configuration.settings import load_app_settings
+                from data.persistence import load_app_settings
                 import hashlib
                 import json
 
                 current_settings = load_app_settings()
-                # Hash the relevant parts of settings that affect metrics
+                # Hash ALL settings that affect metrics calculation
+                # These correspond to all tabs in Configure JIRA Mappings modal:
+                # - Projects tab: development_projects, devops_projects
+                # - Fields tab: field_mappings (dora, flow, general namespaces)
+                # - Types tab: flow_type_mappings, devops_task_types, bug_types, story_types, task_types
+                # - Status tab: flow_start_statuses, wip_statuses, flow_end_statuses, active_statuses
+                # - Environment tab: production_environment_values, affected_environment_values, target_environment_values
                 relevant_settings = {
+                    # Projects tab
+                    "development_projects": current_settings.get(
+                        "development_projects", []
+                    ),
+                    "devops_projects": current_settings.get("devops_projects", []),
+                    # Fields tab
+                    "field_mappings": current_settings.get("field_mappings", {}),
+                    # Types tab
+                    "flow_type_mappings": current_settings.get(
+                        "flow_type_mappings", {}
+                    ),
+                    "devops_task_types": current_settings.get("devops_task_types", []),
+                    "bug_types": current_settings.get("bug_types", []),
+                    "story_types": current_settings.get("story_types", []),
+                    "task_types": current_settings.get("task_types", []),
+                    # Status tab
+                    "flow_start_statuses": current_settings.get(
+                        "flow_start_statuses", []
+                    ),
                     "wip_statuses": current_settings.get("wip_statuses", []),
                     "flow_end_statuses": current_settings.get("flow_end_statuses", []),
-                    "field_mappings": current_settings.get("field_mappings", {}),
+                    "active_statuses": current_settings.get("active_statuses", []),
+                    # Environment tab
+                    "production_environment_values": current_settings.get(
+                        "production_environment_values", []
+                    ),
+                    "affected_environment_values": current_settings.get(
+                        "affected_environment_values", []
+                    ),
+                    "target_environment_values": current_settings.get(
+                        "target_environment_values", []
+                    ),
                 }
                 current_hash = hashlib.md5(
                     json.dumps(relevant_settings, sort_keys=True).encode()
@@ -265,7 +300,7 @@ def sync_jira_scope_and_data(
                         "[JIRA] No new data but settings changed - will recalculate metrics"
                     )
                     # Store the new hash for next time
-                    backend.save_app_state(settings_hash_key, current_hash)
+                    backend.set_app_state(settings_hash_key, current_hash)
 
         # CRITICAL: Invalidate changelog cache when we fetch from JIRA
         # Changelog must stay in sync with issue cache
