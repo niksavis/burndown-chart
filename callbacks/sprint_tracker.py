@@ -293,6 +293,13 @@ def _render_sprint_tracker_content(
         flow_wip_statuses = app_settings.get("wip_statuses", [])
         flow_end_statuses = app_settings.get("flow_end_statuses", [])
 
+        # Get sprint state for selected sprint
+        selected_sprint_state = (
+            sprint_metadata.get(selected_sprint_id, {}).get("state")
+            if sprint_metadata
+            else None
+        )
+
         # Create visualizations
         progress_bars = create_sprint_progress_bars(
             sprint_data,
@@ -304,6 +311,7 @@ def _render_sprint_tracker_content(
             flow_wip_statuses=flow_wip_statuses,
             flow_end_statuses=flow_end_statuses,
             sprint_changes=selected_sprint_changes,  # Pass sprint changes for icons
+            sprint_state=selected_sprint_state,  # Pass sprint state
         )
 
         # Create combined sprint controls (selector + issue type filter)

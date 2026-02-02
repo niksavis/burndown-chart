@@ -139,6 +139,7 @@ def update_sprint_selection(selected_sprint: str, show_points_list: list):
         sprint_dates = get_sprint_dates(selected_sprint, tracked_issues, sprint_field)
         sprint_start_date = sprint_dates.get("start_date") if sprint_dates else None
         sprint_end_date = sprint_dates.get("end_date") if sprint_dates else None
+        sprint_state = sprint_dates.get("state") if sprint_dates else None
 
         # Load flow configuration for dynamic status colors
         from data.persistence import load_app_settings
@@ -158,6 +159,7 @@ def update_sprint_selection(selected_sprint: str, show_points_list: list):
             flow_start_statuses=flow_start_statuses,
             flow_wip_statuses=flow_wip_statuses,
             flow_end_statuses=flow_end_statuses,
+            sprint_state=sprint_state,
         )
 
         # Return only the data container content (not the controls)

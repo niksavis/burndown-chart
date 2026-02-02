@@ -236,6 +236,7 @@ def create_sprint_progress_bars(
     flow_wip_statuses: Optional[List[str]] = None,
     flow_end_statuses: Optional[List[str]] = None,
     sprint_changes: Optional[Dict] = None,
+    sprint_state: Optional[str] = None,
 ):
     """Create HTML progress bars showing time proportion spent in each status.
 
@@ -248,6 +249,14 @@ def create_sprint_progress_bars(
     Args:
         sprint_data: Sprint snapshot from sprint_manager.get_sprint_snapshots()
         changelog_entries: Status change history (REQUIRED for time calculation)
+        show_points: Whether to show story points
+        sprint_start_date: Sprint start date (ISO format)
+        sprint_end_date: Sprint end date (ISO format)
+        flow_start_statuses: List of start statuses
+        flow_wip_statuses: List of WIP statuses
+        flow_end_statuses: List of end statuses
+        sprint_changes: Dict with added/removed/moved_in/moved_out issue lists
+        sprint_state: Sprint state (ACTIVE/CLOSED/FUTURE)
         show_points: Whether to show story points in labels
         sprint_start_date: Sprint start date from JIRA (ISO string)
         sprint_end_date: Sprint end date from JIRA (ISO string)
@@ -564,7 +573,19 @@ def create_sprint_progress_bars(
     if sprint_start and sprint_end:
         elapsed_time = (now - sprint_start).total_seconds()
         time_progress_pct = min(100, (elapsed_time / sprint_duration_seconds) * 100)
-        remaining_days = (sprint_end - now).total_seconds() / 86400
+
+        # Determine time text based on sprint state
+        if sprint_state == "CLOSED":
+            # For closed sprints, show duration
+            sprint_duration_days = (sprint_end - sprint_start).total_seconds() / 86400
+            time_text = f"(Lasted {sprint_duration_days:.1f} days)"
+        elif sprint_state == "FUTURE":
+            # For future sprints, show not started
+            time_text = "(Not started yet)"
+        else:
+            # For active sprints (or unknown state), show days remaining
+            remaining_days = (sprint_end - now).total_seconds() / 86400
+            time_text = f"({remaining_days:.1f} days remaining)"
 
         sprint_progress_info = html.Div(
             [
@@ -580,7 +601,7 @@ def create_sprint_progress_bars(
                             },
                         ),
                         html.Span(
-                            f"({remaining_days:.1f} days remaining)",
+                            time_text,
                             style={
                                 "fontSize": "0.85rem",
                                 "color": "#6c757d",

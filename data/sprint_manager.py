@@ -116,8 +116,9 @@ def get_sprint_dates(
         sprint_field: Sprint custom field ID
 
     Returns:
-        Dict with {"start_date": str, "end_date": str} or None if sprint not found
+        Dict with {"start_date": str, "end_date": str, "state": str} or None if sprint not found
         Dates are ISO strings from JIRA sprint object
+        State is "ACTIVE", "CLOSED", or "FUTURE"
     """
     for issue in issues:
         custom_fields = issue.get("custom_fields", {})
@@ -138,14 +139,16 @@ def get_sprint_dates(
             if sprint_obj and sprint_obj["name"] == sprint_name:
                 start_date = sprint_obj.get("start_date")
                 end_date = sprint_obj.get("end_date")
+                state = sprint_obj.get("state")
 
                 if start_date and end_date:
                     logger.info(
-                        f"Found dates for {sprint_name}: {start_date} to {end_date}"
+                        f"Found dates for {sprint_name}: {start_date} to {end_date}, state: {state}"
                     )
                     return {
                         "start_date": start_date,
                         "end_date": end_date,
+                        "state": state,
                     }
 
     logger.warning(f"No dates found for sprint: {sprint_name}")
