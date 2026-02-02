@@ -11,27 +11,26 @@ logger = logging.getLogger(__name__)
 
 
 @callback(
-    Output("sprint-tracker-tab-content", "children", allow_duplicate=True),
+    [
+        Output("sprint-data-container", "children"),
+        Output("sprint-selector-dropdown", "value", allow_duplicate=True),
+    ],
     Input("sprint-selector-dropdown", "value"),
-    State("timeline-slider", "value"),
     State("points-toggle", "value"),
     prevent_initial_call=True,
 )
-def update_sprint_selection(
-    selected_sprint: str, data_points_count: int, show_points_list: list
-):
-    """Update Sprint Tracker tab when user selects a different sprint.
+def update_sprint_selection(selected_sprint: str, show_points_list: list):
+    """Update Sprint Tracker data when user selects a different sprint.
 
     Args:
         selected_sprint: Sprint name/ID selected from dropdown
-        data_points_count: Number of weeks from timeline slider (not used here)
         show_points_list: Story points toggle state
 
     Returns:
-        Updated Sprint Tracker content for the selected sprint
+        Tuple of (updated data container, dropdown value)
     """
     if not selected_sprint:
-        return no_update
+        return no_update, no_update
 
     logger.info(f"Sprint selection changed to: {selected_sprint}")
 
@@ -105,9 +104,7 @@ def update_sprint_selection(
         # Create UI components
         from ui.sprint_tracker import (
             create_sprint_summary_cards,
-            create_sprint_selector,
             create_sprint_change_indicators,
-            create_sprint_filters,
         )
         from visualization.sprint_charts import (
             create_sprint_progress_bars,
@@ -125,6 +122,16 @@ def update_sprint_selection(
         )
 
         change_indicators = create_sprint_change_indicators(
+            len(selected_sprint_changes.get("added", [])),
+            len(selected_sprint_changes.get("removed", [])),
+            len(selected_sprint_changes.get("moved_in", [])),
+            len(selected_sprint_changes.get("moved_out", [])),
+        )
+
+        # Create compact legend popover for sprint changes
+        from ui.sprint_tracker import create_sprint_changes_legend
+
+        changes_legend = create_sprint_changes_legend(
             len(selected_sprint_changes.get("added", [])),
             len(selected_sprint_changes.get("removed", [])),
             len(selected_sprint_changes.get("moved_in", [])),
@@ -163,65 +170,16 @@ def update_sprint_selection(
             flow_end_statuses=flow_end_statuses,
         )
 
-        # Create sprint selector (keep all sprints available)
-        sprint_ids = sorted(sprint_snapshots.keys(), reverse=True)
-        sprint_selector = (
-            create_sprint_selector(sprint_ids, selected_sprint)
-            if len(sprint_ids) > 1
-            else html.Div()
-        )
-
-        # Create filter controls
-        filter_controls = create_sprint_filters()
-
-        # Add explanation tooltips
-        explanation_note = dbc.Alert(
-            [
-                html.Strong("Sprint Changes Explained:", className="me-2"),
-                html.Br(),
-                html.Small(
-                    [
-                        html.Strong("Added: "),
-                        "Issues that were added to this sprint.",
-                        html.Br(),
-                        html.Strong("Moved In: "),
-                        "Issues transferred from another sprint to this sprint.",
-                        html.Br(),
-                        html.Strong("Moved Out: "),
-                        "Issues moved from this sprint to a different sprint (e.g., moved to a future sprint).",
-                        html.Br(),
-                        html.Strong("Removed: "),
-                        "Issues moved back to backlog (no sprint assigned).",
-                        html.Br(),
-                        html.Em(
-                            "Note: Only Story, Task, and Bug issue types are tracked (sub-tasks excluded)."
-                        ),
-                    ]
-                ),
-            ],
-            color="info",
-            className="mb-3 mt-3",
-        )
-
-        # Assemble layout
+        # Return only the data container content (not the controls)
         return html.Div(
             [
-                dbc.Container(
-                    [
-                        sprint_selector,
-                        summary_cards,
-                        change_indicators,
-                        explanation_note,
-                        filter_controls,
-                        # Progress bars (HTML component)
-                        html.H5("Issue Progress", className="mt-4 mb-3"),
-                        progress_bars,
-                    ],
-                    fluid=True,
-                    className="mt-4",
-                )
+                summary_cards,
+                change_indicators,
+                changes_legend,
+                html.H5("Issue Progress", className="mt-4 mb-3"),
+                progress_bars,
             ]
-        )
+        ), selected_sprint
 
     except Exception as e:
         import traceback
@@ -229,12 +187,15 @@ def update_sprint_selection(
         logger.error(f"Error updating sprint selection: {e}")
         logger.error(traceback.format_exc())
 
-        return dbc.Alert(
-            [
-                html.I(className="fas fa-exclamation-triangle me-2"),
-                html.Strong("Error: "),
-                f"Failed to load sprint data: {str(e)}",
-            ],
-            color="danger",
-            className="m-4",
+        return (
+            dbc.Alert(
+                [
+                    html.I(className="fas fa-exclamation-triangle me-2"),
+                    html.Strong("Error: "),
+                    f"Failed to load sprint data: {str(e)}",
+                ],
+                color="danger",
+                className="m-4",
+            ),
+            selected_sprint,
         )

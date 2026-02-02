@@ -11,29 +11,24 @@ logger = logging.getLogger(__name__)
 
 
 @callback(
-    Output("sprint-tracker-tab-content", "children", allow_duplicate=True),
+    Output("sprint-data-container", "children", allow_duplicate=True),
     Input("sprint-issue-type-filter", "value"),
     State("sprint-selector-dropdown", "value"),
-    State("timeline-slider", "value"),
     State("points-toggle", "value"),
     prevent_initial_call=True,
 )
 def filter_sprint_by_issue_type(
-    issue_type_filter: str,
-    selected_sprint: str,
-    data_points_count: int,
-    show_points_list: list,
+    issue_type_filter: str, selected_sprint: str, show_points_list: list
 ):
     """Filter Sprint Tracker by issue type.
 
     Args:
         issue_type_filter: Issue type selected ("all", "Story", "Task", "Bug")
         selected_sprint: Currently selected sprint name
-        data_points_count: Timeline slider value (not used)
         show_points_list: Story points toggle state
 
     Returns:
-        Updated Sprint Tracker content filtered by issue type
+        Updated sprint data container filtered by issue type
     """
     if not issue_type_filter:
         return no_update
@@ -52,9 +47,7 @@ def filter_sprint_by_issue_type(
         from data.persistence import load_app_settings
         from ui.sprint_tracker import (
             create_sprint_summary_cards,
-            create_sprint_selector,
             create_sprint_change_indicators,
-            create_sprint_filters,
             create_no_sprints_state,
         )
         from visualization.sprint_charts import (
@@ -185,6 +178,16 @@ def filter_sprint_by_issue_type(
             len(selected_sprint_changes.get("moved_out", [])),
         )
 
+        # Create compact legend popover for sprint changes
+        from ui.sprint_tracker import create_sprint_changes_legend
+
+        changes_legend = create_sprint_changes_legend(
+            len(selected_sprint_changes.get("added", [])),
+            len(selected_sprint_changes.get("removed", [])),
+            len(selected_sprint_changes.get("moved_in", [])),
+            len(selected_sprint_changes.get("moved_out", [])),
+        )
+
         # Load status changelog for timeline
         status_changelog = backend.get_changelog_entries(
             active_profile_id, active_query_id, field_name="status"
@@ -219,63 +222,14 @@ def filter_sprint_by_issue_type(
             flow_end_statuses=flow_end_statuses,
         )
 
-        # Create sprint selector
-        sprint_ids_list = sorted(sprint_snapshots.keys(), reverse=True)
-        sprint_selector = (
-            create_sprint_selector(sprint_ids_list, selected_sprint_id)
-            if len(sprint_ids_list) > 1
-            else html.Div()
-        )
-
-        # Filter controls
-        filter_controls = create_sprint_filters()
-
-        # Explanation note
-        explanation_note = dbc.Alert(
-            [
-                html.Strong("Sprint Changes Explained:", className="me-2"),
-                html.Br(),
-                html.Small(
-                    [
-                        html.Strong("Added: "),
-                        "Issues that were added to this sprint.",
-                        html.Br(),
-                        html.Strong("Moved In: "),
-                        "Issues transferred from another sprint to this sprint.",
-                        html.Br(),
-                        html.Strong("Moved Out: "),
-                        "Issues moved from this sprint to a different sprint (e.g., moved to a future sprint).",
-                        html.Br(),
-                        html.Strong("Removed: "),
-                        "Issues moved back to backlog (no sprint assigned).",
-                        html.Br(),
-                        html.Em(
-                            f"Note: Showing {issue_type_filter} issue type{'s' if issue_type_filter == 'all' else ''} only (sub-tasks excluded)."
-                        ),
-                    ]
-                ),
-            ],
-            color="info",
-            className="mb-3 mt-3",
-        )
-
-        # Assemble layout
+        # Return only data container content (not the controls)
         return html.Div(
             [
-                dbc.Container(
-                    [
-                        sprint_selector,
-                        summary_cards,
-                        change_indicators,
-                        explanation_note,
-                        filter_controls,
-                        # Issue Progress section with heading first, then progress bars
-                        html.H5("Issue Progress", className="mt-4 mb-3"),
-                        progress_bars,  # Contains: sprint progress indicator, legend, then bars
-                    ],
-                    fluid=True,
-                    className="p-4",
-                )
+                summary_cards,
+                change_indicators,
+                changes_legend,
+                html.H5("Issue Progress", className="mt-4 mb-3"),
+                progress_bars,
             ]
         )
 

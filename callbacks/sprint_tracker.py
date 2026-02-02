@@ -285,7 +285,7 @@ def _render_sprint_tracker_content(
         # Create filter controls
         filter_controls = create_sprint_filters()
 
-        # Create compact legend for sprint changes (replaces large explanation alert)
+        # Create compact legend popover for sprint changes info button
         from ui.sprint_tracker import create_sprint_changes_legend
 
         changes_legend = create_sprint_changes_legend(
@@ -295,23 +295,38 @@ def _render_sprint_tracker_content(
             len(selected_sprint_changes.get("moved_out", [])),
         )
 
-        # Assemble the complete layout
+        # Assemble the complete layout with separate containers
+        # Controls (sprint selector + filters) stay fixed
+        # Data container gets updated by dropdown callbacks
         return html.Div(
             [
                 dbc.Container(
                     [
-                        # Sprint selector
-                        sprint_selector,
-                        # Summary cards
-                        summary_cards,
-                        # Change indicators with compact legend
-                        change_indicators,
-                        changes_legend,
-                        # Filter controls
-                        filter_controls,
-                        # Progress bars (HTML component)
-                        html.H5("Issue Progress", className="mt-4 mb-3"),
-                        progress_bars,
+                        # Control container (not updated by callbacks)
+                        html.Div(
+                            [
+                                # Sprint selector
+                                sprint_selector,
+                                # Filter controls
+                                filter_controls,
+                            ],
+                            id="sprint-controls-container",
+                        ),
+                        # Data container (updated by dropdown callbacks)
+                        html.Div(
+                            [
+                                # Summary cards
+                                summary_cards,
+                                # Change indicators (with info button inside)
+                                change_indicators,
+                                # Popover legend (attached to info button)
+                                changes_legend,
+                                # Progress bars (HTML component)
+                                html.H5("Issue Progress", className="mt-4 mb-3"),
+                                progress_bars,
+                            ],
+                            id="sprint-data-container",
+                        ),
                     ],
                     fluid=True,
                     className="mt-4",

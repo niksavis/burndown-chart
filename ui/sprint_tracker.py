@@ -423,6 +423,11 @@ def create_sprint_change_indicators(
         [
             html.H6("Sprint Changes:", className="d-inline me-2"),
             html.Div(badges, className="d-inline"),
+            html.Button(
+                [html.I(className="fas fa-info-circle me-2"), "What do these mean?"],
+                id="sprint-changes-info-btn",
+                className="p-0 ms-3 text-decoration-none btn btn-link btn-sm",
+            ),
         ],
         className="mb-3 p-2 bg-light rounded",
     )
