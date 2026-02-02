@@ -448,7 +448,7 @@ def create_combined_sprint_controls(
 def create_sprint_change_indicators(
     added_count: int, removed_count: int, moved_in: int, moved_out: int
 ) -> html.Div:
-    """Create badge indicators for sprint composition changes.
+    """Create badge indicators for sprint composition changes with tooltips.
 
     Args:
         added_count: Number of issues added
@@ -457,29 +457,52 @@ def create_sprint_change_indicators(
         moved_out: Number of issues moved out to other sprints
 
     Returns:
-        Row of badge indicators
+        Row of badge indicators with tooltips
     """
     badges = []
 
     if added_count > 0:
         badges.append(
+            dbc.Tooltip(
+                "Issues that were added to this sprint after it started.",
+                target="badge-added",
+                placement="top",
+            )
+        )
+        badges.append(
             dbc.Badge(
                 [html.I(className="fas fa-plus me-1"), f"{added_count} Added"],
                 color="success",
                 className="me-2",
+                id="badge-added",
             )
         )
 
     if removed_count > 0:
         badges.append(
+            dbc.Tooltip(
+                "Issues removed from this sprint (moved back to backlog).",
+                target="badge-removed",
+                placement="top",
+            )
+        )
+        badges.append(
             dbc.Badge(
                 [html.I(className="fas fa-minus me-1"), f"{removed_count} Removed"],
                 color="danger",
                 className="me-2",
+                id="badge-removed",
             )
         )
 
     if moved_in > 0:
+        badges.append(
+            dbc.Tooltip(
+                "Issues transferred from another sprint to this sprint.",
+                target="badge-moved-in",
+                placement="top",
+            )
+        )
         badges.append(
             dbc.Badge(
                 [
@@ -488,10 +511,18 @@ def create_sprint_change_indicators(
                 ],
                 color="info",
                 className="me-2",
+                id="badge-moved-in",
             )
         )
 
     if moved_out > 0:
+        badges.append(
+            dbc.Tooltip(
+                "Issues moved from this sprint to a different sprint.",
+                target="badge-moved-out",
+                placement="top",
+            )
+        )
         badges.append(
             dbc.Badge(
                 [
@@ -500,6 +531,7 @@ def create_sprint_change_indicators(
                 ],
                 color="warning",
                 className="me-2",
+                id="badge-moved-out",
             )
         )
 
@@ -510,87 +542,6 @@ def create_sprint_change_indicators(
         [
             html.H6("Sprint Changes:", className="d-inline me-2"),
             html.Div(badges, className="d-inline"),
-            html.Button(
-                [html.I(className="fas fa-info-circle me-2"), "What do these mean?"],
-                id="sprint-changes-info-btn",
-                className="p-0 ms-3 text-decoration-none btn btn-link btn-sm",
-            ),
         ],
         className="mb-3 p-2 bg-light rounded",
-    )
-
-
-def create_sprint_changes_legend(
-    added_count: int, removed_count: int, moved_in: int, moved_out: int
-) -> html.Div:
-    """Create compact legend explaining sprint changes.
-
-    Args:
-        added_count: Number of issues added
-        removed_count: Number of issues removed
-        moved_in: Number of issues moved in from other sprints
-        moved_out: Number of issues moved out to other sprints
-
-    Returns:
-        Compact legend with info tooltip
-    """
-    # Don't show legend if no changes
-    if added_count == 0 and removed_count == 0 and moved_in == 0 and moved_out == 0:
-        return html.Div()
-
-    # Return only the popover (button is in create_sprint_change_indicators now)
-    return html.Div(
-        dbc.Popover(
-            [
-                dbc.PopoverHeader("Sprint Changes Explained"),
-                dbc.PopoverBody(
-                    [
-                        html.P(
-                            [
-                                html.I(className="fas fa-plus text-success me-2"),
-                                html.Strong("Added: "),
-                                "Issues that were added to this sprint after it started.",
-                            ],
-                            className="mb-2 small",
-                        ),
-                        html.P(
-                            [
-                                html.I(className="fas fa-minus text-danger me-2"),
-                                html.Strong("Removed: "),
-                                "Issues removed from this sprint (moved back to backlog).",
-                            ],
-                            className="mb-2 small",
-                        ),
-                        html.P(
-                            [
-                                html.I(className="fas fa-arrow-right text-info me-2"),
-                                html.Strong("Moved In: "),
-                                "Issues transferred from another sprint to this sprint.",
-                            ],
-                            className="mb-2 small",
-                        ),
-                        html.P(
-                            [
-                                html.I(className="fas fa-arrow-left text-warning me-2"),
-                                html.Strong("Moved Out: "),
-                                "Issues moved from this sprint to a different sprint.",
-                            ],
-                            className="mb-2 small",
-                        ),
-                        html.Hr(className="my-2"),
-                        html.P(
-                            [
-                                html.Em(
-                                    "Note: Only Story, Task, and Bug types are tracked (sub-tasks excluded)."
-                                ),
-                            ],
-                            className="mb-0 small text-muted",
-                        ),
-                    ]
-                ),
-            ],
-            target="sprint-changes-info-btn",
-            trigger="hover focus",
-            placement="right",
-        )
     )

@@ -128,16 +128,6 @@ def update_sprint_selection(selected_sprint: str, show_points_list: list):
             len(selected_sprint_changes.get("moved_out", [])),
         )
 
-        # Create compact legend popover for sprint changes
-        from ui.sprint_tracker import create_sprint_changes_legend
-
-        changes_legend = create_sprint_changes_legend(
-            len(selected_sprint_changes.get("added", [])),
-            len(selected_sprint_changes.get("removed", [])),
-            len(selected_sprint_changes.get("moved_in", [])),
-            len(selected_sprint_changes.get("moved_out", [])),
-        )
-
         # Load status changelog
         status_changelog = backend.get_changelog_entries(
             active_profile_id, active_query_id, field_name="status"
@@ -175,7 +165,6 @@ def update_sprint_selection(selected_sprint: str, show_points_list: list):
             [
                 summary_cards,
                 change_indicators,
-                changes_legend,
                 html.H5("Issue Progress", className="mt-4 mb-3"),
                 progress_bars,
             ]

@@ -315,16 +315,6 @@ def _render_sprint_tracker_content(
             else html.Div()
         )
 
-        # Create compact legend popover for sprint changes info button
-        from ui.sprint_tracker import create_sprint_changes_legend
-
-        changes_legend = create_sprint_changes_legend(
-            len(selected_sprint_changes.get("added", [])),
-            len(selected_sprint_changes.get("removed", [])),
-            len(selected_sprint_changes.get("moved_in", [])),
-            len(selected_sprint_changes.get("moved_out", [])),
-        )
-
         # Assemble the complete layout with separate containers
         # Controls (sprint selector + filters) stay fixed
         # Data container gets updated by dropdown callbacks
@@ -345,10 +335,8 @@ def _render_sprint_tracker_content(
                             [
                                 # Summary cards
                                 summary_cards,
-                                # Change indicators (with info button inside)
+                                # Change indicators (with tooltips on badges)
                                 change_indicators,
-                                # Popover legend (attached to info button)
-                                changes_legend,
                                 # Progress bars (HTML component)
                                 html.H5("Issue Progress", className="mt-4 mb-3"),
                                 progress_bars,
