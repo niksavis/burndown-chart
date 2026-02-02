@@ -218,8 +218,9 @@ def _render_sprint_tracker_content(
         # Extract sprint metadata (states) from issues for all sprints
         sprint_metadata = {}
         for issue in tracked_issues:
-            issue_fields = issue.get("fields", {})
-            sprint_field_value = issue_fields.get(sprint_field)
+            # Sprint field is in custom_fields, not fields
+            custom_fields = issue.get("custom_fields", {})
+            sprint_field_value = custom_fields.get(sprint_field)
 
             if not sprint_field_value:
                 continue
