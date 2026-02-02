@@ -61,50 +61,14 @@ from visualization.charts import (
     create_chart_with_loading,
     apply_mobile_optimization,
 )
+from callbacks.visualization_helpers import create_forecast_pill
 
 # Setup logging
 logger = logging.getLogger("burndown_chart")
 
 #######################################################################
-# HELPER FUNCTIONS
+# CALLBACKS
 #######################################################################
-
-
-def create_forecast_pill(forecast_type, value, color):
-    """
-    Create a forecast pill component with consistent styling.
-
-    Args:
-        forecast_type (str): Type of forecast (e.g., 'Most likely', 'Optimistic', 'Pessimistic')
-        value (float): Forecast value
-        color (str): Color hex code for styling the pill
-
-    Returns:
-        html.Div: Forecast pill component
-    """
-    return html.Div(
-        [
-            html.I(
-                className="fas fa-chart-line me-1",
-                style={"color": color},
-            ),
-            html.Small(
-                [
-                    f"{forecast_type}: ",
-                    html.Strong(
-                        f"{value:.2f}",
-                        style={"color": color},
-                    ),
-                ],
-            ),
-        ],
-        className="forecast-pill",
-        style={
-            "borderLeft": f"3px solid {color}",
-            "paddingLeft": "0.5rem",
-            "marginRight": "0.75rem",
-        },
-    )
 
 
 #######################################################################
