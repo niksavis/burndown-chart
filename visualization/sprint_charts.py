@@ -1064,13 +1064,16 @@ def create_sprint_summary_card(
     """
     return {
         "total_issues": progress_data.get("total_issues", 0),
-        "completed_issues": progress_data.get("completed_issues", 0),
-        "wip_issues": progress_data.get("wip_issues", 0),
+        "completed": progress_data.get("completed_issues", 0),
+        "in_progress": progress_data.get("wip_issues", 0),
+        "completion_pct": progress_data.get("completion_pct", 0),
         "total_points": progress_data.get("total_points", 0) if show_points else None,
         "completed_points": progress_data.get("completed_points", 0)
         if show_points
         else None,
-        "completion_pct": progress_data.get("completion_pct", 0),
+        "points_completion_pct": progress_data.get("points_completion_pct", 0)
+        if show_points
+        else None,
     }
 
 

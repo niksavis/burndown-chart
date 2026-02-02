@@ -207,7 +207,9 @@ def _render_sprint_tracker_content(
         flow_end_statuses = flow_mappings.get("flow_end_statuses", ["Done", "Closed"])
         flow_wip_statuses = flow_mappings.get("flow_wip_statuses", ["In Progress"])
 
-        progress_data = calculate_sprint_progress(sprint_data, flow_end_statuses)
+        progress_data = calculate_sprint_progress(
+            sprint_data, flow_end_statuses, flow_wip_statuses
+        )
 
         # Detect sprint changes
         sprint_changes = detect_sprint_changes(changelog_entries)
@@ -282,33 +284,14 @@ def _render_sprint_tracker_content(
         # Create filter controls
         filter_controls = create_sprint_filters()
 
-        # Add explanation for sprint changes
-        explanation_note = dbc.Alert(
-            [
-                html.Strong("Sprint Changes Explained:", className="me-2"),
-                html.Br(),
-                html.Small(
-                    [
-                        html.Strong("Added: "),
-                        "Issues that were added to this sprint.",
-                        html.Br(),
-                        html.Strong("Moved In: "),
-                        "Issues transferred from another sprint to this sprint.",
-                        html.Br(),
-                        html.Strong("Moved Out: "),
-                        "Issues moved from this sprint to a different sprint (e.g., moved to a future sprint).",
-                        html.Br(),
-                        html.Strong("Removed: "),
-                        "Issues moved back to backlog (no sprint assigned).",
-                        html.Br(),
-                        html.Em(
-                            "Note: Only Story, Task, and Bug issue types are tracked (sub-tasks excluded)."
-                        ),
-                    ]
-                ),
-            ],
-            color="info",
-            className="mb-3 mt-3",
+        # Create compact legend for sprint changes (replaces large explanation alert)
+        from ui.sprint_tracker import create_sprint_changes_legend
+
+        changes_legend = create_sprint_changes_legend(
+            len(selected_sprint_changes.get("added", [])),
+            len(selected_sprint_changes.get("removed", [])),
+            len(selected_sprint_changes.get("moved_in", [])),
+            len(selected_sprint_changes.get("moved_out", [])),
         )
 
         # Assemble the complete layout
@@ -320,10 +303,9 @@ def _render_sprint_tracker_content(
                         sprint_selector,
                         # Summary cards
                         summary_cards,
-                        # Change indicators
+                        # Change indicators with compact legend
                         change_indicators,
-                        # Explanation note
-                        explanation_note,
+                        changes_legend,
                         # Filter controls
                         filter_controls,
                         # Progress bars (HTML component)

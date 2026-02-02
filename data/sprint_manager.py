@@ -488,6 +488,7 @@ def detect_sprint_changes(
 def calculate_sprint_progress(
     sprint_snapshot: Dict,
     flow_end_statuses: Optional[List[str]] = None,
+    flow_wip_statuses: Optional[List[str]] = None,
 ) -> Dict:
     """Calculate sprint progress metrics.
 
@@ -497,15 +498,20 @@ def calculate_sprint_progress(
     Args:
         sprint_snapshot: Sprint snapshot from get_sprint_snapshots()
         flow_end_statuses: List of statuses considered "done" (default: ["Done", "Closed"])
+        flow_wip_statuses: List of statuses considered "in progress" (default: ["In Progress"])
 
     Returns:
         Progress metrics:
         {
             "total_issues": 10,
             "completed_issues": 7,
+            "wip_issues": 2,
+            "completion_pct": 70.0,
             "completion_percentage": 70.0,
             "total_points": 50.0,
             "completed_points": 35.0,
+            "wip_points": 10.0,
+            "points_completion_pct": 70.0,
             "points_completion_percentage": 70.0,
             "by_status": {
                 "Done": {"count": 7, "points": 35.0},
@@ -521,13 +527,17 @@ def calculate_sprint_progress(
     """
     if flow_end_statuses is None:
         flow_end_statuses = ["Done", "Closed", "Resolved"]
+    if flow_wip_statuses is None:
+        flow_wip_statuses = ["In Progress", "In Review", "Testing"]
 
     issue_states = sprint_snapshot.get("issue_states", {})
 
     total_issues = len(issue_states)
     completed_issues = 0
+    wip_issues = 0
     total_points = 0.0
     completed_points = 0.0
+    wip_points = 0.0
 
     by_status = defaultdict(lambda: {"count": 0, "points": 0.0})
     by_issue_type = defaultdict(lambda: {"count": 0, "points": 0.0})
@@ -541,6 +551,10 @@ def calculate_sprint_progress(
         if status in flow_end_statuses:
             completed_issues += 1
             completed_points += story_points
+        # Count WIP (in progress) - statuses between start and end
+        elif status in flow_wip_statuses:
+            wip_issues += 1
+            wip_points += story_points
 
         # Aggregate totals
         total_points += story_points
@@ -564,9 +578,13 @@ def calculate_sprint_progress(
     return {
         "total_issues": total_issues,
         "completed_issues": completed_issues,
+        "wip_issues": wip_issues,
+        "completion_pct": round(completion_percentage, 1),
         "completion_percentage": round(completion_percentage, 1),
         "total_points": total_points,
         "completed_points": completed_points,
+        "wip_points": wip_points,
+        "points_completion_pct": round(points_completion_percentage, 1),
         "points_completion_percentage": round(points_completion_percentage, 1),
         "by_status": dict(by_status),
         "by_issue_type": dict(by_issue_type),

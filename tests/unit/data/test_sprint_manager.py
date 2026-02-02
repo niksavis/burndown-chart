@@ -306,18 +306,24 @@ class TestCalculateSprintProgress:
         }
 
         progress = calculate_sprint_progress(
-            sprint_snapshot, flow_end_statuses=["Done", "Closed"]
+            sprint_snapshot,
+            flow_end_statuses=["Done", "Closed"],
+            flow_wip_statuses=["In Progress", "In Review"],
         )
 
         # Verify totals
         assert progress["total_issues"] == 3
         assert progress["completed_issues"] == 1
+        assert progress["wip_issues"] == 1
         assert progress["completion_percentage"] == 33.3
+        assert progress["completion_pct"] == 33.3
 
         # Verify points
         assert progress["total_points"] == 10.0
         assert progress["completed_points"] == 5.0
+        assert progress["wip_points"] == 3.0
         assert progress["points_completion_percentage"] == 50.0
+        assert progress["points_completion_pct"] == 50.0
 
         # Verify by_status breakdown
         assert progress["by_status"]["Done"]["count"] == 1
@@ -343,8 +349,11 @@ class TestCalculateSprintProgress:
 
         assert progress["total_issues"] == 2
         assert progress["completed_issues"] == 2
+        assert progress["wip_issues"] == 0
         assert progress["completion_percentage"] == 100.0
+        assert progress["completion_pct"] == 100.0
         assert progress["points_completion_percentage"] == 100.0
+        assert progress["points_completion_pct"] == 100.0
 
     def test_calculate_sprint_progress_empty_sprint(self):
         """Test with empty sprint."""
@@ -354,7 +363,9 @@ class TestCalculateSprintProgress:
 
         assert progress["total_issues"] == 0
         assert progress["completed_issues"] == 0
+        assert progress["wip_issues"] == 0
         assert progress["completion_percentage"] == 0.0
+        assert progress["completion_pct"] == 0.0
         assert progress["total_points"] == 0.0
 
 
