@@ -13,10 +13,18 @@ from callbacks.visualization_helpers.trend_data import prepare_trend_data
 from callbacks.visualization_helpers.ui_builders import (
     create_trend_header_with_forecasts,
 )
+from callbacks.visualization_helpers.tab_content import (
+    create_burndown_tab_content,
+    create_items_tab_content,
+    create_points_tab_content,
+)
 
 __all__ = [
     "create_forecast_pill",
     "check_has_points_in_period",
     "prepare_trend_data",
     "create_trend_header_with_forecasts",
+    "create_burndown_tab_content",
+    "create_items_tab_content",
+    "create_points_tab_content",
 ]
