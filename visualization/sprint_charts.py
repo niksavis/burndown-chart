@@ -662,12 +662,16 @@ def create_sprint_progress_bars(
             removed_count = scope_changes.get("removed", 0)
             net_change = scope_changes.get("net_change", 0)
 
+            # Calculate initial issue count (issues present at sprint start)
+            total_issues = len(sprint_data.get("issue_states", {}))
+            initial_issues = total_issues - net_change
+
             # Added badge
             if added_count > 0:
                 badges.extend(
                     [
                         dbc.Tooltip(
-                            "Issues added to this sprint after it started",
+                            f"Issues added to this sprint after it started ({added_count} issues)",
                             target="badge-added-inline",
                             placement="top",
                         ),
@@ -688,7 +692,7 @@ def create_sprint_progress_bars(
                 badges.extend(
                     [
                         dbc.Tooltip(
-                            "Issues removed from this sprint after it started",
+                            f"Issues removed from this sprint after it started ({removed_count} issues)",
                             target="badge-removed-inline",
                             placement="top",
                         ),
@@ -713,7 +717,7 @@ def create_sprint_progress_bars(
                 badges.extend(
                     [
                         dbc.Tooltip(
-                            "Overall change in sprint scope (Added - Removed)",
+                            f"Net scope change after sprint start: {net_sign}{net_change} issues (Added - Removed). Note: Initial issues present at sprint start are not included in this count.",
                             target="badge-net-change-inline",
                             placement="top",
                         ),
@@ -725,6 +729,27 @@ def create_sprint_progress_bars(
                             color=net_color,
                             className="me-2",
                             id="badge-net-change-inline",
+                        ),
+                    ]
+                )
+
+            # Initial issues badge (if any issues were present at sprint start)
+            if initial_issues > 0:
+                badges.extend(
+                    [
+                        dbc.Tooltip(
+                            f"{initial_issues} issues were already in the sprint when it started. Total issues = {initial_issues} initial + {net_change} net change = {total_issues}",
+                            target="badge-initial-inline",
+                            placement="top",
+                        ),
+                        dbc.Badge(
+                            [
+                                html.I(className="fas fa-list me-1"),
+                                f"{initial_issues} Initial",
+                            ],
+                            color="secondary",
+                            className="me-2",
+                            id="badge-initial-inline",
                         ),
                     ]
                 )
