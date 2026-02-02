@@ -314,11 +314,11 @@ def create_sprint_selector(
         if sprint_metadata and sprint in sprint_metadata:
             state = sprint_metadata[sprint].get("state", "")
             if state == "ACTIVE":
-                label = f"{sprint} (Open)"
+                label = f"{sprint} [Active]"
             elif state == "CLOSED":
-                label = f"{sprint} (Closed)"
+                label = f"{sprint} [Closed]"
             elif state == "FUTURE":
-                label = f"{sprint} (Future)"
+                label = f"{sprint} [Future]"
         options.append({"label": label, "value": sprint})
 
     return html.Div(
@@ -390,11 +390,11 @@ def create_combined_sprint_controls(
         if sprint_metadata and sprint in sprint_metadata:
             state = sprint_metadata[sprint].get("state", "")
             if state == "ACTIVE":
-                label = f"{sprint} (Open)"
+                label = f"{sprint} [Active]"
             elif state == "CLOSED":
-                label = f"{sprint} (Closed)"
+                label = f"{sprint} [Closed]"
             elif state == "FUTURE":
-                label = f"{sprint} (Future)"
+                label = f"{sprint} [Future]"
         sprint_options.append({"label": label, "value": sprint})
 
     return html.Div(
