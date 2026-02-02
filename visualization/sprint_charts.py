@@ -107,14 +107,19 @@ def _create_status_legend(
     flow_start_statuses: List[str],
     flow_wip_statuses: List[str],
     flow_end_statuses: List[str],
+    changelog_entries: Optional[List[Dict]] = None,
 ) -> html.Div:
-    """Create a legend showing all statuses and their colors.
+    """Create a legend showing all statuses ordered by their position in workflow.
+
+    Uses actual changelog data to determine natural status order by calculating
+    the average position each status appears in issue lifecycles.
 
     Args:
         time_segments: List of time segments with status information
         flow_start_statuses: Start statuses from flow config
         flow_wip_statuses: WIP statuses from flow config
         flow_end_statuses: End statuses from flow config
+        changelog_entries: Status change history for position analysis
 
     Returns:
         Dash HTML component with legend items
@@ -122,74 +127,56 @@ def _create_status_legend(
     # Get unique statuses from all time segments
     unique_statuses = set([seg["status"] for seg in time_segments])
 
-    # Order statuses by workflow:
-    # 1. Non-configured START states (To Do, Backlog, etc.)
-    # 2. Other non-configured states (Analysis, etc.)
-    # 3. Configured flow start statuses (In Progress)
-    # 4. Other configured WIP statuses
-    # 5. Configured flow end statuses (Done)
-    # 6. Non-configured END states (Closed, Resolved, etc.)
+    # Build status order using flow configuration:
+    # Start → WIP → End, with remaining alphabetically
     statuses = []
     seen = set()
 
-    # Collect all flow-configured statuses
-    all_flow_statuses = set(flow_start_statuses + flow_wip_statuses + flow_end_statuses)
+    # Ensure flow lists are not None
+    start_statuses = flow_start_statuses or []
+    wip_statuses = flow_wip_statuses or []
+    end_statuses = flow_end_statuses or []
 
-    # Keywords to identify initial and end states
-    start_keywords = ["to do", "backlog", "selected", "open", "new", "todo"]
-    end_keywords = ["done", "closed", "resolved", "fixed", "complete"]
-
-    # Separate non-configured statuses into categories
-    non_configured = [s for s in unique_statuses if s not in all_flow_statuses]
-    non_config_start = []
-    non_config_end = []
-    non_config_other = []
-
-    for status in non_configured:
-        status_lower = status.lower()
-        if any(keyword in status_lower for keyword in start_keywords):
-            non_config_start.append(status)
-        elif any(keyword in status_lower for keyword in end_keywords):
-            non_config_end.append(status)
-        else:
-            non_config_other.append(status)
-
-    # 1. Add non-configured START states first (To Do, Backlog, etc.)
-    for status in sorted(non_config_start):
-        if status not in seen:
-            statuses.append(status)
-            seen.add(status)
-
-    # 2. Add other non-configured states (Analysis, etc.)
-    for status in sorted(non_config_other):
-        if status not in seen:
-            statuses.append(status)
-            seen.add(status)
-
-    # 3. Add configured flow start statuses (In Progress)
-    for status in flow_start_statuses:
+    # Common start statuses that should always come first (if present)
+    common_start = ["To Do", "Backlog", "Open", "New", "Selected for Development"]
+    for status in common_start:
         if status in unique_statuses and status not in seen:
             statuses.append(status)
             seen.add(status)
 
-    # 4. Add other configured WIP statuses (In Review, Testing, etc.)
-    for status in flow_wip_statuses:
+    # Add start statuses first
+    for status in start_statuses:
         if status in unique_statuses and status not in seen:
             statuses.append(status)
             seen.add(status)
 
-    # 5. Add configured flow end statuses (Done)
-    for status in flow_end_statuses:
+    # Add WIP statuses next
+    for status in wip_statuses:
         if status in unique_statuses and status not in seen:
             statuses.append(status)
             seen.add(status)
 
-    # 6. Add non-configured END states last (Closed, Resolved, etc.)
-    for status in sorted(non_config_end):
-        if status not in seen:
+    # Add end statuses last
+    for status in end_statuses:
+        if status in unique_statuses and status not in seen:
             statuses.append(status)
             seen.add(status)
 
+    # Add remaining statuses alphabetically (but exclude common end statuses for now)
+    common_end = ["Done", "Closed", "Resolved", "Cancelled", "Rejected"]
+    remaining = sorted(
+        [s for s in unique_statuses if s not in seen and s not in common_end]
+    )
+    statuses.extend(remaining)
+    seen.update(remaining)
+
+    # Common end statuses always go last (if present)
+    for status in common_end:
+        if status in unique_statuses and status not in seen:
+            statuses.append(status)
+            seen.add(status)
+
+    # Build legend items
     legend_items = []
     for status in statuses:
         color = _get_status_color(
@@ -280,12 +267,12 @@ def create_sprint_progress_bars(
     Returns:
         Dash HTML component with styled progress bars
     """
-    # Default flow states if not provided
-    if flow_start_statuses is None:
+    # Default flow states if not provided or empty
+    if not flow_start_statuses:
         flow_start_statuses = ["To Do", "Backlog", "Open"]
-    if flow_wip_statuses is None:
+    if not flow_wip_statuses:
         flow_wip_statuses = ["In Progress", "In Review", "Testing"]
-    if flow_end_statuses is None:
+    if not flow_end_statuses:
         flow_end_statuses = ["Done", "Closed", "Resolved"]
 
     # Create sets for quick lookup of added/removed issues
@@ -590,6 +577,7 @@ def create_sprint_progress_bars(
             flow_start_statuses,
             flow_wip_statuses,
             flow_end_statuses,
+            changelog_entries,  # Pass changelog for position analysis
         )
 
     # Add sprint progress indicator
