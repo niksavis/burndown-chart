@@ -545,10 +545,16 @@ def calculate_sprint_progress(
     by_status = defaultdict(lambda: {"count": 0, "points": 0.0})
     by_issue_type = defaultdict(lambda: {"count": 0, "points": 0.0})
 
+    # Debug: Track which statuses are present but not counted as WIP
+    all_statuses_in_sprint = set()
+    wip_status_set = set(flow_wip_statuses)
+
     for issue_key, state in issue_states.items():
         status = state.get("status", "Unknown")
         story_points = state.get("story_points", 0) or 0
         issue_type = state.get("issue_type", "Unknown")
+
+        all_statuses_in_sprint.add(status)
 
         # Count completion
         if status in flow_end_statuses:
@@ -569,6 +575,16 @@ def calculate_sprint_progress(
         # Breakdown by issue type
         by_issue_type[issue_type]["count"] += 1
         by_issue_type[issue_type]["points"] += story_points
+
+    # Debug logging: Show statuses that exist but aren't in WIP config
+    uncounted_wip_statuses = (
+        all_statuses_in_sprint - wip_status_set - set(flow_end_statuses)
+    )
+    if uncounted_wip_statuses:
+        logger.warning(
+            f"Sprint has statuses not in WIP or End config: {uncounted_wip_statuses}. "
+            f"WIP config: {flow_wip_statuses}, End config: {flow_end_statuses}"
+        )
 
     # Calculate percentages
     completion_percentage = (
