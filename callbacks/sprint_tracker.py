@@ -157,7 +157,7 @@ def _render_sprint_tracker_content(
         logger.info(f"Loaded {len(changelog_entries)} sprint changelog entries")
 
         # Build sprint snapshots from changelog
-        from data.sprint_manager import get_sprint_snapshots, detect_sprint_changes
+        from data.sprint_manager import get_sprint_snapshots
 
         sprint_snapshots = get_sprint_snapshots(
             tracked_issues, changelog_entries, sprint_field
@@ -208,14 +208,6 @@ def _render_sprint_tracker_content(
         flow_end_statuses = settings.get("flow_end_statuses", ["Done", "Closed"])
         flow_wip_statuses = settings.get("wip_statuses", ["In Progress"])
 
-        progress_data = calculate_sprint_progress(
-            sprint_data, flow_end_statuses, flow_wip_statuses
-        )
-
-        # Detect sprint changes
-        sprint_changes = detect_sprint_changes(changelog_entries)
-        selected_sprint_changes = sprint_changes.get(selected_sprint_id, {})
-
         # Extract sprint metadata (states) from issues for all sprints
         sprint_metadata = {}
         for issue in tracked_issues:
@@ -249,6 +241,18 @@ def _render_sprint_tracker_content(
                         "end_date": sprint_obj.get("end_date"),
                     }
 
+        progress_data = calculate_sprint_progress(
+            sprint_data, flow_end_statuses, flow_wip_statuses
+        )
+
+        # Calculate sprint scope changes
+        from data.sprint_manager import calculate_sprint_scope_changes
+
+        sprint_start_date = sprint_metadata.get(selected_sprint_id, {}).get(
+            "start_date"
+        )
+        scope_changes = calculate_sprint_scope_changes(sprint_data, sprint_start_date)
+
         # Create UI components
         from ui.sprint_tracker import (
             create_sprint_summary_cards,
@@ -272,10 +276,9 @@ def _render_sprint_tracker_content(
 
         # Create change indicators
         change_indicators = create_sprint_change_indicators(
-            len(selected_sprint_changes.get("added", [])),
-            len(selected_sprint_changes.get("removed", [])),
-            len(selected_sprint_changes.get("moved_in", [])),
-            len(selected_sprint_changes.get("moved_out", [])),
+            scope_changes.get("added", 0),
+            scope_changes.get("removed", 0),
+            scope_changes.get("net_change", 0),
         )
 
         # Load status changelog for time-in-status calculation
@@ -312,7 +315,6 @@ def _render_sprint_tracker_content(
             flow_start_statuses=flow_start_statuses,
             flow_wip_statuses=flow_wip_statuses,
             flow_end_statuses=flow_end_statuses,
-            sprint_changes=selected_sprint_changes,  # Pass sprint changes for icons
             sprint_state=selected_sprint_state,  # Pass sprint state
         )
 
@@ -345,11 +347,11 @@ def _render_sprint_tracker_content(
                             [
                                 # Summary cards
                                 summary_cards,
-                                # Change indicators (with tooltips on badges)
-                                change_indicators,
                                 # Progress bars (HTML component)
                                 html.H5("Issue Progress", className="mt-4 mb-3"),
                                 progress_bars,
+                                # Scope change indicators (below progress)
+                                change_indicators,
                             ],
                             id="sprint-data-container",
                         ),

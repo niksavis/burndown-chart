@@ -489,25 +489,25 @@ def create_combined_sprint_controls(
 
 
 def create_sprint_change_indicators(
-    added_count: int, removed_count: int, moved_in: int, moved_out: int
+    added_count: int, removed_count: int, net_change: int
 ) -> html.Div:
-    """Create badge indicators for sprint composition changes with tooltips.
+    """Create badge indicators for sprint scope changes with tooltips.
 
     Args:
-        added_count: Number of issues added
-        removed_count: Number of issues removed
-        moved_in: Number of issues moved in from other sprints
-        moved_out: Number of issues moved out to other sprints
+        added_count: Number of issues added after sprint start
+        removed_count: Number of issues removed after sprint start
+        net_change: Net scope change (added - removed)
 
     Returns:
         Row of badge indicators with tooltips
     """
     badges = []
 
+    # Added badge
     if added_count > 0:
         badges.append(
             dbc.Tooltip(
-                "Issues that were added to this sprint after it started.",
+                "Issues added to this sprint after it started",
                 target="badge-added",
                 placement="top",
             )
@@ -521,10 +521,11 @@ def create_sprint_change_indicators(
             )
         )
 
+    # Removed badge
     if removed_count > 0:
         badges.append(
             dbc.Tooltip(
-                "Issues removed from this sprint (moved back to backlog).",
+                "Issues removed from this sprint after it started",
                 target="badge-removed",
                 placement="top",
             )
@@ -538,43 +539,28 @@ def create_sprint_change_indicators(
             )
         )
 
-    if moved_in > 0:
-        badges.append(
-            dbc.Tooltip(
-                "Issues transferred from another sprint to this sprint.",
-                target="badge-moved-in",
-                placement="top",
-            )
-        )
-        badges.append(
-            dbc.Badge(
-                [
-                    html.I(className="fas fa-arrow-right me-1"),
-                    f"{moved_in} Moved In",
-                ],
-                color="info",
-                className="me-2",
-                id="badge-moved-in",
-            )
-        )
+    # Net change badge
+    if net_change != 0:
+        net_icon = "fa-arrow-up" if net_change > 0 else "fa-arrow-down"
+        net_color = "info" if net_change > 0 else "warning"
+        net_sign = "+" if net_change > 0 else ""
 
-    if moved_out > 0:
         badges.append(
             dbc.Tooltip(
-                "Issues moved from this sprint to a different sprint.",
-                target="badge-moved-out",
+                "Overall change in sprint scope (Added - Removed)",
+                target="badge-net-change",
                 placement="top",
             )
         )
         badges.append(
             dbc.Badge(
                 [
-                    html.I(className="fas fa-arrow-left me-1"),
-                    f"{moved_out} Moved Out",
+                    html.I(className=f"fas {net_icon} me-1"),
+                    f"{net_sign}{net_change} Net Change",
                 ],
-                color="warning",
+                color=net_color,
                 className="me-2",
-                id="badge-moved-out",
+                id="badge-net-change",
             )
         )
 
@@ -583,7 +569,7 @@ def create_sprint_change_indicators(
 
     return html.Div(
         [
-            html.H6("Sprint Changes:", className="d-inline me-2"),
+            html.H6("Sprint Scope Changes:", className="d-inline me-2"),
             html.Div(badges, className="d-inline"),
         ],
         className="mb-3 p-2 bg-light rounded",

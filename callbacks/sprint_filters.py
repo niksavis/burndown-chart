@@ -40,8 +40,8 @@ def filter_sprint_by_issue_type(
         from data.sprint_manager import (
             filter_sprint_issues,
             get_sprint_snapshots,
-            detect_sprint_changes,
             calculate_sprint_progress,
+            calculate_sprint_scope_changes,
             get_active_sprint_from_issues,
         )
         from data.persistence import load_app_settings
@@ -155,9 +155,8 @@ def filter_sprint_by_issue_type(
             sprint_data, flow_end_statuses, flow_wip_statuses
         )
 
-        # Detect sprint changes
-        sprint_changes = detect_sprint_changes(sprint_changelog)
-        selected_sprint_changes = sprint_changes.get(selected_sprint_id, {})
+        # Calculate sprint scope changes
+        scope_changes = calculate_sprint_scope_changes(sprint_data, None)
 
         # Determine if story points should be shown
         show_points = "points" in (show_points_list or [])
@@ -173,10 +172,9 @@ def filter_sprint_by_issue_type(
         )
 
         change_indicators = create_sprint_change_indicators(
-            len(selected_sprint_changes.get("added", [])),
-            len(selected_sprint_changes.get("removed", [])),
-            len(selected_sprint_changes.get("moved_in", [])),
-            len(selected_sprint_changes.get("moved_out", [])),
+            scope_changes.get("added", 0),
+            scope_changes.get("removed", 0),
+            scope_changes.get("net_change", 0),
         )
 
         # Load status changelog for timeline
@@ -219,9 +217,9 @@ def filter_sprint_by_issue_type(
         return html.Div(
             [
                 summary_cards,
-                change_indicators,
                 html.H5("Issue Progress", className="mt-4 mb-3"),
                 progress_bars,
+                change_indicators,
             ]
         )
 

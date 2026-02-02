@@ -93,7 +93,10 @@ def update_sprint_selection(selected_sprint: str, show_points_list: list):
         sprint_data = sprint_snapshots[selected_sprint]
 
         # Calculate progress
-        from data.sprint_manager import calculate_sprint_progress, detect_sprint_changes
+        from data.sprint_manager import (
+            calculate_sprint_progress,
+            calculate_sprint_scope_changes,
+        )
 
         flow_end_statuses = settings.get("flow_end_statuses", ["Done", "Closed"])
         flow_wip_statuses = settings.get("wip_statuses", ["In Progress"])
@@ -101,8 +104,9 @@ def update_sprint_selection(selected_sprint: str, show_points_list: list):
         progress_data = calculate_sprint_progress(
             sprint_data, flow_end_statuses, flow_wip_statuses
         )
-        sprint_changes = detect_sprint_changes(changelog_entries)
-        selected_sprint_changes = sprint_changes.get(selected_sprint, {})
+
+        # Calculate sprint scope changes
+        scope_changes = calculate_sprint_scope_changes(sprint_data, None)
 
         # Create UI components
         from ui.sprint_tracker import (
@@ -125,10 +129,9 @@ def update_sprint_selection(selected_sprint: str, show_points_list: list):
         )
 
         change_indicators = create_sprint_change_indicators(
-            len(selected_sprint_changes.get("added", [])),
-            len(selected_sprint_changes.get("removed", [])),
-            len(selected_sprint_changes.get("moved_in", [])),
-            len(selected_sprint_changes.get("moved_out", [])),
+            scope_changes.get("added", 0),
+            scope_changes.get("removed", 0),
+            scope_changes.get("net_change", 0),
         )
 
         # Load status changelog
@@ -169,9 +172,9 @@ def update_sprint_selection(selected_sprint: str, show_points_list: list):
         return html.Div(
             [
                 summary_cards,
-                change_indicators,
                 html.H5("Issue Progress", className="mt-4 mb-3"),
                 progress_bars,
+                change_indicators,
             ]
         ), selected_sprint
 

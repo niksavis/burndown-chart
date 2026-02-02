@@ -526,6 +526,59 @@ def detect_sprint_changes(
     return dict(sprint_changes)
 
 
+def calculate_sprint_scope_changes(
+    sprint_snapshot: Dict, sprint_start_date: Optional[str] = None
+) -> Dict[str, int]:
+    """Calculate sprint scope changes using snapshot data.
+
+    Compares issues added/removed from sprint changelog to determine scope changes.
+    More reliable than changelog-based detection as it uses actual snapshot data.
+
+    Args:
+        sprint_snapshot: Sprint snapshot from get_sprint_snapshots()
+        sprint_start_date: Sprint start date (ISO format) - if provided, only counts
+                          changes after this date
+
+    Returns:
+        Dict with scope change metrics:
+        {
+            "added": 3,      # Issues added after sprint started
+            "removed": 2,    # Issues removed after sprint started
+            "net_change": 1  # Net change (added - removed)
+        }
+    """
+    added_issues = sprint_snapshot.get("added_issues", [])
+    removed_issues = sprint_snapshot.get("removed_issues", [])
+
+    # If sprint start date provided, filter to only changes after start
+    if sprint_start_date:
+        from dateutil import parser as date_parser
+
+        try:
+            start_dt = date_parser.parse(sprint_start_date)
+            added_issues = [
+                item
+                for item in added_issues
+                if date_parser.parse(item.get("timestamp", "")) > start_dt
+            ]
+            removed_issues = [
+                item
+                for item in removed_issues
+                if date_parser.parse(item.get("timestamp", "")) > start_dt
+            ]
+        except Exception as e:
+            logger.warning(f"Failed to parse sprint start date: {e}")
+
+    added_count = len(added_issues)
+    removed_count = len(removed_issues)
+
+    return {
+        "added": added_count,
+        "removed": removed_count,
+        "net_change": added_count - removed_count,
+    }
+
+
 def calculate_sprint_progress(
     sprint_snapshot: Dict,
     flow_end_statuses: Optional[List[str]] = None,
