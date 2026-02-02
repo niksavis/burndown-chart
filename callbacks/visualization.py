@@ -32,10 +32,8 @@ from configuration.chart_config import (
     get_weekly_chart_config,
 )
 from data import (
-    calculate_performance_trend,
     calculate_weekly_averages,
     compute_cumulative_values,
-    generate_weekly_forecast,
 )
 from data.schema import DEFAULT_SETTINGS
 from data.iso_week_bucketing import get_week_label
@@ -59,6 +57,7 @@ from visualization.charts import (
 from callbacks.visualization_helpers import (
     create_forecast_pill,
     check_has_points_in_period,
+    prepare_trend_data,
 )
 
 # Setup logging
@@ -205,66 +204,6 @@ def register(app):
         )
 
         return fig
-
-    def _prepare_trend_data(statistics, pert_factor, data_points_count=None):
-        """
-        Prepare trend and forecast data for visualizations.
-
-        Args:
-            statistics: Statistics data
-            pert_factor: PERT factor for forecasts
-            data_points_count: Number of data points to use for calculations (default: None, uses all data)
-
-        Returns:
-            tuple: (items_trend, points_trend) dictionaries with trend and forecast data
-        """
-        # Calculate trend indicators for items and points with filtering
-        items_trend = calculate_performance_trend(
-            statistics, "completed_items", 4, data_points_count=data_points_count
-        )
-        points_trend = calculate_performance_trend(
-            statistics, "completed_points", 4, data_points_count=data_points_count
-        )
-
-        # Generate weekly forecast data if statistics available
-        if statistics:
-            forecast_data = generate_weekly_forecast(
-                statistics, pert_factor, data_points_count=data_points_count
-            )
-
-            # Add forecast info to trend data if available
-            if forecast_data:
-                # Process items forecast data
-                if "items" in forecast_data:
-                    if "optimistic_value" in forecast_data["items"]:
-                        items_trend["optimistic_forecast"] = forecast_data["items"][
-                            "optimistic_value"
-                        ]
-                    if "most_likely_value" in forecast_data["items"]:
-                        items_trend["most_likely_forecast"] = forecast_data["items"][
-                            "most_likely_value"
-                        ]
-                    if "pessimistic_value" in forecast_data["items"]:
-                        items_trend["pessimistic_forecast"] = forecast_data["items"][
-                            "pessimistic_value"
-                        ]
-
-                # Process points forecast data
-                if "points" in forecast_data:
-                    if "optimistic_value" in forecast_data["points"]:
-                        points_trend["optimistic_forecast"] = forecast_data["points"][
-                            "optimistic_value"
-                        ]
-                    if "most_likely_value" in forecast_data["points"]:
-                        points_trend["most_likely_forecast"] = forecast_data["points"][
-                            "most_likely_value"
-                        ]
-                    if "pessimistic_value" in forecast_data["points"]:
-                        points_trend["pessimistic_forecast"] = forecast_data["points"][
-                            "pessimistic_value"
-                        ]
-
-        return items_trend, points_trend
 
     def _create_trend_header_with_forecasts(
         trend_data, title, icon, color, unit="week"
@@ -1625,7 +1564,7 @@ def register(app):
             elif active_tab == "tab-burndown":
                 # Generate all required data for burndown tab
                 # CRITICAL: Pass data_points_count to ensure trend indicators use filtered data
-                items_trend, points_trend = _prepare_trend_data(
+                items_trend, points_trend = prepare_trend_data(
                     statistics, pert_factor, data_points_count
                 )
 
