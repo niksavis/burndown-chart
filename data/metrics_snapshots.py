@@ -197,18 +197,43 @@ def save_snapshots(snapshots: Dict[str, Dict[str, Any]]) -> bool:
             week_start = get_week_start_date(year, week_num)
             snapshot_date = week_start.strftime("%Y-%m-%d")
 
-            # Determine metric type based on metric names (simple heuristic)
-            # For now, save as "metrics" category - can be refined later
-            metric_type = (
-                "dora" if any(k.startswith("dora_") for k in metrics.keys()) else "flow"
-            )
-            backend.save_metrics_snapshot(
-                active_profile_id,
-                active_query_id,
-                snapshot_date,  # Now passing proper date format (YYYY-MM-DD)
-                metric_type,
-                metrics,
-            )
+            # Group metrics by category (flow vs dora) and save separately
+            # This ensures correct metric_category in database
+            flow_metrics = {k: v for k, v in metrics.items() if k.startswith("flow_")}
+            dora_metrics = {k: v for k, v in metrics.items() if k.startswith("dora_")}
+            custom_metrics = {
+                k: v
+                for k, v in metrics.items()
+                if not k.startswith("flow_") and not k.startswith("dora_")
+            }
+
+            # Save each category separately
+            if flow_metrics:
+                backend.save_metrics_snapshot(
+                    active_profile_id,
+                    active_query_id,
+                    snapshot_date,
+                    "flow",
+                    flow_metrics,
+                )
+
+            if dora_metrics:
+                backend.save_metrics_snapshot(
+                    active_profile_id,
+                    active_query_id,
+                    snapshot_date,
+                    "dora",
+                    dora_metrics,
+                )
+
+            if custom_metrics:
+                backend.save_metrics_snapshot(
+                    active_profile_id,
+                    active_query_id,
+                    snapshot_date,
+                    "custom",
+                    custom_metrics,
+                )
 
         logger.info(f"Saved {len(snapshots)} weeks of metric snapshots to database")
 

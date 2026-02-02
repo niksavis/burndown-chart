@@ -239,6 +239,48 @@ def sync_jira_scope_and_data(
         # Changelog must stay in sync with issue cache
         invalidate_changelog_cache()
 
+        # CRITICAL FIX: Save issues to database BEFORE fetching changelog
+        # fetch_changelog_on_demand() reads from database to determine which issues need changelog
+        # If we haven't saved issues yet, it will see 0 issues and skip the fetch
+        logger.info("[JIRA] Saving issues to database before changelog fetch...")
+
+        # Quick save: Just save issues to database (minimal processing)
+        # Full save with statistics and scope will happen later
+        try:
+            from data.persistence.factory import get_backend
+
+            backend = get_backend()
+            active_profile_id = backend.get_app_state("active_profile_id")
+            active_query_id = backend.get_app_state("active_query_id")
+
+            if active_profile_id and active_query_id:
+                # Save ALL issues to database (including DevOps projects)
+                # DevOps filtering happens later for statistics calculation
+                from datetime import datetime, timedelta, timezone
+
+                utc_now = datetime.now(timezone.utc)
+                expires_at = utc_now + timedelta(hours=24)
+                cache_key = f"issues:{active_profile_id}:{active_query_id}"
+
+                backend.save_issues_batch(
+                    profile_id=active_profile_id,
+                    query_id=active_query_id,
+                    cache_key=cache_key,
+                    issues=issues,
+                    expires_at=expires_at,
+                )
+                logger.info(
+                    f"[JIRA] ✓ Saved {len(issues)} issues to database before changelog fetch"
+                )
+            else:
+                logger.warning("[JIRA] No active profile/query, cannot save issues")
+        except Exception as e:
+            logger.error(
+                f"[JIRA] Failed to save issues before changelog fetch: {e}",
+                exc_info=True,
+            )
+            # Continue anyway - changelog fetch will handle missing issues gracefully
+
         # PHASE 2: Changelog data fetch
         # Changelog is needed for Flow Time and DORA metrics
         # No need to delete file cache - using database exclusively

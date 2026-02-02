@@ -5,12 +5,23 @@ from __future__ import annotations
 import logging
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Protocol, cast
 
 from data.database import get_db_connection
 from data.persistence.sqlite.helpers import retry_on_db_lock
 
 logger = logging.getLogger(__name__)
+
+
+class _ChangelogSaver(Protocol):
+    def save_changelog_batch(
+        self,
+        profile_id: str,
+        query_id: str,
+        entries: List[Dict],
+        expires_at: datetime,
+    ) -> None:
+        """Save changelog entries to persistence."""
 
 
 class IssuesCacheMixin:
@@ -36,9 +47,6 @@ class IssuesCacheMixin:
         cache_key: str,
         issues: List[Dict],
         expires_at: datetime,
-    ) -> None: ...  # type: ignore[empty-body]
-    def save_changelog_batch(
-        self, profile_id: str, query_id: str, entries: List[Dict], expires_at: datetime
     ) -> None: ...  # type: ignore[empty-body]
     def delete_expired_issues(self, cutoff_time: datetime) -> int: ...  # type: ignore[empty-body]
 
@@ -98,7 +106,8 @@ class IssuesCacheMixin:
 
         changelog_entries = self._extract_changelog_from_issues(issues)
         if changelog_entries:
-            self.save_changelog_batch(
+            changelog_saver = cast(_ChangelogSaver, self)
+            changelog_saver.save_changelog_batch(
                 profile_id, query_id, changelog_entries, expires_at
             )
             logger.info(
