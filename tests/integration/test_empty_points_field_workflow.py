@@ -24,12 +24,17 @@ from pathlib import Path
 from datetime import datetime, timezone
 from unittest.mock import patch
 
-# Add parent to path to import data.persistence module directly
+# Add parent to path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-# Import from data module - persistence.py is a MODULE, not the package
-import data.persistence as persistence_module
-
+from data.persistence.adapters.unified_data import (
+    save_unified_project_data,
+    load_unified_project_data,
+)
+from data.persistence.adapters.scope import (
+    update_project_scope_from_jira,
+    get_project_scope,
+)
 from data.query_manager import create_query
 
 
@@ -116,21 +121,23 @@ class TestEmptyPointsFieldCachingWorkflow:
         }
 
         # Save the problematic state
-        persistence_module.save_unified_project_data(problematic_state)
+        save_unified_project_data(problematic_state)
 
         # Verify we start with the problematic values
-        initial_scope = persistence_module.get_project_scope()
+        loaded_data = load_unified_project_data()
+        initial_scope = loaded_data["project_scope"]
         assert initial_scope.get("remaining_total_points") == 1930.2469135802469
         assert initial_scope.get("points_field_available") is True
         assert (
             initial_scope.get("calculation_metadata", {}).get("points_field") == "votes"
         )
 
-        # Step 2: Mock JIRA response (simulate what would come from their actual query)
+        # Step 2: Mock JIRA response (reduced dataset for performance)
+        # Use smaller sample that still tests the workflow
         mock_issues = []
 
-        # Add completed issues (matching their actual data)
-        for i in range(69):
+        # Add 10 completed issues (was 69)
+        for i in range(10):
             mock_issues.append(
                 {
                     "key": f"JRASERVER-{i + 1}",
@@ -145,7 +152,7 @@ class TestEmptyPointsFieldCachingWorkflow:
                 }
             )
 
-        # Add remaining issues
+        # Add 20 remaining issues (was 295)
         statuses = [
             ("Gathering Interest", "new"),
             ("Gathering Impact", "new"),
@@ -153,12 +160,11 @@ class TestEmptyPointsFieldCachingWorkflow:
             ("Needs Triage", "new"),
         ]
 
-        remaining_count = 295
-        for i in range(remaining_count):
+        for i in range(20):
             status_name, category = statuses[i % len(statuses)]
             mock_issues.append(
                 {
-                    "key": f"JRASERVER-{i + 70}",
+                    "key": f"JRASERVER-{i + 11}",
                     "fields": {
                         "status": {
                             "name": status_name,
@@ -174,7 +180,7 @@ class TestEmptyPointsFieldCachingWorkflow:
             )
 
         # Step 3: Simulate user clicking "Update Data" with EMPTY points field
-        with patch("data.jira_simple.fetch_jira_issues") as mock_fetch:
+        with patch("data.jira.main_fetch.fetch_jira_issues") as mock_fetch:
             mock_fetch.return_value = (True, mock_issues)
 
             # User's actual configuration with EMPTY points field
@@ -187,7 +193,7 @@ class TestEmptyPointsFieldCachingWorkflow:
             }
 
             # This should completely recalculate and fix the issue
-            success, message = persistence_module.update_project_scope_from_jira(
+            success, message = update_project_scope_from_jira(
                 ui_config["jql_query"], ui_config
             )
 
@@ -195,7 +201,8 @@ class TestEmptyPointsFieldCachingWorkflow:
             assert success, f"Update Data should succeed: {message}"
 
             # Step 4: Verify the fix - all point values should be 0/False
-            updated_scope = persistence_module.get_project_scope()
+            loaded_data = load_unified_project_data()
+            updated_scope = loaded_data["project_scope"]
 
             # THE FIX: These should all be corrected now
             assert updated_scope.get("remaining_total_points") == 0.0, (
@@ -224,17 +231,17 @@ class TestEmptyPointsFieldCachingWorkflow:
                 "metadata points_field_valid should be False"
             )
 
-            # Item counts should be recalculated correctly
-            assert updated_scope.get("total_items") == 364, (
-                "total_items should match issue count"
+            # Item counts should be recalculated correctly (reduced from 364/69/295)
+            assert updated_scope.get("total_items") == 30, (
+                "total_items should match issue count (30 issues)"
             )
 
-            assert updated_scope.get("completed_items") == 69, (
-                "completed_items should be recalculated"
+            assert updated_scope.get("completed_items") == 10, (
+                "completed_items should be recalculated (10 completed)"
             )
 
-            assert updated_scope.get("remaining_items") == 295, (
-                "remaining_items should be recalculated"
+            assert updated_scope.get("remaining_items") == 20, (
+                "remaining_items should be recalculated (20 remaining)"
             )
 
             # All point-related fields should be 0
@@ -257,7 +264,7 @@ class TestEmptyPointsFieldCachingWorkflow:
             "metadata": {"version": "2.0"},
         }
 
-        persistence_module.save_unified_project_data(initial_data)
+        save_unified_project_data(initial_data)
 
         mock_issues = [
             {
@@ -270,7 +277,7 @@ class TestEmptyPointsFieldCachingWorkflow:
             }
         ]
 
-        with patch("data.jira_simple.fetch_jira_issues") as mock_fetch:
+        with patch("data.jira.main_fetch.fetch_jira_issues") as mock_fetch:
             mock_fetch.return_value = (True, mock_issues)
 
             # Empty points field should trigger recalculation
@@ -282,12 +289,12 @@ class TestEmptyPointsFieldCachingWorkflow:
                 "cache_max_size_mb": 50,
             }
 
-            success, message = persistence_module.update_project_scope_from_jira(
+            success, message = update_project_scope_from_jira(
                 ui_config["jql_query"], ui_config
             )
             assert success
 
             # Should be completely recalculated
-            scope = persistence_module.get_project_scope()
+            scope = get_project_scope()
             assert scope.get("remaining_total_points") == 0
             assert scope.get("points_field_available") is False

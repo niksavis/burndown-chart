@@ -596,8 +596,6 @@ class TestSaveQueryChanges:
         backend.set_app_state("active_query_id", "main")
 
         # Act - Save updated JQL
-        from callbacks.accordion_settings import save_query_changes
-
         result = save_query_changes(1, "main", "project = KAFKA AND priority = High")
 
         # Assert - result should be a success Alert
