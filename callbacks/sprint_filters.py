@@ -157,6 +157,12 @@ def filter_sprint_by_issue_type(
         # Calculate sprint scope changes
         scope_changes = calculate_sprint_scope_changes(sprint_data, None)
 
+        # Extract sprint_changes with issue lists for progress bars
+        sprint_changes = {
+            "added": sprint_data.get("added_issues", []),
+            "removed": sprint_data.get("removed_issues", []),
+        }
+
         # Determine if story points should be shown
         show_points = "points" in (show_points_list or [])
 
@@ -203,6 +209,7 @@ def filter_sprint_by_issue_type(
             flow_start_statuses=flow_start_statuses,
             flow_wip_statuses=flow_wip_statuses,
             flow_end_statuses=flow_end_statuses,
+            sprint_changes=sprint_changes,  # Pass issue lists for icon indicators
             sprint_state=sprint_state,
             scope_changes=scope_changes,  # Pass scope changes for inline badges
         )

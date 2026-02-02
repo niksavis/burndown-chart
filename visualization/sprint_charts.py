@@ -398,6 +398,8 @@ def create_sprint_progress_bars(
 
         if not issue_changes:
             # No history - show full bar with current status
+            is_added = issue_key in added_issues
+            is_removed = issue_key in removed_issues
             progress_bars.append(
                 _create_single_status_bar(
                     issue_key,
@@ -412,8 +414,9 @@ def create_sprint_progress_bars(
                     sprint_start=sprint_start,
                     sprint_end=sprint_end,
                     now=now,
-                    is_added=issue_key in added_issues,
-                    is_removed=issue_key in removed_issues,
+                    is_added=is_added,
+                    is_removed=is_removed,
+                    is_initial=not is_added and not is_removed,
                 )
             )
             continue
@@ -437,6 +440,8 @@ def create_sprint_progress_bars(
         if not first_timestamp:
             # No valid timestamps - show current status
             logger.warning(f"Issue {issue_key} has changelog but no valid timestamps")
+            is_added = issue_key in added_issues
+            is_removed = issue_key in removed_issues
             progress_bars.append(
                 _create_single_status_bar(
                     issue_key,
@@ -451,8 +456,9 @@ def create_sprint_progress_bars(
                     sprint_start=sprint_start,
                     sprint_end=sprint_end,
                     now=now,
-                    is_added=issue_key in added_issues,
-                    is_removed=issue_key in removed_issues,
+                    is_added=is_added,
+                    is_removed=is_removed,
+                    is_initial=not is_added and not is_removed,
                 )
             )
             continue
@@ -513,6 +519,8 @@ def create_sprint_progress_bars(
         # Calculate total time from sprint start (or first change) to now
         total_duration = sum(seg["duration_seconds"] for seg in time_segments)
         if total_duration == 0:
+            is_added = issue_key in added_issues
+            is_removed = issue_key in removed_issues
             progress_bars.append(
                 _create_single_status_bar(
                     issue_key,
@@ -527,8 +535,9 @@ def create_sprint_progress_bars(
                     sprint_start=sprint_start,
                     sprint_end=sprint_end,
                     now=now,
-                    is_added=issue_key in added_issues,
-                    is_removed=issue_key in removed_issues,
+                    is_added=is_added,
+                    is_removed=is_removed,
+                    is_initial=not is_added and not is_removed,
                 )
             )
             continue
@@ -550,6 +559,8 @@ def create_sprint_progress_bars(
 
         # Create progress bar with segments
         all_time_segments.extend(time_segments)  # Collect for legend
+        is_added = issue_key in added_issues
+        is_removed = issue_key in removed_issues
         progress_bars.append(
             _create_multi_segment_bar(
                 issue_key,
@@ -565,8 +576,9 @@ def create_sprint_progress_bars(
                 flow_wip_statuses,
                 flow_end_statuses,
                 issue_type=issue_type,
-                is_added=issue_key in added_issues,
-                is_removed=issue_key in removed_issues,
+                is_added=is_added,
+                is_removed=is_removed,
+                is_initial=not is_added and not is_removed,
             )
         )
 
@@ -754,7 +766,7 @@ def create_sprint_progress_bars(
                         ),
                         dbc.Badge(
                             [
-                                html.I(className="fas fa-list me-1"),
+                                html.I(className="fas fa-circle-dot me-1"),
                                 f"{initial_issues} Initial",
                             ],
                             color="secondary",
@@ -823,6 +835,7 @@ def _create_single_status_bar(
     now: Optional[datetime] = None,
     is_added: bool = False,
     is_removed: bool = False,
+    is_initial: bool = False,
 ):
     """Create a single-color progress bar for issues with no history.
 
@@ -841,6 +854,7 @@ def _create_single_status_bar(
         now: Current datetime
         is_added: Whether issue was added to sprint after it started
         is_removed: Whether issue was removed from sprint
+        is_initial: Whether issue was present at sprint start
     """
     # Get issue type icon and color
     icon_class, icon_color = _get_issue_type_icon(issue_type)
@@ -853,25 +867,50 @@ def _create_single_status_bar(
     # Truncate long summaries
     display_summary = summary[:80] + "..." if len(summary) > 80 else summary
 
-    # Create sprint change badges
-    change_badges = []
+    # Create sprint scope change indicator (circular icon before issue type icon)
+    scope_indicator = None
     if is_added:
-        change_badges.append(
-            html.Span(
-                [html.I(className="fas fa-plus me-1"), "Added"],
-                className="badge bg-success ms-2",
-                style={"fontSize": "0.7rem"},
-                title="Issue added to sprint after it started",
-            )
+        scope_indicator = html.Span(
+            [
+                html.I(
+                    className="fa-solid fa-circle-plus",
+                    style={
+                        "color": "#28a745",  # Green (bg-success)
+                        "fontSize": "0.9rem",
+                        "marginRight": "6px",
+                    },
+                    title="Added to sprint after it started",
+                )
+            ]
         )
-    if is_removed:
-        change_badges.append(
-            html.Span(
-                [html.I(className="fas fa-minus me-1"), "Removed"],
-                className="badge bg-danger ms-2",
-                style={"fontSize": "0.7rem"},
-                title="Issue removed from sprint",
-            )
+    elif is_removed:
+        scope_indicator = html.Span(
+            [
+                html.I(
+                    className="fa-solid fa-circle-minus",
+                    style={
+                        "color": "#dc3545",  # Red (bg-danger)
+                        "fontSize": "0.9rem",
+                        "marginRight": "6px",
+                    },
+                    title="Removed from sprint",
+                )
+            ]
+        )
+    elif is_initial:
+        scope_indicator = html.Span(
+            [
+                html.I(
+                    className="fa-solid fa-circle-dot",
+                    style={
+                        "color": "#6c757d",  # Gray (bg-secondary)
+                        "fontSize": "0.9rem",  # Same size as plus/minus icons
+                        "marginRight": "6px",
+                        "opacity": "0.7",
+                    },
+                    title="Present at sprint start",
+                )
+            ]
         )
 
     points_badge = (
@@ -952,6 +991,7 @@ def _create_single_status_bar(
             # Issue header
             html.Div(
                 [
+                    scope_indicator,  # Scope change indicator (before issue type)
                     html.I(
                         className=f"fas {icon_class} me-2",
                         style={
@@ -966,7 +1006,6 @@ def _create_single_status_bar(
                         style={"fontSize": "0.9rem", "color": "#495057"},
                     ),
                     points_badge,
-                    *change_badges,  # Add change badges (Added/Removed)
                     html.Span(
                         display_summary,
                         className="text-muted ms-2",
@@ -1011,6 +1050,7 @@ def _create_multi_segment_bar(
     issue_type: str = "Unknown",
     is_added: bool = False,
     is_removed: bool = False,
+    is_initial: bool = False,
 ):
     """Create a multi-segment progress bar scaled to sprint timeline.
 
@@ -1035,6 +1075,52 @@ def _create_multi_segment_bar(
 
     # Truncate long summaries
     display_summary = summary[:80] + "..." if len(summary) > 80 else summary
+
+    # Create sprint scope change indicator (circular icon before issue type icon)
+    scope_indicator = None
+    if is_added:
+        scope_indicator = html.Span(
+            [
+                html.I(
+                    className="fa-solid fa-circle-plus",
+                    style={
+                        "color": "#28a745",  # Green (bg-success)
+                        "fontSize": "0.9rem",
+                        "marginRight": "6px",
+                    },
+                    title="Added to sprint after it started",
+                )
+            ]
+        )
+    elif is_removed:
+        scope_indicator = html.Span(
+            [
+                html.I(
+                    className="fa-solid fa-circle-minus",
+                    style={
+                        "color": "#dc3545",  # Red (bg-danger)
+                        "fontSize": "0.9rem",
+                        "marginRight": "6px",
+                    },
+                    title="Removed from sprint",
+                )
+            ]
+        )
+    elif is_initial:
+        scope_indicator = html.Span(
+            [
+                html.I(
+                    className="fa-solid fa-circle-dot",
+                    style={
+                        "color": "#6c757d",  # Gray (bg-secondary)
+                        "fontSize": "0.9rem",  # Same size as plus/minus icons
+                        "marginRight": "6px",
+                        "opacity": "0.7",
+                    },
+                    title="Present at sprint start",
+                )
+            ]
+        )
 
     points_badge = (
         html.Span(
@@ -1136,6 +1222,7 @@ def _create_multi_segment_bar(
             # Issue header
             html.Div(
                 [
+                    scope_indicator,  # Scope change indicator (before issue type)
                     html.I(
                         className=f"fas {icon_class} me-2",
                         style={
@@ -1150,7 +1237,6 @@ def _create_multi_segment_bar(
                         style={"fontSize": "0.9rem", "color": "#495057"},
                     ),
                     points_badge,
-                    *change_badges,  # Add change badges (Added/Removed)
                     html.Span(
                         display_summary,
                         className="text-muted ms-2",
@@ -1220,6 +1306,9 @@ def _create_simple_html_bars(
                 sprint_start=sprint_start,
                 sprint_end=sprint_end,
                 now=now,
+                is_added=False,  # Snapshots don't show scope changes
+                is_removed=False,
+                is_initial=False,
             )
         )
 

@@ -253,6 +253,12 @@ def _render_sprint_tracker_content(
         )
         scope_changes = calculate_sprint_scope_changes(sprint_data, sprint_start_date)
 
+        # Extract sprint_changes with issue lists for progress bars
+        sprint_changes = {
+            "added": sprint_data.get("added_issues", []),
+            "removed": sprint_data.get("removed_issues", []),
+        }
+
         # Create UI components
         from ui.sprint_tracker import (
             create_sprint_summary_cards,
@@ -307,6 +313,7 @@ def _render_sprint_tracker_content(
             flow_start_statuses=flow_start_statuses,
             flow_wip_statuses=flow_wip_statuses,
             flow_end_statuses=flow_end_statuses,
+            sprint_changes=sprint_changes,  # Pass issue lists for icon indicators
             sprint_state=selected_sprint_state,  # Pass sprint state
             scope_changes=scope_changes,  # Pass scope changes for inline badges
         )
