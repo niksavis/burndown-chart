@@ -84,52 +84,9 @@ def create_sprint_summary_cards(
     total_issues = summary_data.get("total_issues", 0)
     completed = summary_data.get("completed", 0)
     in_progress = summary_data.get("in_progress", 0)
-    completion_pct = summary_data.get("completion_pct", 0.0)
-
-    # Determine status colors
-    if completion_pct >= 80:
-        status_color = "#28a745"  # Green
-        status_bg = "rgba(40, 167, 69, 0.1)"
-        status_icon = "fa-check-circle"
-    elif completion_pct >= 50:
-        status_color = "#ffc107"  # Yellow
-        status_bg = "rgba(255, 193, 7, 0.1)"
-        status_icon = "fa-clock"
-    else:
-        status_color = "#dc3545"  # Red
-        status_bg = "rgba(220, 53, 69, 0.1)"
-        status_icon = "fa-exclamation-triangle"
+    todo = summary_data.get("todo", 0)
 
     cards = [
-        # Completion Card
-        dbc.Col(
-            [
-                html.Div(
-                    [
-                        html.Div(
-                            [
-                                html.I(
-                                    className=f"fas {status_icon} fa-2x",
-                                    style={"color": status_color},
-                                ),
-                            ],
-                            className="mb-2",
-                        ),
-                        html.H2(
-                            f"{completion_pct:.1f}%",
-                            className="mb-1",
-                            style={"color": status_color},
-                        ),
-                        html.P("Completion", className="text-muted mb-0 small"),
-                    ],
-                    className="text-center p-3 rounded h-100",
-                    style={"backgroundColor": status_bg},
-                )
-            ],
-            xs=12,
-            md=3,
-            className="mb-3",
-        ),
         # Total Issues Card
         dbc.Col(
             [
@@ -154,7 +111,7 @@ def create_sprint_summary_cards(
             md=3,
             className="mb-3",
         ),
-        # Completed Card
+        # To Do Card
         dbc.Col(
             [
                 html.Div(
@@ -162,16 +119,16 @@ def create_sprint_summary_cards(
                         html.Div(
                             [
                                 html.I(
-                                    className="fas fa-check fa-2x text-success",
+                                    className="fas fa-list fa-2x text-secondary",
                                 ),
                             ],
                             className="mb-2",
                         ),
-                        html.H2(str(completed), className="mb-1 text-success"),
-                        html.P("Completed", className="text-muted mb-0 small"),
+                        html.H2(str(todo), className="mb-1 text-secondary"),
+                        html.P("To Do", className="text-muted mb-0 small"),
                     ],
                     className="text-center p-3 rounded h-100",
-                    style={"backgroundColor": "rgba(40, 167, 69, 0.1)"},
+                    style={"backgroundColor": "rgba(108, 117, 125, 0.1)"},
                 )
             ],
             xs=12,
@@ -202,15 +159,42 @@ def create_sprint_summary_cards(
             md=3,
             className="mb-3",
         ),
+        # Completed Card
+        dbc.Col(
+            [
+                html.Div(
+                    [
+                        html.Div(
+                            [
+                                html.I(
+                                    className="fas fa-check fa-2x text-success",
+                                ),
+                            ],
+                            className="mb-2",
+                        ),
+                        html.H2(str(completed), className="mb-1 text-success"),
+                        html.P("Completed", className="text-muted mb-0 small"),
+                    ],
+                    className="text-center p-3 rounded h-100",
+                    style={"backgroundColor": "rgba(40, 167, 69, 0.1)"},
+                )
+            ],
+            xs=12,
+            md=3,
+            className="mb-3",
+        ),
     ]
 
     # Add story points cards if enabled
     if show_points:
         total_points = summary_data.get("total_points", 0.0)
-        points_completion_pct = summary_data.get("points_completion_pct", 0.0)
+        completed_points = summary_data.get("completed_points", 0.0)
+        wip_points = summary_data.get("wip_points", 0.0)
+        todo_points = summary_data.get("todo_points", 0.0)
 
         cards.extend(
             [
+                # Total Points Card
                 dbc.Col(
                     [
                         html.Div(
@@ -218,27 +202,28 @@ def create_sprint_summary_cards(
                                 html.Div(
                                     [
                                         html.I(
-                                            className="fas fa-chart-pie fa-2x text-primary",
+                                            className="fas fa-chart-pie fa-2x text-info",
                                         ),
                                     ],
                                     className="mb-2",
                                 ),
                                 html.H2(
                                     f"{total_points:.0f}",
-                                    className="mb-1 text-primary",
+                                    className="mb-1 text-info",
                                 ),
                                 html.P(
                                     "Total Points", className="text-muted mb-0 small"
                                 ),
                             ],
                             className="text-center p-3 rounded h-100",
-                            style={"backgroundColor": "rgba(0, 123, 255, 0.1)"},
+                            style={"backgroundColor": "rgba(23, 162, 184, 0.1)"},
                         )
                     ],
                     xs=12,
                     md=3,
                     className="mb-3",
                 ),
+                # To Do Points Card
                 dbc.Col(
                     [
                         html.Div(
@@ -246,16 +231,74 @@ def create_sprint_summary_cards(
                                 html.Div(
                                     [
                                         html.I(
-                                            className="fas fa-medal fa-2x",
-                                            style={"color": status_color},
+                                            className="fas fa-list fa-2x text-secondary",
                                         ),
                                     ],
                                     className="mb-2",
                                 ),
                                 html.H2(
-                                    f"{points_completion_pct:.1f}%",
-                                    className="mb-1",
-                                    style={"color": status_color},
+                                    f"{todo_points:.0f}",
+                                    className="mb-1 text-secondary",
+                                ),
+                                html.P(
+                                    "Points To Do",
+                                    className="text-muted mb-0 small",
+                                ),
+                            ],
+                            className="text-center p-3 rounded h-100",
+                            style={"backgroundColor": "rgba(108, 117, 125, 0.1)"},
+                        )
+                    ],
+                    xs=12,
+                    md=3,
+                    className="mb-3",
+                ),
+                # WIP Points Card
+                dbc.Col(
+                    [
+                        html.Div(
+                            [
+                                html.Div(
+                                    [
+                                        html.I(
+                                            className="fas fa-spinner fa-2x text-warning",
+                                        ),
+                                    ],
+                                    className="mb-2",
+                                ),
+                                html.H2(
+                                    f"{wip_points:.0f}",
+                                    className="mb-1 text-warning",
+                                ),
+                                html.P(
+                                    "Points in Progress",
+                                    className="text-muted mb-0 small",
+                                ),
+                            ],
+                            className="text-center p-3 rounded h-100",
+                            style={"backgroundColor": "rgba(255, 193, 7, 0.1)"},
+                        )
+                    ],
+                    xs=12,
+                    md=3,
+                    className="mb-3",
+                ),
+                # Completed Points Card
+                dbc.Col(
+                    [
+                        html.Div(
+                            [
+                                html.Div(
+                                    [
+                                        html.I(
+                                            className="fas fa-check fa-2x text-success",
+                                        ),
+                                    ],
+                                    className="mb-2",
+                                ),
+                                html.H2(
+                                    f"{completed_points:.0f}",
+                                    className="mb-1 text-success",
                                 ),
                                 html.P(
                                     "Points Completed",
@@ -263,7 +306,7 @@ def create_sprint_summary_cards(
                                 ),
                             ],
                             className="text-center p-3 rounded h-100",
-                            style={"backgroundColor": status_bg},
+                            style={"backgroundColor": "rgba(40, 167, 69, 0.1)"},
                         )
                     ],
                     xs=12,

@@ -632,15 +632,21 @@ def calculate_sprint_progress(
         (completed_points / total_points * 100.0) if total_points > 0 else 0.0
     )
 
+    # Calculate to-do items (not started = total - wip - completed)
+    todo_issues = total_issues - wip_issues - completed_issues
+    todo_points = total_points - wip_points - completed_points
+
     return {
         "total_issues": total_issues,
         "completed_issues": completed_issues,
         "wip_issues": wip_issues,
+        "todo_issues": todo_issues,
         "completion_pct": round(completion_percentage, 1),
         "completion_percentage": round(completion_percentage, 1),
         "total_points": total_points,
         "completed_points": completed_points,
         "wip_points": wip_points,
+        "todo_points": todo_points,
         "points_completion_pct": round(points_completion_percentage, 1),
         "points_completion_percentage": round(points_completion_percentage, 1),
         "by_status": dict(by_status),

@@ -1171,11 +1171,14 @@ def create_sprint_summary_card(
         "total_issues": progress_data.get("total_issues", 0),
         "completed": progress_data.get("completed_issues", 0),
         "in_progress": progress_data.get("wip_issues", 0),
+        "todo": progress_data.get("todo_issues", 0),
         "completion_pct": progress_data.get("completion_pct", 0),
         "total_points": progress_data.get("total_points", 0) if show_points else None,
         "completed_points": progress_data.get("completed_points", 0)
         if show_points
         else None,
+        "wip_points": progress_data.get("wip_points", 0) if show_points else None,
+        "todo_points": progress_data.get("todo_points", 0) if show_points else None,
         "points_completion_pct": progress_data.get("points_completion_pct", 0)
         if show_points
         else None,
