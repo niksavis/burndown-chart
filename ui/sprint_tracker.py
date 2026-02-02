@@ -451,75 +451,59 @@ def create_sprint_changes_legend(
     if added_count == 0 and removed_count == 0 and moved_in == 0 and moved_out == 0:
         return html.Div()
 
+    # Return only the popover (button is in create_sprint_change_indicators now)
     return html.Div(
-        [
-            dbc.Button(
-                [
-                    html.I(className="fas fa-info-circle me-2"),
-                    "What do these sprint changes mean?",
-                ],
-                id="sprint-changes-info-btn",
-                color="link",
-                size="sm",
-                className="p-0 text-decoration-none",
-            ),
-            dbc.Popover(
-                [
-                    dbc.PopoverHeader("Sprint Changes Explained"),
-                    dbc.PopoverBody(
-                        [
-                            html.P(
-                                [
-                                    html.I(className="fas fa-plus text-success me-2"),
-                                    html.Strong("Added: "),
-                                    "Issues that were added to this sprint after it started.",
-                                ],
-                                className="mb-2 small",
-                            ),
-                            html.P(
-                                [
-                                    html.I(className="fas fa-minus text-danger me-2"),
-                                    html.Strong("Removed: "),
-                                    "Issues removed from this sprint (moved back to backlog).",
-                                ],
-                                className="mb-2 small",
-                            ),
-                            html.P(
-                                [
-                                    html.I(
-                                        className="fas fa-arrow-right text-info me-2"
-                                    ),
-                                    html.Strong("Moved In: "),
-                                    "Issues transferred from another sprint to this sprint.",
-                                ],
-                                className="mb-2 small",
-                            ),
-                            html.P(
-                                [
-                                    html.I(
-                                        className="fas fa-arrow-left text-warning me-2"
-                                    ),
-                                    html.Strong("Moved Out: "),
-                                    "Issues moved from this sprint to a different sprint.",
-                                ],
-                                className="mb-2 small",
-                            ),
-                            html.Hr(className="my-2"),
-                            html.P(
-                                [
-                                    html.Em(
-                                        "Note: Only Story, Task, and Bug types are tracked (sub-tasks excluded)."
-                                    ),
-                                ],
-                                className="mb-0 small text-muted",
-                            ),
-                        ]
-                    ),
-                ],
-                target="sprint-changes-info-btn",
-                trigger="hover focus",
-                placement="right",
-            ),
-        ],
-        className="mb-3",
+        dbc.Popover(
+            [
+                dbc.PopoverHeader("Sprint Changes Explained"),
+                dbc.PopoverBody(
+                    [
+                        html.P(
+                            [
+                                html.I(className="fas fa-plus text-success me-2"),
+                                html.Strong("Added: "),
+                                "Issues that were added to this sprint after it started.",
+                            ],
+                            className="mb-2 small",
+                        ),
+                        html.P(
+                            [
+                                html.I(className="fas fa-minus text-danger me-2"),
+                                html.Strong("Removed: "),
+                                "Issues removed from this sprint (moved back to backlog).",
+                            ],
+                            className="mb-2 small",
+                        ),
+                        html.P(
+                            [
+                                html.I(className="fas fa-arrow-right text-info me-2"),
+                                html.Strong("Moved In: "),
+                                "Issues transferred from another sprint to this sprint.",
+                            ],
+                            className="mb-2 small",
+                        ),
+                        html.P(
+                            [
+                                html.I(className="fas fa-arrow-left text-warning me-2"),
+                                html.Strong("Moved Out: "),
+                                "Issues moved from this sprint to a different sprint.",
+                            ],
+                            className="mb-2 small",
+                        ),
+                        html.Hr(className="my-2"),
+                        html.P(
+                            [
+                                html.Em(
+                                    "Note: Only Story, Task, and Bug types are tracked (sub-tasks excluded)."
+                                ),
+                            ],
+                            className="mb-0 small text-muted",
+                        ),
+                    ]
+                ),
+            ],
+            target="sprint-changes-info-btn",
+            trigger="hover focus",
+            placement="right",
+        )
     )
