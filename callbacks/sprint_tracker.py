@@ -272,6 +272,7 @@ def _render_sprint_tracker_content(
             flow_start_statuses=flow_start_statuses,
             flow_wip_statuses=flow_wip_statuses,
             flow_end_statuses=flow_end_statuses,
+            sprint_changes=selected_sprint_changes,  # Pass sprint changes for icons
         )
 
         # Create sprint selector if multiple sprints
