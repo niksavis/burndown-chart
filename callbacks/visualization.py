@@ -244,106 +244,6 @@ def register(app):
 
         return fig
 
-    # DEPRECATED CALLBACK - Component "project-dashboard-pert-content" no longer exists in layout
-    # The create_project_summary_card() function that defines this component is deprecated and never called
-    # Dashboard now uses ui/dashboard.py and callbacks/dashboard.py instead
-    # @app.callback(
-    #     Output("project-dashboard-pert-content", "children"),
-    #     [
-    #         Input("current-settings", "modified_timestamp"),
-    #         Input("current-statistics", "modified_timestamp"),
-    #         Input("calculation-results", "data"),
-    #     ],
-    #     [State("current-settings", "data"), State("current-statistics", "data")],
-    # )
-    # def update_pert_info(
-    #     settings_ts, statistics_ts, calc_results, settings, statistics
-    # ):
-    #     """Update the PERT information when settings or statistics change."""
-    #     # Get context to see which input triggered the callback
-    #     ctx = callback_context
-    #     if not ctx.triggered:
-    #         raise PreventUpdate
-    #
-    #     # Validate inputs
-    #     if settings is None or statistics is None:
-    #         raise PreventUpdate
-    #
-    #     # Get triggered input ID
-    #     trigger_id = ctx.triggered[0]["prop_id"].split(".")[0]
-    #
-    #     # If triggered by calculation_results but data is None, prevent update
-    #     if trigger_id == "calculation-results" and calc_results is None:
-    #         raise PreventUpdate
-    #
-    #     # Process the settings and statistics data
-    #     df = pd.DataFrame(statistics)
-    #     if len(df) > 0:  # Check if there's any data
-    #         df["date"] = pd.to_datetime(df["date"])
-    #         df = df.sort_values("date")
-    #
-    #     # Get necessary values
-    #     total_items = settings.get("total_items", 100)
-    #     total_points = settings.get("total_points", 500)
-    #     pert_factor = settings.get("pert_factor", 3)
-    #     deadline = settings.get("deadline", None)
-    #     data_points_count = int(
-    #         settings.get("data_points_count", len(df))
-    #     )  # Get selected data points count (ensure int)
-    #
-    #     # Get milestone settings
-    #     show_milestone = settings.get("show_milestone", False)
-    #     milestone = settings.get("milestone", None) if show_milestone else None
-    #
-    #     # Process data for calculations
-    #     if not df.empty:
-    #         df = compute_cumulative_values(df, total_items, total_points)
-    #
-    #     # Create forecast plot and get PERT values
-    #     _, pert_data = create_forecast_plot(
-    #         df=df,
-    #         total_items=total_items,
-    #         total_points=total_points,
-    #         pert_factor=pert_factor,
-    #         deadline_str=deadline,
-    #         milestone_str=milestone,  # Pass milestone parameter
-    #         data_points_count=data_points_count,
-    #         show_points=settings.get(
-    #             "show_points", False
-    #         ),  # Pass show_points parameter
-    #     )
-    #
-    #     # Calculate weekly averages for the info table with filtering
-    #     avg_weekly_items, avg_weekly_points, med_weekly_items, med_weekly_points = (
-    #         calculate_weekly_averages(statistics, data_points_count=data_points_count)
-    #     )  # Calculate days to deadline
-    #     deadline_date = pd.to_datetime(deadline)
-    #     current_date = datetime.now()
-    #     days_to_deadline = max(0, (deadline_date - current_date).days)
-    #
-    #     # Create the PERT info component for the Project Dashboard
-    #     project_dashboard_pert_info = create_pert_info_table(
-    #         pert_data["pert_time_items"],
-    #         pert_data["pert_time_points"],
-    #         days_to_deadline,
-    #         avg_weekly_items,  # Preserve decimal precision
-    #         avg_weekly_points,  # Preserve decimal precision
-    #         med_weekly_items,  # Preserve decimal precision
-    #         med_weekly_points,  # Preserve decimal precision
-    #         pert_factor=pert_factor,
-    #         total_items=total_items,
-    #         total_points=total_points,
-    #         deadline_str=deadline,
-    #         milestone_str=milestone,  # Pass milestone parameter
-    #         statistics_df=df,
-    #         show_points=settings.get(
-    #             "show_points", False
-    #         ),  # Pass show_points parameter
-    #         data_points_count=data_points_count,  # NEW PARAMETER
-    #     )
-    #
-    #     return project_dashboard_pert_info
-
     def _check_has_points_in_period(statistics, data_points_count=None):
         """
         Check if there's any points data in the filtered time period.
@@ -901,10 +801,11 @@ def register(app):
         df_filtered = df
 
         # Get current remaining from project_data.json (not from settings)
+        from typing import cast
         from data.persistence import load_project_data
 
         try:
-            project_data = load_project_data()
+            project_data = cast(dict, load_project_data())
             current_remaining_items = project_data.get("total_items", 0)
             current_remaining_points = project_data.get("total_points", 0)
         except Exception as e:
@@ -2218,7 +2119,7 @@ def register_loading_callbacks(app):
             # In a real implementation, we would pass this to create_forecast_plot
             import pandas as pd
 
-            from visualization.charts import create_forecast_plot
+            from visualization.forecast_chart import create_forecast_plot
 
             # This would normally be properly processed data
             df = pd.DataFrame(data.get("statistics", []))
@@ -2519,83 +2420,3 @@ def toggle_forecast_info_collapse(n_clicks, is_open):
 
     # Toggle the state when button is clicked
     return not is_open
-
-
-# DISABLED: This callback causes React hooks errors by dynamically changing tab structure
-# @callback(
-#     Output("chart-tabs", "children"),
-#     [Input("points-toggle", "value")],
-#     [State("chart-tabs", "children")],
-# )
-# def update_tab_visibility(show_points, current_tabs):
-#     """
-#     Update tab visibility based on points toggle state.
-#     Hide the points tab when points toggle is disabled.
-#     """
-#     if current_tabs is None:
-#         raise PreventUpdate
-
-#     # Import here to avoid circular import
-#     import dash_bootstrap_components as dbc
-
-#     # Create new tabs list based on show_points state
-#     tab_config = [
-#         {
-#             "id": "tab-burndown",
-#             "label": "Burndown Chart",
-#             "icon": "fas fa-chart-line",
-#             "color": "#0d6efd",  # Primary blue
-#         },
-#         {
-#             "id": "tab-items",
-#             "label": "Items per Week",
-#             "icon": "fas fa-tasks",
-#             "color": "#20c997",  # Teal
-#         },
-#     ]
-
-#     # Only add points tab if toggle is enabled
-#     if show_points:
-#         tab_config.append(
-#             {
-#                 "id": "tab-points",
-#                 "label": "Points per Week",
-#                 "icon": "fas fa-chart-bar",
-#                 "color": "#fd7e14",  # Orange
-#             }
-#         )
-
-#     # Always include scope tracking tab
-#     tab_config.append(
-#         {
-#             "id": "tab-scope-tracking",
-#             "label": "Scope Changes",
-#             "icon": "fas fa-project-diagram",
-#             "color": "#e83e8c",  # Pink
-#         }
-#     )
-
-#     # Create new tabs
-#     tabs = []
-#     for config in tab_config:
-#         tab_style = {
-#             "borderTopLeftRadius": "0.375rem",
-#             "borderTopRightRadius": "0.375rem",
-#             "borderBottom": "none",
-#             "marginRight": "0.5rem",
-#             "color": config["color"],
-#         }
-
-#         tab = dbc.Tab(
-#             label=config["label"],  # Use string label instead of html.Div
-#             tab_id=config["id"],
-#             tab_style=tab_style,
-#             active_tab_style={
-#                 **tab_style,
-#                 "backgroundColor": config["color"],
-#                 "color": "white",
-#             },
-#         )
-#         tabs.append(tab)
-
-#     return tabs
