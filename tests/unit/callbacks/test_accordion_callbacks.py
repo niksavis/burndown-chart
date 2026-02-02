@@ -514,8 +514,12 @@ class TestLoadQueryJQL:
         backend.set_app_state("active_profile_id", "kafka")
         backend.set_app_state("active_query_id", "main")
 
-        # Act
-        result = load_query_jql("main")
+        # Mock get_active_profile_id in the module where it's defined
+        from unittest.mock import patch
+
+        with patch("data.query_manager.get_active_profile_id", return_value="kafka"):
+            # Act
+            result = load_query_jql("main")
 
         # Assert
         assert result == "project = KAFKA AND priority > Medium"
@@ -595,8 +599,14 @@ class TestSaveQueryChanges:
         backend.set_app_state("active_profile_id", "kafka")
         backend.set_app_state("active_query_id", "main")
 
-        # Act - Save updated JQL
-        result = save_query_changes(1, "main", "project = KAFKA AND priority = High")
+        # Mock get_active_profile_id in the module where it's defined
+        from unittest.mock import patch
+
+        with patch("data.query_manager.get_active_profile_id", return_value="kafka"):
+            # Act - Save updated JQL
+            result = save_query_changes(
+                1, "main", "project = KAFKA AND priority = High"
+            )
 
         # Assert - result should be a success Alert
         assert "saved successfully" in str(result).lower()
@@ -669,8 +679,12 @@ class TestCancelQueryEdit:
         backend.set_app_state("active_profile_id", "kafka")
         backend.set_app_state("active_query_id", "main")
 
-        # Act
-        result = cancel_query_edit(1, "main")
+        # Mock get_active_profile_id in the module where it's defined
+        from unittest.mock import patch
+
+        with patch("data.query_manager.get_active_profile_id", return_value="kafka"):
+            # Act
+            result = cancel_query_edit(1, "main")
 
         # Assert
         assert result == original_jql

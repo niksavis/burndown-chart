@@ -31,9 +31,10 @@ class TestProfileCascadeDeletion:
         spark_id = _generate_unique_profile_id()
 
         # Create kafka profile with 2 queries
+        # Use unique names to avoid UNIQUE constraint violations across test runs
         kafka_profile = {
             "id": kafka_id,
-            "name": "Apache Kafka",
+            "name": f"Apache Kafka {kafka_id}",
             "created_at": fixed_timestamp,
             "last_used": fixed_timestamp,
             "jira_config": {},
@@ -64,7 +65,7 @@ class TestProfileCascadeDeletion:
         # Create spark profile with 2 queries
         spark_profile = {
             "id": spark_id,
-            "name": "Apache Spark",
+            "name": f"Apache Spark {spark_id}",
             "created_at": fixed_timestamp,
             "last_used": fixed_timestamp,
             "jira_config": {},

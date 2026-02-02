@@ -12,7 +12,6 @@ import pytest
 import tempfile
 import shutil
 from pathlib import Path
-from unittest.mock import patch
 
 from data.metrics_snapshots import (
     save_metric_snapshot,
@@ -30,11 +29,10 @@ from ui.metric_cards import create_forecast_section
 @pytest.fixture(autouse=True)
 def isolated_metrics_snapshots():
     """Isolate metrics snapshots tests from real data using temp database."""
-    from data.persistence.factory import reset_backend, get_backend
-    from data.migration.schema import create_schema
+    from data.persistence.factory import reset_backend
+    from data.migration.schema_manager import initialize_schema
     from data.database import get_db_connection as real_get_db_connection
-    from data.persistence.sqlite_backend import SQLiteBackend
-    from data.profile_manager import PROFILES_DIR
+    from data.persistence.sqlite.backend import SQLiteBackend
     from unittest.mock import patch
 
     # Create temporary directory and database
@@ -43,10 +41,8 @@ def isolated_metrics_snapshots():
     temp_profiles_dir.mkdir(parents=True, exist_ok=True)
     temp_db_path = Path(temp_profiles_dir / "test_burndown.db")
 
-    # Initialize temp database with schema
-    with real_get_db_connection(temp_db_path) as conn:
-        create_schema(conn)
-        conn.commit()
+    # Initialize temp database with schema using schema_manager
+    initialize_schema(db_path=temp_db_path)
 
     # Create test backend instance
     test_backend = SQLiteBackend(str(temp_db_path))
@@ -97,11 +93,7 @@ def isolated_metrics_snapshots():
     patches = [
         patch("data.persistence.factory.get_backend", side_effect=mock_get_backend),
         patch("data.database.get_db_connection", side_effect=mock_get_db_connection),
-        patch(
-            "data.persistence.sqlite_backend.get_db_connection",
-            side_effect=mock_get_db_connection,
-        ),
-        patch("data.profile_manager.PROFILES_DIR", temp_profiles_dir),
+        # Note: sqlite.backend no longer exposes get_db_connection (uses internal connection)
     ]
 
     for p in patches:
