@@ -223,17 +223,47 @@ def sync_jira_scope_and_data(
         if not force_refresh and last_delta_key:
             last_delta_count = backend.get_app_state(last_delta_key)
             if last_delta_count == "0":
-                logger.info(
-                    "[JIRA] Delta fetch found no changes, skipping changelog and scope calculation"
-                )
-                return (
-                    True,
-                    "No changes detected - using cached data",
-                    {
-                        "no_changes": True,
-                        "skip_metrics": True,
-                    },
-                )
+                # Check if field mappings have changed since last update
+                # If they have, we MUST recalculate metrics even with no new data
+                from configuration.settings import load_app_settings
+                import hashlib
+                import json
+                
+                current_settings = load_app_settings()
+                # Hash the relevant parts of settings that affect metrics
+                relevant_settings = {
+                    "wip_statuses": current_settings.get("wip_statuses", []),
+                    "flow_end_statuses": current_settings.get("flow_end_statuses", []),
+                    "field_mappings": current_settings.get("field_mappings", {}),
+                }
+                current_hash = hashlib.md5(
+                    json.dumps(relevant_settings, sort_keys=True).encode()
+                ).hexdigest()
+                
+                # Check if settings hash has changed
+                settings_hash_key = f"settings_hash:{active_profile_id}:{active_query_id}"
+                last_hash = backend.get_app_state(settings_hash_key)
+                
+                if last_hash and last_hash == current_hash:
+                    # No data changes AND no settings changes - can skip
+                    logger.info(
+                        "[JIRA] Delta fetch found no changes and settings unchanged, skipping metrics"
+                    )
+                    return (
+                        True,
+                        "No changes detected - using cached data",
+                        {
+                            "no_changes": True,
+                            "skip_metrics": True,
+                        },
+                    )
+                else:
+                    # Settings changed - must recalculate metrics
+                    logger.info(
+                        "[JIRA] No new data but settings changed - will recalculate metrics"
+                    )
+                    # Store the new hash for next time
+                    backend.save_app_state(settings_hash_key, current_hash)
 
         # CRITICAL: Invalidate changelog cache when we fetch from JIRA
         # Changelog must stay in sync with issue cache

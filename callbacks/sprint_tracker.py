@@ -159,7 +159,9 @@ def _render_sprint_tracker_content(
         # Build sprint snapshots from changelog
         from data.sprint_manager import get_sprint_snapshots, detect_sprint_changes
 
-        sprint_snapshots = get_sprint_snapshots(tracked_issues, changelog_entries, sprint_field)
+        sprint_snapshots = get_sprint_snapshots(
+            tracked_issues, changelog_entries, sprint_field
+        )
 
         if not sprint_snapshots:
             logger.warning("No sprint snapshots built from changelog")
