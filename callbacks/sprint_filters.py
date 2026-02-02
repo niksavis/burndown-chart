@@ -148,11 +148,12 @@ def filter_sprint_by_issue_type(
         )
 
         # Calculate sprint progress
-        flow_mappings = field_mappings.get("flow", {})
-        flow_end_statuses = flow_mappings.get("flow_end_statuses", ["Done", "Closed"])
-        flow_wip_statuses = flow_mappings.get("flow_wip_statuses", ["In Progress"])
+        flow_end_statuses = settings.get("flow_end_statuses", ["Done", "Closed"])
+        flow_wip_statuses = settings.get("wip_statuses", ["In Progress"])
 
-        progress_data = calculate_sprint_progress(sprint_data, flow_end_statuses)
+        progress_data = calculate_sprint_progress(
+            sprint_data, flow_end_statuses, flow_wip_statuses
+        )
 
         # Detect sprint changes
         sprint_changes = detect_sprint_changes(sprint_changelog)

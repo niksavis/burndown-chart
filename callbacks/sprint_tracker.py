@@ -203,9 +203,8 @@ def _render_sprint_tracker_content(
         from data.persistence import load_app_settings
 
         settings = load_app_settings()
-        flow_mappings = settings.get("field_mappings", {}).get("flow", {})
-        flow_end_statuses = flow_mappings.get("flow_end_statuses", ["Done", "Closed"])
-        flow_wip_statuses = flow_mappings.get("flow_wip_statuses", ["In Progress"])
+        flow_end_statuses = settings.get("flow_end_statuses", ["Done", "Closed"])
+        flow_wip_statuses = settings.get("wip_statuses", ["In Progress"])
 
         progress_data = calculate_sprint_progress(
             sprint_data, flow_end_statuses, flow_wip_statuses

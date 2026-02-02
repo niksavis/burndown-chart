@@ -93,11 +93,12 @@ def update_sprint_selection(selected_sprint: str, show_points_list: list):
         # Calculate progress
         from data.sprint_manager import calculate_sprint_progress, detect_sprint_changes
 
-        flow_mappings = settings.get("field_mappings", {}).get("flow", {})
-        flow_end_statuses = flow_mappings.get("flow_end_statuses", ["Done", "Closed"])
-        flow_wip_statuses = flow_mappings.get("flow_wip_statuses", ["In Progress"])
+        flow_end_statuses = settings.get("flow_end_statuses", ["Done", "Closed"])
+        flow_wip_statuses = settings.get("wip_statuses", ["In Progress"])
 
-        progress_data = calculate_sprint_progress(sprint_data, flow_end_statuses)
+        progress_data = calculate_sprint_progress(
+            sprint_data, flow_end_statuses, flow_wip_statuses
+        )
         sprint_changes = detect_sprint_changes(changelog_entries)
         selected_sprint_changes = sprint_changes.get(selected_sprint, {})
 
