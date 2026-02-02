@@ -237,6 +237,7 @@ def create_sprint_progress_bars(
     flow_end_statuses: Optional[List[str]] = None,
     sprint_changes: Optional[Dict] = None,
     sprint_state: Optional[str] = None,
+    scope_changes: Optional[Dict] = None,
 ):
     """Create HTML progress bars showing time proportion spent in each status.
 
@@ -257,6 +258,7 @@ def create_sprint_progress_bars(
         flow_end_statuses: List of end statuses
         sprint_changes: Dict with added/removed/moved_in/moved_out issue lists
         sprint_state: Sprint state (ACTIVE/CLOSED/FUTURE)
+        scope_changes: Dict with added/removed/net_change counts for badges
         show_points: Whether to show story points in labels
         sprint_start_date: Sprint start date from JIRA (ISO string)
         sprint_end_date: Sprint end date from JIRA (ISO string)
@@ -587,69 +589,169 @@ def create_sprint_progress_bars(
             remaining_days = (sprint_end - now).total_seconds() / 86400
             time_text = f"({remaining_days:.1f} days remaining)"
 
+        # Build children list for sprint_progress_info
+        sprint_progress_children = [
+            html.Div(
+                [
+                    html.Span(
+                        f"Sprint Progress: {time_progress_pct:.0f}%",
+                        style={
+                            "fontSize": "0.9rem",
+                            "fontWeight": "600",
+                            "color": "#495057",
+                            "marginRight": "15px",
+                        },
+                    ),
+                    html.Span(
+                        time_text,
+                        style={
+                            "fontSize": "0.85rem",
+                            "color": "#6c757d",
+                        },
+                    ),
+                ],
+                style={"marginBottom": "8px"},
+            ),
+            # Today indicator visual guide
+            html.Div(
+                [
+                    html.Div(
+                        style={
+                            "width": f"{time_progress_pct:.2f}%",
+                            "height": "4px",
+                            "backgroundColor": "#0d6efd",
+                            "borderRadius": "2px",
+                            "position": "relative",
+                        },
+                    ),
+                    html.Div(
+                        "TODAY",
+                        style={
+                            "position": "absolute",
+                            "left": f"{time_progress_pct:.2f}%",
+                            "top": "-2px",
+                            "transform": "translateX(-50%)",
+                            "fontSize": "0.7rem",
+                            "fontWeight": "700",
+                            "color": "#0d6efd",
+                            "backgroundColor": "#fff",
+                            "padding": "2px 6px",
+                            "borderRadius": "3px",
+                            "border": "1px solid #0d6efd",
+                            "whiteSpace": "nowrap",
+                        },
+                    ),
+                ],
+                style={
+                    "width": "100%",
+                    "height": "20px",
+                    "backgroundColor": "#e9ecef",
+                    "borderRadius": "2px",
+                    "position": "relative",
+                    "marginBottom": "10px",
+                },
+            ),
+        ]
+
+        # Add scope changes badges if provided
+        if scope_changes:
+            import dash_bootstrap_components as dbc
+
+            badges = []
+            added_count = scope_changes.get("added", 0)
+            removed_count = scope_changes.get("removed", 0)
+            net_change = scope_changes.get("net_change", 0)
+
+            # Added badge
+            if added_count > 0:
+                badges.extend(
+                    [
+                        dbc.Tooltip(
+                            "Issues added to this sprint after it started",
+                            target="badge-added-inline",
+                            placement="top",
+                        ),
+                        dbc.Badge(
+                            [
+                                html.I(className="fas fa-plus me-1"),
+                                f"{added_count} Added",
+                            ],
+                            color="success",
+                            className="me-2",
+                            id="badge-added-inline",
+                        ),
+                    ]
+                )
+
+            # Removed badge
+            if removed_count > 0:
+                badges.extend(
+                    [
+                        dbc.Tooltip(
+                            "Issues removed from this sprint after it started",
+                            target="badge-removed-inline",
+                            placement="top",
+                        ),
+                        dbc.Badge(
+                            [
+                                html.I(className="fas fa-minus me-1"),
+                                f"{removed_count} Removed",
+                            ],
+                            color="danger",
+                            className="me-2",
+                            id="badge-removed-inline",
+                        ),
+                    ]
+                )
+
+            # Net change badge
+            if net_change != 0:
+                net_icon = "fa-arrow-up" if net_change > 0 else "fa-arrow-down"
+                net_color = "info" if net_change > 0 else "warning"
+                net_sign = "+" if net_change > 0 else ""
+
+                badges.extend(
+                    [
+                        dbc.Tooltip(
+                            "Overall change in sprint scope (Added - Removed)",
+                            target="badge-net-change-inline",
+                            placement="top",
+                        ),
+                        dbc.Badge(
+                            [
+                                html.I(className=f"fas {net_icon} me-1"),
+                                f"{net_sign}{net_change} Net Change",
+                            ],
+                            color=net_color,
+                            className="me-2",
+                            id="badge-net-change-inline",
+                        ),
+                    ]
+                )
+
+            # Add badges to sprint_progress_children if any exist
+            if badges:
+                sprint_progress_children.append(
+                    html.Div(
+                        [
+                            html.Span(
+                                "Sprint Scope Changes: ",
+                                style={
+                                    "fontSize": "0.85rem",
+                                    "fontWeight": "600",
+                                    "color": "#495057",
+                                    "marginRight": "8px",
+                                },
+                            ),
+                            html.Div(badges, className="d-inline"),
+                        ],
+                        style={"marginTop": "8px"},
+                    )
+                )
+
+        # Create the sprint_progress_info Div with all children
         sprint_progress_info = html.Div(
-            [
-                html.Div(
-                    [
-                        html.Span(
-                            f"Sprint Progress: {time_progress_pct:.0f}%",
-                            style={
-                                "fontSize": "0.9rem",
-                                "fontWeight": "600",
-                                "color": "#495057",
-                                "marginRight": "15px",
-                            },
-                        ),
-                        html.Span(
-                            time_text,
-                            style={
-                                "fontSize": "0.85rem",
-                                "color": "#6c757d",
-                            },
-                        ),
-                    ],
-                    style={"marginBottom": "8px"},
-                ),
-                # Today indicator visual guide
-                html.Div(
-                    [
-                        html.Div(
-                            style={
-                                "width": f"{time_progress_pct:.2f}%",
-                                "height": "4px",
-                                "backgroundColor": "#0d6efd",
-                                "borderRadius": "2px",
-                                "position": "relative",
-                            },
-                        ),
-                        html.Div(
-                            "TODAY",
-                            style={
-                                "position": "absolute",
-                                "left": f"{time_progress_pct:.2f}%",
-                                "top": "-2px",
-                                "transform": "translateX(-50%)",
-                                "fontSize": "0.7rem",
-                                "fontWeight": "700",
-                                "color": "#0d6efd",
-                                "backgroundColor": "#fff",
-                                "padding": "2px 6px",
-                                "borderRadius": "3px",
-                                "border": "1px solid #0d6efd",
-                                "whiteSpace": "nowrap",
-                            },
-                        ),
-                    ],
-                    style={
-                        "width": "100%",
-                        "height": "20px",
-                        "backgroundColor": "#e9ecef",
-                        "borderRadius": "2px",
-                        "position": "relative",
-                        "marginBottom": "10px",
-                    },
-                ),
-            ],
+            sprint_progress_children,
             style={
                 "marginBottom": "15px",
                 "padding": "10px",

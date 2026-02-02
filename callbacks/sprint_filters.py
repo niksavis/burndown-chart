@@ -47,7 +47,6 @@ def filter_sprint_by_issue_type(
         from data.persistence import load_app_settings
         from ui.sprint_tracker import (
             create_sprint_summary_cards,
-            create_sprint_change_indicators,
             create_no_sprints_state,
         )
         from visualization.sprint_charts import (
@@ -171,12 +170,6 @@ def filter_sprint_by_issue_type(
             selected_sprint_id, summary_card_data, show_points
         )
 
-        change_indicators = create_sprint_change_indicators(
-            scope_changes.get("added", 0),
-            scope_changes.get("removed", 0),
-            scope_changes.get("net_change", 0),
-        )
-
         # Load status changelog for timeline
         status_changelog = backend.get_changelog_entries(
             active_profile_id, active_query_id, field_name="status"
@@ -211,6 +204,7 @@ def filter_sprint_by_issue_type(
             flow_wip_statuses=flow_wip_statuses,
             flow_end_statuses=flow_end_statuses,
             sprint_state=sprint_state,
+            scope_changes=scope_changes,  # Pass scope changes for inline badges
         )
 
         # Return only data container content (not the controls)
@@ -219,7 +213,6 @@ def filter_sprint_by_issue_type(
                 summary_cards,
                 html.H5("Issue Progress", className="mt-4 mb-3"),
                 progress_bars,
-                change_indicators,
             ]
         )
 

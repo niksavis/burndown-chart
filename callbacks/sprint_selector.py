@@ -111,7 +111,6 @@ def update_sprint_selection(selected_sprint: str, show_points_list: list):
         # Create UI components
         from ui.sprint_tracker import (
             create_sprint_summary_cards,
-            create_sprint_change_indicators,
         )
         from visualization.sprint_charts import (
             create_sprint_progress_bars,
@@ -126,12 +125,6 @@ def update_sprint_selection(selected_sprint: str, show_points_list: list):
         # Create components
         summary_cards = create_sprint_summary_cards(
             selected_sprint, summary_card_data, show_points
-        )
-
-        change_indicators = create_sprint_change_indicators(
-            scope_changes.get("added", 0),
-            scope_changes.get("removed", 0),
-            scope_changes.get("net_change", 0),
         )
 
         # Load status changelog
@@ -166,6 +159,7 @@ def update_sprint_selection(selected_sprint: str, show_points_list: list):
             flow_wip_statuses=flow_wip_statuses,
             flow_end_statuses=flow_end_statuses,
             sprint_state=sprint_state,
+            scope_changes=scope_changes,  # Pass scope changes for inline badges
         )
 
         # Return only the data container content (not the controls)
@@ -174,7 +168,6 @@ def update_sprint_selection(selected_sprint: str, show_points_list: list):
                 summary_cards,
                 html.H5("Issue Progress", className="mt-4 mb-3"),
                 progress_bars,
-                change_indicators,
             ]
         ), selected_sprint
 

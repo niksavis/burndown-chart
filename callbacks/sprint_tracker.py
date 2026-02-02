@@ -257,7 +257,6 @@ def _render_sprint_tracker_content(
         from ui.sprint_tracker import (
             create_sprint_summary_cards,
             create_combined_sprint_controls,
-            create_sprint_change_indicators,
         )
         from visualization.sprint_charts import (
             create_sprint_progress_bars,
@@ -272,13 +271,6 @@ def _render_sprint_tracker_content(
         # Create sprint summary cards
         summary_cards = create_sprint_summary_cards(
             selected_sprint_id, summary_card_data, show_points
-        )
-
-        # Create change indicators
-        change_indicators = create_sprint_change_indicators(
-            scope_changes.get("added", 0),
-            scope_changes.get("removed", 0),
-            scope_changes.get("net_change", 0),
         )
 
         # Load status changelog for time-in-status calculation
@@ -316,6 +308,7 @@ def _render_sprint_tracker_content(
             flow_wip_statuses=flow_wip_statuses,
             flow_end_statuses=flow_end_statuses,
             sprint_state=selected_sprint_state,  # Pass sprint state
+            scope_changes=scope_changes,  # Pass scope changes for inline badges
         )
 
         # Create combined sprint controls (selector + issue type filter)
@@ -350,8 +343,6 @@ def _render_sprint_tracker_content(
                                 # Progress bars (HTML component)
                                 html.H5("Issue Progress", className="mt-4 mb-3"),
                                 progress_bars,
-                                # Scope change indicators (below progress)
-                                change_indicators,
                             ],
                             id="sprint-data-container",
                         ),
