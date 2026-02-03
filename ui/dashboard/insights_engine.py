@@ -606,6 +606,160 @@ def create_insights_section(
         except Exception:
             pass
 
+    # === NEW INSIGHTS: Required Pace to Deadline ===
+    if deadline and not statistics_df.empty:
+        try:
+            from datetime import datetime
+            import pandas as pd
+            from data.velocity_projections import (
+                calculate_required_velocity,
+                assess_pace_health,
+            )
+
+            # Parse deadline
+            deadline_date = pd.to_datetime(deadline)
+            if not pd.isna(deadline_date):
+                current_date = datetime.now()
+                days_to_deadline = max(0, (deadline_date - current_date).days)
+
+                # Get remaining work from last data point
+                if (
+                    len(statistics_df) > 0
+                    and "remaining_items" in statistics_df.columns
+                ):
+                    remaining_items = statistics_df.iloc[-1]["remaining_items"]
+                    remaining_points = (
+                        statistics_df.iloc[-1].get("remaining_points", 0)
+                        if "remaining_points" in statistics_df.columns
+                        else None
+                    )
+
+                    # Calculate current velocity from filtered data
+                    current_velocity_items = statistics_df["completed_items"].mean()
+
+                    # Calculate required velocity
+                    required_velocity_items = calculate_required_velocity(
+                        remaining_items, deadline_date, current_date, time_unit="week"
+                    )
+
+                    # Only generate insights if required velocity is finite (deadline not passed)
+                    if required_velocity_items != float("inf"):
+                        # Assess pace health
+                        pace_health_items = assess_pace_health(
+                            current_velocity_items, required_velocity_items
+                        )
+
+                        # P1: Pace Critically Behind (CRITICAL)
+                        if (
+                            pace_health_items["status"] == "behind"
+                            and pace_health_items["ratio"] < 0.7
+                        ):
+                            gap_pct = (1 - pace_health_items["ratio"]) * 100
+                            gap_absolute = (
+                                required_velocity_items - current_velocity_items
+                            )
+                            delay_days = (gap_pct / 100) * days_to_deadline
+                            insights.append(
+                                {
+                                    "severity": "danger",
+                                    "message": f"Pace Critically Behind - Current velocity {gap_pct:.0f}% below required pace to meet deadline ({current_velocity_items:.1f} vs {required_velocity_items:.1f} items/week)",
+                                    "recommendation": f"Immediate action required: (1) Increase team capacity if possible, (2) Aggressively descope to reduce remaining work by {gap_pct:.0f}% ({gap_pct / 100 * remaining_items:.0f} items), (3) Request deadline extension of ~{delay_days:.0f} days, or (4) Accept partial delivery risk. Current pace will miss deadline by significant margin. Need {gap_absolute:.1f} more items/week.",
+                                }
+                            )
+
+                        # P2: Pace At Risk (WARNING)
+                        elif (
+                            pace_health_items["status"] == "at_risk"
+                            and 0.8 <= pace_health_items["ratio"] < 1.0
+                        ):
+                            gap_pct = (1 - pace_health_items["ratio"]) * 100
+                            gap_absolute = (
+                                required_velocity_items - current_velocity_items
+                            )
+                            delay_days = (gap_pct / 100) * days_to_deadline
+                            insights.append(
+                                {
+                                    "severity": "warning",
+                                    "message": f"Pace Below Target - Current velocity {gap_pct:.0f}% below required pace, need {gap_absolute:.1f} more items/week to meet deadline",
+                                    "recommendation": f"Close the gap by: (1) Removing blockers to increase throughput {gap_pct:.0f}%, (2) Reducing WIP limits to improve flow, (3) Descoping low-priority items (~{gap_pct / 100 * remaining_items:.0f} items, {gap_pct:.0f}% of remaining work), or (4) Minor deadline adjustment (+{delay_days:.0f} days). Deadline achievable with focused improvements.",
+                                }
+                            )
+
+                        # P3: Pace Significantly Ahead (SUCCESS)
+                        elif (
+                            pace_health_items["status"] == "on_pace"
+                            and pace_health_items["ratio"] >= 1.2
+                        ):
+                            ahead_pct = (pace_health_items["ratio"] - 1.0) * 100
+                            days_ahead = (ahead_pct / 100) * days_to_deadline
+                            extra_capacity_items = (ahead_pct / 100) * remaining_items
+                            insights.append(
+                                {
+                                    "severity": "success",
+                                    "message": f"Pace Significantly Ahead - Current velocity {ahead_pct:.0f}% above required pace, tracking to complete ~{days_ahead:.0f} days early",
+                                    "recommendation": f"Capitalize on momentum: (1) Consider adding high-value scope from backlog (~{extra_capacity_items:.0f} items, {ahead_pct:.0f}% more capacity available), (2) Bring forward future roadmap items, (3) Invest in quality improvements or technical debt reduction, or (4) Communicate early completion potential to stakeholders. Strong delivery position.",
+                                }
+                            )
+
+                        # P4: Pace Moderately Ahead (SUCCESS) - On track 100-120%
+                        elif (
+                            pace_health_items["status"] == "on_pace"
+                            and 1.0 <= pace_health_items["ratio"] < 1.2
+                        ):
+                            ahead_pct = (pace_health_items["ratio"] - 1.0) * 100
+                            insights.append(
+                                {
+                                    "severity": "success",
+                                    "message": f"Pace On Track - Current velocity {ahead_pct:.0f}% above required pace, well-positioned to meet deadline",
+                                    "recommendation": "Maintain current momentum and monitor for changes. Consider small scope additions or quality investments if sustained. Continue removing blockers and maintaining team capacity.",
+                                }
+                            )
+
+                        # P5: Points vs Items Divergence (WARNING)
+                        if (
+                            remaining_points
+                            and "completed_points" in statistics_df.columns
+                        ):
+                            current_velocity_points = statistics_df[
+                                "completed_points"
+                            ].mean()
+                            required_velocity_points = calculate_required_velocity(
+                                remaining_points,
+                                deadline_date,
+                                current_date,
+                                time_unit="week",
+                            )
+
+                            if required_velocity_points != float("inf"):
+                                pace_health_points = assess_pace_health(
+                                    current_velocity_points, required_velocity_points
+                                )
+
+                                # Check for significant divergence (>15% difference in ratios)
+                                ratio_diff = abs(
+                                    pace_health_items["ratio"]
+                                    - pace_health_points["ratio"]
+                                )
+                                if ratio_diff > 0.15:
+                                    insights.append(
+                                        {
+                                            "severity": "warning",
+                                            "message": f"Pace Metric Divergence - Items pace ({pace_health_items['ratio']:.0%}) and points pace ({pace_health_points['ratio']:.0%}) significantly differ",
+                                            "recommendation": "Investigate story sizing accuracy: (1) Are larger items being completed without proportional points delivery? (2) Review estimation practices in refinement, (3) Consider whether items or points is more accurate predictor for this team, (4) Adjust forecasting primary metric accordingly. This divergence suggests estimation inconsistency.",
+                                        }
+                                    )
+                    else:
+                        # P6: Deadline Passed (CRITICAL)
+                        insights.append(
+                            {
+                                "severity": "danger",
+                                "message": "Deadline Exceeded - Project deadline has passed with work remaining",
+                                "recommendation": "Critical status: (1) Establish new realistic deadline based on current velocity and remaining work, (2) Prioritize ruthlessly - complete only critical MVP features, (3) Communicate revised timeline to all stakeholders immediately, (4) Conduct post-mortem to understand planning gaps and prevent recurrence.",
+                            }
+                        )
+        except Exception:
+            pass
+
     # Sort insights by severity priority
     severity_priority = {"danger": 0, "warning": 1, "info": 2, "success": 3}
     insights.sort(key=lambda x: severity_priority.get(x["severity"], 2))
