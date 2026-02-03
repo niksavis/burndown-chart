@@ -27,11 +27,52 @@ from visualization.helpers import fill_missing_weeks
 #######################################################################
 
 
+def _add_required_velocity_line(
+    fig: go.Figure, required_velocity: float, chart_type: str = "items"
+) -> None:
+    """Add required velocity reference line to weekly chart.
+
+    Args:
+        fig: Plotly figure object to modify
+        required_velocity: Required velocity value (items/week or points/week)
+        chart_type: 'items' or 'points' for color selection
+
+    Returns:
+        None (modifies fig in-place)
+    """
+    if required_velocity is None or required_velocity == float("inf"):
+        return
+
+    color = COLOR_PALETTE["items"] if chart_type == "items" else COLOR_PALETTE["points"]
+
+    # Add horizontal line spanning the full chart
+    fig.add_trace(
+        go.Scatter(
+            x=[0, 1],  # Full width in axis coordinates
+            y=[required_velocity, required_velocity],
+            mode="lines",
+            line=dict(
+                color=color,
+                width=2,
+                dash="dash",
+            ),
+            name=f"Required: {required_velocity:.1f} {chart_type}/week",
+            hovertemplate=f"<b>Required Velocity</b><br>{required_velocity:.1f} {chart_type}/week<extra></extra>",
+            xaxis="x",
+            yaxis="y",
+            # Use axis coordinates for x (0 to 1 = full width)
+            xref="paper",
+            yref="y",
+        )
+    )
+
+
 def create_weekly_items_chart(
     statistics_data,
     pert_factor=3,
     include_forecast=True,
     data_points_count=None,
+    required_velocity=None,
 ):
     """
     Create a bar chart showing weekly completed items with optional forecast for the next week.
@@ -41,6 +82,7 @@ def create_weekly_items_chart(
         pert_factor: PERT factor for calculations (for forecast)
         include_forecast: Whether to include forecast data (default: True)
         data_points_count: Number of data points to use for calculations (default: None, uses all data)
+        required_velocity: Optional required velocity to display as reference line (items/week)
 
     Returns:
         Plotly figure object with the weekly items chart
@@ -300,6 +342,10 @@ def create_weekly_items_chart(
         ),
     )
 
+    # Add required velocity reference line if provided
+    if required_velocity is not None:
+        _add_required_velocity_line(fig, required_velocity, chart_type="items")
+
     return fig
 
 
@@ -308,6 +354,7 @@ def create_weekly_points_chart(
     pert_factor=3,
     include_forecast=True,
     data_points_count=None,
+    required_velocity=None,
 ):
     """
     Create a bar chart showing weekly completed points with a weighted moving average line and optional forecast for next week.
@@ -317,6 +364,7 @@ def create_weekly_points_chart(
         pert_factor: PERT factor for calculations (for forecast)
         include_forecast: Whether to include forecast data (default: True)
         data_points_count: Number of data points to use for calculations (default: None, uses all data)
+        required_velocity: Optional required velocity to display as reference line (points/week)
 
     Returns:
         Plotly figure object with the weekly points chart
@@ -574,6 +622,10 @@ def create_weekly_points_chart(
             b=60  # Reduced from 130 to 60
         ),
     )
+
+    # Add required velocity reference line if provided
+    if required_velocity is not None:
+        _add_required_velocity_line(fig, required_velocity, chart_type="points")
 
     return fig
 

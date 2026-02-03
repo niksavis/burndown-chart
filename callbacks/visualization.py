@@ -1183,11 +1183,43 @@ def register(app):
                     show_points=effective_show_points,  # Use effective flag
                 )
 
+                # Calculate required velocity for chart reference lines
+                required_velocity_items = None
+                required_velocity_points = None
+                if deadline:
+                    from data.velocity_projections import calculate_required_velocity
+                    from data.persistence import load_unified_project_data
+
+                    try:
+                        # Parse deadline
+                        deadline_date = datetime.strptime(deadline, "%Y-%m-%d")
+
+                        # Get current remaining work
+                        project_data = load_unified_project_data()
+                        project_scope = project_data.get("project_scope", {})
+                        remaining_items = project_scope.get("remaining_items", 0)
+                        remaining_points = project_scope.get(
+                            "remaining_total_points", 0
+                        )
+
+                        # Calculate required velocities
+                        if remaining_items > 0:
+                            required_velocity_items = calculate_required_velocity(
+                                remaining_items, deadline_date, time_unit="week"
+                            )
+                        if remaining_points and remaining_points > 0:
+                            required_velocity_points = calculate_required_velocity(
+                                remaining_points, deadline_date, time_unit="week"
+                            )
+                    except Exception as e:
+                        logger.warning(f"Could not calculate required velocity: {e}")
+
                 # Generate items chart for consolidated view
                 items_fig = create_weekly_items_chart(
                     statistics,
                     pert_factor,
                     data_points_count=data_points_count,
+                    required_velocity=required_velocity_items,
                 )
                 # Apply mobile optimization to items chart
                 items_fig, _ = apply_mobile_optimization(
@@ -1204,6 +1236,7 @@ def register(app):
                         statistics,
                         pert_factor,
                         data_points_count=data_points_count,
+                        required_velocity=required_velocity_points,
                     )
                     # Apply mobile optimization to points chart
                     points_fig, _ = apply_mobile_optimization(
