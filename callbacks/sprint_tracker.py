@@ -402,3 +402,145 @@ def toggle_sprint_charts(n_clicks):
     if n_clicks is None:
         return False
     return n_clicks % 2 == 1
+
+
+@callback(
+    [
+        Output("sprint-burnup-chart", "figure"),
+        Output("sprint-cfd-chart", "figure"),
+    ],
+    [
+        Input("sprint-selector-dropdown", "value"),
+        Input("points-toggle", "value"),
+    ],
+    prevent_initial_call=True,
+)
+def update_sprint_charts(selected_sprint, points_toggle_list):
+    """Update burnup and CFD charts when sprint selection changes.
+
+    Args:
+        selected_sprint: Selected sprint name from dropdown
+        points_toggle_list: Points toggle list (list with 'points' if enabled)
+
+    Returns:
+        Tuple of (burnup_figure, cfd_figure)
+    """
+    from dash import no_update
+    from data.persistence.factory import get_backend
+    from data.sprint_manager import get_sprint_snapshots, get_sprint_dates
+    from data.sprint_snapshot_calculator import calculate_daily_sprint_snapshots
+    from visualization.sprint_burnup_chart import create_sprint_burnup_chart
+    from visualization.sprint_cfd_chart import create_sprint_cfd_chart
+    from data.persistence import load_app_settings
+
+    if not selected_sprint:
+        return no_update, no_update
+
+    try:
+        # Determine if using points
+        show_points = points_toggle_list and "points" in points_toggle_list
+
+        # Load data from backend
+        backend = get_backend()
+        active_profile_id = backend.get_app_state("active_profile_id")
+        active_query_id = backend.get_app_state("active_query_id")
+
+        if not active_profile_id or not active_query_id:
+            logger.warning("No active profile/query for chart update")
+            return no_update, no_update
+
+        # Load issues and changelog
+        all_issues = backend.get_issues(active_profile_id, active_query_id)
+        if not all_issues:
+            return no_update, no_update
+
+        # Get sprint field configuration
+        settings = load_app_settings()
+        field_mappings = settings.get("field_mappings", {})
+        general_mappings = field_mappings.get("general", {})
+        sprint_field = general_mappings.get("sprint_field")
+
+        if not sprint_field:
+            return no_update, no_update
+
+        # Load sprint changelog
+        changelog_entries = backend.get_changelog_entries(
+            active_profile_id, active_query_id, field_name=sprint_field
+        )
+        if not changelog_entries:
+            changelog_entries = backend.get_changelog_entries(
+                active_profile_id, active_query_id, field_name="Sprint"
+            )
+
+        # Load status changelog
+        status_changelog = backend.get_changelog_entries(
+            active_profile_id, active_query_id, field_name="status"
+        )
+
+        # Build sprint snapshots
+        sprint_snapshots = get_sprint_snapshots(
+            all_issues, changelog_entries, sprint_field
+        )
+
+        if selected_sprint not in sprint_snapshots:
+            logger.warning(f"Selected sprint {selected_sprint} not in snapshots")
+            return no_update, no_update
+
+        sprint_data = sprint_snapshots[selected_sprint]
+
+        # Get sprint dates
+        sprint_dates = get_sprint_dates(selected_sprint, all_issues, sprint_field)
+        if not sprint_dates:
+            logger.warning(f"No dates found for sprint {selected_sprint}")
+            return no_update, no_update
+
+        sprint_start_date = sprint_dates.get("start_date")
+        sprint_end_date = sprint_dates.get("end_date")
+
+        if not sprint_start_date or not sprint_end_date:
+            logger.warning(f"Missing start/end dates for sprint {selected_sprint}")
+            return no_update, no_update
+
+        # Calculate daily snapshots
+        flow_end_statuses = settings.get("flow_end_statuses", ["Done", "Closed"])
+
+        daily_snapshots = calculate_daily_sprint_snapshots(
+            sprint_data,
+            all_issues,
+            status_changelog,
+            sprint_start_date,
+            sprint_end_date,
+            flow_end_statuses=flow_end_statuses,
+            points_field="story_points",
+        )
+
+        if not daily_snapshots:
+            logger.warning(f"No daily snapshots generated for {selected_sprint}")
+            return no_update, no_update
+
+        # Create burnup chart
+        burnup_fig = create_sprint_burnup_chart(
+            daily_snapshots,
+            sprint_name=selected_sprint,
+            sprint_start_date=sprint_start_date,
+            sprint_end_date=sprint_end_date,
+            height=400,
+        )
+
+        # Create CFD chart
+        cfd_fig = create_sprint_cfd_chart(
+            daily_snapshots,
+            sprint_name=selected_sprint,
+            height=400,
+            use_points=show_points,
+        )
+
+        logger.info(f"Updated sprint charts for {selected_sprint}")
+        return burnup_fig, cfd_fig
+
+    except Exception as e:
+        import traceback
+
+        logger.error(f"Error updating sprint charts: {e}")
+        logger.error(traceback.format_exc())
+        return no_update, no_update
