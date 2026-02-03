@@ -100,15 +100,6 @@ TAB_CONFIG: List[TabConfig] = [
         "help_content_id": "help-dora",
     },
     {
-        "id": "tab-statistics-data",
-        "label": "Weekly Data",
-        "icon": "fa-table",
-        "color": get_color("secondary"),
-        "order": 7,
-        "requires_data": True,
-        "help_content_id": "help-statistics-data",
-    },
-    {
         "id": "tab-sprint-tracker",
         "label": "Sprint Tracker",
         "icon": "fa-running",
@@ -116,6 +107,24 @@ TAB_CONFIG: List[TabConfig] = [
         "order": 6,
         "requires_data": True,
         "help_content_id": "help-sprint-tracker",
+    },
+    {
+        "id": "tab-active-work-timeline",
+        "label": "Active Work",
+        "icon": "fa-project-diagram",
+        "color": get_color("info"),
+        "order": 7,
+        "requires_data": True,
+        "help_content_id": "help-active-work",
+    },
+    {
+        "id": "tab-statistics-data",
+        "label": "Weekly Data",
+        "icon": "fa-table",
+        "color": get_color("secondary"),
+        "order": 8,
+        "requires_data": True,
+        "help_content_id": "help-statistics-data",
     },
 ]
 

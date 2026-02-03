@@ -1439,6 +1439,20 @@ def register(app):
                 ui_state["loading"] = False
                 return sprint_tracker_content, chart_cache, ui_state
 
+            elif active_tab == "tab-active-work-timeline":
+                # Generate Active Work Timeline content directly (no placeholder loading)
+                from callbacks.active_work_timeline import (
+                    _render_active_work_timeline_content,
+                )
+
+                # Render the actual content immediately
+                timeline_content = _render_active_work_timeline_content(show_points)
+
+                # Cache the result for next time
+                chart_cache[cache_key] = timeline_content
+                ui_state["loading"] = False
+                return timeline_content, chart_cache, ui_state
+
             # Default fallback (should not reach here)
             fallback_content = create_content_placeholder(
                 type="chart", text="Select a tab to view data", height="400px"
