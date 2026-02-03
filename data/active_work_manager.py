@@ -23,23 +23,24 @@ logger = logging.getLogger(__name__)
 
 def filter_active_issues(
     issues: List[Dict],
+    data_points_count: int = 30,
     flow_end_statuses: Optional[List[str]] = None,
     flow_wip_statuses: Optional[List[str]] = None,
-) -> Dict[str, List[Dict]]:
-    """Filter to active WIP issues + completed from last 2 weeks.
+) -> List[Dict]:
+    """Filter issues to data points date range.
 
-    Returns issues grouped by timeframe:
-    - All WIP issues (to do, in progress) regardless of age
-    - Completed issues from last 2 weeks only
-    - Grouped into: last_week, this_week
+    Returns:
+    - All issues with activity (created or updated) within data_points_count days
+    - Includes both WIP and completed issues
 
     Args:
         issues: List of JIRA issues
+        data_points_count: Number of days to look back (from Data Points slider)
         flow_end_statuses: Completion statuses
         flow_wip_statuses: WIP statuses
 
     Returns:
-        Dict with 'last_week' and 'this_week' issue lists
+        List of filtered issues
     """
     from datetime import datetime, timedelta, timezone
 
@@ -49,131 +50,115 @@ def filter_active_issues(
         flow_wip_statuses = ["In Progress", "In Review", "Testing", "To Do", "Backlog"]
 
     now = datetime.now(timezone.utc)
-
-    # Calculate week boundaries (Monday to Sunday)
-    days_since_monday = now.weekday()  # 0=Monday, 6=Sunday
-    this_week_start = (now - timedelta(days=days_since_monday)).replace(
-        hour=0, minute=0, second=0, microsecond=0
-    )
-    last_week_start = this_week_start - timedelta(days=7)
-    two_weeks_ago = this_week_start - timedelta(days=14)
+    cutoff_date = now - timedelta(days=data_points_count)
 
     logger.info(
-        f"Filtering issues: last_week={last_week_start.date()}, "
-        f"this_week={this_week_start.date()}, two_weeks_ago={two_weeks_ago.date()}"
+        f"Filtering issues with activity since {cutoff_date.date()} ({data_points_count} days)"
     )
 
-    last_week_issues = []
-    this_week_issues = []
+    filtered_issues = []
 
     for issue in issues:
-        status = issue.get("status", "Unknown")
+        # Check both created and updated dates
+        created_str = issue.get("created")
         updated_str = issue.get("updated")
 
-        if not updated_str:
-            continue
-
         try:
-            # Parse ISO format
-            if updated_str.endswith("Z"):
-                updated_str = updated_str[:-1] + "+00:00"
-            updated_dt = datetime.fromisoformat(updated_str)
-            if updated_dt.tzinfo is None:
-                updated_dt = updated_dt.replace(tzinfo=timezone.utc)
+            # Parse created date
+            created_dt = None
+            if created_str:
+                if created_str.endswith("Z"):
+                    created_str = created_str[:-1] + "+00:00"
+                created_dt = datetime.fromisoformat(created_str)
+                if created_dt.tzinfo is None:
+                    created_dt = created_dt.replace(tzinfo=timezone.utc)
 
-            # Include if:
-            # 1. WIP status (any age)
-            # 2. Completed in last 2 weeks
-            is_completed = status in flow_end_statuses
-            is_wip = not is_completed  # Everything not done is WIP
+            # Parse updated date
+            updated_dt = None
+            if updated_str:
+                if updated_str.endswith("Z"):
+                    updated_str = updated_str[:-1] + "+00:00"
+                updated_dt = datetime.fromisoformat(updated_str)
+                if updated_dt.tzinfo is None:
+                    updated_dt = updated_dt.replace(tzinfo=timezone.utc)
 
-            if is_completed and updated_dt < two_weeks_ago:
-                # Completed too long ago, skip
-                continue
-
-            # Group by week based on update time
-            if updated_dt >= this_week_start:
-                this_week_issues.append(issue)
-            elif updated_dt >= last_week_start:
-                last_week_issues.append(issue)
-            elif is_wip:
-                # WIP but no recent update - put in this week
-                this_week_issues.append(issue)
+            # Include if created or updated within data points range
+            if (created_dt and created_dt >= cutoff_date) or (updated_dt and updated_dt >= cutoff_date):
+                filtered_issues.append(issue)
 
         except (ValueError, AttributeError) as e:
             logger.warning(f"Failed to parse date for {issue.get('issue_key')}: {e}")
             continue
 
-    logger.info(
-        f"Filtered to {len(last_week_issues)} last week issues, "
-        f"{len(this_week_issues)} this week issues"
-    )
+    logger.info(f"Filtered to {len(filtered_issues)} issues within {data_points_count} days")
 
-    return {"last_week": last_week_issues, "this_week": this_week_issues}
+    return filtered_issues
 
 
 def get_active_work_data(
     issues: List[Dict],
+    backend=None,
+    profile_id: Optional[str] = None,
+    query_id: Optional[str] = None,
+    data_points_count: int = 30,
     parent_field: str = "parent",
     flow_end_statuses: Optional[List[str]] = None,
     flow_wip_statuses: Optional[List[str]] = None,
 ) -> Dict:
-    """Get active work data with timeline and issue lists.
+    """Get active work data with nested epic timeline.
 
     Returns:
     {
-        "timeline": [epic summaries for visualization],
-        "last_week_issues": [issues with health indicators],
-        "this_week_issues": [issues with health indicators],
+        "timeline": [
+            {
+                "epic_key": "A942-3407",
+                "epic_summary": "Feature Name",
+                "total_issues": 9,
+                "completed_issues": 5,
+                "completion_pct": 55.6,
+                "child_issues": [issues sorted by priority],  # New: nested issues
+            }
+        ]
     }
 
     Args:
         issues: List of JIRA issues
+        data_points_count: Number of days to look back (from Data Points slider)
         parent_field: Field name for parent/epic
         flow_end_statuses: Completion statuses
         flow_wip_statuses: WIP statuses
 
     Returns:
-        Dict with timeline and issue lists
+        Dict with nested epic timeline
     """
     logger.info(f"[ACTIVE WORK MGR] Building active work data from {len(issues)} issues")
-    logger.info(f"[ACTIVE WORK MGR] parent_field={parent_field}, flow_end_statuses={flow_end_statuses}, flow_wip_statuses={flow_wip_statuses}")
+    logger.info(f"[ACTIVE WORK MGR] data_points_count={data_points_count}, parent_field={parent_field}")
 
-    # Filter to WIP + recent completions
-    filtered = filter_active_issues(issues, flow_end_statuses, flow_wip_statuses)
-    last_week_issues = filtered["last_week"]
-    this_week_issues = filtered["this_week"]
+    # Filter to date range
+    filtered_issues = filter_active_issues(
+        issues, data_points_count, flow_end_statuses, flow_wip_statuses
+    )
     
-    logger.info(f"[ACTIVE WORK MGR] After filtering: last_week={len(last_week_issues)}, this_week={len(this_week_issues)}")
+    logger.info(f"[ACTIVE WORK MGR] After filtering: {len(filtered_issues)} issues within {data_points_count} days")
 
-    all_active_issues = last_week_issues + this_week_issues
-
-    if not all_active_issues:
-        logger.warning("[ACTIVE WORK MGR] No active issues found after filtering")
-        return {
-            "timeline": [],
-            "last_week_issues": [],
-            "this_week_issues": [],
-        }
+    if not filtered_issues:
+        logger.warning("[ACTIVE WORK MGR] No issues found after filtering")
+        return {"timeline": []}
 
     # Add health indicators to each issue
-    last_week_with_health = [
-        _add_health_indicators(issue, flow_end_statuses) for issue in last_week_issues
-    ]
-    this_week_with_health = [
-        _add_health_indicators(issue, flow_end_statuses) for issue in this_week_issues
+    issues_with_health = [
+        _add_health_indicators(
+            issue, backend, profile_id, query_id, flow_end_statuses, flow_wip_statuses
+        )
+        for issue in filtered_issues
     ]
 
-    # Build epic timeline aggregation
+    # Build epic timeline with nested issues
     timeline = _build_epic_timeline(
-        all_active_issues, parent_field, flow_end_statuses, flow_wip_statuses
+        issues_with_health, backend, profile_id, query_id, parent_field, flow_end_statuses, flow_wip_statuses
     )
 
-    return {
-        "timeline": timeline,
-        "last_week_issues": last_week_with_health,
-        "this_week_issues": this_week_with_health,
-    }
+    return {"timeline": timeline}
 
 
 def calculate_epic_progress(
@@ -269,74 +254,149 @@ def calculate_epic_progress(
 
 
 def _add_health_indicators(
-    issue: Dict, flow_end_statuses: Optional[List[str]] = None
+    issue: Dict,
+    backend,
+    profile_id: Optional[str],
+    query_id: Optional[str],
+    flow_end_statuses: Optional[List[str]] = None,
+    flow_wip_statuses: Optional[List[str]] = None,
 ) -> Dict:
-    """Add health indicators to individual issue.
+    """Add health indicators based on status change velocity.
 
     Health indicators:
-    - is_blocked: No update in 5+ days (and not done)
-    - is_aging: Issue is 14+ days old (and not done)
+    - is_blocked: Status unchanged for 5+ days (not done)
+    - is_aging: Status unchanged for 3-5 days (not done, not blocked)
+    - is_wip: In WIP status and status changed in last 2 days
     - is_completed: In completion status
 
     Args:
         issue: Issue dict
+        backend: Database backend for changelog access
+        profile_id: Profile ID
+        query_id: Query ID
         flow_end_statuses: Completion statuses
+        flow_wip_statuses: WIP statuses
 
     Returns:
         Issue dict with health_indicators added
     """
     if flow_end_statuses is None:
         flow_end_statuses = ["Done", "Closed", "Resolved"]
+    if flow_wip_statuses is None:
+        flow_wip_statuses = []
 
     now = datetime.now(timezone.utc)
     status = issue.get("status", "Unknown")
     is_completed = status in flow_end_statuses
+    
+    # Check if in WIP status
+    is_in_wip_status = _is_wip_status_check(status, flow_wip_statuses)
 
-    # Check blocked (no update in 5+ days, not done)
+    # Default values
     is_blocked = False
-    if not is_completed:
-        updated_str = issue.get("updated")
-        if updated_str:
-            try:
-                if updated_str.endswith("Z"):
-                    updated_str = updated_str[:-1] + "+00:00"
-                updated_dt = datetime.fromisoformat(updated_str)
-                if updated_dt.tzinfo is None:
-                    updated_dt = updated_dt.replace(tzinfo=timezone.utc)
-                days_since_update = (now - updated_dt).days
-                is_blocked = days_since_update >= 5
-            except (ValueError, AttributeError):
-                pass
-
-    # Check aging (14+ days old, not done)
     is_aging = False
-    if not is_completed:
-        created_str = issue.get("created")
-        if created_str:
-            try:
-                if created_str.endswith("Z"):
-                    created_str = created_str[:-1] + "+00:00"
-                created_dt = datetime.fromisoformat(created_str)
-                if created_dt.tzinfo is None:
-                    created_dt = created_dt.replace(tzinfo=timezone.utc)
-                days_old = (now - created_dt).days
-                is_aging = days_old >= 14
-            except (ValueError, AttributeError):
-                pass
+    is_wip = False
+    days_since_status_change = None
+
+    # Get last status change from changelog
+    if backend and profile_id and query_id and not is_completed:
+        try:
+            issue_key = issue.get("issue_key")
+            if issue_key:
+                # Get status changes for this issue
+                changelog = backend.get_changelog_entries(
+                    profile_id=profile_id,
+                    query_id=query_id,
+                    issue_key=issue_key,
+                    field_name="status",
+                )
+                
+                if changelog:
+                    # Get most recent status change
+                    latest_change = changelog[0]  # Already ordered by change_date DESC
+                    change_date_str = latest_change.get("change_date")
+                    
+                    if change_date_str:
+                        try:
+                            if change_date_str.endswith("Z"):
+                                change_date_str = change_date_str[:-1] + "+00:00"
+                            change_dt = datetime.fromisoformat(change_date_str)
+                            if change_dt.tzinfo is None:
+                                change_dt = change_dt.replace(tzinfo=timezone.utc)
+                            
+                            days_since_status_change = (now - change_dt).days
+                            
+                            # Apply new logic based on status change velocity
+                            if days_since_status_change >= 5:
+                                is_blocked = True  # Stuck for 5+ days
+                            elif days_since_status_change >= 3:
+                                is_aging = True  # Approaching blocked (3-5 days)
+                            elif is_in_wip_status and days_since_status_change <= 2:
+                                is_wip = True  # Active work (changed recently)
+                                
+                        except (ValueError, AttributeError) as e:
+                            logger.debug(f"Could not parse status change date for {issue_key}: {e}")
+                else:
+                    # No status changes in changelog - use created date as fallback
+                    created_str = issue.get("created")
+                    if created_str:
+                        try:
+                            if created_str.endswith("Z"):
+                                created_str = created_str[:-1] + "+00:00"
+                            created_dt = datetime.fromisoformat(created_str)
+                            if created_dt.tzinfo is None:
+                                created_dt = created_dt.replace(tzinfo=timezone.utc)
+                            days_since_created = (now - created_dt).days
+                            
+                            if days_since_created >= 5:
+                                is_blocked = True
+                            elif days_since_created >= 3:
+                                is_aging = True
+                        except (ValueError, AttributeError):
+                            pass
+                            
+        except Exception as e:
+            logger.warning(f"Failed to get changelog for {issue.get('issue_key')}: {e}")
+            # Fallback to old logic if changelog fails
+            pass
 
     # Add health indicators to issue (don't modify original)
     issue_with_health = {**issue}
     issue_with_health["health_indicators"] = {
         "is_blocked": is_blocked,
         "is_aging": is_aging,
+        "is_wip": is_wip,
         "is_completed": is_completed,
     }
 
     return issue_with_health
 
 
+def _is_wip_status_check(status: str, flow_wip_statuses: List[str]) -> bool:
+    """Check if status is work-in-progress.
+    
+    Args:
+        status: Issue status
+        flow_wip_statuses: List of configured WIP statuses
+        
+    Returns:
+        True if status is considered WIP
+    """
+    # First check configured WIP statuses
+    if flow_wip_statuses and status in flow_wip_statuses:
+        return True
+    
+    # Fallback: check for WIP keywords in status name
+    status_lower = status.lower()
+    wip_keywords = ["progress", "review", "testing", "development", "deployment", "deploying"]
+    return any(kw in status_lower for kw in wip_keywords)
+
+
 def _build_epic_timeline(
     issues: List[Dict],
+    backend,
+    profile_id: Optional[str],
+    query_id: Optional[str],
     parent_field: str,
     flow_end_statuses: Optional[List[str]],
     flow_wip_statuses: Optional[List[str]],
@@ -345,6 +405,9 @@ def _build_epic_timeline(
 
     Args:
         issues: All active issues
+        backend: Database backend for fetching epic details
+        profile_id: Profile ID
+        query_id: Query ID
         parent_field: Field name for parent/epic
         flow_end_statuses: Completion statuses
         flow_wip_statuses: WIP statuses
@@ -378,7 +441,7 @@ def _build_epic_timeline(
 
         epics[parent_key].append(issue)
 
-    # Build epic summaries
+    # Build epic summaries with sorted child issues
     timeline = []
     for epic_key, child_issues in epics.items():
         if not child_issues:
@@ -401,10 +464,51 @@ def _build_epic_timeline(
                 # Extract summary from parent dict
                 epic_summary = parent.get("summary", parent.get("fields", {}).get("summary", epic_key))
             elif isinstance(parent, str):
-                # Parent is just a key string
-                epic_summary = epic_key
+                # Parent is just a key string - try to find the epic in our issues list
+                epic_issue = next((issue for issue in issues if issue.get("issue_key") == parent), None)
+                if epic_issue:
+                    epic_summary = epic_issue.get("summary", epic_key)
+                else:
+                    # Epic not in filtered issues - fetch from backend
+                    if backend and profile_id and query_id:
+                        try:
+                            all_issues = backend.get_issues(profile_id, query_id)
+                            epic_issue = next((issue for issue in all_issues if issue.get("issue_key") == parent), None)
+                            if epic_issue:
+                                epic_summary = epic_issue.get("summary", epic_key)
+                            else:
+                                logger.warning(f"Epic {parent} not found in database")
+                                epic_summary = epic_key  # Use key as last resort
+                        except Exception as e:
+                            logger.error(f"Failed to fetch epic {parent}: {e}")
+                            epic_summary = epic_key
+                    else:
+                        epic_summary = epic_key
             else:
                 epic_summary = epic_key
+
+        # Sort child issues: Blocked → Aging → WIP → To Do → Completed
+        def sort_priority(issue):
+            status = issue.get("status", "Unknown")
+            health = issue.get("health_indicators", {})
+            
+            # Priority 1: Blocked (highest alert)
+            if health.get("is_blocked"):
+                return (1, status)
+            # Priority 2: Aging (needs attention)
+            elif health.get("is_aging"):
+                return (2, status)
+            # Priority 3: WIP statuses
+            elif flow_wip_statuses and status in flow_wip_statuses:
+                return (3, status)
+            # Priority 4: To Do (not WIP, not completed)
+            elif not (flow_end_statuses and status in flow_end_statuses):
+                return (4, status)
+            # Priority 5: Completed (lowest priority)
+            else:
+                return (5, status)
+        
+        sorted_child_issues = sorted(child_issues, key=sort_priority)
 
         timeline.append(
             {
@@ -417,11 +521,12 @@ def _build_epic_timeline(
                 "total_points": progress["total_points"],
                 "completed_points": progress["completed_points"],
                 "completion_pct": progress["completion_pct"],
+                "child_issues": sorted_child_issues,  # Include sorted child issues
             }
         )
 
-    # Sort by completion %
-    timeline.sort(key=lambda x: x["completion_pct"], reverse=True)
+    # Sort epics by completion % (active first)
+    timeline.sort(key=lambda x: x["completion_pct"])
 
     logger.info(f"Built timeline with {len(timeline)} epics")
     return timeline

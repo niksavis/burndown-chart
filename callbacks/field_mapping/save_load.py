@@ -412,8 +412,13 @@ def save_or_validate_mappings(namespace_values, state_data):
         # Fallback: Also check old flat keys for backward compatibility
         if "development_projects" in state_data:
             settings["development_projects"] = state_data["development_projects"]
+            logger.info(f"[FieldMapping DEBUG] Found development_projects in state: {settings['development_projects']}")
         if "devops_projects" in state_data:
             settings["devops_projects"] = state_data["devops_projects"]
+            logger.info(f"[FieldMapping DEBUG] Found devops_projects in state: {settings['devops_projects']}")
+        
+        # CRITICAL DEBUG: Log what will be saved
+        logger.info(f"[FieldMapping DEBUG] About to save - development_projects: {settings.get('development_projects', [])}, devops_projects: {settings.get('devops_projects', [])}")
         if "flow_end_statuses" in state_data:
             settings["flow_end_statuses"] = state_data["flow_end_statuses"]
         if "active_statuses" in state_data:
