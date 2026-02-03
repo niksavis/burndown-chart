@@ -122,6 +122,8 @@ window.dash_clientside.namespace_autocomplete = {
       estimate: "number",
       // Sprint Tracker
       sprint_field: "option", // Sprint field (array type) for Sprint Tracker
+      // Active Work Timeline
+      parent_field: "any", // Parent/Epic Link field (can be object, string, or custom type)
     };
 
     // Map JIRA field types to categories
@@ -261,6 +263,11 @@ window.dash_clientside.namespace_autocomplete = {
     // If we don't have expected type for this field, just show info
     if (!expectedCategory) {
       return `<small class="text-info"><i class="fas fa-info-circle me-1"></i>Field: ${fieldInfo.name} (${actualType})</small>`;
+    }
+
+    // Special case: "any" type means field can be anything
+    if (expectedCategory === "any") {
+      return `<small class="text-success"><i class="fas fa-check-circle me-1"></i>Field: ${fieldInfo.name} (${actualType})</small>`;
     }
 
     // Check category match

@@ -36,6 +36,7 @@ class TabConfig(TypedDict):
     id: str
     label: str
     icon: str
+    unicode_icon: str
     color: str
     order: int
     requires_data: bool
@@ -49,6 +50,7 @@ TAB_CONFIG: List[TabConfig] = [
         "id": "tab-dashboard",
         "label": "Dashboard",
         "icon": "fa-tachometer-alt",
+        "unicode_icon": "📊",  # Dashboard gauge
         "color": get_color("primary"),
         "order": 0,
         "requires_data": True,
@@ -58,6 +60,7 @@ TAB_CONFIG: List[TabConfig] = [
         "id": "tab-burndown",
         "label": "Burndown",
         "icon": "fa-chart-line",
+        "unicode_icon": "📈",  # Chart increasing
         "color": get_color("info"),
         "order": 1,
         "requires_data": True,
@@ -67,6 +70,7 @@ TAB_CONFIG: List[TabConfig] = [
         "id": "tab-scope-tracking",
         "label": "Scope Tracking",
         "icon": "fa-project-diagram",
+        "unicode_icon": "🎯",  # Target/goal
         "color": get_color("secondary"),
         "order": 2,
         "requires_data": True,
@@ -76,6 +80,7 @@ TAB_CONFIG: List[TabConfig] = [
         "id": "tab-bug-analysis",
         "label": "Bug Analysis",
         "icon": "fa-bug",
+        "unicode_icon": "🐛",  # Bug
         "color": get_color("danger"),
         "order": 3,
         "requires_data": True,
@@ -85,6 +90,7 @@ TAB_CONFIG: List[TabConfig] = [
         "id": "tab-flow-metrics",
         "label": "Flow Metrics",
         "icon": "fa-stream",
+        "unicode_icon": "🌊",  # Water wave
         "color": get_color("success"),
         "order": 4,
         "requires_data": False,  # Has its own data loading
@@ -94,6 +100,7 @@ TAB_CONFIG: List[TabConfig] = [
         "id": "tab-dora-metrics",
         "label": "DORA Metrics",
         "icon": "fa-rocket",
+        "unicode_icon": "🚀",  # Rocket
         "color": get_color("primary"),
         "order": 5,
         "requires_data": False,  # Has its own data loading
@@ -103,6 +110,7 @@ TAB_CONFIG: List[TabConfig] = [
         "id": "tab-sprint-tracker",
         "label": "Sprint Tracker",
         "icon": "fa-running",
+        "unicode_icon": "🏃",  # Person running
         "color": get_color("warning"),
         "order": 6,
         "requires_data": True,
@@ -111,7 +119,8 @@ TAB_CONFIG: List[TabConfig] = [
     {
         "id": "tab-active-work-timeline",
         "label": "Active Work",
-        "icon": "fa-project-diagram",
+        "icon": "fa-clipboard-list",
+        "unicode_icon": "📋",  # Clipboard
         "color": get_color("info"),
         "order": 7,
         "requires_data": True,
@@ -121,6 +130,7 @@ TAB_CONFIG: List[TabConfig] = [
         "id": "tab-statistics-data",
         "label": "Weekly Data",
         "icon": "fa-table",
+        "unicode_icon": "📅",  # Calendar (weekly data)
         "color": get_color("secondary"),
         "order": 8,
         "requires_data": True,
@@ -175,19 +185,10 @@ def create_desktop_tabs_only():
     """
     tabs_config = get_tabs_sorted()
 
-    icon_map = {
-        "fa-dashboard": "📊 ",
-        "fa-chart-line": "📈 ",
-        "fa-list": "📋 ",
-        "fa-bug": "🐛 ",
-        "fa-rocket": "🚀 ",
-        "fa-water": "🌊 ",
-        "fa-table": "📊 ",
-    }
-
+    # Use Unicode icons in string labels (dbc.Tab v2.0.2 doesn't support Component labels)
     tabs = [
         dbc.Tab(
-            label=f"{icon_map.get(tab['icon'], '📄 ')}{tab['label']}",
+            label=f"{tab.get('unicode_icon', '')} {tab['label']}",
             tab_id=tab["id"],
             label_style={"cursor": "pointer"},
         )
@@ -217,28 +218,12 @@ def create_tabs():
     # Get mobile-optimized tab configuration
     tab_config = get_mobile_tabs_config()
 
-    # Map Font Awesome icons to Unicode alternatives for tab labels
-    # These provide visual distinction without requiring component labels
-    icon_map = {
-        "fas fa-tachometer-alt": "📊 ",
-        "fas fa-chart-line": "📈 ",
-        "fas fa-project-diagram": "🔀 ",
-        "fas fa-bug": "🐛 ",
-        "fas fa-stream": "🌊 ",
-        "fas fa-rocket": "🚀 ",
-        "fas fa-table": "📋 ",
-    }
-
-    # Generate tabs with enhanced markup for better visual feedback
+    # Generate tabs with Unicode icons in string labels
     tabs = []
     for tab in tab_config:
-        # Add icon prefix to label using Unicode emoji
-        icon_prefix = icon_map.get(tab["icon"], "")
-        label_with_icon = f"{icon_prefix}{tab['label']}"
-
         tabs.append(
             dbc.Tab(
-                label=label_with_icon,
+                label=f"{tab.get('unicode_icon', '')} {tab['label']}",
                 tab_id=tab["id"],
                 labelClassName="fw-bold tab-with-icon",  # Bold text prevents width shift on tab switch
                 activeLabelClassName="text-primary fw-bold",

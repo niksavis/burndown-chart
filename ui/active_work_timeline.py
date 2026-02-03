@@ -1,14 +1,19 @@
 """Active Work Timeline UI Components
 
-This module provides UI components for the Active Work Timeline tab showing
-active epics/features with recent activity (last 7 days + current week).
+This module provides UI components for the Active Work Timeline tab showing:
+- Timeline visualization of active epics/features
+- Issue lists for last week and this week (2-week window)
+- Health indicators on individual issues (blocked, aging, completed)
+
+Focuses on items being actively worked on (WIP + recent completions).
 
 Follows Sprint Tracker pattern for consistent layout and behavior.
 """
 
 from dash import html, dcc
 import dash_bootstrap_components as dbc
-from typing import Dict
+from typing import Dict, List, Optional
+from ui.jira_link_helper import create_jira_issue_link
 
 
 def create_active_work_timeline_tab() -> html.Div:
@@ -23,12 +28,76 @@ def create_active_work_timeline_tab() -> html.Div:
     return html.Div(id="active-work-timeline-tab-content", children=html.Div())
 
 
-def create_no_epics_state() -> html.Div:
-    """Create empty state when no active epics found.
+def create_no_issues_state(parent_field_configured: bool = True) -> html.Div:
+    """Create empty state when no active issues found.
+
+    Args:
+        parent_field_configured: Whether parent field is configured
 
     Returns:
         Div with informational message and setup instructions
     """
+    if not parent_field_configured:
+        # Parent field not configured - show guidance
+        return html.Div(
+            [
+                dbc.Container(
+                    [
+                        html.Div(
+                            [
+                                html.I(
+                                    className="fas fa-info-circle fa-4x text-info mb-3"
+                                ),
+                                html.H4(
+                                    "Configure Parent/Epic Field",
+                                    className="text-info mb-3",
+                                ),
+                                dbc.Alert(
+                                    [
+                                        html.I(className="fas fa-lightbulb me-2"),
+                                        "To see epic timeline, configure the ",
+                                        html.Strong("Parent/Epic Link"),
+                                        " field in Settings.",
+                                    ],
+                                    color="info",
+                                    className="mb-4",
+                                ),
+                                html.P(
+                                    "Issues will still be displayed below, but without epic grouping.",
+                                    className="text-muted mb-4",
+                                ),
+                                html.H6("Setup Steps:", className="text-muted mb-2"),
+                                html.Ol(
+                                    [
+                                        html.Li("Go to Settings → Fields tab"),
+                                        html.Li("Click General Fields section"),
+                                        html.Li(
+                                            [
+                                                "Set ",
+                                                html.Strong("Parent Field"),
+                                                " to your epic/parent field name",
+                                            ]
+                                        ),
+                                        html.Li(
+                                            "Common values: 'parent', 'Epic Link', 'customfield_10006'"
+                                        ),
+                                        html.Li("Click Update Data to refresh"),
+                                    ],
+                                    className="text-muted text-start",
+                                    style={"maxWidth": "600px", "margin": "0 auto"},
+                                ),
+                            ],
+                            className="d-flex flex-column align-items-center justify-content-center",
+                            style={"minHeight": "400px"},
+                        )
+                    ],
+                    className="container-fluid",
+                )
+            ],
+            className="container-fluid",
+        )
+
+    # Parent field configured but no issues found
     return html.Div(
         [
             dbc.Container(
@@ -39,35 +108,14 @@ def create_no_epics_state() -> html.Div:
                                 className="fas fa-project-diagram fa-4x text-muted mb-3"
                             ),
                             html.H4(
-                                "No Active Epics Found", className="text-muted mb-3"
+                                "No Active Work Found", className="text-muted mb-3"
                             ),
                             html.P(
                                 [
-                                    "Active Work Timeline shows epics/features with recent activity. ",
-                                    "No active work detected in the last 7 days.",
+                                    "Active Work Timeline shows WIP issues and recent completions. ",
+                                    "No active work detected in the last 2 weeks.",
                                 ],
                                 className="text-muted",
-                            ),
-                            html.Hr(className="my-4"),
-                            html.H6("Requirements:", className="text-muted mb-2"),
-                            html.Ul(
-                                [
-                                    html.Li(
-                                        [
-                                            "Configure ",
-                                            html.Strong("Parent/Epic Link"),
-                                            " field in Settings → Fields tab → General Fields",
-                                        ]
-                                    ),
-                                    html.Li(
-                                        "Issues must have parent epic/feature assigned"
-                                    ),
-                                    html.Li(
-                                        "Issues must have activity in last 7 days or current week"
-                                    ),
-                                ],
-                                className="text-muted text-start",
-                                style={"maxWidth": "500px", "margin": "0 auto"},
                             ),
                         ],
                         className="d-flex flex-column align-items-center justify-content-center",
@@ -81,248 +129,297 @@ def create_no_epics_state() -> html.Div:
     )
 
 
-def create_epic_card(epic_data: Dict, show_points: bool = False) -> dbc.Card:
-    """Create card for a single epic showing progress and metrics.
+def create_timeline_visualization(
+    timeline: List[Dict], show_points: bool = False
+) -> html.Div:
+    """Create timeline visualization showing epic progress bars.
 
     Args:
-        epic_data: Epic data from get_active_epics()
-        show_points: Whether to show story points metrics
+        timeline: List of epic summaries from get_active_work_data()
+        show_points: Whether to show story points
 
     Returns:
-        Bootstrap card component with epic details and progress
+        Div with timeline visualization
     """
-    epic_key = epic_data.get("epic_key", "Unknown")
-    epic_summary = epic_data.get("epic_summary", "Unknown Epic")
-    total_issues = epic_data.get("total_issues", 0)
-    completed_issues = epic_data.get("completed_issues", 0)
-    in_progress_issues = epic_data.get("in_progress_issues", 0)
-    todo_issues = epic_data.get("todo_issues", 0)
-    completion_pct = epic_data.get("completion_pct", 0.0)
-    total_points = epic_data.get("total_points", 0.0)
-    completed_points = epic_data.get("completed_points", 0.0)
-    last_updated = epic_data.get("last_updated", "")
-
-    # Progress bar color based on completion
-    if completion_pct >= 80:
-        progress_color = "success"
-    elif completion_pct >= 50:
-        progress_color = "info"
-    elif completion_pct >= 20:
-        progress_color = "warning"
-    else:
-        progress_color = "danger"
-
-    # Format last updated
-    last_updated_display = last_updated.split("T")[0] if last_updated else "Unknown"
-
-    # Build card header with epic key and completion
-    header = dbc.CardHeader(
-        [
-            html.Div(
-                [
-                    html.Span(
-                        epic_key,
-                        className="badge bg-primary me-2",
-                        style={"fontSize": "0.9rem"},
-                    ),
-                    html.Span(
-                        f"{completion_pct:.0f}% Complete",
-                        className=f"badge bg-{progress_color}",
-                        style={"fontSize": "0.8rem"},
-                    ),
-                ],
-                className="d-flex justify-content-between align-items-center",
-            )
-        ]
-    )
-
-    # Build card body with metrics
-    metrics_row = dbc.Row(
-        [
-            dbc.Col(
-                [
-                    html.Div(
-                        [
-                            html.I(className="fas fa-tasks text-info me-2"),
-                            html.Strong(f"{total_issues}"),
-                            html.Span(" Total", className="text-muted ms-1"),
-                        ],
-                        className="mb-2",
-                    ),
-                ],
-                xs=6,
-                md=3,
-            ),
-            dbc.Col(
-                [
-                    html.Div(
-                        [
-                            html.I(className="fas fa-check-circle text-success me-2"),
-                            html.Strong(f"{completed_issues}"),
-                            html.Span(" Done", className="text-muted ms-1"),
-                        ],
-                        className="mb-2",
-                    ),
-                ],
-                xs=6,
-                md=3,
-            ),
-            dbc.Col(
-                [
-                    html.Div(
-                        [
-                            html.I(className="fas fa-spinner text-warning me-2"),
-                            html.Strong(f"{in_progress_issues}"),
-                            html.Span(" In Progress", className="text-muted ms-1"),
-                        ],
-                        className="mb-2",
-                    ),
-                ],
-                xs=6,
-                md=3,
-            ),
-            dbc.Col(
-                [
-                    html.Div(
-                        [
-                            html.I(className="fas fa-circle text-secondary me-2"),
-                            html.Strong(f"{todo_issues}"),
-                            html.Span(" To Do", className="text-muted ms-1"),
-                        ],
-                        className="mb-2",
-                    ),
-                ],
-                xs=6,
-                md=3,
-            ),
-        ],
-        className="mb-3",
-    )
-
-    # Points row (if enabled)
-    points_row = None
-    if show_points and total_points > 0:
-        points_row = dbc.Row(
+    if not timeline:
+        return html.Div(
             [
-                dbc.Col(
-                    [
-                        html.Div(
-                            [
-                                html.I(className="fas fa-chart-bar text-primary me-2"),
-                                html.Strong(
-                                    f"{completed_points:.0f} / {total_points:.0f}"
-                                ),
-                                html.Span(" Story Points", className="text-muted ms-1"),
-                            ]
-                        ),
-                    ],
-                    xs=12,
-                ),
-            ],
-            className="mb-3",
+                html.H5("Epic Timeline", className="mb-3"),
+                html.P("No epics found", className="text-muted"),
+            ]
         )
 
-    # Progress bar
-    progress_bar = dbc.Progress(
-        value=completion_pct,
-        color=progress_color,
-        className="mb-2",
-        style={"height": "20px"},
-    )
+    epic_bars = []
+    for epic in timeline:
+        epic_key = epic.get("epic_key", "Unknown")
+        epic_summary = epic.get("epic_summary", "Unknown")
+        completion_pct = epic.get("completion_pct", 0.0)
+        total_issues = epic.get("total_issues", 0)
+        completed_issues = epic.get("completed_issues", 0)
+        total_points = epic.get("total_points", 0.0)
+        completed_points = epic.get("completed_points", 0.0)
 
-    # Last updated footer
-    footer = dbc.CardFooter(
-        [
-            html.Small(
+        # Progress bar color based on completion
+        if completion_pct >= 75:
+            bar_color = "success"
+        elif completion_pct >= 50:
+            bar_color = "info"
+        elif completion_pct >= 25:
+            bar_color = "warning"
+        else:
+            bar_color = "danger"
+
+        metrics_text = f"{completed_issues}/{total_issues} issues"
+        if show_points and total_points > 0:
+            metrics_text += f" • {completed_points:.0f}/{total_points:.0f} pts"
+
+        epic_bars.append(
+            html.Div(
                 [
-                    html.I(className="fas fa-clock text-muted me-1"),
-                    f"Last updated: {last_updated_display}",
+                    html.Div(
+                        [
+                            html.Strong(epic_summary, className="me-2"),
+                            html.Small(f"({epic_key})", className="text-muted"),
+                        ],
+                        className="mb-1",
+                    ),
+                    dbc.Progress(
+                        value=completion_pct,
+                        label=f"{completion_pct:.0f}%",
+                        color=bar_color,
+                        className="mb-1",
+                        style={"height": "25px"},
+                    ),
+                    html.Small(metrics_text, className="text-muted"),
                 ],
-                className="text-muted",
+                className="mb-3",
             )
-        ]
-    )
+        )
 
-    # Assemble card body
-    body_children = [
-        html.H5(epic_summary, className="card-title mb-3"),
-        metrics_row,
-    ]
-    if points_row:
-        body_children.append(points_row)
-    body_children.append(progress_bar)
-
-    return dbc.Card(
-        [
-            header,
-            dbc.CardBody(body_children),
-            footer,
-        ],
-        className="mb-3 shadow-sm",
-    )
-
-
-def create_timeline_controls(days_back: int = 7) -> html.Div:
-    """Create controls for timeline filtering.
-
-    Args:
-        days_back: Number of days to look back (default: 7)
-
-    Returns:
-        Div with filter controls
-    """
     return html.Div(
         [
-            dbc.Row(
+            html.H5(
+                [html.I(className="fas fa-chart-line me-2"), "Epic Timeline"],
+                className="mb-3",
+            ),
+            html.Div(epic_bars),
+        ],
+        className="timeline-section",
+    )
+
+
+def create_issue_list_section(
+    title: str, issues: List[Dict], show_points: bool = False
+) -> html.Div:
+    """Create issue list section with health indicators.
+
+    Args:
+        title: Section title ("Last Week" or "This Week")
+        issues: List of issues with health_indicators
+        show_points: Whether to show story points
+
+    Returns:
+        Div with issue list section
+    """
+    if not issues:
+        return html.Div(
+            [
+                html.H5(title, className="mb-3"),
+                html.P(f"No issues for {title.lower()}", className="text-muted"),
+            ]
+        )
+
+    issue_cards = [create_issue_card(issue, show_points) for issue in issues]
+
+    return html.Div(
+        [
+            html.H5(
                 [
-                    dbc.Col(
-                        [
-                            dbc.Label(
-                                "Activity Timeframe:", html_for="days-back-slider"
-                            ),
-                            dcc.Slider(
-                                id="timeline-days-back-slider",
-                                min=1,
-                                max=30,
-                                step=1,
-                                value=days_back,
-                                marks={
-                                    1: "1d",
-                                    7: "7d",
-                                    14: "14d",
-                                    21: "21d",
-                                    30: "30d",
-                                },
-                                tooltip={
-                                    "placement": "bottom",
-                                    "always_visible": False,
-                                },
-                            ),
-                        ],
-                        xs=12,
-                        md=6,
-                    ),
-                    dbc.Col(
-                        [
-                            dbc.Label("\u00a0"),  # Spacer
-                            dbc.Checklist(
-                                options=[
-                                    {
-                                        "label": "Include entire current week",
-                                        "value": "include_current_week",
-                                    }
-                                ],
-                                value=["include_current_week"],
-                                id="timeline-include-week-checkbox",
-                                switch=True,
-                            ),
-                        ],
-                        xs=12,
-                        md=6,
+                    html.I(className="fas fa-tasks me-2"),
+                    title,
+                    html.Span(
+                        f" ({len(issues)} issues)",
+                        className="text-muted ms-2",
+                        style={"fontSize": "0.9rem"},
                     ),
                 ],
-                className="g-3",
-            )
+                className="mb-3",
+            ),
+            html.Div(issue_cards, className="issue-list"),
         ],
-        className="mb-4 p-3 bg-light rounded",
+        className="issue-list-section",
+    )
+
+
+def create_issue_card(issue: Dict, show_points: bool = False) -> dbc.Card:
+    """Create card for single issue with health indicators.
+
+    Health badges:
+    - Blocked (red): No update in 5+ days
+    - Aging (yellow): 14+ days old
+    - Completed (green): In completion status
+
+    Visual connection:
+    - Displays parent epic key if available
+    - Shows as orphaned if no parent
+
+    Args:
+        issue: Issue dict with health_indicators
+        show_points: Whether to show story points
+
+    Returns:
+        Bootstrap card component
+    """
+    issue_key = issue.get("issue_key", "Unknown")
+    summary = issue.get("summary", "No summary")
+    status = issue.get("status", "Unknown")
+    issue_type = issue.get("issue_type", "Task")
+    points = issue.get("points", 0.0) or 0.0
+    assignee = issue.get("assignee")
+    health = issue.get("health_indicators", {})
+    parent = issue.get("parent")  # Get parent for visual connection
+
+    # Extract parent key
+    parent_key = None
+    if parent:
+        if isinstance(parent, dict):
+            parent_key = parent.get("key")
+        else:
+            parent_key = parent
+
+    # Health badges
+    badges = []
+    if health.get("is_completed"):
+        badges.append(
+            html.Span(
+                [html.I(className="fas fa-check-circle me-1"), "Completed"],
+                className="badge bg-success me-2",
+            )
+        )
+    if health.get("is_blocked"):
+        badges.append(
+            html.Span(
+                [html.I(className="fas fa-exclamation-triangle me-1"), "Blocked"],
+                className="badge bg-danger me-2",
+            )
+        )
+    if health.get("is_aging"):
+        badges.append(
+            html.Span(
+                [html.I(className="fas fa-clock me-1"), "Aging"],
+                className="badge bg-warning me-2",
+            )
+        )
+
+    # Issue type icon
+    type_icons = {
+        "Story": "fas fa-book",
+        "Task": "fas fa-tasks",
+        "Bug": "fas fa-bug",
+        "Epic": "fas fa-bolt",
+        "Sub-task": "fas fa-list-ul",
+    }
+    type_icon = type_icons.get(issue_type, "fas fa-circle")
+
+    # Points badge
+    points_badge = None
+    if show_points and points > 0:
+        points_badge = html.Span(
+            f"{points:.0f} pts",
+            className="badge bg-secondary ms-2",
+        )
+
+    # Create clickable issue key link
+    issue_key_link = create_jira_issue_link(
+        issue_key,
+        className="fw-bold text-primary",
+    )
+
+    # Create parent epic indicator (visual connection)
+    parent_indicator = None
+    card_classes = "mb-2"
+    card_data_attrs = {}
+
+    if parent_key:
+        # Has parent - show connection
+        parent_link = create_jira_issue_link(
+            parent_key,
+            className="badge bg-light text-dark border",
+            style={"fontSize": "0.7rem"},
+        )
+        parent_indicator = html.Div(
+            [
+                html.I(
+                    className="fas fa-level-up-alt me-1", style={"fontSize": "0.7rem"}
+                ),
+                parent_link,
+            ],
+            className="mb-2",
+        )
+        card_data_attrs["data-parent-key"] = parent_key  # For visual connection
+    else:
+        # Orphaned issue - show indicator
+        parent_indicator = html.Div(
+            [
+                html.Span(
+                    [html.I(className="fas fa-unlink me-1"), "No Epic"],
+                    className="badge bg-light text-muted border",
+                    style={"fontSize": "0.7rem"},
+                    title="This issue is not linked to any epic/parent",
+                ),
+            ],
+            className="mb-2",
+        )
+        card_classes += " orphaned-issue"
+
+    return dbc.Card(
+        dbc.CardBody(
+            [
+                # Parent epic indicator at top
+                parent_indicator,
+                html.Div(
+                    [
+                        # Left: Type icon + Key (clickable) + Summary
+                        html.Div(
+                            [
+                                html.I(className=f"{type_icon} me-2 text-primary"),
+                                issue_key_link,
+                                html.Span(summary, className="ms-2"),
+                            ],
+                            className="flex-grow-1",
+                        ),
+                        # Right: Health badges + Status
+                        html.Div(
+                            [
+                                html.Div(badges, className="d-flex align-items-center"),
+                                html.Span(
+                                    status,
+                                    className="badge bg-info ms-2",
+                                ),
+                                points_badge,
+                            ],
+                            className="d-flex align-items-center",
+                        ),
+                    ],
+                    className="d-flex align-items-center justify-content-between",
+                ),
+                # Assignee row
+                html.Div(
+                    [
+                        html.Small(
+                            [
+                                html.I(className="fas fa-user me-1"),
+                                assignee or "Unassigned",
+                            ],
+                            className="text-muted",
+                        ),
+                    ],
+                    className="mt-2",
+                )
+                if assignee
+                else None,
+            ]
+        ),
+        className=card_classes,
+        **card_data_attrs,
     )

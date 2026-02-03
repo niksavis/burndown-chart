@@ -1,14 +1,15 @@
 """Active Work Timeline Manager for Epic/Feature tracking.
 
-This module aggregates issues by their parent epic/feature and filters to
-recent activity (last 7 days + current week) to show active work in progress.
+This module provides functions for the Active Work tab showing:
+- Timeline visualization of active epics/features
+- Issue lists for last week and this week (2-week window)
+- Health indicators on individual issues (blocked, aging, at-risk)
 
-Uses existing parent field data from JIRA fetch - no new API calls needed.
-Parent field is populated via base_fields in main_fetch.py.
+Focuses on items being actively worked on, not just updated.
 
 Key Functions:
-    get_active_epics() -> List[Dict]: Get epics/features with recent activity
-    calculate_epic_progress() -> Dict: Calculate completion metrics per epic
+    get_active_work_data() -> Dict: Main function returning timeline + issue lists
+    add_health_indicators() -> List[Dict]: Add health signals to issues
     filter_recent_activity() -> List[Dict]: Filter issues to recent updates
 """
 
@@ -20,236 +21,156 @@ from collections import defaultdict
 logger = logging.getLogger(__name__)
 
 
-def filter_recent_activity(
-    issues: List[Dict], days_back: int = 7, include_current_week: bool = True
-) -> List[Dict]:
-    """Filter issues to those with recent activity.
+def filter_active_issues(
+    issues: List[Dict],
+    flow_end_statuses: Optional[List[str]] = None,
+    flow_wip_statuses: Optional[List[str]] = None,
+) -> Dict[str, List[Dict]]:
+    """Filter to active WIP issues + completed from last 2 weeks.
 
-    Recent activity includes:
-    - Issues updated in last N days
-    - Issues in current week (Mon-Sun) if include_current_week=True
+    Returns issues grouped by timeframe:
+    - All WIP issues (to do, in progress) regardless of age
+    - Completed issues from last 2 weeks only
+    - Grouped into: last_week, this_week
 
     Args:
-        issues: List of JIRA issues (from backend.get_issues())
-        days_back: Number of days to look back (default: 7)
-        include_current_week: Include all issues from current calendar week
+        issues: List of JIRA issues
+        flow_end_statuses: Completion statuses
+        flow_wip_statuses: WIP statuses
 
     Returns:
-        Filtered list of issues with recent activity
+        Dict with 'last_week' and 'this_week' issue lists
     """
-    logger.info(
-        f"Filtering {len(issues)} issues for recent activity "
-        f"(days_back={days_back}, include_current_week={include_current_week})"
-    )
+    from datetime import datetime, timedelta, timezone
+
+    if not flow_end_statuses:
+        flow_end_statuses = ["Done", "Closed", "Resolved"]
+    if not flow_wip_statuses:
+        flow_wip_statuses = ["In Progress", "In Review", "Testing", "To Do", "Backlog"]
 
     now = datetime.now(timezone.utc)
-    cutoff_date = now - timedelta(days=days_back)
 
-    # Calculate start of current week (Monday 00:00)
-    week_start = None
-    if include_current_week:
-        days_since_monday = now.weekday()  # Monday=0, Sunday=6
-        week_start = now - timedelta(
-            days=days_since_monday,
-            hours=now.hour,
-            minutes=now.minute,
-            seconds=now.second,
-            microseconds=now.microsecond,
-        )
+    # Calculate week boundaries (Monday to Sunday)
+    days_since_monday = now.weekday()  # 0=Monday, 6=Sunday
+    this_week_start = (now - timedelta(days=days_since_monday)).replace(
+        hour=0, minute=0, second=0, microsecond=0
+    )
+    last_week_start = this_week_start - timedelta(days=7)
+    two_weeks_ago = this_week_start - timedelta(days=14)
 
-    recent_issues = []
+    logger.info(
+        f"Filtering issues: last_week={last_week_start.date()}, "
+        f"this_week={this_week_start.date()}, two_weeks_ago={two_weeks_ago.date()}"
+    )
+
+    last_week_issues = []
+    this_week_issues = []
 
     for issue in issues:
-        # Get updated timestamp (backend stores as 'updated' field)
+        status = issue.get("status", "Unknown")
         updated_str = issue.get("updated")
 
         if not updated_str:
             continue
 
         try:
-            # Parse ISO format timestamp
-            # Handle both with and without timezone info
+            # Parse ISO format
             if updated_str.endswith("Z"):
-                updated_dt = datetime.fromisoformat(updated_str.replace("Z", "+00:00"))
-            elif "+" in updated_str or updated_str.count("-") > 2:
-                updated_dt = datetime.fromisoformat(updated_str)
-            else:
-                # No timezone, assume UTC
-                updated_dt = datetime.fromisoformat(updated_str).replace(
-                    tzinfo=timezone.utc
-                )
+                updated_str = updated_str[:-1] + "+00:00"
+            updated_dt = datetime.fromisoformat(updated_str)
+            if updated_dt.tzinfo is None:
+                updated_dt = updated_dt.replace(tzinfo=timezone.utc)
 
-            # Check if within timeframe
-            is_recent = updated_dt >= cutoff_date
-            is_current_week = week_start and updated_dt >= week_start
+            # Include if:
+            # 1. WIP status (any age)
+            # 2. Completed in last 2 weeks
+            is_completed = status in flow_end_statuses
+            is_wip = not is_completed  # Everything not done is WIP
 
-            if is_recent or is_current_week:
-                recent_issues.append(issue)
+            if is_completed and updated_dt < two_weeks_ago:
+                # Completed too long ago, skip
+                continue
+
+            # Group by week based on update time
+            if updated_dt >= this_week_start:
+                this_week_issues.append(issue)
+            elif updated_dt >= last_week_start:
+                last_week_issues.append(issue)
+            elif is_wip:
+                # WIP but no recent update - put in this week
+                this_week_issues.append(issue)
 
         except (ValueError, AttributeError) as e:
-            logger.warning(
-                f"Failed to parse updated date for issue {issue.get('issue_key')}: "
-                f"{updated_str} - {e}"
-            )
+            logger.warning(f"Failed to parse date for {issue.get('issue_key')}: {e}")
             continue
 
     logger.info(
-        f"Found {len(recent_issues)} issues with recent activity "
-        f"(cutoff: {cutoff_date.isoformat()})"
+        f"Filtered to {len(last_week_issues)} last week issues, "
+        f"{len(this_week_issues)} this week issues"
     )
 
-    return recent_issues
+    return {"last_week": last_week_issues, "this_week": this_week_issues}
 
 
-def get_active_epics(
+def get_active_work_data(
     issues: List[Dict],
-    days_back: int = 7,
-    include_current_week: bool = True,
     parent_field: str = "parent",
-) -> List[Dict]:
-    """Get epics/features with recent activity.
-
-    Groups issues by parent epic/feature and calculates progress metrics.
-    Only includes epics that have child issues with recent activity.
-
-    Args:
-        issues: List of JIRA issues (from backend.get_issues())
-        days_back: Number of days to look back for activity (default: 7)
-        include_current_week: Include issues from current calendar week
-        parent_field: Field name for parent/epic (e.g., 'parent' or 'customfield_10006')
+    flow_end_statuses: Optional[List[str]] = None,
+    flow_wip_statuses: Optional[List[str]] = None,
+) -> Dict:
+    """Get active work data with timeline and issue lists.
 
     Returns:
-        List of epic dictionaries with structure:
-        [
-            {
-                "epic_key": "PROJ-123",
-                "epic_summary": "User Authentication Feature",
-                "total_issues": 8,
-                "completed_issues": 3,
-                "in_progress_issues": 4,
-                "todo_issues": 1,
-                "total_points": 21.0,
-                "completed_points": 8.0,
-                "completion_pct": 38.1,
-                "recent_activity_count": 5,
-                "last_updated": "2026-02-03T15:30:00Z",
-                "child_issues": [
-                    {
-                        "issue_key": "PROJ-124",
-                        "summary": "Login API endpoint",
-                        "status": "In Progress",
-                        "points": 5.0,
-                        "updated": "2026-02-03T15:30:00Z"
-                    },
-                    ...
-                ]
-            },
-            ...
-        ]
+    {
+        "timeline": [epic summaries for visualization],
+        "last_week_issues": [issues with health indicators],
+        "this_week_issues": [issues with health indicators],
+    }
+
+    Args:
+        issues: List of JIRA issues
+        parent_field: Field name for parent/epic
+        flow_end_statuses: Completion statuses
+        flow_wip_statuses: WIP statuses
+
+    Returns:
+        Dict with timeline and issue lists
     """
-    logger.info(
-        f"Building active epic timeline from {len(issues)} issues "
-        f"(days_back={days_back}, include_current_week={include_current_week})"
+    logger.info(f"Building active work data from {len(issues)} issues")
+
+    # Filter to WIP + recent completions
+    filtered = filter_active_issues(issues, flow_end_statuses, flow_wip_statuses)
+    last_week_issues = filtered["last_week"]
+    this_week_issues = filtered["this_week"]
+
+    all_active_issues = last_week_issues + this_week_issues
+
+    if not all_active_issues:
+        logger.info("No active issues found")
+        return {
+            "timeline": [],
+            "last_week_issues": [],
+            "this_week_issues": [],
+        }
+
+    # Add health indicators to each issue
+    last_week_with_health = [
+        _add_health_indicators(issue, flow_end_statuses) for issue in last_week_issues
+    ]
+    this_week_with_health = [
+        _add_health_indicators(issue, flow_end_statuses) for issue in this_week_issues
+    ]
+
+    # Build epic timeline aggregation
+    timeline = _build_epic_timeline(
+        all_active_issues, parent_field, flow_end_statuses, flow_wip_statuses
     )
 
-    # Filter to issues with recent activity
-    recent_issues = filter_recent_activity(
-        issues, days_back=days_back, include_current_week=include_current_week
-    )
-
-    if not recent_issues:
-        logger.info("No issues with recent activity found")
-        return []
-
-    # Group issues by parent epic/feature
-    epics_map = defaultdict(list)
-    orphan_issues = []  # Issues without parent
-
-    for issue in recent_issues:
-        # Extract parent from custom_fields using configurable parent_field
-        custom_fields = issue.get("custom_fields", {})
-        parent_value = custom_fields.get(parent_field)
-
-        # Parent can be:
-        # - Dict: {"key": "PROJ-123", "fields": {"summary": "..."}}
-        # - String: "PROJ-123"
-        # - None: no parent
-
-        parent_key = None
-        if isinstance(parent_value, dict):
-            parent_key = parent_value.get("key")
-        elif isinstance(parent_value, str):
-            parent_key = parent_value
-
-        if parent_key:
-            epics_map[parent_key].append(issue)
-        else:
-            orphan_issues.append(issue)
-
-    if orphan_issues:
-        logger.info(
-            f"Found {len(orphan_issues)} issues without parent epic "
-            "(will not appear in timeline)"
-        )
-
-    # Build epic progress data
-    active_epics = []
-
-    for epic_key, child_issues in epics_map.items():
-        # Calculate progress metrics
-        progress = calculate_epic_progress(child_issues)
-
-        # Get epic summary from first child's parent field
-        # (JIRA parent field includes summary in nested structure)
-        epic_summary = "Unknown Epic"
-        first_issue = child_issues[0]
-        parent_value = first_issue.get("custom_fields", {}).get(parent_field)
-        if isinstance(parent_value, dict):
-            epic_summary = parent_value.get("fields", {}).get("summary", epic_summary)
-
-        # Find most recent update time
-        last_updated = None
-        for issue in child_issues:
-            updated_str = issue.get("updated")
-            if updated_str and (not last_updated or updated_str > last_updated):
-                last_updated = updated_str
-
-        # Build child issue summaries
-        child_summaries = []
-        for issue in child_issues:
-            child_summaries.append(
-                {
-                    "issue_key": issue.get("issue_key"),
-                    "summary": issue.get("summary", ""),
-                    "status": issue.get("status", "Unknown"),
-                    "points": issue.get("points", 0.0),
-                    "updated": issue.get("updated"),
-                }
-            )
-
-        active_epics.append(
-            {
-                "epic_key": epic_key,
-                "epic_summary": epic_summary,
-                "total_issues": progress["total_issues"],
-                "completed_issues": progress["completed_issues"],
-                "in_progress_issues": progress["in_progress_issues"],
-                "todo_issues": progress["todo_issues"],
-                "total_points": progress["total_points"],
-                "completed_points": progress["completed_points"],
-                "completion_pct": progress["completion_pct"],
-                "recent_activity_count": len(child_issues),
-                "last_updated": last_updated,
-                "child_issues": child_summaries,
-            }
-        )
-
-    # Sort by most recent activity
-    active_epics.sort(key=lambda x: x["last_updated"] or "", reverse=True)
-
-    logger.info(f"Found {len(active_epics)} active epics/features with recent activity")
-
-    return active_epics
+    return {
+        "timeline": timeline,
+        "last_week_issues": last_week_with_health,
+        "this_week_issues": this_week_with_health,
+    }
 
 
 def calculate_epic_progress(
@@ -342,3 +263,143 @@ def calculate_epic_progress(
         "completion_pct": completion_pct,
         "by_status": dict(by_status),
     }
+
+
+def _add_health_indicators(
+    issue: Dict, flow_end_statuses: Optional[List[str]] = None
+) -> Dict:
+    """Add health indicators to individual issue.
+
+    Health indicators:
+    - is_blocked: No update in 5+ days (and not done)
+    - is_aging: Issue is 14+ days old (and not done)
+    - is_completed: In completion status
+
+    Args:
+        issue: Issue dict
+        flow_end_statuses: Completion statuses
+
+    Returns:
+        Issue dict with health_indicators added
+    """
+    if flow_end_statuses is None:
+        flow_end_statuses = ["Done", "Closed", "Resolved"]
+
+    now = datetime.now(timezone.utc)
+    status = issue.get("status", "Unknown")
+    is_completed = status in flow_end_statuses
+
+    # Check blocked (no update in 5+ days, not done)
+    is_blocked = False
+    if not is_completed:
+        updated_str = issue.get("updated")
+        if updated_str:
+            try:
+                if updated_str.endswith("Z"):
+                    updated_str = updated_str[:-1] + "+00:00"
+                updated_dt = datetime.fromisoformat(updated_str)
+                if updated_dt.tzinfo is None:
+                    updated_dt = updated_dt.replace(tzinfo=timezone.utc)
+                days_since_update = (now - updated_dt).days
+                is_blocked = days_since_update >= 5
+            except (ValueError, AttributeError):
+                pass
+
+    # Check aging (14+ days old, not done)
+    is_aging = False
+    if not is_completed:
+        created_str = issue.get("created")
+        if created_str:
+            try:
+                if created_str.endswith("Z"):
+                    created_str = created_str[:-1] + "+00:00"
+                created_dt = datetime.fromisoformat(created_str)
+                if created_dt.tzinfo is None:
+                    created_dt = created_dt.replace(tzinfo=timezone.utc)
+                days_old = (now - created_dt).days
+                is_aging = days_old >= 14
+            except (ValueError, AttributeError):
+                pass
+
+    # Add health indicators to issue (don't modify original)
+    issue_with_health = {**issue}
+    issue_with_health["health_indicators"] = {
+        "is_blocked": is_blocked,
+        "is_aging": is_aging,
+        "is_completed": is_completed,
+    }
+
+    return issue_with_health
+
+
+def _build_epic_timeline(
+    issues: List[Dict],
+    parent_field: str,
+    flow_end_statuses: Optional[List[str]],
+    flow_wip_statuses: Optional[List[str]],
+) -> List[Dict]:
+    """Build epic timeline aggregation from issues.
+
+    Args:
+        issues: All active issues
+        parent_field: Field name for parent/epic
+        flow_end_statuses: Completion statuses
+        flow_wip_statuses: WIP statuses
+
+    Returns:
+        List of epic summaries for timeline visualization
+    """
+    epics = defaultdict(list)
+
+    # Group by parent
+    for issue in issues:
+        parent = issue.get(parent_field)
+        if parent:
+            if isinstance(parent, dict):
+                parent_key = parent.get("key")
+            else:
+                parent_key = parent
+        else:
+            parent_key = "No Parent"
+
+        epics[parent_key].append(issue)
+
+    # Build epic summaries
+    timeline = []
+    for epic_key, child_issues in epics.items():
+        if not child_issues:
+            continue
+
+        progress = calculate_epic_progress(
+            child_issues, flow_end_statuses, flow_wip_statuses
+        )
+
+        # Get epic summary (from first child's parent field)
+        epic_summary = "Unknown"
+        if epic_key != "No Parent":
+            first_issue = child_issues[0]
+            parent = first_issue.get(parent_field)
+            if isinstance(parent, dict):
+                epic_summary = parent.get("summary", epic_key)
+            else:
+                epic_summary = epic_key
+
+        timeline.append(
+            {
+                "epic_key": epic_key,
+                "epic_summary": epic_summary,
+                "total_issues": progress["total_issues"],
+                "completed_issues": progress["completed_issues"],
+                "in_progress_issues": progress["in_progress_issues"],
+                "todo_issues": progress["todo_issues"],
+                "total_points": progress["total_points"],
+                "completed_points": progress["completed_points"],
+                "completion_pct": progress["completion_pct"],
+            }
+        )
+
+    # Sort by completion %
+    timeline.sort(key=lambda x: x["completion_pct"], reverse=True)
+
+    logger.info(f"Built timeline with {len(timeline)} epics")
+    return timeline
