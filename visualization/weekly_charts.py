@@ -89,7 +89,7 @@ def _add_required_velocity_line(
                 width=3,
                 dash="dash",
             ),
-            name=f"Required: {required_velocity:.1f} {chart_type}/week ({status})",
+            name=f"Required: {required_velocity:.1f} {chart_type}/week",
             hovertemplate=(
                 f"<b>Required Velocity</b><br>"
                 f"{required_velocity:.1f} {chart_type}/week<br>"
