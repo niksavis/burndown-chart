@@ -81,6 +81,84 @@ def create_forecast_analytics_section(
     Returns:
         dbc.Card component containing forecast analytics
     """
+
+    def calculate_schedule_status(
+        forecast_date_str: str, deadline_date_str: Optional[str], current_date: datetime
+    ) -> dict:
+        """Calculate schedule status for progress bar visualization.
+
+        Args:
+            forecast_date_str: Forecast date in YYYY-MM-DD format
+            deadline_date_str: Deadline date in YYYY-MM-DD format (None if no deadline set)
+            current_date: Current date/time
+
+        Returns:
+            dict with percentage, badge_text, color, and status
+        """
+        if forecast_date_str == "No data" or not deadline_date_str:
+            return {
+                "percentage": 0,
+                "bar_width": 0,
+                "badge_text": "Unknown",
+                "color": "#6c757d",
+                "status": "unknown",
+            }
+
+        try:
+            forecast_date = datetime.strptime(forecast_date_str, "%Y-%m-%d")
+            deadline_date = datetime.strptime(deadline_date_str, "%Y-%m-%d")
+
+            # Calculate days
+            days_to_forecast = (forecast_date - current_date).days
+            days_to_deadline = (deadline_date - current_date).days
+
+            # Avoid division by zero
+            if days_to_deadline <= 0:
+                return {
+                    "percentage": 100,
+                    "bar_width": 100,
+                    "badge_text": "Overdue",
+                    "color": "#dc3545",
+                    "status": "overdue",
+                }
+
+            # Calculate percentage (how much of timeline to deadline is used by forecast)
+            percentage = (days_to_forecast / days_to_deadline) * 100
+
+            # Determine status
+            if days_to_forecast < days_to_deadline:
+                # Ahead of schedule
+                badge_text = "Ahead"
+                if percentage <= 70:
+                    color = "#28a745"  # Green - significantly ahead
+                elif percentage <= 90:
+                    color = "#20c997"  # Teal - slightly ahead
+                else:
+                    color = "#ffc107"  # Yellow - barely ahead
+            else:
+                # Behind schedule or on deadline
+                badge_text = "Behind"
+                if percentage <= 110:
+                    color = "#ffc107"  # Yellow - slightly behind
+                else:
+                    color = "#dc3545"  # Red - significantly behind
+
+            return {
+                "percentage": percentage,  # Actual percentage (can exceed 100%)
+                "bar_width": min(percentage, 100),  # Bar width capped at 100% for CSS
+                "badge_text": badge_text,
+                "color": color,
+                "status": "ahead" if days_to_forecast < days_to_deadline else "behind",
+            }
+        except Exception:
+            return {
+                "percentage": 0,
+                "bar_width": 0,
+                "badge_text": "Unknown",
+                "color": "#6c757d",
+                "status": "unknown",
+            }
+
     # Use last statistics date from pert_data (aligns with weekly data structure)
     # Falls back to datetime.now() only if last_date not available
     current_date = pert_data.get("last_date", datetime.now())
@@ -149,6 +227,22 @@ def create_forecast_analytics_section(
         else "#dc3545"
     )
 
+    # Calculate schedule status for Expected Completion card progress bars
+    items_schedule_status = calculate_schedule_status(
+        items_pert_date, deadline_str, current_date
+    )
+    points_schedule_status = calculate_schedule_status(
+        points_pert_date, deadline_str, current_date
+    )
+
+    # Calculate schedule status for Confidence Intervals card progress bars
+    ci_50_status = calculate_schedule_status(
+        optimistic_date, deadline_str, current_date
+    )
+    ci_95_status = calculate_schedule_status(
+        pessimistic_date, deadline_str, current_date
+    )
+
     # Create Enhanced Expected Completion card with BOTH forecasts
     expected_completion_card = dbc.Card(
         [
@@ -179,33 +273,69 @@ def create_forecast_analytics_section(
                             html.Div(
                                 [
                                     html.I(
-                                        className="fas fa-tasks me-2",
+                                        className="fas fa-tasks me-1",
                                         style={
                                             "color": COLOR_PALETTE["items"],
-                                            "fontSize": "1rem",
+                                            "fontSize": "0.9rem",
                                         },
                                     ),
                                     html.Span(
                                         "Items-based",
                                         className="text-muted",
-                                        style={"fontSize": "0.85rem"},
+                                        style={"fontSize": "0.75rem"},
                                     ),
                                 ],
                                 className="mb-1",
                             ),
                             html.Div(
-                                items_pert_date,
-                                className="h3 mb-3",
-                                style={
-                                    "fontWeight": "bold",
-                                    "color": COLOR_PALETTE["items"],
-                                },
+                                [
+                                    # Date display with badge
+                                    html.Div(
+                                        [
+                                            html.Span(
+                                                items_pert_date,
+                                                className="text-muted",
+                                                style={
+                                                    "fontSize": "0.85rem",
+                                                    "fontWeight": "600",
+                                                },
+                                            ),
+                                            html.Span(
+                                                items_schedule_status["badge_text"],
+                                                className="badge ms-2",
+                                                style={
+                                                    "backgroundColor": items_schedule_status[
+                                                        "color"
+                                                    ],
+                                                    "fontSize": "0.75rem",
+                                                },
+                                            ),
+                                        ],
+                                        className="d-flex justify-content-between align-items-center mb-2",
+                                    ),
+                                    # Progress bar
+                                    html.Div(
+                                        html.Div(
+                                            f"{items_schedule_status['percentage']:.1f}%",
+                                            className="progress-bar",
+                                            style={
+                                                "width": f"{items_schedule_status['bar_width']}%",
+                                                "backgroundColor": items_schedule_status[
+                                                    "color"
+                                                ],
+                                            },
+                                            role="progressbar",
+                                        ),
+                                        className="progress",
+                                        style={"height": "20px"},
+                                    ),
+                                ],
                             ),
                         ],
-                        className="text-center pb-2",
+                        className="pb-3 mb-3",
                         style={"borderBottom": "1px solid #e9ecef"}
                         if show_points
-                        else {},
+                        else {"marginBottom": "0"},
                     ),
                     # Points-based forecast (always show, with placeholder when disabled or no data)
                     html.Div(
@@ -213,93 +343,119 @@ def create_forecast_analytics_section(
                             html.Div(
                                 [
                                     html.I(
-                                        className="fas fa-chart-bar me-2",
+                                        className="fas fa-chart-bar me-1",
                                         style={
                                             "color": COLOR_PALETTE["points"]
                                             if show_points
                                             and points_pert_date != "No data"
                                             else "#6c757d",
-                                            "fontSize": "1rem",
+                                            "fontSize": "0.9rem",
                                         },
                                     ),
                                     html.Span(
                                         "Points-based",
                                         className="text-muted",
-                                        style={"fontSize": "0.85rem"},
+                                        style={"fontSize": "0.75rem"},
                                     ),
                                 ],
-                                className="mb-1 mt-3",
+                                className="mb-1",
                             ),
                             html.Div(
-                                # Case 1: Points tracking enabled with data
-                                points_pert_date
-                                if show_points and points_pert_date != "No data"
-                                # Case 2: Points tracking disabled
-                                else (
+                                [
+                                    # Date display with badge
+                                    html.Div(
+                                        [
+                                            html.Span(
+                                                points_pert_date,
+                                                className="text-muted",
+                                                style={
+                                                    "fontSize": "0.85rem",
+                                                    "fontWeight": "600",
+                                                },
+                                            ),
+                                            html.Span(
+                                                points_schedule_status["badge_text"],
+                                                className="badge ms-2",
+                                                style={
+                                                    "backgroundColor": points_schedule_status[
+                                                        "color"
+                                                    ],
+                                                    "fontSize": "0.75rem",
+                                                },
+                                            ),
+                                        ],
+                                        className="d-flex justify-content-between align-items-center mb-2",
+                                    ),
+                                    # Progress bar
+                                    html.Div(
+                                        html.Div(
+                                            f"{points_schedule_status['percentage']:.1f}%",
+                                            className="progress-bar",
+                                            style={
+                                                "width": f"{points_schedule_status['bar_width']}%",
+                                                "backgroundColor": points_schedule_status[
+                                                    "color"
+                                                ],
+                                            },
+                                            role="progressbar",
+                                        ),
+                                        className="progress",
+                                        style={"height": "20px"},
+                                    ),
+                                ],
+                            )
+                            # Case 1: Points tracking enabled with data
+                            if show_points and points_pert_date != "No data"
+                            # Case 2: Points tracking disabled
+                            else (
+                                html.Div(
                                     [
+                                        html.I(
+                                            className="fas fa-toggle-off fa-2x text-secondary mb-2"
+                                        ),
                                         html.Div(
-                                            [
-                                                html.I(
-                                                    className="fas fa-toggle-off fa-2x text-secondary mb-2"
-                                                ),
-                                                html.Div(
-                                                    "Points Tracking Disabled",
-                                                    className="h5 mb-2",
-                                                    style={
-                                                        "fontWeight": "600",
-                                                        "color": "#6c757d",
-                                                    },
-                                                ),
-                                                html.Small(
-                                                    "Points tracking is disabled. Enable Points Tracking in Parameters panel to view story points metrics.",
-                                                    className="text-muted",
-                                                    style={"fontSize": "0.75rem"},
-                                                ),
-                                            ],
-                                            className="text-center",
-                                        )
-                                    ]
-                                    if not show_points
-                                    # Case 3: Points tracking enabled but no data
-                                    else [
+                                            "Points Tracking Disabled",
+                                            className="h5 mb-2",
+                                            style={
+                                                "fontWeight": "600",
+                                                "color": "#6c757d",
+                                            },
+                                        ),
+                                        html.Small(
+                                            "Points tracking is disabled. Enable Points Tracking in Parameters panel to view story points metrics.",
+                                            className="text-muted",
+                                            style={"fontSize": "0.75rem"},
+                                        ),
+                                    ],
+                                    className="text-center",
+                                )
+                                if not show_points
+                                # Case 3: Points tracking enabled but no data
+                                else html.Div(
+                                    [
+                                        html.I(
+                                            className="fas fa-database fa-2x text-secondary mb-2"
+                                        ),
                                         html.Div(
-                                            [
-                                                html.I(
-                                                    className="fas fa-database fa-2x text-secondary mb-2"
-                                                ),
-                                                html.Div(
-                                                    "No Points Data",
-                                                    className="h5 mb-2",
-                                                    style={
-                                                        "fontWeight": "600",
-                                                        "color": "#6c757d",
-                                                    },
-                                                ),
-                                                html.Small(
-                                                    "No story points data available. Configure story points field in Settings or complete items with point estimates.",
-                                                    className="text-muted",
-                                                    style={"fontSize": "0.75rem"},
-                                                ),
-                                            ],
-                                            className="text-center",
-                                        )
-                                    ]
-                                ),
-                                className="h3 mb-0"
-                                if show_points and points_pert_date != "No data"
-                                else "",
-                                style={
-                                    "fontWeight": "bold",
-                                    "color": COLOR_PALETTE["points"],
-                                }
-                                if show_points and points_pert_date != "No data"
-                                else {},
+                                            "No Points Data",
+                                            className="h5 mb-2",
+                                            style={
+                                                "fontWeight": "600",
+                                                "color": "#6c757d",
+                                            },
+                                        ),
+                                        html.Small(
+                                            "No story points data available. Configure story points field in Settings or complete items with point estimates.",
+                                            className="text-muted",
+                                            style={"fontSize": "0.75rem"},
+                                        ),
+                                    ],
+                                    className="text-center",
+                                )
                             ),
                         ],
-                        className="text-center",
                     ),
-                ],
-                className="text-center py-3",
+                ]
             ),
             dbc.CardFooter(
                 html.Small(
@@ -344,30 +500,67 @@ def create_forecast_analytics_section(
                             html.Div(
                                 [
                                     html.I(
-                                        className="fas fa-thumbs-up me-2",
-                                        style={"color": "#28a745"},
+                                        className="fas fa-thumbs-up me-1",
+                                        style={
+                                            "color": "#28a745",
+                                            "fontSize": "0.9rem",
+                                        },
                                     ),
                                     html.Span(
                                         "50% Confidence",
-                                        style={
-                                            "fontSize": "0.9rem",
-                                            "fontWeight": "600",
-                                        },
+                                        className="text-muted",
+                                        style={"fontSize": "0.75rem"},
                                     ),
                                 ],
-                                className="mb-2",
+                                className="mb-1",
                             ),
                             html.Div(
-                                optimistic_date,
-                                className="h3 mb-3",
-                                style={
-                                    "color": "#28a745",
-                                    "fontWeight": "bold",
-                                },
+                                [
+                                    # Date display with badge
+                                    html.Div(
+                                        [
+                                            html.Span(
+                                                optimistic_date,
+                                                className="text-muted",
+                                                style={
+                                                    "fontSize": "0.85rem",
+                                                    "fontWeight": "600",
+                                                },
+                                            ),
+                                            html.Span(
+                                                ci_50_status["badge_text"],
+                                                className="badge ms-2",
+                                                style={
+                                                    "backgroundColor": ci_50_status[
+                                                        "color"
+                                                    ],
+                                                    "fontSize": "0.75rem",
+                                                },
+                                            ),
+                                        ],
+                                        className="d-flex justify-content-between align-items-center mb-2",
+                                    ),
+                                    # Progress bar
+                                    html.Div(
+                                        html.Div(
+                                            f"{ci_50_status['percentage']:.1f}%",
+                                            className="progress-bar",
+                                            style={
+                                                "width": f"{ci_50_status['bar_width']}%",
+                                                "backgroundColor": ci_50_status[
+                                                    "color"
+                                                ],
+                                            },
+                                            role="progressbar",
+                                        ),
+                                        className="progress",
+                                        style={"height": "20px"},
+                                    ),
+                                ],
                             ),
                         ],
-                        className="text-center pb-3",
-                        style={"borderBottom": "2px solid #e9ecef"},
+                        className="pb-3 mb-3",
+                        style={"borderBottom": "1px solid #e9ecef"},
                     ),
                     # 95% Confidence (Pessimistic)
                     html.Div(
@@ -375,32 +568,67 @@ def create_forecast_analytics_section(
                             html.Div(
                                 [
                                     html.I(
-                                        className="fas fa-shield-alt me-2",
-                                        style={"color": "#dc3545"},
+                                        className="fas fa-shield-alt me-1",
+                                        style={
+                                            "color": "#dc3545",
+                                            "fontSize": "0.9rem",
+                                        },
                                     ),
                                     html.Span(
                                         "95% Confidence",
-                                        style={
-                                            "fontSize": "0.9rem",
-                                            "fontWeight": "600",
-                                        },
+                                        className="text-muted",
+                                        style={"fontSize": "0.75rem"},
                                     ),
                                 ],
-                                className="mb-2 mt-3",
+                                className="mb-1",
                             ),
                             html.Div(
-                                pessimistic_date,
-                                className="h3 mb-0",
-                                style={
-                                    "color": "#dc3545",
-                                    "fontWeight": "bold",
-                                },
+                                [
+                                    # Date display with badge
+                                    html.Div(
+                                        [
+                                            html.Span(
+                                                pessimistic_date,
+                                                className="text-muted",
+                                                style={
+                                                    "fontSize": "0.85rem",
+                                                    "fontWeight": "600",
+                                                },
+                                            ),
+                                            html.Span(
+                                                ci_95_status["badge_text"],
+                                                className="badge ms-2",
+                                                style={
+                                                    "backgroundColor": ci_95_status[
+                                                        "color"
+                                                    ],
+                                                    "fontSize": "0.75rem",
+                                                },
+                                            ),
+                                        ],
+                                        className="d-flex justify-content-between align-items-center mb-2",
+                                    ),
+                                    # Progress bar
+                                    html.Div(
+                                        html.Div(
+                                            f"{ci_95_status['percentage']:.1f}%",
+                                            className="progress-bar",
+                                            style={
+                                                "width": f"{ci_95_status['bar_width']}%",
+                                                "backgroundColor": ci_95_status[
+                                                    "color"
+                                                ],
+                                            },
+                                            role="progressbar",
+                                        ),
+                                        className="progress",
+                                        style={"height": "20px"},
+                                    ),
+                                ],
                             ),
                         ],
-                        className="text-center",
                     ),
                 ],
-                className="text-center py-3",
             ),
             dbc.CardFooter(
                 html.Small(
