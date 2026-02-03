@@ -136,6 +136,9 @@ def get_active_work_data(
     logger.info(f"[ACTIVE WORK MGR] Building active work data from {len(issues)} issues")
     logger.info(f"[ACTIVE WORK MGR] data_points_count={data_points_count}, parent_field={parent_field}")
 
+    # Keep original issues list (including parents) for parent summary lookup
+    all_issues_unfiltered = issues
+
     # CRITICAL: Filter out parent issues dynamically (don't hardcode "Epic")
     # Use parent field mapping to detect which issues are parents
     if filter_parents and parent_field:
@@ -163,8 +166,10 @@ def get_active_work_data(
     ]
 
     # Build epic timeline with nested issues
+    # Pass unfiltered list so we can find parent summaries
     timeline = _build_epic_timeline(
-        issues_with_health, backend, profile_id, query_id, parent_field, flow_end_statuses, flow_wip_statuses
+        issues_with_health, backend, profile_id, query_id, parent_field, flow_end_statuses, flow_wip_statuses,
+        all_issues_unfiltered
     )
 
     return {"timeline": timeline}
@@ -409,21 +414,26 @@ def _build_epic_timeline(
     parent_field: str,
     flow_end_statuses: Optional[List[str]],
     flow_wip_statuses: Optional[List[str]],
+    all_issues_unfiltered: Optional[List[Dict]] = None,
 ) -> List[Dict]:
     """Build epic timeline aggregation from issues.
 
     Args:
-        issues: All active issues
+        issues: All active issues (filtered, without parents)
         backend: Database backend for fetching epic details
         profile_id: Profile ID
         query_id: Query ID
         parent_field: Field name for parent/epic
         flow_end_statuses: Completion statuses
         flow_wip_statuses: WIP statuses
+        all_issues_unfiltered: Original unfiltered issues list (includes parents for summary lookup)
 
     Returns:
         List of epic summaries for timeline visualization
     """
+    # Use unfiltered list if provided, fallback to filtered list
+    if all_issues_unfiltered is None:
+        all_issues_unfiltered = issues
     epics = defaultdict(list)
 
     # Group by parent
@@ -476,32 +486,32 @@ def _build_epic_timeline(
                 epic_summary = parent.get("summary") or parent.get("fields", {}).get("summary") or parent.get("name") or epic_key
                 logger.debug(f"[EPIC] From parent dict: {epic_summary}")
             elif isinstance(parent, str):
-                # Parent is just a key string - fetch from database
-                logger.debug(f"[EPIC] Parent is string '{parent}', fetching from database...")
-                epic_issue = next((issue for issue in issues if issue.get("issue_key") == parent), None)
+                # Parent is just a key string - look in unfiltered list first
+                logger.debug(f"[EPIC] Parent is string '{parent}', looking up summary...")
+                
+                # First: Check unfiltered list (includes parents)
+                epic_issue = next((issue for issue in all_issues_unfiltered if issue.get("issue_key") == parent), None)
                 if epic_issue:
                     epic_summary = epic_issue.get("summary", epic_key)
-                    logger.debug(f"[EPIC] Found in filtered issues: {epic_summary}")
-                else:
-                    # Epic not in filtered issues - fetch from database (parents stored during "Update Data")
-                    if backend and profile_id and query_id:
-                        try:
-                            # Query all issues to find parent (parents were fetched by epic_fetch.py during sync)
-                            all_issues_db = backend.get_issues(profile_id, query_id)
-                            logger.debug(f"[EPIC] Searching {len(all_issues_db)} issues in DB for parent {parent}")
-                            epic_issue = next((issue for issue in all_issues_db if issue.get("issue_key") == parent), None)
-                            if epic_issue:
-                                epic_summary = epic_issue.get("summary", epic_key)
-                                logger.info(f"[EPIC] Found {parent} in database: '{epic_summary}'")
-                            else:
-                                logger.warning(f"[EPIC] Parent {parent} not found in database (may need to run 'Update Data')")
-                                epic_summary = epic_key
-                        except Exception as e:
-                            logger.error(f"[EPIC] Failed to fetch parent {parent} from DB: {e}")
+                    logger.info(f"[EPIC] Found {parent} in unfiltered list: '{epic_summary}'")
+                elif backend and profile_id and query_id:
+                    # Fallback: Query database (parents stored during "Update Data")
+                    try:
+                        all_issues_db = backend.get_issues(profile_id, query_id)
+                        logger.debug(f"[EPIC] Searching {len(all_issues_db)} issues in DB for parent {parent}")
+                        epic_issue = next((issue for issue in all_issues_db if issue.get("issue_key") == parent), None)
+                        if epic_issue:
+                            epic_summary = epic_issue.get("summary", epic_key)
+                            logger.info(f"[EPIC] Found {parent} in database: '{epic_summary}'")
+                        else:
+                            logger.warning(f"[EPIC] Parent {parent} not found in database (may need to run 'Update Data')")
                             epic_summary = epic_key
-                    else:
-                        logger.warning(f"[EPIC] No backend to fetch {parent}")
+                    except Exception as e:
+                        logger.error(f"[EPIC] Failed to fetch parent {parent} from DB: {e}")
                         epic_summary = epic_key
+                else:
+                    logger.warning(f"[EPIC] No backend to fetch {parent}")
+                    epic_summary = epic_key
             else:
                 logger.warning(f"[EPIC] Unexpected parent type: {type(parent)}")
                 epic_summary = epic_key
