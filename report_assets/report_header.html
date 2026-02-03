@@ -1,0 +1,29 @@
+<!-- Header -->
+<div class="report-header">
+  <div class="container">
+    <div class="header-content">
+      <div class="header-left">
+        <div class="project-title">{{ profile_name }}</div>
+        <div class="query-title">{{ query_name }}</div>
+      </div>
+      <div class="header-right">
+        <div class="report-period">
+          <span class="report-period-highlight">
+            <i class="fas fa-calendar-week"></i> {{ weeks_count }} Weeks
+          </span>
+          <span class="report-period-detail">
+            {% if first_week and last_week %}
+            {{ first_week }} to {{ last_week }}
+            {% endif %}
+            {% if start_date and end_date %}
+            ({{ start_date }} to {{ end_date }})
+            {% endif %}
+          </span>
+        </div>
+        <div class="report-meta">
+          <i class="fas fa-calendar-alt"></i> Generated: {{ generated_at }}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

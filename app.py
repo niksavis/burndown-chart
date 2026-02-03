@@ -180,13 +180,51 @@ def _restore_pending_update() -> None:
     If app was closed or crashed after downloading an update but before
     installation, this restores the download state. Handles graceful
     fallback if temp files were deleted by Windows.
+
+    Also invalidates stale state if current version >= pending version
+    (e.g., after manual upgrade or development version bump).
     """
     global VERSION_CHECK_RESULT
     try:
-        from data.update_manager import _restore_download_state
+        from data.update_manager import (
+            _restore_download_state,
+            compare_versions,
+            clear_download_state,
+        )
+        from configuration import __version__
 
         restored_progress = _restore_download_state()
         if restored_progress:
+            # Invalidate stale state if current version >= pending version
+            # Skip if available_version is None (shouldn't happen, but type-safe)
+            if not restored_progress.available_version:
+                logger.warning("Restored state missing available_version, clearing")
+                clear_download_state()
+                return
+
+            try:
+                comparison = compare_versions(
+                    __version__, restored_progress.available_version
+                )
+                if comparison >= 0:
+                    logger.info(
+                        "Invalidating stale update state - already at or past that version",
+                        extra={
+                            "operation": "restore_pending_update",
+                            "current_version": __version__,
+                            "pending_version": restored_progress.available_version,
+                        },
+                    )
+                    clear_download_state()
+                    return
+            except Exception as e:
+                logger.warning(
+                    f"Failed to compare versions, clearing state to be safe: {e}"
+                )
+                clear_download_state()
+                return
+
+            # Valid pending update - restore state
             VERSION_CHECK_RESULT = restored_progress
             logger.info(
                 "Restored pending update from previous session",

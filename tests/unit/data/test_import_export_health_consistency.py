@@ -266,30 +266,30 @@ class TestShowPointsNormalization:
 
     def test_normalize_show_points_from_list(self):
         """Test normalization from checkbox list format."""
-        from callbacks.settings import _normalize_show_points
+        from callbacks.settings.helpers import normalize_show_points
 
-        assert _normalize_show_points(["show"]) is True
-        assert _normalize_show_points([]) is False
+        assert normalize_show_points(["show"]) is True
+        assert normalize_show_points([]) is False
 
     def test_normalize_show_points_from_int(self):
         """Test normalization from database integer format."""
-        from callbacks.settings import _normalize_show_points
+        from callbacks.settings.helpers import normalize_show_points
 
-        assert _normalize_show_points(1) is True
-        assert _normalize_show_points(0) is False
+        assert normalize_show_points(1) is True
+        assert normalize_show_points(0) is False
 
     def test_normalize_show_points_from_bool(self):
         """Test normalization from boolean format."""
-        from callbacks.settings import _normalize_show_points
+        from callbacks.settings.helpers import normalize_show_points
 
-        assert _normalize_show_points(True) is True
-        assert _normalize_show_points(False) is False
+        assert normalize_show_points(True) is True
+        assert normalize_show_points(False) is False
 
     def test_normalize_show_points_invalid_formats(self):
         """Test normalization handles invalid formats gracefully."""
-        from callbacks.settings import _normalize_show_points
+        from callbacks.settings.helpers import normalize_show_points
 
-        assert _normalize_show_points(None) is False
-        assert _normalize_show_points("invalid") is False
-        assert _normalize_show_points({}) is False
-        assert _normalize_show_points([1, 2, 3]) is False  # Invalid list content
+        assert normalize_show_points(None) is False
+        assert normalize_show_points("invalid") is False
+        assert normalize_show_points({}) is False
+        assert normalize_show_points([1, 2, 3]) is False  # Invalid list content

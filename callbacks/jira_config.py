@@ -20,7 +20,7 @@ from data.persistence import (
     save_jira_configuration,
     validate_jira_config,
 )
-from data.jira_simple import test_jira_connection
+from data.jira import test_jira_connection
 from configuration import logger
 from ui.toast_notifications import create_success_toast, create_error_toast
 
@@ -422,7 +422,7 @@ def update_jira_config_status(modal_is_open, save_clicks, profile_id):
             token = jira_config.get("token", "")
 
             # Test the connection to verify API version actually works
-            from data.jira_simple import test_jira_connection
+            from data.jira import test_jira_connection
 
             logger.info(
                 f"Status indicator: Testing connection to {base_url} with API {api_version}"

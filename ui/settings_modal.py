@@ -15,7 +15,10 @@ import dash_bootstrap_components as dbc
 from dash import dcc, html
 
 from ui.button_utils import create_button
-from ui.components import create_character_count_display, should_show_character_warning
+from ui.jql_components import (
+    create_character_count_display,
+    should_show_character_warning,
+)
 from ui.jql_editor import create_jql_editor
 
 
@@ -61,7 +64,7 @@ def _get_default_jql_profile_id():
 def _get_query_profile_options():
     """Get query profile dropdown options."""
     try:
-        from data.jira_query_manager import load_query_profiles
+        from data.jira.query_profiles import load_query_profiles
 
         profiles = load_query_profiles()
         options = []

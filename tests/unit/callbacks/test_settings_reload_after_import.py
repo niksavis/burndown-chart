@@ -5,19 +5,19 @@ from unittest.mock import patch
 
 def test_normalize_show_points():
     """Test that show_points is normalized to boolean."""
-    from callbacks.settings import _normalize_show_points
+    from callbacks.settings.helpers import normalize_show_points
 
     # Test int to bool (database format)
-    assert _normalize_show_points(1) is True
-    assert _normalize_show_points(0) is False
+    assert normalize_show_points(1) is True
+    assert normalize_show_points(0) is False
 
     # Test list to bool (checkbox format)
-    assert _normalize_show_points(["show"]) is True
-    assert _normalize_show_points([]) is False
+    assert normalize_show_points(["show"]) is True
+    assert normalize_show_points([]) is False
 
     # Test bool passthrough
-    assert _normalize_show_points(True) is True
-    assert _normalize_show_points(False) is False
+    assert normalize_show_points(True) is True
+    assert normalize_show_points(False) is False
 
 
 @patch("data.persistence.load_app_settings")
@@ -34,10 +34,10 @@ def test_settings_reload_workflow(mock_load_settings):
 
     # Act - simulate what the callback does
     from data.persistence import load_app_settings
-    from callbacks.settings import _normalize_show_points
+    from callbacks.settings.helpers import normalize_show_points
 
     settings = load_app_settings()
-    settings["show_points"] = _normalize_show_points(settings.get("show_points", True))
+    settings["show_points"] = normalize_show_points(settings.get("show_points", True))
 
     # Assert - verify settings are loaded and normalized
     assert settings["show_points"] is True  # Normalized to boolean

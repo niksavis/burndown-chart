@@ -13,7 +13,7 @@ from unittest.mock import mock_open, patch
 
 import pytest
 
-from data.jira_query_manager import (
+from data.jira.query_profiles import (
     delete_query_profile,
     get_query_profile_by_id,
     load_query_profiles,
@@ -28,7 +28,7 @@ class TestQueryProfileManager:
 
     def test_load_query_profiles_returns_empty_when_no_file(self):
         """Test that empty list is returned when no user profiles exist"""
-        with patch("data.jira_query_manager.os.path.exists", return_value=False):
+        with patch("data.jira.query_profiles.os.path.exists", return_value=False):
             profiles = load_query_profiles()
 
             # Should return empty list
@@ -50,7 +50,7 @@ class TestQueryProfileManager:
         ]
 
         with (
-            patch("data.jira_query_manager.os.path.exists", return_value=True),
+            patch("data.jira.query_profiles.os.path.exists", return_value=True),
             patch("builtins.open", mock_open(read_data=json.dumps(mock_user_profiles))),
         ):
             profiles = load_query_profiles()
@@ -65,11 +65,11 @@ class TestQueryProfileManager:
     def test_save_query_profile_creates_new_profile(self):
         """Test saving a new query profile"""
         with (
-            patch("data.jira_query_manager._load_profiles_from_disk", return_value=[]),
+            patch("data.jira.query_profiles._load_profiles_from_disk", return_value=[]),
             patch(
-                "data.jira_query_manager._save_profiles_to_disk", return_value=True
+                "data.jira.query_profiles._save_profiles_to_disk", return_value=True
             ) as mock_save,
-            patch("data.jira_query_manager.validate_query_profile", return_value=True),
+            patch("data.jira.query_profiles.validate_query_profile", return_value=True),
         ):
             profile = save_query_profile(
                 name="Test Query", jql="project = TEST", description="Test description"
@@ -100,7 +100,7 @@ class TestQueryProfileManager:
         ]
 
         with patch(
-            "data.jira_query_manager._load_profiles_from_disk",
+            "data.jira.query_profiles._load_profiles_from_disk",
             return_value=existing_profiles,
         ):
             profile = save_query_profile(
@@ -141,11 +141,11 @@ class TestQueryProfileManager:
 
         with (
             patch(
-                "data.jira_query_manager._load_profiles_from_disk",
+                "data.jira.query_profiles._load_profiles_from_disk",
                 return_value=existing_profiles,
             ),
             patch(
-                "data.jira_query_manager._save_profiles_to_disk", return_value=True
+                "data.jira.query_profiles._save_profiles_to_disk", return_value=True
             ) as mock_save,
         ):
             result = delete_query_profile(profile_id)
@@ -156,7 +156,7 @@ class TestQueryProfileManager:
 
     def test_get_query_profile_by_id_returns_correct_profile(self):
         """Test retrieving a specific profile by ID"""
-        with patch("data.jira_query_manager.load_query_profiles") as mock_load:
+        with patch("data.jira.query_profiles.load_query_profiles") as mock_load:
             test_profile = {
                 "id": "test-id",
                 "name": "Test Profile",
@@ -170,13 +170,13 @@ class TestQueryProfileManager:
 
     def test_get_query_profile_by_id_returns_none_if_not_found(self):
         """Test that None is returned when profile ID is not found"""
-        with patch("data.jira_query_manager.load_query_profiles", return_value=[]):
+        with patch("data.jira.query_profiles.load_query_profiles", return_value=[]):
             result = get_query_profile_by_id("nonexistent-id")
             assert result is None
 
     def test_validate_profile_name_unique_with_existing_name(self):
         """Test name uniqueness validation"""
-        with patch("data.jira_query_manager.load_query_profiles") as mock_load:
+        with patch("data.jira.query_profiles.load_query_profiles") as mock_load:
             mock_load.return_value = [{"id": "existing-id", "name": "Existing Name"}]
 
             # Should return False for duplicate name
@@ -209,11 +209,11 @@ class TestQueryProfileManager:
 
         with (
             patch(
-                "data.jira_query_manager._load_profiles_from_disk",
+                "data.jira.query_profiles._load_profiles_from_disk",
                 return_value=existing_profiles,
             ),
             patch(
-                "data.jira_query_manager._save_profiles_to_disk", return_value=True
+                "data.jira.query_profiles._save_profiles_to_disk", return_value=True
             ) as mock_save,
         ):
             result = update_profile_last_used(profile_id)
@@ -246,7 +246,7 @@ class TestQueryProfileFileOperations:
         """Integration test with actual file operations"""
         # Mock the file path to use our temporary file
         with patch(
-            "data.jira_query_manager.QUERY_PROFILES_FILE", temp_query_profiles_file
+            "data.jira.query_profiles.QUERY_PROFILES_FILE", temp_query_profiles_file
         ):
             # Save a profile
             profile = save_query_profile(

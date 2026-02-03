@@ -399,7 +399,7 @@ $cache.metadata | Format-List
 ```powershell
 .\.venv\Scripts\activate; python -c "
 from data.dora_calculator import calculate_dora_metrics
-from data.jira_simple import fetch_all_issues
+from data.jira import fetch_all_issues
 from data.field_mapper import get_field_mappings
 import time
 

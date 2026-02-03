@@ -104,9 +104,18 @@ TAB_CONFIG: List[TabConfig] = [
         "label": "Weekly Data",
         "icon": "fa-table",
         "color": get_color("secondary"),
-        "order": 6,
+        "order": 7,
         "requires_data": True,
         "help_content_id": "help-statistics-data",
+    },
+    {
+        "id": "tab-sprint-tracker",
+        "label": "Sprint Tracker",
+        "icon": "fa-running",
+        "color": get_color("warning"),
+        "order": 6,
+        "requires_data": True,
+        "help_content_id": "help-sprint-tracker",
     },
 ]
 
@@ -248,9 +257,7 @@ def create_tab_content(active_tab, charts, statistics_df=None, pert_data=None):
         Dash component containing the active tab's content with consistent styling
     """
     # Import forecast info card functions
-    from ui.cards import (
-        create_forecast_info_card,
-    )
+    from ui.cards import create_forecast_info_card
 
     # Default to burndown chart if tab is None or invalid
     if active_tab not in [

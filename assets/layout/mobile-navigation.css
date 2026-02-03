@@ -1,0 +1,269 @@
+/* ====================
+   MOBILE NAVIGATION
+   ==================== */
+
+/* ===== Mobile-first navigation enhancements following copilot instructions ===== */
+
+/* Mobile-optimized tab navigation */
+@media (max-width: 768px) {
+  .nav-tabs-modern {
+    overflow-x: auto;
+    overflow-y: hidden;
+    white-space: nowrap;
+    -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* Internet Explorer 10+ */
+  }
+
+  .nav-tabs-modern::-webkit-scrollbar {
+    display: none; /* Chrome, Safari, Opera */
+  }
+
+  .nav-tabs-modern .nav-item {
+    display: inline-block;
+    float: none;
+  }
+
+  .nav-tabs-modern .nav-item .nav-link {
+    /* Touch target optimization - minimum 44px height */
+    min-height: 44px;
+    padding: 0.75rem 1rem;
+    font-size: 0.875rem;
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+}
+
+/* Mobile drawer navigation for smaller screens */
+@media (max-width: 576px) {
+  .nav-tabs-modern .nav-item .nav-link {
+    padding: 0.625rem 0.75rem;
+    font-size: 0.8rem;
+    min-width: 100px; /* Consistent minimum width for touch targets */
+  }
+
+  /* Add scroll indicators */
+  .nav-tabs-modern::before,
+  .nav-tabs-modern::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 20px;
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  .nav-tabs-modern::before {
+    left: 0;
+    background: linear-gradient(
+      90deg,
+      rgba(255, 255, 255, 1) 0%,
+      rgba(255, 255, 255, 0) 100%
+    );
+  }
+
+  .nav-tabs-modern::after {
+    right: 0;
+    background: linear-gradient(
+      270deg,
+      rgba(255, 255, 255, 1) 0%,
+      rgba(255, 255, 255, 0) 100%
+    );
+  }
+}
+
+/* Touch interaction improvements */
+.nav-tabs-modern .nav-item .nav-link {
+  -webkit-tap-highlight-color: transparent; /* Remove tap highlight on mobile */
+  user-select: none; /* Prevent text selection on touch */
+}
+
+/* Active tab mobile optimization - inherits pill style from desktop */
+@media (max-width: 768px) {
+  .nav-tabs-modern {
+    background: var(--color-neutral-50);
+    padding: 0.5rem;
+  }
+  
+  .nav-tabs-modern .nav-item .nav-link.active {
+    /* Keep the pill style consistent on mobile */
+    color: white;
+    background: var(--color-brand-600);
+    border-color: var(--color-brand-600);
+    box-shadow:
+      0 2px 4px rgba(59, 130, 246, 0.2),
+      0 1px 2px rgba(0, 0, 0, 0.05);
+  }
+}
+
+/* Swipe gesture support preparation */
+.tab-content-container {
+  touch-action: pan-x; /* Allow horizontal panning for swipe gestures */
+  position: relative;
+  overflow: visible; /* Allow card hover effects to extend beyond container */
+}
+
+/* Mobile: Make settings panel match parameter panel styling exactly */
+@media (max-width: 768px) {
+  /* Match parameter panel dimensions and spacing */
+  .settings-panel-expanded {
+    max-height: calc(100vh - 200px) !important; /* Same as parameter panel */
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+    padding: var(--spacing-md) !important; /* Match parameter panel padding */
+    padding-bottom: 2rem !important; /* Extra padding at bottom for better scrolling */
+    background-color: var(--color-white) !important;
+    border-radius: var(--border-radius-md) !important;
+    border: 1px solid var(--color-gray-300) !important;
+    margin: 0 !important;
+    width: 100% !important;
+  }
+
+  /* Remove card-specific styling on mobile to match parameter panel */
+  .settings-panel-expanded .card {
+    background-color: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    margin: 0 !important;
+  }
+
+  /* Ensure card body takes full width and has no extra padding */
+  .settings-panel-expanded .card-body {
+    overflow-y: visible !important;
+    max-height: none !important;
+    padding: 0 !important;
+    background-color: transparent !important;
+  }
+
+  /* Make columns full width on mobile like parameter panel */
+  .settings-panel-expanded .col-md-8,
+  .settings-panel-expanded .col-md-4 {
+    padding: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  /* Remove column borders on mobile */
+  .settings-panel-expanded .border-end {
+    border-right: none !important;
+  }
+
+  /* Fix toggle appearance on mobile */
+  .form-check-input {
+    width: 2.5rem !important;
+    height: 1.25rem !important;
+    cursor: pointer !important;
+  }
+
+  .form-switch .form-check-input {
+    background-position: left center !important;
+    border-radius: 2rem !important;
+    transition: background-position 0.15s ease-in-out !important;
+  }
+
+  .form-switch .form-check-input:checked {
+    background-position: right center !important;
+  }
+
+  /* Keep form-switch inline within flex containers */
+  .d-flex .form-check.form-switch {
+    display: inline-flex !important;
+    align-items: center !important;
+    margin-bottom: 0 !important;
+  }
+
+  /* Ensure form inputs in settings panel are touch-friendly on mobile (match parameter panel) */
+  .settings-panel-expanded input,
+  .settings-panel-extended .form-control {
+    min-height: 44px; /* Touch-friendly size */
+  }
+
+  /* Compact parameter summary on truly small mobile screens (< 576px) */
+  @media (max-width: 575px) {
+    .param-summary-item {
+      font-size: 0.75rem !important;
+      white-space: nowrap !important;
+    }
+    /* Icons remain 1rem as defined globally - no override */
+
+    /* Reduce button text on small mobile */
+    .parameter-bar-collapsed .btn-sm {
+      font-size: 0.75rem !important;
+      padding: 0.25rem 0.5rem !important;
+    }
+    /* Button icons remain 1rem as defined globally - no override */
+  }
+
+  /* Medium mobile/tablet (576px - 768px) - keep normal size */
+  @media (min-width: 576px) and (max-width: 767px) {
+    .param-summary-item {
+      font-size: 0.85rem !important;
+    }
+  }
+}
+
+/* Desktop: Ensure no height constraints - let browser handle scrolling naturally */
+@media (min-width: 768px) {
+  /* Remove all height/overflow constraints from tab content hierarchy */
+  .tab-content-container,
+  .tab-content-container > div,
+  #tab-content,
+  #tab-content > div,
+  #tab-content > div > div,
+  .border.border-top-0.rounded-bottom,
+  .g-3.py-3,
+  .py-3 {
+    max-height: none !important;
+    overflow: visible !important;
+    height: auto !important;
+    margin-bottom: 0 !important; /* Override mobile margin */
+  }
+
+  /* Specifically clip chart containers to prevent visual leaks while preserving card borders */
+  .plotly-graph-div,
+  .js-plotly-plot,
+  .dash-graph {
+    overflow: hidden !important;
+    position: relative !important;
+  }
+
+  /* Ensure cards show their borders properly */
+  .card:not(#project-health-overview-card) {
+    overflow: visible !important; /* Cards need visible overflow to show borders */
+    border: 1px solid rgba(0, 0, 0, 0.125) !important; /* Ensure border is always visible */
+  }
+
+  .card-body {
+    overflow: visible !important; /* Allow child cards to hover beyond boundaries */
+    padding-bottom: 1.25rem !important; /* Ensure padding for bottom spacing */
+  }
+
+  /* Remove excessive bottom margin from last elements */
+  .card-body > div:last-child,
+  .card-body > table:last-child,
+  .card-body > p:last-child {
+    margin-bottom: 0 !important;
+  } /* Ensure container-fluid also has no height constraints on desktop */
+  .container-fluid,
+  .container-fluid > div {
+    max-height: none !important;
+    overflow-y: visible !important;
+    height: auto !important;
+  }
+
+  /* Ensure body allows natural scrolling - no min-height to prevent excess scroll space */
+  body {
+    overflow-y: auto !important;
+    height: auto !important;
+  }
+
+  /* Ensure main app container doesn't constrain height - no min-height to prevent excess scroll space */
+  #react-entry-point,
+  #react-entry-point > div {
+    height: auto !important;
+  }
+}

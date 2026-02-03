@@ -13,16 +13,8 @@ Restructured for better UX workflow:
 # IMPORTS
 #######################################################################
 import dash_bootstrap_components as dbc
-from dash import dcc, html
+from dash import html
 
-from ui.button_utils import create_button
-from ui.components import create_character_count_display, should_show_character_warning
-from ui.jql_editor import create_jql_editor
-from ui.jira_config_modal import create_jira_config_button
-from ui.help_system import create_settings_tooltip
-from ui.query_selector import create_query_selector_panel
-from ui.profile_selector import create_profile_selector_panel
-from ui.unsaved_changes_warning import create_unsaved_changes_warning
 from ui.profile_modals import (
     create_profile_form_modal,
     create_profile_deletion_modal,

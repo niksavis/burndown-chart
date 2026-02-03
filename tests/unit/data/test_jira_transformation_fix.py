@@ -9,7 +9,7 @@ from pathlib import Path
 # Add the project root to the Python path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent))
 
-from data.jira_simple import extract_story_points_value, jira_to_csv_format
+from data.jira import extract_story_points_value, jira_to_csv_format
 
 
 def test_story_points_extraction():
@@ -57,7 +57,7 @@ def test_story_points_extraction():
 def test_votes_field_in_transformation():
     """Test that votes field works correctly in full JIRA transformation."""
 
-    print(f"\nTesting Votes Field in Full Transformation...")
+    print("\nTesting Votes Field in Full Transformation...")
 
     # Simulate JIRA issues with votes field
     test_issues = [
@@ -112,19 +112,19 @@ def test_votes_field_in_transformation():
 
             # Issue 1 was completed, so should contribute to completed_points
             if first_week.get("completed_points", 0) > 0:
-                print(f"   [OK] Votes properly extracted as story points!")
+                print("   [OK] Votes properly extracted as story points!")
             else:
-                print(f"   [!]  No completed points found - check date ranges")
+                print("   [!]  No completed points found - check date ranges")
 
     except Exception as e:
         print(f"   [ERROR] Transformation FAILED: {e}")
-        print(f"   [ERROR] This would be the 'Failed to transform JIRA data' error")
+        print("   [ERROR] This would be the 'Failed to transform JIRA data' error")
 
 
 def test_different_field_types():
     """Test that the fix works with different field types."""
 
-    print(f"\nTesting Different Field Types...")
+    print("\nTesting Different Field Types...")
 
     field_scenarios = [
         ("votes", {"votes": 8, "hasVoted": True}, 8.0, "Votes field (complex object)"),

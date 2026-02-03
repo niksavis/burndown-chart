@@ -1,0 +1,203 @@
+/* ====================
+   SETTINGS TABS COMPONENT
+   ==================== */
+
+/* ===== TABBED SETTINGS PANEL (REPLACES ACCORDION) ===== */
+/* Simple horizontal tabs layout - NO CUSTOM OVERFLOW FIXES */
+
+/* ===== REUSABLE BLUE ACCENT STYLING (DRY) ===== */
+/* Shared styling for flyout panels only - consistent blue accent border */
+.blue-accent-panel {
+  border: 2px solid rgba(13, 110, 253, 0.35); /* Subtle blue border */
+  border-radius: 6px; /* Slightly rounded to match tab buttons */
+  background: #f8fafc; /* Very light gray background */
+  overflow: hidden; /* Clip content to prevent overflow */
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06); /* Subtle shadow for depth */
+}
+
+/* Unified panel styling for all flyouts */
+.parameter-panel-expanded,
+.import-export-panel-expanded {
+  /* Very subtle blue tint - almost white */
+  background: #f8fbff; /* Lighter than btn-outline-primary for subtlety */
+  border-radius: 6px;
+  padding: 1rem;
+  /* Enhanced shadow for clear visual separation from content below */
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15), 0 2px 8px rgba(0, 0, 0, 0.1);
+  position: relative;
+  z-index: 10;
+}
+
+.tabbed-settings-panel {
+  padding: 0;
+  /* Very subtle blue tint - almost white */
+  background: #f8fbff; /* Lighter than btn-outline-primary for subtlety */
+  border-radius: 6px;
+  overflow: hidden;
+  /* Enhanced shadow for clear visual separation from content below */
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15), 0 2px 8px rgba(0, 0, 0, 0.1);
+  position: relative;
+  z-index: 10;
+}
+
+.settings-tabs {
+  border-bottom: 2px solid #e9ecef;
+  /* Very subtle blue tint - almost white */
+  background: #f8fbff; /* Lighter than btn-outline-primary for subtlety */
+  margin: 0;
+  padding: 0.25rem 0.5rem 0; /* Small top/side padding for breathing room */
+}
+
+.settings-tabs .nav-link {
+  text-align: center;
+  padding: 10px 16px;
+  border-bottom: 3px solid transparent;
+  border-radius: 6px 6px 0 0; /* Rounded top corners */
+  color: #6c757d;
+  font-weight: 500;
+  white-space: nowrap;
+  font-size: 0.875rem;
+  transition: all 0.2s ease; /* Smooth transition for hover/active */
+  margin-right: 2px; /* Small gap between tabs */
+  text-decoration: none;
+}
+
+.settings-tabs .nav-link:hover {
+  background-color: rgba(13, 110, 253, 0.08); /* Light blue hover */
+  border-bottom-color: rgba(13, 110, 253, 0.4);
+  color: #0d6efd;
+  text-decoration: none;
+}
+
+.settings-tabs .nav-link.active {
+  background-color: rgba(13, 110, 253, 0.05); /* Match outline-primary button */
+  border-bottom-color: #0d6efd;
+  color: #0d6efd;
+  font-weight: 600;
+  box-shadow: 0 -2px 4px rgba(0, 0, 0, 0.04); /* Subtle lift effect */
+}
+
+.settings-tab-content {
+  min-height: 120px;
+  padding: 1rem; /* Comfortable padding */
+  padding-bottom: 0.25rem; /* Minimal bottom padding */
+  overflow: visible !important; /* Allow dropdowns to overflow */
+  border: none !important;
+  border-radius: 0 0 6px 6px; /* Rounded bottom corners */
+  background: transparent; /* Inherit pale blue from parent panel */
+}
+
+/* CRITICAL: Bootstrap tab-pane must allow overflow */
+.tab-pane,
+.tab-content,
+.settings-tab-content .tab-pane {
+  border-radius: 0 0 6px 6px; /* Rounded bottom corners */
+  background: transparent; /* Inherit pale blue from parent panel */
+}
+.tab-content,
+#settings-tabs .tab-pane,
+#settings-tabs .tab-content,
+.tabbed-settings-panel .tab-pane,
+.tabbed-settings-panel .tab-content {
+  overflow: visible !important;
+}
+
+/* Mobile optimizations */
+@media (max-width: 576px) {
+  .settings-tabs .nav-link {
+    font-size: 0.85rem;
+    padding: 8px 10px;
+  }
+
+  .settings-tab-content {
+    min-height: 200px;
+  }
+}
+
+/* Dropdown menu styling */
+.Select-menu-outer {
+  background-color: white !important;
+  border: 1px solid #ccc !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+  z-index: 9999 !important; /* CRITICAL: Above everything */
+  position: absolute !important;
+}
+
+.Select-menu {
+  background-color: white !important;
+  max-height: 300px !important;
+  overflow-y: auto !important;
+}
+
+.Select-option {
+  background-color: white !important;
+  color: black !important;
+  padding: 10px !important;
+  border-bottom: 1px solid #ccc !important;
+}
+
+.Select-option:hover {
+  background-color: #f0f0f0 !important;
+}
+
+/* Ensure profile selector container doesn't clip */
+#profile-selector-container,
+#profile-selector-container .dash-dropdown,
+#query-selector-container,
+#query-selector-container .dash-dropdown {
+  overflow: visible !important;
+  position: relative !important;
+  z-index: 100 !important; /* Higher z-index to appear above other content */
+}
+
+/* Force parent containers to allow dropdown overflow */
+.tabbed-settings-panel,
+#settings-panel,
+#settings-collapse,
+.settings-panel-container {
+  overflow: visible !important;
+}
+
+/* Bootstrap grid must allow overflow */
+.tabbed-settings-panel .row,
+.tabbed-settings-panel .col,
+.tabbed-settings-panel [class*="col-"],
+#settings-collapse .row,
+#settings-collapse .col,
+#settings-collapse [class*="col-"],
+.settings-tab-content .row,
+.settings-tab-content .col,
+.settings-tab-content [class*="col-"] {
+  overflow: visible !important;
+}
+
+/* Force all card wrappers to overflow visible */
+.settings-tab-content > div,
+.p-2,
+.card,
+.card-body,
+#settings-panel .card,
+#settings-panel .card-body,
+.tabbed-settings-panel .card,
+.tabbed-settings-panel .card-body,
+#settings-collapse .card,
+#settings-collapse .card-body {
+  overflow: visible !important;
+}
+
+/* Compact card styling - reduce padding to match Connect tab */
+.settings-tab-content .card-body,
+.tabbed-settings-panel .card-body {
+  padding: 0.5rem !important; /* Reduced from default 1rem */
+}
+
+/* Remove bottom margin from cards inside settings panels */
+.settings-tab-content .card,
+.tabbed-settings-panel .card {
+  margin-bottom: 0.5rem !important; /* Reduced from 1rem (mb-3) */
+}
+
+/* Remove bottom margin from rows in settings tabs */
+.settings-tab-content .row {
+  margin-bottom: 0 !important;
+}

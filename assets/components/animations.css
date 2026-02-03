@@ -1,0 +1,281 @@
+/* ====================
+   ANIMATIONS
+   ==================== */
+
+/* ================================================================   Animation System & Performance
+   ================================================================ */
+
+/* Additional utility animations */
+@keyframes slideInFromRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideInFromLeft {
+  from {
+    transform: translateX(-100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideInFromTop {
+  from {
+    transform: translateY(-20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideInFromBottom {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    transform: scale(0.95);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+  20%, 40%, 60%, 80% { transform: translateX(5px); }
+}
+
+@keyframes bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes glow {
+  0%, 100% {
+    box-shadow: 0 0 5px var(--color-brand-400);
+  }
+  50% {
+    box-shadow: 0 0 20px var(--color-brand-500), 0 0 30px var(--color-brand-400);
+  }
+}
+
+/* Utility classes for animations */
+.animate-fade-in {
+  animation: fadeIn var(--transition-base) var(--easing-default);
+}
+
+.animate-slide-in-right {
+  animation: slideInFromRight var(--transition-base) var(--easing-default);
+}
+
+.animate-slide-in-left {
+  animation: slideInFromLeft var(--transition-base) var(--easing-default);
+}
+
+.animate-slide-in-top {
+  animation: slideInFromTop var(--transition-base) var(--easing-default);
+}
+
+.animate-slide-in-bottom {
+  animation: slideInFromBottom var(--transition-base) var(--easing-default);
+}
+
+.animate-scale-in {
+  animation: scaleIn var(--transition-base) var(--easing-default);
+}
+
+.animate-shake {
+  animation: shake 0.5s ease-in-out;
+}
+
+.animate-bounce {
+  animation: bounce 0.6s ease-in-out;
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+.animate-glow {
+  animation: glow 2s ease-in-out infinite;
+}
+
+/* Delay utilities */
+.animate-delay-100 { animation-delay: 0.1s; }
+.animate-delay-200 { animation-delay: 0.2s; }
+.animate-delay-300 { animation-delay: 0.3s; }
+.animate-delay-500 { animation-delay: 0.5s; }
+
+/* Performance optimizations for animations */
+.will-change-transform {
+  will-change: transform;
+}
+
+.will-change-opacity {
+  will-change: opacity;
+}
+
+/* GPU acceleration for smooth animations - only on interactive components */
+.card,
+.btn,
+.dropdown-menu,
+.modal,
+.toast,
+.alert,
+.panel {
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}
+
+/* Prevent hover animations on layout containers */
+body,
+#app,
+#root,
+.container,
+.container-fluid,
+.row,
+main,
+section,
+article,
+.dashboard-container,
+.page-wrapper,
+.content-wrapper {
+  transform: none !important;
+  overflow: visible !important; /* Allow child cards to lift without clipping */
+}
+
+/* Ensure Bootstrap columns allow overflow for card hover effects */
+[class*="col-"],
+.g-3,
+.g-4,
+.gy-3,
+.gy-4 {
+  overflow: visible !important;
+}
+
+body:hover,
+#app:hover,
+#root:hover,
+.container:hover,
+.container-fluid:hover,
+.row:hover,
+main:hover,
+section:hover,
+article:hover,
+.dashboard-container:hover,
+.page-wrapper:hover,
+.content-wrapper:hover {
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+/* Accessibility: Respect user preference for reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  
+  /* Keep essential animations but make them instant */
+  .spinner-border {
+    animation-duration: 0.01ms !important;
+  }
+  
+  /* Remove transform animations completely */
+  .card:hover,
+  .btn:hover,
+  .table-hover > tbody > tr:hover,
+  .dropdown-item:hover {
+    transform: none !important;
+  }
+  
+  /* Keep only opacity transitions for feedback */
+  .btn:active {
+    opacity: 0.8;
+    transform: none !important;
+  }
+}
+
+/* Enhanced loading states with animations */
+.loading-shimmer {
+  background: linear-gradient(
+    90deg,
+    var(--color-neutral-200) 0%,
+    var(--color-neutral-100) 50%,
+    var(--color-neutral-200) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* Stagger animations for lists */
+.stagger-children > * {
+  animation: slideInFromBottom 0.3s var(--easing-default) backwards;
+}
+
+.stagger-children > *:nth-child(1) { animation-delay: 0.05s; }
+.stagger-children > *:nth-child(2) { animation-delay: 0.1s; }
+.stagger-children > *:nth-child(3) { animation-delay: 0.15s; }
+.stagger-children > *:nth-child(4) { animation-delay: 0.2s; }
+.stagger-children > *:nth-child(5) { animation-delay: 0.25s; }
+.stagger-children > *:nth-child(6) { animation-delay: 0.3s; }
+.stagger-children > *:nth-child(7) { animation-delay: 0.35s; }
+.stagger-children > *:nth-child(8) { animation-delay: 0.4s; }
+
+/* Micro-interactions for better UX */
+.btn-success:active {
+  animation: bounce 0.3s ease-in-out;
+}
+
+.form-control:invalid {
+  animation: shake 0.3s ease-in-out;
+}
+
+.badge-new {
+  animation: glow 2s ease-in-out infinite;
+}
+
+/* Page transition animations */
+.page-enter {
+  animation: fadeIn 0.3s var(--easing-default);
+}
+
+.page-exit {
+  animation: fadeOut 0.2s var(--easing-default);
+}

@@ -1,0 +1,27 @@
+<!-- Burndown Section -->
+{% if 'burndown' in sections %}
+<div class="section">
+  <h2 class="section-title">
+    <i class="fas fa-chart-area"></i>
+    Burndown Analysis
+  </h2>
+
+  {% if metrics.burndown.has_data %}
+  <h4 class="mt-4 mb-3">
+    <i class="fas fa-chart-line"></i> Burndown Chart
+  </h4>
+  <div class="chart-container large">
+    <canvas id="burndownChart"></canvas>
+  </div>
+
+  {% if metrics.burndown.weekly_data %}
+  <h4 class="mt-4 mb-3">
+    <i class="fas fa-calendar-week"></i> Weekly Breakdown
+  </h4>
+  <div class="chart-container large">
+    <canvas id="weeklyBreakdownChart"></canvas>
+  </div>
+  {% endif %}
+  {% endif %}
+</div>
+{% endif %}

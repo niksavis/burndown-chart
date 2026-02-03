@@ -97,7 +97,7 @@ Health scores recalculate on data updates:
 - Deadline changes (via Settings)
 - Velocity trend shifts (improving → stable → declining)
 
-**Code Location**: `ui/dashboard_comprehensive.py::_calculate_project_health_score()` and `data/project_health_calculator.py`
+**Code Location**: `ui/dashboard.py` (imports from `data/project_health_calculator.py`)
 
 ---
 

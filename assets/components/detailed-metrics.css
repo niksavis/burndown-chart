@@ -1,0 +1,65 @@
+/* ====================
+   DETAILED METRICS
+   ==================== */
+
+/* ================================================================
+   Detailed Metric Cards (DORA & Flow)
+   ================================================================ */
+
+/* Ensure all metric cards have consistent height in grid layout */
+.metric-card {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  border: 1px solid rgba(0, 0, 0, 0.125);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+  background-color: #ffffff;
+  border-radius: 0.375rem;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    border-color 0.2s ease;
+}
+
+/* Hover effect for all metric cards - simple transform without margin changes */
+.metric-card:hover {
+  transform: translateY(-2px) !important;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15) !important;
+  border-color: rgba(0, 0, 0, 0.08) !important;
+  z-index: 10 !important;
+}
+
+/* Ensure all wrapper divs and containers allow overflow */
+#flow-overview-wrapper,
+#dora-overview-wrapper,
+#flow-metrics-overview,
+#dora-metrics-overview {
+  overflow: visible !important;
+}
+
+/* Ensure rows and columns containing metric cards allow overflow for hover effects */
+.row:has(.metric-card),
+.col:has(.metric-card),
+[class*="col-"]:has(.metric-card) {
+  overflow: visible !important;
+}
+
+/* Card body takes available space, pushing footer to bottom */
+.metric-card .card-body {
+  flex: 1 1 auto;
+}
+
+/* Card footer always at bottom, consistent height for symmetry */
+.metric-card .card-footer {
+  flex-shrink: 0;
+  min-height: 60px; /* Ensure consistent footer height across all cards */
+  display: flex;
+  align-items: center; /* Vertically center alert content */
+  justify-content: center; /* Horizontally center alert content */
+}
+
+/* When footer has action prompt alert */
+.metric-card .card-footer .alert {
+  margin-bottom: 0 !important;
+  width: 100%; /* Full width for alert */
+}

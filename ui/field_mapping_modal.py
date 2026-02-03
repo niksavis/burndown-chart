@@ -482,6 +482,12 @@ def create_field_mapping_form(
                 "number",
                 "Story points or effort estimate | OPTIONAL for points tracking | Type: number",
             ),
+            (
+                "sprint_field",
+                "Sprint",
+                "array",
+                "Sprint field for Agile/Scrum boards | OPTIONAL for Sprint Tracker | Typically customfield_10020 | Type: array",
+            ),
         ],
         field_options,
         current_mappings.get("field_mappings", {}).get("general", {}),  # type: ignore

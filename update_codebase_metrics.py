@@ -53,7 +53,7 @@ CALIBRATION_FILES = [
     "ui/layout.py",
     "ui/jira_config_modal.py",
     "ui/metric_cards.py",
-    "ui/dashboard_comprehensive.py",
+    "ui/dashboard.py",
     "ui/dora_flow_combined_dashboard.py",
     "ui/budget_cards.py",
     # Callbacks (small to large)

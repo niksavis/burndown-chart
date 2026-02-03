@@ -9,13 +9,28 @@ window.dash_clientside = window.dash_clientside || {};
 window.dash_clientside.clientside = window.dash_clientside.clientside || {};
 // Add our function to the clientside namespace (merges with existing)
 window.dash_clientside.clientside.setupLongPress = function () {
-  // Wait for button to be available in DOM
-  setTimeout(function () {
+  // Retry finding button with exponential backoff (button may be in collapsed panel)
+  let attempts = 0;
+  const maxAttempts = 10;
+
+  function tryInitialize() {
     const button = document.getElementById("update-data-unified");
     if (!button) {
-      console.warn("Update Data button not found");
+      attempts++;
+      if (attempts < maxAttempts) {
+        // Retry with exponential backoff: 100ms, 200ms, 400ms, 800ms, etc.
+        setTimeout(tryInitialize, 100 * Math.pow(2, Math.min(attempts - 1, 4)));
+      } else {
+        console.warn(
+          "Update Data button not found after",
+          maxAttempts,
+          "attempts",
+        );
+      }
       return;
     }
+
+    // Button found, initialize long press
 
     let progressInterval = null;
     let textChangeTimer = null;
@@ -138,7 +153,10 @@ window.dash_clientside.clientside.setupLongPress = function () {
     button.addEventListener("touchcancel", cancelPress);
 
     console.log("Long-press force refresh initialized");
-  }, 500); // Wait for DOM to be ready
+  }
+
+  // Start trying to initialize
+  tryInitialize();
 
   return window.dash_clientside.no_update;
 };
@@ -165,7 +183,7 @@ window.dash_clientside = Object.assign({}, window.dash_clientside, {
       // Check if force refresh is pending
       if (window._forceRefreshPending) {
         console.log(
-          "✅ Clientside callback: Force refresh detected, returning TRUE"
+          "✅ Clientside callback: Force refresh detected, returning TRUE",
         );
         // Clear flag immediately after reading to prevent interference with next click
         window._forceRefreshPending = false;

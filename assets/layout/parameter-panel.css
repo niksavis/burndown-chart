@@ -1,0 +1,308 @@
+/* ====================
+   PARAMETER PANEL LAYOUT
+   ==================== */
+
+/* ===== Parameter Panel Styles (User Story 1) ===== */
+
+/* Sticky positioning for parameter panel at the very top */
+.param-panel-sticky {
+  position: sticky;
+  top: 0; /* At the very top for app-like feel */
+  z-index: var(--z-index-sticky);
+  /* Subtle gradient for visual hierarchy */
+  background: linear-gradient(to bottom, 
+    rgba(239, 246, 255, 0.98) 0%,
+    rgba(249, 251, 255, 0.98) 100%);
+  box-shadow: var(--shadow-sm);
+  margin-bottom: 0; /* Compact: no margin */
+  padding-bottom: 0; /* Compact: no padding */
+  /* Subtle blue accent to indicate interactive panel area */
+  border-bottom: 2px solid rgba(13, 110, 253, 0.1); /* Very subtle blue hint */
+}
+
+/* Parameter panel container spacing */
+.parameter-panel-container {
+  margin-bottom: 0; /* Compact: no margin */
+  padding: 0; /* Compact: no padding */
+}
+
+/* CRITICAL: Allow parameter collapse to overflow when expanded (not during animation) */
+/* This allows datepicker calendars to extend beyond the panel */
+#parameter-collapse.collapse.show {
+  overflow: visible !important;
+}
+
+/* During animation, keep overflow hidden to prevent content from jumping */
+#parameter-collapse.collapsing {
+  overflow: hidden !important;
+}
+
+/* CRITICAL FIX: Apply same overflow rules to settings and data panels */
+/* Prevents both panels' content from being visible during transition */
+#settings-collapse.collapse.show,
+#import-export-collapse.collapse.show {
+  overflow: visible !important;
+}
+
+#settings-collapse.collapsing,
+#import-export-collapse.collapsing {
+  overflow: hidden !important;
+}
+
+/* Ensure the tabbed settings panel inside allows overflow when expanded */
+#parameter-collapse.show .tabbed-settings-panel,
+#parameter-collapse.show .settings-tab-content,
+#parameter-collapse.show .card,
+#parameter-collapse.show .card-body {
+  overflow: visible !important;
+}
+
+/* Collapsed bar styling - slightly darker for visual hierarchy */
+.parameter-bar-collapsed {
+  cursor: default;
+  background-color: rgba(248, 250, 252, 0.95) !important;
+  border-bottom: 1px solid rgba(13, 110, 253, 0.08);
+}
+
+/* Ensure parameter items wrap gracefully but buttons never wrap */
+.parameter-bar-collapsed > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-xs);
+}
+
+/* On very small screens, reduce margins to maximize space */
+@media (max-width: 490px) {
+  /* Prevent wrapping of outer container */
+  .parameter-bar-collapsed > div > div:first-child {
+    flex-wrap: nowrap !important;
+    overflow-x: auto;
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* IE/Edge */
+  }
+
+  .parameter-bar-collapsed > div > div:first-child::-webkit-scrollbar {
+    display: none; /* Chrome/Safari */
+  }
+
+  .param-summary-item {
+    margin-right: 0.15rem !important;
+    font-size: 0.7rem !important;
+  }
+
+  /* Make window/data indicators even more compact on tiny screens */
+  .param-summary-item .d-none.d-sm-inline {
+    display: none !important;
+  }
+
+  /* Tighter button spacing on mobile - make buttons smaller */
+  .parameter-bar-collapsed .btn-sm {
+    margin-right: 0.1rem !important;
+    padding: 0 5px !important;
+    min-width: 31px !important;
+    height: 31px !important;
+    font-size: 0.85rem !important;
+  }
+
+  /* Reduce gap in flex container */
+  .parameter-bar-collapsed > div > div {
+    gap: 0.1rem !important;
+  }
+
+  /* Ensure buttons container never wraps */
+  .parameter-bar-collapsed > div {
+    flex-wrap: nowrap !important;
+  }
+}
+
+/* Parameter summary items */
+.param-summary-item {
+  display: inline-flex;
+  align-items: center;
+  font-size: var(--font-size-sm);
+  color: var(--color-gray-700);
+  white-space: nowrap;
+}
+
+.param-summary-item i {
+  color: var(--color-primary);
+  opacity: 0.8;
+  font-size: 1rem !important; /* Consistent icon size across all breakpoints */
+}
+
+/* Profile and query display styling */
+.profile-query-display {
+  border-right: 1px solid var(--color-gray-300);
+  padding-right: var(--spacing-md);
+  margin-right: var(--spacing-sm) !important;
+}
+
+/* Hide profile/query at 490px to prevent button wrapping */
+@media (max-width: 490px) {
+  .profile-query-display {
+    display: none !important;
+  }
+}
+
+/* Hide profile/query separator on small screens between 491px-576px */
+@media (min-width: 491px) and (max-width: 576px) {
+  .profile-query-display {
+    border-right: none;
+    padding-right: var(--spacing-sm);
+    margin-right: 0 !important;
+    /* Allow wrapping on very small screens to prevent overflow */
+    white-space: normal;
+    max-width: 100%;
+  }
+}
+
+/* On medium screens, make profile/query more compact */
+@media (max-width: 991px) {
+  .profile-query-display {
+    font-size: var(--font-size-xs);
+  }
+}
+
+/* Parameter, Settings, and Data button styling */
+#btn-expand-parameters,
+#settings-button,
+#toggle-import-export-panel {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  height: 38px !important;
+  min-width: 38px !important;
+  border-radius: 6px !important; /* Rounded corners matching panels */
+  transition: all 0.2s ease !important; /* Smooth transitions */
+  font-weight: 500 !important;
+}
+
+/* Hover effect for flyout buttons */
+#btn-expand-parameters:hover,
+#settings-button:hover,
+#toggle-import-export-panel:hover {
+  transform: translateY(-1px); /* Subtle lift */
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12) !important;
+}
+
+/* Active/pressed state */
+#btn-expand-parameters:active,
+#settings-button:active,
+#toggle-import-export-panel:active {
+  transform: translateY(0);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1) !important;
+}
+
+/* Active state when panel is open - solid background for clear visual feedback */
+#btn-expand-parameters.active,
+#settings-button.active,
+#toggle-import-export-panel.active {
+  background-color: var(--bs-primary) !important;
+  color: white !important;
+  border-color: var(--bs-primary) !important;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.2), 0 2px 6px rgba(13, 110, 253, 0.25) !important;
+}
+
+#btn-expand-parameters.active:hover,
+#settings-button.active:hover,
+#toggle-import-export-panel.active:hover {
+  background-color: var(--bs-primary) !important;
+  opacity: 0.95;
+  transform: translateY(0) !important; /* No lift when active */
+}
+
+/* Ensure consistent button height on mobile and tablet (up to 768px) */
+@media (max-width: 768px) {
+  #btn-expand-parameters,
+  #settings-button,
+  #toggle-import-export-panel {
+    height: 38px !important;
+    min-height: 38px !important;
+    max-height: 38px !important;
+    padding: 0 8px !important;
+    line-height: 1 !important;
+  }
+}
+
+/* Icons in flyout buttons - flexbox handles centering */
+#btn-expand-parameters i,
+#settings-button i,
+#toggle-import-export-panel i {
+  font-size: 0.9rem; /* Consistent icon size */
+  transition: transform 0.3s ease;
+}
+
+/* Rotate chevron icon when panel is active */
+#btn-expand-parameters.active i.fa-chevron-down {
+  transform: rotate(180deg);
+}
+
+/* Remove media query that adds conflicting margins */
+
+/* Expanded panel animation */
+.parameter-panel-expanded,
+.settings-panel-expanded,
+.import-export-panel-expanded {
+  animation: slideDown var(--transition-base) var(--easing-default);
+}
+
+/* Backdrop overlay with brand-colored tint when panels are expanded */
+.panel-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  /* More visible pale blue tint matching brand colors */
+  background: linear-gradient(
+    to bottom,
+    rgba(13, 110, 253, 0.08) 0%,
+    rgba(13, 110, 253, 0.05) 100%
+  );
+  z-index: 5; /* Below param-panel-sticky (z-index: 1020) */
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity var(--transition-base) var(--easing-default);
+}
+
+.panel-backdrop.active {
+  opacity: 1;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Mobile responsive adjustments for parameter panel */
+@media (max-width: 767px) {
+  .param-panel-sticky {
+    top: 0; /* At the very top on mobile too */
+    position: sticky; /* Keep sticky on mobile for consistent app experience */
+  }
+
+  .param-summary-item {
+    font-size: var(--font-size-xs);
+    margin-right: var(--spacing-xs) !important;
+  }
+
+  /* Constrain expanded panel height on mobile to prevent overlap with bottom nav */
+  .parameter-panel-expanded {
+    max-height: calc(100vh - 200px); /* Account for sticky bar and bottom nav */
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+    padding-bottom: 2rem !important; /* Extra padding at bottom for better scrolling */
+  }
+
+  /* Ensure form inputs in parameter panel are touch-friendly on mobile */
+  .parameter-panel-expanded input,
+  .parameter-panel-expanded .form-control {
+    min-height: 44px; /* Touch-friendly size */
+  }
+}

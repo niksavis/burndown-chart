@@ -36,6 +36,7 @@ def update_progress_bars(n_intervals):
         Tuple of (container_style, label, value, color, animated, interval_disabled)
     """
     from data.persistence.factory import get_backend
+    from utils.datetime_utils import parse_iso_datetime
 
     try:
         # Read task progress from database
@@ -102,20 +103,24 @@ def update_progress_bars(n_intervals):
         if status == "in_progress" and cancelled and cancel_time:
             from datetime import datetime
 
-            elapsed = (
-                datetime.now() - datetime.fromisoformat(cancel_time)
-            ).total_seconds()
+            cancel_timestamp = parse_iso_datetime(cancel_time)
+            if cancel_timestamp:
+                elapsed = (datetime.now() - cancel_timestamp).total_seconds()
 
-            if elapsed > 5:  # 5 second grace period for backend to respond
+                if elapsed > 5:  # 5 second grace period for backend to respond
+                    logger.warning(
+                        f"[Progress] Detected stuck cancelled task ({elapsed:.0f}s since cancellation). "
+                        "Forcing to error status."
+                    )
+                    from data.task_progress import TaskProgress
+
+                    TaskProgress.fail_task("update_data", "Operation cancelled by user")
+                    # Will be handled on next poll as error status
+                    raise PreventUpdate
+            else:
                 logger.warning(
-                    f"[Progress] Detected stuck cancelled task ({elapsed:.0f}s since cancellation). "
-                    "Forcing to error status."
+                    "[Progress] Invalid cancel_time value, skipping cancellation grace check"
                 )
-                from data.task_progress import TaskProgress
-
-                TaskProgress.fail_task("update_data", "Operation cancelled by user")
-                # Will be handled on next poll as error status
-                raise PreventUpdate
 
         # RECOVERY: Detect calculate phase and trigger metrics calculation
         # When background thread completes fetch, it sets phase="calculate" but can't trigger
@@ -142,6 +147,57 @@ def update_progress_bars(n_intervals):
             # Trigger metrics calculation by returning a timestamp
             stuck_metrics_trigger = int(time.time() * 1000)
 
+        # Finalization: Postprocess phase triggers UI refresh to complete the task
+        # CRITICAL: Trigger metrics-refresh-trigger ONCE when postprocess phase starts
+        # This ensures reload_data_after_update callback fires and completes the task
+        postprocess_trigger = None
+        if status == "in_progress" and phase == "postprocess":
+            from datetime import datetime
+            from data.task_progress import TaskProgress
+
+            postprocess_time = progress_data.get("postprocess_time")
+            postprocess_message = progress_data.get(
+                "postprocess_message", "Data updated successfully"
+            )
+
+            # Check if we've already triggered the refresh (prevent infinite loop)
+            # Store last postprocess_time we've seen to avoid re-triggering
+            import time
+
+            last_postprocess_time_seen = getattr(
+                update_progress_bars, "_last_postprocess_time", None
+            )
+
+            if postprocess_time and postprocess_time != last_postprocess_time_seen:
+                # First time seeing this postprocess phase - trigger UI refresh
+                logger.info(
+                    "[Progress] Detected postprocess phase - triggering UI refresh to complete task"
+                )
+                postprocess_trigger = int(time.time() * 1000)
+                # Remember this postprocess_time so we don't trigger again
+                update_progress_bars._last_postprocess_time = postprocess_time
+
+            # Timeout safety: If postprocess takes too long, force completion
+            postprocess_timestamp = parse_iso_datetime(postprocess_time)
+            if postprocess_timestamp:
+                elapsed = (datetime.now() - postprocess_timestamp).total_seconds()
+                if elapsed >= 60:
+                    logger.warning(
+                        "[Progress] Postprocess exceeded 60s, completing task"
+                    )
+                    TaskProgress.complete_task("update_data", postprocess_message)
+                    raise PreventUpdate
+            else:
+                start_timestamp = parse_iso_datetime(progress_data.get("start_time"))
+                if start_timestamp:
+                    elapsed = (datetime.now() - start_timestamp).total_seconds()
+                    if elapsed >= 90:
+                        logger.warning(
+                            "[Progress] Stale postprocess state detected, completing task"
+                        )
+                        TaskProgress.complete_task("update_data", postprocess_message)
+                        raise PreventUpdate
+
         # Handle complete status - show success for 3 seconds then hide
         if status == "complete":
             from datetime import datetime
@@ -150,9 +206,14 @@ def update_progress_bars(n_intervals):
             if complete_time:
                 # CRITICAL: Check if this is a stale completion from an old task
                 # If complete_time is > 10 seconds old, treat as stale and hide immediately
-                elapsed = (
-                    datetime.now() - datetime.fromisoformat(complete_time)
-                ).total_seconds()
+                completed_at = parse_iso_datetime(complete_time)
+                if not completed_at:
+                    logger.warning(
+                        "[Progress] Invalid complete_time value, hiding immediately"
+                    )
+                    completed_at = datetime.now()
+
+                elapsed = (datetime.now() - completed_at).total_seconds()
 
                 if elapsed > 10:
                     # Very old completion - hide immediately without showing message
@@ -242,9 +303,14 @@ def update_progress_bars(n_intervals):
             if error_time:
                 from datetime import datetime
 
-                elapsed = (
-                    datetime.now() - datetime.fromisoformat(error_time)
-                ).total_seconds()
+                error_timestamp = parse_iso_datetime(error_time)
+                if not error_timestamp:
+                    logger.warning(
+                        "[Progress] Invalid error_time value, hiding immediately"
+                    )
+                    error_timestamp = datetime.now()
+
+                elapsed = (datetime.now() - error_timestamp).total_seconds()
 
                 if elapsed >= 3:
                     # Hide after 3 seconds
@@ -336,13 +402,20 @@ def update_progress_bars(n_intervals):
             current = fetch_progress.get("current", 0)
             total = fetch_progress.get("total", 0)
             message = fetch_progress.get("message", "")
-        else:  # calculate
+        elif phase == "calculate":
             phase_label = "Calculating"
             color = "success"  # Green
             phase_percent = calc_progress.get("percent", 0)
             current = calc_progress.get("current", 0)
             total = calc_progress.get("total", 0)
             message = calc_progress.get("message", "")
+        else:  # postprocess
+            phase_label = "Finalizing"
+            color = "primary"
+            phase_percent = 100
+            current = calc_progress.get("current", 0)
+            total = calc_progress.get("total", 0)
+            message = calc_progress.get("message", "Finalizing UI...")
 
         if total > 0:
             label = f"{phase_label}: {current}/{total} ({phase_percent:.0f}%)"
@@ -376,12 +449,18 @@ def update_progress_bars(n_intervals):
             stuck_metrics_trigger
             if stuck_metrics_trigger
             else no_update,  # Auto-trigger metrics if stuck
-            no_update,  # No metrics refresh during progress
+            postprocess_trigger
+            if postprocess_trigger
+            else no_update,  # Trigger UI refresh when postprocess starts
             no_update,  # No statistics reload during progress
         )
 
+    except PreventUpdate:
+        raise
     except Exception as e:
-        logger.error(f"[Progress] Error reading progress from database: {e}")
+        logger.error(
+            f"[Progress] Error reading progress from database: {e}", exc_info=True
+        )
         return (
             {"display": "none"},
             "Processing: 0%",
@@ -499,8 +578,16 @@ def reload_data_after_update(refresh_trigger):
     try:
         # Load statistics from disk
         from data.persistence import load_statistics
+        from data.persistence.factory import get_backend
         from dash import html
         from data.query_manager import get_query_dropdown_options
+        from data.task_progress import TaskProgress
+
+        # Check if task is already complete (avoid redundant complete_task calls)
+        backend = get_backend()
+        progress_data = backend.get_task_state()
+        task_status = progress_data.get("status") if progress_data else None
+        already_complete = task_status == "complete"
 
         statistics, is_sample = load_statistics()
 
@@ -513,6 +600,15 @@ def reload_data_after_update(refresh_trigger):
             logger.warning(
                 "[Progress] No statistics found after reload - clearing stores"
             )
+            if not already_complete:
+                logger.info("[Progress] Completing task: No changes detected")
+                TaskProgress.complete_task(
+                    "update_data", "No changes detected - data is already up to date"
+                )
+            else:
+                logger.info(
+                    "[Progress] Task already complete, skipping redundant complete_task call"
+                )
             return (
                 html.Div(
                     [
@@ -526,6 +622,17 @@ def reload_data_after_update(refresh_trigger):
             )
 
         logger.info(f"[Progress] Reloaded {len(statistics)} statistics records")
+        if not already_complete:
+            logger.info(
+                "[Progress] Completing task: Data and metrics updated successfully"
+            )
+            TaskProgress.complete_task(
+                "update_data", "Data and metrics updated successfully"
+            )
+        else:
+            logger.info(
+                "[Progress] Task already complete, skipping redundant complete_task call"
+            )
 
         # Update cache status to trigger jira-issues-store refresh
         cache_status = html.Div(
@@ -545,6 +652,9 @@ def reload_data_after_update(refresh_trigger):
     except Exception as e:
         logger.error(f"[Progress] Error reloading statistics: {e}", exc_info=True)
         from dash import html
+        from data.task_progress import TaskProgress
+
+        TaskProgress.fail_task("update_data", "Error refreshing UI after data update")
 
         # Try to build dropdown even on error
         try:
@@ -585,6 +695,7 @@ def cleanup_stale_tasks_on_load(pathname):
     """
     from datetime import datetime
     from data.persistence.factory import get_backend
+    from utils.datetime_utils import parse_iso_datetime
 
     try:
         backend = get_backend()
@@ -602,9 +713,15 @@ def cleanup_stale_tasks_on_load(pathname):
             timestamp = state.get(time_key)
 
             if timestamp:
-                elapsed = (
-                    datetime.now() - datetime.fromisoformat(timestamp)
-                ).total_seconds()
+                parsed_timestamp = parse_iso_datetime(timestamp)
+                if not parsed_timestamp:
+                    logger.warning(
+                        f"[Progress] Invalid {time_key} value, clearing stale state"
+                    )
+                    backend.clear_task_state()
+                    return True
+
+                elapsed = (datetime.now() - parsed_timestamp).total_seconds()
 
                 if elapsed > 10:
                     # Very stale task - clear state immediately

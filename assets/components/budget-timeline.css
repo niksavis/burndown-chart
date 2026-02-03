@@ -1,0 +1,74 @@
+/* ====================
+   BUDGET TIMELINE
+   ==================== */
+
+/* ========================================
+   Budget Timeline Card Styles
+   ======================================== */
+
+/* Timeline container */
+.timeline-container {
+  position: relative;
+}
+
+/* Timeline item cards */
+.timeline-item {
+  background-color: #ffffff;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.timeline-item:hover {
+  background-color: #f8f9fa;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  transform: translateX(2px);
+}
+
+/* Current date item - highlighted */
+.timeline-item-current {
+  border-color: #6f42c1 !important;
+  border-width: 2px !important;
+}
+
+.timeline-item-current:hover {
+  box-shadow: 0 4px 12px rgba(111, 66, 193, 0.15);
+}
+
+/* Icon wrapper styling */
+.timeline-icon-wrapper {
+  position: relative;
+  z-index: 1;
+}
+
+/* Timeline gaps section */
+.timeline-gaps .mb-2 {
+  padding: 0.5rem;
+  border-radius: 0.25rem;
+  background-color: #f8f9fa;
+  transition: background-color 0.2s ease;
+}
+
+.timeline-gaps .mb-2:hover {
+  background-color: #e9ecef;
+}
+
+/* Responsive adjustments for mobile */
+@media (max-width: 576px) {
+  .timeline-item .d-flex {
+    flex-wrap: wrap;
+  }
+
+  .timeline-icon-wrapper {
+    width: 40px !important;
+    height: 40px !important;
+  }
+
+  .timeline-icon-wrapper i {
+    font-size: 1.1rem !important;
+  }
+
+  .timeline-item .badge {
+    margin-top: 0.5rem;
+    margin-left: 52px;
+  }
+}

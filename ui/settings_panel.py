@@ -55,7 +55,7 @@ def _get_default_jql_profile_id():
     """
     try:
         from data.persistence import load_app_settings
-        from data.jira_query_manager import load_query_profiles
+        from data.jira.query_profiles import load_query_profiles
 
         app_settings = load_app_settings()
         jql_query = app_settings.get("jql_query", "")

@@ -15,17 +15,22 @@
 **BEFORE running pytest, python, pip, release.py, ANY .py script**:
 
 ```powershell
-# STEP 1: Activate (PowerShell)
-.venv\Scripts\activate
+# CRITICAL: Chain commands with semicolon - each run_in_terminal starts NEW shell
+.venv\Scripts\activate; python app.py
+.venv\Scripts\activate; pytest tests/ -v
+.venv\Scripts\activate; python release.py patch
 
-# STEP 2: Verify prompt shows (.venv)
-# STEP 3: Only NOW proceed with Python command
+# WRONG: Separate commands (venv doesn't persist)
+# .venv\Scripts\activate
+# python app.py  ← This runs in NEW terminal without venv!
 ```
 
-**ENFORCEMENT**: If about to run Python command → STOP → Check venv → Activate if needed
+**ENFORCEMENT**: If about to run Python command → STOP → Chain with activation
 
-- Command: `.venv\Scripts\activate` (PowerShell) or `source .venv/bin/activate` (bash)
+- **Pattern**: `.venv\Scripts\activate; <python command>` (PowerShell)
+- **Pattern**: `source .venv/bin/activate && <python command>` (bash)
 - Applies to: pytest, python scripts, pip install, release.py, regenerate_changelog.py, ALL .py
+- **Reason**: Each `run_in_terminal` call starts NEW shell session (activation doesn't persist)
 - **NO EXCEPTIONS** - this prevents 99% of "command failed, run again" issues
 
 ### 1. Zero Errors Policy
@@ -34,42 +39,73 @@
 - Fix ALL errors before commit (zero tolerance)
 - Pre-commit: `get_errors` → fix → verify → commit
 
-### 2. Layered Architecture
+### 2. Architectural Guidelines (MANDATORY)
+
+**BEFORE creating/editing code**: Check architectural guidelines in `docs/architecture/`
+
+These guidelines are **skills** that make agents more effective by ensuring:
+
+- **Cognitive clarity**: Code sized for comprehension and AI context windows
+- **Maintainability**: Safe modifications without cascading effects
+- **Modularity**: Independent, reusable components
+- **Quality**: Consistent standards across all languages
+
+| Language   | Max File       | Max Function | Key Document                                                              |
+| ---------- | -------------- | ------------ | ------------------------------------------------------------------------- |
+| Python     | 500 lines      | 50 lines     | [python_guidelines.md](../docs/architecture/python_guidelines.md)         |
+| JavaScript | 400 lines      | 40 lines     | [javascript_guidelines.md](../docs/architecture/javascript_guidelines.md) |
+| HTML       | 300 lines      | N/A          | [html_guidelines.md](../docs/architecture/html_guidelines.md)             |
+| CSS        | 500 lines      | N/A          | [css_guidelines.md](../docs/architecture/css_guidelines.md)               |
+| SQL        | 50 lines/query | N/A          | [sql_guidelines.md](../docs/architecture/sql_guidelines.md)               |
+
+**Enforcement**: If file > 80% of limit → create NEW file (don't append)
+
+**CODE CREATION PREREQUISITE**:
+∀ file operations: Check `docs/architecture/<language>_guidelines.md` FIRST
+
+- Verify size limits before modifying
+- Follow naming conventions
+- Apply layer separation (callbacks/ → data/ delegation)
+
+### 3. Layered Architecture
 
 - `callbacks/` → event handling ONLY, delegate to `data/`
 - Never implement logic in callbacks
 - `data/` → business logic, API calls, calculations
 
-### 3. KISS + DRY + Boy Scout
+### 4. KISS + DRY + Boy Scout
 
 - KISS: Simplify, early returns, break functions >50 lines
 - DRY: Extract duplicates (3+ blocks) → helpers
 - Boy Scout: Every change improves codebase (remove dead code, add type hints, fix smells)
 
-### 4. No Customer Data
+### 5. No Customer Data
 
 - NEVER commit: real company names, domains, JIRA field IDs, credentials
 - Use: "Acme Corp", "example.com", "customfield_10001"
 
-### 5. Test Isolation
+### 6. Test Isolation
 
 - Tests MUST use `tempfile.TemporaryDirectory()`, never project root
 
-### 6. No Emoji
+### 7. Unicode Symbols Only
 
-- NEVER use emoji (encoding issues, breaks grep)
+- NEVER use emoji-style icons (🔴🟠🟡🔵⚪) - causes encoding issues, breaks grep
+- ALWAYS use small Unicode symbols: ○ ◐ ● ✓ ❄ (see agents.md Visual Design)
 
-### 7. Terminal Management
+### 8. Terminal Management
 
-- If app running, open NEW terminal for other commands
+- Each `run_in_terminal` starts NEW terminal - commands don't interfere
+- App in background + command to same terminal = app terminates
+- Solution: Subsequent commands auto-use different terminals
 
-### 8. Self-Healing Documentation
+### 9. Self-Healing Documentation
 
 - On discovering errors in `copilot-instructions.md`: INFORM → PROPOSE → UPDATE
 - Mathematically condense rules: minimum context, maximum clarity
 - Remove redundancy, preserve all rules
 
-### 9. Conventional Commits with Beads Tracking (MANDATORY)
+### 10. Conventional Commits with Beads Tracking (MANDATORY)
 
 - Format: `type(scope): description (bd-XXX)`
 - Types: `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`
@@ -178,9 +214,21 @@ available. Prevents duplicate browser tabs after updates."
 5. Work: `bd ready` → claim → do work → `bd close burndown-chart-016.X --reason "Completed"` → stage all → commit with `(burndown-chart-016.X)` → push
 6. Complete: All beads closed → update spec.md → `pytest` → push
 
-**Workflow**: Close bead BEFORE push (NOT after release): `Work → Close bead → Push main → Sync beads-metadata → Create release`  
-**Commit format**: `feat(scope): description (burndown-chart-XXX)` (traceability, orphan detection)  
-**Beads sync**: Daemon auto-commits to beads-metadata; push with: `Push-Location .git/beads-worktrees/beads-metadata; git pull --rebase; git push; Pop-Location`
+**Workflow**: Close bead BEFORE push: `Work → bd close → git push main → Push beads-metadata`  
+**Commit format**: `type(scope): description (bd-XXX)` (traceability + orphan detection)  
+**Daemon auto-sync**: Commits to beads-metadata every 5s (no manual `bd sync` in worktree mode)
+
+**CRITICAL - Description Mandate**:
+
+- ALWAYS: `bd create --description="Context"` (issues without context are useless)
+- Link discoveries: `--deps discovered-from:<parent-id>` (traces work relationships)
+
+**Priority system** (1-4):
+
+- `1` High (major features, important bugs)
+- `2` Medium (default)
+- `3` Low (polish)
+- `4` Backlog (future)
 
 ---
 

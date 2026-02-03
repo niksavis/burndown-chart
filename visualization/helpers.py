@@ -18,6 +18,68 @@ import pandas as pd
 import plotly.graph_objects as go
 
 #######################################################################
+# DATA PREPARATION HELPERS
+#######################################################################
+
+
+def fill_missing_weeks(weekly_df, start_date, end_date, value_columns):
+    """Fill in missing weeks with zero values to show complete time range.
+
+    Args:
+        weekly_df: DataFrame with aggregated weekly data (may have gaps)
+        start_date: Start date of the time range
+        end_date: End date of the time range
+        value_columns: List of column names to fill with zeros (e.g., ['items', 'points'])
+
+    Returns:
+        DataFrame with all weeks in the range, missing weeks filled with zeros
+    """
+    if weekly_df.empty:
+        return weekly_df
+
+    # Create complete week range
+    all_weeks = []
+    current = start_date
+    while current <= end_date:
+        # Get ISO week info
+        iso_calendar = current.isocalendar()
+        year_week = f"{iso_calendar.year}-W{iso_calendar.week:02d}"
+        all_weeks.append(
+            {
+                "year_week": year_week,
+                "start_date": current
+                - timedelta(days=current.weekday()),  # Monday of the week
+            }
+        )
+        current += timedelta(weeks=1)
+
+    # Create DataFrame with all weeks
+    all_weeks_df = pd.DataFrame(all_weeks)
+
+    # Merge with actual data, filling missing values with 0
+    result_df = all_weeks_df.merge(
+        weekly_df, on="year_week", how="left", suffixes=("", "_actual")
+    )
+
+    # Use the actual start_date if it exists, otherwise use the computed one
+    if "start_date_actual" in result_df.columns:
+        result_df["start_date"] = result_df["start_date_actual"].fillna(
+            result_df["start_date"]
+        )
+        result_df = result_df.drop("start_date_actual", axis=1)
+
+    # Ensure start_date is datetime type
+    result_df["start_date"] = pd.to_datetime(result_df["start_date"])
+
+    # Fill missing value columns with 0
+    for col in value_columns:
+        if col in result_df.columns:
+            result_df[col] = result_df[col].fillna(0)
+
+    return result_df.sort_values("start_date")
+
+
+#######################################################################
 # TYPE CONVERSION AND VALIDATION HELPERS
 #######################################################################
 
@@ -169,20 +231,20 @@ def calculate_forecast_completion_dates(pert_time_items, pert_time_points):
 
 
 def prepare_metrics_data(
-    total_items,
-    total_points,
+    total_items: int,
+    total_points: int,
     deadline,
-    pert_time_items,
-    pert_time_points,
-    data_points_count,
+    pert_time_items: float,
+    pert_time_points: float,
+    data_points_count: int,
     df,
-    items_completion_enhanced,
-    points_completion_enhanced,
-    avg_weekly_items=0,
-    avg_weekly_points=0,
-    med_weekly_items=0,
-    med_weekly_points=0,
-):
+    items_completion_enhanced: str,
+    points_completion_enhanced: str,
+    avg_weekly_items: float = 0.0,
+    avg_weekly_points: float = 0.0,
+    med_weekly_items: float = 0.0,
+    med_weekly_points: float = 0.0,
+) -> dict:
     """
     Prepare metrics data for display in the forecast plot.
 

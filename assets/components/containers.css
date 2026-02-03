@@ -1,0 +1,131 @@
+/* ====================
+   CONTAINERS
+   ==================== */
+
+/* ================================================================
+   Additional Container Components
+   ================================================================ */
+
+/* Breadcrumb navigation */
+.breadcrumb {
+  background-color: transparent;
+  padding: var(--space-2) 0;
+  margin-bottom: var(--space-4);
+  font-size: var(--text-sm);
+}
+
+.breadcrumb-item {
+  color: var(--color-neutral-600);
+}
+
+.breadcrumb-item.active {
+  color: var(--color-neutral-900);
+  font-weight: var(--font-medium);
+}
+
+.breadcrumb-item + .breadcrumb-item::before {
+  color: var(--color-neutral-400);
+  content: "›";
+  padding: 0 var(--space-2);
+}
+
+.breadcrumb-item a {
+  color: var(--color-brand-600);
+  text-decoration: none;
+  transition: color var(--transition-fast);
+}
+
+.breadcrumb-item a:hover {
+  color: var(--color-brand-700);
+  text-decoration: underline;
+}
+
+/* Nav pills enhancement */
+.nav-pills .nav-link {
+  border-radius: var(--radius-full);
+  padding: var(--space-2) var(--space-4);
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  color: var(--color-neutral-700);
+  transition: all var(--transition-fast);
+  text-decoration: none;
+}
+
+.nav-pills .nav-link:hover {
+  background-color: var(--color-brand-50);
+  color: var(--color-brand-700);
+  text-decoration: none;
+}
+
+.nav-pills .nav-link.active {
+  background: linear-gradient(135deg, var(--color-brand-500), var(--color-brand-600));
+  color: white;
+  box-shadow: var(--shadow-sm);
+}
+
+/* Content sections with subtle dividers */
+.content-section {
+  padding: var(--space-6) 0;
+  border-bottom: 1px solid var(--color-neutral-100);
+}
+
+.content-section:last-child {
+  border-bottom: none;
+}
+
+.content-section-header {
+  font-size: var(--text-2xl);
+  font-weight: var(--font-semibold);
+  color: var(--color-neutral-900);
+  margin-bottom: var(--space-4);
+  padding-bottom: var(--space-3);
+  border-bottom: 2px solid var(--color-brand-500);
+  display: inline-block;
+}
+
+/* Panel containers */
+.panel {
+  background: white;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  padding: var(--space-4);
+  margin-bottom: var(--space-4);
+  transition: all var(--transition-base);
+}
+
+.panel:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
+}
+
+.panel-header {
+  font-size: var(--text-lg);
+  font-weight: var(--font-semibold);
+  color: var(--color-neutral-900);
+  margin-bottom: var(--space-3);
+  padding-bottom: var(--space-2);
+  border-bottom: 1px solid var(--color-neutral-200);
+}
+
+.panel-body {
+  font-size: var(--text-sm);
+  color: var(--color-neutral-700);
+  line-height: var(--leading-relaxed);
+}
+
+/* Well container (deprecated in BS5 but useful) */
+.well {
+  background-color: var(--color-neutral-50);
+  border: 1px solid var(--color-neutral-200);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+  margin-bottom: var(--space-4);
+}
+
+.well-sm {
+  padding: var(--space-3);
+}
+
+.well-lg {
+  padding: var(--space-5);
+}

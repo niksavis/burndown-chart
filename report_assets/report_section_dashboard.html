@@ -1,0 +1,289 @@
+<!-- Dashboard Section -->
+<div class="section">
+  <h2 class="section-title">
+    <i class="fas fa-chart-line"></i>
+    Project Health Overview
+  </h2>
+
+  {% if metrics.dashboard.has_data %}
+  <!-- Dashboard Overview with Progress Rings and Health Gauge -->
+  <div class="dashboard-overview">
+    <div class="row g-4">
+      <!-- Health Gauge -->
+      <div class="col-md-4">
+        <div class="health-gauge-container">
+          {% if metrics.dashboard.health_status == 'GOOD' %}
+            {% set gauge_color = 'var(--color-health-good)' %}
+            {% set badge_class = 'health-status-good' %}
+          {% elif metrics.dashboard.health_status == 'CAUTION' %}
+            {% set gauge_color = 'var(--color-health-caution)' %}
+            {% set badge_class = 'health-status-moderate' %}
+          {% elif metrics.dashboard.health_status == 'AT RISK' %}
+            {% set gauge_color = 'var(--color-health-at-risk)' %}
+            {% set badge_class = 'health-status-at-risk' %}
+          {% else %}
+            {% set gauge_color = 'var(--color-health-critical)' %}
+            {% set badge_class = 'health-status-at-risk' %}
+          {% endif %}
+          <div
+            class="health-gauge"
+            style="--gauge-percent: {{ metrics.dashboard.health_score|round|int }}; --gauge-color: {{ gauge_color }};"
+          >
+            <div class="health-gauge-inner">
+              <div class="health-gauge-text">
+                {{ metrics.dashboard.health_score|round|int }}%
+              </div>
+              <div class="health-gauge-label">HEALTH</div>
+            </div>
+          </div>
+          <div class="health-status-badge {{ badge_class }}">
+            {{ metrics.dashboard.health_status }}
+          </div>
+          {% if metrics.dashboard.deadline or metrics.dashboard.forecast_date %}
+          <table class="table table-sm table-borderless" style="margin: 1rem auto 0; max-width: 220px; font-size: 0.875rem;">
+            <tbody>
+              {% if metrics.dashboard.forecast_date_items %}
+              <tr>
+                <td style="padding: 0.15rem 0.75rem 0.15rem 0; color: rgba(13, 110, 253, 0.7); font-weight: 600; border: none; background: none;">Forecast (items)</td>
+                <td style="padding: 0.15rem 0; color: #0d6efd; font-weight: 600; text-align: right; border: none; background: none;">{{ metrics.dashboard.forecast_date_items }}</td>
+              </tr>
+              {% endif %}
+              {% if show_points and metrics.dashboard.forecast_date_points %}
+              <tr>
+                <td style="padding: 0.15rem 0.75rem 0.15rem 0; color: rgba(253, 126, 20, 0.7); font-weight: 600; border: none; background: none;">Forecast (points)</td>
+                <td style="padding: 0.15rem 0; color: var(--color-orange); font-weight: 600; text-align: right; border: none; background: none;">{{ metrics.dashboard.forecast_date_points }}</td>
+              </tr>
+              {% endif %}
+              {% if metrics.dashboard.deadline %}
+              <tr>
+                <td style="padding: 0.15rem 0.75rem 0.15rem 0; color: rgba(220, 53, 69, 0.7); font-weight: 600; border: none; background: none;">Deadline</td>
+                <td style="padding: 0.15rem 0; color: var(--color-health-critical); font-weight: 600; text-align: right; border: none; background: none;">{{ metrics.dashboard.deadline }}</td>
+              </tr>
+              {% endif %}
+            </tbody>
+          </table>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Items Progress Ring -->
+      <div class="col-md-4">
+        <div class="progress-ring-container">
+          {% set items_pct = metrics.dashboard.items_completion_pct %}
+          {% set items_deg = items_pct * 3.6 %}
+          <div
+            class="progress-ring"
+            style="--progress-deg: {{ items_deg }}deg; background: conic-gradient(from 0deg, var(--color-blue) 0deg, var(--color-blue) var(--progress-deg), #e9ecef var(--progress-deg), #e9ecef 360deg);"
+          >
+            <div class="progress-ring-inner">
+              <div class="progress-ring-text" style="color: var(--color-blue)">
+                {{ items_pct|int }}%
+              </div>
+              <div class="progress-ring-subtext">Complete</div>
+            </div>
+          </div>
+          <div class="health-status-badge health-status-items">
+            ITEMS
+          </div>
+          <table class="table table-sm table-borderless" style="margin: 1rem auto 0; max-width: 200px; font-size: 0.875rem;">
+            <tbody>
+              <tr>
+                <td style="padding: 0.15rem 0.75rem 0.15rem 0; color: rgba(108, 117, 125, 0.7); font-weight: 600; border: none; background: none;">Completed</td>
+                <td style="padding: 0.15rem 0; color: rgba(13, 110, 253, 0.8); font-weight: normal; text-align: right; border: none; background: none;">{{ metrics.dashboard.completed_items|int }}</td>
+              </tr>
+              <tr>
+                <td style="padding: 0.15rem 0.75rem 0.15rem 0; color: rgba(108, 117, 125, 0.7); font-weight: 600; border: none; background: none;">Remaining</td>
+                <td style="padding: 0.15rem 0; color: rgba(13, 110, 253, 0.8); font-weight: normal; text-align: right; border: none; background: none;">{{ metrics.dashboard.remaining_items|int }}</td>
+              </tr>
+              <tr>
+                <td style="padding: 0.15rem 0.75rem 0.15rem 0; color: rgba(108, 117, 125, 0.7); font-weight: 600; border: none; background: none;">Total</td>
+                <td style="padding: 0.15rem 0; color: rgba(13, 110, 253, 0.8); font-weight: normal; text-align: right; border: none; background: none;">{{ metrics.dashboard.total_items|int }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Points Progress Ring -->
+      {% if show_points %}
+      <div class="col-md-4">
+        <div class="progress-ring-container">
+          {% set points_pct = metrics.dashboard.points_completion_pct %}
+          {% set points_deg = points_pct * 3.6 %}
+          <div
+            class="progress-ring"
+            style="--progress-deg: {{ points_deg }}deg; background: conic-gradient(from 0deg, var(--color-orange) 0deg, var(--color-orange) var(--progress-deg), #e9ecef var(--progress-deg), #e9ecef 360deg);"
+          >
+            <div class="progress-ring-inner">
+              <div class="progress-ring-text" style="color: var(--color-orange)">
+                {{ points_pct|int }}%
+              </div>
+              <div class="progress-ring-subtext">Complete</div>
+            </div>
+          </div>
+          <div class="health-status-badge health-status-points">
+            POINTS
+          </div>
+          <table class="table table-sm table-borderless" style="margin: 1rem auto 0; max-width: 200px; font-size: 0.875rem;">
+            <tbody>
+              <tr>
+                <td style="padding: 0.15rem 0.75rem 0.15rem 0; color: rgba(108, 117, 125, 0.7); font-weight: 600; border: none; background: none;">Completed</td>
+                <td style="padding: 0.15rem 0; color: rgba(253, 126, 20, 0.8); font-weight: normal; text-align: right; border: none; background: none;">{{ metrics.dashboard.completed_points|dec1 }}</td>
+              </tr>
+              <tr>
+                <td style="padding: 0.15rem 0.75rem 0.15rem 0; color: rgba(108, 117, 125, 0.7); font-weight: 600; border: none; background: none;">Remaining</td>
+                <td style="padding: 0.15rem 0; color: rgba(253, 126, 20, 0.8); font-weight: normal; text-align: right; border: none; background: none;">{{ metrics.dashboard.remaining_points|dec1 }}</td>
+              </tr>
+              <tr>
+                <td style="padding: 0.15rem 0.75rem 0.15rem 0; color: rgba(108, 117, 125, 0.7); font-weight: 600; border: none; background: none;">Total</td>
+                <td style="padding: 0.15rem 0; color: rgba(253, 126, 20, 0.8); font-weight: normal; text-align: right; border: none; background: none;">{{ metrics.dashboard.total_points|dec1 }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Velocity Cards -->
+  <div class="velocity-cards">
+    <div class="velocity-card" style="border-left-color: #0d6efd;">
+      <div class="velocity-card-title">
+        <i class="fas fa-tachometer-alt"></i> Velocity (Items)
+      </div>
+      <div class="velocity-card-value" style="color: #0d6efd;">
+        {{ metrics.dashboard.velocity_items|dec2 }}
+        <span class="velocity-card-unit">items/week</span>
+      </div>
+    </div>
+    {% if show_points %}
+    <div class="velocity-card points" style="border-left-color: var(--color-orange);">
+      <div class="velocity-card-title">
+        <i class="fas fa-tachometer-alt"></i> Velocity (Points)
+      </div>
+      <div class="velocity-card-value" style="color: var(--color-orange);">
+        {{ metrics.dashboard.velocity_points|dec2 }}
+        <span class="velocity-card-unit">points/week</span>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Health Score Breakdown -->
+  {% if metrics.dashboard.health_dimensions %}
+  <h4 class="mt-4 mb-3">
+    <i class="fas fa-chart-pie"></i> Health Score Breakdown ({{ metrics.dashboard.health_score|round|int }}%)
+  </h4>
+  <p class="text-muted mb-3" style="font-size: 0.875rem">
+    <i class="fas fa-info-circle me-1"></i>
+    <small><strong>Dynamic Weighting:</strong> Each dimension has a maximum weight (Delivery: 25%, Predictability: 20%, Quality: 20%, Efficiency: 15%, Sustainability: 10%, Financial: 10%). The actual weight depends on available data signals - if a dimension lacks data, its weight is 0 and redistributed proportionally to other dimensions. This ensures the total always sums to 100%.</small>
+  </p>
+  <div class="row">
+    {% for dimension_name, dimension_data in metrics.dashboard.health_dimensions.items() %}
+    {% set contribution = (dimension_data.score * dimension_data.weight / 100)|round(1) %}
+    {% set has_data = dimension_data.weight > 0 %}
+    <div class="col-md-6 mb-3">
+      <div class="card {% if not has_data %}opacity-50{% endif %}" style="min-height: 140px;">
+        <div class="card-body d-flex flex-column">
+          <h6 class="card-title">
+            {{ dimension_name|title }}
+            {% if has_data %}
+            <span class="badge float-end
+              {% if contribution >= dimension_data.max_weight * 0.8 %}bg-success
+              {% elif contribution >= dimension_data.max_weight * 0.6 %}bg-info
+              {% elif contribution >= dimension_data.max_weight * 0.4 %}bg-warning
+              {% else %}bg-danger{% endif %}">
+              {{ contribution|round(1) }}%
+            </span>
+            {% else %}
+            <span class="badge float-end bg-secondary">N/A</span>
+            {% endif %}
+          </h6>
+          {% if has_data %}
+          {% set progress_pct = (contribution / dimension_data.max_weight * 100)|round(0) %}
+          {% set pill_position = progress_pct if progress_pct > 0 else 0 %}
+          {% set pill_transform_class = 'progress-pill progress-pill--center' if pill_position > 0 else 'progress-pill' %}
+          <div class="mb-2 position-relative">
+            <div class="progress" style="height: 20px;">
+              <div class="progress-bar
+                {% if contribution >= dimension_data.max_weight * 0.8 %}bg-success
+                {% elif contribution >= dimension_data.max_weight * 0.6 %}bg-info
+                {% elif contribution >= dimension_data.max_weight * 0.4 %}bg-warning
+                {% else %}bg-danger{% endif %}"
+                role="progressbar"
+                aria-valuenow="{{ contribution }}"
+                aria-valuemin="0"
+                aria-valuemax="{{ dimension_data.max_weight }}"
+                data-width="{{ progress_pct }}">
+              </div>
+            </div>
+            <span class="position-absolute badge rounded-pill bg-dark {{ pill_transform_class }}" data-left="{{ pill_position }}">{{ progress_pct|round(0)|int }}%</span>
+          </div>
+          <small class="text-muted flex-grow-1">
+            <strong>Formula:</strong> {{ dimension_data.score|round(1) }}% × {{ dimension_data.weight|round(1) }}% weight = {{ contribution|round(1) }}%<br>
+            <strong>Measures:</strong> 
+            {% if dimension_name == 'delivery' %}
+              Completion progress ({{ (metrics.dashboard.items_completion_pct or 0)|round|int }}%), velocity trend ({{ metrics.dashboard.trend_direction }}), throughput ({{ (metrics.dashboard.velocity_items or 0)|round(1) }} items/week)
+            {% elif dimension_name == 'predictability' %}
+              Velocity consistency (CV: {{ (metrics.dashboard.velocity_cv or 0)|round|int }}%), forecast confidence ({{ (metrics.dashboard.completion_confidence or 50)|round|int }}%), schedule adherence
+            {% elif dimension_name == 'quality' %}
+              {% if metrics.bug_analysis and metrics.bug_analysis.has_data %}
+                Resolution rate ({{ (metrics.bug_analysis.resolution_rate * 100)|round|int }}%), bug density ({{ (metrics.bug_analysis.capacity_consumed_by_bugs * 100)|round|int }}% capacity), avg bug age ({{ metrics.bug_analysis.avg_age_days|round|int }} days){% if metrics.dora and metrics.dora.has_data %}, DORA metrics (CFR: {{ (metrics.dora.change_failure_rate or 0)|round|int }}%, MTTR: {{ (metrics.dora.mttr_hours or 0)|round(1) }}h){% endif %}
+              {% else %}
+                Bug resolution, density, DORA quality metrics (data unavailable)
+              {% endif %}
+            {% elif dimension_name == 'efficiency' %}
+              {% if metrics.flow and metrics.flow.has_data %}
+                Flow efficiency ({{ (metrics.flow.efficiency or 0)|round(1) }}%), flow time ({{ (metrics.flow.flow_time or 0)|round(1) }} days), velocity ({{ (metrics.flow.velocity or 0)|round(1) }} items/wk){% if metrics.dora and metrics.dora.has_data %}, lead time ({{ (metrics.dora.lead_time_days or 0)|round(1) }} days){% endif %}
+              {% else %}
+                Flow efficiency, flow time, delivery speed (data unavailable)
+              {% endif %}
+            {% elif dimension_name == 'sustainability' %}
+              {% if metrics.dashboard %}
+                Scope stability ({{ (metrics.dashboard.scope_change_rate or 0)|round(1) }}% change rate){% if metrics.flow and metrics.flow.has_data %}, WIP ({{ (metrics.flow.wip or 0)|round|int }} items), flow distribution balance{% endif %}
+              {% else %}
+                Scope stability, WIP management, work distribution (data unavailable)
+              {% endif %}
+            {% elif dimension_name == 'financial' %}
+              {% if metrics.budget and metrics.budget.has_data %}
+                Budget adherence, burn rate ({{ metrics.budget.currency_symbol }}{{ (metrics.budget.burn_rate or 0)|round(0)|int }}/week), runway ({{ (metrics.budget.runway_weeks or 0)|round(1) }} weeks)
+              {% else %}
+                Budget tracking, burn rate, financial runway (data unavailable)
+              {% endif %}
+            {% endif %}
+          </small>
+          {% else %}
+          <div class="alert alert-secondary mb-0 py-3 flex-grow-1 d-flex align-items-center justify-content-center" role="alert" style="font-size: 0.875rem;">
+            <div class="text-center">
+              <i class="fas fa-info-circle"></i> No data available for this dimension. 
+              {% if dimension_name == 'financial' %}Enable budget tracking to include.
+              {% elif dimension_name == 'quality' %}Bug analysis data needed.
+              {% elif dimension_name == 'efficiency' %}Flow metrics data needed.
+              {% elif dimension_name == 'sustainability' %}Scope tracking data needed.
+              {% endif %}
+            </div>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <!-- Health Score Explanation -->
+  <p class="text-muted mt-3 mb-0" style="font-size: 0.875rem">
+    <i class="fas fa-info-circle me-1"></i>
+    <small>
+      Health score formula incorporates 6 dimensions with dynamic weighting. Available data sources automatically contribute: Dashboard metrics (Delivery Performance, Predictability), DORA metrics (Quality), Flow metrics (Efficiency), Bug Analysis/Scope/Budget (Sustainability, Financial). When data is unavailable, weights redistribute to maintain 100% total.
+    </small>
+  </p>
+
+  {% else %}
+  <div class="alert alert-warning">
+    <i class="fas fa-exclamation-triangle"></i> No dashboard data
+    available.
+  </div>
+  {% endif %}
+</div>

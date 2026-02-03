@@ -1118,7 +1118,7 @@ def calculate_metrics_from_settings(
         # NOT from today backwards, but from actual data boundaries
         # The data_points slider only controls DISPLAY, not calculation
 
-        from data.jira_simple import load_jira_cache, get_jira_config
+        from data.jira import load_jira_cache, get_jira_config
         from data.iso_week_bucketing import get_week_label, get_iso_week_bounds
         from datetime import timedelta
 

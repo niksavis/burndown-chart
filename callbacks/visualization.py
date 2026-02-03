@@ -10,11 +10,9 @@ This module handles callbacks related to visualization updates and interactions.
 # Standard library imports
 import json
 import logging
-import time
 from datetime import datetime, timedelta
 
 # Third-party library imports
-import dash_bootstrap_components as dbc
 import pandas as pd
 from dash import (
     Input,
@@ -22,87 +20,42 @@ from dash import (
     State,
     callback,
     callback_context,
-    dcc,
     html,
 )
 from dash.exceptions import PreventUpdate
 
 # Application imports
-from configuration import CHART_HELP_TEXTS
-from configuration.chart_config import (
-    get_burndown_chart_config,
-    get_weekly_chart_config,
-)
 from data import (
-    calculate_performance_trend,
     calculate_weekly_averages,
     compute_cumulative_values,
-    generate_weekly_forecast,
 )
 from data.schema import DEFAULT_SETTINGS
 from data.iso_week_bucketing import get_week_label
-from ui import (
-    create_compact_trend_indicator,
-)
 from ui.loading_utils import (
     create_content_placeholder,
-    create_skeleton_loader,
-    create_spinner,
 )
-from ui.tooltip_utils import create_info_tooltip
 from visualization import (
     create_forecast_plot,
+)
+from visualization.weekly_charts import (
     create_weekly_items_chart,
     create_weekly_points_chart,
 )
 from visualization.charts import (
-    create_chart_with_loading,
     apply_mobile_optimization,
+)
+from callbacks.visualization_helpers import (
+    check_has_points_in_period,
+    prepare_trend_data,
+    create_burndown_tab_content,
 )
 
 # Setup logging
 logger = logging.getLogger("burndown_chart")
 
 #######################################################################
-# HELPER FUNCTIONS
+# CALLBACKS
 #######################################################################
-
-
-def create_forecast_pill(forecast_type, value, color):
-    """
-    Create a forecast pill component with consistent styling.
-
-    Args:
-        forecast_type (str): Type of forecast (e.g., 'Most likely', 'Optimistic', 'Pessimistic')
-        value (float): Forecast value
-        color (str): Color hex code for styling the pill
-
-    Returns:
-        html.Div: Forecast pill component
-    """
-    return html.Div(
-        [
-            html.I(
-                className="fas fa-chart-line me-1",
-                style={"color": color},
-            ),
-            html.Small(
-                [
-                    f"{forecast_type}: ",
-                    html.Strong(
-                        f"{value:.2f}",
-                        style={"color": color},
-                    ),
-                ],
-            ),
-        ],
-        className="forecast-pill",
-        style={
-            "borderLeft": f"3px solid {color}",
-            "paddingLeft": "0.5rem",
-            "marginRight": "0.75rem",
-        },
-    )
 
 
 #######################################################################
@@ -242,610 +195,6 @@ def register(app):
 
         return fig
 
-    # DEPRECATED CALLBACK - Component "project-dashboard-pert-content" no longer exists in layout
-    # The create_project_summary_card() function that defines this component is deprecated and never called
-    # Dashboard now uses ui/dashboard.py and callbacks/dashboard.py instead
-    # @app.callback(
-    #     Output("project-dashboard-pert-content", "children"),
-    #     [
-    #         Input("current-settings", "modified_timestamp"),
-    #         Input("current-statistics", "modified_timestamp"),
-    #         Input("calculation-results", "data"),
-    #     ],
-    #     [State("current-settings", "data"), State("current-statistics", "data")],
-    # )
-    # def update_pert_info(
-    #     settings_ts, statistics_ts, calc_results, settings, statistics
-    # ):
-    #     """Update the PERT information when settings or statistics change."""
-    #     # Get context to see which input triggered the callback
-    #     ctx = callback_context
-    #     if not ctx.triggered:
-    #         raise PreventUpdate
-    #
-    #     # Validate inputs
-    #     if settings is None or statistics is None:
-    #         raise PreventUpdate
-    #
-    #     # Get triggered input ID
-    #     trigger_id = ctx.triggered[0]["prop_id"].split(".")[0]
-    #
-    #     # If triggered by calculation_results but data is None, prevent update
-    #     if trigger_id == "calculation-results" and calc_results is None:
-    #         raise PreventUpdate
-    #
-    #     # Process the settings and statistics data
-    #     df = pd.DataFrame(statistics)
-    #     if len(df) > 0:  # Check if there's any data
-    #         df["date"] = pd.to_datetime(df["date"])
-    #         df = df.sort_values("date")
-    #
-    #     # Get necessary values
-    #     total_items = settings.get("total_items", 100)
-    #     total_points = settings.get("total_points", 500)
-    #     pert_factor = settings.get("pert_factor", 3)
-    #     deadline = settings.get("deadline", None)
-    #     data_points_count = int(
-    #         settings.get("data_points_count", len(df))
-    #     )  # Get selected data points count (ensure int)
-    #
-    #     # Get milestone settings
-    #     show_milestone = settings.get("show_milestone", False)
-    #     milestone = settings.get("milestone", None) if show_milestone else None
-    #
-    #     # Process data for calculations
-    #     if not df.empty:
-    #         df = compute_cumulative_values(df, total_items, total_points)
-    #
-    #     # Create forecast plot and get PERT values
-    #     _, pert_data = create_forecast_plot(
-    #         df=df,
-    #         total_items=total_items,
-    #         total_points=total_points,
-    #         pert_factor=pert_factor,
-    #         deadline_str=deadline,
-    #         milestone_str=milestone,  # Pass milestone parameter
-    #         data_points_count=data_points_count,
-    #         show_points=settings.get(
-    #             "show_points", False
-    #         ),  # Pass show_points parameter
-    #     )
-    #
-    #     # Calculate weekly averages for the info table with filtering
-    #     avg_weekly_items, avg_weekly_points, med_weekly_items, med_weekly_points = (
-    #         calculate_weekly_averages(statistics, data_points_count=data_points_count)
-    #     )  # Calculate days to deadline
-    #     deadline_date = pd.to_datetime(deadline)
-    #     current_date = datetime.now()
-    #     days_to_deadline = max(0, (deadline_date - current_date).days)
-    #
-    #     # Create the PERT info component for the Project Dashboard
-    #     project_dashboard_pert_info = create_pert_info_table(
-    #         pert_data["pert_time_items"],
-    #         pert_data["pert_time_points"],
-    #         days_to_deadline,
-    #         avg_weekly_items,  # Preserve decimal precision
-    #         avg_weekly_points,  # Preserve decimal precision
-    #         med_weekly_items,  # Preserve decimal precision
-    #         med_weekly_points,  # Preserve decimal precision
-    #         pert_factor=pert_factor,
-    #         total_items=total_items,
-    #         total_points=total_points,
-    #         deadline_str=deadline,
-    #         milestone_str=milestone,  # Pass milestone parameter
-    #         statistics_df=df,
-    #         show_points=settings.get(
-    #             "show_points", False
-    #         ),  # Pass show_points parameter
-    #         data_points_count=data_points_count,  # NEW PARAMETER
-    #     )
-    #
-    #     return project_dashboard_pert_info
-
-    def _check_has_points_in_period(statistics, data_points_count=None):
-        """
-        Check if there's any points data in the filtered time period.
-
-        This respects the data_points_count slider to check only the selected time period,
-        not the entire dataset. This ensures consistency with dashboard cards.
-
-        Args:
-            statistics: Statistics data (list or DataFrame)
-            data_points_count: Number of weeks to check (None = all data)
-
-        Returns:
-            bool: True if there are any completed points > 0 in the period
-        """
-        if not statistics:
-            return False
-
-        df_check = (
-            pd.DataFrame(statistics)
-            if isinstance(statistics, list)
-            else statistics.copy()
-        )
-
-        if df_check.empty or "completed_points" not in df_check.columns:
-            return False
-
-        # Apply same filtering logic as charts to respect data_points_count
-        if data_points_count is not None and data_points_count > 0:
-            if "date" in df_check.columns:
-                df_check["date"] = pd.to_datetime(
-                    df_check["date"], format="mixed", errors="coerce"
-                )
-                df_check = df_check.dropna(subset=["date"]).sort_values(
-                    "date", ascending=True
-                )
-
-                if not df_check.empty:
-                    latest_date = df_check["date"].max()
-                    cutoff_date = latest_date - timedelta(weeks=data_points_count)
-                    df_check = df_check[df_check["date"] >= cutoff_date]
-
-        # Check if any points in the filtered period
-        return df_check["completed_points"].sum() > 0
-
-    def _prepare_trend_data(statistics, pert_factor, data_points_count=None):
-        """
-        Prepare trend and forecast data for visualizations.
-
-        Args:
-            statistics: Statistics data
-            pert_factor: PERT factor for forecasts
-            data_points_count: Number of data points to use for calculations (default: None, uses all data)
-
-        Returns:
-            tuple: (items_trend, points_trend) dictionaries with trend and forecast data
-        """
-        # Calculate trend indicators for items and points with filtering
-        items_trend = calculate_performance_trend(
-            statistics, "completed_items", 4, data_points_count=data_points_count
-        )
-        points_trend = calculate_performance_trend(
-            statistics, "completed_points", 4, data_points_count=data_points_count
-        )
-
-        # Generate weekly forecast data if statistics available
-        if statistics:
-            forecast_data = generate_weekly_forecast(
-                statistics, pert_factor, data_points_count=data_points_count
-            )
-
-            # Add forecast info to trend data if available
-            if forecast_data:
-                # Process items forecast data
-                if "items" in forecast_data:
-                    if "optimistic_value" in forecast_data["items"]:
-                        items_trend["optimistic_forecast"] = forecast_data["items"][
-                            "optimistic_value"
-                        ]
-                    if "most_likely_value" in forecast_data["items"]:
-                        items_trend["most_likely_forecast"] = forecast_data["items"][
-                            "most_likely_value"
-                        ]
-                    if "pessimistic_value" in forecast_data["items"]:
-                        items_trend["pessimistic_forecast"] = forecast_data["items"][
-                            "pessimistic_value"
-                        ]
-
-                # Process points forecast data
-                if "points" in forecast_data:
-                    if "optimistic_value" in forecast_data["points"]:
-                        points_trend["optimistic_forecast"] = forecast_data["points"][
-                            "optimistic_value"
-                        ]
-                    if "most_likely_value" in forecast_data["points"]:
-                        points_trend["most_likely_forecast"] = forecast_data["points"][
-                            "most_likely_value"
-                        ]
-                    if "pessimistic_value" in forecast_data["points"]:
-                        points_trend["pessimistic_forecast"] = forecast_data["points"][
-                            "pessimistic_value"
-                        ]
-
-        return items_trend, points_trend
-
-    def _create_trend_header_with_forecasts(
-        trend_data, title, icon, color, unit="week"
-    ):
-        """
-        Create a header with trend indicator and forecast pills.
-
-        Args:
-            trend_data: Dictionary with trend and forecast data
-            title: Title text for the header
-            icon: Icon class for the header
-            color: Color hex code for the header icon
-            unit: Unit for trend values (default: "week")
-
-        Returns:
-            html.Div: Header component with trend and forecasts
-        """
-        # Create forecast pills based on available forecast data
-        forecast_pills = []
-
-        # Most likely forecast pill
-        if "most_likely_forecast" in trend_data:
-            forecast_pills.append(
-                create_forecast_pill(
-                    "Most likely", trend_data["most_likely_forecast"], color
-                )
-            )
-
-        # Optimistic forecast pill
-        if "optimistic_forecast" in trend_data:
-            forecast_pills.append(
-                create_forecast_pill(
-                    "Optimistic",
-                    trend_data["optimistic_forecast"],
-                    "#28a745",  # Green color
-                )
-            )
-
-        # Pessimistic forecast pill
-        if "pessimistic_forecast" in trend_data:
-            # Use consistent red color for pessimistic across both items and points
-            pessimistic_color = "#dc3545"  # Danger red for worst case
-            forecast_pills.append(
-                create_forecast_pill(
-                    "Pessimistic", trend_data["pessimistic_forecast"], pessimistic_color
-                )
-            )
-
-        # Add unit indicator
-        forecast_pills.append(
-            html.Div(
-                html.Small(
-                    f"{title.split()[1].lower()}/{unit}",
-                    className="text-muted fst-italic",
-                ),
-                style={"paddingTop": "2px"},
-            )
-        )
-
-        # Create tooltip components list for proper rendering
-        tooltip_components = []
-
-        # Create methodology tooltip
-        methodology_tooltip = create_info_tooltip(
-            f"weekly-chart-methodology-{title.split()[1].lower()}",
-            CHART_HELP_TEXTS["weekly_chart_methodology"],
-        )
-        tooltip_components.append(methodology_tooltip)
-
-        # Create weighted average tooltip
-        weighted_avg_tooltip = create_info_tooltip(
-            f"weighted-average-{title.split()[1].lower()}",
-            CHART_HELP_TEXTS["weighted_moving_average"],
-        )
-        tooltip_components.append(weighted_avg_tooltip)
-
-        # Create exponential weighting tooltip
-        exponential_tooltip = create_info_tooltip(
-            f"exponential-weighting-{title.split()[1].lower()}",
-            CHART_HELP_TEXTS["exponential_weighting"],
-        )
-        tooltip_components.append(exponential_tooltip)
-
-        # Create forecast methodology tooltip
-        forecast_tooltip = create_info_tooltip(
-            f"forecast-methodology-{title.split()[1].lower()}",
-            CHART_HELP_TEXTS["forecast_vs_actual_bars"],
-        )
-        tooltip_components.append(forecast_tooltip)
-
-        # Create the header component with tooltips rendered separately
-        return html.Div(
-            [
-                # Header with icon and title - enhanced with tooltips
-                html.Div(
-                    [
-                        html.I(
-                            className=f"{icon} me-2",
-                            style={"color": color},
-                        ),
-                        html.Span(
-                            title,
-                            className="fw-medium",
-                        ),
-                        # Add methodology tooltip icon only
-                        html.I(
-                            className="fas fa-info-circle text-info ms-2",
-                            id=f"info-tooltip-weekly-chart-methodology-{title.split()[1].lower()}",
-                            style={"cursor": "pointer"},
-                        ),
-                    ],
-                    className="d-flex align-items-center mb-2",
-                ),
-                # Enhanced trend indicator with weighted average tooltip
-                html.Div(
-                    [
-                        create_compact_trend_indicator(trend_data, title.split()[1]),
-                        # Add weighted average explanation tooltip icon
-                        html.I(
-                            className="fas fa-chart-line text-info ms-2",
-                            id=f"info-tooltip-weighted-average-{title.split()[1].lower()}",
-                            style={"cursor": "pointer"},
-                        ),
-                        # Add exponential weighting details tooltip icon
-                        html.I(
-                            className="fas fa-calculator text-info ms-2",
-                            id=f"info-tooltip-exponential-weighting-{title.split()[1].lower()}",
-                            style={"cursor": "pointer"},
-                        ),
-                        # Add forecast methodology tooltip icon
-                        html.I(
-                            className="fas fa-chart-bar text-info ms-2",
-                            id=f"info-tooltip-forecast-methodology-{title.split()[1].lower()}",
-                            style={"cursor": "pointer"},
-                        ),
-                    ],
-                    className="d-flex align-items-center",
-                    style={"gap": "0.25rem"},
-                ),
-                # Enhanced forecast pills
-                html.Div(
-                    forecast_pills,
-                    className="d-flex flex-wrap align-items-center mt-2",
-                    style={"gap": "0.25rem"},
-                ),
-                # Add all tooltip components at the end for proper rendering
-                html.Div(tooltip_components, style={"display": "none"}),
-            ],
-            className="col-md-6 col-12 mb-3 pe-md-2",
-        )
-
-    def _create_burndown_tab_content(
-        df,
-        items_trend,
-        points_trend,
-        burndown_fig,
-        items_fig,
-        points_fig,
-        settings,
-        show_points=True,
-        has_points_data=True,
-    ):
-        """
-        Create content for the burndown tab with burndown chart, items chart, and points chart.
-
-        Args:
-            df: DataFrame with statistics data
-            items_trend: Dictionary with items trend and forecast data
-            points_trend: Dictionary with points trend and forecast data
-            burndown_fig: Burndown chart figure
-            items_fig: Weekly items chart figure
-            points_fig: Weekly points chart figure (None if no data or disabled)
-            settings: Settings dictionary
-            show_points: Whether points tracking is enabled
-            has_points_data: Whether points data exists in selected period
-
-        Returns:
-            html.Div: Burndown tab content with all three charts
-        """
-        chart_height = settings.get("chart_height", 700)
-
-        # Build the content list starting with burndown chart
-        content = [
-            # Weekly trend indicators in a row
-            html.Div(
-                [
-                    # Items trend box
-                    _create_trend_header_with_forecasts(
-                        items_trend,
-                        "Weekly Items Trend",
-                        "fas fa-tasks",
-                        "#0d6efd",  # Blue for items
-                    ),
-                ]
-                + (
-                    [
-                        # Points trend box - only show if points tracking is enabled
-                        _create_trend_header_with_forecasts(
-                            points_trend,
-                            "Weekly Points Trend",
-                            "fas fa-chart-bar",
-                            "#fd7e14",
-                        ),
-                    ]
-                    if show_points
-                    else []
-                ),
-                className="row mb-3",
-            ),
-            # Burndown chart with title
-            html.H5(
-                [
-                    html.I(
-                        className="fas fa-chart-line me-2", style={"color": "#0d6efd"}
-                    ),
-                    "Forecast Based On Historical Data",
-                ],
-                className="mb-3 mt-4",
-            ),
-            dcc.Graph(
-                id="forecast-graph",
-                figure=burndown_fig,
-                config=get_burndown_chart_config(),  # type: ignore
-                style={"height": f"{chart_height}px"},
-            ),
-        ]
-
-        # Add Items per Week chart section
-        content.extend(
-            [
-                # Items per Week section header (standardized H5 styling)
-                html.H5(
-                    [
-                        html.I(
-                            className="fas fa-tasks me-2",
-                            style={"color": "#0d6efd"},  # Blue for items
-                        ),
-                        "Weekly Completed Items",
-                    ],
-                    className="mb-3 mt-4",
-                ),
-                # Items chart (trend header removed - already shown at top)
-                dcc.Graph(
-                    id="items-chart",
-                    figure=items_fig,
-                    config=get_weekly_chart_config(),  # type: ignore
-                    style={"height": "700px"},
-                ),
-            ]
-        )
-
-        # Add Points per Week section
-        content.extend(
-            [
-                # Points per Week section header (standardized H5 styling)
-                html.H5(
-                    [
-                        html.I(
-                            className="fas fa-chart-bar me-2",
-                            style={"color": "#fd7e14"},
-                        ),
-                        "Weekly Completed Points",
-                    ],
-                    className="mb-3 mt-4",
-                ),
-            ]
-        )
-
-        # Determine which content to show for points section
-        if not show_points:
-            # Case 1: Points tracking disabled
-            content.append(
-                html.Div(
-                    [
-                        html.I(className="fas fa-toggle-off fa-2x text-secondary mb-3"),
-                        html.Div(
-                            "Points Tracking Disabled",
-                            className="fw-bold mb-2",
-                            style={"fontSize": "1.2rem", "color": "#6c757d"},
-                        ),
-                        html.Small(
-                            "Enable Points Tracking in Parameters panel to view story points metrics.",
-                            className="text-muted",
-                            style={"fontSize": "0.9rem"},
-                        ),
-                    ],
-                    className="d-flex align-items-center justify-content-center flex-column",
-                    style={"gap": "0.25rem", "padding": "80px 20px"},
-                )
-            )
-        elif not has_points_data:
-            # Case 2: Points tracking enabled but no data in period
-            content.append(
-                html.Div(
-                    [
-                        html.I(className="fas fa-database fa-lg text-secondary mb-3"),
-                        html.Div(
-                            "No Points Data",
-                            className="fw-bold mb-2",
-                            style={"fontSize": "1.2rem", "color": "#6c757d"},
-                        ),
-                        html.Small(
-                            "No story points data available in the selected time period. Configure story points field in Settings or complete items with point estimates.",
-                            className="text-muted",
-                            style={
-                                "fontSize": "0.9rem",
-                                "textAlign": "center",
-                                "maxWidth": "500px",
-                            },
-                        ),
-                    ],
-                    className="d-flex align-items-center justify-content-center flex-column",
-                    style={"gap": "0.25rem", "padding": "80px 20px"},
-                )
-            )
-        else:
-            # Case 3: Points tracking enabled with data - show chart
-            # Points trend header removed - already shown at top
-            content.append(
-                dcc.Graph(
-                    id="points-chart",
-                    figure=points_fig,
-                    config=get_weekly_chart_config(),  # type: ignore
-                    style={"height": "700px"},
-                )
-            )
-
-        return html.Div(content)
-
-    def _create_items_tab_content(items_trend, items_fig):
-        """
-        Create content for the items tab.
-
-        Args:
-            items_trend: Dictionary with items trend and forecast data
-            items_fig: Weekly items chart figure
-
-        Returns:
-            html.Div: Items tab content
-        """
-        return html.Div(
-            [
-                # Enhanced header with trend indicator and forecast pills
-                html.Div(
-                    [
-                        # Column for items trend
-                        _create_trend_header_with_forecasts(
-                            items_trend,
-                            "Weekly Items Trend",
-                            "fas fa-tasks",
-                            "#0d6efd",  # Blue for items
-                        ),
-                    ],
-                    className="mb-4",
-                ),
-                # Consolidated items weekly chart with forecast
-                dcc.Graph(
-                    id="items-chart",
-                    figure=items_fig,
-                    config=get_weekly_chart_config(),  # type: ignore
-                    style={"height": "700px"},
-                ),
-            ]
-        )
-
-    def _create_points_tab_content(points_trend, points_fig):
-        """
-        Create content for the points tab.
-
-        Args:
-            points_trend: Dictionary with points trend and forecast data
-            points_fig: Weekly points chart figure
-
-        Returns:
-            html.Div: Points tab content
-        """
-        return html.Div(
-            [
-                # Enhanced header with trend indicator and forecast pills
-                html.Div(
-                    [
-                        # Column for points trend
-                        _create_trend_header_with_forecasts(
-                            points_trend,
-                            "Weekly Points Trend",
-                            "fas fa-chart-bar",
-                            "#fd7e14",
-                        ),
-                    ],
-                    className="mb-4",
-                ),
-                # Consolidated points weekly chart with forecast
-                dcc.Graph(
-                    id="points-chart",
-                    figure=points_fig,
-                    config=get_weekly_chart_config(),  # type: ignore
-                    style={"height": "700px"},
-                ),
-            ]
-        )
-
     def _create_scope_tracking_tab_content(df, settings, show_points=True):
         """
         Create content for the scope tracking tab.
@@ -899,10 +248,11 @@ def register(app):
         df_filtered = df
 
         # Get current remaining from project_data.json (not from settings)
+        from typing import cast
         from data.persistence import load_project_data
 
         try:
-            project_data = load_project_data()
+            project_data = cast(dict, load_project_data())
             current_remaining_items = project_data.get("total_items", 0)
             current_remaining_points = project_data.get("total_points", 0)
         except Exception as e:
@@ -1309,7 +659,7 @@ def register(app):
 
                 # Calculate days to deadline
                 try:
-                    deadline_date = pd.to_datetime(deadline)
+                    deadline_date = pd.to_datetime(deadline) if deadline else pd.NaT
                     if pd.isna(deadline_date):
                         days_to_deadline = 0
                     else:
@@ -1769,7 +1119,7 @@ def register(app):
                     )
 
                 # Import and use comprehensive dashboard
-                from ui.dashboard_comprehensive import create_comprehensive_dashboard
+                from ui.dashboard import create_comprehensive_dashboard
 
                 # Create the comprehensive dashboard layout
                 dashboard_content = create_comprehensive_dashboard(
@@ -1804,7 +1154,7 @@ def register(app):
             elif active_tab == "tab-burndown":
                 # Generate all required data for burndown tab
                 # CRITICAL: Pass data_points_count to ensure trend indicators use filtered data
-                items_trend, points_trend = _prepare_trend_data(
+                items_trend, points_trend = prepare_trend_data(
                     statistics, pert_factor, data_points_count
                 )
 
@@ -1812,7 +1162,7 @@ def register(app):
                 # This respects the Data Points slider to only check the selected weeks
                 has_points_data = False
                 if show_points:
-                    has_points_data = _check_has_points_in_period(
+                    has_points_data = check_has_points_in_period(
                         statistics, data_points_count
                     )
 
@@ -1833,11 +1183,53 @@ def register(app):
                     show_points=effective_show_points,  # Use effective flag
                 )
 
+                # Calculate required velocity for chart reference lines
+                required_velocity_items = None
+                required_velocity_points = None
+                if deadline:
+                    from data.velocity_projections import calculate_required_velocity
+                    from data.persistence import load_unified_project_data
+
+                    try:
+                        # Parse deadline
+                        deadline_date = datetime.strptime(deadline, "%Y-%m-%d")
+                        # Use date() to ensure value doesn't change during the same day, then convert to datetime
+                        current_date = datetime.combine(
+                            datetime.now().date(), datetime.min.time()
+                        )
+
+                        # Get current remaining work
+                        project_data = load_unified_project_data()
+                        project_scope = project_data.get("project_scope", {})
+                        remaining_items = project_scope.get("remaining_items", 0)
+                        remaining_points = project_scope.get(
+                            "remaining_total_points", 0
+                        )
+
+                        # Calculate required velocities
+                        if remaining_items > 0:
+                            required_velocity_items = calculate_required_velocity(
+                                remaining_items,
+                                deadline_date,
+                                current_date=current_date,
+                                time_unit="week",
+                            )
+                        if remaining_points and remaining_points > 0:
+                            required_velocity_points = calculate_required_velocity(
+                                remaining_points,
+                                deadline_date,
+                                current_date=current_date,
+                                time_unit="week",
+                            )
+                    except Exception as e:
+                        logger.warning(f"Could not calculate required velocity: {e}")
+
                 # Generate items chart for consolidated view
                 items_fig = create_weekly_items_chart(
                     statistics,
                     pert_factor,
                     data_points_count=data_points_count,
+                    required_velocity=required_velocity_items,
                 )
                 # Apply mobile optimization to items chart
                 items_fig, _ = apply_mobile_optimization(
@@ -1854,6 +1246,7 @@ def register(app):
                         statistics,
                         pert_factor,
                         data_points_count=data_points_count,
+                        required_velocity=required_velocity_points,
                     )
                     # Apply mobile optimization to points chart
                     points_fig, _ = apply_mobile_optimization(
@@ -1864,7 +1257,7 @@ def register(app):
                     )
 
                 # Create burndown tab content with all required data
-                burndown_tab_content = _create_burndown_tab_content(
+                burndown_tab_content = create_burndown_tab_content(
                     df,
                     items_trend,
                     points_trend,
@@ -1950,7 +1343,7 @@ def register(app):
                 # Check if points data exists in the filtered time period (respects Data Points slider)
                 has_points_data = False
                 if show_points:
-                    has_points_data = _check_has_points_in_period(
+                    has_points_data = check_has_points_in_period(
                         statistics, data_points_count
                     )
 
@@ -1978,7 +1371,7 @@ def register(app):
                 # Check if points data exists in the filtered time period
                 has_points_data = False
                 if show_points:
-                    has_points_data = _check_has_points_in_period(
+                    has_points_data = check_has_points_in_period(
                         statistics, data_points_count
                     )
 
@@ -2026,6 +1419,25 @@ def register(app):
                 chart_cache[cache_key] = statistics_content
                 ui_state["loading"] = False
                 return statistics_content, chart_cache, ui_state
+
+            elif active_tab == "tab-sprint-tracker":
+                # Generate Sprint Tracker content directly (no placeholder loading)
+                from callbacks.sprint_tracker import _render_sprint_tracker_content
+
+                # Get data_points_count from settings
+                data_points_count = int(
+                    settings.get("data_points_count", 12)
+                )  # Ensure int
+
+                # Render the actual content immediately
+                sprint_tracker_content = _render_sprint_tracker_content(
+                    data_points_count, show_points
+                )
+
+                # Cache the result for next time
+                chart_cache[cache_key] = sprint_tracker_content
+                ui_state["loading"] = False
+                return sprint_tracker_content, chart_cache, ui_state
 
             # Default fallback (should not reach here)
             fallback_content = create_content_placeholder(
@@ -2153,313 +1565,7 @@ def register(app):
     # Chart toggle callbacks removed - burnup functionality deprecated
 
 
-def register_loading_callbacks(app):
-    """
-    Register callbacks that demonstrate loading states.
-
-    Args:
-        app: Dash application instance
-    """
-    from dash import Input, Output, State, callback_context, html
-
-    @app.callback(
-        Output("forecast-chart-container", "children"),
-        Input("generate-forecast-btn", "n_clicks"),
-        [State("data-store", "data")],
-        prevent_initial_call=True,
-    )
-    def update_forecast_chart_with_loading(n_clicks, data):
-        """
-        Update forecast chart with loading indicators while data is processing
-        """
-        if not n_clicks or not data:
-            # Create placeholder when no data is available
-            return create_content_placeholder(
-                type="chart",
-                text="Click 'Generate Forecast' to create chart",
-                height="400px",
-            )
-
-        # Simulate processing delay to show loading state (in real app, this would be actual processing time)
-        time.sleep(1)
-
-        ctx = callback_context
-        if not ctx.triggered:
-            return create_content_placeholder(
-                type="chart",
-                text="Click 'Generate Forecast' to create chart",
-                height="400px",
-            )
-
-        # Process the data to create the forecast chart (simplified for example)
-
-        try:
-            # In a real implementation, we would pass this to create_forecast_plot
-            import pandas as pd
-
-            from visualization.charts import create_forecast_plot
-
-            # This would normally be properly processed data
-            df = pd.DataFrame(data.get("statistics", []))
-            total_items = data.get("total_items", 0)
-            total_points = data.get("total_points", 0)
-            pert_factor = data.get("pert_factor", 3)
-            deadline_str = data.get("deadline", None)
-
-            # Create the chart (real implementation would call create_forecast_plot)
-            figure, _ = create_forecast_plot(
-                df,
-                total_items,
-                total_points,
-                pert_factor,
-                deadline_str,
-                show_points=data.get("show_points", False),
-            )
-
-            # Return the chart with loading state
-            return create_chart_with_loading(
-                id="forecast-chart",
-                figure=figure,
-                loading_state=None,  # No longer loading
-                type="line",
-                height="500px",
-            )
-
-        except Exception as e:
-            # Show error state with retry button
-            return html.Div(
-                [
-                    html.Div(
-                        [
-                            html.I(
-                                className="fas fa-exclamation-triangle text-danger me-2",
-                                style={"fontSize": "2rem"},
-                            ),
-                            html.H5("Error Generating Chart", className="text-danger"),
-                        ],
-                        className="d-flex align-items-center mb-3",
-                    ),
-                    html.P(f"An error occurred: {str(e)}", className="text-muted mb-3"),
-                    dbc.Button(
-                        [html.I(className="fas fa-sync me-2"), "Retry"],
-                        id="retry-forecast-btn",
-                        color="primary",
-                        className="mt-3",
-                    ),
-                ],
-                className="text-center p-5 border rounded bg-light",
-            )
-
-    @app.callback(
-        Output("statistics-table-container", "children"),
-        [Input("upload-data", "contents"), Input("loading-demo-btn", "n_clicks")],
-        [State("upload-data", "filename"), State("data-store", "data")],
-        prevent_initial_call=True,
-    )
-    def update_statistics_table_with_loading(contents, n_clicks, filename, data):
-        """
-        Update statistics table with various loading state visualizations
-        """
-        ctx = callback_context
-        triggered_id = (
-            ctx.triggered[0]["prop_id"].split(".")[0] if ctx.triggered else None
-        )
-
-        if triggered_id == "loading-demo-btn":
-            # This is a demo to showcase different loading states
-            # Create a tabbed interface showing different loading states
-            from ui.loading_utils import create_lazy_loading_tabs
-
-            # Define tabs with different loading state examples
-            tabs_data = [
-                {
-                    "label": "Spinner Overlay",
-                    "icon": "spinner",
-                    "content": html.Div(
-                        [
-                            html.H5("Spinner Overlay Example"),
-                            html.P(
-                                "This demonstrates a spinner overlay on top of content."
-                            ),
-                            create_spinner(
-                                style_key="primary",
-                                size_key="lg",
-                                text="Loading data...",
-                            ),
-                        ],
-                        className="p-4",
-                    ),
-                },
-                {
-                    "label": "Skeleton Loading",
-                    "icon": "skeleton",
-                    "content": html.Div(
-                        [
-                            html.H5("Skeleton Loading Example"),
-                            html.P(
-                                "This demonstrates skeleton loaders that mimic content structure."
-                            ),
-                            html.Div(
-                                [
-                                    create_skeleton_loader(
-                                        type="text", lines=3, width="100%"
-                                    ),
-                                    create_skeleton_loader(
-                                        type="card", width="100%", className="mt-4"
-                                    ),
-                                ]
-                            ),
-                        ],
-                        className="p-4",
-                    ),
-                },
-                {
-                    "label": "Content Placeholders",
-                    "icon": "placeholder",
-                    "content": html.Div(
-                        [
-                            html.H5("Content Placeholders Example"),
-                            html.P(
-                                "These placeholders indicate the type of content being loaded."
-                            ),
-                            html.Div(
-                                [
-                                    html.Div(
-                                        create_content_placeholder(
-                                            type="chart",
-                                            height="150px",
-                                            className="mb-3 w-100",
-                                        ),
-                                        style={"width": "100%"},
-                                    ),
-                                    create_content_placeholder(
-                                        type="table", height="150px", className="w-100"
-                                    ),
-                                ],
-                                className="d-flex flex-column",
-                            ),
-                        ],
-                        className="p-4",
-                    ),
-                },
-            ]
-
-            tabs, contents = create_lazy_loading_tabs(
-                tabs_data, "loading-demo-tab", "loading-demo-content"
-            )
-
-            return html.Div(
-                [
-                    html.H4("Loading State Examples", className="mb-3"),
-                    html.P(
-                        "Click on the tabs below to see different loading state implementations.",
-                        className="text-muted mb-4",
-                    ),
-                    tabs,
-                    contents,
-                ],
-                className="p-3 border rounded",
-            )
-
-        # Regular file upload process with loading indicators
-        elif triggered_id == "upload-data" and contents:
-            # Simulate processing delay
-            time.sleep(1)
-
-            # In a real implementation, parse_contents would be called here
-            import base64
-            import io
-            import json
-
-            import pandas as pd
-            from dash import dash_table
-
-            # This would be the actual content processing logic
-            try:
-                content_type, content_string = contents.split(",")
-                decoded = base64.b64decode(content_string)
-
-                # Determine file type and parse accordingly
-                if "csv" in filename.lower():
-                    # Parse CSV
-                    df = pd.read_csv(io.StringIO(decoded.decode("utf-8")))
-                elif "json" in filename.lower():
-                    # Parse JSON
-                    json_data = json.loads(decoded.decode("utf-8"))
-                    df = pd.DataFrame(json_data)
-                elif "xls" in filename.lower():
-                    # Parse Excel
-                    df = pd.read_excel(io.BytesIO(decoded))
-                else:
-                    return html.Div(
-                        [
-                            html.H5("Unsupported File Type", className="text-danger"),
-                            html.P(
-                                f"File format {filename} is not supported. Please upload a CSV, JSON, or Excel file."
-                            ),
-                        ],
-                        className="p-3 border border-danger rounded",
-                    )
-
-                # Return the DataTable with the processed data
-                return html.Div(
-                    [
-                        html.H5(
-                            f"Successfully loaded: {filename}",
-                            className="text-success mb-3",
-                        ),
-                        dash_table.DataTable(
-                            data=[
-                                {str(k): v for k, v in record.items()}
-                                for record in df.to_dict("records")
-                            ],
-                            columns=[{"name": i, "id": i} for i in df.columns],
-                            style_table={"overflowX": "auto"},
-                            style_cell={
-                                "height": "auto",
-                                "minWidth": "100px",
-                                "width": "150px",
-                                "maxWidth": "300px",
-                                "whiteSpace": "normal",
-                                "textAlign": "left",
-                            },
-                            style_header={
-                                "backgroundColor": "rgb(230, 230, 230)",
-                                "fontWeight": "bold",
-                            },
-                        ),
-                    ],
-                    className="border rounded p-3",
-                )
-
-            except Exception as e:
-                # Display error message
-                return html.Div(
-                    [
-                        html.H5("Error Processing File", className="text-danger"),
-                        html.P(f"An error occurred: {str(e)}"),
-                        dbc.Button(
-                            [html.I(className="fas fa-upload me-2"), "Try Again"],
-                            id="retry-upload-btn",
-                            color="primary",
-                            className="mt-3",
-                        ),
-                    ],
-                    className="border border-danger rounded p-4 text-center",
-                )
-
-        # Default state with no content yet
-        return create_content_placeholder(
-            type="table", text="Upload a CSV or Excel file to view data", height="200px"
-        )
-
-
-# New callbacks for collapsible forecast info cards
-@callback(
-    Output("items-forecast-info-collapse", "is_open"),
-    Input("items-forecast-info-collapse-button", "n_clicks"),
-    State("items-forecast-info-collapse", "is_open"),
-)
+# Collapsible forecast info card callbacks
 def toggle_items_forecast_info_collapse(n_clicks, is_open):
     """Toggle the collapse state of the items forecast information card."""
     if n_clicks is None:
@@ -2498,83 +1604,3 @@ def toggle_forecast_info_collapse(n_clicks, is_open):
 
     # Toggle the state when button is clicked
     return not is_open
-
-
-# DISABLED: This callback causes React hooks errors by dynamically changing tab structure
-# @callback(
-#     Output("chart-tabs", "children"),
-#     [Input("points-toggle", "value")],
-#     [State("chart-tabs", "children")],
-# )
-# def update_tab_visibility(show_points, current_tabs):
-#     """
-#     Update tab visibility based on points toggle state.
-#     Hide the points tab when points toggle is disabled.
-#     """
-#     if current_tabs is None:
-#         raise PreventUpdate
-
-#     # Import here to avoid circular import
-#     import dash_bootstrap_components as dbc
-
-#     # Create new tabs list based on show_points state
-#     tab_config = [
-#         {
-#             "id": "tab-burndown",
-#             "label": "Burndown Chart",
-#             "icon": "fas fa-chart-line",
-#             "color": "#0d6efd",  # Primary blue
-#         },
-#         {
-#             "id": "tab-items",
-#             "label": "Items per Week",
-#             "icon": "fas fa-tasks",
-#             "color": "#20c997",  # Teal
-#         },
-#     ]
-
-#     # Only add points tab if toggle is enabled
-#     if show_points:
-#         tab_config.append(
-#             {
-#                 "id": "tab-points",
-#                 "label": "Points per Week",
-#                 "icon": "fas fa-chart-bar",
-#                 "color": "#fd7e14",  # Orange
-#             }
-#         )
-
-#     # Always include scope tracking tab
-#     tab_config.append(
-#         {
-#             "id": "tab-scope-tracking",
-#             "label": "Scope Changes",
-#             "icon": "fas fa-project-diagram",
-#             "color": "#e83e8c",  # Pink
-#         }
-#     )
-
-#     # Create new tabs
-#     tabs = []
-#     for config in tab_config:
-#         tab_style = {
-#             "borderTopLeftRadius": "0.375rem",
-#             "borderTopRightRadius": "0.375rem",
-#             "borderBottom": "none",
-#             "marginRight": "0.5rem",
-#             "color": config["color"],
-#         }
-
-#         tab = dbc.Tab(
-#             label=config["label"],  # Use string label instead of html.Div
-#             tab_id=config["id"],
-#             tab_style=tab_style,
-#             active_tab_style={
-#                 **tab_style,
-#                 "backgroundColor": config["color"],
-#                 "color": "white",
-#             },
-#         )
-#         tabs.append(tab)
-
-#     return tabs

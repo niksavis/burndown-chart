@@ -10,7 +10,7 @@ not the current remaining work scope.
 
 import pytest
 from unittest.mock import patch
-from callbacks.settings import calculate_remaining_work_for_data_window
+from callbacks.settings.helpers import calculate_remaining_work_for_data_window
 
 
 class TestDataPointsSliderRemainingFixed:

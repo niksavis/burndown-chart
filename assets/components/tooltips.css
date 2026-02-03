@@ -1,0 +1,143 @@
+/* ====================
+   TOOLTIP COMPONENT
+   ==================== */
+
+/* ===== Enhanced Tooltips ===== */
+
+/* Base tooltip style enhancements */
+.tooltip {
+  opacity: 0;
+  transition: opacity var(--transition-base);
+  pointer-events: none;
+  z-index: var(--z-tooltip);
+}
+
+.tooltip.show {
+  opacity: 1 !important;
+}
+
+/* Custom-styled tooltips with design system */
+.tooltip-inner {
+  background-color: var(--color-neutral-900);
+  color: white;
+  box-shadow: var(--shadow-lg);
+  max-width: 300px;
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--text-sm);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-neutral-700);
+  line-height: var(--leading-relaxed);
+}
+
+.tooltip-primary .tooltip-inner {
+  background-color: var(--color-brand-600);
+  border-color: var(--color-brand-500);
+}
+
+.tooltip-info .tooltip-inner {
+  background-color: var(--color-accent-600);
+  border-color: var(--color-accent-500);
+}
+
+.tooltip-success .tooltip-inner {
+  background-color: #059669;
+  border-color: #10b981;
+}
+
+.tooltip-warning .tooltip-inner {
+  background-color: #d97706;
+  border-color: #f59e0b;
+  color: #fffbeb;
+}
+
+.tooltip-danger .tooltip-inner {
+  background-color: #dc2626;
+  border-color: #ef4444;
+}
+
+/* Arrow color matching */
+.tooltip .arrow::before {
+  border-top-color: var(--color-neutral-900);
+}
+
+.tooltip-primary .arrow::before {
+  border-top-color: rgba(13, 110, 253, 0.95);
+}
+
+.tooltip-info .arrow::before {
+  border-top-color: rgba(13, 202, 240, 0.95);
+}
+
+.tooltip-success .arrow::before {
+  border-top-color: rgba(25, 135, 84, 0.95);
+}
+
+.tooltip-warning .arrow::before {
+  border-top-color: rgba(255, 193, 7, 0.95);
+}
+
+.tooltip-danger .arrow::before {
+  border-top-color: rgba(220, 53, 69, 0.95);
+}
+
+/* Custom tooltip trigger indicators */
+.tooltip-indicator {
+  position: relative;
+  cursor: help;
+}
+
+.tooltip-indicator::after {
+  content: "?";
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  background-color: var(--color-gray-200);
+  color: var(--color-gray-700);
+  font-size: 10px;
+  font-weight: bold;
+  border-radius: 50%;
+  margin-left: 4px;
+  vertical-align: middle;
+  transition: all 0.2s ease;
+}
+
+.tooltip-indicator:hover::after {
+  background-color: var(--color-primary);
+  color: var(--color-white);
+}
+
+/* Contextual help indicator for form fields */
+.form-help-indicator {
+  position: relative;
+}
+
+.form-help-indicator .form-control {
+  padding-right: 30px; /* Make space for the indicator */
+}
+
+.form-help-indicator::after {
+  content: "?";
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  background-color: var(--color-gray-200);
+  color: var(--color-gray-700);
+  font-size: 10px;
+  font-weight: bold;
+  border-radius: 50%;
+  transition: all 0.2s ease;
+  cursor: help;
+}
+
+.form-help-indicator:hover::after {
+  background-color: var(--color-primary);
+  color: var(--color-white);
+}

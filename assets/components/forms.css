@@ -1,0 +1,326 @@
+/* ====================
+   FORM CONTROLS
+   ==================== */
+
+/* ===== Form Controls (Phase 2: Enhanced Inputs) ===== */
+
+.form-control,
+.form-select {
+  border: 1.5px solid var(--color-neutral-300);
+  border-radius: var(--radius-md);
+  padding: 0.5rem 0.75rem;
+  font-size: var(--text-base);
+  line-height: var(--leading-normal);
+  color: var(--color-neutral-700);
+  background-color: var(--color-white);
+  transition: all var(--transition-fast);
+}
+
+.form-control:hover:not(:disabled),
+.form-select:hover:not(:disabled) {
+  border-color: var(--color-neutral-400);
+}
+
+.form-control:focus,
+.form-select:focus {
+  border-color: var(--color-brand-500);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  outline: none;
+}
+
+.form-control:disabled,
+.form-select:disabled {
+  background-color: var(--color-neutral-100);
+  border-color: var(--color-neutral-200);
+  color: var(--color-neutral-500);
+  cursor: not-allowed;
+}
+
+.form-label {
+  font-weight: var(--font-medium);
+  margin-bottom: var(--space-2);
+  color: var(--color-neutral-700);
+  font-size: var(--text-sm);
+}
+
+.form-text {
+  font-size: var(--text-sm);
+  color: var(--color-neutral-500);
+  margin-top: var(--space-1);
+}
+
+/* Input validation states */
+.form-control.is-valid,
+.form-select.is-valid {
+  border-color: var(--color-success);
+}
+
+.form-control.is-valid:focus,
+.form-select.is-valid:focus {
+  border-color: var(--color-success);
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+}
+
+.form-control.is-invalid,
+.form-select.is-invalid {
+  border-color: var(--color-danger);
+}
+
+.form-control.is-invalid:focus,
+.form-select.is-invalid:focus {
+  border-color: var(--color-danger);
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+}
+
+/* Tab content transition animation */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.tab-content-container {
+  animation: fadeIn 0.3s ease-in-out;
+  overflow: visible;
+}
+
+/* Tab icon styling */
+.nav-tabs-modern .tab-icon {
+  margin-right: 0.5rem;
+  opacity: 0.8;
+  transition: opacity 0.2s ease;
+}
+
+.nav-tabs-modern .nav-link:hover .tab-icon,
+.nav-tabs-modern .nav-link.active .tab-icon {
+  opacity: 1;
+}
+
+/* Desktop tab navigation wrapper - must allow overflow for card hover effects */
+.desktop-tab-navigation {
+  overflow: visible !important;
+}
+
+/* Tab icons with design token colors - Note: SVG data URIs cannot use CSS variables,
+   but we document the color mapping here for maintainability */
+.nav-tabs-modern .tab-with-icon[id*="tab-burndown"] {
+  padding-left: 2.5rem;
+  /* Icon color: var(--color-info) = #0dcaf0 (cyan/info blue) */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Cpath fill='%230dcaf0' d='M64 64c0-17.7-14.3-32-32-32S0 46.3 0 64V400c0 44.2 35.8 80 80 80H480c17.7 0 32-14.3 32-32s-14.3-32-32-32H80c-8.8 0-16-7.2-16-16V64zm406.6 86.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0L320 210.7l-57.4-57.4c-12.5-12.5-32.8-12.5-45.3 0l-112 112c-12.5 12.5-12.5 32.8 0 45.3s32.8 12.5 45.3 0L240 221.3l57.4 57.4c12.5 12.5 32.8 12.5 45.3 0l128-128z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: 0.875rem center;
+  background-size: 1rem 1rem;
+}
+
+.nav-tabs-modern .tab-with-icon[id*="tab-items"] {
+  padding-left: 2.5rem;
+  /* Icon color: var(--color-success) = #198754 (green) */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Cpath fill='%23198754' d='M152.1 38.2c9.9 8.9 10.7 24 1.8 33.9l-72 80c-4.4 4.9-10.6 7.8-17.2 7.9s-12.9-2.4-17.6-7L7 113C-2.3 103.6-2.3 88.4 7 79s24.6-9.4 33.9 0l22.1 22.1 55.1-61.2c8.9-9.9 24-10.7 33.9-1.8zm0 160c9.9 8.9 10.7 24 1.8 33.9l-72 80c-4.4 4.9-10.6 7.8-17.2 7.9s-12.9-2.4-17.6-7L7 273c-9.4-9.4-9.4-24.6 0-33.9s24.6-9.4 33.9 0l22.1 22.1 55.1-61.2c8.9-9.9 24-10.7 33.9-1.8zM224 96c0-17.7 14.3-32 32-32H480c17.7 0 32 14.3 32 32s-14.3 32-32 32H256c-17.7 0-32-14.3-32-32zm0 160c0-17.7 14.3-32 32-32H480c17.7 0 32 14.3 32 32s-14.3 32-32 32H256c-17.7 0-32-14.3-32-32zM160 416c0-17.7 14.3-32 32-32H480c17.7 0 32 14.3 32 32s-14.3 32-32 32H192c-17.7 0-32-14.3-32-32zM48 368a48 48 0 1 1 0 96 48 48 0 1 1 0-96z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: 0.875rem center;
+  background-size: 1rem 1rem;
+}
+
+.nav-tabs-modern .tab-with-icon[id*="tab-points"] {
+  padding-left: 2.5rem;
+  /* Icon color: var(--color-warning) = #fd7e14 (orange) */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Cpath fill='%23fd7e14' d='M32 32c17.7 0 32 14.3 32 32V400c0 8.8 7.2 16 16 16H480c17.7 0 32 14.3 32 32s-14.3 32-32 32H80c-44.2 0-80-35.8-80-80V64c0-17.7 14.3-32 32-32zM160 224c0 17.7-14.3 32-32 32s-32-14.3-32-32s14.3-32 32-32s32 14.3 32 32zm128 0c0 17.7-14.3 32-32 32s-32-14.3-32-32s14.3-32 32-32s32 14.3 32 32zm96 32c-17.7 0-32-14.3-32-32s14.3-32 32-32s32 14.3 32 32s-14.3 32-32 32z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: 0.875rem center;
+  background-size: 1rem 1rem;
+}
+
+/* ===================================================================
+   JQL Character Count Styles (Feature 001-add-jql-query)
+   ================================================================ */
+
+/* Character count display component */
+.character-count-display {
+  font-size: 0.875rem;
+  color: var(--color-gray-600);
+  margin-top: 0.25rem;
+  padding: 0.25rem 0.5rem;
+  text-align: right;
+  font-family:
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    Roboto,
+    sans-serif;
+  transition: color 0.2s ease-in-out;
+}
+
+/* Warning state - approaching JIRA's 2000 character limit */
+.character-count-warning {
+  color: var(--color-warning) !important;
+  font-weight: 600;
+}
+
+/* Mobile responsiveness - ensure readable on small screens */
+@media (max-width: 576px) {
+  .character-count-display {
+    font-size: 0.8125rem; /* Slightly smaller on mobile */
+    padding: 0.375rem 0.5rem;
+  }
+}
+
+/* Dark mode support (if enabled in future) */
+@media (prefers-color-scheme: dark) {
+  .character-count-display {
+    color: #9ca3af;
+  }
+
+  .character-count-warning {
+    color: #ffa940 !important;
+  }
+}
+
+/* Print styles - hide character count in print */
+@media print {
+  .character-count-display {
+    display: none;
+  }
+}
+
+/* ================================================================
+   JQL SYNTAX HIGHLIGHTING (Feature 001-add-jql-query, Phase 2)
+   ================================================================ */
+
+/* Base mark element reset - html.Mark has yellow background by default */
+mark.jql-keyword,
+mark.jql-string,
+mark.jql-operator {
+  background-color: transparent;
+  padding: 0;
+  border-radius: 2px;
+}
+
+/* JQL Keywords - blue color with emphasis */
+.jql-keyword {
+  color: var(--color-info);
+  font-weight: 600;
+}
+
+/* JQL String literals - green color */
+.jql-string {
+  color: var(--color-success);
+}
+
+/* JQL Operators - default color (optional enhancement) */
+.jql-operator {
+  color: var(--color-gray-600);
+  font-weight: 500;
+}
+
+/* Mobile responsiveness - maintain readability on small screens */
+@media (max-width: 576px) {
+  .jql-keyword,
+  .jql-string,
+  .jql-operator {
+    font-size: inherit; /* Match parent font size */
+  }
+}
+
+/* Dark mode support (if enabled in future) */
+@media (prefers-color-scheme: dark) {
+  .jql-keyword {
+    color: #4dabf7; /* Lighter blue for dark mode */
+  }
+
+  .jql-string {
+    color: #51cf66; /* Lighter green for dark mode */
+  }
+
+  .jql-operator {
+    color: #adb5bd; /* Lighter gray for dark mode */
+  }
+}
+
+/* Print styles - remove syntax highlighting in print */
+@media print {
+  .jql-keyword,
+  .jql-string,
+  .jql-operator {
+    color: inherit;
+    font-weight: inherit;
+    background-color: transparent;
+  }
+}
+
+/* ================================================================
+   MOBILE RESPONSIVE ENHANCEMENTS (Feature 001-add-jql-query, Phase 3)
+   ================================================================ */
+
+/* Mobile viewport optimizations for JQL textarea and related components */
+@media (max-width: 767px) {
+  /* JQL textarea mobile styling */
+  #jira-jql-query,
+  textarea[id*="jql"] {
+    font-size: 14px !important;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    line-height: 1.5;
+  }
+
+  /* Character count display - smaller font on mobile */
+  .character-count-display {
+    font-size: 12px !important;
+    padding: 0.25rem 0.5rem;
+  }
+
+  /* Syntax highlighting - maintain readability */
+  .jql-keyword,
+  .jql-string,
+  .jql-operator {
+    font-size: 14px;
+    /* Ensure adequate touch targets for interactive elements */
+    line-height: 1.6;
+  }
+}
+
+/* Extra small devices (iPhone SE, small phones) */
+@media (max-width: 375px) {
+  #jira-jql-query,
+  textarea[id*="jql"] {
+    font-size: 13px !important;
+    padding: 0.5rem;
+  }
+
+  .character-count-display {
+    font-size: 11px !important;
+  }
+}
+
+/* Tablet optimizations (iPad portrait) */
+@media (min-width: 768px) and (max-width: 1024px) {
+  #jira-jql-query,
+  textarea[id*="jql"] {
+    font-size: 15px !important;
+  }
+
+  .character-count-display {
+    font-size: 13px;
+  }
+}
+
+/* Touch target optimization - ensure 44px minimum for interactive elements */
+@media (hover: none) and (pointer: coarse) {
+  /* Touch device detection */
+  textarea,
+  button,
+  input[type="submit"],
+  input[type="button"] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* Increase padding for better touch interaction */
+  #jira-jql-query {
+    padding: 0.75rem !important;
+  }
+}

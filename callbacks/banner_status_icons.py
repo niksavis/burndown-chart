@@ -12,6 +12,7 @@ Visual States:
 
 import logging
 import json
+from datetime import datetime
 from dash import callback, Output, Input, State, ctx
 
 logger = logging.getLogger(__name__)
@@ -32,7 +33,7 @@ logger = logging.getLogger(__name__)
     [
         State("profile-status-icon", "className"),
     ],
-    prevent_initial_call=True,
+    prevent_initial_call=False,  # Allow initial call to set default state on load
 )
 def update_banner_status_icons(
     n_intervals,
@@ -62,8 +63,14 @@ def update_banner_status_icons(
     """
     trigger_id = ctx.triggered_id if ctx.triggered else None
 
+    # Handle initial load: return default idle state immediately
+    if not ctx.triggered:
+        logger.debug("[BannerStatus] Initial load - showing default idle icons")
+        return "fas fa-folder me-1", "fas fa-search me-1"
+
     try:
         from data.persistence.factory import get_backend
+        from utils.datetime_utils import parse_iso_datetime
 
         backend = get_backend()
         progress_data = backend.get_task_state()
@@ -75,6 +82,27 @@ def update_banner_status_icons(
             cancelled = progress_data.get("cancelled", False)
 
             if status == "in_progress" and not cancelled:
+                if phase == "postprocess":
+                    postprocess_time = progress_data.get("postprocess_time")
+                    postprocess_timestamp = parse_iso_datetime(postprocess_time)
+                    if postprocess_timestamp:
+                        elapsed = (
+                            datetime.now() - postprocess_timestamp
+                        ).total_seconds()
+                        if elapsed >= 5:
+                            logger.warning(
+                                "[BannerStatus] Stale postprocess detected, showing idle icons"
+                            )
+                            return (
+                                "fas fa-folder me-1",
+                                "fas fa-search me-1",
+                            )
+                    else:
+                        logger.warning(
+                            "[BannerStatus] Invalid postprocess_time, showing idle icons"
+                        )
+                        return "fas fa-folder me-1", "fas fa-search me-1"
+
                 # Background operation active - orange indicators
                 profile_icon_class = "fas fa-folder me-1 text-warning"
 
@@ -83,7 +111,7 @@ def update_banner_status_icons(
                 elif phase == "calculate":
                     query_icon_class = "fas fa-spinner fa-spin me-1 text-success"
                 else:
-                    query_icon_class = "fas fa-search fa-pulse me-1 text-warning"
+                    query_icon_class = "fas fa-search me-1 text-success"
 
                 return profile_icon_class, query_icon_class
 

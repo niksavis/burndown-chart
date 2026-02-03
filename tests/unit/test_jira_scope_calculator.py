@@ -8,7 +8,7 @@ import pytest
 from unittest.mock import Mock, patch
 from datetime import datetime
 
-from data.jira_scope_calculator import calculate_jira_project_scope
+from data.jira.scope_calculator import calculate_jira_project_scope
 
 
 class TestJiraProjectScopeCalculation:

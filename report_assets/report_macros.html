@@ -1,0 +1,32 @@
+{# Jinja2 Macros for Tier-Based Color Classes #}
+{% macro get_flow_velocity_color(value) -%}
+  {%- if value >= 20 -%}metric-color-good{%- elif value >= 10 -%}metric-color-info{%- elif value >= 5 -%}metric-color-warning{%- else -%}metric-color-attention{%- endif -%}
+{%- endmacro %}
+
+{% macro get_flow_time_color(value) -%}
+  {%- if value <= 3 -%}metric-color-good{%- elif value <= 7 -%}metric-color-info{%- elif value <= 14 -%}metric-color-warning{%- else -%}metric-color-attention{%- endif -%}
+{%- endmacro %}
+
+{% macro get_flow_efficiency_color(value) -%}
+  {%- if value >= 60 -%}metric-color-good{%- elif value >= 40 -%}metric-color-info{%- elif value >= 25 -%}metric-color-warning{%- else -%}metric-color-attention{%- endif -%}
+{%- endmacro %}
+
+{% macro get_flow_load_color(value) -%}
+  {%- if value < 10 -%}metric-color-good{%- elif value < 20 -%}metric-color-warning{%- elif value < 30 -%}metric-color-attention{%- else -%}metric-color-critical{%- endif -%}
+{%- endmacro %}
+
+{% macro get_deployment_frequency_color(value) -%}
+  {%- if value >= 7 -%}metric-color-good{%- elif value >= 1.6 -%}metric-color-info{%- elif value >= 0.25 -%}metric-color-warning{%- else -%}metric-color-attention{%- endif -%}
+{%- endmacro %}
+
+{% macro get_lead_time_color(value) -%}
+  {%- if value < 0.04 -%}metric-color-good{%- elif value <= 1 -%}metric-color-info{%- elif value <= 7 -%}metric-color-warning{%- else -%}metric-color-attention{%- endif -%}
+{%- endmacro %}
+
+{% macro get_cfr_color(value) -%}
+  {%- if value <= 15 -%}metric-color-good{%- elif value <= 30 -%}metric-color-info{%- elif value <= 45 -%}metric-color-warning{%- else -%}metric-color-attention{%- endif -%}
+{%- endmacro %}
+
+{% macro get_mttr_color(value_hours) -%}
+  {%- if value_hours < 1 -%}metric-color-good{%- elif value_hours <= 24 -%}metric-color-info{%- elif value_hours <= 168 -%}metric-color-warning{%- else -%}metric-color-attention{%- endif -%}
+{%- endmacro %}

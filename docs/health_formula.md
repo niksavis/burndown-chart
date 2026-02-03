@@ -564,7 +564,7 @@ Status: GOOD 🟢
 | Component              | Status        | Notes                                                  |
 | ---------------------- | ------------- | ------------------------------------------------------ |
 | **Core Calculator**    | ✅ Implemented | `data/project_health_calculator.py`                    |
-| **UI Integration**     | ✅ Implemented | `ui/dashboard_comprehensive.py`                        |
+| **UI Integration**     | ✅ Implemented | `ui/dashboard.py`                                      |
 | **Adaptive Mode**      | ✅ Implemented | Automatic adjustment when extended metrics unavailable |
 | **Dynamic Weighting**  | ✅ Implemented | Weights redistribute across available dimensions       |
 | **Context Awareness**  | ✅ Implemented | Project stage adjusts scope penalties                  |
@@ -600,7 +600,7 @@ extended_metrics["bug"] = extract_bug_metrics(bug_data)
 # Step 2: Pass via additional_context
 create_comprehensive_dashboard(..., additional_context={"extended_metrics": extended_metrics})
 
-# dashboard_comprehensive.py::_create_executive_summary()
+# dashboard.py::create_executive_summary_section()
 # Step 3: Extract and use (no fetching, just math ~1ms)
 extended_metrics = settings.get("extended_metrics", {})
 dora_metrics = extended_metrics.get("dora")

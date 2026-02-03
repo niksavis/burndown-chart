@@ -98,7 +98,7 @@ def determine_performance_tier(metric_name: str, value: float) -> dict:
 
 from typing import Dict, Optional, Tuple
 from data.persistence import load_app_settings, save_app_settings
-from data.jira_simple import get_jira_config
+from data.jira import get_jira_config
 import requests
 import hashlib
 import json
@@ -447,7 +447,7 @@ from data.dora_calculator import calculate_all_dora_metrics
 from data.flow_calculator import calculate_all_flow_metrics
 from data.field_mapper import load_field_mappings, get_field_mappings_hash
 from data.metrics_cache import load_cached_metrics, save_cached_metrics, generate_cache_key
-from data.jira_simple import fetch_all_issues
+from data.jira import fetch_all_issues
 from ui.metric_cards import create_metric_card
 from datetime import datetime, timedelta
 

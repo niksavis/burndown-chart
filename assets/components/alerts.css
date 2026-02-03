@@ -1,0 +1,85 @@
+/* ====================
+   ALERT COMPONENT
+   ==================== */
+
+/* ===== Alert Component Improvements ===== */
+
+/* Modern Alert Styling with Design Tokens */
+.alert {
+  border: none;
+  border-left: 4px solid;
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+  background: white;
+  box-shadow: var(--shadow-sm);
+  transition: all var(--transition-base);
+  font-size: var(--text-sm);
+  line-height: var(--leading-relaxed);
+}
+
+.alert:hover {
+  box-shadow: var(--shadow-md);
+}
+
+/* Alert Variants with Brand Colors */
+.alert-primary {
+  border-left-color: var(--color-brand-500);
+  background: var(--color-brand-50);
+  color: var(--color-brand-900);
+}
+
+.alert-success {
+  border-left-color: #10b981;
+  background: #f0fdf4;
+  color: #065f46;
+}
+
+.alert-warning {
+  border-left-color: #f59e0b;
+  background: #fffbeb;
+  color: #92400e;
+}
+
+.alert-danger {
+  border-left-color: #ef4444;
+  background: #fef2f2;
+  color: #991b1b;
+}
+
+.alert-info {
+  border-left-color: var(--color-accent-500);
+  background: var(--color-accent-50);
+  color: var(--color-accent-900);
+}
+
+.alert-secondary {
+  border-left-color: var(--color-neutral-400);
+  background: var(--color-neutral-50);
+  color: var(--color-neutral-900);
+}
+
+/* Fix dismissable alert close button vertical alignment */
+.alert.alert-dismissible {
+  display: flex;
+  align-items: center;
+  padding-right: 3rem; /* Make room for close button */
+}
+
+.alert.alert-dismissible .btn-close {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  right: 1rem;
+  padding: 0.5rem;
+  opacity: 0.5;
+  transition: opacity var(--transition-fast);
+}
+
+.alert.alert-dismissible .btn-close:hover {
+  opacity: 1;
+}
+
+/* Ensure alert content flexes properly */
+.alert.alert-dismissible > * {
+  flex: 1;
+}

@@ -1,0 +1,47 @@
+/* ====================
+   DASHBOARD LAYOUT
+   ==================== */
+
+/* ===== COMPACT DASHBOARD STYLES ===== */
+
+/* Compact metric cards */
+.dashboard-enhanced .card {
+  min-height: 280px !important; /* Reasonable card height for content */
+}
+
+.dashboard-enhanced .card-body {
+  padding: 1rem !important; /* Proper breathing room */
+}
+
+/* Responsive borders for overview section */
+@media (min-width: 992px) {
+  .border-end-lg {
+    border-right: 1px solid #dee2e6 !important;
+  }
+}
+
+/* Proper visual hierarchy for dashboard */
+.dashboard-enhanced .card .fw-bold {
+  font-size: 2.25rem !important; /* BIG primary values for scanability */
+}
+
+.dashboard-enhanced .card .fw-semibold {
+  font-size: 0.875rem !important; /* Medium headers */
+}
+
+.dashboard-enhanced .card .text-muted {
+  font-size: 0.75rem !important; /* Small labels */
+}
+
+.dashboard-enhanced .card h4,
+.dashboard-enhanced .card h5 {
+  margin-bottom: 0.5rem !important; /* Reasonable spacing */
+}
+
+/* NO negative margins - causes overflow! */
+.dashboard-enhanced .card-body > div[style*="backgroundColor"] {
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+  padding: 0.5rem !important;
+  border-radius: 4px !important;
+}

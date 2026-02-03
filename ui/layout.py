@@ -24,7 +24,7 @@ from data.persistence import (
     load_statistics,
     get_project_scope,
 )
-from ui.components import (
+from ui import (
     create_parameter_panel,
 )
 from ui.grid_utils import create_full_width_layout

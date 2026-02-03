@@ -1,0 +1,159 @@
+/* ====================
+   MOBILE RESPONSIVE LAYOUT
+   ==================== */
+
+/* ===== CONSOLIDATED MOBILE STYLES ===== */
+/* All mobile-specific styles consolidated in one place for better maintainability */
+
+@media (max-width: 767px) {
+  /* General layout adjustments */
+  .container-fluid {
+    padding-left: 12px !important;
+    padding-right: 12px !important;
+  }
+
+  /* Typography adjustments */
+  h1,
+  .h1 {
+    font-size: 1.75rem !important;
+  }
+  h2,
+  .h2 {
+    font-size: 1.5rem !important;
+  }
+  h3,
+  .h3 {
+    font-size: 1.25rem !important;
+  }
+  h4,
+  .h4 {
+    font-size: 1.1rem !important;
+  }
+  h5,
+  .h5 {
+    font-size: 1rem !important;
+  }
+  h6,
+  .h6 {
+    font-size: 0.9rem !important;
+  }
+
+  /* Card adjustments */
+  .card-body {
+    padding: 0.75rem !important;
+  }
+  .card-header {
+    padding: 0.75rem !important;
+  }
+
+  /* Form elements */
+  .btn {
+    padding: 0.5rem 0.75rem !important;
+    min-height: 44px !important;
+    font-size: 1rem !important;
+  }
+
+  .form-control,
+  .form-select,
+  .input-group .input-group-text {
+    min-height: 44px !important;
+    font-size: 16px !important; /* Prevents zooming on iOS */
+  }
+
+  .DateInput_input {
+    font-size: 16px !important;
+    padding: 8px !important;
+    height: 44px !important;
+  }
+
+  .form-group:not(:last-child) {
+    margin-bottom: 1.25rem !important;
+  }
+
+  input[type="checkbox"],
+  input[type="radio"] {
+    width: 20px !important;
+    height: 20px !important;
+  }
+
+  /* Table styles */
+  .dash-table-container {
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .dash-spreadsheet td,
+  .dash-spreadsheet th {
+    padding: 8px 6px !important;
+    font-size: 14px !important;
+  }
+
+  /* Pagination controls */
+  .previous-next-container {
+    gap: 3px !important;
+    margin: 10px auto !important;
+  }
+
+  .first-page,
+  .previous-page,
+  .next-page,
+  .last-page,
+  .current-page {
+    min-height: 44px !important;
+    min-width: 44px !important;
+    width: 44px !important;
+    height: 44px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 0.3rem !important;
+  }
+
+  .page-number input[type="number"] {
+    max-width: 50px;
+    padding: 0.3rem 0.5rem !important;
+    height: 44px !important;
+    font-size: 0.9rem !important;
+  }
+
+  .page-number,
+  .page-number > div {
+    height: 44px !important;
+    line-height: 44px !important;
+  }
+
+  /* Visibility & text handling */
+  .mobile-hidden {
+    display: none !important;
+  }
+
+  .mobile-text-center {
+    text-align: center !important;
+  }
+
+  .mobile-truncate {
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    max-width: 120px;
+  }
+
+  .mobile-mb-2 {
+    margin-bottom: 0.5rem !important;
+  }
+
+  /* Modal adjustments */
+  .modal-dialog {
+    margin: 0.5rem;
+    max-width: calc(100% - 1rem);
+  }
+
+  .modal-content {
+    font-size: 0.95rem;
+  }
+
+  .modal-header,
+  .modal-body,
+  .modal-footer {
+    padding: 0.75rem !important;
+  }
+}

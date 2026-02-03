@@ -543,7 +543,8 @@ def _detect_sprint_field(
                     candidates[field_id]["score"] += 10
                     candidates[field_id]["populated_count"] += 1
 
-    # Only return if field has sprint data in at least 10% of issues
+    # Return sprint field even with low population (important for test instances)
+    # Many JIRA instances (especially test/demo instances) have sprint field but few sprints
     if candidates:
         for field_id, stats in candidates.items():
             if stats["total_count"] > 0:

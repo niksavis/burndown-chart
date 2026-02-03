@@ -298,3 +298,4 @@ playwright-screenshots/
 !*.example.json
 !spec-kit.json
 !data/ai_assistant/knowledge_base.json
+!.vscode/*.json

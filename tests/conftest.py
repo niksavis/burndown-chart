@@ -66,6 +66,9 @@ def temp_database():
 
     yield temp_db_path
 
+    # Clear backend singleton after test to prevent reuse
+    factory._backend_instance = None
+
     for p in db_patches:
         p.stop()
 

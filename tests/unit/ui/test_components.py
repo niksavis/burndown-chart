@@ -7,7 +7,7 @@ Tests the contract-compliant input field builders added in Phase 2.
 import pytest
 from dash import html
 import dash_bootstrap_components as dbc
-from ui.components import create_input_field, create_labeled_input
+from ui.form_components import create_input_field, create_labeled_input
 
 
 class TestCreateInputField:

@@ -6,7 +6,7 @@ import dash_bootstrap_components as dbc
 from dash import html, dcc
 import plotly.graph_objs as go
 import pandas as pd
-from ui.components import TREND_ICONS, TREND_COLORS
+from ui.trend_components import TREND_ICONS, TREND_COLORS
 from ui.tooltip_utils import create_info_tooltip
 from configuration import SCOPE_HELP_TEXTS
 from configuration.chart_config import get_scope_metrics_chart_config

@@ -49,7 +49,7 @@ def _fetch_jira_metadata(
         - metadata_dict contains fields, projects, issue_types, statuses, auto_detected
         - error_message is None on success, error string on failure
     """
-    from data.jira_metadata import create_metadata_fetcher
+    from data.jira.metadata_fetcher import create_metadata_fetcher
     from data.persistence import load_app_settings
     import time
 

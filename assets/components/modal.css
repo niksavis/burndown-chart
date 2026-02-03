@@ -1,0 +1,49 @@
+/* ====================
+   MODAL COMPONENT
+   ==================== */
+
+/* ===== Modal Component Enhancements ===== */
+.modal-backdrop {
+  background-color: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(2px);
+}
+
+.modal-content {
+  border: none;
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-xl);
+  overflow: hidden;
+}
+
+.modal-header {
+  background: linear-gradient(to right, var(--color-brand-50), white);
+  border-bottom: 1px solid var(--color-neutral-200);
+  padding: var(--space-3);
+}
+
+.modal-title {
+  font-weight: var(--font-semibold);
+  color: var(--color-brand-900);
+  font-size: var(--text-xl);
+}
+
+.modal-body {
+  padding: var(--space-3);
+}
+
+.modal-footer {
+  background-color: var(--color-neutral-50);
+  border-top: 1px solid var(--color-neutral-200);
+  padding: var(--space-3);
+}
+
+/* Modal animations */
+.modal.fade .modal-dialog {
+  transition:
+    transform 0.2s var(--easing-default),
+    opacity 0.2s var(--easing-default);
+}
+
+.modal.show .modal-dialog {
+  transform: scale(1);
+}
