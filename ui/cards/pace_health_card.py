@@ -91,19 +91,11 @@ def create_pace_health_card(
             # Card Header
             dbc.CardHeader(
                 [
-                    html.Div(
-                        [
-                            html.I(
-                                className="fas fa-tachometer-alt me-2",
-                                style={"color": "#6610f2"},
-                            ),
-                            html.Span(
-                                "Required Pace",
-                                className="metric-card-title",
-                            ),
-                        ],
-                        className="d-flex align-items-center",
+                    html.Span(
+                        "Required Pace",
+                        className="metric-card-title",
                     ),
+                    " ",
                     create_info_tooltip(
                         help_text=(
                             "Shows the velocity you need to maintain to complete remaining work by the deadline. "
