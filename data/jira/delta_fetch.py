@@ -252,7 +252,8 @@ def try_delta_fetch(
         fields = config.get("fields", "")
         if not fields:
             # Use base fields
-            base_fields = "key,summary,project,created,updated,resolutiondate,status,issuetype,assignee,priority,resolution,labels,components,fixVersions"
+            # Include parent for epic/feature tracking (Active Work Timeline feature)
+            base_fields = "key,summary,project,created,updated,resolutiondate,status,issuetype,assignee,priority,resolution,labels,components,fixVersions,parent"
             fields = base_fields
 
         params = {

@@ -342,7 +342,8 @@ def _build_fields_string(config: Dict) -> str:
     # Fields to fetch (same as regular fetch + changelog)
     # NOTE: fixVersions is critical for DORA Lead Time calculation (matching dev issues to operational tasks)
     # NOTE: project is critical for filtering DevOps vs Development projects in DORA metrics
-    base_fields = "key,summary,project,created,updated,resolutiondate,status,issuetype,assignee,priority,resolution,labels,components,fixVersions"
+    # NOTE: parent is needed for epic/feature tracking (Active Work Timeline feature)
+    base_fields = "key,summary,project,created,updated,resolutiondate,status,issuetype,assignee,priority,resolution,labels,components,fixVersions,parent"
 
     # Add story points field if specified
     additional_fields = []
