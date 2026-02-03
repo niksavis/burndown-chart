@@ -33,7 +33,7 @@ logger = logging.getLogger(__name__)
     [
         State("profile-status-icon", "className"),
     ],
-    prevent_initial_call=True,
+    prevent_initial_call=False,  # Allow initial call to set default state on load
 )
 def update_banner_status_icons(
     n_intervals,
@@ -62,6 +62,11 @@ def update_banner_status_icons(
         Tuple of (profile icon class, query icon class)
     """
     trigger_id = ctx.triggered_id if ctx.triggered else None
+
+    # Handle initial load: return default idle state immediately
+    if not ctx.triggered:
+        logger.debug("[BannerStatus] Initial load - showing default idle icons")
+        return "fas fa-folder me-1", "fas fa-search me-1"
 
     try:
         from data.persistence.factory import get_backend
