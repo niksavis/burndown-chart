@@ -24,10 +24,8 @@
   overflow: hidden;
 }
 
-.card:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-md);
-}
+/* REMOVED: Universal .card:hover was causing large containers to have unwanted animations */
+/* Hover effects are now opt-in via .card-interactive class in visual-polish.css */
 
 /* Enable hover animation for metric cards (DORA, Flow metrics) even if they contain sparklines */
 .metric-card {
@@ -52,6 +50,7 @@
 }
 
 /* Prevent hover animation on structural cards (tabs, layout containers, large charts) */
+/* These override .card-interactive if it gets applied incorrectly */
 .card:has(.nav-tabs),
 .card:has(.tab-content),
 .card:has(.dash-table-container),
@@ -60,9 +59,11 @@
 .card-no-hover,
 #budget-current-card,
 #budget-revision-history-card,
-#column-explanations-collapse .card {
+#column-explanations-collapse .card,
+.card:has(.dash-graph):not(.metric-card):not(#cost-breakdown-card):not(
+    #budget-timeline-card
+  ) {
   transform: none !important;
-  margin-top: 0 !important; /* No margin adjustment for structural cards */
 }
 
 .card:has(.nav-tabs):hover,
@@ -73,20 +74,12 @@
 .card-no-hover:hover,
 #budget-current-card:hover,
 #budget-revision-history-card:hover,
-#column-explanations-collapse .card:hover {
+#column-explanations-collapse .card:hover,
+.card:has(.dash-graph):not(.metric-card):not(#cost-breakdown-card):not(
+    #budget-timeline-card
+  ):hover {
   transform: none !important;
-  box-shadow: var(--shadow-sm) !important;
-  margin-top: 0 !important; /* Keep margin constant */
-}
-
-/* Disable hover for cards with large full-size charts (not sparklines in metric cards) */
-.card:has(.dash-graph):not(.metric-card):not(#cost-breakdown-card):not(#budget-timeline-card) {
-  transform: none !important;
-}
-
-.card:has(.dash-graph):not(.metric-card):not(#cost-breakdown-card):not(#budget-timeline-card):hover {
-  transform: none !important;
-  box-shadow: var(--shadow-sm) !important;
+  box-shadow: none !important;
 }
 
 .card-header {

@@ -48,20 +48,27 @@ body {
   box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.15);
 }
 
-/* Card hover effects - subtle lift */
-.card {
+/* Card hover effects - OPT-IN ONLY for interactive cards */
+/* NOTE: Cards are large containers and should NOT have hover effects by default */
+/* Only apply hover effects to explicitly interactive/clickable cards */
+
+/* Add transition to cards that will be interactive */
+.card.card-interactive,
+.card.clickable,
+.card[style*="cursor: pointer"],
+.card.metric-card,
+.card[onclick] {
   transition:
     box-shadow var(--transition-fast) var(--easing-default),
     transform var(--transition-fast) var(--easing-default);
 }
 
-.card:hover {
-  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.1);
-}
-
-/* Clickable cards get more lift on hover */
+/* Hover effects only for interactive cards */
+.card.card-interactive:hover,
+.card.clickable:hover,
 .card[style*="cursor: pointer"]:hover,
-.card.clickable:hover {
+.card.metric-card:hover,
+.card[onclick]:hover {
   transform: translateY(-2px);
   box-shadow: 0 0.75rem 1.5rem rgba(0, 0, 0, 0.12);
 }
@@ -221,7 +228,11 @@ body {
 }
 
 #cost-breakdown-card .table > thead > tr > th {
-  background: linear-gradient(to bottom, var(--color-neutral-100), var(--color-neutral-50));
+  background: linear-gradient(
+    to bottom,
+    var(--color-neutral-100),
+    var(--color-neutral-50)
+  );
   border-bottom: 2px solid var(--color-neutral-300);
   font-weight: 600;
   letter-spacing: 0.03em;
@@ -255,7 +266,7 @@ body {
 #cost-breakdown-card .table > tbody > tr > td:nth-child(2) {
   font-weight: 600;
   color: var(--color-brand-700);
-  font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+  font-family: "SF Mono", "Monaco", "Consolas", monospace;
   font-size: var(--text-base);
 }
 
