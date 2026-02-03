@@ -760,27 +760,21 @@ def create_forecast_analytics_section(
             ),
             dbc.Row(
                 [
-                    dbc.Col(expected_completion_card, width=12, md=4, className="mb-3"),
+                    dbc.Col(expected_completion_card, width=12, md=3, className="mb-3"),
                     dbc.Col(
-                        confidence_intervals_card, width=12, md=4, className="mb-3"
+                        confidence_intervals_card, width=12, md=3, className="mb-3"
                     ),
-                    dbc.Col(on_track_card, width=12, md=4, className="mb-3"),
+                    dbc.Col(on_track_card, width=12, md=3, className="mb-3"),
+                    # Required Pace card (if data available)
+                    dbc.Col(
+                        pace_health_card_element
+                        if pace_health_card_element
+                        else html.Div(),
+                        width=12,
+                        md=3,
+                        className="mb-3",
+                    ),
                 ]
-            ),
-            # Required Pace to Deadline card (if data available)
-            (
-                dbc.Row(
-                    [
-                        dbc.Col(
-                            pace_health_card_element,
-                            width=12,
-                            md=12,
-                            className="mb-3",
-                        )
-                    ]
-                )
-                if pace_health_card_element
-                else html.Div()
             ),
             # Forecast vs Budget Alignment card (if budget configured)
             (
