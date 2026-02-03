@@ -56,6 +56,11 @@ def create_forecast_analytics_section(
     confidence_data: dict,
     budget_data: Optional[dict] = None,
     show_points: bool = True,
+    remaining_items: Optional[float] = None,
+    remaining_points: Optional[float] = None,
+    avg_weekly_items: Optional[float] = None,
+    avg_weekly_points: Optional[float] = None,
+    days_to_deadline: Optional[int] = None,
 ) -> html.Div:
     """Create forecasting section with multiple prediction methods.
 
@@ -64,6 +69,11 @@ def create_forecast_analytics_section(
         confidence_data: Dictionary with ci_50, ci_95, deadline_probability
         budget_data: Optional budget data for forecast alignment
         show_points: Whether to use points-based (True) or items-based (False) forecast
+        remaining_items: Current remaining items (for pace health calculation)
+        remaining_points: Current remaining points (for pace health calculation)
+        avg_weekly_items: Current velocity in items/week (from filtered data)
+        avg_weekly_points: Current velocity in points/week (from filtered data)
+        days_to_deadline: Days remaining to deadline (for pace health calculation)
 
     Returns:
         dbc.Card component containing forecast analytics
@@ -698,6 +708,45 @@ def create_forecast_analytics_section(
             className="metric-card mb-3",
         )
 
+    # Create Required Pace to Deadline card (if all data available)
+    pace_health_card_element = None
+    if (
+        remaining_items is not None
+        and avg_weekly_items is not None
+        and days_to_deadline is not None
+        and days_to_deadline > 0
+    ):
+        from data.velocity_projections import calculate_required_velocity
+
+        # Calculate required velocities
+        deadline_date = datetime.now() + timedelta(days=days_to_deadline)
+        required_items = calculate_required_velocity(
+            remaining_items, deadline_date, time_unit="week"
+        )
+
+        # Calculate required points (if available)
+        required_points = None
+        if (
+            show_points
+            and remaining_points is not None
+            and avg_weekly_points is not None
+        ):
+            required_points = calculate_required_velocity(
+                remaining_points, deadline_date, time_unit="week"
+            )
+
+        # Create the card
+        from ui.cards.pace_health_card import create_pace_health_card
+
+        pace_health_card_element = create_pace_health_card(
+            required_items=required_items,
+            current_items=avg_weekly_items,
+            required_points=required_points,
+            current_points=avg_weekly_points if show_points else None,
+            deadline_days=days_to_deadline,
+            show_points=show_points,
+        )
+
     return html.Div(
         [
             html.H5(
@@ -717,6 +766,21 @@ def create_forecast_analytics_section(
                     ),
                     dbc.Col(on_track_card, width=12, md=4, className="mb-3"),
                 ]
+            ),
+            # Required Pace to Deadline card (if data available)
+            (
+                dbc.Row(
+                    [
+                        dbc.Col(
+                            pace_health_card_element,
+                            width=12,
+                            md=12,
+                            className="mb-3",
+                        )
+                    ]
+                )
+                if pace_health_card_element
+                else html.Div()
             ),
             # Forecast vs Budget Alignment card (if budget configured)
             (
