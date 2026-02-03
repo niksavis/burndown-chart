@@ -103,6 +103,19 @@ def _render_sprint_tracker_content(
 
         logger.info(f"Loaded {len(all_issues)} issues from database")
 
+        # Get configuration for filtering and sprint field
+        from data.persistence import load_app_settings
+        settings = load_app_settings()
+        development_projects = settings.get("development_projects", [])
+        devops_projects = settings.get("devops_projects", [])
+        field_mappings = settings.get("field_mappings", {})
+        general_mappings = field_mappings.get("general", {})
+        
+        # Filter to only configured development project issues
+        from data.project_filter import filter_development_issues
+        all_issues = filter_development_issues(all_issues, development_projects, devops_projects)
+        logger.info(f"After project filtering: {len(all_issues)} development issues")
+
         # Filter to tracked issue types (Story, Task, Bug - exclude sub-tasks)
         from data.sprint_manager import filter_sprint_issues
 
@@ -115,13 +128,6 @@ def _render_sprint_tracker_content(
             return create_no_sprints_state()
 
         # Get configured sprint field from settings
-        from data.persistence import load_app_settings
-
-        settings = load_app_settings()
-        field_mappings = settings.get("field_mappings", {})
-
-        # Sprint field is in general mappings (saved by field mapping UI)
-        general_mappings = field_mappings.get("general", {})
         sprint_field = general_mappings.get("sprint_field")
 
         if not sprint_field:
@@ -472,6 +478,8 @@ def update_sprint_charts(selected_sprint, charts_visible, points_toggle_list):
 
         # Load data from backend
         backend = get_backend()
+        from data.project_filter import filter_development_issues
+        
         active_profile_id = backend.get_app_state("active_profile_id")
         active_query_id = backend.get_app_state("active_query_id")
 
@@ -488,12 +496,22 @@ def update_sprint_charts(selected_sprint, charts_visible, points_toggle_list):
         logger.info(
             f"update_sprint_charts: Loaded {len(all_issues) if all_issues else 0} issues"
         )
+        
+        # Get settings (including project classification for filtering)
+        settings = load_app_settings()
+        
+        # Filter to only configured development project issues
+        development_projects = settings.get("development_projects", [])
+        devops_projects = settings.get("devops_projects", [])
+        all_issues = filter_development_issues(all_issues, development_projects, devops_projects)
+        logger.info(
+            f"update_sprint_charts: After project filtering: {len(all_issues)} issues"
+        )
+        
         if not all_issues:
-            logger.warning("update_sprint_charts: No issues found")
+            logger.warning("update_sprint_charts: No issues found after project filtering")
             return no_update
 
-        # Get sprint field configuration
-        settings = load_app_settings()
         field_mappings = settings.get("field_mappings", {})
         general_mappings = field_mappings.get("general", {})
         sprint_field = general_mappings.get("sprint_field")

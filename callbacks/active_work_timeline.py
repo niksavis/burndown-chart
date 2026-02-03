@@ -13,27 +13,26 @@ import dash_bootstrap_components as dbc
 logger = logging.getLogger(__name__)
 
 
-def _render_active_work_timeline_content(show_points: bool = False) -> html.Div:
-    """Render Active Work Timeline content with epic timeline and issue lists.
+def _render_active_work_timeline_content(show_points: bool = False, data_points_count: int = 30) -> html.Div:
+    """Render Active Work Timeline content with nested epic timeline.
 
     Structure:
-    1. Timeline visualization (top) - Epic aggregation
-    2. Last Week issues list with health indicators
-    3. This Week issues list with health indicators
+    1. Epic Timeline with nested issues (sorted: Blocked/WIP → To Do → Completed)
+    2. Issues filtered by data_points_count date range
 
     Args:
         show_points: Whether to show story points metrics
+        data_points_count: Number of days to look back (from Data Points slider)
 
     Returns:
-        Div containing timeline layout with issue lists
+        Div containing nested epic timeline
     """
     try:
         from data.persistence.factory import get_backend
         from data.active_work_manager import get_active_work_data
         from ui.active_work_timeline import (
             create_no_issues_state,
-            create_timeline_visualization,
-            create_issue_list_section,
+            create_nested_epic_timeline,
         )
 
         backend = get_backend()
@@ -47,7 +46,7 @@ def _render_active_work_timeline_content(show_points: bool = False) -> html.Div:
             return create_no_issues_state()
 
         logger.info(
-            f"[ACTIVE WORK] Rendering Active Work Timeline for profile={active_profile_id}, query={active_query_id}"
+            f"[ACTIVE WORK] Rendering Active Work Timeline for profile={active_profile_id}, query={active_query_id}, data_points={data_points_count}"
         )
 
         # Load issues from database
@@ -60,15 +59,6 @@ def _render_active_work_timeline_content(show_points: bool = False) -> html.Div:
             return create_no_issues_state()
 
         logger.info(f"[ACTIVE WORK] Loaded {len(issues)} issues from database")
-        
-        # Debug: Check first issue structure
-        if issues:
-            first_issue = issues[0]
-            logger.info(f"[ACTIVE WORK] Sample issue keys: {list(first_issue.keys())[:15]}")
-            logger.info(f"[ACTIVE WORK] Has custom_fields: {'custom_fields' in first_issue}")
-            if 'custom_fields' in first_issue:
-                cf = first_issue.get('custom_fields', {})
-                logger.info(f"[ACTIVE WORK] custom_fields type: {type(cf)}, has customfield_10006: {'customfield_10006' in cf if isinstance(cf, dict) else 'N/A'}")
 
         # Get configuration
         from data.persistence import load_app_settings
@@ -81,6 +71,19 @@ def _render_active_work_timeline_content(show_points: bool = False) -> html.Div:
         parent_field = general_mappings.get("parent_field")
         flow_end_statuses = workflow_mappings.get("flow_end_statuses", [])
         flow_wip_statuses = workflow_mappings.get("flow_wip_statuses", [])
+        development_projects = settings.get("development_projects", [])
+        devops_projects = settings.get("devops_projects", [])
+        
+        # DEBUG: Log configuration
+        logger.info(f"[ACTIVE WORK DEBUG] development_projects: {development_projects}")
+        logger.info(f"[ACTIVE WORK DEBUG] devops_projects: {devops_projects}")
+        logger.info(f"[ACTIVE WORK DEBUG] Before filtering: {len(issues)} total issues")
+        
+        # Filter to only configured development project issues
+        from data.project_filter import filter_development_issues
+        
+        issues = filter_development_issues(issues, development_projects, devops_projects)
+        logger.info(f"[ACTIVE WORK] After project filtering: {len(issues)} development issues")
 
         # Check if parent field is configured
         parent_field_configured = bool(parent_field)
@@ -95,13 +98,16 @@ def _render_active_work_timeline_content(show_points: bool = False) -> html.Div:
         logger.info(
             f"[ACTIVE WORK] Using parent field: {parent_field} (configured: {parent_field_configured})"
         )
-        logger.info(f"[ACTIVE WORK] Flow statuses - End: {flow_end_statuses}, WIP: {flow_wip_statuses}")
 
-        # Get active work data (timeline + issue lists)
+        # Get active work data with nested structure
         try:
             logger.info(f"[ACTIVE WORK] Calling get_active_work_data with {len(issues)} issues...")
             work_data = get_active_work_data(
                 issues,
+                backend=backend,
+                profile_id=active_profile_id,
+                query_id=active_query_id,
+                data_points_count=data_points_count,
                 parent_field=parent_field,
                 flow_end_statuses=flow_end_statuses if flow_end_statuses else None,
                 flow_wip_statuses=flow_wip_statuses if flow_wip_statuses else None,
@@ -114,46 +120,27 @@ def _render_active_work_timeline_content(show_points: bool = False) -> html.Div:
             )
         
         timeline = work_data.get("timeline", [])
-        last_week_issues = work_data.get("last_week_issues", [])
-        this_week_issues = work_data.get("this_week_issues", [])
         
         logger.info(
-            f"[ACTIVE WORK] Got work_data: timeline={len(timeline)} epics, last_week={len(last_week_issues)} issues, this_week={len(this_week_issues)} issues"
+            f"[ACTIVE WORK] Got work_data: timeline={len(timeline)} epics"
         )
 
-        if not timeline and not last_week_issues and not this_week_issues:
-            logger.warning("[ACTIVE WORK] No active work found after filtering - all lists empty")
+        if not timeline:
+            logger.warning("[ACTIVE WORK] No active work found after filtering - empty timeline")
             return create_no_issues_state(
                 parent_field_configured=parent_field_configured
             )
 
+        # Count total issues across all epics
+        total_issues = sum(epic.get("total_issues", 0) for epic in timeline)
+
         logger.info(
-            f"Found {len(timeline)} epics, {len(last_week_issues)} last week issues, "
-            f"{len(this_week_issues)} this week issues"
+            f"Found {len(timeline)} epics with {total_issues} total issues"
         )
 
-        # Create components
-        if parent_field_configured and timeline:
-            # Show epic timeline
-            timeline_section = create_timeline_visualization(timeline, show_points)
-        else:
-            # Show info message about parent field configuration
-            timeline_section = dbc.Alert(
-                [
-                    html.I(className="fas fa-info-circle me-2"),
-                    "To see epic timeline, configure the ",
-                    html.Strong("Parent/Epic Field"),
-                    " in Settings → Fields tab → General Fields. ",
-                    "Issues are shown below without epic grouping.",
-                ],
-                color="info",
-                className="mb-4",
-            )
-        last_week_section = create_issue_list_section(
-            "Last Week (Mon-Sun)", last_week_issues, show_points
-        )
-        this_week_section = create_issue_list_section(
-            "Current Week (Mon-Today) & Active WIP", this_week_issues, show_points
+        # Create nested epic timeline
+        timeline_content = create_nested_epic_timeline(
+            timeline, show_points, parent_field_configured
         )
 
         # Assemble layout
@@ -174,18 +161,13 @@ def _render_active_work_timeline_content(show_points: bool = False) -> html.Div:
                                     className="mb-2",
                                 ),
                                 html.P(
-                                    f"Showing {len(timeline)} epics with {len(last_week_issues) + len(this_week_issues)} active issues (WIP + completed last 2 calendar weeks)",
+                                    f"Showing {len(timeline)} epics with {total_issues} issues (within last {data_points_count} days)",
                                     className="text-muted mb-4",
                                 ),
                             ]
                         ),
-                        # Timeline at top
-                        timeline_section,
-                        html.Hr(className="my-4"),
-                        # Issue lists below
-                        last_week_section,
-                        html.Hr(className="my-4"),
-                        this_week_section,
+                        # Nested epic timeline
+                        timeline_content,
                     ],
                     fluid=True,
                     className="py-3",
@@ -206,6 +188,7 @@ def register(app):
     Args:
         app: Dash application instance
     """
-    # Currently no interactive callbacks needed for Phase 3
-    # Phase 4 will add filtering callbacks for days_back slider
+    # No callbacks needed - all epics displayed expanded
+    # Collapse functionality removed to avoid Dash callback conflicts
     pass
+

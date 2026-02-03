@@ -135,23 +135,23 @@ def calculate_and_save_weekly_metrics(
         # all_issues_raw already loaded at the beginning of function
         logger.info(f"Loaded {len(all_issues_raw)} issues from database")
 
-        # CRITICAL: Filter out DevOps project issues and Operational Tasks
+        # CRITICAL: Filter to only configured development project issues
         # Flow metrics should ONLY include development project issues
         # DevOps issues (Operational Tasks) are ONLY for DORA metadata
+        development_projects = app_settings.get("development_projects", [])
         devops_projects = app_settings.get("devops_projects", [])
 
-        if devops_projects:
+        if development_projects or devops_projects:
             from data.project_filter import filter_development_issues
 
-            all_issues = filter_development_issues(all_issues_raw, devops_projects)
+            all_issues = filter_development_issues(all_issues_raw, development_projects, devops_projects)
             filtered_count = len(all_issues_raw) - len(all_issues)
             logger.info(
-                f"Filtered out {filtered_count} DevOps project issues. "
-                f"Using {len(all_issues)} development project issues for Flow metrics."
+                f"Filtered to {len(all_issues)} development project issues (excluded {filtered_count} other issues)"
             )
         else:
             all_issues = all_issues_raw
-            logger.info("No DevOps projects configured, using all issues")
+            logger.info("No project classification configured, using all issues")
 
         # Check if changelog data exists in database
         # NOTE: Changelog is OPTIONAL - only needed for Flow Time and Flow Efficiency

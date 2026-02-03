@@ -391,22 +391,24 @@ def sync_jira_scope_and_data(
         except Exception:
             pass
 
-        # CRITICAL: Filter out DevOps project issues for burndown/velocity/statistics
+        # CRITICAL: Filter to only configured development project issues for burndown/velocity/statistics
         # DevOps issues are ONLY used for DORA metrics metadata extraction
+        development_projects = config.get("development_projects", [])
         devops_projects = config.get("devops_projects", [])
-        if devops_projects:
+        
+        if development_projects or devops_projects:
             from data.project_filter import filter_development_issues
 
             total_issues_count = len(issues)
-            issues_for_metrics = filter_development_issues(issues, devops_projects)
+            issues_for_metrics = filter_development_issues(issues, development_projects, devops_projects)
             filtered_count = total_issues_count - len(issues_for_metrics)
 
             if filtered_count > 0:
                 logger.info(
-                    f"[JIRA] Filtered {filtered_count} DevOps issues, using {len(issues_for_metrics)} dev issues"
+                    f"[JIRA] Filtered to {len(issues_for_metrics)} development project issues (excluded {filtered_count})"
                 )
         else:
-            # No DevOps projects configured, use all issues
+            # No project classification configured, use all issues
             issues_for_metrics = issues
 
         # Calculate JIRA-based project scope (using ONLY development project issues)
