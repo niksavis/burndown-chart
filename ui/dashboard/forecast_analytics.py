@@ -128,7 +128,7 @@ def create_forecast_analytics_section(
             # Determine status
             if days_to_forecast < days_to_deadline:
                 # Ahead of schedule
-                badge_text = "Ahead"
+                badge_text = "On Schedule"
                 if percentage <= 70:
                     color = "#28a745"  # Green - significantly ahead
                 elif percentage <= 90:
@@ -137,7 +137,7 @@ def create_forecast_analytics_section(
                     color = "#ffc107"  # Yellow - barely ahead
             else:
                 # Behind schedule or on deadline
-                badge_text = "Behind"
+                badge_text = "Behind Schedule"
                 if percentage <= 110:
                     color = "#ffc107"  # Yellow - slightly behind
                 else:

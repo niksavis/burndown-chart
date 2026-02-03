@@ -185,7 +185,7 @@ def assess_pace_health(
     # Determine health status based on ratio thresholds
     if ratio >= 1.0:
         return {
-            "status": "healthy",
+            "status": "on_pace",
             "indicator": "✓",
             "color": "#28a745",
             "message": "On track or ahead of required pace",
@@ -201,7 +201,7 @@ def assess_pace_health(
         }
     else:
         return {
-            "status": "behind",
+            "status": "behind_pace",
             "indicator": "❄",
             "color": "#dc3545",
             "message": "Significantly behind required pace",

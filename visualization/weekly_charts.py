@@ -10,6 +10,7 @@ for both items and story points.
 #######################################################################
 # Standard library imports
 from datetime import timedelta
+from typing import Optional
 
 # Third-party library imports
 import pandas as pd
@@ -28,14 +29,22 @@ from visualization.helpers import fill_missing_weeks
 
 
 def _add_required_velocity_line(
-    fig: go.Figure, required_velocity: float, chart_type: str = "items"
+    fig: go.Figure,
+    required_velocity: float,
+    chart_type: str = "items",
+    current_velocity: Optional[float] = None,
 ) -> None:
     """Add required velocity reference line to weekly chart.
+
+    Line color indicates performance:
+    - Green: Current velocity >= required (on pace or ahead)
+    - Red: Current velocity < required (behind pace)
 
     Args:
         fig: Plotly figure object to modify
         required_velocity: Required velocity value (items/week or points/week)
-        chart_type: 'items' or 'points' for color selection
+        chart_type: 'items' or 'points' for labeling
+        current_velocity: Current weighted average velocity for color determination
 
     Returns:
         None (modifies fig in-place)
@@ -43,9 +52,16 @@ def _add_required_velocity_line(
     if required_velocity is None or required_velocity == float("inf"):
         return
 
-    color = COLOR_PALETTE["items"] if chart_type == "items" else COLOR_PALETTE["points"]
+    # Determine color and status based on current vs required velocity
+    if current_velocity is not None and current_velocity >= required_velocity:
+        color = "#28a745"  # Green - on pace or ahead
+        status = "On Pace ✓"
+    else:
+        color = "#dc3545"  # Red - behind pace
+        status = "Behind Pace"
 
-    # Add horizontal line spanning the full chart using add_shape
+    # Add horizontal line as shape (renders behind traces but above plot background)
+    # Then add invisible trace for legend
     fig.add_shape(
         type="line",
         x0=0,
@@ -56,12 +72,13 @@ def _add_required_velocity_line(
         yref="y",  # Use data coordinates for y
         line=dict(
             color=color,
-            width=2,
+            width=3,  # Increased from 2 for prominence
             dash="dash",
         ),
+        layer="above",  # Render above plot area
     )
 
-    # Add invisible scatter trace for legend entry
+    # Add invisible scatter trace for legend entry with hover
     fig.add_trace(
         go.Scatter(
             x=[None],
@@ -69,10 +86,15 @@ def _add_required_velocity_line(
             mode="lines",
             line=dict(
                 color=color,
-                width=2,
+                width=3,
                 dash="dash",
             ),
-            name=f"Required: {required_velocity:.1f} {chart_type}/week",
+            name=f"Required: {required_velocity:.1f} {chart_type}/week ({status})",
+            hovertemplate=(
+                f"<b>Required Velocity</b><br>"
+                f"{required_velocity:.1f} {chart_type}/week<br>"
+                f"Status: {status}<extra></extra>"
+            ),
             hoverinfo="skip",
             showlegend=True,
         )
@@ -356,7 +378,19 @@ def create_weekly_items_chart(
 
     # Add required velocity reference line if provided
     if required_velocity is not None:
-        _add_required_velocity_line(fig, required_velocity, chart_type="items")
+        # Get current velocity (latest weighted average if available)
+        current_velocity = None
+        if "weighted_avg" in weekly_df.columns:
+            weighted_values = weekly_df["weighted_avg"].dropna()
+            if len(weighted_values) > 0:
+                current_velocity = weighted_values.iloc[-1]
+
+        _add_required_velocity_line(
+            fig,
+            required_velocity,
+            chart_type="items",
+            current_velocity=current_velocity,
+        )
 
     return fig
 
@@ -637,7 +671,19 @@ def create_weekly_points_chart(
 
     # Add required velocity reference line if provided
     if required_velocity is not None:
-        _add_required_velocity_line(fig, required_velocity, chart_type="points")
+        # Get current velocity (latest weighted average if available)
+        current_velocity = None
+        if "weighted_avg" in weekly_df.columns:
+            weighted_values = weekly_df["weighted_avg"].dropna()
+            if len(weighted_values) > 0:
+                current_velocity = weighted_values.iloc[-1]
+
+        _add_required_velocity_line(
+            fig,
+            required_velocity,
+            chart_type="points",
+            current_velocity=current_velocity,
+        )
 
     return fig
 
