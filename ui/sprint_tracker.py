@@ -457,7 +457,7 @@ def create_combined_sprint_controls(
                             ),
                         ],
                         xs=12,
-                        md=6,
+                        md=4,
                     ),
                     dbc.Col(
                         [
@@ -478,7 +478,28 @@ def create_combined_sprint_controls(
                             ),
                         ],
                         xs=12,
-                        md=6,
+                        md=4,
+                    ),
+                    dbc.Col(
+                        [
+                            dbc.Label(
+                                "\u00a0",
+                                html_for="toggle-sprint-charts",
+                            ),
+                            dbc.Button(
+                                [
+                                    html.I(className="fas fa-chart-line me-2"),
+                                    html.Span("Show Charts", id="toggle-charts-text"),
+                                ],
+                                id="toggle-sprint-charts",
+                                color="primary",
+                                outline=True,
+                                className="w-100",
+                                n_clicks=0,
+                            ),
+                        ],
+                        xs=12,
+                        md=4,
                     ),
                 ],
                 className="g-2",
@@ -577,58 +598,23 @@ def create_sprint_change_indicators(
 
 
 def create_sprint_charts_section() -> html.Div:
-    """Create collapsible charts section for burnup and CFD charts.
+    """Create collapsible charts section for sprint burnup chart.
 
     Returns:
-        Collapsible container with two chart placeholders side-by-side
+        Collapsible container with burnup chart (full width)
     """
     return html.Div(
         [
-            # Toggle button
-            dbc.Button(
-                [
-                    html.I(className="fas fa-chart-line me-2"),
-                    "Show Sprint Charts",
-                ],
-                id="toggle-sprint-charts",
-                color="primary",
-                outline=True,
-                className="mb-3",
-                n_clicks=0,
-            ),
-            # Collapsible charts container
+            # Collapsible charts container (button moved to combined controls)
             dbc.Collapse(
                 dbc.Card(
                     dbc.CardBody(
                         [
-                            dbc.Row(
-                                [
-                                    # Burnup chart (left)
-                                    dbc.Col(
-                                        [
-                                            dcc.Graph(
-                                                id="sprint-burnup-chart",
-                                                config={"displayModeBar": False},
-                                                style={"height": "400px"},
-                                            ),
-                                        ],
-                                        xs=12,
-                                        md=6,
-                                    ),
-                                    # CFD chart (right)
-                                    dbc.Col(
-                                        [
-                                            dcc.Graph(
-                                                id="sprint-cfd-chart",
-                                                config={"displayModeBar": False},
-                                                style={"height": "400px"},
-                                            ),
-                                        ],
-                                        xs=12,
-                                        md=6,
-                                    ),
-                                ],
-                                className="g-3",
+                            # Burnup chart (full width)
+                            dcc.Graph(
+                                id="sprint-burnup-chart",
+                                config={"displayModeBar": False},
+                                style={"height": "450px"},
                             ),
                         ]
                     ),

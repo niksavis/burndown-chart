@@ -26,18 +26,16 @@ def calculate_daily_sprint_snapshots(
     sprint_start_date: str,
     sprint_end_date: str,
     flow_end_statuses: Optional[List[str]] = None,
-    points_field: str = "story_points",
 ) -> List[Dict]:
     """Generate daily snapshots of sprint progress.
 
     Args:
         sprint_data: Sprint snapshot from sprint_manager.get_sprint_snapshots()
-        issues: List of all JIRA issues
+        issues: List of all JIRA issues (with normalized 'points' column from database)
         changelog_entries: Changelog entries for status transitions
         sprint_start_date: ISO format sprint start date
         sprint_end_date: ISO format sprint end date
         flow_end_statuses: Statuses considered "completed" (default: ["Done", "Closed"])
-        points_field: Field name for story points (default: "story_points")
 
     Returns:
         List of daily snapshots with structure:
@@ -80,10 +78,12 @@ def calculate_daily_sprint_snapshots(
         logger.warning("No issues in sprint")
         return []
 
-    # Build issue lookup
-    issue_map = {
-        issue["key"]: issue for issue in issues if issue["key"] in current_issues
-    }
+    # Build issue lookup (handle both 'key' and 'issue_key' formats)
+    issue_map = {}
+    for issue in issues:
+        issue_key = issue.get("key") or issue.get("issue_key")
+        if issue_key and issue_key in current_issues:
+            issue_map[issue_key] = issue
 
     # Build changelog lookup by issue key
     changelog_by_issue = defaultdict(list)
@@ -178,8 +178,20 @@ def calculate_daily_sprint_snapshots(
                 # Use current status if no changelog
                 status_at_time = issue.get("status", "Unknown")
 
-            # Get story points
-            points = issue.get(points_field, 0) or 0
+            # Get story points from database (normalized column, not custom field)
+            points = issue.get("points", 0) or 0
+
+            # Log issue structure for first issue to debug
+            if total_count == 0:
+                logger.info(f"Sample issue structure - Keys: {list(issue.keys())[:15]}")
+                logger.info(
+                    f"Issue has 'points' column: {'points' in issue}, value: {issue.get('points')}"
+                )
+                if "custom_fields" in issue:
+                    cf = issue.get("custom_fields", {})
+                    logger.info(
+                        f"Sample custom_fields keys: {list(cf.keys())[:5] if isinstance(cf, dict) else 'not a dict'}"
+                    )
 
             # Update totals
             total_count += 1
@@ -229,11 +241,11 @@ def get_status_at_timestamp(
         # No changelog, return current status
         return issue.get("status")
 
-    # Sort changelog by timestamp (should already be sorted)
+    # Sort changelog by change_date (database field name)
     sorted_changelog = sorted(
         changelog,
         key=lambda x: datetime.fromisoformat(
-            x.get("timestamp", "1970-01-01").replace("Z", "+00:00")
+            x.get("change_date", "1970-01-01").replace("Z", "+00:00")
         ),
     )
 
@@ -243,7 +255,7 @@ def get_status_at_timestamp(
     for entry in sorted_changelog:
         try:
             entry_time = datetime.fromisoformat(
-                entry.get("timestamp", "").replace("Z", "+00:00")
+                entry.get("change_date", "").replace("Z", "+00:00")
             )
             if entry_time.tzinfo is None:
                 entry_time = entry_time.replace(tzinfo=timezone.utc)
@@ -252,8 +264,8 @@ def get_status_at_timestamp(
                 # This change happened after our target time
                 break
 
-            # Get the status AFTER this change
-            to_status = entry.get("to_value")
+            # Get the status AFTER this change (database uses 'new_value')
+            to_status = entry.get("new_value")
             if to_status:
                 last_status = to_status
         except (ValueError, AttributeError):
@@ -264,9 +276,9 @@ def get_status_at_timestamp(
         return last_status
 
     # Otherwise, check if there's a "from" status in the first entry
-    # (this would be the status before any changes)
+    # (this would be the status before any changes) - database uses 'old_value'
     if sorted_changelog:
-        first_from = sorted_changelog[0].get("from_value")
+        first_from = sorted_changelog[0].get("old_value")
         if first_from:
             return first_from
 
