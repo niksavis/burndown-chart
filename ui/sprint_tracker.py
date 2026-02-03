@@ -610,18 +610,17 @@ def create_sprint_charts_section() -> html.Div:
                 dbc.Card(
                     dbc.CardBody(
                         [
-                            # Burnup chart (full width)
-                            dcc.Graph(
-                                id="sprint-burnup-chart",
-                                figure={
-                                    "data": [],
-                                    "layout": {
-                                        "xaxis": {"visible": False},
-                                        "yaxis": {"visible": False},
-                                    },
-                                },
-                                config={"displayModeBar": False},
-                                style={"height": "450px"},
+                            # Burnup chart with loading spinner
+                            dcc.Loading(
+                                id="loading-sprint-chart",
+                                type="circle",
+                                children=[
+                                    dcc.Graph(
+                                        id="sprint-burnup-chart",
+                                        config={"displayModeBar": False},
+                                        style={"height": "450px"},
+                                    )
+                                ],
                             ),
                         ]
                     ),
