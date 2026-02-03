@@ -45,11 +45,27 @@ def _add_required_velocity_line(
 
     color = COLOR_PALETTE["items"] if chart_type == "items" else COLOR_PALETTE["points"]
 
-    # Add horizontal line spanning the full chart
+    # Add horizontal line spanning the full chart using add_shape
+    fig.add_shape(
+        type="line",
+        x0=0,
+        x1=1,
+        y0=required_velocity,
+        y1=required_velocity,
+        xref="paper",  # Use paper coordinates for x (0 to 1 = full width)
+        yref="y",  # Use data coordinates for y
+        line=dict(
+            color=color,
+            width=2,
+            dash="dash",
+        ),
+    )
+
+    # Add invisible scatter trace for legend entry
     fig.add_trace(
         go.Scatter(
-            x=[0, 1],  # Full width in axis coordinates
-            y=[required_velocity, required_velocity],
+            x=[None],
+            y=[None],
             mode="lines",
             line=dict(
                 color=color,
@@ -57,12 +73,8 @@ def _add_required_velocity_line(
                 dash="dash",
             ),
             name=f"Required: {required_velocity:.1f} {chart_type}/week",
-            hovertemplate=f"<b>Required Velocity</b><br>{required_velocity:.1f} {chart_type}/week<extra></extra>",
-            xaxis="x",
-            yaxis="y",
-            # Use axis coordinates for x (0 to 1 = full width)
-            xref="paper",
-            yref="y",
+            hoverinfo="skip",
+            showlegend=True,
         )
     )
 
