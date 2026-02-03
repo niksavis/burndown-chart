@@ -399,29 +399,45 @@ class TestCreateSprintBurnupChart:
         assert "data" in fig
         assert "layout" in fig
 
-        # Should have 5 traces: scope, completed, ideal, sprint start/end markers
-        assert len(fig["data"]) == 5  # type: ignore
+        # Should have 8 traces when points enabled:
+        # - Ideal (items), Scope (items), Completed (items)
+        # - Ideal (points), Scope (points), Completed (points)
+        # - Sprint start/end markers (2)
+        assert len(fig["data"]) == 8  # type: ignore
 
-        # Verify trace names
+        # Verify trace names include both items and points
         trace_names = [trace["name"] for trace in fig["data"]]  # type: ignore
-        assert "Sprint Scope" in trace_names
+        assert "Sprint Scope (Items)" in trace_names
+        assert "Completed Issues" in trace_names
+        assert "Sprint Scope (Points)" in trace_names
         assert "Completed Points" in trace_names
-        assert "Ideal Progress" in trace_names
+        assert "Ideal Progress (Items)" in trace_names
+        assert "Ideal Progress (Points)" in trace_names
 
     def test_burnup_with_scope_changes(self):
         """Test burnup chart with changing scope."""
         daily_snapshots = [
-            {"date": "2026-02-01", "completed_points": 0, "total_scope": 10},
+            {
+                "date": "2026-02-01",
+                "completed_points": 0,
+                "total_scope": 10,
+                "completed_count": 0,
+                "total_count": 3,
+            },
             {
                 "date": "2026-02-02",
                 "completed_points": 5,
-                "total_scope": 15,
-            },  # Scope increased
+                "total_scope": 15,  # Scope increased
+                "completed_count": 1,
+                "total_count": 4,  # Item count increased
+            },
             {
                 "date": "2026-02-03",
                 "completed_points": 10,
-                "total_scope": 12,
-            },  # Scope decreased
+                "total_scope": 12,  # Scope decreased
+                "completed_count": 2,
+                "total_count": 3,  # Item count decreased
+            },
         ]
 
         fig = create_sprint_burnup_chart(
@@ -431,13 +447,28 @@ class TestCreateSprintBurnupChart:
             sprint_end_date="2026-02-03T23:59:59Z",
         )
 
-        # Find total scope trace
-        scope_trace = next(t for t in fig["data"] if t["name"] == "Sprint Scope")  # type: ignore
+        # Find total scope trace (points)
+        scope_points_trace = next(
+            t
+            for t in fig["data"]
+            if t["name"] == "Sprint Scope (Points)"  # type: ignore
+        )
 
-        # Verify scope changes are reflected
-        assert scope_trace["y"][0] == 10  # type: ignore
-        assert scope_trace["y"][1] == 15  # type: ignore
-        assert scope_trace["y"][2] == 12  # type: ignore
+        # Find total scope trace (items)
+        scope_items_trace = next(
+            t
+            for t in fig["data"]
+            if t["name"] == "Sprint Scope (Items)"  # type: ignore
+        )
+
+        # Verify scope changes are reflected in both metrics
+        assert scope_points_trace["y"][0] == 10  # type: ignore
+        assert scope_points_trace["y"][1] == 15  # type: ignore
+        assert scope_points_trace["y"][2] == 12  # type: ignore
+
+        assert scope_items_trace["y"][0] == 3  # type: ignore
+        assert scope_items_trace["y"][1] == 4  # type: ignore
+        assert scope_items_trace["y"][2] == 3  # type: ignore
 
     def test_burnup_with_empty_data(self):
         """Test burnup chart with no data."""
@@ -451,6 +482,157 @@ class TestCreateSprintBurnupChart:
         # Should still return a valid figure (empty chart)
         assert fig is not None
         assert "data" in fig
+
+    def test_burnup_with_issue_counts(self):
+        """Test burnup chart with points disabled (items only)."""
+        daily_snapshots = [
+            {
+                "date": "2026-02-01",
+                "completed_points": 0,
+                "total_scope": 10,
+                "completed_count": 0,
+                "total_count": 5,
+            },
+            {
+                "date": "2026-02-02",
+                "completed_points": 0,  # No points data
+                "total_scope": 10,
+                "completed_count": 2,
+                "total_count": 5,
+            },
+            {
+                "date": "2026-02-03",
+                "completed_points": 0,
+                "total_scope": 10,
+                "completed_count": 5,
+                "total_count": 5,
+            },
+        ]
+
+        fig = create_sprint_burnup_chart(
+            daily_snapshots,
+            sprint_name="Sprint 23",
+            sprint_start_date="2026-02-01T00:00:00Z",
+            sprint_end_date="2026-02-03T23:59:59Z",
+            show_points=False,  # Disable points
+        )
+
+        # Verify figure structure
+        assert fig is not None
+        assert "data" in fig
+        assert "layout" in fig
+
+        # Should have 5 traces when points disabled:
+        # - Ideal (items), Scope (items), Completed (items)
+        # - Sprint start/end markers (2)
+        assert len(fig["data"]) == 5  # type: ignore
+
+        # Verify trace names use "Issues" terminology only
+        trace_names = [trace["name"] for trace in fig["data"]]  # type: ignore
+        assert "Sprint Scope (Items)" in trace_names
+        assert "Completed Issues" in trace_names
+        assert "Ideal Progress (Items)" in trace_names
+
+        # Verify NO points traces
+        assert "Sprint Scope (Points)" not in trace_names
+        assert "Completed Points" not in trace_names
+
+        # Verify y-axis title (items only)
+        assert fig["layout"]["yaxis"]["title"]["text"] == "Issue Count"  # type: ignore
+
+        # Verify no y2 axis when points disabled
+        assert "yaxis2" not in fig["layout"]  # type: ignore
+
+        # Find completed issues trace
+        completed_trace = next(
+            t
+            for t in fig["data"]
+            if t["name"] == "Completed Issues"  # type: ignore
+        )
+
+        # Verify data uses counts, not points
+        assert completed_trace["y"][0] == 0  # type: ignore
+        assert completed_trace["y"][1] == 2  # type: ignore
+        assert completed_trace["y"][2] == 5  # type: ignore
+
+    def test_burnup_points_vs_counts_toggle(self):
+        """Test that toggling show_points switches between single and dual y-axis."""
+        daily_snapshots = [
+            {
+                "date": "2026-02-01",
+                "completed_points": 10,
+                "total_scope": 30,
+                "completed_count": 3,
+                "total_count": 10,
+            },
+            {
+                "date": "2026-02-02",
+                "completed_points": 20,
+                "total_scope": 30,
+                "completed_count": 6,
+                "total_count": 10,
+            },
+        ]
+
+        # Create chart with points enabled (dual y-axis)
+        fig_with_points = create_sprint_burnup_chart(
+            daily_snapshots,
+            sprint_name="Sprint Test",
+            show_points=True,
+        )
+
+        # Create chart with points disabled (single y-axis)
+        fig_without_points = create_sprint_burnup_chart(
+            daily_snapshots,
+            sprint_name="Sprint Test",
+            show_points=False,
+        )
+
+        # Verify dual y-axis when points enabled
+        assert "yaxis2" in fig_with_points["layout"]  # type: ignore
+        assert fig_with_points["layout"]["yaxis2"]["title"]["text"] == "Story Points"  # type: ignore
+
+        # Count traces in points-enabled chart (should have both items and points)
+        trace_names_with_points = [t["name"] for t in fig_with_points["data"]]  # type: ignore
+        assert "Sprint Scope (Items)" in trace_names_with_points
+        assert "Sprint Scope (Points)" in trace_names_with_points
+        assert "Completed Issues" in trace_names_with_points
+        assert "Completed Points" in trace_names_with_points
+
+        # Verify single y-axis when points disabled
+        assert "yaxis2" not in fig_without_points["layout"]  # type: ignore
+
+        # Count traces in points-disabled chart (should have only items)
+        trace_names_without_points = [t["name"] for t in fig_without_points["data"]]  # type: ignore
+        assert "Sprint Scope (Items)" in trace_names_without_points
+        assert "Completed Issues" in trace_names_without_points
+        assert "Sprint Scope (Points)" not in trace_names_without_points
+        assert "Completed Points" not in trace_names_without_points
+
+        # Verify items data is present in both versions
+        items_trace_with = next(
+            t
+            for t in fig_with_points["data"]
+            if t["name"] == "Completed Issues"  # type: ignore
+        )
+        items_trace_without = next(
+            t
+            for t in fig_without_points["data"]
+            if t["name"] == "Completed Issues"  # type: ignore
+        )
+        assert items_trace_with["y"][0] == 3  # type: ignore
+        assert items_trace_with["y"][1] == 6  # type: ignore
+        assert items_trace_without["y"][0] == 3  # type: ignore
+        assert items_trace_without["y"][1] == 6  # type: ignore
+
+        # Verify points data only present when enabled
+        points_trace = next(
+            (t for t in fig_with_points["data"] if t["name"] == "Completed Points"),  # type: ignore
+            None,
+        )
+        assert points_trace is not None
+        assert points_trace["y"][0] == 10  # type: ignore
+        assert points_trace["y"][1] == 20  # type: ignore
 
 
 class TestCreateSprintCFDChart:

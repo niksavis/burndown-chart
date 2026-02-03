@@ -575,16 +575,19 @@ def update_sprint_charts(selected_sprint, points_toggle_list, charts_visible):
             logger.warning(f"No daily snapshots generated for {selected_sprint}")
             return no_update
 
-        # Create burnup chart
+        # Create burnup chart (dual y-axis: items always shown, points conditionally)
         burnup_fig = create_sprint_burnup_chart(
             daily_snapshots,
             sprint_name=selected_sprint,
             sprint_start_date=sprint_start_date,
             sprint_end_date=sprint_end_date,
             height=450,
+            show_points=show_points,
         )
 
-        logger.info(f"Updated sprint chart for {selected_sprint}")
+        logger.info(
+            f"Updated sprint chart for {selected_sprint} (show_points={show_points})"
+        )
         return burnup_fig
 
     except Exception as e:
