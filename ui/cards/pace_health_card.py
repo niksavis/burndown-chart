@@ -132,7 +132,7 @@ def create_pace_health_card(
                                     html.Div(
                                         [
                                             html.Span(
-                                                f"{current_items:.2f} / {required_items:.2f} items/week",
+                                                f"{current_items:.2f} vs {required_items:.2f} items/week",
                                                 className="text-muted",
                                                 style={
                                                     "fontSize": "0.85rem",
@@ -206,7 +206,7 @@ def create_pace_health_card(
                                     html.Div(
                                         [
                                             html.Span(
-                                                f"{current_points or 0:.2f} / {required_points or 0:.2f} pts/week",
+                                                f"{current_points or 0:.2f} vs {required_points or 0:.2f} pts/week",
                                                 className="text-muted",
                                                 style={
                                                     "fontSize": "0.85rem",
