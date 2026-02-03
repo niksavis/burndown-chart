@@ -107,7 +107,7 @@ def create_pace_health_card(
                         variant="dark",
                     ),
                 ],
-                className="d-flex align-items-center justify-content-between",
+                className="d-flex align-items-center",
             ),
             # Card Body
             dbc.CardBody(
@@ -118,27 +118,24 @@ def create_pace_health_card(
                             html.Div(
                                 [
                                     html.I(
-                                        className="fas fa-tasks me-1",
+                                        className="fas fa-tasks me-2",
                                         style={
                                             "color": COLOR_PALETTE["items"],
-                                            "fontSize": "0.9rem",
+                                            "fontSize": "1rem",
                                         },
                                     ),
                                     html.Span(
                                         "Items-based",
                                         className="text-muted",
-                                        style={"fontSize": "0.75rem"},
+                                        style={"fontSize": "0.85rem"},
                                     ),
                                 ],
-                                className="mb-2",
+                                className="mb-1",
                             ),
                             html.Div(
                                 [
                                     _create_pace_metric(
                                         "Required", f"{required_items:.1f} items/week"
-                                    ),
-                                    _create_pace_metric(
-                                        "Current", f"{current_items:.1f} items/week"
                                     ),
                                     _create_pace_metric(
                                         "Gap",
@@ -153,7 +150,10 @@ def create_pace_health_card(
                                 className="pace-metrics",
                             ),
                         ],
-                        className="mb-3",
+                        className="text-center pb-2",
+                        style={"borderBottom": "1px solid #e9ecef"}
+                        if show_points
+                        else {},
                     ),
                     # Points-based section (conditional)
                     html.Div(
@@ -161,27 +161,24 @@ def create_pace_health_card(
                             html.Div(
                                 [
                                     html.I(
-                                        className="fas fa-chart-bar me-1",
+                                        className="fas fa-chart-bar me-2",
                                         style={
                                             "color": COLOR_PALETTE["points"],
-                                            "fontSize": "0.9rem",
+                                            "fontSize": "1rem",
                                         },
                                     ),
                                     html.Span(
                                         "Points-based",
                                         className="text-muted",
-                                        style={"fontSize": "0.75rem"},
+                                        style={"fontSize": "0.85rem"},
                                     ),
                                 ],
-                                className="mb-2",
+                                className="mb-1 mt-3",
                             ),
                             html.Div(
                                 [
                                     _create_pace_metric(
                                         "Required", f"{required_points:.1f} pts/week"
-                                    ),
-                                    _create_pace_metric(
-                                        "Current", f"{current_points:.1f} pts/week"
                                     ),
                                     _create_pace_metric(
                                         "Gap",
@@ -197,7 +194,7 @@ def create_pace_health_card(
                                 className="pace-metrics",
                             ),
                         ],
-                        className="mb-3",
+                        className="text-center",
                     )
                     if show_points and points_health
                     else html.Div(),
