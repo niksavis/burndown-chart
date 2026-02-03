@@ -1031,6 +1031,20 @@ def register(app):
                         if query_id_active and profile_id:
                             issues = backend.get_issues(profile_id, query_id_active)
 
+                            # CRITICAL: Filter out parent issues dynamically (don't hardcode "Epic")
+                            if issues:
+                                from data.persistence import load_app_settings
+                                settings = load_app_settings()
+                                parent_field = settings.get("field_mappings", {}).get("general", {}).get("parent_field")
+                                
+                                if parent_field:
+                                    from data.parent_filter import filter_parent_issues
+                                    issues = filter_parent_issues(
+                                        issues,
+                                        parent_field,
+                                        log_prefix="BUG METRICS"
+                                    )
+
                             # Filter to get ONLY bugs (same as report)
                             from data.persistence import load_app_settings
 

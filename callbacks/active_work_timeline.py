@@ -111,6 +111,7 @@ def _render_active_work_timeline_content(show_points: bool = False, data_points_
                 parent_field=parent_field,
                 flow_end_statuses=flow_end_statuses if flow_end_statuses else None,
                 flow_wip_statuses=flow_wip_statuses if flow_wip_statuses else None,
+                filter_parents=True,  # Filter out parent issues from child calculations
             )
             logger.info(f"[ACTIVE WORK] get_active_work_data returned successfully")
         except Exception as e:

@@ -65,6 +65,20 @@ def update_sprint_selection(selected_sprint: str, show_points_list: list):
 
         # Load issues
         all_issues = backend.get_issues(active_profile_id, active_query_id)
+        
+        # CRITICAL: Filter out parent issues dynamically (don't hardcode "Epic")
+        if all_issues:
+            settings = load_app_settings()
+            parent_field = settings.get("field_mappings", {}).get("general", {}).get("parent_field")
+            
+            if parent_field:
+                from data.parent_filter import filter_parent_issues
+                all_issues = filter_parent_issues(
+                    all_issues,
+                    parent_field,
+                    log_prefix="SPRINT SELECTOR"
+                )
+        
         tracked_issues = filter_sprint_issues(all_issues)
 
         if not tracked_issues:

@@ -104,6 +104,7 @@ def get_active_work_data(
     parent_field: str = "parent",
     flow_end_statuses: Optional[List[str]] = None,
     flow_wip_statuses: Optional[List[str]] = None,
+    filter_parents: bool = True,
 ) -> Dict:
     """Get active work data with nested epic timeline.
 
@@ -127,12 +128,20 @@ def get_active_work_data(
         parent_field: Field name for parent/epic
         flow_end_statuses: Completion statuses
         flow_wip_statuses: WIP statuses
+        filter_parents: If True, filter out parent issues from timeline (they're for display only)
 
     Returns:
         Dict with nested epic timeline
     """
     logger.info(f"[ACTIVE WORK MGR] Building active work data from {len(issues)} issues")
     logger.info(f"[ACTIVE WORK MGR] data_points_count={data_points_count}, parent_field={parent_field}")
+
+    # CRITICAL: Filter out parent issues dynamically (don't hardcode "Epic")
+    # Use parent field mapping to detect which issues are parents
+    if filter_parents and parent_field:
+        from data.parent_filter import filter_parent_issues
+        
+        issues = filter_parent_issues(issues, parent_field, log_prefix="ACTIVE WORK MGR")
 
     # Filter to date range
     filtered_issues = filter_active_issues(
@@ -452,7 +461,7 @@ def _build_epic_timeline(
         )
 
         # Get epic summary (from first child's parent field)
-        epic_summary = "Unknown"
+        epic_summary = epic_key  # Default to key
         if epic_key != "No Parent":
             first_issue = child_issues[0]
             parent = first_issue.get(parent_field)
@@ -460,31 +469,53 @@ def _build_epic_timeline(
                 custom_fields = first_issue.get("custom_fields", {})
                 parent = custom_fields.get(parent_field)
             
+            logger.debug(f"[EPIC] epic_key={epic_key}, parent type: {type(parent)}, value: {parent}")
+            
             if isinstance(parent, dict):
-                # Extract summary from parent dict
-                epic_summary = parent.get("summary", parent.get("fields", {}).get("summary", epic_key))
+                # Extract summary from parent dict (try multiple paths)
+                epic_summary = parent.get("summary") or parent.get("fields", {}).get("summary") or parent.get("name") or epic_key
+                logger.debug(f"[EPIC] From parent dict: {epic_summary}")
             elif isinstance(parent, str):
-                # Parent is just a key string - try to find the epic in our issues list
+                # Parent is just a key string - fetch from database
+                logger.debug(f"[EPIC] Parent is string '{parent}', fetching from database...")
                 epic_issue = next((issue for issue in issues if issue.get("issue_key") == parent), None)
                 if epic_issue:
                     epic_summary = epic_issue.get("summary", epic_key)
+                    logger.debug(f"[EPIC] Found in filtered issues: {epic_summary}")
                 else:
-                    # Epic not in filtered issues - fetch from backend
+                    # Epic not in filtered issues - fetch epics from database (issue_type='Epic')
                     if backend and profile_id and query_id:
                         try:
-                            all_issues = backend.get_issues(profile_id, query_id)
-                            epic_issue = next((issue for issue in all_issues if issue.get("issue_key") == parent), None)
+                            # Query specifically for Epic issue type (epics stored separately)
+                            all_epics = backend.get_issues(profile_id, query_id, issue_type="Epic")
+                            logger.debug(f"[EPIC] Searching {len(all_epics)} epics for {parent}")
+                            epic_issue = next((issue for issue in all_epics if issue.get("issue_key") == parent), None)
                             if epic_issue:
                                 epic_summary = epic_issue.get("summary", epic_key)
+                                logger.info(f"[EPIC] Found {parent} in epics DB: '{epic_summary}'")
                             else:
-                                logger.warning(f"Epic {parent} not found in database")
-                                epic_summary = epic_key  # Use key as last resort
+                                # Epic might be in parent field as dict - check first child's parent again
+                                logger.warning(f"[EPIC] {parent} not found in {len(all_epics)} epics - checking parent field")
+                                # Try to extract from the parent field directly
+                                if child_issues:
+                                    sample_issue = child_issues[0]
+                                    parent_data = sample_issue.get(parent_field) or sample_issue.get("custom_fields", {}).get(parent_field)
+                                    logger.debug(f"[EPIC] Parent field data: {parent_data}")
+                                    if isinstance(parent_data, dict):
+                                        epic_summary = parent_data.get("summary") or parent_data.get("fields", {}).get("summary") or epic_key
+                                        logger.info(f"[EPIC] Extracted from parent dict: '{epic_summary}'")
+                                    else:
+                                        epic_summary = epic_key
+                                else:
+                                    epic_summary = epic_key
                         except Exception as e:
-                            logger.error(f"Failed to fetch epic {parent}: {e}")
+                            logger.error(f"[EPIC] Failed to fetch {parent}: {e}")
                             epic_summary = epic_key
                     else:
+                        logger.warning(f"[EPIC] No backend to fetch {parent}")
                         epic_summary = epic_key
             else:
+                logger.warning(f"[EPIC] Unexpected parent type: {type(parent)}")
                 epic_summary = epic_key
 
         # Sort child issues: Blocked → Aging → WIP → To Do → Completed

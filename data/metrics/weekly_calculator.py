@@ -135,6 +135,18 @@ def calculate_and_save_weekly_metrics(
         # all_issues_raw already loaded at the beginning of function
         logger.info(f"Loaded {len(all_issues_raw)} issues from database")
 
+        # CRITICAL: Filter out parent issues dynamically (don't hardcode "Epic")
+        # Use parent field mapping to detect which issues are parents
+        parent_field = app_settings.get("field_mappings", {}).get("general", {}).get("parent_field")
+        if parent_field:
+            from data.parent_filter import filter_parent_issues
+            
+            all_issues_raw = filter_parent_issues(
+                all_issues_raw,
+                parent_field,
+                log_prefix="WEEKLY CALC"
+            )
+
         # CRITICAL: Filter to only configured development project issues
         # Flow metrics should ONLY include development project issues
         # DevOps issues (Operational Tasks) are ONLY for DORA metadata

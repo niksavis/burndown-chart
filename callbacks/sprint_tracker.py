@@ -103,9 +103,21 @@ def _render_sprint_tracker_content(
 
         logger.info(f"Loaded {len(all_issues)} issues from database")
 
-        # Get configuration for filtering and sprint field
+        # CRITICAL: Filter out parent issues dynamically (don't hardcode "Epic")
+        # Use parent field mapping from settings
         from data.persistence import load_app_settings
         settings = load_app_settings()
+        parent_field = settings.get("field_mappings", {}).get("general", {}).get("parent_field")
+        
+        if parent_field:
+            from data.parent_filter import filter_parent_issues
+            all_issues = filter_parent_issues(
+                all_issues,
+                parent_field,
+                log_prefix="SPRINT TRACKER"
+            )
+
+        # Get configuration for filtering and sprint field
         development_projects = settings.get("development_projects", [])
         devops_projects = settings.get("devops_projects", [])
         field_mappings = settings.get("field_mappings", {})
@@ -491,14 +503,25 @@ def update_sprint_charts(selected_sprint, charts_visible, points_toggle_list):
             logger.warning("No active profile/query for chart update")
             return no_update, no_update
 
+        # Get settings (including project classification and field mappings)
+        settings = load_app_settings()
+        
         # Load issues and changelog
         all_issues = backend.get_issues(active_profile_id, active_query_id)
         logger.info(
             f"update_sprint_charts: Loaded {len(all_issues) if all_issues else 0} issues"
         )
         
-        # Get settings (including project classification for filtering)
-        settings = load_app_settings()
+        # CRITICAL: Filter out parent issues dynamically (don't hardcode "Epic")
+        if all_issues:
+            parent_field = settings.get("field_mappings", {}).get("general", {}).get("parent_field")
+            if parent_field:
+                from data.parent_filter import filter_parent_issues
+                all_issues = filter_parent_issues(
+                    all_issues,
+                    parent_field,
+                    log_prefix="SPRINT CHARTS"
+                )
         
         # Filter to only configured development project issues
         development_projects = settings.get("development_projects", [])

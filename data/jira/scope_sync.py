@@ -205,6 +205,23 @@ def sync_jira_scope_and_data(
 
         logger.info(f"[JIRA] Fetch complete: {len(issues)} issues")
 
+        # PARENT FETCH: Get parent issues referenced by children for display (NOT counted in metrics)
+        # Parents are stored in database but filtered from calculations using parent_filter.py
+        try:
+            from data.jira.epic_fetch import fetch_epics_for_display
+            
+            parents = fetch_epics_for_display(issues, config)
+            if parents:
+                logger.info(f"[PARENT] Fetched {len(parents)} parent issues for display")
+                # Add parents to issues list - they'll be stored in database
+                # CRITICAL: All calculation code must use parent_filter.py to filter them out
+                issues.extend(parents)
+            else:
+                logger.debug("[PARENT] No parent issues to fetch")
+        except Exception as e:
+            logger.warning(f"[PARENT] Failed to fetch parent issues (non-fatal): {e}")
+            # Continue without parents - they're for display only
+
         # Update progress: Issues fetched, now starting changelog
         try:
             TaskProgress.update_progress(
@@ -390,6 +407,19 @@ def sync_jira_scope_and_data(
             )
         except Exception:
             pass
+
+        # CRITICAL: Filter out parent issues dynamically based on parent field mapping
+        # Parents stored for display (Active Work Timeline) but excluded from ALL calculations
+        # Don't hardcode "Epic" - use parent field to detect what keys are parents
+        parent_field = config.get("field_mappings", {}).get("general", {}).get("parent_field")
+        if parent_field:
+            from data.parent_filter import filter_parent_issues
+            
+            issues = filter_parent_issues(
+                issues,
+                parent_field,
+                log_prefix="JIRA SYNC"
+            )
 
         # CRITICAL: Filter to only configured development project issues for burndown/velocity/statistics
         # DevOps issues are ONLY used for DORA metrics metadata extraction

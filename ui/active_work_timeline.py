@@ -151,14 +151,43 @@ def create_nested_epic_timeline(
         )
     
     # Legend explaining status groups with colored badges
+    # Create tooltips for each badge (using dbc.Tooltip pattern from Sprint Tracker)
+    legend_tooltips = [
+        dbc.Tooltip(
+            "Status unchanged for 5+ days - needs immediate attention",
+            target="legend-blocked",
+            placement="top",
+        ),
+        dbc.Tooltip(
+            "Status unchanged for 3-5 days - approaching blocked",
+            target="legend-aging",
+            placement="top",
+        ),
+        dbc.Tooltip(
+            "In WIP status and status changed in last 2 days - actively being worked",
+            target="legend-wip",
+            placement="top",
+        ),
+        dbc.Tooltip(
+            "Not yet in WIP or completed status - ready to start",
+            target="legend-todo",
+            placement="top",
+        ),
+        dbc.Tooltip(
+            "In completed status",
+            target="legend-done",
+            placement="top",
+        ),
+    ]
+    
     legend = dbc.Alert(
-        [
+        legend_tooltips + [
             html.Strong("Status Groups: ", className="me-3"),
-            html.Span("Blocked", className="badge bg-danger me-2", title="Status unchanged for 5+ days"),
-            html.Span("Aging", className="badge bg-warning text-dark me-2", title="Status unchanged for 3-5 days"),
-            html.Span("In Progress", className="badge bg-info text-dark me-2", title="In WIP status, changed in last 2 days"),
-            html.Span("To Do", className="badge bg-secondary me-2", title="Not yet in WIP or completed status"),
-            html.Span("Done", className="badge bg-success", title="In completed status"),
+            html.Span("Blocked", className="badge bg-danger me-2", id="legend-blocked"),
+            html.Span("Aging", className="badge bg-warning text-dark me-2", id="legend-aging"),
+            html.Span("In Progress", className="badge bg-info text-dark me-2", id="legend-wip"),
+            html.Span("To Do", className="badge bg-secondary me-2", id="legend-todo"),
+            html.Span("Done", className="badge bg-success", id="legend-done"),
         ],
         color="light",
         className="mb-3 py-2",
@@ -169,6 +198,11 @@ def create_nested_epic_timeline(
     for epic_idx, epic in enumerate(timeline):
         epic_key = epic.get("epic_key", "Unknown")
         epic_summary = epic.get("epic_summary", epic_key)
+        
+        # Display orphaned issues (no parent) as "Other"
+        if epic_key == "No Parent":
+            epic_summary = "Other"
+        
         total_issues = epic.get("total_issues", 0)
         completed_issues = epic.get("completed_issues", 0)
         total_points = epic.get("total_points", 0.0)
@@ -195,8 +229,13 @@ def create_nested_epic_timeline(
                        and not i.get("health_indicators", {}).get("is_wip")]
         done_issues = [i for i in child_issues if i.get("health_indicators", {}).get("is_completed")]
         
-        # Epic status indicator
-        if completion_pct == 100:
+        # Epic/container status indicator
+        # Use different icon for orphaned issues ("Other" container)
+        if epic_key == "No Parent":
+            status_icon = "📋"  # Inbox/folder icon for miscellaneous items
+            status_color = "#6c757d"
+            default_open = True
+        elif completion_pct == 100:
             status_icon = "✓"
             status_color = "#28a745"
             default_open = False
@@ -217,13 +256,16 @@ def create_nested_epic_timeline(
             status_color = "#6c757d"
             default_open = True
         
-        # Create JIRA link for epic key (badge style)
-        epic_key_link = create_jira_issue_link(
-            epic_key,
-            text=epic_key,
-            className="badge bg-light text-dark text-decoration-none",
-            style={"fontSize": "0.75rem"}
-        )
+        # Create JIRA link for epic key (small badge style, secondary)
+        # Don't show key badge for orphaned issues
+        epic_key_badge = None
+        if epic_key != "No Parent":
+            epic_key_badge = create_jira_issue_link(
+                epic_key,
+                text=epic_key,
+                className="badge bg-light text-dark text-decoration-none ms-2",
+                style={"fontSize": "0.7rem"}
+            )
         
         # Create status-grouped issue sections (blocked → aging → wip → todo → done)
         issue_sections = []
@@ -250,12 +292,12 @@ def create_nested_epic_timeline(
                                         className="me-2",
                                         style={"fontSize": "1.2rem", "color": status_color}
                                     ),
-                                    epic_key_link,
                                     html.Span(
                                         epic_summary,
-                                        className="fw-bold text-dark ms-2",
-                                        style={"fontSize": "1rem"}
+                                        className="fw-bold text-dark",
+                                        style={"fontSize": "1.1rem"}
                                     ),
+                                    epic_key_badge,
                                     html.Small(
                                         f" ({visible_total} issues" + (f", {total_points:.0f}pts" if show_points and total_points > 0 else "") + ")",
                                         className="text-muted ms-2",

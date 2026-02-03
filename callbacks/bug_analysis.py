@@ -101,10 +101,21 @@ def _render_bug_analysis_content(
 
         # Filter to only configured development project issues
         if all_issues:
-            from data.project_filter import filter_development_issues
+            # CRITICAL: Filter out parent issues dynamically (don't hardcode "Epic")
             from data.persistence import load_app_settings
-
             settings = load_app_settings()
+            
+            parent_field = settings.get("field_mappings", {}).get("general", {}).get("parent_field")
+            if parent_field:
+                from data.parent_filter import filter_parent_issues
+                all_issues = filter_parent_issues(
+                    all_issues,
+                    parent_field,
+                    log_prefix="BUG ANALYSIS"
+                )
+
+            from data.project_filter import filter_development_issues
+
             development_projects = settings.get("development_projects", [])
             devops_projects = settings.get("devops_projects", [])
 
