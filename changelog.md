@@ -1,5 +1,36 @@
 # Changelog
 
+## v2.8.0
+
+*Released: 2026-02-03*
+
+### Features
+
+- **Sprint Tracker Tab**: New dedicated tab showing sprint progress with comprehensive visualizations including timeline view of issue status changes throughout the sprint, progress bars with scope change indicators (added/removed issues), and sprint dropdown with [Active]/[Closed]/[Future] status grouping
+- **Sprint Burnup Chart**: Dual y-axis chart tracking both issue count and story points over time with daily snapshots of sprint progress
+- **Clickable JIRA Links**: Issue keys in Sprint Tracker progress bars now link directly to JIRA, opening issues in your browser when JIRA connection is verified - makes it easy to jump from chart to detailed issue information
+- **Sprint Field Auto-Detection**: Automatically detects sprint field in JIRA configuration with visual confirmation in Field Mapping modal, eliminating manual sprint field configuration
+- **Required Pace Enhancements**: Added progress bar visualization showing pace vs required pace, moved to Delivery Forecast row for better visibility, displays uncapped percentages when forecast exceeds deadline to show true progress magnitude, and integrated into Actionable Insights panel with specific pace recommendations
+
+### Improvements
+
+- Sprint charts positioned after Weekly Data tab for logical data flow
+- Required velocity reference lines added to weekly velocity charts for at-a-glance pace assessment
+- Improved loading states with retry mechanism for Update Data button (prevents console warnings during app startup)
+- Enhanced update state handling to invalidate stale pending updates on version mismatch
+
+### Bug Fixes
+
+- Fixed metrics recalculation when field mappings change - DORA/Flow metrics now properly refresh when field configuration updates
+- Restored changelog persistence for Flow/DORA metrics - historical data now correctly maintained across sessions
+- Fixed card hover effects pattern to prevent unintended interactions on Actionable Insights panel
+
+### Technical Improvements
+
+- Comprehensive code refactoring split large monolithic files (3000+ lines) into focused, maintainable modules following new architectural guidelines
+- Added architecture documentation with file size limits and coding standards for Python, JavaScript, HTML, CSS, and SQL
+- CSS modularization: split 6700-line stylesheet into 57 focused component files for better maintainability
+
 ## v2.7.20
 
 *Released: 2026-01-29*
