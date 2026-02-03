@@ -61,6 +61,7 @@ def create_forecast_analytics_section(
     avg_weekly_items: Optional[float] = None,
     avg_weekly_points: Optional[float] = None,
     days_to_deadline: Optional[int] = None,
+    deadline_str: Optional[str] = None,
 ) -> html.Div:
     """Create forecasting section with multiple prediction methods.
 
@@ -73,6 +74,8 @@ def create_forecast_analytics_section(
         remaining_points: Current remaining points (for pace health calculation)
         avg_weekly_items: Current velocity in items/week (from filtered data)
         avg_weekly_points: Current velocity in points/week (from filtered data)
+        days_to_deadline: Days remaining to deadline (for display purposes)
+        deadline_str: Deadline date string in YYYY-MM-DD format (for accurate calculation)
         days_to_deadline: Days remaining to deadline (for pace health calculation)
 
     Returns:
@@ -715,13 +718,17 @@ def create_forecast_analytics_section(
         and avg_weekly_items is not None
         and days_to_deadline is not None
         and days_to_deadline > 0
+        and deadline_str is not None
     ):
         from data.velocity_projections import calculate_required_velocity
 
-        # Calculate required velocities
-        deadline_date = datetime.now() + timedelta(days=days_to_deadline)
+        # Calculate required velocities using ACTUAL deadline date (not reconstructed from days)
+        # This ensures exact match with burndown charts calculation
+        # Use date() to ensure value doesn't change during the same day (consistency)
+        deadline_date = datetime.strptime(deadline_str, "%Y-%m-%d")
+        current_date = datetime.combine(datetime.now().date(), datetime.min.time())
         required_items = calculate_required_velocity(
-            remaining_items, deadline_date, time_unit="week"
+            remaining_items, deadline_date, current_date=current_date, time_unit="week"
         )
 
         # Calculate required points (if available)
@@ -732,7 +739,10 @@ def create_forecast_analytics_section(
             and avg_weekly_points is not None
         ):
             required_points = calculate_required_velocity(
-                remaining_points, deadline_date, time_unit="week"
+                remaining_points,
+                deadline_date,
+                current_date=current_date,
+                time_unit="week",
             )
 
         # Create the card

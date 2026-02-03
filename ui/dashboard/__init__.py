@@ -366,6 +366,7 @@ def create_comprehensive_dashboard(
                 avg_weekly_items=avg_weekly_items,
                 avg_weekly_points=avg_weekly_points,
                 days_to_deadline=days_to_deadline,
+                deadline_str=deadline_str,
             ),
             # Budget & Resource Tracking (conditional on budget configuration)
             _create_budget_section(

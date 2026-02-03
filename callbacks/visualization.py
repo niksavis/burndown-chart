@@ -1193,6 +1193,10 @@ def register(app):
                     try:
                         # Parse deadline
                         deadline_date = datetime.strptime(deadline, "%Y-%m-%d")
+                        # Use date() to ensure value doesn't change during the same day, then convert to datetime
+                        current_date = datetime.combine(
+                            datetime.now().date(), datetime.min.time()
+                        )
 
                         # Get current remaining work
                         project_data = load_unified_project_data()
@@ -1205,11 +1209,17 @@ def register(app):
                         # Calculate required velocities
                         if remaining_items > 0:
                             required_velocity_items = calculate_required_velocity(
-                                remaining_items, deadline_date, time_unit="week"
+                                remaining_items,
+                                deadline_date,
+                                current_date=current_date,
+                                time_unit="week",
                             )
                         if remaining_points and remaining_points > 0:
                             required_velocity_points = calculate_required_velocity(
-                                remaining_points, deadline_date, time_unit="week"
+                                remaining_points,
+                                deadline_date,
+                                current_date=current_date,
+                                time_unit="week",
                             )
                     except Exception as e:
                         logger.warning(f"Could not calculate required velocity: {e}")
