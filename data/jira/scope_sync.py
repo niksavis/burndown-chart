@@ -208,18 +208,21 @@ def sync_jira_scope_and_data(
         # PARENT FETCH: Get parent issues referenced by children for display (NOT counted in metrics)
         # Parents are stored in database but filtered from calculations using parent_filter.py
         try:
+            logger.info("[PARENT] Starting parent fetch...")
             from data.jira.epic_fetch import fetch_epics_for_display
             
+            logger.info(f"[PARENT] Calling fetch_epics_for_display with {len(issues)} issues")
             parents = fetch_epics_for_display(issues, config)
             if parents:
                 logger.info(f"[PARENT] Fetched {len(parents)} parent issues for display")
                 # Add parents to issues list - they'll be stored in database
                 # CRITICAL: All calculation code must use parent_filter.py to filter them out
                 issues.extend(parents)
+                logger.info(f"[PARENT] Extended issues list to {len(issues)} total (includes {len(parents)} parents)")
             else:
-                logger.debug("[PARENT] No parent issues to fetch")
+                logger.info("[PARENT] No parent issues to fetch")
         except Exception as e:
-            logger.warning(f"[PARENT] Failed to fetch parent issues (non-fatal): {e}")
+            logger.error(f"[PARENT] Failed to fetch parent issues (non-fatal): {e}", exc_info=True)
             # Continue without parents - they're for display only
 
         # Update progress: Issues fetched, now starting changelog
