@@ -9,10 +9,14 @@ document.addEventListener("DOMContentLoaded", function () {
   document.addEventListener("click", function (event) {
     // Check if clicked element is an actionable insight header or its child
     let headerElement = event.target.closest(
-      '[id^="actionable-insight-header-"]'
+      '[id^="actionable-insight-header-"]',
     );
 
     if (headerElement) {
+      // Prevent event from bubbling to other handlers (e.g., Bootstrap Collapse)
+      event.preventDefault();
+      event.stopPropagation();
+
       // Extract index from header id (e.g., "actionable-insight-header-0" -> "0")
       let headerId = headerElement.id;
       let index = headerId.replace("actionable-insight-header-", "");
@@ -23,7 +27,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
       // Find the toggle button icon
       let toggleButton = document.getElementById(
-        "actionable-insight-toggle-" + index
+        "actionable-insight-toggle-" + index,
       );
       let toggleIcon = toggleButton ? toggleButton.querySelector("i") : null;
 
