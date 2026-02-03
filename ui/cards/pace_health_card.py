@@ -178,7 +178,7 @@ def create_pace_health_card(
                         if show_points
                         else {"marginBottom": "0"},
                     ),
-                    # Points-based section (conditional)
+                    # Points-based section (always show, with placeholder when disabled)
                     html.Div(
                         [
                             html.Div(
@@ -186,7 +186,9 @@ def create_pace_health_card(
                                     html.I(
                                         className="fas fa-chart-bar me-1",
                                         style={
-                                            "color": COLOR_PALETTE["points"],
+                                            "color": COLOR_PALETTE["points"]
+                                            if show_points
+                                            else "#6c757d",
                                             "fontSize": "0.9rem",
                                         },
                                     ),
@@ -243,11 +245,61 @@ def create_pace_health_card(
                                         style={"height": "20px"},
                                     ),
                                 ],
+                            )
+                            # Case 1: Points tracking enabled and data available
+                            if show_points
+                            and points_health
+                            and required_points is not None
+                            and required_points > 0
+                            else (
+                                # Case 2: Points tracking disabled
+                                html.Div(
+                                    [
+                                        html.I(
+                                            className="fas fa-toggle-off fa-2x text-secondary mb-2"
+                                        ),
+                                        html.Div(
+                                            "Points Tracking Disabled",
+                                            className="h5 mb-2",
+                                            style={
+                                                "fontWeight": "600",
+                                                "color": "#6c757d",
+                                            },
+                                        ),
+                                        html.Small(
+                                            "Points tracking is disabled. Enable Points Tracking in Parameters panel to view story points metrics.",
+                                            className="text-muted",
+                                            style={"fontSize": "0.75rem"},
+                                        ),
+                                    ],
+                                    className="text-center",
+                                )
+                                if not show_points
+                                # Case 3: Points tracking enabled but no data
+                                else html.Div(
+                                    [
+                                        html.I(
+                                            className="fas fa-database fa-2x text-secondary mb-2"
+                                        ),
+                                        html.Div(
+                                            "No Points Data",
+                                            className="h5 mb-2",
+                                            style={
+                                                "fontWeight": "600",
+                                                "color": "#6c757d",
+                                            },
+                                        ),
+                                        html.Small(
+                                            "No story points data available. Configure story points field in Settings or complete items with point estimates.",
+                                            className="text-muted",
+                                            style={"fontSize": "0.75rem"},
+                                        ),
+                                    ],
+                                    className="text-center",
+                                )
                             ),
                         ],
-                    )
-                    if show_points and points_health
-                    else html.Div(),
+                    ),
                 ]
             ),
             # Card Footer
