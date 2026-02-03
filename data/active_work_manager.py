@@ -136,17 +136,20 @@ def get_active_work_data(
     Returns:
         Dict with timeline and issue lists
     """
-    logger.info(f"Building active work data from {len(issues)} issues")
+    logger.info(f"[ACTIVE WORK MGR] Building active work data from {len(issues)} issues")
+    logger.info(f"[ACTIVE WORK MGR] parent_field={parent_field}, flow_end_statuses={flow_end_statuses}, flow_wip_statuses={flow_wip_statuses}")
 
     # Filter to WIP + recent completions
     filtered = filter_active_issues(issues, flow_end_statuses, flow_wip_statuses)
     last_week_issues = filtered["last_week"]
     this_week_issues = filtered["this_week"]
+    
+    logger.info(f"[ACTIVE WORK MGR] After filtering: last_week={len(last_week_issues)}, this_week={len(this_week_issues)}")
 
     all_active_issues = last_week_issues + this_week_issues
 
     if not all_active_issues:
-        logger.info("No active issues found")
+        logger.warning("[ACTIVE WORK MGR] No active issues found after filtering")
         return {
             "timeline": [],
             "last_week_issues": [],
@@ -353,13 +356,24 @@ def _build_epic_timeline(
 
     # Group by parent
     for issue in issues:
+        # Parent field can be at top level or in custom_fields
         parent = issue.get(parent_field)
+        if not parent and parent_field.startswith("customfield_"):
+            # Check in custom_fields dict for JIRA custom fields
+            custom_fields = issue.get("custom_fields", {})
+            parent = custom_fields.get(parent_field)
+        
+        parent_key = None
+        
         if parent:
             if isinstance(parent, dict):
+                # Parent is dict like {"key": "PROJ-123", "summary": "Epic Name"}
                 parent_key = parent.get("key")
-            else:
+            elif isinstance(parent, str):
+                # Parent is string like "PROJ-123"
                 parent_key = parent
-        else:
+        
+        if not parent_key:
             parent_key = "No Parent"
 
         epics[parent_key].append(issue)
@@ -379,8 +393,16 @@ def _build_epic_timeline(
         if epic_key != "No Parent":
             first_issue = child_issues[0]
             parent = first_issue.get(parent_field)
+            if not parent and parent_field.startswith("customfield_"):
+                custom_fields = first_issue.get("custom_fields", {})
+                parent = custom_fields.get(parent_field)
+            
             if isinstance(parent, dict):
-                epic_summary = parent.get("summary", epic_key)
+                # Extract summary from parent dict
+                epic_summary = parent.get("summary", parent.get("fields", {}).get("summary", epic_key))
+            elif isinstance(parent, str):
+                # Parent is just a key string
+                epic_summary = epic_key
             else:
                 epic_summary = epic_key
 

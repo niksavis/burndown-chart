@@ -251,7 +251,7 @@ def create_issue_list_section(
     )
 
 
-def create_issue_card(issue: Dict, show_points: bool = False) -> dbc.Card:
+def create_issue_card(issue: Dict, show_points: bool = False) -> html.Div | dbc.Card:
     """Create card for single issue with health indicators.
 
     Health badges:
@@ -277,15 +277,23 @@ def create_issue_card(issue: Dict, show_points: bool = False) -> dbc.Card:
     points = issue.get("points", 0.0) or 0.0
     assignee = issue.get("assignee")
     health = issue.get("health_indicators", {})
-    parent = issue.get("parent")  # Get parent for visual connection
+    
+    # Try to get parent from top level or custom_fields
+    parent = issue.get("parent")
+    if not parent:
+        custom_fields = issue.get("custom_fields", {})
+        parent = custom_fields.get("customfield_10006")  # Common epic link field
 
-    # Extract parent key
+    # Extract parent key and summary
     parent_key = None
+    parent_summary = None
     if parent:
         if isinstance(parent, dict):
             parent_key = parent.get("key")
-        else:
+            parent_summary = parent.get("summary", parent_key)
+        elif isinstance(parent, str):
             parent_key = parent
+            parent_summary = parent
 
     # Health badges
     badges = []
@@ -341,10 +349,10 @@ def create_issue_card(issue: Dict, show_points: bool = False) -> dbc.Card:
     card_data_attrs = {}
 
     if parent_key:
-        # Has parent - show connection
+        # Has parent - show connection with summary
+        link_text = parent_summary if parent_summary else parent_key
         parent_link = create_jira_issue_link(
-            parent_key,
-            className="badge bg-light text-dark border",
+            parent_key,            text=link_text,            className="badge bg-light text-dark border",
             style={"fontSize": "0.7rem"},
         )
         parent_indicator = html.Div(
@@ -372,7 +380,8 @@ def create_issue_card(issue: Dict, show_points: bool = False) -> dbc.Card:
         )
         card_classes += " orphaned-issue"
 
-    return dbc.Card(
+    # Build card
+    card = dbc.Card(
         dbc.CardBody(
             [
                 # Parent epic indicator at top
@@ -421,5 +430,10 @@ def create_issue_card(issue: Dict, show_points: bool = False) -> dbc.Card:
             ]
         ),
         className=card_classes,
-        **card_data_attrs,
     )
+    
+    # Wrap with div that has data attributes (dbc.Card doesn't accept data-* kwargs)
+    if card_data_attrs:
+        return html.Div(card, **card_data_attrs)
+    else:
+        return card

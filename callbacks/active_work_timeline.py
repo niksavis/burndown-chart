@@ -47,7 +47,7 @@ def _render_active_work_timeline_content(show_points: bool = False) -> html.Div:
             return create_no_issues_state()
 
         logger.info(
-            f"Rendering Active Work Timeline for profile={active_profile_id}, query={active_query_id}"
+            f"[ACTIVE WORK] Rendering Active Work Timeline for profile={active_profile_id}, query={active_query_id}"
         )
 
         # Load issues from database
@@ -56,10 +56,19 @@ def _render_active_work_timeline_content(show_points: bool = False) -> html.Div:
         )
 
         if not issues:
-            logger.info("No issues found for active profile/query")
+            logger.warning("[ACTIVE WORK] No issues found for active profile/query")
             return create_no_issues_state()
 
-        logger.info(f"Loaded {len(issues)} issues from database")
+        logger.info(f"[ACTIVE WORK] Loaded {len(issues)} issues from database")
+        
+        # Debug: Check first issue structure
+        if issues:
+            first_issue = issues[0]
+            logger.info(f"[ACTIVE WORK] Sample issue keys: {list(first_issue.keys())[:15]}")
+            logger.info(f"[ACTIVE WORK] Has custom_fields: {'custom_fields' in first_issue}")
+            if 'custom_fields' in first_issue:
+                cf = first_issue.get('custom_fields', {})
+                logger.info(f"[ACTIVE WORK] custom_fields type: {type(cf)}, has customfield_10006: {'customfield_10006' in cf if isinstance(cf, dict) else 'N/A'}")
 
         # Get configuration
         from data.persistence import load_app_settings
@@ -84,23 +93,36 @@ def _render_active_work_timeline_content(show_points: bool = False) -> html.Div:
             parent_field = "parent"  # Won't match anything, all issues will be orphaned
 
         logger.info(
-            f"Using parent field: {parent_field} (configured: {parent_field_configured})"
+            f"[ACTIVE WORK] Using parent field: {parent_field} (configured: {parent_field_configured})"
         )
+        logger.info(f"[ACTIVE WORK] Flow statuses - End: {flow_end_statuses}, WIP: {flow_wip_statuses}")
 
         # Get active work data (timeline + issue lists)
-        work_data = get_active_work_data(
-            issues,
-            parent_field=parent_field,
-            flow_end_statuses=flow_end_statuses if flow_end_statuses else None,
-            flow_wip_statuses=flow_wip_statuses if flow_wip_statuses else None,
+        try:
+            logger.info(f"[ACTIVE WORK] Calling get_active_work_data with {len(issues)} issues...")
+            work_data = get_active_work_data(
+                issues,
+                parent_field=parent_field,
+                flow_end_statuses=flow_end_statuses if flow_end_statuses else None,
+                flow_wip_statuses=flow_wip_statuses if flow_wip_statuses else None,
+            )
+            logger.info(f"[ACTIVE WORK] get_active_work_data returned successfully")
+        except Exception as e:
+            logger.error(f"[ACTIVE WORK] Error in get_active_work_data: {e}", exc_info=True)
+            return create_no_issues_state(
+                parent_field_configured=parent_field_configured
+            )
+        
+        timeline = work_data.get("timeline", [])
+        last_week_issues = work_data.get("last_week_issues", [])
+        this_week_issues = work_data.get("this_week_issues", [])
+        
+        logger.info(
+            f"[ACTIVE WORK] Got work_data: timeline={len(timeline)} epics, last_week={len(last_week_issues)} issues, this_week={len(this_week_issues)} issues"
         )
 
-        timeline = work_data["timeline"]
-        last_week_issues = work_data["last_week_issues"]
-        this_week_issues = work_data["this_week_issues"]
-
         if not timeline and not last_week_issues and not this_week_issues:
-            logger.info("No active work found")
+            logger.warning("[ACTIVE WORK] No active work found after filtering - all lists empty")
             return create_no_issues_state(
                 parent_field_configured=parent_field_configured
             )
@@ -128,10 +150,10 @@ def _render_active_work_timeline_content(show_points: bool = False) -> html.Div:
                 className="mb-4",
             )
         last_week_section = create_issue_list_section(
-            "Last Week", last_week_issues, show_points
+            "Last Week (Mon-Sun)", last_week_issues, show_points
         )
         this_week_section = create_issue_list_section(
-            "This Week", this_week_issues, show_points
+            "Current Week (Mon-Today) & Active WIP", this_week_issues, show_points
         )
 
         # Assemble layout
@@ -152,7 +174,7 @@ def _render_active_work_timeline_content(show_points: bool = False) -> html.Div:
                                     className="mb-2",
                                 ),
                                 html.P(
-                                    f"Showing {len(timeline)} epics with {len(last_week_issues) + len(this_week_issues)} active issues (last 2 weeks)",
+                                    f"Showing {len(timeline)} epics with {len(last_week_issues) + len(this_week_issues)} active issues (WIP + completed last 2 calendar weeks)",
                                     className="text-muted mb-4",
                                 ),
                             ]
