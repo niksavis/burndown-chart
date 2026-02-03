@@ -8,7 +8,7 @@ Follows Bug Analysis pattern for conditional tab display.
 
 import logging
 from typing import Dict
-from dash import html, Input, Output, callback
+from dash import html, Input, Output, State, callback
 import dash_bootstrap_components as dbc
 
 logger = logging.getLogger(__name__)
@@ -418,31 +418,41 @@ def toggle_sprint_charts(n_clicks):
 @callback(
     Output("sprint-burnup-chart", "figure"),
     Input("sprint-selector-dropdown", "value"),
-    Input("points-toggle", "value"),
     Input("sprint-charts-collapse", "is_open"),
+    State("points-toggle", "value"),
     prevent_initial_call=True,
 )
-def update_sprint_charts(selected_sprint, points_toggle_list, charts_visible):
-    """Update burnup and CFD charts when sprint selection changes OR when charts become visible.
+def update_sprint_charts(selected_sprint, charts_visible, points_toggle_list):
+    """Update burnup chart when sprint selection changes OR when charts become visible.
+
+    Note: points_toggle is a State (not Input) to prevent cascade when toggling.
+    The chart updates via sprint-selector-dropdown changes triggered by update_sprint_selection.
 
     Args:
         selected_sprint: Selected sprint name from dropdown
-        points_toggle_list: Points toggle list (list with 'points' if enabled)
         charts_visible: Whether charts section is visible
+        points_toggle_list: Points toggle list (list with 'points' if enabled) - STATE only
 
     Returns:
-        Tuple of (burnup_figure, cfd_figure)
+        Plotly figure for burnup chart
     """
-    from dash import no_update
+    from dash import no_update, callback_context
     from data.persistence.factory import get_backend
     from data.sprint_manager import get_sprint_snapshots, get_sprint_dates
     from data.sprint_snapshot_calculator import calculate_daily_sprint_snapshots
     from visualization.sprint_burnup_chart import create_sprint_burnup_chart
     from data.persistence import load_app_settings
 
+    # Log which input triggered this callback
+    triggered = callback_context.triggered[0] if callback_context.triggered else None
+    trigger_id = triggered["prop_id"].split(".")[0] if triggered else "unknown"
+    logger.info(
+        f"update_sprint_charts TRIGGERED by: {trigger_id} (sprint={selected_sprint}, points_toggle={points_toggle_list}, visible={charts_visible})"
+    )
+
     if not selected_sprint:
         logger.info("update_sprint_charts: No sprint selected")
-        return no_update, no_update
+        return no_update
 
     # Only update if charts are visible
     if not charts_visible:

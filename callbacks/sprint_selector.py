@@ -29,6 +29,15 @@ def update_sprint_selection(selected_sprint: str, show_points_list: list):
     Returns:
         Tuple of (updated data container, dropdown value)
     """
+    from dash import callback_context
+
+    # Log which input triggered this callback
+    triggered = callback_context.triggered[0] if callback_context.triggered else None
+    trigger_id = triggered["prop_id"].split(".")[0] if triggered else "unknown"
+    logger.info(
+        f"update_sprint_selection TRIGGERED by: {trigger_id} (sprint={selected_sprint}, points_toggle={show_points_list})"
+    )
+
     if not selected_sprint:
         return no_update, no_update
 
@@ -36,6 +45,9 @@ def update_sprint_selection(selected_sprint: str, show_points_list: list):
 
     # Determine if story points should be shown (checklist uses "show" as value)
     show_points = "show" in (show_points_list or [])
+
+    # Return the same sprint value to trigger dependent callbacks (like chart update)
+    # This ensures chart updates when points toggle changes, without creating a cascade
 
     # Re-render the entire sprint tracker with the selected sprint
     # We need to reload data and filter to the selected sprint
