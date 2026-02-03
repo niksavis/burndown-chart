@@ -91,24 +91,31 @@ def create_pace_health_card(
             # Card Header
             dbc.CardHeader(
                 [
-                    html.Span(
-                        "🎯 Required Pace to Deadline",
-                        className="metric-card-title",
+                    html.Div(
+                        [
+                            html.I(
+                                className="fas fa-tachometer-alt me-2",
+                                style={"color": "#6610f2"},
+                            ),
+                            html.Span(
+                                "Required Pace",
+                                className="metric-card-title",
+                            ),
+                        ],
+                        className="d-flex align-items-center",
                     ),
-                    " ",
                     create_info_tooltip(
                         help_text=(
                             "Shows the velocity you need to maintain to complete remaining work by the deadline. "
-                            "Automatically adjusts for scope changes (added/removed items during project). "
-                            "Filtered by Data Points slider - adjust slider to see how recent velocity compares to requirement. "
-                            "Health: ✓ Green (on track) | ○ Yellow (close, need improvement) | ❄ Red (significantly behind)."
+                            "Automatically adjusts for scope changes. "
+                            "Health: ✓ On track | ○ At risk | ❄ Behind schedule."
                         ),
                         id_suffix="pace-health-card",
                         placement="top",
                         variant="dark",
                     ),
                 ],
-                className="d-flex align-items-center",
+                className="d-flex align-items-center justify-content-between",
             ),
             # Card Body
             dbc.CardBody(
@@ -202,29 +209,6 @@ def create_pace_health_card(
                     )
                     if show_points and points_health
                     else html.Div(),
-                    # Overall status
-                    html.Div(
-                        [
-                            html.Strong("Status: ", className="me-2"),
-                            html.Span(
-                                overall_health["indicator"],
-                                className="me-1",
-                                style={"fontSize": "1.2rem"},
-                            ),
-                            html.Span(
-                                overall_health["message"],
-                                style={
-                                    "color": overall_health["color"],
-                                    "fontWeight": "500",
-                                },
-                            ),
-                        ],
-                        className="mb-2",
-                    ),
-                    # Action recommendation
-                    _create_action_recommendation(
-                        items_gap_data["gap"], deadline_days, overall_health["status"]
-                    ),
                 ]
             ),
             # Card Footer
