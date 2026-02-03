@@ -483,33 +483,21 @@ def _build_epic_timeline(
                     epic_summary = epic_issue.get("summary", epic_key)
                     logger.debug(f"[EPIC] Found in filtered issues: {epic_summary}")
                 else:
-                    # Epic not in filtered issues - fetch epics from database (issue_type='Epic')
+                    # Epic not in filtered issues - fetch from database (parents stored during "Update Data")
                     if backend and profile_id and query_id:
                         try:
-                            # Query specifically for Epic issue type (epics stored separately)
-                            all_epics = backend.get_issues(profile_id, query_id, issue_type="Epic")
-                            logger.debug(f"[EPIC] Searching {len(all_epics)} epics for {parent}")
-                            epic_issue = next((issue for issue in all_epics if issue.get("issue_key") == parent), None)
+                            # Query all issues to find parent (parents were fetched by epic_fetch.py during sync)
+                            all_issues_db = backend.get_issues(profile_id, query_id)
+                            logger.debug(f"[EPIC] Searching {len(all_issues_db)} issues in DB for parent {parent}")
+                            epic_issue = next((issue for issue in all_issues_db if issue.get("issue_key") == parent), None)
                             if epic_issue:
                                 epic_summary = epic_issue.get("summary", epic_key)
-                                logger.info(f"[EPIC] Found {parent} in epics DB: '{epic_summary}'")
+                                logger.info(f"[EPIC] Found {parent} in database: '{epic_summary}'")
                             else:
-                                # Epic might be in parent field as dict - check first child's parent again
-                                logger.warning(f"[EPIC] {parent} not found in {len(all_epics)} epics - checking parent field")
-                                # Try to extract from the parent field directly
-                                if child_issues:
-                                    sample_issue = child_issues[0]
-                                    parent_data = sample_issue.get(parent_field) or sample_issue.get("custom_fields", {}).get(parent_field)
-                                    logger.debug(f"[EPIC] Parent field data: {parent_data}")
-                                    if isinstance(parent_data, dict):
-                                        epic_summary = parent_data.get("summary") or parent_data.get("fields", {}).get("summary") or epic_key
-                                        logger.info(f"[EPIC] Extracted from parent dict: '{epic_summary}'")
-                                    else:
-                                        epic_summary = epic_key
-                                else:
-                                    epic_summary = epic_key
+                                logger.warning(f"[EPIC] Parent {parent} not found in database (may need to run 'Update Data')")
+                                epic_summary = epic_key
                         except Exception as e:
-                            logger.error(f"[EPIC] Failed to fetch {parent}: {e}")
+                            logger.error(f"[EPIC] Failed to fetch parent {parent} from DB: {e}")
                             epic_summary = epic_key
                     else:
                         logger.warning(f"[EPIC] No backend to fetch {parent}")
