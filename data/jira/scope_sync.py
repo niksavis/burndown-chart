@@ -77,7 +77,15 @@ def sync_jira_scope_and_data(
             return False, "Cache file validation failed", {}
 
         # Calculate current fields that would be requested (MUST match fetch_jira_issues logic)
-        base_fields = "key,summary,project,created,updated,resolutiondate,status,issuetype,assignee,priority,resolution,labels,components,fixVersions,parent"
+        base_fields = "key,summary,project,created,updated,resolutiondate,status,issuetype,assignee,priority,resolution,labels,components,fixVersions"
+
+        # Add parent field if configured (either standard 'parent' or Epic Link custom field)
+        parent_field = (
+            config.get("field_mappings", {}).get("general", {}).get("parent_field")
+        )
+        if parent_field:
+            base_fields += f",{parent_field}"
+
         additional_fields = []
 
         # Add story points field

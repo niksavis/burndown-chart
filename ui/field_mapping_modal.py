@@ -488,6 +488,12 @@ def create_field_mapping_form(
                 "array",
                 "Sprint field for Agile/Scrum boards | OPTIONAL for Sprint Tracker | Typically customfield_10020 | Type: array",
             ),
+            (
+                "parent_field",
+                "Parent/Epic Link",
+                "object",
+                "Parent epic/feature field | OPTIONAL for Active Work Timeline | Modern JIRA: parent (standard) | Legacy JIRA: customfield_10006 or customfield_10014 (Epic Link) | Type: object",
+            ),
         ],
         field_options,
         current_mappings.get("field_mappings", {}).get("general", {}),  # type: ignore

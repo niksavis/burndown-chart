@@ -280,8 +280,14 @@ def detect_fields_from_issues(
         detections["sprint_field"] = sprint_field
         logger.info(f"[FieldDetector] [OK] Sprint field: {sprint_field}")
 
+    # 3. Detect parent/Epic Link field
+    parent_field = _detect_parent_field(sampled_issues, field_defs)
+    if parent_field:
+        detections["parent_field"] = parent_field
+        logger.info(f"[FieldDetector] [OK] Parent/Epic Link field: {parent_field}")
+
     # === DORA METRICS FIELDS ===
-    # 3. Detect deployment date field
+    # 4. Detect deployment date field
     # Fallback: Use resolutiondate (standard field) via variable extraction
     deployment_date = _detect_deployment_date_field(sampled_issues, field_defs)
     if deployment_date:
@@ -293,7 +299,7 @@ def detect_fields_from_issues(
             "Fallback: Will use resolutiondate + status transitions from changelog"
         )
 
-    # 4. Detect environment field
+    # 5. Detect environment field
     # Fallback: Search for any field with production/staging/testing values
     environment_field = _detect_environment_field(sampled_issues, field_defs)
     if environment_field:
@@ -568,6 +574,110 @@ def _detect_sprint_field(
     logger.info(
         "[FieldDetector] No sprint field found with sufficient data. "
         "Scope calculations will use all issues without sprint filtering."
+    )
+    return None
+
+
+def _detect_parent_field(
+    issues: List[Dict], field_defs: Dict[str, Dict]
+) -> Optional[str]:
+    """Detect parent/Epic Link field for epic hierarchy.
+
+    Heuristics:
+    - Field name contains: "epic link", "parent", "epic"
+    - Field type: object, string, or custom epic type
+    - Common Epic Link IDs: customfield_10006, customfield_10014
+    - Fallback: Check for standard "parent" field
+    - Must have actual parent data in at least 5% of sampled issues
+    """
+    candidates = {}
+
+    # Check for standard parent field first
+    has_standard_parent = False
+    parent_populated_count = 0
+    parent_total_count = 0
+
+    for issue in issues:
+        fields_data = issue.get("fields", {})
+        if "parent" in fields_data:
+            parent_total_count += 1
+            if fields_data.get("parent"):
+                has_standard_parent = True
+                parent_populated_count += 1
+
+    # If standard parent field has data, use it
+    if has_standard_parent and parent_total_count > 0:
+        population_rate = parent_populated_count / parent_total_count
+        if population_rate >= 0.05:  # At least 5% populated
+            logger.info(
+                f"[FieldDetector] [OK] Standard parent field detected "
+                f"({parent_populated_count}/{parent_total_count} issues have parent data)"
+            )
+            return "parent"
+
+    # Check custom fields for Epic Link
+    for issue in issues:
+        fields_data = issue.get("fields", {})
+        for field_id, field_value in fields_data.items():
+            if not field_id.startswith("customfield_"):
+                continue
+
+            field_def = field_defs.get(field_id, {})
+            field_name = field_def.get("name", "").lower()
+
+            # Strong signals: "epic link", "parent", "epic" in name
+            if any(
+                keyword in field_name for keyword in ["epic link", "parent", "epic"]
+            ):
+                if field_id not in candidates:
+                    candidates[field_id] = {
+                        "score": 0,
+                        "name": field_def.get("name", field_id),
+                        "populated_count": 0,
+                        "total_count": 0,
+                    }
+
+                # Check if field has actual parent data (not null/empty)
+                candidates[field_id]["total_count"] += 1
+                if field_value:  # Has parent data
+                    candidates[field_id]["score"] += 10
+                    candidates[field_id]["populated_count"] += 1
+
+            # Boost score for common Epic Link field IDs
+            if field_id in ["customfield_10006", "customfield_10014"]:
+                if field_id not in candidates:
+                    candidates[field_id] = {
+                        "score": 0,
+                        "name": field_def.get("name", field_id),
+                        "populated_count": 0,
+                        "total_count": 0,
+                    }
+                candidates[field_id]["score"] += 5  # Bonus for common IDs
+
+    # Return parent field with at least 5% population
+    if candidates:
+        for field_id, stats in candidates.items():
+            if stats["total_count"] > 0:
+                population_rate = stats["populated_count"] / stats["total_count"]
+                if population_rate < 0.05:  # Less than 5% populated
+                    logger.info(
+                        f"[FieldDetector] Rejecting parent field {field_id} - only {population_rate:.1%} populated"
+                    )
+                    candidates[field_id]["score"] = 0  # Reject
+
+        # Get best candidate with score > 0
+        valid_candidates = {k: v for k, v in candidates.items() if v["score"] > 0}
+        if valid_candidates:
+            best = max(valid_candidates.items(), key=lambda x: x[1]["score"])
+            logger.info(
+                f"[FieldDetector] [OK] Parent/Epic Link field detected: {best[0]} "
+                f"({best[1]['populated_count']}/{best[1]['total_count']} issues have parent data)"
+            )
+            return best[0]
+
+    logger.info(
+        "[FieldDetector] No parent/Epic Link field found. "
+        "Active Work Timeline will not show epic hierarchy."
     )
     return None
 

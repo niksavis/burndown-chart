@@ -90,8 +90,14 @@ def fetch_jira_issues(
             # Base fields: always fetch these standard fields
             # CRITICAL: Include 'project' to enable filtering DevOps vs Development projects
             # Include summary, assignee, priority, resolution, labels, components for Sprint Tracker and Portfolio view
-            # Include 'parent' for epic/feature tracking (Active Work Timeline feature)
-            base_fields = "key,summary,project,created,updated,resolutiondate,status,issuetype,assignee,priority,resolution,labels,components,fixVersions,parent"
+            base_fields = "key,summary,project,created,updated,resolutiondate,status,issuetype,assignee,priority,resolution,labels,components,fixVersions"
+
+            # Add parent field if configured (either standard 'parent' or Epic Link custom field)
+            parent_field = (
+                config.get("field_mappings", {}).get("general", {}).get("parent_field")
+            )
+            if parent_field:
+                base_fields += f",{parent_field}"
 
             # Add story points field if specified
             additional_fields = []
