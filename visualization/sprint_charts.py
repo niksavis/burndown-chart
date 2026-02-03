@@ -14,6 +14,7 @@ from datetime import datetime, timezone
 from dash import html
 from configuration import COLOR_PALETTE
 import plotly.graph_objects as go
+from ui.jira_link_helper import create_jira_issue_link
 
 logger = logging.getLogger(__name__)
 
@@ -988,7 +989,7 @@ def _create_single_status_bar(
                         },
                         title=issue_type,
                     ),
-                    html.Span(
+                    create_jira_issue_link(
                         issue_key,
                         className="fw-bold",
                         style={"fontSize": "0.9rem", "color": "#495057"},
@@ -1219,7 +1220,7 @@ def _create_multi_segment_bar(
                         },
                         title=issue_type,
                     ),
-                    html.Span(
+                    create_jira_issue_link(
                         issue_key,
                         className="fw-bold",
                         style={"fontSize": "0.9rem", "color": "#495057"},
