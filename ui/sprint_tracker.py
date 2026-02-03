@@ -613,6 +613,13 @@ def create_sprint_charts_section() -> html.Div:
                             # Burnup chart (full width)
                             dcc.Graph(
                                 id="sprint-burnup-chart",
+                                figure={
+                                    "data": [],
+                                    "layout": {
+                                        "xaxis": {"visible": False},
+                                        "yaxis": {"visible": False},
+                                    },
+                                },
                                 config={"displayModeBar": False},
                                 style={"height": "450px"},
                             ),

@@ -163,8 +163,8 @@ def filter_sprint_by_issue_type(
             "removed": sprint_data.get("removed_issues", []),
         }
 
-        # Determine if story points should be shown
-        show_points = "points" in (show_points_list or [])
+        # Determine if story points should be shown (checklist uses "show" as value)
+        show_points = "show" in (show_points_list or [])
 
         # Build summary card data
         summary_card_data = create_sprint_summary_card(

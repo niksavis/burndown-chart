@@ -454,8 +454,8 @@ def update_sprint_charts(selected_sprint, points_toggle_list, charts_visible):
             f"update_sprint_charts: Starting update for sprint: {selected_sprint}"
         )
 
-        # Determine if using points
-        show_points = points_toggle_list and "points" in points_toggle_list
+        # Determine if using points (note: checklist uses 'show' as value, not 'points')
+        show_points = points_toggle_list and "show" in points_toggle_list
         logger.info(
             f"update_sprint_charts: show_points={show_points}, points_toggle_list={points_toggle_list}"
         )

@@ -4,7 +4,7 @@ Handles sprint selection changes in the Sprint Tracker tab.
 """
 
 import logging
-from dash import callback, Input, Output, State, html, no_update
+from dash import callback, Input, Output, html, no_update
 import dash_bootstrap_components as dbc
 
 logger = logging.getLogger(__name__)
@@ -16,11 +16,11 @@ logger = logging.getLogger(__name__)
         Output("sprint-selector-dropdown", "value", allow_duplicate=True),
     ],
     Input("sprint-selector-dropdown", "value"),
-    State("points-toggle", "value"),
+    Input("points-toggle", "value"),
     prevent_initial_call=True,
 )
 def update_sprint_selection(selected_sprint: str, show_points_list: list):
-    """Update Sprint Tracker data when user selects a different sprint.
+    """Update Sprint Tracker data when user selects a different sprint OR toggles points.
 
     Args:
         selected_sprint: Sprint name/ID selected from dropdown
@@ -34,8 +34,8 @@ def update_sprint_selection(selected_sprint: str, show_points_list: list):
 
     logger.info(f"Sprint selection changed to: {selected_sprint}")
 
-    # Determine if story points should be shown
-    show_points = "points" in (show_points_list or [])
+    # Determine if story points should be shown (checklist uses "show" as value)
+    show_points = "show" in (show_points_list or [])
 
     # Re-render the entire sprint tracker with the selected sprint
     # We need to reload data and filter to the selected sprint
