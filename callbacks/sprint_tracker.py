@@ -8,7 +8,7 @@ Follows Bug Analysis pattern for conditional tab display.
 
 import logging
 from typing import Dict
-from dash import html
+from dash import html, Input, Output, callback
 import dash_bootstrap_components as dbc
 
 logger = logging.getLogger(__name__)
@@ -263,6 +263,7 @@ def _render_sprint_tracker_content(
         from ui.sprint_tracker import (
             create_sprint_summary_cards,
             create_combined_sprint_controls,
+            create_sprint_charts_section,
         )
         from visualization.sprint_charts import (
             create_sprint_progress_bars,
@@ -342,6 +343,8 @@ def _render_sprint_tracker_content(
                             ],
                             id="sprint-controls-container",
                         ),
+                        # Charts section (collapsible)
+                        create_sprint_charts_section(),
                         # Data container (updated by dropdown callbacks)
                         html.Div(
                             [
@@ -380,3 +383,22 @@ def _render_sprint_tracker_content(
                 )
             ]
         )
+
+
+@callback(
+    Output("sprint-charts-collapse", "is_open"),
+    Input("toggle-sprint-charts", "n_clicks"),
+    prevent_initial_call=True,
+)
+def toggle_sprint_charts(n_clicks):
+    """Toggle sprint charts collapse.
+
+    Args:
+        n_clicks: Number of button clicks
+
+    Returns:
+        Boolean: Whether collapse is open
+    """
+    if n_clicks is None:
+        return False
+    return n_clicks % 2 == 1

@@ -574,3 +574,69 @@ def create_sprint_change_indicators(
         ],
         className="mb-3 p-2 bg-light rounded",
     )
+
+
+def create_sprint_charts_section() -> html.Div:
+    """Create collapsible charts section for burnup and CFD charts.
+
+    Returns:
+        Collapsible container with two chart placeholders side-by-side
+    """
+    return html.Div(
+        [
+            # Toggle button
+            dbc.Button(
+                [
+                    html.I(className="fas fa-chart-line me-2"),
+                    "Show Sprint Charts",
+                ],
+                id="toggle-sprint-charts",
+                color="primary",
+                outline=True,
+                className="mb-3",
+                n_clicks=0,
+            ),
+            # Collapsible charts container
+            dbc.Collapse(
+                dbc.Card(
+                    dbc.CardBody(
+                        [
+                            dbc.Row(
+                                [
+                                    # Burnup chart (left)
+                                    dbc.Col(
+                                        [
+                                            dcc.Graph(
+                                                id="sprint-burnup-chart",
+                                                config={"displayModeBar": False},
+                                                style={"height": "400px"},
+                                            ),
+                                        ],
+                                        xs=12,
+                                        md=6,
+                                    ),
+                                    # CFD chart (right)
+                                    dbc.Col(
+                                        [
+                                            dcc.Graph(
+                                                id="sprint-cfd-chart",
+                                                config={"displayModeBar": False},
+                                                style={"height": "400px"},
+                                            ),
+                                        ],
+                                        xs=12,
+                                        md=6,
+                                    ),
+                                ],
+                                className="g-3",
+                            ),
+                        ]
+                    ),
+                    className="shadow-sm",
+                ),
+                id="sprint-charts-collapse",
+                is_open=False,
+            ),
+        ],
+        className="mb-4",
+    )
