@@ -6,9 +6,11 @@ for Active Work Timeline feature (burndown-chart-s530).
 
 from datetime import datetime, timedelta, timezone
 from data.active_work_manager import (
+    _add_health_indicators,
+    _build_epic_timeline,
+    calculate_epic_progress,
     filter_active_issues,
     get_active_work_data,
-    calculate_epic_progress,
 )
 
 
@@ -204,3 +206,183 @@ class TestCalculateEpicProgress:
         assert "In Progress" in progress["by_status"]
         assert progress["by_status"]["In Progress"]["count"] == 1
         assert progress["by_status"]["In Progress"]["points"] == 2.0
+
+
+class TestHealthIndicators:
+    """Test suite for health indicator logic."""
+
+    def test_add_health_indicators_blocked_aging_wip(self):
+        """Test blocked, aging, and WIP indicators from changelog data."""
+        now = datetime.now(timezone.utc)
+
+        changelog_entries = {
+            "PROJ-1": [{"change_date": (now - timedelta(days=6)).isoformat()}],
+            "PROJ-2": [{"change_date": (now - timedelta(days=4)).isoformat()}],
+            "PROJ-3": [{"change_date": (now - timedelta(days=1)).isoformat()}],
+        }
+
+        class FakeBackend:
+            def get_changelog_entries(
+                self, profile_id, query_id, issue_key, field_name
+            ):
+                return changelog_entries.get(issue_key, [])
+
+        backend = FakeBackend()
+
+        blocked_issue = _add_health_indicators(
+            {"issue_key": "PROJ-1", "status": "In Progress"},
+            backend,
+            "profile",
+            "query",
+            flow_end_statuses=["Done"],
+            flow_wip_statuses=["In Progress"],
+        )
+        aging_issue = _add_health_indicators(
+            {"issue_key": "PROJ-2", "status": "In Progress"},
+            backend,
+            "profile",
+            "query",
+            flow_end_statuses=["Done"],
+            flow_wip_statuses=["In Progress"],
+        )
+        wip_issue = _add_health_indicators(
+            {"issue_key": "PROJ-3", "status": "In Progress"},
+            backend,
+            "profile",
+            "query",
+            flow_end_statuses=["Done"],
+            flow_wip_statuses=["In Progress"],
+        )
+
+        assert blocked_issue["health_indicators"]["is_blocked"] is True
+        assert aging_issue["health_indicators"]["is_aging"] is True
+        assert wip_issue["health_indicators"]["is_wip"] is True
+
+    def test_add_health_indicators_completed_issue(self):
+        """Test completed status sets completion indicator."""
+        issue = _add_health_indicators(
+            {"issue_key": "PROJ-4", "status": "Done"},
+            backend=None,
+            profile_id=None,
+            query_id=None,
+            flow_end_statuses=["Done"],
+            flow_wip_statuses=["In Progress"],
+        )
+
+        assert issue["health_indicators"]["is_completed"] is True
+        assert issue["health_indicators"]["is_blocked"] is False
+        assert issue["health_indicators"]["is_aging"] is False
+        assert issue["health_indicators"]["is_wip"] is False
+
+
+class TestBuildEpicTimeline:
+    """Test suite for epic timeline aggregation."""
+
+    def test_build_epic_timeline_uses_unfiltered_parent_summary(self):
+        """Test parent summary lookup from unfiltered issues list."""
+        child_issue = {
+            "issue_key": "PROJ-1",
+            "status": "In Progress",
+            "points": 3.0,
+            "parent": "EPIC-1",
+            "health_indicators": {},
+        }
+        parent_issue = {"issue_key": "EPIC-1", "summary": "Parent Epic"}
+
+        timeline = _build_epic_timeline(
+            issues=[child_issue],
+            backend=None,
+            profile_id=None,
+            query_id=None,
+            parent_field="parent",
+            flow_end_statuses=["Done"],
+            flow_wip_statuses=["In Progress"],
+            all_issues_unfiltered=[child_issue, parent_issue],
+        )
+
+        assert timeline[0]["epic_key"] == "EPIC-1"
+        assert timeline[0]["epic_summary"] == "Parent Epic"
+
+    def test_build_epic_timeline_customfield_parent(self):
+        """Test custom field parent handling for epic summary."""
+        child_issue = {
+            "issue_key": "PROJ-2",
+            "status": "In Progress",
+            "points": 2.0,
+            "custom_fields": {
+                "customfield_10006": {
+                    "key": "EPIC-9",
+                    "summary": "Custom Epic",
+                }
+            },
+            "health_indicators": {},
+        }
+
+        timeline = _build_epic_timeline(
+            issues=[child_issue],
+            backend=None,
+            profile_id=None,
+            query_id=None,
+            parent_field="customfield_10006",
+            flow_end_statuses=["Done"],
+            flow_wip_statuses=["In Progress"],
+            all_issues_unfiltered=[child_issue],
+        )
+
+        assert timeline[0]["epic_key"] == "EPIC-9"
+        assert timeline[0]["epic_summary"] == "Custom Epic"
+
+    def test_build_epic_timeline_sorts_by_health_priority(self):
+        """Test child issue sorting order by health priority."""
+        issues = [
+            {
+                "issue_key": "PROJ-1",
+                "status": "In Progress",
+                "parent": "EPIC-2",
+                "health_indicators": {"is_blocked": True},
+            },
+            {
+                "issue_key": "PROJ-2",
+                "status": "In Progress",
+                "parent": "EPIC-2",
+                "health_indicators": {"is_aging": True},
+            },
+            {
+                "issue_key": "PROJ-3",
+                "status": "In Progress",
+                "parent": "EPIC-2",
+                "health_indicators": {"is_wip": True},
+            },
+            {
+                "issue_key": "PROJ-4",
+                "status": "To Do",
+                "parent": "EPIC-2",
+                "health_indicators": {},
+            },
+            {
+                "issue_key": "PROJ-5",
+                "status": "Done",
+                "parent": "EPIC-2",
+                "health_indicators": {"is_completed": True},
+            },
+        ]
+
+        timeline = _build_epic_timeline(
+            issues=issues,
+            backend=None,
+            profile_id=None,
+            query_id=None,
+            parent_field="parent",
+            flow_end_statuses=["Done"],
+            flow_wip_statuses=["In Progress"],
+            all_issues_unfiltered=issues,
+        )
+
+        sorted_keys = [issue["issue_key"] for issue in timeline[0]["child_issues"]]
+        assert sorted_keys == [
+            "PROJ-1",
+            "PROJ-2",
+            "PROJ-3",
+            "PROJ-4",
+            "PROJ-5",
+        ]
