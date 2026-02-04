@@ -92,7 +92,7 @@
   padding: 0.15rem 0.45rem;
   font-size: 0.72rem;
   font-weight: 700;
-  margin-right: 0.35rem;
+  margin-right: 0;
   min-width: 1.7rem;
   text-align: center;
 }
@@ -118,7 +118,7 @@
   padding: 0.15rem 0.45rem;
   font-size: 0.72rem;
   font-weight: 700;
-  margin-right: 0.35rem;
+  margin-right: 0;
   min-width: 1.7rem;
   text-align: center;
 }
@@ -126,7 +126,7 @@
 .active-work-issue-row {
   display: flex;
   align-items: center;
-  gap: 0.35rem;
+  gap: 0.2rem;
   font-size: 0.85rem;
   margin-bottom: 0.35rem;
   min-width: 0;
@@ -136,7 +136,7 @@
   font-weight: 700;
   color: #0d6efd;
   text-decoration: none;
-  margin-right: 0.25rem;
+  margin-right: 0;
   white-space: nowrap;
 }
 
@@ -196,4 +196,14 @@
 .active-work-epic-card > summary:focus-visible {
   outline: 2px solid rgba(13, 110, 253, 0.35);
   border-radius: 0.5rem;
+}
+
+.active-work-epic-progress .progress-bar {
+  font-size: 0.85rem;
+  font-weight: 600;
+  background: linear-gradient(90deg, #2ca7b8, #3bbf9a);
+}
+
+.active-work-epic-progress .progress-bar.bg-success {
+  background: linear-gradient(90deg, #2ca7b8, #3bbf9a);
 }

@@ -175,9 +175,9 @@ def create_nested_epic_timeline(
                                     label=f"{completion_pct:.0f}%",
                                     color="success"
                                     if completion_pct == 100
-                                    else "primary",
-                                    style={"height": "20px", "fontSize": "0.85rem"},
-                                    className="mb-2",
+                                    else "info",
+                                    style={"height": "20px"},
+                                    className="mb-2 active-work-epic-progress",
                                 ),
                                 html.Div(
                                     [
