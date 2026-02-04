@@ -4,6 +4,8 @@ This test file validates the modern DORA calculator that uses status-based
 extraction from profile configuration.
 """
 
+from data import persistence
+import data.dora_metrics as dora_metrics
 from data.dora_metrics import (
     calculate_deployment_frequency,
     calculate_lead_time_for_changes,
@@ -19,7 +21,7 @@ from data.dora_metrics import (
 class TestDeploymentFrequencyClean:
     """Test deployment frequency calculation with clean implementation."""
 
-    def test_deployment_frequency_with_valid_data(self):
+    def test_deployment_frequency_with_valid_data(self, monkeypatch):
         """Test deployment frequency calculation with valid deployment data.
 
         Per user requirements, deployments are identified by:
@@ -63,6 +65,28 @@ class TestDeploymentFrequencyClean:
                 },
             },
         ]
+
+        monkeypatch.setattr(
+            persistence,
+            "load_app_settings",
+            lambda: {
+                "field_mappings": {},
+                "flow_end_statuses": ["Done", "Resolved", "Closed"],
+                "devops_projects": [],
+                "devops_task_types": [],
+            },
+        )
+        monkeypatch.setattr(
+            dora_metrics,
+            "_get_field_mappings",
+            lambda: (
+                {},
+                {
+                    "flow_end_statuses": ["Done", "Resolved", "Closed"],
+                    "devops_task_types": [],
+                },
+            ),
+        )
 
         # Act
         result = calculate_deployment_frequency(issues, time_period_days=30)
