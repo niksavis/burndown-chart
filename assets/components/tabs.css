@@ -24,7 +24,7 @@
   background: transparent;
   padding: 0.5rem 0.875rem; /* Compact: reduced from 0.625rem 1.25rem */
   font-size: var(--text-sm); /* Compact: reduced from var(--text-base) */
-  font-weight: var(--font-medium);
+  font-weight: var(--font-semibold);
   transition:
     all 0.2s cubic-bezier(0.4, 0, 0.2, 1),
     transform 0.15s cubic-bezier(0.4, 0, 0.2, 1);
@@ -59,7 +59,7 @@
   color: var(--color-brand-700);
   background: white;
   border-color: var(--color-brand-200);
-  box-shadow: 
+  box-shadow:
     0 1px 3px rgba(0, 0, 0, 0.06),
     0 0 0 1px var(--color-brand-100);
   transform: translateY(-1px);
@@ -113,7 +113,7 @@
   #project-health-overview-card [style*="borderRight"] {
     border-right: none !important;
   }
-  
+
   /* Add subtle horizontal dividers instead */
   #project-health-overview-card .col-12.mb-4:not(:last-child) {
     border-bottom: 2px solid #ced4da;

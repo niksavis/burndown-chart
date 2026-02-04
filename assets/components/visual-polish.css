@@ -88,8 +88,8 @@ body {
 
 .nav-tabs .nav-link.active {
   font-weight: 500;
-  border-bottom: 2px solid var(--color-primary);
-  margin-bottom: -1px;
+  background-color: var(--color-gray-50);
+  border-color: var(--color-gray-200);
 }
 
 /* Pills nav - more rounded and modern */
