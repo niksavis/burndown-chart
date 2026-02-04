@@ -191,7 +191,7 @@ def create_active_work_legend() -> html.Div:
         html.Div(
             [
                 html.Span(
-                    [html.I(className="fas fa-xmark me-1"), "Idle"],
+                    [html.I(className="fas fa-minus me-1"), "Idle"],
                     className="badge bg-danger me-2",
                     id="legend-blocked",
                 ),

@@ -182,7 +182,7 @@ def create_nested_epic_timeline(
                                     [
                                         html.Span(
                                             [
-                                                html.I(className="fas fa-xmark me-1"),
+                                                html.I(className="fas fa-minus me-1"),
                                                 f"{len(blocked_issues)} Idle",
                                             ],
                                             className="badge bg-danger me-2",
@@ -268,7 +268,7 @@ def _create_status_section(
     issue_rows = [create_compact_issue_row(issue, show_points) for issue in issues]
 
     icon_map = {
-        "Idle": "fas fa-xmark",
+        "Idle": "fas fa-minus",
         "Aging": "fas fa-clock",
         "In Progress": "fas fa-spinner",
         "To Do": "fas fa-circle",
