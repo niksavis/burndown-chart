@@ -468,6 +468,11 @@ def sync_jira_scope_and_data(
         development_projects = config.get("development_projects", [])
         devops_projects = config.get("devops_projects", [])
 
+        logger.info(
+            f"[JIRA] Project filtering config: development={development_projects or 'NONE'}, "
+            f"devops={devops_projects or 'NONE'}"
+        )
+
         if development_projects or devops_projects:
             from data.project_filter import filter_development_issues
 
@@ -481,8 +486,15 @@ def sync_jira_scope_and_data(
                 logger.info(
                     f"[JIRA] Filtered to {len(issues_for_metrics)} development project issues (excluded {filtered_count})"
                 )
+            else:
+                logger.info(
+                    f"[JIRA] No issues filtered - all {len(issues_for_metrics)} issues match development projects"
+                )
         else:
             # No project classification configured, use all issues
+            logger.warning(
+                f"[JIRA] NO PROJECT FILTERING: Using all {len(issues)} issues (configure development_projects in JIRA Mappings → Projects tab)"
+            )
             issues_for_metrics = issues
 
         # Exclude parent issue types from metrics (if configured)
