@@ -485,7 +485,25 @@ def sync_jira_scope_and_data(
             # No project classification configured, use all issues
             issues_for_metrics = issues
 
-        # Calculate JIRA-based project scope (using ONLY development project issues)
+        # Exclude parent issue types from metrics (if configured)
+        # Parent types are included in the fetch (via query_builder) to get their data
+        # but excluded from scope calculations to prevent double-counting
+        if parent_types:
+            from data.jira.parent_filter import filter_out_parent_types
+
+            total_before_parent_filter = len(issues_for_metrics)
+            issues_for_metrics = filter_out_parent_types(
+                issues_for_metrics, parent_types
+            )
+            parent_filtered_count = total_before_parent_filter - len(issues_for_metrics)
+
+            if parent_filtered_count > 0:
+                logger.info(
+                    f"[JIRA] Excluded {parent_filtered_count} parent issue(s) from metrics "
+                    f"(types: {', '.join(parent_types)})"
+                )
+
+        # Calculate JIRA-based project scope (using ONLY development project issues, excluding parents)
         # Only use story_points_field if it's configured and not empty
         points_field_raw = config.get("story_points_field", "")
         # Defensive: Ensure points_field is a string, not a dict
