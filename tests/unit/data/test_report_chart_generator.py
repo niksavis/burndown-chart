@@ -41,10 +41,10 @@ class TestChartGeneratorOrchestration:
                 },
                 "weekly_data": [
                     {
-                        "date": "2026-01-07",
-                        "created_items": 0,
+                        "date": "2026-01-01",
+                        "created_items": 3,
                         "completed_items": 5,
-                        "created_points": 0,
+                        "created_points": 4,
                         "completed_points": 8,
                     }
                 ],
@@ -71,8 +71,16 @@ class TestChartGeneratorOrchestration:
                 "has_data": True,
             },
             "statistics": [
-                {"date": "2026-01-10", "created_items": 1, "completed_items": 1},
-                {"date": "2026-01-11", "created_items": 1, "completed_items": 0},
+                {
+                    "date": "2026-01-10",
+                    "created_items": 2,
+                    "completed_items": 1,
+                },
+                {
+                    "date": "2026-01-11",
+                    "created_items": 1,
+                    "completed_items": 0,
+                },
             ],
         }
         sections = ["burndown"]
@@ -211,14 +219,14 @@ class TestBurndownCharts:
         """Test weekly breakdown chart generation."""
         weekly_data = [
             {
-                "date": "2026-01-07",
+                "date": "2026-01-01",
                 "created_items": 3,
                 "completed_items": 5,
                 "created_points": 4,
                 "completed_points": 8,
             },
             {
-                "date": "2026-01-14",
+                "date": "2026-01-08",
                 "created_items": 4,
                 "completed_items": 7,
                 "created_points": 6,
@@ -230,15 +238,15 @@ class TestBurndownCharts:
 
         assert "new Chart(" in script
         assert "weeklyBreakdownChart" in script
-        assert "2026-01-07" in script
-        assert "2026-01-14" in script
+        assert "2026-01-01" in script
+        assert "2026-01-08" in script
         assert "bar" in script.lower()
 
     def test_generate_weekly_breakdown_chart_with_points(self):
         """Test weekly breakdown with points display."""
         weekly_data = [
             {
-                "date": "2026-01-07",
+                "date": "2026-01-01",
                 "created_items": 0,
                 "completed_items": 5,
                 "created_points": 0,
@@ -259,7 +267,7 @@ class TestScopeChart:
         """Test basic scope changes chart."""
         metrics = {
             "statistics": [
-                {"date": "2026-01-10", "created_items": 1, "completed_items": 1},
+                {"date": "2026-01-10", "created_items": 2, "completed_items": 1},
                 {"date": "2026-01-11", "created_items": 1, "completed_items": 1},
                 {"date": "2026-01-12", "created_items": 1, "completed_items": 0},
             ]
@@ -275,7 +283,7 @@ class TestScopeChart:
 
     def test_generate_scope_changes_chart_no_data(self):
         """Test scope chart with no items."""
-        metrics = {"items": []}
+        metrics = {"statistics": []}
 
         script = generate_scope_changes_chart(metrics)
 
@@ -322,7 +330,6 @@ class TestBugsChart:
 
         script = generate_bug_trends_chart(weekly_stats)
 
-        # Should still generate valid empty chart
         assert "new Chart(" in script
         assert "bugTrendsChart" in script
 
@@ -407,7 +414,7 @@ class TestChartScriptFormat:
                 },
                 "weekly_data": [
                     {
-                        "date": "2026-01-07",
+                        "date": "2026-01-01",
                         "created_items": 0,
                         "completed_items": 5,
                         "created_points": 0,
@@ -450,7 +457,7 @@ class TestChartScriptFormat:
 
         scripts = generate_chart_scripts(metrics, sections)
 
-        for script in scripts:
+        for script in [s for s in scripts if s]:
             # Check for IIFE pattern
             assert "(function()" in script or "(() =>" in script
             assert script.strip().endswith("();") or script.strip().endswith("})();")

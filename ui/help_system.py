@@ -17,6 +17,7 @@ from dash import html, dcc, callback, Input, Output, State
 import dash_bootstrap_components as dbc
 from configuration.help_content import COMPREHENSIVE_HELP_CONTENT
 from functools import lru_cache
+from ui.help_layouts.weekly_progress_help import create_weekly_progress_help_layout
 
 
 # Performance optimization: Cache formatted content
@@ -375,6 +376,9 @@ def format_help_content_enhanced(content, category, key):
     Returns:
         List of enhanced Dash components
     """
+    if category == "statistics" and key == "weekly_progress_data_explanation":
+        return create_weekly_progress_help_layout()
+
     if not content:
         return [html.P("Help content not available.", className="text-muted")]
 

@@ -71,8 +71,8 @@ class TestCalculateRequiredVelocity:
             remaining_work, deadline, time_unit="week"
         )
 
-        # Should be approximately 14 items/week (28 / 2)
-        assert 13.0 <= required <= 16.0
+        # Current implementation uses integer day difference
+        assert 15.0 <= required <= 16.0
 
     def test_invalid_time_unit(self):
         """Test with invalid time unit."""

@@ -99,20 +99,32 @@ def _render_bug_analysis_content(
         except Exception as e:
             logger.warning(f"Could not load from JIRA cache: {e}")
 
-        # Filter out DevOps project issues (development metrics only)
+        # Filter to only configured development project issues
         if all_issues:
-            from data.project_filter import filter_development_issues
+            # CRITICAL: Filter out parent issues dynamically (don't hardcode "Epic")
             from data.persistence import load_app_settings
-
             settings = load_app_settings()
+            
+            parent_field = settings.get("field_mappings", {}).get("general", {}).get("parent_field")
+            if parent_field:
+                from data.parent_filter import filter_parent_issues
+                all_issues = filter_parent_issues(
+                    all_issues,
+                    parent_field,
+                    log_prefix="BUG ANALYSIS"
+                )
+
+            from data.project_filter import filter_development_issues
+
+            development_projects = settings.get("development_projects", [])
             devops_projects = settings.get("devops_projects", [])
 
-            if devops_projects:
-                original_count = len(all_issues)
-                all_issues = filter_development_issues(all_issues, devops_projects)
-                filtered_count = original_count - len(all_issues)
+            original_count = len(all_issues)
+            all_issues = filter_development_issues(all_issues, development_projects, devops_projects)
+            filtered_count = original_count - len(all_issues)
+            if filtered_count > 0:
                 logger.info(
-                    f"Bug Analysis: Filtered out {filtered_count} DevOps issues from {original_count} total issues"
+                    f"Bug Analysis: Filtered to {len(all_issues)} development project issues from {original_count} total"
                 )
 
         # Determine date range based on data_points_count (timeline filter)

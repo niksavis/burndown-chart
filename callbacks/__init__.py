@@ -102,6 +102,7 @@ from ui.layout import USE_ACCORDION_SETTINGS
 
 from callbacks import (
     about_dialog,  # About dialog modal callbacks (Feature 016, auto-registers via @callback)  # noqa: F401
+    active_work_timeline,  # Active Work Timeline callbacks (Feature s530, collapse toggle)
     ai_prompt_generation,  # AI prompt generation callbacks (Feature 017, auto-registers via @callback)  # noqa: F401
     app_update,  # Application auto-update callbacks (auto-registers via @callback)  # noqa: F401
     banner_status_icons,  # Banner icon animations during operations (auto-registers via @callback)  # noqa: F401
@@ -128,6 +129,7 @@ from callbacks import (
     sprint_filters,  # Sprint Tracker issue type filter callbacks (auto-registers via @callback)  # noqa: F401
     sprint_selector,  # Sprint Tracker sprint selection callbacks (auto-registers via @callback)  # noqa: F401
     sprint_tracker,  # Sprint Tracker main callbacks including charts toggle (auto-registers via @callback)  # noqa: F401
+    active_work_timeline,  # Active Work Timeline callbacks (auto-registers via @callback)  # noqa: F401
     version_update_notification,  # Version update toast notification (auto-registers via @callback)  # noqa: F401
     # The 'export' module doesn't seem to exist and is causing an error
     # export,
@@ -158,6 +160,9 @@ def register_all_callbacks(app):
 
     # Register clientside callbacks for panel button active states
     settings_panel.register_clientside_callbacks(app)
+    
+    # Register active work timeline callbacks (collapsible epics)
+    active_work_timeline.register(app)
 
     # Remove this line since 'export' module doesn't exist
     # export.register(app)

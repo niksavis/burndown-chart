@@ -93,44 +93,83 @@ def is_devops_issue(issue: Dict[str, Any], devops_projects: List[str]) -> bool:
     return project_key in devops_projects
 
 
-def is_development_issue(issue: Dict[str, Any], devops_projects: List[str]) -> bool:
-    """Check if issue belongs to a Development project (not DevOps).
+def is_development_issue(
+    issue: Dict[str, Any],
+    development_projects: Optional[List[str]] = None,
+    devops_projects: Optional[List[str]] = None,
+) -> bool:
+    """Check if issue belongs to a Development project.
 
     Args:
         issue: Jira issue dictionary
-        devops_projects: List of DevOps project keys to exclude
+        development_projects: List of development project keys to include (if provided, ONLY these projects)
+        devops_projects: List of DevOps project keys to exclude (fallback if no development_projects)
 
     Returns:
         True if issue is from a development project
+    
+    Logic:
+        - If development_projects provided: ONLY include those projects (whitelist)
+        - Else if devops_projects provided: Exclude DevOps projects (blacklist)
+        - Else: Include all projects
     """
-    return not is_devops_issue(issue, devops_projects)
+    project_key = get_issue_project_key(issue)
+    
+    # Whitelist approach: ONLY include configured development projects
+    if development_projects:
+        return project_key in development_projects
+    
+    # Fallback blacklist approach: Exclude DevOps projects
+    if devops_projects:
+        return not is_devops_issue(issue, devops_projects)
+    
+    # No filtering configured
+    return True
 
 
 def filter_development_issues(
-    issues: List[Dict[str, Any]], devops_projects: List[str]
+    issues: List[Dict[str, Any]],
+    development_projects: Optional[List[str]] = None,
+    devops_projects: Optional[List[str]] = None,
 ) -> List[Dict[str, Any]]:
-    """Filter to only development project issues (exclude DevOps).
+    """Filter to only development project issues.
 
     Use this for: Burndown charts, velocity metrics, scope metrics.
 
     Args:
         issues: List of Jira issues
-        devops_projects: List of DevOps project keys to exclude
+        development_projects: List of development project keys to include (ONLY these if provided)
+        devops_projects: List of DevOps project keys to exclude (fallback if no development_projects)
 
     Returns:
         Filtered list containing only development project issues
+    
+    Logic:
+        - If development_projects configured: ONLY include those projects (whitelist)
+        - Else if devops_projects configured: Exclude DevOps projects (blacklist)
+        - Else: Return all issues (no filtering)
     """
-    if not devops_projects:
+    if not development_projects and not devops_projects:
         return issues
 
-    filtered = [i for i in issues if is_development_issue(i, devops_projects)]
+    filtered = [
+        i
+        for i in issues
+        if is_development_issue(i, development_projects, devops_projects)
+    ]
 
     excluded_count = len(issues) - len(filtered)
     if excluded_count > 0:
-        logger.info(
-            f"Filtered out {excluded_count} DevOps project issues "
-            f"(projects: {', '.join(devops_projects)})"
-        )
+        if development_projects:
+            logger.info(
+                f"Filtered to {len(filtered)} development project issues "
+                f"(projects: {', '.join(development_projects)}) - excluded {excluded_count} other issues"
+            )
+        else:
+            logger.info(
+                f"Filtered out {excluded_count} DevOps project issues "
+                f"(projects: {', '.join(devops_projects or [])})"
+            )
 
     return filtered
 
@@ -233,7 +272,7 @@ def filter_incident_issues(
         incidents = [
             i
             for i in issues
-            if is_development_issue(i, devops_projects)
+            if is_development_issue(i, devops_projects=devops_projects)
             and get_issue_type(i) in bug_types
         ]
         logger.info(
@@ -244,7 +283,7 @@ def filter_incident_issues(
         incidents = [
             i
             for i in issues
-            if is_development_issue(i, devops_projects)
+            if is_development_issue(i, devops_projects=devops_projects)
             and get_issue_type(i) in bug_types
             and _is_production_incident(
                 i, production_environment_field, production_environment_values
@@ -314,7 +353,7 @@ def filter_work_items(
     work_items = [
         i
         for i in issues
-        if is_development_issue(i, devops_projects)
+        if is_development_issue(i, devops_projects=devops_projects)
         and get_issue_type(i) in work_item_types
     ]
 

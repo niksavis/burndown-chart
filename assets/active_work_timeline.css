@@ -1,0 +1,209 @@
+/* Active Work Timeline enhancements */
+
+.active-work-legend {
+  margin-bottom: 15px;
+  padding: 10px;
+  background-color: #f8f9fa;
+  border-radius: 4px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  box-shadow: none;
+  transform: none;
+}
+
+.active-work-legend-header {
+  width: 100%;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.active-work-legend-summary {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #495057;
+}
+
+.active-work-legend:hover {
+  box-shadow: none;
+  transform: none;
+}
+
+.active-work-legend-section {
+  font-size: 0.85rem;
+  color: #495057;
+  font-weight: 600;
+  margin-right: 8px;
+}
+
+.active-work-legend-row {
+  margin-top: 8px;
+}
+
+.active-work-legend-signal i {
+  font-size: 0.75rem;
+}
+
+.active-work-toggle-btn {
+  white-space: nowrap;
+  margin-left: 0.75rem;
+}
+
+.active-work-legend .active-work-key-badge,
+.active-work-legend a.active-work-key-badge {
+  color: #ffffff;
+  text-decoration: none;
+}
+
+.active-work-legend .active-work-key-badge:hover,
+.active-work-legend .active-work-key-badge:focus {
+  color: #ffffff;
+  text-decoration: none;
+}
+
+.active-work-key-badge {
+  background-color: #4c8dff;
+  color: #ffffff;
+  border-radius: 999px;
+  padding: 0.15rem 0.55rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+}
+
+.active-work-key-badge:hover,
+.active-work-key-badge:focus {
+  background-color: #3f7fe6;
+  color: #ffffff;
+  text-decoration: none;
+  box-shadow: 0 0 0 0.15rem rgba(13, 110, 253, 0.2);
+}
+
+.active-work-points-badge {
+  background-color: #f59f47;
+  color: #ffffff;
+  border-radius: 999px;
+  padding: 0.15rem 0.45rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  margin-right: 0;
+  min-width: 1.7rem;
+  text-align: center;
+}
+
+.active-work-status-badge {
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0 0.35rem 0 0;
+  display: inline;
+  font-size: 0.8rem;
+}
+
+.active-work-status-badge i {
+  font-size: 0.8rem;
+  line-height: 1;
+}
+
+.active-work-count-badge {
+  background-color: #8a6fcf;
+  color: #ffffff;
+  border-radius: 999px;
+  padding: 0.15rem 0.45rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  margin-right: 0;
+  min-width: 1.7rem;
+  text-align: center;
+}
+
+.active-work-issue-row {
+  display: flex;
+  align-items: center;
+  gap: 0.2rem;
+  font-size: 0.85rem;
+  margin-bottom: 0.35rem;
+  min-width: 0;
+}
+
+.active-work-issue-key {
+  font-weight: 700;
+  color: #0d6efd;
+  text-decoration: none;
+  margin-right: 0;
+  white-space: nowrap;
+}
+
+.active-work-issue-key:hover,
+.active-work-issue-key:focus {
+  color: #0b5ed7;
+  text-decoration: underline;
+}
+
+.active-work-summary {
+  color: #6c757d;
+  font-size: 0.85rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.active-work-epic-summary {
+  color: #212529;
+  font-weight: 700;
+  font-size: 1.05rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.active-work-epic-title-row {
+  min-width: 0;
+  gap: 0.35rem;
+  width: 100%;
+}
+
+.active-work-epic-card > summary {
+  list-style: none;
+  cursor: pointer;
+}
+
+.active-work-epic-card > summary::-webkit-details-marker {
+  display: none;
+}
+
+.active-work-epic-arrow {
+  color: #6c757d;
+  font-size: 0.9rem;
+  margin-left: auto;
+  transition: transform 0.2s ease;
+}
+
+.active-work-epic-card[open] .active-work-epic-arrow {
+  transform: rotate(180deg);
+}
+
+.active-work-epic-card > summary:focus-visible {
+  outline: 2px solid rgba(13, 110, 253, 0.35);
+  border-radius: 0.5rem;
+}
+
+.active-work-epic-progress .progress-bar {
+  font-size: 0.85rem;
+  font-weight: 600;
+  background: linear-gradient(90deg, #2ca7b8, #3bbf9a);
+}
+
+.active-work-epic-progress .progress-bar.bg-success {
+  background: linear-gradient(90deg, #2ca7b8, #3bbf9a);
+}

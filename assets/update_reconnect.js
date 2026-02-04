@@ -159,12 +159,30 @@
       notificationsContainer.appendChild(toastElement);
 
       // Auto-dismiss after 5 seconds
-      setTimeout(() => {
+      const autoDismissId = setTimeout(() => {
+        if (
+          window.update_reconnect_helpers &&
+          window.update_reconnect_helpers.remove_toast_element
+        ) {
+          window.update_reconnect_helpers.remove_toast_element(toastElement);
+          return;
+        }
+
         toastElement.classList.remove("show");
         setTimeout(() => {
           toastElement.remove();
         }, 300); // Wait for fade animation
       }, 5000);
+
+      if (
+        window.update_reconnect_helpers &&
+        window.update_reconnect_helpers.attach_toast_dismiss
+      ) {
+        window.update_reconnect_helpers.attach_toast_dismiss(
+          toastElement,
+          autoDismissId,
+        );
+      }
 
       console.log("[update_reconnect] Success toast displayed");
     };

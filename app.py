@@ -406,6 +406,7 @@ app = dash.Dash(
         "/assets/jql_editor_native.js",  # Native CodeMirror editors (no textarea transformation)
         "/assets/mobile_navigation.js",  # Mobile navigation JavaScript for swipe gestures
         "/assets/conflict_resolution_clientside.js",  # Conflict resolution clientside callbacks (import/export)
+        "/assets/active_work_toggle.js",  # Active Work expand/collapse all button
     ],
     suppress_callback_exceptions=True,  # Suppress errors for components in dynamic layouts (Settings flyout, modals)
     meta_tags=[

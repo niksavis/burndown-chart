@@ -1031,6 +1031,24 @@ def register(app):
                         if query_id_active and profile_id:
                             issues = backend.get_issues(profile_id, query_id_active)
 
+                            # CRITICAL: Filter out parent issues dynamically (don't hardcode "Epic")
+                            if issues:
+                                from data.persistence import load_app_settings
+
+                                settings = load_app_settings()
+                                parent_field = (
+                                    settings.get("field_mappings", {})
+                                    .get("general", {})
+                                    .get("parent_field")
+                                )
+
+                                if parent_field:
+                                    from data.parent_filter import filter_parent_issues
+
+                                    issues = filter_parent_issues(
+                                        issues, parent_field, log_prefix="BUG METRICS"
+                                    )
+
                             # Filter to get ONLY bugs (same as report)
                             from data.persistence import load_app_settings
 
@@ -1438,6 +1456,25 @@ def register(app):
                 chart_cache[cache_key] = sprint_tracker_content
                 ui_state["loading"] = False
                 return sprint_tracker_content, chart_cache, ui_state
+
+            elif active_tab == "tab-active-work-timeline":
+                # Generate Active Work Timeline content directly (no placeholder loading)
+                from callbacks.active_work_timeline import (
+                    _render_active_work_timeline_content,
+                )
+
+                # Get data_points_count from settings
+                data_points_count = int(settings.get("data_points_count", 12))
+
+                # Render the actual content immediately
+                timeline_content = _render_active_work_timeline_content(
+                    show_points, data_points_count
+                )
+
+                # Cache the result for next time
+                chart_cache[cache_key] = timeline_content
+                ui_state["loading"] = False
+                return timeline_content, chart_cache, ui_state
 
             # Default fallback (should not reach here)
             fallback_content = create_content_placeholder(

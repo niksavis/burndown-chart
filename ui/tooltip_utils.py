@@ -364,6 +364,8 @@ def create_tooltip(
     position="top",
     variant="default",
     delay={"show": 200, "hide": 100},
+    trigger="click",
+    autohide=True,
     max_width="300px",
     className="",
     style=None,
@@ -407,6 +409,8 @@ def create_tooltip(
         "target": target,
         "placement": position,
         "delay": delay,
+        "trigger": trigger,
+        "autohide": autohide,
         "className": full_class,
         "style": tooltip_style,
     }
@@ -508,10 +512,11 @@ def create_info_tooltip(
     return html.Span(
         [
             create_help_icon(id_suffix, position="inline"),
-            dbc.Tooltip(
+            create_tooltip(
                 help_text,
                 target=f"info-tooltip-{id_suffix}",
-                placement=validated_placement,  # type: ignore
+                position=validated_placement,
+                variant=variant,
             ),
         ],
         style={"display": "inline"},

@@ -46,6 +46,13 @@ def sync_jira_scope_and_data(
     from data.persistence import save_jira_data_unified
 
     try:
+        # CRITICAL: Log function entry to verify code is being executed
+        logger.warning("=" * 80)
+        logger.warning(
+            "[SCOPE_SYNC] sync_jira_scope_and_data STARTED - CODE VERSION 2026-02-04"
+        )
+        logger.warning("=" * 80)
+
         # Update progress to show we're starting
         try:
             TaskProgress.update_progress(
@@ -72,12 +79,37 @@ def sync_jira_scope_and_data(
         if not is_valid:
             return False, f"Configuration invalid: {message}", {}
 
+        # Modify JQL to include parent issue types (Epic, Initiative, etc.)
+        # Parent types are fetched but excluded from calculations via parent_filter.py
+        from data.jira.query_builder import (
+            build_jql_with_parent_types,
+            extract_parent_types_from_config,
+        )
+
+        parent_types = extract_parent_types_from_config(config)
+        if parent_types:
+            original_jql = config.get("jql_query", "")
+            modified_jql = build_jql_with_parent_types(original_jql, parent_types)
+            config["jql_query"] = modified_jql
+            logger.info(
+                f"[Sync] Modified JQL to include {len(parent_types)} parent type(s): "
+                f"{', '.join(parent_types)}"
+            )
+
         # Validate cache file
         if not validate_cache_file(max_size_mb=config["cache_max_size_mb"]):
             return False, "Cache file validation failed", {}
 
         # Calculate current fields that would be requested (MUST match fetch_jira_issues logic)
         base_fields = "key,summary,project,created,updated,resolutiondate,status,issuetype,assignee,priority,resolution,labels,components,fixVersions"
+
+        # Add parent field if configured (either standard 'parent' or Epic Link custom field)
+        parent_field = (
+            config.get("field_mappings", {}).get("general", {}).get("parent_field")
+        )
+        if parent_field:
+            base_fields += f",{parent_field}"
+
         additional_fields = []
 
         # Add story points field
@@ -196,6 +228,50 @@ def sync_jira_scope_and_data(
             return False, "Failed to fetch JIRA data", {}
 
         logger.info(f"[JIRA] Fetch complete: {len(issues)} issues")
+
+        # PARENT FETCH: Get parent issues referenced by children for display (NOT counted in metrics)
+        # Parents are stored in database but filtered from calculations using parent_filter.py
+        # DEPRECATED: Parent types now included in main query via query_builder.py
+        # This code kept for backward compatibility when parent_issue_types not configured.
+        try:
+            logger.info("[PARENT] Starting parent fetch...")
+            from data.jira.query_builder import extract_parent_types_from_config
+
+            parent_types = extract_parent_types_from_config(config)
+
+            if not parent_types:
+                # Legacy behavior: Fetch parent issues via separate API call
+                # This runs only when parent_issue_types not configured
+                from data.jira.epic_fetch import fetch_epics_for_display
+
+                logger.info(
+                    f"[PARENT] Calling fetch_epics_for_display (legacy) with {len(issues)} issues"
+                )
+                parents = fetch_epics_for_display(issues, config)
+                if parents:
+                    logger.info(
+                        f"[PARENT] Fetched {len(parents)} parent issues for display (legacy path)"
+                    )
+                    # Add parents to issues list - they'll be stored in database
+                    # CRITICAL: All calculation code must use parent_filter.py to filter them out
+                    issues.extend(parents)
+                    logger.info(
+                        f"[PARENT] Extended issues list to {len(issues)} total (includes {len(parents)} parents)"
+                    )
+                else:
+                    logger.info("[PARENT] No parent issues to fetch (legacy)")
+            else:
+                # New behavior: Parent types already included in main query
+                logger.info(
+                    f"[PARENT] Skipping separate parent fetch - {len(parent_types)} parent "
+                    f"type(s) already included in main query: {', '.join(parent_types)}"
+                )
+        except Exception as e:
+            logger.error(
+                f"[PARENT] Failed to fetch parent issues (non-fatal): {e}",
+                exc_info=True,
+            )
+            # Continue without parents - they're for display only
 
         # Update progress: Issues fetched, now starting changelog
         try:
@@ -383,25 +459,70 @@ def sync_jira_scope_and_data(
         except Exception:
             pass
 
-        # CRITICAL: Filter out DevOps project issues for burndown/velocity/statistics
+        # CRITICAL: Filter out parent issues dynamically based on parent field mapping
+        # Parents stored for display (Active Work Timeline) but excluded from ALL calculations
+        # Don't hardcode "Epic" - use parent field to detect what keys are parents
+        parent_field = (
+            config.get("field_mappings", {}).get("general", {}).get("parent_field")
+        )
+        if parent_field:
+            from data.parent_filter import filter_parent_issues
+
+            issues = filter_parent_issues(issues, parent_field, log_prefix="JIRA SYNC")
+
+        # CRITICAL: Filter to only configured development project issues for burndown/velocity/statistics
         # DevOps issues are ONLY used for DORA metrics metadata extraction
+        development_projects = config.get("development_projects", [])
         devops_projects = config.get("devops_projects", [])
-        if devops_projects:
+
+        logger.info(
+            f"[JIRA] Project filtering config: development={development_projects or 'NONE'}, "
+            f"devops={devops_projects or 'NONE'}"
+        )
+
+        if development_projects or devops_projects:
             from data.project_filter import filter_development_issues
 
             total_issues_count = len(issues)
-            issues_for_metrics = filter_development_issues(issues, devops_projects)
+            issues_for_metrics = filter_development_issues(
+                issues, development_projects, devops_projects
+            )
             filtered_count = total_issues_count - len(issues_for_metrics)
 
             if filtered_count > 0:
                 logger.info(
-                    f"[JIRA] Filtered {filtered_count} DevOps issues, using {len(issues_for_metrics)} dev issues"
+                    f"[JIRA] Filtered to {len(issues_for_metrics)} development project issues (excluded {filtered_count})"
+                )
+            else:
+                logger.info(
+                    f"[JIRA] No issues filtered - all {len(issues_for_metrics)} issues match development projects"
                 )
         else:
-            # No DevOps projects configured, use all issues
+            # No project classification configured, use all issues
+            logger.warning(
+                f"[JIRA] NO PROJECT FILTERING: Using all {len(issues)} issues (configure development_projects in JIRA Mappings → Projects tab)"
+            )
             issues_for_metrics = issues
 
-        # Calculate JIRA-based project scope (using ONLY development project issues)
+        # Exclude parent issue types from metrics (if configured)
+        # Parent types are included in the fetch (via query_builder) to get their data
+        # but excluded from scope calculations to prevent double-counting
+        if parent_types:
+            from data.jira.parent_filter import filter_out_parent_types
+
+            total_before_parent_filter = len(issues_for_metrics)
+            issues_for_metrics = filter_out_parent_types(
+                issues_for_metrics, parent_types
+            )
+            parent_filtered_count = total_before_parent_filter - len(issues_for_metrics)
+
+            if parent_filtered_count > 0:
+                logger.info(
+                    f"[JIRA] Excluded {parent_filtered_count} parent issue(s) from metrics "
+                    f"(types: {', '.join(parent_types)})"
+                )
+
+        # Calculate JIRA-based project scope (using ONLY development project issues, excluding parents)
         # Only use story_points_field if it's configured and not empty
         points_field_raw = config.get("story_points_field", "")
         # Defensive: Ensure points_field is a string, not a dict

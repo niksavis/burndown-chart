@@ -103,21 +103,29 @@ class TestDevOpsProjectDetection:
         assert is_devops_issue(issue, []) is False
 
     def test_is_development_issue_true(self):
-        """Test identifying development issue."""
+        """Test identifying development issue (blacklist mode)."""
         issue = {"fields": {"project": {"key": "DEV1"}}}
-        assert is_development_issue(issue, ["DEVOPS"]) is True
+        assert is_development_issue(issue, devops_projects=["DEVOPS"]) is True
 
     def test_is_development_issue_false(self):
         """Test identifying non-development issue."""
         issue = {"fields": {"project": {"key": "DEVOPS"}}}
-        assert is_development_issue(issue, ["DEVOPS"]) is False
+        assert is_development_issue(issue, devops_projects=["DEVOPS"]) is False
+
+    def test_is_development_issue_with_whitelist(self):
+        """Test development issue check with whitelist."""
+        issue = {"fields": {"project": {"key": "DEV1"}}}
+        # Should be True - DEV1 is in whitelist
+        assert is_development_issue(issue, development_projects=["DEV1", "DEV2"]) is True
+        # Should be False - DEV1 not in whitelist
+        assert is_development_issue(issue, development_projects=["DEV2"]) is False
 
 
 class TestDevelopmentIssueFiltering:
     """Test filtering to development project issues."""
 
     def test_filter_development_issues_excludes_devops(self):
-        """Test that DevOps issues are excluded."""
+        """Test that DevOps issues are excluded (blacklist mode)."""
         issues = [
             {"key": "DEV1-1", "fields": {"project": {"key": "DEV1"}}},
             {"key": "DEV1-2", "fields": {"project": {"key": "DEV1"}}},
@@ -125,10 +133,26 @@ class TestDevelopmentIssueFiltering:
             {"key": "DEV1-3", "fields": {"project": {"key": "DEV1"}}},
         ]
 
-        filtered = filter_development_issues(issues, ["DEVOPS"])
+        filtered = filter_development_issues(issues, devops_projects=["DEVOPS"])
 
         assert len(filtered) == 3
         assert all(get_issue_project_key(i) == "DEV1" for i in filtered)
+
+    def test_filter_development_issues_whitelist_mode(self):
+        """Test filtering with development_projects whitelist."""
+        issues = [
+            {"key": "DEV1-1", "fields": {"project": {"key": "DEV1"}}},
+            {"key": "DEV2-1", "fields": {"project": {"key": "DEV2"}}},
+            {"key": "OTHER-1", "fields": {"project": {"key": "OTHER"}}},
+            {"key": "DEVOPS-1", "fields": {"project": {"key": "DEVOPS"}}},
+        ]
+
+        # ONLY include DEV1 and DEV2
+        filtered = filter_development_issues(issues, development_projects=["DEV1", "DEV2"])
+
+        assert len(filtered) == 2
+        project_keys = {get_issue_project_key(i) for i in filtered}
+        assert project_keys == {"DEV1", "DEV2"}
 
     def test_filter_development_issues_no_devops_configured(self):
         """Test with no DevOps projects - all issues returned."""
@@ -137,17 +161,17 @@ class TestDevelopmentIssueFiltering:
             {"key": "DEVOPS-1", "fields": {"project": {"key": "DEVOPS"}}},
         ]
 
-        filtered = filter_development_issues(issues, [])
+        filtered = filter_development_issues(issues)
 
         assert len(filtered) == 2
 
     def test_filter_development_issues_empty_list(self):
         """Test with empty issue list."""
-        filtered = filter_development_issues([], ["DEVOPS"])
+        filtered = filter_development_issues([], devops_projects=["DEVOPS"])
         assert len(filtered) == 0
 
     def test_filter_development_issues_multiple_dev_projects(self):
-        """Test filtering with multiple development projects."""
+        """Test filtering with multiple development projects (blacklist mode)."""
         issues = [
             {"key": "DEV1-1", "fields": {"project": {"key": "DEV1"}}},
             {"key": "DEV2-1", "fields": {"project": {"key": "DEV2"}}},
@@ -155,7 +179,7 @@ class TestDevelopmentIssueFiltering:
             {"key": "DEV1-2", "fields": {"project": {"key": "DEV1"}}},
         ]
 
-        filtered = filter_development_issues(issues, ["DEVOPS"])
+        filtered = filter_development_issues(issues, devops_projects=["DEVOPS"])
 
         assert len(filtered) == 3
         assert get_issue_project_key(filtered[0]) == "DEV1"

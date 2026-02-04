@@ -1064,6 +1064,8 @@ def _create_success_card(
                     badge_tooltip_text,
                     target=badge_id,
                     placement="top",
+                    trigger="click",
+                    autohide=True,
                 ),
             ],
             className="d-inline-block",

@@ -638,6 +638,8 @@ def create_budget_settings_card() -> html.Div:
                                 "Weeks to complete",
                                 target="time-allocated-tooltip",
                                 placement="top",
+                                trigger="click",
+                                autohide=True,
                             ),
                             dbc.InputGroup(
                                 [
@@ -691,6 +693,8 @@ def create_budget_settings_card() -> html.Div:
                                 "Weekly cost",
                                 target="team-cost-tooltip",
                                 placement="top",
+                                trigger="click",
+                                autohide=True,
                             ),
                             dbc.InputGroup(
                                 [
@@ -758,6 +762,8 @@ def create_budget_settings_card() -> html.Div:
                                 "Budget start date",
                                 target="budget-effective-date-info-tooltip",
                                 placement="top",
+                                trigger="click",
+                                autohide=True,
                             ),
                             dcc.DatePickerSingle(
                                 id="budget-effective-date-picker",
@@ -799,6 +805,8 @@ def create_budget_settings_card() -> html.Div:
                                 "Why budget changed",
                                 target="revision-reason-tooltip",
                                 placement="top",
+                                trigger="click",
+                                autohide=True,
                             ),
                             dbc.Textarea(
                                 id="budget-revision-reason-input",

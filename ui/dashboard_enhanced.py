@@ -502,6 +502,8 @@ def _create_forecast_card(
                                     "Statistical probability ranges for completion dates. Based on velocity variance using normal distribution (50th and 95th percentiles).",
                                     target=f"ci-section-info-{card_id or 'default'}",
                                     placement="top",
+                                    trigger="click",
+                                    autohide=True,
                                 ),
                             ],
                             className="mb-1",
@@ -528,6 +530,8 @@ def _create_forecast_card(
                                     "50th percentile (median): 50% probability of completion by this date. This is the PERT forecast.",
                                     target=f"ci-50-info-{card_id or 'default'}",
                                     placement="top",
+                                    trigger="click",
+                                    autohide=True,
                                 ),
                                 html.Span(
                                     ci_50_date,
@@ -559,6 +563,8 @@ def _create_forecast_card(
                                     "95th percentile (high confidence): 95% probability of completion by this date. Safe estimate with 1.65σ buffer.",
                                     target=f"ci-95-info-{card_id or 'default'}",
                                     placement="top",
+                                    trigger="click",
+                                    autohide=True,
                                 ),
                                 html.Span(
                                     ci_95_date,

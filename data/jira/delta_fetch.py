@@ -253,6 +253,14 @@ def try_delta_fetch(
         if not fields:
             # Use base fields
             base_fields = "key,summary,project,created,updated,resolutiondate,status,issuetype,assignee,priority,resolution,labels,components,fixVersions"
+
+            # Add parent field if configured (either standard 'parent' or Epic Link custom field)
+            parent_field = (
+                config.get("field_mappings", {}).get("general", {}).get("parent_field")
+            )
+            if parent_field:
+                base_fields += f",{parent_field}"
+
             fields = base_fields
 
         params = {

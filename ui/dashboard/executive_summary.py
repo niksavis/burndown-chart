@@ -217,13 +217,15 @@ def create_executive_summary_section(
                                         style={
                                             "fontSize": "0.9rem",
                                             "color": "#6c757d",
-                                            "cursor": "help",
+                                            "cursor": "pointer",
                                         },
                                     ),
                                     dbc.Tooltip(
                                         DASHBOARD_METRICS_TOOLTIPS["health_score"],
                                         target="health-calculation-info",
                                         placement="right",
+                                        trigger="click",
+                                        autohide=True,
                                     ),
                                 ],
                                 className="d-inline",
