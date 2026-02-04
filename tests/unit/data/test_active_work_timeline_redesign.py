@@ -1,11 +1,10 @@
 """Unit tests for redesigned Active Work Timeline.
 
-Tests WIP issues + 2-week completions with health indicators.
+Tests Active Work timeline with health indicators.
 """
 
 from datetime import datetime, timedelta, timezone
 from data.active_work_manager import (
-    filter_active_issues,
     get_active_work_data,
     calculate_epic_progress,
 )
@@ -34,12 +33,10 @@ class TestGetActiveWorkData:
 
         # Check structure
         assert "timeline" in result
-        assert "last_week_issues" in result
-        assert "this_week_issues" in result
 
         # Check issues have health indicators
-        all_issues = result["last_week_issues"] + result["this_week_issues"]
-        for issue in all_issues:
+        child_issues = result["timeline"][0]["child_issues"]
+        for issue in child_issues:
             assert "health_indicators" in issue
             assert "is_blocked" in issue["health_indicators"]
             assert "is_aging" in issue["health_indicators"]

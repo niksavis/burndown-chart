@@ -34,11 +34,19 @@ class TestChartGeneratorOrchestration:
         metrics = {
             "burndown": {
                 "has_data": True,
-                "dates": ["2026-01-01", "2026-01-15", "2026-01-31"],
-                "remaining_counts": [30, 20, 10],
-                "remaining_points": [45, 30, 15],
+                "historical_data": {
+                    "dates": ["2026-01-01", "2026-01-15", "2026-01-31"],
+                    "remaining_items": [30, 20, 10],
+                    "remaining_points": [45, 30, 15],
+                },
                 "weekly_data": [
-                    {"week": "2026-W01", "items_completed": 5, "points_completed": 8}
+                    {
+                        "date": "2026-01-01",
+                        "created_items": 3,
+                        "completed_items": 5,
+                        "created_points": 4,
+                        "completed_points": 8,
+                    }
                 ],
             },
             "dashboard": {
@@ -61,11 +69,19 @@ class TestChartGeneratorOrchestration:
         metrics = {
             "scope": {
                 "has_data": True,
-                "items": [
-                    {"created_at": "2026-01-10", "completed_at": "2026-01-15"},
-                    {"created_at": "2026-01-11", "completed_at": None},
-                ],
-            }
+            },
+            "statistics": [
+                {
+                    "date": "2026-01-10",
+                    "created_items": 2,
+                    "completed_items": 1,
+                },
+                {
+                    "date": "2026-01-11",
+                    "created_items": 1,
+                    "completed_items": 0,
+                },
+            ],
         }
         sections = ["burndown"]
 
@@ -80,8 +96,16 @@ class TestChartGeneratorOrchestration:
             "bug_analysis": {
                 "has_data": True,
                 "weekly_stats": [
-                    {"week_label": "2026-W01", "bugs_created": 3, "bugs_resolved": 2},
-                    {"week_label": "2026-W02", "bugs_created": 5, "bugs_resolved": 4},
+                    {
+                        "week_start_date": "2026-01-01",
+                        "bugs_created": 3,
+                        "bugs_resolved": 2,
+                    },
+                    {
+                        "week_start_date": "2026-01-08",
+                        "bugs_created": 5,
+                        "bugs_resolved": 4,
+                    },
                 ],
             }
         }
@@ -97,13 +121,14 @@ class TestChartGeneratorOrchestration:
         metrics = {
             "flow": {
                 "has_data": True,
-                "weekly_distribution": [
+                "distribution_history": [
                     {
                         "week": "2026-W01",
                         "feature": 10,
                         "defect": 3,
                         "tech_debt": 2,
                         "risk": 1,
+                        "total": 16,
                     }
                 ],
             }
@@ -136,9 +161,11 @@ class TestBurndownCharts:
     def test_generate_burndown_chart_basic(self):
         """Test basic burndown chart generation."""
         burndown_metrics = {
-            "dates": ["2026-01-01", "2026-01-15", "2026-01-31"],
-            "remaining_counts": [30, 20, 10],
-            "remaining_points": [45, 30, 15],
+            "historical_data": {
+                "dates": ["2026-01-01", "2026-01-15", "2026-01-31"],
+                "remaining_items": [30, 20, 10],
+                "remaining_points": [45, 30, 15],
+            }
         }
 
         script = generate_burndown_chart(burndown_metrics, "", "", "", False)
@@ -152,9 +179,11 @@ class TestBurndownCharts:
     def test_generate_burndown_chart_with_points(self):
         """Test burndown chart with points enabled."""
         burndown_metrics = {
-            "dates": ["2026-01-01"],
-            "remaining_counts": [10],
-            "remaining_points": [15],
+            "historical_data": {
+                "dates": ["2026-01-01"],
+                "remaining_items": [10],
+                "remaining_points": [15],
+            }
         }
 
         script = generate_burndown_chart(burndown_metrics, "", "", "", True)
@@ -165,9 +194,11 @@ class TestBurndownCharts:
     def test_generate_burndown_chart_with_annotations(self):
         """Test burndown chart with milestone, forecast, deadline."""
         burndown_metrics = {
-            "dates": ["2026-01-01", "2026-01-31"],
-            "remaining_counts": [30, 10],
-            "remaining_points": [45, 15],
+            "historical_data": {
+                "dates": ["2026-01-01", "2026-01-31"],
+                "remaining_items": [30, 10],
+                "remaining_points": [45, 15],
+            }
         }
         milestone = "2026-01-15"
         forecast_date = "2026-02-10"
@@ -188,16 +219,18 @@ class TestBurndownCharts:
         """Test weekly breakdown chart generation."""
         weekly_data = [
             {
-                "week": "2026-W01",
-                "items_completed": 5,
-                "points_completed": 8,
-                "items_started": 3,
+                "date": "2026-01-01",
+                "created_items": 3,
+                "completed_items": 5,
+                "created_points": 4,
+                "completed_points": 8,
             },
             {
-                "week": "2026-W02",
-                "items_completed": 7,
-                "points_completed": 12,
-                "items_started": 4,
+                "date": "2026-01-08",
+                "created_items": 4,
+                "completed_items": 7,
+                "created_points": 6,
+                "completed_points": 12,
             },
         ]
 
@@ -205,14 +238,20 @@ class TestBurndownCharts:
 
         assert "new Chart(" in script
         assert "weeklyBreakdownChart" in script
-        assert "2026-W01" in script
-        assert "2026-W02" in script
+        assert "2026-01-01" in script
+        assert "2026-01-08" in script
         assert "bar" in script.lower()
 
     def test_generate_weekly_breakdown_chart_with_points(self):
         """Test weekly breakdown with points display."""
         weekly_data = [
-            {"week": "2026-W01", "items_completed": 5, "points_completed": 8}
+            {
+                "date": "2026-01-01",
+                "created_items": 0,
+                "completed_items": 5,
+                "created_points": 0,
+                "completed_points": 8,
+            }
         ]
 
         script = generate_weekly_breakdown_chart(weekly_data, True)
@@ -227,10 +266,10 @@ class TestScopeChart:
     def test_generate_scope_changes_chart_basic(self):
         """Test basic scope changes chart."""
         metrics = {
-            "items": [
-                {"created_at": "2026-01-10", "completed_at": "2026-01-15"},
-                {"created_at": "2026-01-11", "completed_at": "2026-01-20"},
-                {"created_at": "2026-01-12", "completed_at": None},
+            "statistics": [
+                {"date": "2026-01-10", "created_items": 2, "completed_items": 1},
+                {"date": "2026-01-11", "created_items": 1, "completed_items": 1},
+                {"date": "2026-01-12", "created_items": 1, "completed_items": 0},
             ]
         }
 
@@ -244,13 +283,11 @@ class TestScopeChart:
 
     def test_generate_scope_changes_chart_no_data(self):
         """Test scope chart with no items."""
-        metrics = {"items": []}
+        metrics = {"statistics": []}
 
         script = generate_scope_changes_chart(metrics)
 
-        # Should still generate valid empty chart
-        assert "new Chart(" in script
-        assert "scopeChangesChart" in script
+        assert script == ""
 
 
 class TestBugsChart:
@@ -259,27 +296,27 @@ class TestBugsChart:
     def test_generate_bug_trends_chart_basic(self):
         """Test basic bug trends chart."""
         weekly_stats = [
-            {"week_label": "2026-W01", "bugs_created": 3, "bugs_resolved": 2},
-            {"week_label": "2026-W02", "bugs_created": 5, "bugs_resolved": 4},
-            {"week_label": "2026-W03", "bugs_created": 2, "bugs_resolved": 3},
+            {"week_start_date": "2026-01-01", "bugs_created": 3, "bugs_resolved": 2},
+            {"week_start_date": "2026-01-08", "bugs_created": 5, "bugs_resolved": 4},
+            {"week_start_date": "2026-01-15", "bugs_created": 2, "bugs_resolved": 3},
         ]
 
         script = generate_bug_trends_chart(weekly_stats)
 
         assert "new Chart(" in script
         assert "bugTrendsChart" in script
-        assert "2026-W01" in script
+        assert "2026-01-01" in script
         assert "line" in script.lower()
         assert "Created" in script or "created" in script
-        assert "Resolved" in script or "resolved" in script
+        assert "Closed" in script or "closed" in script
 
     def test_generate_bug_trends_chart_warning_backgrounds(self):
         """Test bug trends chart with consecutive negative weeks."""
         weekly_stats = [
-            {"week_label": "2026-W01", "bugs_created": 5, "bugs_resolved": 2},
-            {"week_label": "2026-W02", "bugs_created": 6, "bugs_resolved": 3},
-            {"week_label": "2026-W03", "bugs_created": 7, "bugs_resolved": 4},
-            {"week_label": "2026-W04", "bugs_created": 2, "bugs_resolved": 5},
+            {"week_start_date": "2026-01-01", "bugs_created": 5, "bugs_resolved": 2},
+            {"week_start_date": "2026-01-08", "bugs_created": 6, "bugs_resolved": 3},
+            {"week_start_date": "2026-01-15", "bugs_created": 7, "bugs_resolved": 4},
+            {"week_start_date": "2026-01-22", "bugs_created": 2, "bugs_resolved": 5},
         ]
 
         script = generate_bug_trends_chart(weekly_stats)
@@ -293,7 +330,6 @@ class TestBugsChart:
 
         script = generate_bug_trends_chart(weekly_stats)
 
-        # Should still generate valid empty chart
         assert "new Chart(" in script
         assert "bugTrendsChart" in script
 
@@ -304,13 +340,14 @@ class TestFlowChart:
     def test_generate_work_distribution_chart_basic(self):
         """Test basic work distribution chart."""
         flow_metrics = {
-            "weekly_distribution": [
+            "distribution_history": [
                 {
                     "week": "2026-W01",
                     "feature": 10,
                     "defect": 3,
                     "tech_debt": 2,
                     "risk": 1,
+                    "total": 16,
                 },
                 {
                     "week": "2026-W02",
@@ -318,6 +355,7 @@ class TestFlowChart:
                     "defect": 4,
                     "tech_debt": 3,
                     "risk": 2,
+                    "total": 17,
                 },
             ]
         }
@@ -335,13 +373,14 @@ class TestFlowChart:
     def test_generate_work_distribution_chart_percentages(self):
         """Test work distribution shows percentages."""
         flow_metrics = {
-            "weekly_distribution": [
+            "distribution_history": [
                 {
                     "week": "2026-W01",
                     "feature": 10,
                     "defect": 0,
                     "tech_debt": 0,
                     "risk": 0,
+                    "total": 10,
                 }
             ]
         }
@@ -353,13 +392,11 @@ class TestFlowChart:
 
     def test_generate_work_distribution_chart_empty_data(self):
         """Test work distribution with empty data."""
-        flow_metrics = {"weekly_distribution": []}
+        flow_metrics = {"distribution_history": []}
 
         script = generate_work_distribution_chart(flow_metrics)
 
-        # Should still generate valid empty chart
-        assert "new Chart(" in script
-        assert "workDistributionChart" in script
+        assert script == ""
 
 
 class TestChartScriptFormat:
@@ -370,30 +407,47 @@ class TestChartScriptFormat:
         metrics = {
             "burndown": {
                 "has_data": True,
-                "dates": ["2026-01-01"],
-                "remaining_counts": [10],
-                "remaining_points": [15],
-                "weekly_data": [{"week": "2026-W01", "items_completed": 5}],
+                "historical_data": {
+                    "dates": ["2026-01-01"],
+                    "remaining_items": [10],
+                    "remaining_points": [15],
+                },
+                "weekly_data": [
+                    {
+                        "date": "2026-01-01",
+                        "created_items": 0,
+                        "completed_items": 5,
+                        "created_points": 0,
+                        "completed_points": 0,
+                    }
+                ],
             },
             "scope": {
                 "has_data": True,
-                "items": [{"created_at": "2026-01-10", "completed_at": "2026-01-15"}],
             },
+            "statistics": [
+                {"date": "2026-01-10", "created_items": 1, "completed_items": 1}
+            ],
             "bug_analysis": {
                 "has_data": True,
                 "weekly_stats": [
-                    {"week_label": "2026-W01", "bugs_created": 3, "bugs_resolved": 2}
+                    {
+                        "week_start_date": "2026-01-01",
+                        "bugs_created": 3,
+                        "bugs_resolved": 2,
+                    }
                 ],
             },
             "flow": {
                 "has_data": True,
-                "weekly_distribution": [
+                "distribution_history": [
                     {
                         "week": "2026-W01",
                         "feature": 10,
                         "defect": 3,
                         "tech_debt": 2,
                         "risk": 1,
+                        "total": 16,
                     }
                 ],
             },
@@ -403,7 +457,7 @@ class TestChartScriptFormat:
 
         scripts = generate_chart_scripts(metrics, sections)
 
-        for script in scripts:
+        for script in [s for s in scripts if s]:
             # Check for IIFE pattern
             assert "(function()" in script or "(() =>" in script
             assert script.strip().endswith("();") or script.strip().endswith("})();")
@@ -413,9 +467,11 @@ class TestChartScriptFormat:
         metrics = {
             "burndown": {
                 "has_data": True,
-                "dates": ["2026-01-01"],
-                "remaining_counts": [10],
-                "remaining_points": [15],
+                "historical_data": {
+                    "dates": ["2026-01-01"],
+                    "remaining_items": [10],
+                    "remaining_points": [15],
+                },
             },
             "dashboard": {"show_points": False},
         }

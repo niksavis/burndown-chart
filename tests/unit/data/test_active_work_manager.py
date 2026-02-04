@@ -2,8 +2,6 @@
 
 Tests epic aggregation, activity filtering, and progress calculation
 for Active Work Timeline feature (burndown-chart-s530).
-
-Updated for 2-week window design (WIP + recent completions).
 """
 
 from datetime import datetime, timedelta, timezone
@@ -46,50 +44,50 @@ class TestGetActiveWorkData:
 
         # Check structure
         assert "timeline" in result
-        assert "last_week_issues" in result
-        assert "this_week_issues" in result
 
         # Check timeline has epics
         assert len(result["timeline"]) > 0
         assert result["timeline"][0]["epic_key"] == "EPIC-1"
 
-        # Check issues have health indicators
-        all_issues = result["last_week_issues"] + result["this_week_issues"]
-        assert len(all_issues) == 2
-        for issue in all_issues:
+        # Check issues have health indicators in timeline
+        child_issues = result["timeline"][0]["child_issues"]
+        assert len(child_issues) == 2
+        for issue in child_issues:
             assert "health_indicators" in issue
 
 
 class TestFilterActiveIssues:
     """Test suite for filter_active_issues function."""
 
-    def test_filter_wip_issues_any_age(self):
-        """Test that WIP issues are included regardless of age."""
+    def test_filter_issues_within_data_points_window(self):
+        """Test filtering by data points window."""
         now = datetime.now(timezone.utc)
-        old = now - timedelta(days=60)  # Very old
+        recent = now - timedelta(days=7)
+        old = now - timedelta(days=60)
 
         issues = [
             {
                 "issue_key": "PROJ-1",
                 "status": "In Progress",
-                "updated": old.isoformat(),
+                "updated": recent.isoformat(),
             },
             {
                 "issue_key": "PROJ-2",
                 "status": "Done",
                 "updated": old.isoformat(),
-            },  # Old completion
+            },
         ]
 
         filtered = filter_active_issues(
-            issues, flow_end_statuses=["Done"], flow_wip_statuses=["In Progress"]
+            issues,
+            data_points_count=2,
+            flow_end_statuses=["Done"],
+            flow_wip_statuses=["In Progress"],
         )
 
-        # WIP issue should be included even if old
-        all_issues = filtered["last_week"] + filtered["this_week"]
-        all_keys = [issue["issue_key"] for issue in all_issues]
-        assert "PROJ-1" in all_keys  # Old WIP still included
-        assert "PROJ-2" not in all_keys  # Old completion excluded
+        all_keys = [issue["issue_key"] for issue in filtered]
+        assert "PROJ-1" in all_keys
+        assert "PROJ-2" not in all_keys
 
     def test_filter_completed_within_2_weeks(self):
         """Test that completed issues from last 2 weeks are included."""
@@ -111,11 +109,13 @@ class TestFilterActiveIssues:
         ]
 
         filtered = filter_active_issues(
-            issues, flow_end_statuses=["Done"], flow_wip_statuses=["In Progress"]
+            issues,
+            data_points_count=2,
+            flow_end_statuses=["Done"],
+            flow_wip_statuses=["In Progress"],
         )
 
-        all_issues = filtered["last_week"] + filtered["this_week"]
-        all_keys = [issue["issue_key"] for issue in all_issues]
+        all_keys = [issue["issue_key"] for issue in filtered]
         assert "PROJ-1" in all_keys  # Recent completion included
         assert "PROJ-2" not in all_keys  # Old completion excluded
 

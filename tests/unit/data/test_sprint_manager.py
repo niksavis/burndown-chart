@@ -48,22 +48,18 @@ class TestGetSprintSnapshots:
         """Test building snapshot for single sprint."""
         issues = [
             {
-                "key": "PROJ-1",
-                "fields": {
-                    "status": {"name": "Done"},
-                    "issuetype": {"name": "Story"},
-                    "summary": "Test Story 1",
-                },
-                "custom_fields": {"customfield_10016": 5},
+                "issue_key": "PROJ-1",
+                "status": "Done",
+                "issue_type": "Story",
+                "summary": "Test Story 1",
+                "points": 5,
             },
             {
-                "key": "PROJ-2",
-                "fields": {
-                    "status": {"name": "In Progress"},
-                    "issuetype": {"name": "Bug"},
-                    "summary": "Test Bug 1",
-                },
-                "custom_fields": {"customfield_10016": 3},
+                "issue_key": "PROJ-2",
+                "status": "In Progress",
+                "issue_type": "Bug",
+                "summary": "Test Bug 1",
+                "points": 3,
             },
         ]
 
@@ -113,13 +109,10 @@ class TestGetSprintSnapshots:
         """Test detecting issue removed from sprint."""
         issues = [
             {
-                "key": "PROJ-1",
-                "fields": {
-                    "status": {"name": "Done"},
-                    "issuetype": {"name": "Story"},
-                    "summary": "Test Story",
-                },
-                "custom_fields": {},
+                "issue_key": "PROJ-1",
+                "status": "Done",
+                "issue_type": "Story",
+                "summary": "Test Story",
             }
         ]
 
@@ -155,13 +148,10 @@ class TestGetSprintSnapshots:
         """Test detecting issue moved from one sprint to another."""
         issues = [
             {
-                "key": "PROJ-1",
-                "fields": {
-                    "status": {"name": "Done"},
-                    "issuetype": {"name": "Story"},
-                    "summary": "Test Story",
-                },
-                "custom_fields": {},
+                "issue_key": "PROJ-1",
+                "status": "Done",
+                "issue_type": "Story",
+                "summary": "Test Story",
             }
         ]
 
@@ -196,7 +186,14 @@ class TestGetSprintSnapshots:
 
     def test_get_sprint_snapshots_empty_changelog(self):
         """Test with empty changelog entries."""
-        issues = [{"key": "PROJ-1", "fields": {}, "custom_fields": {}}]
+        issues = [
+            {
+                "issue_key": "PROJ-1",
+                "status": "Done",
+                "issue_type": "Story",
+                "summary": "",
+            }
+        ]
         changelog_entries = []
 
         snapshots = get_sprint_snapshots(issues, changelog_entries)
