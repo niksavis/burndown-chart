@@ -84,12 +84,14 @@ def create_status_indicator_badge(
     Returns:
         Badge span
     """
-    return html.Span(
-        symbol,
-        id=badge_id,
-        className="active-work-status-badge",
-        style={"backgroundColor": color},
-    )
+    badge_kwargs = {
+        "className": "active-work-status-badge",
+        "style": {"backgroundColor": color},
+    }
+    if badge_id:
+        badge_kwargs["id"] = badge_id
+
+    return html.Span(symbol, **badge_kwargs)
 
 
 def create_active_work_legend() -> dbc.Alert:
