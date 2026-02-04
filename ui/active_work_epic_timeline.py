@@ -127,7 +127,7 @@ def create_nested_epic_timeline(
         issue_sections = []
         if blocked_issues:
             issue_sections.append(
-                _create_status_section("Blocked", blocked_issues, show_points, "danger")
+                _create_status_section("Idle", blocked_issues, show_points, "danger")
             )
         if aging_issues:
             issue_sections.append(
