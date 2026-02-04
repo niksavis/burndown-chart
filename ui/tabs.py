@@ -112,7 +112,7 @@ TAB_CONFIG: List[TabConfig] = [
         "icon": "fa-running",
         "unicode_icon": "🏃",  # Person running
         "color": get_color("warning"),
-        "order": 6,
+        "order": 7,
         "requires_data": True,
         "help_content_id": "help-sprint-tracker",
     },
@@ -122,7 +122,7 @@ TAB_CONFIG: List[TabConfig] = [
         "icon": "fa-clipboard-list",
         "unicode_icon": "📋",  # Clipboard
         "color": get_color("info"),
-        "order": 7,
+        "order": 6,
         "requires_data": True,
         "help_content_id": "help-active-work",
     },
