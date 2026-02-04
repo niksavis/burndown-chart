@@ -17,6 +17,9 @@ Documentation for project managers, team leads, and users who want to understand
 
 - **[Quickstart Guide](quickstart_guide.md)** ⭐ **NEW USERS START HERE** - Complete first-time setup walkthrough (15 min)
 - **[Metrics Index](metrics_index.md)** - Navigation hub with progressive learning path and metric reference
+- **[JIRA Configuration Guide](jira_configuration.md)** - Connection setup, tokens, and API options
+- **[Profile Management Guide](profile_management.md)** - Workspaces and switching behavior
+- **[Query Management Guide](query_management.md)** - JQL queries and cache isolation
 
 ### Understanding Metrics
 
@@ -31,6 +34,8 @@ Documentation for project managers, team leads, and users who want to understand
 
 **Advanced Topics**:
 - **[Metrics Correlation Guide](metrics_correlation_guide.md)** - How metrics relate to each other and validation rules
+- **[Bug Analysis Metrics Guide](bug_analysis_metrics.md)** - Quality trends and defect investment
+- **[JQL Editor Guide](jql_editor.md)** - Syntax highlighting and character count behavior
 
 ---
 
@@ -42,6 +47,9 @@ Documentation for developers extending the application, implementing new metrics
 
 - **[Namespace Syntax](namespace_syntax.md)** - JIRA field mapping syntax for implementing custom metrics
 - **[Caching System](caching_system.md)** - Database architecture and caching strategy
+- **[SQLite Persistence Guide](sqlite_persistence.md)** - Data storage, migration, and schema overview
+- **[Import and Export Guide](import_export.md)** - Configuration and data portability
+- **[HTML Reporting Guide](html_reporting.md)** - Report generation and distribution
 
 ### Code Standards & Practices
 
@@ -52,6 +60,7 @@ Documentation for developers extending the application, implementing new metrics
 
 - **[Release Process](release_process.md)** - Build workflow, executable packaging, and release automation
 - **[Updater Architecture](updater_architecture.md)** - Self-updating mechanism, crash recovery, and troubleshooting
+- **[Windows Installation Guide](installation_windows.md)** - Running the standalone app on Windows
 
 ### Architecture Reference
 

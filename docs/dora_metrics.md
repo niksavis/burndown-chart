@@ -30,6 +30,16 @@ Research-backed metrics developed by Google's DORA team measuring software deliv
 
 ---
 
+## Forecast Benchmarks and Trend Indicators
+
+Metric cards show a forecast benchmark derived from recent history to avoid misleading zeros early in the week. The forecast is a weighted average of recent weeks and is displayed alongside the current value.
+
+- Forecast window: 4 weeks, weighted toward the most recent week.
+- Trend indicator: compares current value to forecast using a tolerance band.
+- Lower-is-better metrics invert trend interpretation (Lead Time, Change Failure Rate, MTTR).
+
+When insufficient historical data exists, the cards show a baseline-building or insufficient-data message.
+
 ## Field Configuration
 
 ### Required JIRA Fields

@@ -69,7 +69,18 @@ Covers financial tracking and budget management:
 
 ---
 
-### 5. [Metrics Correlation Guide](./metrics_correlation_guide.md)
+### 5. [Bug Analysis Metrics](./bug_analysis_metrics.md)
+**Best for**: Teams monitoring quality trends and defect investment
+
+Covers the **Bug Analysis** tab:
+- Bug volume, open vs closed, resolution rate
+- Weekly creation and closure trends
+- Defect investment in story points
+- Quality insights and warnings
+
+---
+
+### 6. [Metrics Correlation Guide](./metrics_correlation_guide.md)
 **Best for**: Teams validating metric configurations and understanding relationships
 
 Covers metric relationships and validation:

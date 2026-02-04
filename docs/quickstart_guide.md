@@ -19,6 +19,12 @@ The application uses a **progressive disclosure** design - each step unlocks the
 5. **Parameter Configuration** - Set deadline, milestones, data points
 6. **Data Update** - Fetch and analyze data
 
+**Related Guides**:
+- [JIRA Configuration Guide](jira_configuration.md)
+- [Profile Management Guide](profile_management.md)
+- [Query Management Guide](query_management.md)
+- [JQL Editor Guide](jql_editor.md)
+
 ---
 
 ## Step 1: Create a Profile

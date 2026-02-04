@@ -32,6 +32,17 @@ While DORA metrics tell you **WHAT** happened (deployment outcomes), Flow metric
 
 ---
 
+## Forecast Benchmarks and Trend Indicators
+
+Metric cards include forecast benchmarks to provide context early in the week.
+
+- Forecast window: 4 weeks, weighted toward the most recent week.
+- Trend indicator: compares current value to forecast using a tolerance band.
+- Lower-is-better metrics invert trend interpretation (Flow Time).
+- Flow Load uses a forecast range rather than a single point value.
+
+When insufficient historical data exists, cards show a baseline-building or insufficient-data message.
+
 ## Field Configuration
 
 ### Required Status Configurations
