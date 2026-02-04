@@ -96,6 +96,18 @@
   border-radius: var(--radius-md);
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .nav-tabs-modern .nav-item .nav-link {
+    transition: none;
+    transform: none;
+  }
+
+  .nav-tabs-modern .nav-item .nav-link:hover,
+  .nav-tabs-modern .nav-item .nav-link.active:hover {
+    transform: none;
+  }
+}
+
 /* Specific fix for project health overview card - ensure overflow visible */
 #project-health-overview-card {
   overflow: visible !important;
