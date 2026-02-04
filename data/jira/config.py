@@ -128,6 +128,9 @@ def get_jira_config(settings_jql_query: str | None = None) -> Dict:
             jira_config.get("max_results_per_call", 1000)  # jira_config (new structure)
             or os.getenv("JIRA_MAX_RESULTS", 1000)  # Environment variable
         ),
+        "development_projects": app_settings.get(
+            "development_projects", []
+        ),  # Load development projects for filtering
         "devops_projects": app_settings.get(
             "devops_projects", []
         ),  # Load from app_settings
