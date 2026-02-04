@@ -213,6 +213,8 @@ def create_scope_change_indicator(
                     tooltip,
                     target=indicator_id,
                     className="tooltip-custom",
+                    trigger="click",
+                    autohide=True,
                 ),
             ]
         )

@@ -59,7 +59,11 @@ def add_aria_label_to_icon_button(component, label, options=None):
     # Add tooltip if requested
     if options["include_tooltip"] and hasattr(component, "id"):
         tooltip = dbc.Tooltip(
-            label, target=component.id, placement=options["tooltip_placement"]
+            label,
+            target=component.id,
+            placement=options["tooltip_placement"],
+            trigger="click",
+            autohide=True,
         )
         return [component, tooltip]
 

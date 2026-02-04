@@ -318,7 +318,12 @@ def create_form_field_with_validation(
                 id=tooltip_id,
             )
         )
-        tooltip_component = dbc.Tooltip(tooltip, target=tooltip_id)
+        tooltip_component = dbc.Tooltip(
+            tooltip,
+            target=tooltip_id,
+            trigger="click",
+            autohide=True,
+        )
     else:
         tooltip_component = None
 

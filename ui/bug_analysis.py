@@ -202,6 +202,8 @@ def create_bug_metrics_cards(bug_metrics: Dict, forecast: Dict) -> html.Div:
                                                 ],
                                                 target="info-tooltip-resolution-rate-help",
                                                 placement="top",
+                                                trigger="click",
+                                                autohide=True,
                                             ),
                                             html.Div(
                                                 className="d-flex justify-content-between",
@@ -306,6 +308,8 @@ def create_bug_metrics_cards(bug_metrics: Dict, forecast: Dict) -> html.Div:
                                                 BUG_ANALYSIS_TOOLTIPS["open_bugs"],
                                                 target="info-tooltip-open-bugs-help",
                                                 placement="top",
+                                                trigger="click",
+                                                autohide=True,
                                             ),
                                             html.Div(
                                                 style={
@@ -408,6 +412,8 @@ def create_bug_metrics_cards(bug_metrics: Dict, forecast: Dict) -> html.Div:
                                                 ],
                                                 target="info-tooltip-expected-resolution-help",
                                                 placement="top",
+                                                trigger="click",
+                                                autohide=True,
                                             ),
                                             html.Div(
                                                 className="d-flex justify-content-between",

@@ -316,7 +316,16 @@ def create_button(
     # Wrap in tooltip if specified
     if tooltip and id:
         return html.Div(
-            [button, dbc.Tooltip(tooltip, target=id, placement=tooltip_placement)],
+            [
+                button,
+                dbc.Tooltip(
+                    tooltip,
+                    target=id,
+                    placement=tooltip_placement,
+                    trigger="click",
+                    autohide=True,
+                ),
+            ],
             style={"display": "inline-block"},
         )
 

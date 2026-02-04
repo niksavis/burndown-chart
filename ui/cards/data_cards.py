@@ -606,6 +606,8 @@ def create_statistics_data_card(current_statistics) -> dbc.Card:
                             "Adds a new weekly entry with Monday date 7 days after the most recent entry. Enter work completed and created during that week (Monday-Sunday).",
                             target="add-row-button",
                             placement="top",
+                            trigger="click",
+                            autohide=True,
                         ),
                     ],
                     className="mb-2 mb-sm-0",  # Add bottom margin on mobile

@@ -531,6 +531,8 @@ def create_sprint_change_indicators(
                 "Issues added to this sprint after it started",
                 target="badge-added",
                 placement="top",
+                trigger="click",
+                autohide=True,
             )
         )
         badges.append(
@@ -549,6 +551,8 @@ def create_sprint_change_indicators(
                 "Issues removed from this sprint after it started",
                 target="badge-removed",
                 placement="top",
+                trigger="click",
+                autohide=True,
             )
         )
         badges.append(
@@ -571,6 +575,8 @@ def create_sprint_change_indicators(
                 "Overall change in sprint scope (Added - Removed)",
                 target="badge-net-change",
                 placement="top",
+                trigger="click",
+                autohide=True,
             )
         )
         badges.append(

@@ -134,6 +134,8 @@ def create_work_distribution_card(
                             badge_tooltip,
                             target=badge_id,
                             placement="top",
+                            trigger="click",
+                            autohide=True,
                         ),
                     ],
                     className="d-inline-block",
@@ -197,6 +199,8 @@ def create_work_distribution_card(
                             if card_id
                             else "work-dist-feature-badge",
                             placement="top",
+                            trigger="click",
+                            autohide=True,
                         ),
                     ],
                     className="text-center",
@@ -248,6 +252,8 @@ def create_work_distribution_card(
                             if card_id
                             else "work-dist-defect-badge",
                             placement="top",
+                            trigger="click",
+                            autohide=True,
                         ),
                     ],
                     className="text-center",
@@ -300,6 +306,8 @@ def create_work_distribution_card(
                             if card_id
                             else "work-dist-techdebt-badge",
                             placement="top",
+                            trigger="click",
+                            autohide=True,
                         ),
                     ],
                     className="text-center",
@@ -351,6 +359,8 @@ def create_work_distribution_card(
                             if card_id
                             else "work-dist-risk-badge",
                             placement="top",
+                            trigger="click",
+                            autohide=True,
                         ),
                     ],
                     className="text-center",

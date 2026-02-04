@@ -61,7 +61,13 @@ def create_help_button_with_tooltip(
     )
 
     # Add tooltip to the icon-only button for accessibility
-    help_tooltip = dbc.Tooltip(tooltip_text, target=button_id, placement="top")
+    help_tooltip = dbc.Tooltip(
+        tooltip_text,
+        target=button_id,
+        placement="top",
+        trigger="click",
+        autohide=True,
+    )
 
     return [help_button, help_tooltip]
 
@@ -86,6 +92,8 @@ def create_export_button_group(id_prefix):
         "Export the chart as a PNG image",
         target=f"{id_prefix}-export-img-btn",
         placement="top",
+        trigger="click",
+        autohide=True,
     )
 
     # Create export data button with semantic icon
@@ -100,6 +108,8 @@ def create_export_button_group(id_prefix):
         "Export the data as JSON",
         target=f"{id_prefix}-export-data-btn",
         placement="top",
+        trigger="click",
+        autohide=True,
     )
 
     # Container with all components
