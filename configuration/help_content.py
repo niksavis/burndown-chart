@@ -520,44 +520,29 @@ STATISTICS_HELP_DETAILED = {
         • Reduced stakeholder confidence
     """,
     "weekly_progress_data_explanation": """
-        Weekly Progress Data table provides comprehensive tracking of team velocity and scope changes.
+        Weekly Progress Data tracks delivery and scope changes week by week.
         
-        [Stats] **Table Structure:**
-        Each row represents one week of project activity with key metrics for forecasting.
+        [Stats] **What this table is:**
+        • One row = one week (Monday-Sunday)
+        • Values are weekly increments, not cumulative totals
+        • Feeds velocity, scope, and forecast calculations
         
-        [Calc] **Column Definitions:**
+        [Calc] **Columns at a glance:**
+        • Week Start (Monday): reference date for the week
+        • Items Done: completed items this week
+        • Points Done: completed effort this week (preferred for forecasting)
+        • New Items: items added to the backlog this week
+        • New Points: effort added to the backlog this week
         
-        **Week Start (Monday):**
-        • Reference date for the work week (Monday-Sunday period)
-        • Used for chronological sorting and trend analysis
-        • Should be actual calendar Monday even if team starts different day
+        [Trend] **How to read patterns:**
+        • Items/Points Done rising = improving delivery
+        • New Items/Points rising = scope growth
+        • Done consistently > New = backlog shrinking
         
-        **Items Done This Week:**
-        • Count of work items completed during this specific week
-        • Must be truly "done" items (passed testing, deployed, delivered)
-        • Incremental count (not cumulative total)
-        • Used for velocity trend analysis and PERT calculations
-        
-        **Points Done This Week:**
-        • Story points or effort units completed during this specific week
-        • Should match the estimated effort of items marked done
-        • Incremental points (not cumulative total)
-        • More accurate than item count for teams with variable item complexity
-        
-        **New Items Added:**
-        • Work items discovered, created, or added to backlog this week
-        • Includes user stories, bugs, technical debt, scope additions
-        • Tracks scope growth and requirement discovery patterns
-        • Used for scope change rate and adaptability calculations
-        
-        **New Points Added:**
-        • Estimated effort for newly added work items
-        • Represents scope impact of new requirements
-        • Used for throughput ratio and scope stability analysis
-        
-        [Trend] **Usage for Forecasting:**
-        
-        **Velocity Calculations:**
+        [Tip] **Data quality tips:**
+        • Use a consistent "done" definition
+        • Enter every week (avoid gaps)
+        • Do not enter cumulative totals
         • Average: Sum of "Items/Points Done" ÷ Number of weeks
         • Trend analysis: Percentage change between recent periods
         • PERT scenarios: Best/worst/typical performance identification
