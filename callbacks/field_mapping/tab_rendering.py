@@ -386,6 +386,16 @@ def render_tab_content(
             f"Risk={len(flow_type_mappings.get('Risk', {}).get('issue_types', []))}"
         )
 
+        # Get parent_issue_types from field_mappings.general
+        parent_issue_types = (
+            settings.get("field_mappings", {})
+            .get("general", {})
+            .get("parent_issue_types", [])
+        )
+        logger.info(
+            f"[FieldMapping] Parent issue types configured: {parent_issue_types}"
+        )
+
         return create_issue_type_config_form(
             devops_task_types=display_settings.get("devops_task_types", []),
             bug_types=display_settings.get("bug_types", []),
@@ -394,6 +404,7 @@ def render_tab_content(
             available_issue_types=available_issue_types_list,
             flow_type_mappings=flow_type_mappings,
             available_effort_categories=available_effort_categories,
+            parent_issue_types=parent_issue_types,  # NEW: Pass parent types
         ), state_data
 
     elif active_tab == "tab-status":

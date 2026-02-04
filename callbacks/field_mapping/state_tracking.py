@@ -127,6 +127,7 @@ def track_projects_tab_changes(dev_projects, devops_projects, current_state):
     Output("field-mapping-state-store", "data", allow_duplicate=True),
     Input("devops-task-types-dropdown", "value"),
     Input("bug-types-dropdown", "value"),
+    Input("parent-issue-types-dropdown", "value"),  # NEW: Parent types
     Input("flow-feature-issue-types-dropdown", "value"),
     Input("flow-feature-effort-categories-dropdown", "value"),
     Input("flow-defect-issue-types-dropdown", "value"),
@@ -142,10 +143,11 @@ def track_types_tab_changes(*args):
     """Track Types tab dropdown changes."""
     current_state = args[-1] or {}
 
-    # Map args to state keys (REMOVED story_types and task_types - deprecated)
+    # Map args to state keys (ADDED parent_issue_types)
     state_keys = [
         "devops_task_types",
         "bug_types",
+        "parent_issue_types",  # NEW: Parent types
         "flow_feature_issue_types",
         "flow_feature_effort_categories",
         "flow_defect_issue_types",
@@ -161,8 +163,8 @@ def track_types_tab_changes(*args):
         current_state[key] = (
             value if isinstance(value, list) else ([value] if value else [])
         )
-        # Log Technical Debt changes specifically
-        if key == "flow_technical_debt_issue_types" and value:
+        # Log parent_issue_types and Technical Debt changes specifically
+        if key in ("parent_issue_types", "flow_technical_debt_issue_types") and value:
             logger.info(
                 f"[FieldMapping] track_types_tab_changes: Storing {key}={value}"
             )

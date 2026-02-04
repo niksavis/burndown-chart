@@ -19,6 +19,7 @@ def create_issue_type_config_form(
     available_issue_types=None,
     flow_type_mappings=None,
     available_effort_categories=None,
+    parent_issue_types=None,  # NEW: Parent types for epic/feature hierarchy
 ):
     """
     Create issue type mapping configuration form.
@@ -31,12 +32,14 @@ def create_issue_type_config_form(
         available_issue_types: List of available issue type dictionaries from JIRA
         flow_type_mappings: Dict with Flow type mappings (Feature, Defect, etc.)
         available_effort_categories: List of effort category values from JIRA
+        parent_issue_types: List of parent issue type names (Epic, Initiative, Feature, etc.)
 
     Returns:
         Dash component with issue type configuration UI
     """
     devops_task_types = devops_task_types or []
     bug_types = bug_types or []
+    parent_issue_types = parent_issue_types or []
     available_issue_types = available_issue_types or []
     available_effort_categories = available_effort_categories or []
 
@@ -57,7 +60,7 @@ def create_issue_type_config_form(
 
     # Add current values to options if not already present (ensures they display)
     existing_types = {it.get("name", "") for it in available_issue_types}
-    for issue_type in devops_task_types + bug_types:
+    for issue_type in devops_task_types + bug_types + parent_issue_types:
         if issue_type and issue_type not in existing_types:
             issue_type_options.append({"label": issue_type, "value": issue_type})
 
@@ -99,6 +102,89 @@ def create_issue_type_config_form(
 
     return html.Div(
         [
+            # Parent Issue Types Section - NEW: At top for hierarchy configuration
+            dbc.Card(
+                [
+                    dbc.CardHeader(
+                        html.H5("Parent Issue Types", className="mb-0"),
+                        className="bg-light",
+                    ),
+                    dbc.CardBody(
+                        [
+                            html.Div(
+                                [
+                                    html.I(className="fas fa-sitemap me-2 text-info"),
+                                    html.Strong("Hierarchy Configuration"),
+                                ],
+                                className="mb-2",
+                            ),
+                            html.P(
+                                [
+                                    "Issue types that act as parents in work hierarchy (Epic, Initiative, Feature, Portfolio Epic). ",
+                                    html.Strong(
+                                        "These types are included in queries but excluded from burndown calculations."
+                                    ),
+                                ],
+                                className="text-muted small mb-3",
+                            ),
+                            dbc.Row(
+                                [
+                                    dbc.Col(
+                                        [
+                                            html.Label(
+                                                [
+                                                    html.I(
+                                                        className="fas fa-layer-group me-2 text-primary"
+                                                    ),
+                                                    "Parent Types",
+                                                ],
+                                                className="form-label fw-bold",
+                                            ),
+                                            html.P(
+                                                "Select issue types that represent parents (not included in velocity/burndown)",
+                                                className="text-muted small mb-2",
+                                            ),
+                                        ],
+                                        width=12,
+                                        md=4,
+                                    ),
+                                    dbc.Col(
+                                        [
+                                            dcc.Dropdown(
+                                                id="parent-issue-types-dropdown",
+                                                options=issue_type_options,  # type: ignore
+                                                value=parent_issue_types,
+                                                multi=True,
+                                                placeholder="Select parent types (e.g., Epic, Initiative, Feature)...",
+                                                className="mb-2",
+                                                clearable=True,
+                                                searchable=True,
+                                                optionHeight=50,
+                                                maxHeight=300,
+                                            ),
+                                            html.Small(
+                                                [
+                                                    html.I(
+                                                        className="fas fa-info-circle me-1 text-info"
+                                                    ),
+                                                    "Common: Epic, Initiative, Feature. ",
+                                                    "Parent issues will be fetched in the same query as child issues for complete data, ",
+                                                    "but filtered from metrics calculations.",
+                                                ],
+                                                className="text-muted",
+                                            ),
+                                        ],
+                                        width=12,
+                                        md=8,
+                                    ),
+                                ],
+                                className="mb-2",
+                            ),
+                        ]
+                    ),
+                ],
+                className="mb-3",
+            ),
             # DORA Metrics Section - Card containing all DORA type configs
             dbc.Card(
                 [

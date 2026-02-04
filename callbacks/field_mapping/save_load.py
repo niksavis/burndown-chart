@@ -393,6 +393,20 @@ def save_or_validate_mappings(namespace_values, state_data):
                 "[FieldMapping] Field mappings not found in state - state may be empty"
             )
 
+        # CRITICAL: Add parent_issue_types to field_mappings.general (from Types tab dropdown)
+        # This enables query_builder to include parent types in JQL query
+        if "parent_issue_types" in state_data:
+            if "field_mappings" not in settings:
+                settings["field_mappings"] = {}
+            if "general" not in settings["field_mappings"]:
+                settings["field_mappings"]["general"] = {}
+            settings["field_mappings"]["general"]["parent_issue_types"] = state_data[
+                "parent_issue_types"
+            ]
+            logger.info(
+                f"[FieldMapping] Saved parent_issue_types to field_mappings.general: {state_data['parent_issue_types']}"
+            )
+
         # Read from nested project_classification structure (NEW format from auto-configure)
         if "project_classification" in state_data:
             proj_class = state_data["project_classification"]
@@ -412,13 +426,19 @@ def save_or_validate_mappings(namespace_values, state_data):
         # Fallback: Also check old flat keys for backward compatibility
         if "development_projects" in state_data:
             settings["development_projects"] = state_data["development_projects"]
-            logger.info(f"[FieldMapping DEBUG] Found development_projects in state: {settings['development_projects']}")
+            logger.info(
+                f"[FieldMapping DEBUG] Found development_projects in state: {settings['development_projects']}"
+            )
         if "devops_projects" in state_data:
             settings["devops_projects"] = state_data["devops_projects"]
-            logger.info(f"[FieldMapping DEBUG] Found devops_projects in state: {settings['devops_projects']}")
-        
+            logger.info(
+                f"[FieldMapping DEBUG] Found devops_projects in state: {settings['devops_projects']}"
+            )
+
         # CRITICAL DEBUG: Log what will be saved
-        logger.info(f"[FieldMapping DEBUG] About to save - development_projects: {settings.get('development_projects', [])}, devops_projects: {settings.get('devops_projects', [])}")
+        logger.info(
+            f"[FieldMapping DEBUG] About to save - development_projects: {settings.get('development_projects', [])}, devops_projects: {settings.get('devops_projects', [])}"
+        )
         if "flow_end_statuses" in state_data:
             settings["flow_end_statuses"] = state_data["flow_end_statuses"]
         if "active_statuses" in state_data:

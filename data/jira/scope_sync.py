@@ -72,6 +72,23 @@ def sync_jira_scope_and_data(
         if not is_valid:
             return False, f"Configuration invalid: {message}", {}
 
+        # Modify JQL to include parent issue types (Epic, Initiative, etc.)
+        # Parent types are fetched but excluded from calculations via parent_filter.py
+        from data.jira.query_builder import (
+            build_jql_with_parent_types,
+            extract_parent_types_from_config,
+        )
+
+        parent_types = extract_parent_types_from_config(config)
+        if parent_types:
+            original_jql = config.get("jql_query", "")
+            modified_jql = build_jql_with_parent_types(original_jql, parent_types)
+            config["jql_query"] = modified_jql
+            logger.info(
+                f"[Sync] Modified JQL to include {len(parent_types)} parent type(s): "
+                f"{', '.join(parent_types)}"
+            )
+
         # Validate cache file
         if not validate_cache_file(max_size_mb=config["cache_max_size_mb"]):
             return False, "Cache file validation failed", {}
@@ -207,22 +224,46 @@ def sync_jira_scope_and_data(
 
         # PARENT FETCH: Get parent issues referenced by children for display (NOT counted in metrics)
         # Parents are stored in database but filtered from calculations using parent_filter.py
+        # DEPRECATED: Parent types now included in main query via query_builder.py
+        # This code kept for backward compatibility when parent_issue_types not configured.
         try:
             logger.info("[PARENT] Starting parent fetch...")
-            from data.jira.epic_fetch import fetch_epics_for_display
-            
-            logger.info(f"[PARENT] Calling fetch_epics_for_display with {len(issues)} issues")
-            parents = fetch_epics_for_display(issues, config)
-            if parents:
-                logger.info(f"[PARENT] Fetched {len(parents)} parent issues for display")
-                # Add parents to issues list - they'll be stored in database
-                # CRITICAL: All calculation code must use parent_filter.py to filter them out
-                issues.extend(parents)
-                logger.info(f"[PARENT] Extended issues list to {len(issues)} total (includes {len(parents)} parents)")
+            from data.jira.query_builder import extract_parent_types_from_config
+
+            parent_types = extract_parent_types_from_config(config)
+
+            if not parent_types:
+                # Legacy behavior: Fetch parent issues via separate API call
+                # This runs only when parent_issue_types not configured
+                from data.jira.epic_fetch import fetch_epics_for_display
+
+                logger.info(
+                    f"[PARENT] Calling fetch_epics_for_display (legacy) with {len(issues)} issues"
+                )
+                parents = fetch_epics_for_display(issues, config)
+                if parents:
+                    logger.info(
+                        f"[PARENT] Fetched {len(parents)} parent issues for display (legacy path)"
+                    )
+                    # Add parents to issues list - they'll be stored in database
+                    # CRITICAL: All calculation code must use parent_filter.py to filter them out
+                    issues.extend(parents)
+                    logger.info(
+                        f"[PARENT] Extended issues list to {len(issues)} total (includes {len(parents)} parents)"
+                    )
+                else:
+                    logger.info("[PARENT] No parent issues to fetch (legacy)")
             else:
-                logger.info("[PARENT] No parent issues to fetch")
+                # New behavior: Parent types already included in main query
+                logger.info(
+                    f"[PARENT] Skipping separate parent fetch - {len(parent_types)} parent "
+                    f"type(s) already included in main query: {', '.join(parent_types)}"
+                )
         except Exception as e:
-            logger.error(f"[PARENT] Failed to fetch parent issues (non-fatal): {e}", exc_info=True)
+            logger.error(
+                f"[PARENT] Failed to fetch parent issues (non-fatal): {e}",
+                exc_info=True,
+            )
             # Continue without parents - they're for display only
 
         # Update progress: Issues fetched, now starting changelog
@@ -414,26 +455,26 @@ def sync_jira_scope_and_data(
         # CRITICAL: Filter out parent issues dynamically based on parent field mapping
         # Parents stored for display (Active Work Timeline) but excluded from ALL calculations
         # Don't hardcode "Epic" - use parent field to detect what keys are parents
-        parent_field = config.get("field_mappings", {}).get("general", {}).get("parent_field")
+        parent_field = (
+            config.get("field_mappings", {}).get("general", {}).get("parent_field")
+        )
         if parent_field:
             from data.parent_filter import filter_parent_issues
-            
-            issues = filter_parent_issues(
-                issues,
-                parent_field,
-                log_prefix="JIRA SYNC"
-            )
+
+            issues = filter_parent_issues(issues, parent_field, log_prefix="JIRA SYNC")
 
         # CRITICAL: Filter to only configured development project issues for burndown/velocity/statistics
         # DevOps issues are ONLY used for DORA metrics metadata extraction
         development_projects = config.get("development_projects", [])
         devops_projects = config.get("devops_projects", [])
-        
+
         if development_projects or devops_projects:
             from data.project_filter import filter_development_issues
 
             total_issues_count = len(issues)
-            issues_for_metrics = filter_development_issues(issues, development_projects, devops_projects)
+            issues_for_metrics = filter_development_issues(
+                issues, development_projects, devops_projects
+            )
             filtered_count = total_issues_count - len(issues_for_metrics)
 
             if filtered_count > 0:
