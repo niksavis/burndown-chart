@@ -165,7 +165,7 @@ def create_active_work_legend() -> dbc.Alert:
             placement="top",
         ),
         dbc.Tooltip(
-            "Epic is blocked when any child issue is blocked (status unchanged for 5+ days)",
+            "Epic is idle when any child issue is blocked (status unchanged for 5+ days)",
             target="legend-epic-blocked",
             placement="top",
         ),
@@ -195,7 +195,7 @@ def create_active_work_legend() -> dbc.Alert:
         legend_tooltips
         + [
             html.Strong("Status Groups:", className="me-3"),
-            html.Span("Blocked", className="badge bg-danger me-2", id="legend-blocked"),
+            html.Span("Idle", className="badge bg-danger me-2", id="legend-blocked"),
             html.Span(
                 "Aging",
                 className="badge bg-warning text-dark me-2",
@@ -224,7 +224,7 @@ def create_active_work_legend() -> dbc.Alert:
                 "done", "#28a745", badge_id="legend-epic-done"
             ),
             create_status_indicator_badge(
-                "idle", "#5c636a", badge_id="legend-epic-idle"
+                "idle", "#c65f5f", badge_id="legend-epic-idle"
             ),
             html.Span(
                 "12",

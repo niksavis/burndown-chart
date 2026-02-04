@@ -100,13 +100,13 @@ def create_nested_epic_timeline(
 
         if epic_key == "No Parent":
             status_key = "idle"
-            status_color = "#5c636a"
+            status_color = "#c65f5f"
         elif completion_pct == 100:
             status_key = "done"
             status_color = "#28a745"
         elif blocked_issues:
-            status_key = "blocked"
-            status_color = "#b02a37"
+            status_key = "idle"
+            status_color = "#c65f5f"
         elif aging_issues:
             status_key = "aging"
             status_color = "#ffc107"
@@ -115,7 +115,7 @@ def create_nested_epic_timeline(
             status_color = "#007bff"
         else:
             status_key = "idle"
-            status_color = "#5c636a"
+            status_color = "#c65f5f"
 
         epic_key_badge = (
             create_issue_key_badge(epic_key) if epic_key != "No Parent" else None
@@ -181,7 +181,7 @@ def create_nested_epic_timeline(
                                 html.Div(
                                     [
                                         html.Span(
-                                            f"{len(blocked_issues)} Blocked",
+                                            f"{len(blocked_issues)} Idle",
                                             className="badge bg-danger me-2",
                                         )
                                         if blocked_issues
