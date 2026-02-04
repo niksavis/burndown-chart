@@ -413,6 +413,7 @@ def _build_jira_config(jira_config, settings_jql, app_settings):
         else "",
         "cache_max_size_mb": jira_config.get("cache_size_mb", 100),
         "max_results": jira_config.get("max_results_per_call", 1000),
+        "development_projects": app_settings.get("development_projects", []),
         "devops_projects": app_settings.get("devops_projects", []),
         "devops_task_types": app_settings.get("devops_task_types", []),
         "field_mappings": app_settings.get("field_mappings", {}),
