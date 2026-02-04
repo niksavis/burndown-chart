@@ -64,7 +64,7 @@ def create_statistics_data_card(current_statistics) -> dbc.Card:
         tooltip_id="statistics-data",
         tooltip_text="Weekly tracking of completed and newly created work items and story points. Each Monday date represents work done during that week (Monday through Sunday). This data drives all velocity calculations and forecasting.",
         help_key="weekly_progress_data_explanation",
-        help_category="dashboard",
+        help_category="statistics",
     )
 
     # Ensure required columns exist in the DataFrame
