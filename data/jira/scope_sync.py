@@ -46,6 +46,13 @@ def sync_jira_scope_and_data(
     from data.persistence import save_jira_data_unified
 
     try:
+        # CRITICAL: Log function entry to verify code is being executed
+        logger.warning("=" * 80)
+        logger.warning(
+            "[SCOPE_SYNC] sync_jira_scope_and_data STARTED - CODE VERSION 2026-02-04"
+        )
+        logger.warning("=" * 80)
+
         # Update progress to show we're starting
         try:
             TaskProgress.update_progress(
