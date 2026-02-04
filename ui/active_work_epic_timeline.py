@@ -181,31 +181,46 @@ def create_nested_epic_timeline(
                                 html.Div(
                                     [
                                         html.Span(
-                                            f"{len(blocked_issues)} Idle",
+                                            [
+                                                html.I(className="fas fa-xmark me-1"),
+                                                f"{len(blocked_issues)} Idle",
+                                            ],
                                             className="badge bg-danger me-2",
                                         )
                                         if blocked_issues
                                         else None,
                                         html.Span(
-                                            f"{len(aging_issues)} Aging",
+                                            [
+                                                html.I(className="fas fa-clock me-1"),
+                                                f"{len(aging_issues)} Aging",
+                                            ],
                                             className="badge bg-warning text-dark me-2",
                                         )
                                         if aging_issues
                                         else None,
                                         html.Span(
-                                            f"{len(wip_issues)} In Progress",
+                                            [
+                                                html.I(className="fas fa-spinner me-1"),
+                                                f"{len(wip_issues)} In Progress",
+                                            ],
                                             className="badge bg-info text-dark me-2",
                                         )
                                         if wip_issues
                                         else None,
                                         html.Span(
-                                            f"{len(todo_issues)} To Do",
+                                            [
+                                                html.I(className="fas fa-circle me-1"),
+                                                f"{len(todo_issues)} To Do",
+                                            ],
                                             className="badge bg-secondary me-2",
                                         )
                                         if todo_issues
                                         else None,
                                         html.Span(
-                                            f"{len(done_issues)} Done",
+                                            [
+                                                html.I(className="fas fa-check me-1"),
+                                                f"{len(done_issues)} Done",
+                                            ],
                                             className="badge bg-success",
                                         )
                                         if done_issues
@@ -252,10 +267,24 @@ def _create_status_section(
 
     issue_rows = [create_compact_issue_row(issue, show_points) for issue in issues]
 
+    icon_map = {
+        "Idle": "fas fa-xmark",
+        "Aging": "fas fa-clock",
+        "In Progress": "fas fa-spinner",
+        "To Do": "fas fa-circle",
+        "Done": "fas fa-check",
+    }
+    icon_class = icon_map.get(title, "fas fa-circle")
+
     return html.Div(
         [
             html.H6(
-                title, className=f"text-{color} mb-2 mt-2", style={"fontSize": "0.9rem"}
+                [
+                    html.I(className=f"{icon_class} me-1"),
+                    title,
+                ],
+                className=f"text-{color} mb-2 mt-2",
+                style={"fontSize": "0.9rem"},
             ),
             html.Div(issue_rows, className="ms-3"),
         ],
