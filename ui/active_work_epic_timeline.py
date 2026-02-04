@@ -96,37 +96,33 @@ def create_nested_epic_timeline(
             if i.get("health_indicators", {}).get("is_completed")
         ]
 
+        default_open = False
+
         if epic_key == "No Parent":
-            status_icon = "○"
-            status_color = "#6c757d"
-            default_open = True
+            status_key = "idle"
+            status_color = "#5c636a"
         elif completion_pct == 100:
-            status_icon = "✓"
+            status_key = "done"
             status_color = "#28a745"
-            default_open = False
         elif blocked_issues:
-            status_icon = "●"
-            status_color = "#dc3545"
-            default_open = True
+            status_key = "blocked"
+            status_color = "#b02a37"
         elif aging_issues:
-            status_icon = "◐"
+            status_key = "aging"
             status_color = "#ffc107"
-            default_open = True
         elif wip_issues:
-            status_icon = "◐"
+            status_key = "wip"
             status_color = "#007bff"
-            default_open = True
         else:
-            status_icon = "○"
-            status_color = "#6c757d"
-            default_open = True
+            status_key = "idle"
+            status_color = "#5c636a"
 
         epic_key_badge = (
             create_issue_key_badge(epic_key) if epic_key != "No Parent" else None
         )
         count_badge = create_issue_count_badge(visible_total)
         points_badge = create_points_badge(total_points, show_points)
-        status_badge = create_status_indicator_badge(status_icon, status_color)
+        status_badge = create_status_indicator_badge(status_key, status_color)
 
         issue_sections = []
         if blocked_issues:
@@ -166,6 +162,10 @@ def create_nested_epic_timeline(
                                             epic_summary,
                                             className="active-work-epic-summary",
                                         ),
+                                        html.Span(
+                                            "▾",
+                                            className="active-work-epic-arrow",
+                                        ),
                                     ],
                                     className="d-flex align-items-center mb-2 active-work-epic-title-row",
                                 ),
@@ -193,7 +193,7 @@ def create_nested_epic_timeline(
                                         if aging_issues
                                         else None,
                                         html.Span(
-                                            f"{len(wip_issues)} WIP",
+                                            f"{len(wip_issues)} In Progress",
                                             className="badge bg-info text-dark me-2",
                                         )
                                         if wip_issues

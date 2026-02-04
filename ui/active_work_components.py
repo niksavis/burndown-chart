@@ -72,26 +72,49 @@ def create_issue_count_badge(count: int) -> html.Span:
 
 
 def create_status_indicator_badge(
-    symbol: str, color: str, badge_id: Optional[str] = None
+    status_key: str, color: str, badge_id: Optional[str] = None
 ) -> html.Span:
     """Create badge for epic status indicator.
 
     Args:
-        symbol: Status symbol to display
-        color: Background color for the badge
+        status_key: Status key for icon selection
+        color: Icon color for the badge
         badge_id: Optional DOM id for tooltip targeting
 
     Returns:
         Badge span
     """
+    icon_class = _get_status_icon_class(status_key)
     badge_kwargs = {
         "className": "active-work-status-badge",
-        "style": {"backgroundColor": color},
+        "style": {"color": color},
     }
     if badge_id:
         badge_kwargs["id"] = badge_id
 
-    return html.Span(symbol, **badge_kwargs)
+    return html.Span(
+        html.I(className=icon_class),
+        **badge_kwargs,
+    )
+
+
+def _get_status_icon_class(status_key: str) -> str:
+    """Map status key to a font-awesome icon class.
+
+    Args:
+        status_key: Status key used by active work logic.
+
+    Returns:
+        Font Awesome class string.
+    """
+    status_map = {
+        "blocked": "fas fa-xmark",
+        "aging": "fas fa-clock",
+        "wip": "fas fa-spinner",
+        "done": "fas fa-check",
+        "idle": "fas fa-minus",
+    }
+    return status_map.get(status_key, "fas fa-minus")
 
 
 def create_active_work_legend() -> dbc.Alert:
@@ -142,8 +165,28 @@ def create_active_work_legend() -> dbc.Alert:
             placement="top",
         ),
         dbc.Tooltip(
-            "Epic status indicator (blocked, aging, in progress, done)",
-            target="legend-epic-status",
+            "Epic is blocked when any child issue is blocked (status unchanged for 5+ days)",
+            target="legend-epic-blocked",
+            placement="top",
+        ),
+        dbc.Tooltip(
+            "Epic is aging when any child issue is aging (status unchanged 3-5 days) and none are blocked",
+            target="legend-epic-aging",
+            placement="top",
+        ),
+        dbc.Tooltip(
+            "Epic is in progress when any child issue is in progress (status changed in last 2 days) and none are blocked or aging",
+            target="legend-epic-wip",
+            placement="top",
+        ),
+        dbc.Tooltip(
+            "Epic is done when 100% of child issues are completed",
+            target="legend-epic-done",
+            placement="top",
+        ),
+        dbc.Tooltip(
+            "Epic is idle when no blocked, aging, in progress, or completed signal applies",
+            target="legend-epic-idle",
             placement="top",
         ),
     ]
@@ -171,7 +214,17 @@ def create_active_work_legend() -> dbc.Alert:
             html.Span("Done", className="badge bg-success me-4", id="legend-done"),
             html.Strong("Signals:", className="me-3"),
             create_status_indicator_badge(
-                "◐", "#6c757d", badge_id="legend-epic-status"
+                "blocked", "#b02a37", badge_id="legend-epic-blocked"
+            ),
+            create_status_indicator_badge(
+                "aging", "#ffc107", badge_id="legend-epic-aging"
+            ),
+            create_status_indicator_badge("wip", "#007bff", badge_id="legend-epic-wip"),
+            create_status_indicator_badge(
+                "done", "#28a745", badge_id="legend-epic-done"
+            ),
+            create_status_indicator_badge(
+                "idle", "#5c636a", badge_id="legend-epic-idle"
             ),
             html.Span(
                 "12",
@@ -183,7 +236,11 @@ def create_active_work_legend() -> dbc.Alert:
                 className="active-work-points-badge me-2",
                 id="legend-points",
             ),
-            create_issue_key_badge("ABC-123", badge_id="legend-issue-key"),
+            html.Span(
+                "ABC-123",
+                className="active-work-key-badge",
+                id="legend-issue-key",
+            ),
         ],
         color="light",
         className="mb-3 py-2 active-work-legend",

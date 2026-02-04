@@ -119,7 +119,7 @@ def _render_active_work_timeline_content(
                 flow_wip_statuses=flow_wip_statuses if flow_wip_statuses else None,
                 filter_parents=True,  # Filter out parent issues from child calculations
             )
-            logger.info(f"[ACTIVE WORK] get_active_work_data returned successfully")
+            logger.info("[ACTIVE WORK] get_active_work_data returned successfully")
         except Exception as e:
             logger.error(
                 f"[ACTIVE WORK] Error in get_active_work_data: {e}", exc_info=True
@@ -158,14 +158,38 @@ def _render_active_work_timeline_content(
                         # Header
                         html.Div(
                             [
-                                html.H3(
+                                html.Div(
                                     [
-                                        html.I(
-                                            className="fas fa-project-diagram me-2 text-primary"
+                                        html.H3(
+                                            [
+                                                html.I(
+                                                    className="fas fa-project-diagram me-2 text-primary"
+                                                ),
+                                                "Active Work Timeline",
+                                            ],
+                                            className="mb-2",
                                         ),
-                                        "Active Work Timeline",
+                                        html.Button(
+                                            [
+                                                html.I(
+                                                    className="fas fa-expand-arrows-alt me-2"
+                                                ),
+                                                html.Span(
+                                                    "Expand all",
+                                                    id="active-work-toggle-label",
+                                                ),
+                                            ],
+                                            id="active-work-toggle-all",
+                                            className=(
+                                                "btn btn-sm btn-outline-secondary "
+                                                "active-work-toggle-btn"
+                                            ),
+                                            type="button",
+                                        ),
                                     ],
-                                    className="mb-2",
+                                    className=(
+                                        "d-flex align-items-start justify-content-between"
+                                    ),
                                 ),
                                 html.P(
                                     (
