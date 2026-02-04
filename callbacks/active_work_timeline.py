@@ -146,8 +146,17 @@ def _render_active_work_timeline_content(
         logger.info(f"Found {len(timeline)} epics with {total_issues} total issues")
 
         # Create nested epic timeline
+        summary_text = (
+            f"Showing {len(timeline)} epics with {total_issues} issues "
+            f"(last {data_points_count} week"
+            f"{'s' if data_points_count != 1 else ''})"
+        )
+
         timeline_content = create_nested_epic_timeline(
-            timeline, show_points, parent_field_configured
+            timeline,
+            show_points,
+            parent_field_configured,
+            summary_text,
         )
 
         # Assemble layout
@@ -155,52 +164,6 @@ def _render_active_work_timeline_content(
             [
                 dbc.Container(
                     [
-                        # Header
-                        html.Div(
-                            [
-                                html.Div(
-                                    [
-                                        html.H3(
-                                            [
-                                                html.I(
-                                                    className="fas fa-project-diagram me-2 text-primary"
-                                                ),
-                                                "Active Work Timeline",
-                                            ],
-                                            className="mb-2",
-                                        ),
-                                        html.Button(
-                                            [
-                                                html.I(
-                                                    className="fas fa-expand-arrows-alt me-2"
-                                                ),
-                                                html.Span(
-                                                    "Expand all",
-                                                    id="active-work-toggle-label",
-                                                ),
-                                            ],
-                                            id="active-work-toggle-all",
-                                            className=(
-                                                "btn btn-sm btn-outline-secondary "
-                                                "active-work-toggle-btn"
-                                            ),
-                                            type="button",
-                                        ),
-                                    ],
-                                    className=(
-                                        "d-flex align-items-start justify-content-between"
-                                    ),
-                                ),
-                                html.P(
-                                    (
-                                        f"Showing {len(timeline)} epics with {total_issues} issues "
-                                        f"(last {data_points_count} week"
-                                        f"{'s' if data_points_count != 1 else ''})"
-                                    ),
-                                    className="text-muted mb-4",
-                                ),
-                            ]
-                        ),
                         # Nested epic timeline
                         timeline_content,
                     ],

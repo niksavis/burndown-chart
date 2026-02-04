@@ -13,6 +13,21 @@
   transform: none;
 }
 
+.active-work-legend-header {
+  width: 100%;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.active-work-legend-summary {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #495057;
+}
+
 .active-work-legend:hover {
   box-shadow: none;
   transform: none;

@@ -21,6 +21,7 @@ def create_nested_epic_timeline(
     timeline: List[Dict],
     show_points: bool = False,
     parent_field_configured: bool = True,
+    summary_text: str | None = None,
 ) -> html.Div:
     """Create nested epic timeline with compact issue lists under each epic.
 
@@ -40,7 +41,7 @@ def create_nested_epic_timeline(
             ]
         )
 
-    legend = create_active_work_legend()
+    legend = create_active_work_legend(summary_text)
 
     epic_sections: List = [legend]
 

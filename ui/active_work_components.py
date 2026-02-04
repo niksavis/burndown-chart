@@ -117,7 +117,9 @@ def _get_status_icon_class(status_key: str) -> str:
     return status_map.get(status_key, "fas fa-minus")
 
 
-def create_active_work_legend() -> html.Div:
+def create_active_work_legend(
+    summary_text: Optional[str] = None, include_toggle: bool = True
+) -> html.Div:
     """Create legend for Active Work badges and status groups.
 
     Returns:
@@ -288,11 +290,34 @@ def create_active_work_legend() -> html.Div:
         ),
     ]
 
+    header_row = None
+    if summary_text:
+        header_row = html.Div(
+            [
+                html.Span(summary_text, className="active-work-legend-summary"),
+                html.Button(
+                    [
+                        html.I(className="fas fa-expand-arrows-alt me-2"),
+                        html.Span("Expand all", id="active-work-toggle-label"),
+                    ],
+                    id="active-work-toggle-all",
+                    className=(
+                        "btn btn-sm btn-outline-secondary active-work-toggle-btn"
+                    ),
+                    type="button",
+                )
+                if include_toggle
+                else None,
+            ],
+            className="active-work-legend-header",
+        )
+
     return html.Div(
         legend_tooltips
         + [
             html.Div(
                 [
+                    header_row,
                     html.Div(status_badges, className="active-work-legend-row"),
                     html.Div(signal_badges, className="active-work-legend-row"),
                 ],
