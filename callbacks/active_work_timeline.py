@@ -20,11 +20,11 @@ def _render_active_work_timeline_content(
 
     Structure:
     1. Epic Timeline with nested issues (sorted: Blocked/WIP → To Do → Completed)
-    2. Issues filtered by data_points_count date range
+    2. Issues filtered by data_points_count week range
 
     Args:
         show_points: Whether to show story points metrics
-        data_points_count: Number of days to look back (from Data Points slider)
+        data_points_count: Number of weeks to look back (from Data Points slider)
 
     Returns:
         Div containing nested epic timeline

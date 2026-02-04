@@ -6,12 +6,20 @@
   align-items: center;
   gap: 0.35rem;
   box-shadow: none;
+  transform: none;
   transition: none;
 }
 
 .active-work-legend:hover {
   box-shadow: none;
   transform: none;
+}
+
+.active-work-legend.alert,
+.active-work-legend.alert:hover {
+  box-shadow: none;
+  transform: none;
+  transition: none;
 }
 
 .active-work-toggle-btn {

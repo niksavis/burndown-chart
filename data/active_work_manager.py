@@ -15,7 +15,7 @@ Key Functions:
 
 import logging
 from typing import Dict, List, Optional
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from collections import defaultdict
 
 logger = logging.getLogger(__name__)
@@ -30,12 +30,12 @@ def filter_active_issues(
     """Filter issues to data points date range.
 
     Returns:
-    - All issues with activity (created or updated) within data_points_count days
+    - All issues with activity (created or updated) within data_points_count weeks
     - Includes both WIP and completed issues
 
     Args:
         issues: List of JIRA issues
-        data_points_count: Number of days to look back (from Data Points slider)
+        data_points_count: Number of weeks to look back (from Data Points slider)
         flow_end_statuses: Completion statuses
         flow_wip_statuses: WIP statuses
 
@@ -50,10 +50,10 @@ def filter_active_issues(
         flow_wip_statuses = ["In Progress", "In Review", "Testing", "To Do", "Backlog"]
 
     now = datetime.now(timezone.utc)
-    cutoff_date = now - timedelta(days=data_points_count)
+    cutoff_date = now - timedelta(weeks=data_points_count)
 
     logger.info(
-        f"Filtering issues with activity since {cutoff_date.date()} ({data_points_count} days)"
+        f"Filtering issues with activity since {cutoff_date.date()} ({data_points_count} weeks)"
     )
 
     filtered_issues = []
@@ -83,14 +83,18 @@ def filter_active_issues(
                     updated_dt = updated_dt.replace(tzinfo=timezone.utc)
 
             # Include if created or updated within data points range
-            if (created_dt and created_dt >= cutoff_date) or (updated_dt and updated_dt >= cutoff_date):
+            if (created_dt and created_dt >= cutoff_date) or (
+                updated_dt and updated_dt >= cutoff_date
+            ):
                 filtered_issues.append(issue)
 
         except (ValueError, AttributeError) as e:
             logger.warning(f"Failed to parse date for {issue.get('issue_key')}: {e}")
             continue
 
-    logger.info(f"Filtered to {len(filtered_issues)} issues within {data_points_count} days")
+    logger.info(
+        f"Filtered to {len(filtered_issues)} issues within {data_points_count} weeks"
+    )
 
     return filtered_issues
 
@@ -124,7 +128,7 @@ def get_active_work_data(
 
     Args:
         issues: List of JIRA issues
-        data_points_count: Number of days to look back (from Data Points slider)
+        data_points_count: Number of weeks to look back (from Data Points slider)
         parent_field: Field name for parent/epic
         flow_end_statuses: Completion statuses
         flow_wip_statuses: WIP statuses
@@ -133,25 +137,34 @@ def get_active_work_data(
     Returns:
         Dict with nested epic timeline
     """
-    logger.info(f"[ACTIVE WORK MGR] Building active work data from {len(issues)} issues")
-    logger.info(f"[ACTIVE WORK MGR] data_points_count={data_points_count}, parent_field={parent_field}")
+    logger.info(
+        f"[ACTIVE WORK MGR] Building active work data from {len(issues)} issues"
+    )
+    logger.info(
+        f"[ACTIVE WORK MGR] data_points_count={data_points_count}, parent_field={parent_field}"
+    )
 
-    # Keep original issues list (including parents) for parent summary lookup
-    all_issues_unfiltered = issues
+    # Filter to date range first (includes parents + children)
+    filtered_all_issues = filter_active_issues(
+        issues, data_points_count, flow_end_statuses, flow_wip_statuses
+    )
+
+    # Keep filtered issues list (including parents) for parent summary lookup
+    all_issues_unfiltered = filtered_all_issues
 
     # CRITICAL: Filter out parent issues dynamically (don't hardcode "Epic")
     # Use parent field mapping to detect which issues are parents
+    filtered_issues = filtered_all_issues
     if filter_parents and parent_field:
         from data.parent_filter import filter_parent_issues
-        
-        issues = filter_parent_issues(issues, parent_field, log_prefix="ACTIVE WORK MGR")
 
-    # Filter to date range
-    filtered_issues = filter_active_issues(
-        issues, data_points_count, flow_end_statuses, flow_wip_statuses
+        filtered_issues = filter_parent_issues(
+            filtered_all_issues, parent_field, log_prefix="ACTIVE WORK MGR"
+        )
+
+    logger.info(
+        f"[ACTIVE WORK MGR] After filtering: {len(filtered_issues)} issues within {data_points_count} weeks"
     )
-    
-    logger.info(f"[ACTIVE WORK MGR] After filtering: {len(filtered_issues)} issues within {data_points_count} days")
 
     if not filtered_issues:
         logger.warning("[ACTIVE WORK MGR] No issues found after filtering")
@@ -168,8 +181,14 @@ def get_active_work_data(
     # Build epic timeline with nested issues
     # Pass unfiltered list so we can find parent summaries
     timeline = _build_epic_timeline(
-        issues_with_health, backend, profile_id, query_id, parent_field, flow_end_statuses, flow_wip_statuses,
-        all_issues_unfiltered
+        issues_with_health,
+        backend,
+        profile_id,
+        query_id,
+        parent_field,
+        flow_end_statuses,
+        flow_wip_statuses,
+        all_issues_unfiltered,
     )
 
     return {"timeline": timeline}
@@ -302,7 +321,7 @@ def _add_health_indicators(
     now = datetime.now(timezone.utc)
     status = issue.get("status", "Unknown")
     is_completed = status in flow_end_statuses
-    
+
     # Check if in WIP status
     is_in_wip_status = _is_wip_status_check(status, flow_wip_statuses)
 
@@ -324,12 +343,12 @@ def _add_health_indicators(
                     issue_key=issue_key,
                     field_name="status",
                 )
-                
+
                 if changelog:
                     # Get most recent status change
                     latest_change = changelog[0]  # Already ordered by change_date DESC
                     change_date_str = latest_change.get("change_date")
-                    
+
                     if change_date_str:
                         try:
                             if change_date_str.endswith("Z"):
@@ -337,9 +356,9 @@ def _add_health_indicators(
                             change_dt = datetime.fromisoformat(change_date_str)
                             if change_dt.tzinfo is None:
                                 change_dt = change_dt.replace(tzinfo=timezone.utc)
-                            
+
                             days_since_status_change = (now - change_dt).days
-                            
+
                             # Apply new logic based on status change velocity
                             if days_since_status_change >= 5:
                                 is_blocked = True  # Stuck for 5+ days
@@ -347,9 +366,11 @@ def _add_health_indicators(
                                 is_aging = True  # Approaching blocked (3-5 days)
                             elif is_in_wip_status and days_since_status_change <= 2:
                                 is_wip = True  # Active work (changed recently)
-                                
+
                         except (ValueError, AttributeError) as e:
-                            logger.debug(f"Could not parse status change date for {issue_key}: {e}")
+                            logger.debug(
+                                f"Could not parse status change date for {issue_key}: {e}"
+                            )
                 else:
                     # No status changes in changelog - use created date as fallback
                     created_str = issue.get("created")
@@ -361,14 +382,14 @@ def _add_health_indicators(
                             if created_dt.tzinfo is None:
                                 created_dt = created_dt.replace(tzinfo=timezone.utc)
                             days_since_created = (now - created_dt).days
-                            
+
                             if days_since_created >= 5:
                                 is_blocked = True
                             elif days_since_created >= 3:
                                 is_aging = True
                         except (ValueError, AttributeError):
                             pass
-                            
+
         except Exception as e:
             logger.warning(f"Failed to get changelog for {issue.get('issue_key')}: {e}")
             # Fallback to old logic if changelog fails
@@ -388,21 +409,28 @@ def _add_health_indicators(
 
 def _is_wip_status_check(status: str, flow_wip_statuses: List[str]) -> bool:
     """Check if status is work-in-progress.
-    
+
     Args:
         status: Issue status
         flow_wip_statuses: List of configured WIP statuses
-        
+
     Returns:
         True if status is considered WIP
     """
     # First check configured WIP statuses
     if flow_wip_statuses and status in flow_wip_statuses:
         return True
-    
+
     # Fallback: check for WIP keywords in status name
     status_lower = status.lower()
-    wip_keywords = ["progress", "review", "testing", "development", "deployment", "deploying"]
+    wip_keywords = [
+        "progress",
+        "review",
+        "testing",
+        "development",
+        "deployment",
+        "deploying",
+    ]
     return any(kw in status_lower for kw in wip_keywords)
 
 
@@ -444,9 +472,9 @@ def _build_epic_timeline(
             # Check in custom_fields dict for JIRA custom fields
             custom_fields = issue.get("custom_fields", {})
             parent = custom_fields.get(parent_field)
-        
+
         parent_key = None
-        
+
         if parent:
             if isinstance(parent, dict):
                 # Parent is dict like {"key": "PROJ-123", "summary": "Epic Name"}
@@ -454,7 +482,7 @@ def _build_epic_timeline(
             elif isinstance(parent, str):
                 # Parent is string like "PROJ-123"
                 parent_key = parent
-        
+
         if not parent_key:
             parent_key = "No Parent"
 
@@ -478,36 +506,69 @@ def _build_epic_timeline(
             if not parent and parent_field.startswith("customfield_"):
                 custom_fields = first_issue.get("custom_fields", {})
                 parent = custom_fields.get(parent_field)
-            
-            logger.debug(f"[EPIC] epic_key={epic_key}, parent type: {type(parent)}, value: {parent}")
-            
+
+            logger.debug(
+                f"[EPIC] epic_key={epic_key}, parent type: {type(parent)}, value: {parent}"
+            )
+
             if isinstance(parent, dict):
                 # Extract summary from parent dict (try multiple paths)
-                epic_summary = parent.get("summary") or parent.get("fields", {}).get("summary") or parent.get("name") or epic_key
+                epic_summary = (
+                    parent.get("summary")
+                    or parent.get("fields", {}).get("summary")
+                    or parent.get("name")
+                    or epic_key
+                )
                 logger.debug(f"[EPIC] From parent dict: {epic_summary}")
             elif isinstance(parent, str):
                 # Parent is just a key string - look in unfiltered list first
-                logger.debug(f"[EPIC] Parent is string '{parent}', looking up summary...")
-                
+                logger.debug(
+                    f"[EPIC] Parent is string '{parent}', looking up summary..."
+                )
+
                 # First: Check unfiltered list (includes parents)
-                epic_issue = next((issue for issue in all_issues_unfiltered if issue.get("issue_key") == parent), None)
+                epic_issue = next(
+                    (
+                        issue
+                        for issue in all_issues_unfiltered
+                        if issue.get("issue_key") == parent
+                    ),
+                    None,
+                )
                 if epic_issue:
                     epic_summary = epic_issue.get("summary", epic_key)
-                    logger.info(f"[EPIC] Found {parent} in unfiltered list: '{epic_summary}'")
+                    logger.info(
+                        f"[EPIC] Found {parent} in unfiltered list: '{epic_summary}'"
+                    )
                 elif backend and profile_id and query_id:
                     # Fallback: Query database (parents stored during "Update Data")
                     try:
                         all_issues_db = backend.get_issues(profile_id, query_id)
-                        logger.debug(f"[EPIC] Searching {len(all_issues_db)} issues in DB for parent {parent}")
-                        epic_issue = next((issue for issue in all_issues_db if issue.get("issue_key") == parent), None)
+                        logger.debug(
+                            f"[EPIC] Searching {len(all_issues_db)} issues in DB for parent {parent}"
+                        )
+                        epic_issue = next(
+                            (
+                                issue
+                                for issue in all_issues_db
+                                if issue.get("issue_key") == parent
+                            ),
+                            None,
+                        )
                         if epic_issue:
                             epic_summary = epic_issue.get("summary", epic_key)
-                            logger.info(f"[EPIC] Found {parent} in database: '{epic_summary}'")
+                            logger.info(
+                                f"[EPIC] Found {parent} in database: '{epic_summary}'"
+                            )
                         else:
-                            logger.warning(f"[EPIC] Parent {parent} not found in database (may need to run 'Update Data')")
+                            logger.warning(
+                                f"[EPIC] Parent {parent} not found in database (may need to run 'Update Data')"
+                            )
                             epic_summary = epic_key
                     except Exception as e:
-                        logger.error(f"[EPIC] Failed to fetch parent {parent} from DB: {e}")
+                        logger.error(
+                            f"[EPIC] Failed to fetch parent {parent} from DB: {e}"
+                        )
                         epic_summary = epic_key
                 else:
                     logger.warning(f"[EPIC] No backend to fetch {parent}")
@@ -520,7 +581,7 @@ def _build_epic_timeline(
         def sort_priority(issue):
             status = issue.get("status", "Unknown")
             health = issue.get("health_indicators", {})
-            
+
             # Priority 1: Blocked (highest alert)
             if health.get("is_blocked"):
                 return (1, status)
@@ -536,7 +597,7 @@ def _build_epic_timeline(
             # Priority 5: Completed (lowest priority)
             else:
                 return (5, status)
-        
+
         sorted_child_issues = sorted(child_issues, key=sort_priority)
 
         timeline.append(

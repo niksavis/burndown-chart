@@ -1034,15 +1034,19 @@ def register(app):
                             # CRITICAL: Filter out parent issues dynamically (don't hardcode "Epic")
                             if issues:
                                 from data.persistence import load_app_settings
+
                                 settings = load_app_settings()
-                                parent_field = settings.get("field_mappings", {}).get("general", {}).get("parent_field")
-                                
+                                parent_field = (
+                                    settings.get("field_mappings", {})
+                                    .get("general", {})
+                                    .get("parent_field")
+                                )
+
                                 if parent_field:
                                     from data.parent_filter import filter_parent_issues
+
                                     issues = filter_parent_issues(
-                                        issues,
-                                        parent_field,
-                                        log_prefix="BUG METRICS"
+                                        issues, parent_field, log_prefix="BUG METRICS"
                                     )
 
                             # Filter to get ONLY bugs (same as report)
@@ -1459,8 +1463,13 @@ def register(app):
                     _render_active_work_timeline_content,
                 )
 
+                # Get data_points_count from settings
+                data_points_count = int(settings.get("data_points_count", 12))
+
                 # Render the actual content immediately
-                timeline_content = _render_active_work_timeline_content(show_points)
+                timeline_content = _render_active_work_timeline_content(
+                    show_points, data_points_count
+                )
 
                 # Cache the result for next time
                 chart_cache[cache_key] = timeline_content
