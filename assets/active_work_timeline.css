@@ -5,6 +5,13 @@
   flex-wrap: wrap;
   align-items: center;
   gap: 0.35rem;
+  box-shadow: none;
+  transition: none;
+}
+
+.active-work-legend:hover {
+  box-shadow: none;
+  transform: none;
 }
 
 .active-work-key-badge {
@@ -28,7 +35,19 @@
 }
 
 .active-work-points-badge {
-  background-color: #20c997;
+  background-color: #fd7e14;
+  color: #ffffff;
+  border-radius: 999px;
+  padding: 0.15rem 0.45rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  margin-right: 0.35rem;
+  min-width: 1.7rem;
+  text-align: center;
+}
+
+.active-work-status-badge {
+  background-color: #6c757d;
   color: #ffffff;
   border-radius: 999px;
   padding: 0.15rem 0.45rem;
@@ -103,10 +122,25 @@
 .active-work-epic-card > summary {
   list-style: none;
   cursor: pointer;
+  position: relative;
+  padding-right: 2.2rem;
 }
 
 .active-work-epic-card > summary::-webkit-details-marker {
   display: none;
+}
+
+.active-work-epic-card > summary::after {
+  content: "▾";
+  position: absolute;
+  right: 1rem;
+  top: 1rem;
+  color: #6c757d;
+  font-size: 0.9rem;
+}
+
+.active-work-epic-card[open] > summary::after {
+  content: "▴";
 }
 
 .active-work-epic-card > summary:focus-visible {

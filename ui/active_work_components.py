@@ -71,6 +71,27 @@ def create_issue_count_badge(count: int) -> html.Span:
     )
 
 
+def create_status_indicator_badge(
+    symbol: str, color: str, badge_id: Optional[str] = None
+) -> html.Span:
+    """Create badge for epic status indicator.
+
+    Args:
+        symbol: Status symbol to display
+        color: Background color for the badge
+        badge_id: Optional DOM id for tooltip targeting
+
+    Returns:
+        Badge span
+    """
+    return html.Span(
+        symbol,
+        id=badge_id,
+        className="active-work-status-badge",
+        style={"backgroundColor": color},
+    )
+
+
 def create_active_work_legend() -> dbc.Alert:
     """Create legend for Active Work badges and status groups.
 
@@ -118,6 +139,11 @@ def create_active_work_legend() -> dbc.Alert:
             target="legend-issue-key",
             placement="top",
         ),
+        dbc.Tooltip(
+            "Epic status indicator (blocked, aging, in progress, done)",
+            target="legend-epic-status",
+            placement="top",
+        ),
     ]
 
     return dbc.Alert(
@@ -142,6 +168,9 @@ def create_active_work_legend() -> dbc.Alert:
             ),
             html.Span("Done", className="badge bg-success me-4", id="legend-done"),
             html.Strong("Signals:", className="me-3"),
+            create_status_indicator_badge(
+                "◐", "#6c757d", badge_id="legend-epic-status"
+            ),
             html.Span(
                 "12",
                 className="active-work-count-badge me-2",
@@ -188,10 +217,7 @@ def create_compact_issue_row(issue: Dict, show_points: bool = False) -> html.Div
 
     icon_style = {"color": "#6f42c1"} if "epic" in issue_type_lower else {}
 
-    issue_link = create_jira_issue_link(
-        issue_key,
-        className="active-work-issue-key",
-    )
+    issue_key_badge = create_issue_key_badge(issue_key)
 
     points_badge = create_points_badge(points, show_points)
 
@@ -202,7 +228,7 @@ def create_compact_issue_row(issue: Dict, show_points: bool = False) -> html.Div
                 style={**icon_style, "fontSize": "0.75rem"},
             ),
             points_badge,
-            issue_link,
+            issue_key_badge,
             html.Span(summary, className="active-work-summary"),
         ],
         className="active-work-issue-row",
