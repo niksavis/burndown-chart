@@ -25,7 +25,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Burndown Chart - Dashboard</title>
+  <title>Example App - Dashboard</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -45,7 +45,7 @@
 
   <!-- Footer -->
   <footer class="site-footer">
-    <p>&copy; 2026 Burndown Chart</p>
+    <p>&copy; 2026 Example App</p>
   </footer>
 
   <script src="app.js"></script>
@@ -99,9 +99,9 @@
 </div>
 ```
 
-## Component Organization (Dash-Specific)
+## Component Organization (Optional)
 
-### Python-Generated HTML Pattern
+### Python-Generated HTML Pattern (Example)
 
 ```python
 # ui/components/modal.py (< 200 lines)
@@ -153,7 +153,7 @@ def create_modal(modal_id: str, title: str) -> html.Div:
     ], id=modal_id, className='modal', **{'aria-hidden': 'true'})
 ```
 
-### Component File Structure
+### Component File Structure (Example)
 
 ```
 ui/
@@ -175,14 +175,14 @@ ui/
 <!-- GOOD: Semantic HTML5 -->
 <article class="card">
   <header class="card-header">
-    <h2>Sprint Overview</h2>
+    <h2>Project Overview</h2>
   </header>
   
   <section class="card-body">
-    <p>Sprint details...</p>
+    <p>Project details...</p>
     
     <figure class="chart-container">
-      <figcaption>Burndown Chart</figcaption>
+      <figcaption>Progress Chart</figcaption>
       <!-- Chart here -->
     </figure>
   </section>
@@ -195,14 +195,14 @@ ui/
 <!-- BAD: Div soup -->
 <div class="card">
   <div class="card-header">
-    <div class="title">Sprint Overview</div>
+    <div class="title">Project Overview</div>
   </div>
   
   <div class="card-body">
-    <div>Sprint details...</div>
+    <div>Project details...</div>
     
     <div class="chart-container">
-      <div>Burndown Chart</div>
+      <div>Progress Chart</div>
       <!-- Chart here -->
     </div>
   </div>
@@ -249,17 +249,17 @@ ui/
 </button>
 
 <!-- GOOD: Accessible forms -->
-<form role="form" aria-label="JIRA configuration">
+<form role="form" aria-label="Service configuration">
   <div class="form-group">
-    <label for="jira-url">JIRA URL</label>
+    <label for="service-url">Service URL</label>
     <input 
       type="url" 
-      id="jira-url"
-      name="jira-url"
+      id="service-url"
+      name="service-url"
       aria-required="true"
-      aria-describedby="jira-url-help">
-    <span id="jira-url-help" class="form-text">
-      Enter your JIRA instance URL
+      aria-describedby="service-url-help">
+    <span id="service-url-help" class="form-text">
+      Enter your service URL
     </span>
   </div>
 </form>
@@ -293,7 +293,7 @@ ui/
 <!-- GOOD: Hidden but accessible -->
 <button type="button" class="icon-btn">
   <span class="sr-only">Delete item</span>
-  <span aria-hidden="true">🗑️</span>
+  <span aria-hidden="true">Delete</span>
 </button>
 
 <!-- CSS for sr-only -->
@@ -311,9 +311,9 @@ ui/
 </style>
 ```
 
-## Forms (Dash-Specific)
+## Forms (Framework-Specific, Optional)
 
-### Dash Form Components
+### Dash Form Components (Example)
 
 ```python
 # ui/components/forms.py
@@ -484,8 +484,8 @@ def create_main_content():
 <!-- GOOD: Data attributes for JS -->
 <div 
   class="chart-container"
-  data-chart-type="burndown"
-  data-chart-id="sprint-123"
+  data-chart-type="progress"
+  data-chart-id="project-123"
   data-update-interval="5000">
   <!-- Chart content -->
 </div>
@@ -499,7 +499,7 @@ def create_main_content():
 </button>
 ```
 
-### Dash-Specific: ID Structure
+### Framework-Specific: Pattern-Matching IDs (Example)
 
 ```python
 # GOOD: Structured IDs for callbacks
@@ -557,7 +557,7 @@ def update_results(values):
 <!-- GOOD: Native lazy loading -->
 <img 
   src="chart-large.png"
-  alt="Burndown chart"
+  alt="Progress chart"
   loading="lazy"
   width="800"
   height="600">
@@ -590,7 +590,7 @@ def update_results(values):
 </form>
 ```
 
-## Project-Specific Patterns (Burndown Chart)
+## Framework-Specific Patterns (Optional)
 
 ### Modal Structure
 
@@ -710,8 +710,8 @@ def build_component()
 7. Shallow DOM structure
 8. Valid HTML5 markup
 
-**Dash-Specific**:
-- Component functions in `ui/components/`
-- Structured IDs for pattern matching
+**Optional: Framework-Specific**:
+- Component functions in a dedicated UI module
+- Structured IDs for pattern matching (if supported)
 - Accessibility attributes on all interactive elements
 - Extract large layouts to multiple functions

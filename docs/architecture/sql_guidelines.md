@@ -21,7 +21,7 @@
 ### File Structure
 
 ```
-data/persistence/
+database/
 ├── schema/
 │   ├── 01_core_tables.sql       # Core tables (< 200 lines)
 │   ├── 02_lookup_tables.sql     # Lookup/reference tables (< 150 lines)
@@ -548,10 +548,10 @@ COMMIT;
 
 ## Query Organization in Code
 
-### Python Pattern (Burndown Chart)
+### Python Pattern (Example)
 
 ```python
-# data/persistence/queries.py (< 400 lines)
+# database/queries.py (< 400 lines)
 """SQL queries for the application."""
 
 # Use constants for reusable queries
@@ -596,8 +596,8 @@ UPDATE_ISSUE_STATUS = """
 ### Using Queries
 
 ```python
-# data/persistence/database.py
-from data.persistence.queries import GET_SPRINT_SUMMARY, LIST_ACTIVE_SPRINTS
+# database/database.py
+from database.queries import GET_SPRINT_SUMMARY, LIST_ACTIVE_SPRINTS
 import sqlite3
 
 class Database:

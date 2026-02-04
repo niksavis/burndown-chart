@@ -752,7 +752,7 @@ assets/components/
 }
 ```
 
-## Project-Specific Patterns (Burndown Chart)
+## Project-Specific Patterns (Optional)
 
 ### Component Organization
 

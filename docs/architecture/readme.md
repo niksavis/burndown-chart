@@ -18,6 +18,10 @@
 | **CSS**        | 500 lines       | 200-300     | BEM, Variables, Component-Based                         |
 | **SQL**        | 50 lines/query  | 30 lines    | Indexes, Transactions, Parameterized Queries            |
 
+## Scope and Applicability
+
+These guidelines are repository-agnostic. Project-specific rules (naming, tooling, branching, CI, environment setup) must live in repository instructions such as copilot-instructions.md or a dedicated repo_rules.md.
+
 ## Guidelines by Language
 
 ### [Python Guidelines](python_guidelines.md)
@@ -36,26 +40,16 @@
 ### [JavaScript Guidelines](javascript_guidelines.md)
 - **Max file size**: 400 lines (hard limit)
 - **Max function size**: 40 lines
-- **Key patterns**:
-  - ES6 modules (import/export)
-  - Airbnb style guide
-  - Dash clientside callbacks (one namespace per feature)
-  - Early returns over nested conditionals
-  - Debounce/throttle user input
+- **Key patterns**: ES6 modules (import/export), Airbnb style guide, framework clientside callbacks (if applicable), early returns over nested conditionals, debounce/throttle user input
 
-**When to check**: Before creating/editing any `.js` file in `assets/`
+**When to check**: Before creating/editing any `.js` file
 
 ### [HTML Guidelines](html_guidelines.md)
 - **Max file size**: 300 lines (hard limit for templates)
 - **Max component size**: 200 lines
-- **Key patterns**:
-  - Semantic HTML5 elements
-  - ARIA attributes mandatory
-  - Dash component structure
-  - Lowercase for all HTML
-  - No inline styles or JavaScript
+- **Key patterns**: Semantic HTML5 elements, ARIA attributes mandatory, framework component structure (if applicable), lowercase for all HTML, no inline styles or JavaScript
 
-**When to check**: Before creating Dash layouts in `ui/`
+**When to check**: Before creating/editing HTML or template files
 
 ### [CSS Guidelines](css_guidelines.md)
 - **Max file size**: 500 lines (hard limit)
@@ -67,7 +61,7 @@
   - Component-based organization
   - Mobile-first responsive design
 
-**When to check**: Before creating/editing any `.css` file in `assets/`
+**When to check**: Before creating/editing any `.css` file
 
 ### [SQL Guidelines](sql_guidelines.md)
 - **Max query length**: 50 lines (hard limit)
@@ -80,7 +74,7 @@
   - Parameterized queries (prevent SQL injection)
   - CTEs for complex queries
 
-**When to check**: Before creating/editing schema or queries in `data/persistence/`
+**When to check**: Before creating/editing schema or query files
 
 ## Common Refactoring Strategies
 
@@ -89,10 +83,10 @@ Split by functional area when file > limit:
 
 ```
 # Before: one large file
-jira_manager.py (1200 lines)
+large_module.py (1200 lines)
 
 # After: feature-based
-jira/
+feature/
 ├── __init__.py
 ├── client.py (< 300)
 ├── query_builder.py (< 250)
@@ -105,10 +99,10 @@ Split by architectural layer:
 
 ```
 # Before
-callbacks/visualization.py (800 lines)
+handlers/visualization.py (800 lines)
 
 # After
-callbacks/visualization/
+handlers/visualization/
 ├── __init__.py
 ├── chart_events.py (< 250)
 ├── filters.py (< 200)
@@ -134,10 +128,7 @@ assets/components/
 
 ### Before Creating Code
 
-1. **Check existing file size**:
-   ```bash
-   wc -l path/to/file
-   ```
+1. **Check existing file size** (use your editor line count or repo tooling).
 
 2. **If file > 80% of limit → create new file instead**:
    - Python: > 400 lines → new file
@@ -145,7 +136,7 @@ assets/components/
    - CSS: > 400 lines → new file
 
 3. **Name new file descriptively**:
-   - `jira_client.py` ✓
+   - `service_client.py` ✓
    - `utils.py` ✗
 
 ### During Implementation
@@ -181,16 +172,11 @@ assets/components/
 
 ### Pre-commit Checks
 
-```bash
-# Check Python file sizes
-find . -name "*.py" -exec wc -l {} + | sort -rn | head -20
+Examples (adjust to your environment and tooling):
 
-# Check JavaScript file sizes
-find assets -name "*.js" -exec wc -l {} + | sort -rn | head -10
-
-# Check CSS file sizes
-find assets -name "*.css" -exec wc -l {} + | sort -rn | head -10
-```
+- Count lines in large files
+- Enforce file size thresholds in CI
+- Run static analysis and tests before merge
 
 ### Code Review Checklist
 
@@ -333,7 +319,8 @@ if __name__ == '__main__':
 
 ### Internal Documentation
 
-- [Burndown Chart Copilot Instructions](../../.github/copilot-instructions.md)
+- [Repository instructions](../../.github/copilot-instructions.md)
+- [Repository rules](../../repo_rules.md)
 - [Agent Instructions](../../agents.md)
 - [Defensive Refactoring Guide](../defensive_refactoring_guide.md)
 - [Logging Standards](../LOGGING_STANDARDS.md)

@@ -29,66 +29,20 @@ module/
     └── test_*.py        # One test file per module
 ```
 
-### Naming Conventions
+### Layered Architecture (Generic Pattern)
+
+Use a layered architecture to separate responsibilities:
+
+- **Presentation**: UI composition and rendering
+- **Callbacks/Handlers**: Event routing only
+- **Domain/Data**: Business logic and calculations
+- **Persistence**: Storage and external API access
+
+Each layer should depend on lower layers only. Avoid business logic inside UI or event handlers.
 
 ```python
-# Files: lowercase_with_underscores.py
-module_name.py
-jira_query_manager.py
-
-# Classes: PascalCase
-class QueryManager:
-    pass
-
-# Functions/Variables: snake_case
-def fetch_jira_data():
-    pass
-
-# Constants: UPPER_CASE
-MAX_RETRIES = 3
-```
-
-## Breaking Down Large Files
-
-### Strategy 1: Feature-Based Split
-
-**Before** (1200 lines):
-```
-data/jira_manager.py
-```
-
-**After**:
-```
-data/jira/
-├── __init__.py         # Export public API
-├── client.py           # API client (< 300 lines)
-├── query_builder.py    # JQL construction (< 250 lines)
-├── cache.py            # Caching logic (< 200 lines)
-└── models.py           # Data models (< 250 lines)
-```
-
-### Strategy 2: Layer-Based Split
-
-**Before** (800 lines):
-```
-callbacks/visualization.py
-```
-
-**After**:
-```
-callbacks/visualization/
-├── __init__.py         # Register callbacks
-├── chart_events.py     # Chart interactions (< 250 lines)
-├── filters.py          # Filter callbacks (< 200 lines)
-└── updates.py          # Data update callbacks (< 250 lines)
-```
-
-### Strategy 3: Responsibility Split
-
-```python
-# BEFORE: One god class (600 lines)
+# BEFORE: One class does everything
 class DataManager:
-    def fetch_data(self): ...
     def transform_data(self): ...
     def cache_data(self): ...
     def validate_data(self): ...
@@ -121,8 +75,8 @@ class DataValidator:
 Extended description with usage examples if needed.
 
 Typical usage:
-    manager = JiraQueryManager()
-    results = manager.fetch_issues()
+    manager = ServiceManager()
+    results = manager.fetch_items()
 """
 
 # 1. Future imports
@@ -133,11 +87,10 @@ import sys
 from typing import Any, Optional
 
 # 3. Third-party
-import dash
-from dash import html
+import requests
 
 # 4. Local application
-from data.jira import client
+from services import api_client
 from utils.logging import get_logger
 ```
 
@@ -212,7 +165,7 @@ if __name__ == '__main__':
 
 ```python
 # BAD: Function doing too much (80 lines)
-def process_jira_data(data):
+def process_records(data):
     # Parse data (20 lines)
     # Validate data (25 lines)
     # Transform data (20 lines)
@@ -220,15 +173,15 @@ def process_jira_data(data):
     pass
 
 # GOOD: Split into focused functions
-def process_jira_data(data: dict) -> dict:
-    """Process JIRA data through pipeline."""
+def process_records(data: dict) -> dict:
+    """Process records through pipeline."""
     parsed = _parse_data(data)
     validated = _validate_data(parsed)
     transformed = _transform_data(validated)
     return _cache_data(transformed)
 
 def _parse_data(data: dict) -> dict:
-    """Parse raw JIRA data."""
+    """Parse raw records."""
     # 15 lines
     pass
 
@@ -244,7 +197,7 @@ def _validate_data(data: dict) -> dict:
 
 ```python
 # BAD: God class (400 lines)
-class JiraManager:
+class ServiceManager:
     def connect(self): ...
     def query(self): ...
     def cache(self): ...
@@ -252,18 +205,18 @@ class JiraManager:
     def visualize(self): ...
 
 # GOOD: Focused classes
-class JiraClient:
-    """Handle JIRA API connections."""
+class ServiceClient:
+    """Handle external API connections."""
     def connect(self): ...
     def query(self): ...
 
-class JiraCache:
-    """Manage JIRA data caching."""
+class CacheStore:
+    """Manage data caching."""
     def save(self): ...
     def load(self): ...
 
-class JiraTransformer:
-    """Transform JIRA data."""
+class DataTransformer:
+    """Transform data."""
     def transform(self): ...
 ```
 
@@ -277,20 +230,20 @@ class JiraTransformer:
 
 ```python
 # MANDATORY: All functions must have type hints
-def fetch_issues(
+def fetch_items(
     project: str,
     max_results: int = 100,
     filters: Optional[dict[str, Any]] = None
 ) -> list[dict[str, Any]]:
-    """Fetch issues from JIRA.
+    """Fetch items from a service.
     
     Args:
-        project: JIRA project key
+        project: Project key or identifier
         max_results: Maximum issues to fetch
         filters: Optional filter dictionary
     
     Returns:
-        List of issue dictionaries
+        List of item dictionaries
     """
     pass
 
@@ -341,62 +294,62 @@ def complex_function(
     return True, "success"
 ```
 
-## Project-Specific Rules
+## Framework-Specific Patterns (Optional)
 
-### Layered Architecture (Burndown Chart)
+### Layered Architecture (Example)
 
 ```
-callbacks/          # Event handlers ONLY (< 150 lines each)
+handlers/            # Event handlers only (< 150 lines each)
 ├── __init__.py
-└── jira_config.py  # Delegates to data/ layer
+└── settings_handler.py  # Delegates to services
 
-data/               # Business logic (< 300 lines each)
+services/            # Business logic (< 300 lines each)
 ├── __init__.py
-├── jira_query_manager.py
+├── settings_service.py
 └── persistence/
     └── database.py
 
-ui/                 # Components (< 200 lines each)
+ui/                  # Components (< 200 lines each)
 └── components/
     └── settings_panel.py
 
-utils/              # Helpers (< 100 lines each)
+utils/               # Helpers (< 100 lines each)
 └── logging.py
 ```
 
-### Callback Pattern
+### Handler Pattern (Framework Example)
 
 ```python
-# callbacks/jira_config.py (< 150 lines)
-from dash import callback, Input, Output
-from data.jira_query_manager import JiraQueryManager
+# handlers/settings_handler.py (< 150 lines)
+from framework import callback, Input, Output
+from services.settings_service import SettingsService
 
 @callback(
     Output('output-id', 'children'),
     Input('input-id', 'value')
 )
-def update_config(value: str) -> str:
-    """Handle config update - delegate to data layer."""
-    manager = JiraQueryManager()
-    return manager.update_config(value)
+def update_settings(value: str) -> str:
+    """Handle settings update and delegate to service layer."""
+    service = SettingsService()
+    return service.update_settings(value)
 ```
 
-### Data Layer Pattern
+### Service Layer Pattern
 
 ```python
-# data/jira_query_manager.py (< 300 lines)
-from data.jira.client import JiraClient
-from data.jira.cache import JiraCache
+# services/settings_service.py (< 300 lines)
+from services.api_client import ApiClient
+from services.cache_store import CacheStore
 
-class JiraQueryManager:
-    """Coordinate JIRA operations."""
+class SettingsService:
+    """Coordinate settings operations."""
     
-    def __init__(self):
-        self.client = JiraClient()
-        self.cache = JiraCache()
+    def __init__(self) -> None:
+        self.client = ApiClient()
+        self.cache = CacheStore()
     
-    def update_config(self, config: dict) -> dict:
-        """Update JIRA configuration."""
+    def update_settings(self, config: dict) -> dict:
+        """Update settings configuration."""
         validated = self._validate_config(config)
         self.cache.save_config(validated)
         return validated
@@ -451,18 +404,18 @@ def process(data):
 ### One Test File Per Module
 
 ```
-data/
-├── jira_query_manager.py
+services/
+├── query_manager.py
 └── tests/
-    └── test_jira_query_manager.py  # < 400 lines
+    └── test_query_manager.py  # < 400 lines
 
 # If test file > 400 lines, split by feature
-data/
-├── jira_query_manager.py
+services/
+├── query_manager.py
 └── tests/
-    ├── test_jira_query_manager_basic.py
-    ├── test_jira_query_manager_cache.py
-    └── test_jira_query_manager_errors.py
+    ├── test_query_manager_basic.py
+    ├── test_query_manager_cache.py
+    └── test_query_manager_errors.py
 ```
 
 ### Test Organization
@@ -523,13 +476,13 @@ When file exceeds 400 lines:
 
 ```python
 # Feature-based
-data/jira_client.py         # Clear, specific
-data/jira_query.py          # Clear, specific
+services/api_client.py      # Clear, specific
+services/query_builder.py   # Clear, specific
 
 # NOT generic
-data/helper.py              # Too vague
-data/utils.py               # Too vague
-data/misc.py                # Never acceptable
+services/helper.py          # Too vague
+services/utils.py           # Too vague
+services/misc.py            # Never acceptable
 ```
 
 ## Performance Considerations
@@ -556,9 +509,9 @@ def function():
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from data.jira import JiraClient
+    from services.api_client import ApiClient
 
-def function(client: 'JiraClient') -> None:
+def function(client: 'ApiClient') -> None:
     """Use string annotation to avoid import."""
     pass
 ```

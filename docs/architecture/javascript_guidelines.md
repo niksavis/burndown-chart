@@ -5,7 +5,7 @@
 - **Modularity**: Independent, reusable components
 - **Modern patterns**: ES6 modules, async/await, event handling best practices
 - **Performance**: Optimized DOM manipulation and minimal repaints
-- **Maintainability**: Clear separation of concerns for Dash clientside callbacks
+- **Maintainability**: Clear separation of concerns for clientside callbacks (when used)
 - **AI collaboration**: Structures optimized for AI-assisted development
 
 ## File Size Limits
@@ -19,17 +19,14 @@
 
 ### Naming Conventions
 
+Follow your repository naming rules. If your project defines file naming conventions in repo-level instructions, those take precedence.
+
 ```javascript
-// Files: camelCase.js
-jqlEditorNative.js
-namespaceAutocomplete.js
-
-// Match default export name
-// CheckBox.js
-export default class CheckBox { }
-
-// fortyTwo.js
-export default function fortyTwo() { return 42; }
+// Example patterns (adjust to your repo rules)
+// files: feature_component.js or featureComponent.js
+// exports: match default export name
+export default class ComponentName {}
+export default function buildComponent() { return null; }
 ```
 
 ### Structure Pattern
@@ -43,7 +40,7 @@ assets/
 │   ├── modal.js            # Modal component (< 250 lines)
 │   └── toast.js            # Toast notifications (< 150 lines)
 ├── clientside/
-│   ├── jqlEditor.js        # JQL editor logic (< 300 lines)
+│   ├── searchEditor.js     # Search editor logic (< 300 lines)
 │   └── autocomplete.js     # Autocomplete logic (< 250 lines)
 └── utils/
     └── helpers.js          # Utilities (< 100 lines)
@@ -113,12 +110,12 @@ function fetchData() {
 
 **Before** (800 lines):
 ```
-assets/jql_editor_complete.js
+assets/search_editor_complete.js
 ```
 
 **After**:
 ```
-assets/jql_editor/
+assets/search_editor/
 ├── core.js             # Core editor logic (< 250 lines)
 ├── autocomplete.js     # Autocomplete feature (< 200 lines)
 ├── syntax.js           # Syntax highlighting (< 200 lines)
@@ -129,31 +126,28 @@ assets/jql_editor/
 
 ```javascript
 // BEFORE: One god object (600 lines)
-window.dash_clientside = {
-  namespace: {
-    handle_input: function() { /* 100 lines */ },
-    handle_submit: function() { /* 150 lines */ },
-    validate_form: function() { /* 120 lines */ },
-    format_output: function() { /* 80 lines */ },
-    // ... more functions
-  }
+const appHandlers = {
+  handleInput: function() { /* 100 lines */ },
+  handleSubmit: function() { /* 150 lines */ },
+  validateForm: function() { /* 120 lines */ },
+  formatOutput: function() { /* 80 lines */ },
+  // ... more functions
 };
 
 // AFTER: Split by responsibility
-// inputHandlers.js (< 200 lines)
-window.dash_clientside = window.dash_clientside || {};
-window.dash_clientside.input = {
+// input_handlers.js (< 200 lines)
+export const inputHandlers = {
   handleInput: function() { /* 80 lines */ },
   handleSubmit: function() { /* 100 lines */ }
 };
 
 // validation.js (< 150 lines)
-window.dash_clientside.validation = {
+export const validationHandlers = {
   validateForm: function() { /* 100 lines */ }
 };
 
 // formatting.js (< 150 lines)
-window.dash_clientside.format = {
+export const formatHandlers = {
   formatOutput: function() { /* 70 lines */ }
 };
 ```
@@ -228,45 +222,26 @@ function initializePlugins(editor, plugins) {
 }
 ```
 
-## Clientside Callbacks (Dash)
+## Framework-Specific Patterns (Optional)
 
-### Pattern for Dash Clientside
+### Clientside Namespace Example
 
 ```javascript
-// GOOD: Focused namespace (< 250 lines)
-window.dash_clientside = window.dash_clientside || {};
-
-window.dash_clientside.jql_editor = {
-  /**
-   * Handle JQL input changes
-   * @param {string} value - Current input value
-   * @returns {Object} Updated state
-   */
+// Example for clientside callback namespaces (if applicable in your framework)
+window.app = window.app || {};
+window.app.feature = {
   handleInput: function(value) {
-    if (!value) return { valid: false, suggestions: [] };
-    
-    const suggestions = getSuggestions(value);
-    const valid = validateJQL(value);
-    
-    return { valid, suggestions };
-  },
-  
-  /**
-   * Validate JQL syntax
-   * @param {string} jql - JQL string to validate
-   * @returns {boolean} Validation result
-   */
-  validateJQL: function(jql) {
-    // 20 lines max
+    if (!value) return { valid: false };
+    return { valid: true };
   }
 };
 
-// Helper functions outside clientside namespace
+// Helper functions outside the namespace
 function getSuggestions(value) {
   // 30 lines
 }
 
-function validateJQL(jql) {
+function validateQuery(query) {
   // 25 lines
 }
 ```
@@ -274,20 +249,20 @@ function validateJQL(jql) {
 ### Separate Files by Feature
 
 ```javascript
-// jql_editor_input.js (< 200 lines)
-window.dash_clientside.jql_input = {
+// search_input.js (< 200 lines)
+window.app.searchInput = {
   handleKeyPress: function() { /* ... */ },
   handlePaste: function() { /* ... */ }
 };
 
-// jql_editor_autocomplete.js (< 250 lines)
-window.dash_clientside.jql_autocomplete = {
+// search_autocomplete.js (< 250 lines)
+window.app.searchAutocomplete = {
   showSuggestions: function() { /* ... */ },
   selectSuggestion: function() { /* ... */ }
 };
 
-// jql_editor_validation.js (< 150 lines)
-window.dash_clientside.jql_validation = {
+// search_validation.js (< 150 lines)
+window.app.searchValidation = {
   validateSyntax: function() { /* ... */ },
   showErrors: function() { /* ... */ }
 };
@@ -301,7 +276,7 @@ window.dash_clientside.jql_validation = {
 // GOOD: Constants at top
 const MAX_SUGGESTIONS = 10;
 const DEBOUNCE_DELAY = 300;
-const API_ENDPOINT = '/api/jql/validate';
+const API_ENDPOINT = '/api/query/validate';
 
 function fetchSuggestions(query) {
   return fetch(`${API_ENDPOINT}?q=${query}`);
@@ -512,15 +487,15 @@ async function loadMultiple() {
 
 ```javascript
 /**
- * Fetch JIRA issues based on JQL query
- * @param {string} jql - JQL query string
+ * Fetch items based on a query
+ * @param {string} query - Query string
  * @param {number} [maxResults=100] - Maximum results to return
  * @param {Object} [options={}] - Additional options
  * @param {boolean} [options.includeFields=false] - Include all fields
  * @returns {Promise<Array<Object>>} Array of issue objects
- * @throws {Error} If JQL is invalid or API request fails
+ * @throws {Error} If query is invalid or API request fails
  */
-async function fetchIssues(jql, maxResults = 100, options = {}) {
+async function fetchItems(query, maxResults = 100, options = {}) {
   // Implementation
 }
 
@@ -593,61 +568,9 @@ function displayTotal(items) {
 }
 ```
 
-## Project-Specific Rules (Burndown Chart)
+## Optional: Framework Callback Patterns
 
-### Dash Clientside Callbacks
-
-```javascript
-// Pattern: One namespace per feature
-// assets/namespace_autocomplete_clientside.js (< 250 lines)
-
-window.dash_clientside = window.dash_clientside || {};
-
-window.dash_clientside.namespace_autocomplete = {
-  /**
-   * Filter and display namespace suggestions
-   */
-  filterSuggestions: function(inputValue, allNamespaces) {
-    if (!inputValue) return [];
-    
-    const filtered = allNamespaces.filter(ns =>
-      ns.toLowerCase().includes(inputValue.toLowerCase())
-    );
-    
-    return filtered.slice(0, 10);
-  }
-};
-```
-
-### Update Handlers
-
-```javascript
-// assets/update_button_handler.js (< 200 lines)
-
-window.dash_clientside = window.dash_clientside || {};
-
-window.dash_clientside.update = {
-  /**
-   * Handle update button click
-   */
-  handleUpdateClick: function(nClicks) {
-    if (!nClicks) return window.dash_clientside.no_update;
-    
-    // Show loading state
-    showLoading();
-    
-    // Trigger update
-    return { loading: true, timestamp: Date.now() };
-  }
-};
-
-// Helper outside clientside namespace
-function showLoading() {
-  const btn = document.getElementById('update-btn');
-  btn.classList.add('loading');
-  btn.disabled = true;
-}
-```
+If your framework requires global namespaces or callback registries, keep one namespace per feature, keep helpers outside the namespace, and document parameters and return values.
 
 ## Performance Best Practices
 
@@ -692,7 +615,7 @@ When file exceeds 300 lines:
 
 ### Before Creating New Code
 
-1. Check existing file: `wc -l assets/*.js`
+1. Check existing file size using your editor line count or repo tooling
 2. If target file > 250 lines → create new file
 3. Name file to match feature/export
 
@@ -700,7 +623,7 @@ When file exceeds 300 lines:
 
 ```javascript
 // GOOD: Descriptive, matches content
-jqlEditorAutocomplete.js    // Feature-based
+searchAutocomplete.js        // Feature-based
 modalComponent.js            // Component-based
 apiHelpers.js                // Utility-based
 
@@ -724,8 +647,8 @@ misc.js                      // Never acceptable
 9. Cache DOM queries
 10. Test pure functions
 
-**Dash Clientside Pattern**:
+**Optional: Framework Clientside Pattern**:
 - One namespace per feature
 - Keep callbacks < 200 lines
-- Extract helpers outside clientside namespace
+- Extract helpers outside the clientside namespace
 - Document parameters and return values
