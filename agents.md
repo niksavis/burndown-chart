@@ -6,16 +6,23 @@ Concise operational rules for multi-agent coordination and beads workflow. Repos
 
 ## Codebase Metrics
 
-**Last Updated**: 2026-02-03
+**Last Updated**: 2026-02-05
 
-| Category               | Files | Lines  | Tokens    |
-| ---------------------- | ----- | ------ | --------- |
-| **Total**              | 732   | 251.2K | **~2.2M** |
-| Code (Python + JS/CSS) | 414   | 144.4K | ~1.3M     |
-| Python (no tests)      | 336   | 132.5K | ~1.2M     |
-| Frontend (JS/CSS)      | 78    | 12.0K  | ~81.6K    |
-| Tests                  | 127   | 38.3K  | ~338.6K   |
-| Documentation (MD)     | 191   | 68.4K  | ~628.9K   |
+| Category | Files | Lines | Tokens |
+|----------|-------|-------|--------|
+| **Total** | 633 | 203.8K | **~1.8M** |
+| Code (Python + JS/CSS) | 427 | 147.3K | ~1.3M |
+| Python (no tests) | 346 | 135.0K | ~1.2M |
+| Frontend (JS/CSS) | 81 | 12.3K | ~83.3K |
+| Tests | 134 | 39.6K | ~348.3K |
+| Documentation (MD) | 72 | 17.0K | ~137.4K |
+
+**Agent Guidance**:
+- **Too large for context**: Use targeted `semantic_search`, avoid broad reads
+- **File size check**: Prefer reading <500 lines per file
+- **Module focus**: Target specific folders (data/, ui/, callbacks/, etc.)
+- **Test coverage**: 134 test files (20% of codebase)
+
 
 ## Visual Design (Required)
 
