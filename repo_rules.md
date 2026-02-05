@@ -21,6 +21,46 @@
   - .venv\Scripts\activate; python app.py
   - .venv\Scripts\activate; pytest tests/ -v
 
+## SQLite Querying (Local DB)
+
+Use these patterns for ad-hoc SQLite queries in this repo. They avoid quoting
+issues in PowerShell and follow the venv rule.
+
+### Preferred: short Python script file
+
+```powershell
+@'
+import sqlite3
+
+conn = sqlite3.connect(r"profiles\burndown.db")
+cur = conn.cursor()
+cur.execute("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name;")
+print([r[0] for r in cur.fetchall()])
+conn.close()
+'@ | Set-Content -Path .\tmp_query.py
+
+.venv\Scripts\activate; C:/Development/burndown-chart/.venv/Scripts/python.exe .\tmp_query.py
+```
+
+### One-liner (only when necessary)
+
+```powershell
+.venv\Scripts\activate; C:/Development/burndown-chart/.venv/Scripts/python.exe -c "import sqlite3; conn=sqlite3.connect(r'profiles\\burndown.db'); cur=conn.cursor(); cur.execute(\"SELECT name FROM sqlite_master WHERE type='table' ORDER BY name;\"); print([r[0] for r in cur.fetchall()]); conn.close()"
+```
+
+### SQLite CLI (if installed)
+
+```powershell
+sqlite3 .\profiles\burndown.db "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name;"
+```
+
+### Rules
+
+- Always activate the venv in the same command when running Python.
+- Prefer a short script file over `-c` to avoid PowerShell quoting errors.
+- Keep queries read-only unless the task explicitly requires writes.
+- Do not print or store customer data in logs or generated files.
+
 ## Architecture and Layering
 
 - callbacks/ contains event handlers only.
