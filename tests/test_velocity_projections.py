@@ -1,7 +1,10 @@
 """Unit tests for velocity projections module."""
 
-import pytest
 from datetime import datetime, timedelta
+
+import pytest
+
+import data.velocity_projections as velocity_projections
 from data.velocity_projections import (
     calculate_required_velocity,
     calculate_velocity_gap,
@@ -62,17 +65,27 @@ class TestCalculateRequiredVelocity:
 
         assert required == float("inf")
 
-    def test_default_current_date(self):
+    def test_default_current_date(self, monkeypatch):
         """Test with default current_date (now)."""
-        deadline = datetime.now() + timedelta(days=14)
+        fixed_now = datetime(2026, 2, 1, 12, 0, 0)
+
+        class FixedDateTime(datetime):
+            @classmethod
+            def now(cls, tz=None):
+                if tz is not None:
+                    return fixed_now.replace(tzinfo=tz)
+                return fixed_now
+
+        monkeypatch.setattr(velocity_projections, "datetime", FixedDateTime)
+
+        deadline = fixed_now + timedelta(days=14)
         remaining_work = 28.0
 
         required = calculate_required_velocity(
             remaining_work, deadline, time_unit="week"
         )
 
-        # Current implementation uses integer day difference
-        assert 15.0 <= required <= 16.0
+        assert required == pytest.approx(14.0, rel=0.01)
 
     def test_invalid_time_unit(self):
         """Test with invalid time unit."""
