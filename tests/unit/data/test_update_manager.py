@@ -241,8 +241,8 @@ def test_check_for_updates_with_newer_version():
                 "body": "## What's New\n\n- Feature X",
                 "assets": [
                     {
-                        "name": "burndown-chart-windows-v99.0.0.zip",
-                        "browser_download_url": "https://github.com/owner/repo/releases/download/v99.0.0/burndown-chart-windows-v99.0.0.zip",
+                        "name": "burndown-windows-v99.0.0.zip",
+                        "browser_download_url": "https://github.com/owner/repo/releases/download/v99.0.0/burndown-windows-v99.0.0.zip",
                         "size": 95420160,
                     }
                 ],
@@ -309,7 +309,7 @@ def test_check_for_updates_no_windows_asset():
             "prerelease": False,
             "assets": [
                 {
-                    "name": "burndown-chart-linux-v99.0.0.tar.gz",
+                    "name": "burndown-linux-v99.0.0.tar.gz",
                     "browser_download_url": "https://example.com/linux.tar.gz",
                 }
             ],
@@ -396,7 +396,7 @@ def test_check_for_updates_sends_user_agent():
         call_kwargs = mock_get.call_args[1]
         assert "headers" in call_kwargs
         assert "User-Agent" in call_kwargs["headers"]
-        assert "BurndownChart" in call_kwargs["headers"]["User-Agent"]
+        assert "Burndown" in call_kwargs["headers"]["User-Agent"]
 
 
 #######################################################################

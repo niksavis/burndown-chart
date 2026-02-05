@@ -2,7 +2,7 @@
 Visualization Helpers Module
 
 This module provides utility functions that support chart generation and
-visualization in the Burndown Chart application.
+visualization in the Burndown application.
 """
 
 #######################################################################

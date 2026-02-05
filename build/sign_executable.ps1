@@ -1,4 +1,4 @@
-# Code Signing Script for Burndown Chart Executables
+# Code Signing Script for Burndown Executables
 # Signs Windows executables with a code signing certificate
 
 [CmdletBinding()]

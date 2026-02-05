@@ -44,21 +44,21 @@ def generate_version_info(version_str, exe_type="main"):
 
     Args:
         version_str: Version string (e.g., "2.6.2")
-        exe_type: "main" for BurndownChart.exe or "updater" for BurndownChartUpdater.exe
+        exe_type: "main" for Burndown.exe or "updater" for BurndownUpdater.exe
     """
     version_tuple = version_to_tuple(version_str)
     filevers_str = ", ".join(str(v) for v in version_tuple)
 
     if exe_type == "updater":
-        file_description = "Burndown Chart Updater"
-        internal_name = "BurndownChartUpdater"
-        original_filename = "BurndownChartUpdater.exe"
-        product_name = "Burndown Chart Updater"
+        file_description = "Burndown Updater"
+        internal_name = "BurndownUpdater"
+        original_filename = "BurndownUpdater.exe"
+        product_name = "Burndown Updater"
     else:
-        file_description = "Burndown Chart"
-        internal_name = "BurndownChart"
-        original_filename = "BurndownChart.exe"
-        product_name = "Burndown Chart"
+        file_description = "Burndown"
+        internal_name = "Burndown"
+        original_filename = "Burndown.exe"
+        product_name = "Burndown"
 
     return f"""# UTF-8
 #

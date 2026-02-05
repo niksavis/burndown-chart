@@ -1,5 +1,5 @@
 ================================================================================
-                         BURNDOWN CHART
+                                        BURNDOWN
                     Quick Start Guide for Windows
 ================================================================================
 
@@ -7,16 +7,16 @@ GETTING STARTED
 ---------------
 
 INSTALLATION LOCATION RECOMMENDATIONS:
-   - ✓ Recommended: C:\Users\[YourName]\Desktop\BurndownChart
-   - ✓ Recommended: C:\Users\[YourName]\Documents\BurndownChart
-   - ✓ Recommended: D:\MyApps\BurndownChart
+   - ✓ Recommended: C:\Users\[YourName]\Desktop\Burndown
+   - ✓ Recommended: C:\Users\[YourName]\Documents\Burndown
+   - ✓ Recommended: D:\MyApps\Burndown
    - ✗ Avoid: C:\Program Files\ (UAC prompts for every update)
 
    Note: Updates work in any writable location. Anti-virus software may
    temporarily lock files during updates (especially with admin rights).
 
 1. Run the Application
-   - Double-click "BurndownChart.exe" to start
+   - Double-click "Burndown.exe" to start
    - A terminal window will open showing status messages
    - The app will automatically open in your default web browser
 
@@ -43,7 +43,7 @@ SYSTEM REQUIREMENTS
 WHAT THIS APP DOES
 ------------------
 
-Burndown Chart helps project managers track agile projects by:
+Burndown helps project managers track agile projects by:
 - Forecasting completion dates (best/worst/likely scenarios)
 - Calculating project health scores (0-100)
 - Tracking velocity and burndown trends
@@ -126,5 +126,5 @@ For issues or questions:
 https://github.com/niksavis/burndown-chart/issues
 
 ================================================================================
-                    Thank you for using Burndown Chart!
+                                 Thank you for using Burndown!
 ================================================================================

@@ -193,5 +193,5 @@ If the project grows to multi-developer with concurrent feature work, consider:
 
 **Last Updated**: 2026-01-17  
 **Beads Version**: v0.47.1  
-**Project**: Burndown Chart  
+**Project**: Burndown  
 **Convention**: Hierarchical semantic IDs with native type classification

@@ -50,7 +50,7 @@ def create_update_notification(
             className="d-flex align-items-center mb-2",
         ),
         html.P(
-            f"A new version of Burndown Chart is available. "
+            f"A new version of Burndown is available. "
             f"You are currently running version {current_version}.",
             className="mb-2",
             style={"fontSize": "0.9rem"},

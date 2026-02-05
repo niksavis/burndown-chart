@@ -1,4 +1,4 @@
-# Burndown Chart 🔥 - Documentation
+# Burndown - Documentation
 
 ## 📚 Documentation Overview
 

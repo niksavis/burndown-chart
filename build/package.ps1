@@ -1,4 +1,4 @@
-# Package Script for Burndown Chart Application
+# Package Script for Burndown Application
 # Creates distribution ZIP file from built executables
 
 [CmdletBinding()]
@@ -31,13 +31,13 @@ function Write-Error {
 
 # Main packaging process
 try {
-    Write-Host "`nBurndown Chart - Package Script" -ForegroundColor Yellow
+    Write-Host "`nBurndown - Package Script" -ForegroundColor Yellow
     Write-Host "================================`n" -ForegroundColor Yellow
 
     # Step 1: Verify build artifacts exist
     Write-Step "Verifying build artifacts"
-    $mainExe = Join-Path $DistDir "BurndownChart.exe"
-    $updaterExe = Join-Path $DistDir "BurndownChartUpdater.exe"
+    $mainExe = Join-Path $DistDir "Burndown.exe"
+    $updaterExe = Join-Path $DistDir "BurndownUpdater.exe"
     
     if (-not (Test-Path $mainExe)) {
         Write-Error "Main application not found at: $mainExe"
@@ -97,11 +97,19 @@ try {
     # Copy main application
     Copy-Item -Path $mainExe -Destination $stagingDir
     Write-Success "Copied main application"
+
+    # Legacy compatibility: keep old executable name for auto-update transitions
+    Copy-Item -Path $mainExe -Destination (Join-Path $stagingDir "BurndownChart.exe")
+    Write-Success "Copied legacy main executable name"
     
     # Copy updater if exists
     if ($updaterExe) {
         Copy-Item -Path $updaterExe -Destination $stagingDir
         Write-Success "Copied updater"
+
+        # Legacy compatibility: keep old updater name for auto-update transitions
+        Copy-Item -Path $updaterExe -Destination (Join-Path $stagingDir "BurndownChartUpdater.exe")
+        Write-Success "Copied legacy updater executable name"
     }
     
     # Copy THIRD_PARTY_LICENSES.txt (bundled in executable, also in ZIP for transparency)
@@ -134,7 +142,7 @@ try {
 
     # Step 5: Create ZIP file
     Write-Step "Creating distribution package"
-    $zipName = "BurndownChart-Windows-$Version.zip"
+    $zipName = "Burndown-Windows-$Version.zip"
     $zipPath = Join-Path $DistDir $zipName
     
     # Remove existing ZIP if present

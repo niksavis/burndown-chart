@@ -1,4 +1,4 @@
-# Burndown Chart - First-Time Setup Guide
+# Burndown - First-Time Setup Guide
 
 **Audience**: New users setting up the application for the first time  
 **Time Required**: 15-30 minutes  

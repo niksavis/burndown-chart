@@ -5,7 +5,7 @@
 
 ## Overview
 
-The burndown chart app uses a SQLite database for persistent storage and caching. This document explains the caching system architecture and how to work with cached data.
+The Burndown app uses a SQLite database for persistent storage and caching. This document explains the caching system architecture and how to work with cached data.
 
 **Note**: This document describes the current database-based caching system. Legacy JSON file caching (`jira_cache.json`, `project_data.json`) is deprecated and documented for backward compatibility only.
 

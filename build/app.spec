@@ -1,6 +1,6 @@
 # -*- mode: python ; coding: utf-8 -*-
 """
-PyInstaller spec file for Burndown Chart main application.
+PyInstaller spec file for Burndown main application.
 Defines how to bundle the application and all its dependencies.
 """
 
@@ -143,7 +143,7 @@ exe = EXE(
     a.zipfiles,
     a.datas,
     [],
-    name='BurndownChart',
+    name='Burndown',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,

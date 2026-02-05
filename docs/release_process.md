@@ -10,8 +10,8 @@
 
 # Local build (full sequence)
 .\build\collect_licenses.ps1  # → licenses/THIRD_PARTY_LICENSES.txt
-.\build\build.ps1             # → dist/BurndownChart.exe (~101 MB)
-.\build\package.ps1           # → dist/BurndownChart-Windows-{version}.zip
+.\build\build.ps1             # → dist/Burndown.exe (~101 MB)
+.\build\package.ps1           # → dist/Burndown-Windows-{version}.zip
 
 # Automated release (venv must be active)
 python release.py [patch|minor|major]  # Version bump → changelog → metrics → push → triggers CI
@@ -33,12 +33,12 @@ python update_codebase_metrics.py  # → agents.md (auto-commits)
 .\build\package.ps1 [-Version "X.Y.Z"]  # ZIP with: exes, LICENSE.txt, THIRD_PARTY_LICENSES.txt, README.txt
 ```
 
-**Output**: `dist/BurndownChart-Windows-{version}.zip` (~109 MB)
+**Output**: `dist/Burndown-Windows-{version}.zip` (~109 MB)
 
 **Test**:
 ```powershell
-Expand-Archive dist\BurndownChart-Windows-*.zip -DestinationPath C:\Temp\Test
-C:\Temp\Test\BurndownChart.exe  # Verify: starts, correct version in About, LICENSE.txt extracted
+Expand-Archive dist\Burndown-Windows-*.zip -DestinationPath C:\Temp\Test
+C:\Temp\Test\Burndown.exe  # Verify: starts, correct version in About, LICENSE.txt extracted
 ```
 
 ---
@@ -69,7 +69,7 @@ git tag -d v2.6.0-test && git push origin :refs/tags/v2.6.0-test  # Delete after
 # Windows runner, Python 3.13+
 - Install: pip install -r requirements.txt pyinstaller>=6.0.0 pip-licenses>=5.0.0 pillow>=10.0.0
 - Build: .\build\collect_licenses.ps1 && .\build\build.ps1 && .\build\package.ps1
-- Artifact: dist/BurndownChart-Windows-*.zip
+- Artifact: dist/Burndown-Windows-*.zip
 ```
 
 **Environment override**: `$env:VERSION = "X.Y.Z"` before package.ps1
@@ -276,7 +276,7 @@ git push origin main v2.7.11 --force
 
 **Build**: ModuleNotFoundError → `pip install -r requirements.txt pyinstaller>=6.0.0 pip-licenses>=5.0.0 pillow>=10.0.0`
 
-**Package**: ZIP wrong location → verify dist/BurndownChart.exe exists, check version in configuration/**init**.py
+**Package**: ZIP wrong location → verify dist/Burndown.exe exists, check version in configuration/**init**.py
 
 **GitHub Actions**: Workflow not triggering → verify tag format `v*` (not `2.6.0`), check .github/workflows/release.yml on main
 
@@ -317,7 +317,7 @@ git push origin main v2.7.11 --force         # Force push
 # Check app.log for errors in /api/version endpoint
 # Check JavaScript console for fetch errors
 # Verify post_update_relaunch flag in database:
-sqlite3 "D:\Utilities\Burndown Chart\profiles\burndown.db" "SELECT * FROM app_state WHERE key='post_update_relaunch';"
+sqlite3 "D:\Utilities\Burndown\profiles\burndown.db" "SELECT * FROM app_state WHERE key='post_update_relaunch';"
 # Should be empty or "True" after update, cleared after toast shown
 ```
 

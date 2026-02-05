@@ -37,7 +37,7 @@ class TestInstallationContextDetection:
             if original_has_meipass and original_meipass is not None:
                 setattr(sys, "_MEIPASS", original_meipass)
         """Test detection when running as PyInstaller executable."""
-        fake_exe_path = Path("C:/Program Files/BurndownChart/BurndownChart.exe")
+        fake_exe_path = Path("C:/Program Files/Burndown/Burndown.exe")
 
         with patch.object(sys, "frozen", True, create=True):
             with patch.object(sys, "_MEIPASS", "/tmp/_MEI123", create=True):
@@ -79,12 +79,12 @@ class TestInstallationContextPaths:
             if original_has_meipass and original_meipass is not None:
                 setattr(sys, "_MEIPASS", original_meipass)
         """Test that frozen mode uses executable directory paths."""
-        fake_exe_dir = Path("C:/Program Files/BurndownChart")
+        fake_exe_dir = Path("C:/Program Files/Burndown")
 
         with patch.object(sys, "frozen", True, create=True):
             with patch.object(sys, "_MEIPASS", "/tmp/_MEI123", create=True):
                 with patch.object(
-                    sys, "executable", str(fake_exe_dir / "BurndownChart.exe")
+                    sys, "executable", str(fake_exe_dir / "Burndown.exe")
                 ):
                     with patch.object(Path, "mkdir"):
                         context = InstallationContext.detect()
@@ -215,12 +215,12 @@ class TestInstallationContextPortableMode:
             if original_has_meipass and original_meipass is not None:
                 setattr(sys, "_MEIPASS", original_meipass)
         """Test portable mode detection in frozen mode."""
-        fake_exe_dir = Path("C:/Users/Test/BurndownChart")
+        fake_exe_dir = Path("C:/Users/Test/Burndown")
 
         with patch.object(sys, "frozen", True, create=True):
             with patch.object(sys, "_MEIPASS", "/tmp/_MEI123", create=True):
                 with patch.object(
-                    sys, "executable", str(fake_exe_dir / "BurndownChart.exe")
+                    sys, "executable", str(fake_exe_dir / "Burndown.exe")
                 ):
                     with patch.object(Path, "mkdir"):
                         context = InstallationContext.detect()

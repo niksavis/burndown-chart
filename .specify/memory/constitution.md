@@ -8,7 +8,7 @@ Sync Impact Report:
 - Follow-up: None
 -->
 
-# Burndown Chart Constitution
+# Burndown Constitution
 
 ## Core Principles
 

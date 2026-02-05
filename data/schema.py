@@ -1,5 +1,5 @@
 """
-Data schema for the burndown chart application.
+Data schema for the Burndown application.
 
 Defines the structure of data used across the application.
 """

@@ -1,1 +1,1 @@
-"""Updater package for Burndown Chart application."""
+"""Updater package for Burndown application."""

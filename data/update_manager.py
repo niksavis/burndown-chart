@@ -72,6 +72,14 @@ from configuration import __version__
 GITHUB_OWNER = "niksavis"  # Repository owner
 GITHUB_REPO = "burndown-chart"  # Repository name
 
+# Application identity and executable names
+APP_NAME = "Burndown"
+MAIN_EXE_NAME = "Burndown.exe"
+LEGACY_MAIN_EXE_NAME = "BurndownChart.exe"
+UPDATER_EXE_NAME = "BurndownUpdater.exe"
+LEGACY_UPDATER_EXE_NAME = "BurndownChartUpdater.exe"
+TEMP_UPDATER_PREFIX = "BurndownUpdater-temp-"
+
 # GitHub API configuration
 GITHUB_API_URL = "https://api.github.com/repos/{owner}/{repo}/releases/latest"
 UPDATE_CHECK_TIMEOUT = 10  # seconds
@@ -456,7 +464,7 @@ def check_for_updates() -> UpdateProgress:
             timeout=UPDATE_CHECK_TIMEOUT,
             headers={
                 "Accept": "application/vnd.github+json",
-                "User-Agent": f"BurndownChart/{current_version}",
+                "User-Agent": f"{APP_NAME}/{current_version}",
             },
         )
 
@@ -686,7 +694,7 @@ def download_update(progress: UpdateProgress) -> UpdateProgress:
         temp_dir.mkdir(parents=True, exist_ok=True)
 
         # Extract filename from download URL to preserve actual asset name
-        # URL format: https://github.com/.../releases/download/v2.5.4-test/BurndownChart-Windows-2.5.4.zip
+        # URL format: https://github.com/.../releases/download/v2.5.4-test/Burndown-Windows-2.5.4.zip
         filename = progress.download_url.split("/")[-1]
         download_path = temp_dir / filename
 
@@ -705,7 +713,7 @@ def download_update(progress: UpdateProgress) -> UpdateProgress:
             stream=True,
             timeout=UPDATE_CHECK_TIMEOUT,
             headers={
-                "User-Agent": f"BurndownChart/{progress.current_version}",
+                "User-Agent": f"{APP_NAME}/{progress.current_version}",
             },
         )
 
@@ -825,6 +833,29 @@ def download_update(progress: UpdateProgress) -> UpdateProgress:
         return progress
 
 
+def _find_executable_in_extract(
+    extract_dir: Path,
+    names: list[str],
+) -> Optional[Path]:
+    """Find a matching executable in an extracted update directory.
+
+    Args:
+        extract_dir: Directory containing extracted update files.
+        names: Candidate executable names to search for.
+
+    Returns:
+        Path to the first matching executable, or None if not found.
+    """
+    for name in names:
+        direct_path = extract_dir / name
+        if direct_path.exists():
+            return direct_path
+        matches = list(extract_dir.glob(f"**/{name}"))
+        if matches:
+            return matches[0]
+    return None
+
+
 def launch_updater(update_path: Path) -> bool:
     """Launch updater executable and exit application.
 
@@ -872,24 +903,23 @@ def launch_updater(update_path: Path) -> bool:
         with zipfile.ZipFile(update_path, "r") as zip_ref:
             zip_ref.extractall(extract_dir)
 
-        # Find updater executable
-        updater_exe = extract_dir / "BurndownChartUpdater.exe"
+        # Find updater executable (prefer new name, fallback to legacy)
+        updater_exe = _find_executable_in_extract(
+            extract_dir,
+            [UPDATER_EXE_NAME, LEGACY_UPDATER_EXE_NAME],
+        )
 
-        if not updater_exe.exists():
-            # Try alternate location (might be in subdirectory)
-            possible_paths = list(extract_dir.glob("**/BurndownChartUpdater.exe"))
-            if possible_paths:
-                updater_exe = possible_paths[0]
-            else:
-                logger.error(
-                    "Updater executable not found in ZIP",
-                    extra={
-                        "operation": "launch_updater",
-                        "extract_dir": str(extract_dir),
-                        "files": [str(p) for p in extract_dir.rglob("*")],
-                    },
-                )
-                return False
+        if not updater_exe:
+            logger.error(
+                "Updater executable not found in ZIP",
+                extra={
+                    "operation": "launch_updater",
+                    "extract_dir": str(extract_dir),
+                    "files": [str(p) for p in extract_dir.rglob("*")],
+                    "expected_names": [UPDATER_EXE_NAME, LEGACY_UPDATER_EXE_NAME],
+                },
+            )
+            return False
 
         logger.info(
             "Found updater executable",
@@ -901,14 +931,19 @@ def launch_updater(update_path: Path) -> bool:
             # Running as frozen executable
             current_exe = Path(sys.executable)
             # Find current updater executable (same directory as app)
-            current_updater_exe = current_exe.parent / "BurndownChartUpdater.exe"
+            current_updater_exe = current_exe.parent / UPDATER_EXE_NAME
+            if not current_updater_exe.exists():
+                current_updater_exe = current_exe.parent / LEGACY_UPDATER_EXE_NAME
         else:
             # Running as script - use placeholder
             # In dev mode, updater won't actually work, but we can test the logic
-            current_exe = Path(__file__).parent.parent / "BurndownChart.exe"
-            current_updater_exe = (
-                Path(__file__).parent.parent / "BurndownChartUpdater.exe"
-            )
+            project_root = Path(__file__).parent.parent
+            current_exe = project_root / MAIN_EXE_NAME
+            if not current_exe.exists():
+                current_exe = project_root / LEGACY_MAIN_EXE_NAME
+            current_updater_exe = project_root / UPDATER_EXE_NAME
+            if not current_updater_exe.exists():
+                current_updater_exe = project_root / LEGACY_UPDATER_EXE_NAME
             logger.warning(
                 "Running in development mode - updater may not work correctly",
                 extra={"operation": "launch_updater"},
@@ -927,7 +962,7 @@ def launch_updater(update_path: Path) -> bool:
         # SELF-UPDATING MECHANISM:
         # Copy NEW updater to temp location with unique name
         # This temp copy will replace BOTH executables, then self-terminate
-        temp_updater_name = f"BurndownChartUpdater-temp-{uuid.uuid4().hex[:8]}.exe"
+        temp_updater_name = f"{TEMP_UPDATER_PREFIX}{uuid.uuid4().hex[:8]}.exe"
         temp_updater_path = Path(tempfile.gettempdir()) / temp_updater_name
 
         logger.info(
@@ -977,7 +1012,7 @@ def launch_updater(update_path: Path) -> bool:
             logger.info("Self-update disabled: only app will be updated")
 
         # Create log file for updater output (for debugging update failures)
-        updater_log_path = Path(tempfile.gettempdir()) / "burndown_chart_updater.log"
+        updater_log_path = Path(tempfile.gettempdir()) / "burndown_updater.log"
         try:
             updater_log_file = open(updater_log_path, "w", encoding="utf-8")
             logger.info(

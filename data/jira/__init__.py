@@ -1,7 +1,7 @@
 """
 JIRA API Integration Module
 
-Provides JIRA API integration for the burndown chart application.
+Provides JIRA API integration for the Burndown application.
 This module is refactored from the monolithic jira_simple.py (3,593 lines)
 into focused, maintainable sub-modules following architectural guidelines.
 

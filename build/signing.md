@@ -34,12 +34,12 @@ VSVersionInfo(
     StringFileInfo([
       StringTable(u'040904B0', [
         StringStruct(u'CompanyName', u'Your Company'),
-        StringStruct(u'FileDescription', u'Burndown Chart Application'),
+        StringStruct(u'FileDescription', u'Burndown Application'),
         StringStruct(u'FileVersion', u'2.5.0'),
-        StringStruct(u'InternalName', u'BurndownChart'),
+        StringStruct(u'InternalName', u'Burndown'),
         StringStruct(u'LegalCopyright', u'Copyright (c) 2026'),
-        StringStruct(u'OriginalFilename', u'BurndownChart.exe'),
-        StringStruct(u'ProductName', u'Burndown Chart'),
+        StringStruct(u'OriginalFilename', u'Burndown.exe'),
+        StringStruct(u'ProductName', u'Burndown'),
         StringStruct(u'ProductVersion', u'2.5.0')
       ])
     ]),
@@ -50,7 +50,7 @@ VSVersionInfo(
 # Then in app.spec EXE() section:
 exe = EXE(
     ...
-    name='BurndownChart',
+    name='Burndown',
     version='version.txt',  # Add this line
     ...
 )
@@ -62,23 +62,23 @@ Version information is visible in Windows Explorer file properties and helps wit
 
 ### Auto-detect certificate from store
 ```powershell
-.\build\sign_executable.ps1 -FilePath "dist\BurndownChart.exe"
+.\build\sign_executable.ps1 -FilePath "dist\Burndown.exe"
 ```
 
 ### Specify certificate by thumbprint
 ```powershell
-.\build\sign_executable.ps1 -FilePath "dist\BurndownChart.exe" -CertificateThumbprint "ABC123..."
+.\build\sign_executable.ps1 -FilePath "dist\Burndown.exe" -CertificateThumbprint "ABC123..."
 ```
 
 ### Use .pfx certificate file
 ```powershell
 $password = Read-Host -AsSecureString -Prompt "Certificate password"
-.\build\sign_executable.ps1 -FilePath "dist\BurndownChart.exe" -CertificatePath "path\to\cert.pfx" -CertificatePassword $password
+.\build\sign_executable.ps1 -FilePath "dist\Burndown.exe" -CertificatePath "path\to\cert.pfx" -CertificatePassword $password
 ```
 
 ### Custom timestamp server
 ```powershell
-.\build\sign_executable.ps1 -FilePath "dist\BurndownChart.exe" -TimestampServer "http://timestamp.comodoca.com"
+.\build\sign_executable.ps1 -FilePath "dist\Burndown.exe" -TimestampServer "http://timestamp.comodoca.com"
 ```
 
 ## Build Integration

@@ -1,4 +1,4 @@
-﻿# Burndown Chart - AI Agent Guide
+﻿# Burndown - AI Agent Guide
 
 **Stack**: Python 3.13, Dash, Plotly, Waitress | **DB**: SQLite | **Platform**: Windows
 
@@ -10,7 +10,7 @@
 4. **LAYERING**: callbacks/ routes only; data/ holds logic; ui/ renders; visualization/ charts.
 5. **NO CUSTOMER DATA**: Never commit real names, domains, IDs, or credentials.
 6. **TEST ISOLATION**: Use tempfile.TemporaryDirectory() in tests.
-7. **NO EMOJI**: Avoid emoji in code/logs/comments.
+7. **NO EMOJI**: Avoid emoji in code/logs/comments. Exception: emoji are allowed in documentation files (`.md`) only.
 8. **TERMINAL STATE**: Each terminal run is isolated; activation does not persist.
 9. **SELF-HEALING DOC**: If this file is wrong, inform → propose → update.
 10. **COMMITS**: Conventional commit + bead ID required.

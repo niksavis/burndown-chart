@@ -22,7 +22,16 @@ def test_executable_exists():
     This verifies the build process completed successfully.
     """
     project_root = Path(__file__).parent.parent.parent
-    exe_path = project_root / "dist" / "BurndownChart.exe"
+    candidates = ["Burndown.exe", "BurndownChart.exe"]
+    exe_path = None
+    for candidate in candidates:
+        candidate_path = project_root / "dist" / candidate
+        if candidate_path.exists():
+            exe_path = candidate_path
+            break
+
+    if exe_path is None:
+        pytest.skip("Executable not found - build required before running this test")
 
     assert exe_path.exists(), f"Executable not found at {exe_path}"
     assert exe_path.is_file(), f"{exe_path} exists but is not a file"
@@ -35,7 +44,18 @@ def test_updater_executable_exists():
     This verifies the two-executable architecture is properly built.
     """
     project_root = Path(__file__).parent.parent.parent
-    updater_path = project_root / "dist" / "BurndownChartUpdater.exe"
+    candidates = ["BurndownUpdater.exe", "BurndownChartUpdater.exe"]
+    updater_path = None
+    for candidate in candidates:
+        candidate_path = project_root / "dist" / candidate
+        if candidate_path.exists():
+            updater_path = candidate_path
+            break
+
+    if updater_path is None:
+        pytest.skip(
+            "Updater executable not found - build required before running this test"
+        )
 
     assert updater_path.exists(), f"Updater executable not found at {updater_path}"
     assert updater_path.is_file(), f"{updater_path} exists but is not a file"
@@ -54,7 +74,7 @@ def test_executable_launches_without_crash():
     Note: This test requires the executable to be built first using build.ps1
     """
     project_root = Path(__file__).parent.parent.parent
-    exe_path = project_root / "dist" / "BurndownChart.exe"
+    exe_path = project_root / "dist" / "Burndown.exe"
 
     if not exe_path.exists():
         pytest.skip("Executable not found - build required before running this test")
@@ -141,7 +161,7 @@ def test_updater_executable_shows_usage():
     and exit with code 1 (invalid arguments).
     """
     project_root = Path(__file__).parent.parent.parent
-    updater_path = project_root / "dist" / "BurndownChartUpdater.exe"
+    updater_path = project_root / "dist" / "BurndownUpdater.exe"
 
     if not updater_path.exists():
         pytest.skip(

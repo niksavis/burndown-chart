@@ -40,9 +40,6 @@ function Invoke-SqliteCommand {
     # Convert Windows path to forward slashes for Python
     $DbPathForPython = $DbPath -replace '\\', '/'
     
-    # Escape single quotes in query for Python
-    $QueryEscaped = $Query -replace "'", "''"
-    
     $pythonScript = @"
 import sqlite3
 import sys
@@ -77,7 +74,7 @@ try {
         Write-Info ""
         Write-Info "Next steps:"
         Write-Info "1. Quit app (system tray icon -> Quit) - KEEP BROWSER TAB OPEN!"
-        Write-Info "2. Restart the app (double-click BurndownChart.exe)"
+        Write-Info "2. Restart the app (double-click Burndown.exe)"
         Write-Info "3. NO new browser tab should open (flag prevents auto-launch)"
         Write-Info "4. Existing browser tab stays open - app works when you interact"
         Write-Info "5. If you click during restart, overlay shows and auto-reconnects"
@@ -117,7 +114,7 @@ try {
         Write-Host "  3. Quit app: Right-click system tray icon -> Quit"
         Write-Host "  4. Run: .\test_update_flag.ps1 -Set"
         Write-Host "  5. Verify flag: .\test_update_flag.ps1 -Check (should show 'true')"
-        Write-Host "  6. Run app again: .\BurndownChart.exe"
+        Write-Host "  6. Run app again: .\Burndown.exe"
         Write-Host ""
         Write-Host "Expected Results:" -ForegroundColor Cyan
         Write-Host "  - NO new browser tab opens (only ONE tab total)"

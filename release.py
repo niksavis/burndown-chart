@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Automated Release Script for Burndown Chart
+Automated Release Script for Burndown
 
 Integrated release workflow that handles version bumping, changelog generation,
 and executable metadata in a single atomic operation to prevent coordination bugs.
@@ -427,7 +427,7 @@ def push_release(version: str) -> bool:
 def main():
     """Main release workflow."""
     parser = argparse.ArgumentParser(
-        description="Automated release script for Burndown Chart",
+        description="Automated release script for Burndown",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=__doc__,
     )
@@ -440,7 +440,7 @@ def main():
     args = parser.parse_args()
 
     print("=" * 60)
-    print("Burndown Chart - Automated Release")
+    print("Burndown - Automated Release")
     print("=" * 60)
     print(f"\nBump Type: {args.bump_type}")
 

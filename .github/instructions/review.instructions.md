@@ -1,36 +1,43 @@
-# Code Review Rules - Burndown Chart
+# Code Review Rules - Burndown
 
 **Stack**: Python 3.13, Dash, Plotly, SQLite | **Platform**: Windows
 
 ## CRITICAL Rules (Block Merge)
 
 ### Rule 0: Zero Errors
+
 - `get_errors` → 0 errors (no exceptions)
 
 ### Rule 1: No Emoji
+
 - ❌ ANY emoji in code/logging/comments
 - Breaks grep, encoding issues
 
 ### Rule 2: Type Hints
+
 - ALL functions → parameters + return types
 - Exception: test fixtures, callbacks (Dash limitation)
 
 ### Rule 3: Bead ID
+
 - Format: `type(scope): description (bd-XXX)`
 - Types: feat|fix|docs|refactor|test|chore|perf|style|build|ci
 - Enables `bd doctor` orphan detection
 
 ### Rule 4: No Customer Data
+
 - ❌ Real: company names, domains, JIRA IDs, credentials
 - ✓ Use: "Acme Corp", "example.com", "customfield_10001"
 
 ### Rule 5: Test Isolation
+
 - MUST: `tempfile.TemporaryDirectory()`
 - ❌ Write to: project root, profiles/, logs/, cache/
 
 ## Architecture (Layered Pattern)
 
 **Separation of Concerns**:
+
 ```
 callbacks/     → Event routing ONLY (delegate to data/)
 data/          → Business logic, API calls, persistence
@@ -39,10 +46,12 @@ visualization/ → Plotly chart generation
 ```
 
 **FORBIDDEN in callbacks/**:
+
 - Business logic, calculations, file I/O, API calls
 - Direct JSON manipulation, complex conditionals
 
 **Entry Points**:
+
 - JIRA API → `data/jira_query_manager.py` (NOT jira_simple.py)
 - Database → `data/persistence/` (Repository pattern)
 - State → `callbacks/` → delegate → `data/`
@@ -50,6 +59,7 @@ visualization/ → Plotly chart generation
 ## Python Standards (PEP 8+)
 
 ### Imports (Order Matters)
+
 ```python
 # 1. Standard library
 import os
@@ -64,6 +74,7 @@ from data.persistence import load_app_settings
 ```
 
 ### Error Handling
+
 ```python
 # ✓ GOOD: Contextual exceptions
 raise ValueError(f"Field '{field_name}' missing (expected: {expected})")
@@ -75,6 +86,7 @@ try: risky() except: pass  # Silent failures
 ```
 
 ### Logging Format
+
 ```python
 # ✓ GOOD: `[Module] Operation: metrics`
 logger.info(f"[JIRA] Fetched {count} issues in {duration:.1f}s")
@@ -86,11 +98,13 @@ logger.info("Debug: Processing...")  # Use logger.debug()
 ```
 
 ### Function Size
+
 - Max 50 lines → break into helpers if >50
 - Early returns > nested conditionals
 - Extract duplication (3+ blocks) → DRY
 
 ### Naming
+
 ```python
 snake_case.py       # Files
 PascalCase          # Classes
@@ -101,6 +115,7 @@ UPPER_CASE          # Constants
 ## JavaScript/CSS Standards
 
 ### Clientside Callbacks (Dash)
+
 ```javascript
 // ✓ GOOD: Namespace + clear purpose
 window.dash_clientside.namespace_autocomplete = {
@@ -112,37 +127,45 @@ function myFunction() { ... }  // Use namespaces
 ```
 
 ### DOM Manipulation
+
 - **React Controlled Inputs**: Use native setters + dispatch events
 - **Event Handlers**: Always `removeEventListener` before `addEventListener`
 - **Timeouts**: Clear with `clearTimeout` to prevent leaks
 
 ### CSS
+
 ```css
 /* ✓ GOOD: BEM-like, scoped */
-.namespace-autocomplete-dropdown { }
-.character-count-warning { }
+.namespace-autocomplete-dropdown {
+}
+.character-count-warning {
+}
 
 /* ❌ BAD: Generic, conflicts */
-.dropdown { }
-.warning { }
+.dropdown {
+}
+.warning {
+}
 ```
 
 ### Performance
+
 - Debounce: resize/scroll handlers (150ms)
 - Minimize: re-renders, DOM queries (cache selectors)
 - Use: `requestAnimationFrame` for animations
 
 ## Performance Targets
 
-| Layer | Target | Measurement |
-|-------|--------|-------------|
-| Page Load | <2s | First paint |
-| Chart Render | <500ms | Plotly update |
-| Interaction | <100ms | Button → feedback |
+| Layer        | Target | Measurement       |
+| ------------ | ------ | ----------------- |
+| Page Load    | <2s    | First paint       |
+| Chart Render | <500ms | Plotly update     |
+| Interaction  | <100ms | Button → feedback |
 
 ## Security
 
 ### SQL Injection
+
 ```python
 # ✓ GOOD: Parameterized
 cursor.execute("SELECT * FROM issues WHERE id = ?", (issue_id,))
@@ -152,6 +175,7 @@ cursor.execute(f"SELECT * FROM issues WHERE id = {issue_id}")
 ```
 
 ### Input Validation
+
 - Validate: user inputs, API responses, file uploads
 - Sanitize: before storage, before display (XSS prevention)
 - Never: trust external data
@@ -159,6 +183,7 @@ cursor.execute(f"SELECT * FROM issues WHERE id = {issue_id}")
 ## Testing
 
 ### Patterns
+
 ```python
 # ✓ GOOD: Isolation, cleanup
 def test_function():
@@ -173,6 +198,7 @@ def test_function():
 ```
 
 ### Coverage
+
 - New features → unit tests (>80% line coverage)
 - Edge cases: empty lists, None, invalid types
 - Integration: end-to-end user workflows
@@ -180,6 +206,7 @@ def test_function():
 ## Platform (Windows)
 
 ### PowerShell ONLY
+
 ```powershell
 # ✓ GOOD
 Select-String "pattern" file.txt    # NOT grep
@@ -192,6 +219,7 @@ find . -name "*.py"
 ```
 
 ### Virtual Environment
+
 - ALWAYS: `.venv\Scripts\activate` before Python commands
 - Check: prompt shows `(.venv)`
 

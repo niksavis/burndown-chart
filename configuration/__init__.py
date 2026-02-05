@@ -1,7 +1,7 @@
 """
 Configuration Module
 
-This module contains configuration settings for the burndown chart application.
+This module contains configuration settings for the Burndown application.
 """
 
 #######################################################################

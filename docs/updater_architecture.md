@@ -5,7 +5,7 @@
 
 ## Overview
 
-The Burndown Chart application uses a **two-phase update mechanism with temporary updater copy** to enable both the main application (`BurndownChart.exe`) and the updater itself (`BurndownChartUpdater.exe`) to be updated automatically. This architecture solves the Windows file locking problem where a running executable cannot replace itself.
+The Burndown application uses a **two-phase update mechanism with temporary updater copy** to enable both the main application (`Burndown.exe`) and the updater itself (`BurndownUpdater.exe`) to be updated automatically. This architecture solves the Windows file locking problem where a running executable cannot replace itself.
 
 ---
 
@@ -25,14 +25,14 @@ Phase 1: APP DOWNLOADS & PREPARES
 ├── App checks GitHub API for new release
 ├── Downloads ZIP to %TEMP%\burndown_updates\
 ├── Extracts to staging directory
-├── Copies NEW updater to %TEMP%\BurndownChartUpdater-temp-<uuid>.exe
+├── Copies NEW updater to %TEMP%\BurndownUpdater-temp-<uuid>.exe
 └── Launches TEMP updater with --updater-exe flag
 
 Phase 2: TEMP UPDATER REPLACES FILES
 ├── Waits for app to exit (os._exit(0))
-├── Replaces BurndownChart.exe (from staging)
-├── Replaces BurndownChartUpdater.exe (from staging) ← SELF-UPDATE
-├── Launches new BurndownChart.exe
+├── Replaces Burndown.exe (from staging)
+├── Replaces BurndownUpdater.exe (from staging) ← SELF-UPDATE
+├── Launches new Burndown.exe
 ├── Cleans up temp files
 └── Self-terminates (temp updater deleted on next app startup)
 ```
@@ -49,11 +49,11 @@ Windows prevents replacing an executable while it's running:
 
 ```
 Install Directory:
-├── BurndownChart.exe        (LOCKED - running)
-└── BurndownChartUpdater.exe (LOCKED - cannot self-update)
+├── Burndown.exe        (LOCKED - running)
+└── BurndownUpdater.exe (LOCKED - cannot self-update)
 
 %TEMP% Directory (during update):
-└── BurndownChartUpdater-temp-abc123.exe (UNLOCKED - can replace both!)
+└── BurndownUpdater-temp-abc123.exe (UNLOCKED - can replace both!)
 ```
 
 **Key Insight**: The temp updater runs from a different location, so it can replace BOTH the original app and the original updater without file locking conflicts.
@@ -80,13 +80,13 @@ if VERSION_CHECK_RESULT.state == UpdateState.AVAILABLE:
 progress = download_update(progress)  # state: DOWNLOADING → READY
 ```
 
-**Location**: `%TEMP%\burndown_updates\BurndownChart-Windows-X.Y.Z.zip`  
+**Location**: `%TEMP%\burndown_updates\Burndown-Windows-X.Y.Z.zip`  
 **Progress**: Tracked via `UpdateProgress.progress_percent` (0-100)  
 **Persistence**: Download path saved to database (`app_state` table)
 
 **Database Keys**:
 - `pending_update_version`: "2.7.0"
-- `pending_update_path`: "C:\Users\...\AppData\Local\Temp\burndown_updates\BurndownChart-Windows-2.7.0.zip"
+- `pending_update_path`: "C:\Users\...\AppData\Local\Temp\burndown_updates\Burndown-Windows-2.7.0.zip"
 - `pending_update_url`: Download URL (for re-download if needed)
 - `pending_update_checked_at`: ISO timestamp (staleness check)
 
@@ -100,7 +100,7 @@ with zipfile.ZipFile(update_path, 'r') as zip_ref:
     zip_ref.extractall(staging_dir)  # Contains NEW app + NEW updater
 
 # Step 2: Create temp updater copy
-temp_updater_name = f"BurndownChartUpdater-temp-{uuid.uuid4().hex[:8]}.exe"
+temp_updater_name = f"BurndownUpdater-temp-{uuid.uuid4().hex[:8]}.exe"
 temp_updater_path = Path(tempfile.gettempdir()) / temp_updater_name
 shutil.copy2(new_updater, temp_updater_path)
 
@@ -127,7 +127,7 @@ os._exit(0)  # Force immediate exit, release file locks
 # updater/updater.py - main()
 
 # Parse arguments (backward compatible)
-current_exe = Path(sys.argv[1])      # BurndownChart.exe
+current_exe = Path(sys.argv[1])      # Burndown.exe
 update_zip = Path(sys.argv[2])       # ZIP path
 app_pid = int(sys.argv[3])           # App process ID
 updater_exe = Path(sys.argv[5]) if "--updater-exe" in sys.argv else None
@@ -221,7 +221,7 @@ else:
 temp_dir = Path(tempfile.gettempdir())
 cutoff_time = time.time() - (60 * 60)  # 1 hour ago
 
-for temp_updater in temp_dir.glob("BurndownChartUpdater-temp-*.exe"):
+for temp_updater in temp_dir.glob("BurndownUpdater-temp-*.exe"):
     if temp_updater.stat().st_mtime < cutoff_time:
         temp_updater.unlink()  # Delete if older than 1 hour
 ```
@@ -433,7 +433,7 @@ def test_restore_download_state_file_missing():
 **Cause**: Updater encountered error during copy phase (e.g., permission denied, disk full, AV interference)
 
 **Solution**:
-1. Check updater log: `%TEMP%\burndown_chart_updater.log`
+1. Check updater log: `%TEMP%\burndown_updater.log`
 2. Look for "ERROR:" or "WARNING:" messages
 3. Check disk space (updater needs ~200MB free)
 4. Check anti-virus (may block file replacement)
@@ -452,7 +452,7 @@ def test_restore_download_state_file_missing():
 - `File not found in ZIP`: Download corrupted - re-download update
 - `Failed to replace executable after 20 attempts`: Persistent anti-virus lock or system issue - try disabling AV temporarily
 
-**Log Location**: `C:\Users\[USERNAME]\AppData\Local\Temp\burndown_chart_updater.log`
+**Log Location**: `C:\Users\[USERNAME]\AppData\Local\Temp\burndown_updater.log`
 
 ### Update Stuck at "Downloading..."
 
@@ -508,7 +508,7 @@ Anti-virus software on Windows can hold file locks for 10-30 seconds after proce
 
 **Manual Cleanup**:
 ```powershell
-Remove-Item "$env:TEMP\BurndownChartUpdater-temp-*.exe"
+Remove-Item "$env:TEMP\BurndownUpdater-temp-*.exe"
 ```
 
 ### Update Interrupted (Power Loss)

@@ -67,8 +67,8 @@ jobs:
       - name: Verify build artifacts
         id: verify_build
         run: |
-          $mainExe = "dist\BurndownChart.exe"
-          $updaterExe = "dist\BurndownChartUpdater.exe"
+          $mainExe = "dist\Burndown.exe"
+          $updaterExe = "dist\BurndownUpdater.exe"
 
           # Main executable is REQUIRED
           if (-not (Test-Path $mainExe)) {
@@ -124,7 +124,7 @@ jobs:
       - name: Find ZIP file
         id: zip
         run: |
-          $zipFile = Get-ChildItem -Path dist -Filter "BurndownChart-Windows-*.zip" -ErrorAction SilentlyContinue | Select-Object -First 1
+          $zipFile = Get-ChildItem -Path dist -Filter "Burndown-Windows-*.zip" -ErrorAction SilentlyContinue | Select-Object -First 1
           if (-not $zipFile) {
             Write-Error "ZIP file not found in dist directory"
             Write-Host "Contents of dist directory:" -ForegroundColor Yellow
@@ -227,9 +227,9 @@ jobs:
 
           **For non-technical users** - No Python installation required:
 
-          1. **Download** ``BurndownChart-Windows-$version.zip`` below
-          2. **Extract** the contents to a folder of your choice (e.g., ``C:\Program Files\BurndownChart``)
-          3. **Run** ``BurndownChart.exe`` to start the application
+          1. **Download** ``Burndown-Windows-$version.zip`` below
+          2. **Extract** the contents to a folder of your choice (e.g., ``C:\Program Files\Burndown``)
+          3. **Run** ``Burndown.exe`` to start the application
           4. **Optional**: Create a desktop shortcut to the executable for easy access
 
           ### Linux / macOS / Windows (Run from Source)
@@ -356,7 +356,7 @@ jobs:
         id: create_release
         uses: softprops/action-gh-release@v2
         with:
-          name: "Burndown Chart v${{ steps.version.outputs.VERSION }}"
+          name: "Burndown v${{ steps.version.outputs.VERSION }}"
           body_path: release_notes.md
           draft: false
           prerelease: false

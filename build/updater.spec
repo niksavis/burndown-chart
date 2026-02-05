@@ -1,6 +1,6 @@
 # -*- mode: python ; coding: utf-8 -*-
 """
-PyInstaller spec file for Burndown Chart Updater.
+PyInstaller spec file for Burndown Updater.
 Minimal executable to handle updating the main application.
 """
 
@@ -77,7 +77,7 @@ exe = EXE(
     a.zipfiles,
     a.datas,
     [],
-    name='BurndownChartUpdater',
+    name='BurndownUpdater',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,

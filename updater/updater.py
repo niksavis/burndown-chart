@@ -1,17 +1,17 @@
 """
-Burndown Chart Updater
+Burndown Updater
 
 Standalone updater executable that replaces the main application with a new version.
 This runs as a separate process after the main app exits.
 
 Usage (Original - app only):
-    BurndownChartUpdater.exe <current_exe> <update_zip> <app_pid>
+    BurndownUpdater.exe <current_exe> <update_zip> <app_pid>
 
 Usage (New - app + updater):
-    BurndownChartUpdater.exe <current_exe> <update_zip> <app_pid> --updater-exe <updater_exe>
+    BurndownUpdater.exe <current_exe> <update_zip> <app_pid> --updater-exe <updater_exe>
 
 Arguments:
-    current_exe: Path to the current BurndownChart.exe to be replaced
+    current_exe: Path to the current Burndown.exe to be replaced
     update_zip: Path to the ZIP file containing the new version
     app_pid: Process ID of the running app (to wait for exit)
     --updater-exe: (Optional) Path to current updater executable to be replaced
@@ -51,6 +51,12 @@ import subprocess
 import sqlite3
 from pathlib import Path
 from typing import Optional
+
+APP_NAME = "Burndown"
+MAIN_EXE_NAME = "Burndown.exe"
+LEGACY_MAIN_EXE_NAME = "BurndownChart.exe"
+UPDATER_EXE_NAME = "BurndownUpdater.exe"
+LEGACY_UPDATER_EXE_NAME = "BurndownChartUpdater.exe"
 
 
 def print_status(message: str) -> None:
@@ -256,6 +262,29 @@ def extract_update(zip_path: Path, extract_dir: Path) -> bool:
         return False
 
 
+def find_executable_in_extract(
+    extract_dir: Path,
+    names: list[str],
+) -> Optional[Path]:
+    """Find a matching executable in an extracted update directory.
+
+    Args:
+        extract_dir: Directory containing extracted update files.
+        names: Candidate executable names to search for.
+
+    Returns:
+        Path to the first matching executable, or None if not found.
+    """
+    for name in names:
+        direct_path = extract_dir / name
+        if direct_path.exists():
+            return direct_path
+        matches = list(extract_dir.glob(f"**/{name}"))
+        if matches:
+            return matches[0]
+    return None
+
+
 def replace_executable(new_exe_path: Path, target_exe_path: Path) -> bool:
     """Replace old executable with new one.
 
@@ -428,7 +457,7 @@ def main() -> int:
         Exit code (0 for success, non-zero for error)
     """
     print_status("=" * 60)
-    print_status("Burndown Chart Updater")
+    print_status("Burndown Updater")
     print_status("=" * 60)
 
     # Parse command line arguments (backward compatible)
@@ -483,7 +512,7 @@ def main() -> int:
     import uuid
 
     extract_dir = (
-        Path(tempfile.gettempdir()) / f"burndown_chart_update_{uuid.uuid4().hex[:8]}"
+        Path(tempfile.gettempdir()) / f"burndown_update_{uuid.uuid4().hex[:8]}"
     )
     if not extract_update(update_zip, extract_dir):
         print_status("ERROR: Failed to extract update - aborting")
@@ -495,12 +524,18 @@ def main() -> int:
         return 4
 
     # Find new app executable in extracted files
-    new_exe_candidates = list(extract_dir.glob(f"**/{current_exe.name}"))
-    if not new_exe_candidates:
-        print_status(f"ERROR: New executable not found in ZIP: {current_exe.name}")
-        return 4
+    app_exe_names = [MAIN_EXE_NAME]
+    if current_exe.name not in app_exe_names:
+        app_exe_names.append(current_exe.name)
+    if LEGACY_MAIN_EXE_NAME not in app_exe_names:
+        app_exe_names.append(LEGACY_MAIN_EXE_NAME)
 
-    new_exe = new_exe_candidates[0]
+    new_exe = find_executable_in_extract(extract_dir, app_exe_names)
+    if not new_exe:
+        print_status(
+            "ERROR: New executable not found in ZIP: " + ", ".join(app_exe_names)
+        )
+        return 4
     print_status(f"Found new app executable: {new_exe}")
 
     # Step 4: Replace old app executable with new one
@@ -510,6 +545,16 @@ def main() -> int:
         return 5
 
     print_status("App update completed successfully!")
+
+    launch_exe = current_exe
+    if current_exe.name != MAIN_EXE_NAME:
+        main_exe_path = current_exe.parent / MAIN_EXE_NAME
+        try:
+            shutil.copy2(new_exe, main_exe_path)
+            launch_exe = main_exe_path
+            print_status(f"Created {MAIN_EXE_NAME} for rebrand compatibility")
+        except Exception as e:
+            print_status(f"WARNING: Failed to create {MAIN_EXE_NAME}: {e}")
 
     # Step 5: Replace updater executable (if self-update requested)
     if updater_exe:
@@ -523,17 +568,22 @@ def main() -> int:
             )
         else:
             # Find new updater in extracted files
-            new_updater_candidates = list(extract_dir.glob(f"**/{updater_exe.name}"))
-            if not new_updater_candidates:
+            updater_names = [updater_exe.name]
+            if updater_exe.name != UPDATER_EXE_NAME:
+                updater_names.append(UPDATER_EXE_NAME)
+            if updater_exe.name != LEGACY_UPDATER_EXE_NAME:
+                updater_names.append(LEGACY_UPDATER_EXE_NAME)
+
+            new_updater = find_executable_in_extract(extract_dir, updater_names)
+            if not new_updater:
                 print_status(
-                    f"WARNING: New updater not found in ZIP: {updater_exe.name}"
+                    "WARNING: New updater not found in ZIP: " + ", ".join(updater_names)
                 )
                 print_status("App has been updated, but updater remains at old version")
                 # Remove updater backup since we're not updating it
                 if updater_backup.exists():
                     updater_backup.unlink()
             else:
-                new_updater = new_updater_candidates[0]
                 print_status(f"Found new updater executable: {new_updater}")
 
                 # Replace updater
@@ -546,6 +596,17 @@ def main() -> int:
                     restore_from_backup(updater_backup, updater_exe)
                 else:
                     print_status("Updater self-update completed successfully!")
+                    if updater_exe.name != UPDATER_EXE_NAME:
+                        updater_alias = updater_exe.parent / UPDATER_EXE_NAME
+                        try:
+                            shutil.copy2(updater_exe, updater_alias)
+                            print_status(
+                                f"Created {UPDATER_EXE_NAME} for rebrand compatibility"
+                            )
+                        except Exception as e:
+                            print_status(
+                                f"WARNING: Failed to create {UPDATER_EXE_NAME}: {e}"
+                            )
                     # Remove updater backup after successful update
                     if updater_backup.exists():
                         updater_backup.unlink()
@@ -553,7 +614,7 @@ def main() -> int:
     print_status("All updates completed successfully!")
 
     # Step 6: Launch updated application
-    launch_application(current_exe)
+    launch_application(launch_exe)
 
     # Step 7: Clean up
     try:

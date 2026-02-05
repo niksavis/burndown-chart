@@ -1,4 +1,4 @@
-# Build Script for Burndown Chart Application
+# Build Script for Burndown Application
 # Builds standalone Windows executables using PyInstaller
 
 [CmdletBinding()]
@@ -34,7 +34,7 @@ function Write-Error {
 
 # Main build process
 try {
-    Write-Host "`nBurndown Chart - Build Script" -ForegroundColor Yellow
+    Write-Host "`nBurndown - Build Script" -ForegroundColor Yellow
     Write-Host "==============================`n" -ForegroundColor Yellow
 
     # Step 1: Extract version from configuration/__init__.py
@@ -206,7 +206,7 @@ try {
     }
 
     # Step 10: Build main application
-    Write-Step "Building main application (BurndownChart.exe)"
+    Write-Step "Building main application (Burndown.exe)"
     Push-Location $ProjectRoot
     try {
         $pyinstallerArgs = @($appSpec, "--noconfirm")
@@ -226,7 +226,7 @@ try {
     }
 
     # Step 11: Build updater (REQUIRED)
-    Write-Step "Building updater (BurndownChartUpdater.exe)"
+    Write-Step "Building updater (BurndownUpdater.exe)"
     
     # Check if updater exists
     $updaterPy = Join-Path $ProjectRoot "updater\updater.py"
@@ -249,7 +249,7 @@ try {
             exit 1
         }
         Write-Success "Updater built successfully"
-        $updaterExe = Join-Path $DistDir "BurndownChartUpdater.exe"
+        $updaterExe = Join-Path $DistDir "BurndownUpdater.exe"
     }
     finally {
         Pop-Location
@@ -257,7 +257,7 @@ try {
 
     # Step 12: Verify output files
     Write-Step "Verifying build artifacts"
-    $mainExe = Join-Path $DistDir "BurndownChart.exe"
+    $mainExe = Join-Path $DistDir "Burndown.exe"
     
     if (-not (Test-Path $mainExe)) {
         Write-Error "Main executable not found at: $mainExe"
@@ -343,7 +343,7 @@ try {
     }
     
     Write-Host "`nNext steps:" -ForegroundColor Yellow
-    Write-Host "  1. Test the executable: .\dist\BurndownChart\BurndownChart.exe" -ForegroundColor White
+    Write-Host "  1. Test the executable: .\dist\Burndown.exe" -ForegroundColor White
     Write-Host "  2. Create distribution package: .\build\package.ps1" -ForegroundColor White
     
     # Explicit success exit

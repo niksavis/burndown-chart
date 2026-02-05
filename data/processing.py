@@ -2,7 +2,7 @@
 Data Processing Module
 
 This module handles all data transformation, calculation logic, and
-forecasting algorithms for the burndown chart application.
+forecasting algorithms for the Burndown application.
 """
 
 #######################################################################

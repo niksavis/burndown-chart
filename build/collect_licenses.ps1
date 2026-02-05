@@ -60,7 +60,7 @@ THIRD-PARTY SOFTWARE LICENSES
 ===============================================================================
 
 This file contains the licenses of all third-party dependencies bundled with
-the Burndown Chart application.
+the Burndown application.
 
 Generated: $(Get-Date -Format "yyyy-MM-dd HH:mm:ss")
 

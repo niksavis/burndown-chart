@@ -1,5 +1,5 @@
 """
-Persistence layer abstract interface for burndown chart application.
+Persistence layer abstract interface for Burndown application.
 
 This module defines the contract for persistence backends, enabling
 abstraction between business logic and storage implementation.

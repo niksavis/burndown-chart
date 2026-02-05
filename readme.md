@@ -1,4 +1,4 @@
-# Burndown Chart 🔥
+# Burndown🔥
 
 [![python](https://img.shields.io/badge/Python-3.13-3776AB.svg?style=flat&logo=python&logoColor=white)](https://www.python.org)
 [![version](https://img.shields.io/badge/version-2.9.0-blue.svg)](https://github.com/niksavis/burndown-chart/releases)
@@ -37,8 +37,8 @@ See installation instructions below for setup details.
 **For non-technical users** - No Python installation required!
 
 1. **Download** the latest Windows release from the [Releases page](https://github.com/niksavis/burndown-chart/releases/latest)
-2. **Extract** the ZIP file to a folder of your choice (e.g., `C:\Program Files\BurndownChart`)
-3. **Run** `BurndownChart\BurndownChart.exe` to start the application
+2. **Extract** the ZIP file to a folder of your choice (e.g., `C:\Program Files\Burndown`)
+3. **Run** `Burndown\Burndown.exe` to start the application
 4. **Open** your browser to [http://127.0.0.1:8050](http://127.0.0.1:8050)
 5. **Optional**: Create a desktop shortcut to the EXE for easy access
 
@@ -191,4 +191,4 @@ For getting started with metrics, see the [Metrics Index](docs/metrics_index.md)
 
 **License:** MIT | **Python:** 3.13+ | **Version:** 2.9.0
 
-**[⬆ Back to Top](#burndown-chart-)**
+**[⬆ Back to Top](#burndown)**

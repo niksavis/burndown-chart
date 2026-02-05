@@ -70,7 +70,7 @@ def test_launch_updater_extracts_zip():
     try:
         with zipfile.ZipFile(temp_zip, "w") as zf:
             # Add a fake updater executable
-            zf.writestr("BurndownChartUpdater.exe", "mock updater content")
+            zf.writestr("BurndownUpdater.exe", "mock updater content")
 
         # Mock subprocess.Popen and sys.exit to prevent actual execution
         with (
@@ -106,7 +106,7 @@ def test_launch_updater_passes_correct_arguments():
 
     try:
         with zipfile.ZipFile(temp_zip, "w") as zf:
-            zf.writestr("BurndownChartUpdater.exe", "mock updater content")
+            zf.writestr("BurndownUpdater.exe", "mock updater content")
 
         # Mock subprocess.Popen and sys.exit
         with (
@@ -127,7 +127,7 @@ def test_launch_updater_passes_correct_arguments():
 
             # Should have 4 arguments: updater_exe, current_exe, update_zip, pid
             assert len(call_args) == 4
-            assert "BurndownChartUpdater.exe" in call_args[0]
+            assert "BurndownUpdater.exe" in call_args[0]
             assert str(temp_zip) == call_args[2]
             assert call_args[3] == str(os.getpid())
 
@@ -147,7 +147,7 @@ def test_launch_updater_finds_updater_in_subdirectory():
     try:
         with zipfile.ZipFile(temp_zip, "w") as zf:
             # Add updater in a subdirectory
-            zf.writestr("subdir/BurndownChartUpdater.exe", "mock updater content")
+            zf.writestr("subdir/BurndownUpdater.exe", "mock updater content")
 
         # Mock subprocess.Popen and sys.exit
         with (

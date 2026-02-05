@@ -1,7 +1,7 @@
 """
 UI Module
 
-This module contains UI components for the Burndown Chart application.
+This module contains UI components for the Burndown application.
 """
 
 #######################################################################

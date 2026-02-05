@@ -1,5 +1,5 @@
 """
-Callbacks module for the burndown chart application.
+Callbacks module for the Burndown application.
 
 Callback Registration Patterns
 ================================

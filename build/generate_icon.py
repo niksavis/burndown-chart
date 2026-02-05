@@ -1,10 +1,10 @@
 # Icon Generation Script
-# Creates professional icon for the Burndown Chart application
+# Creates professional icon for the Burndown application
 
 # Requirements:
 # pip install pillow
 
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw
 from pathlib import Path
 
 

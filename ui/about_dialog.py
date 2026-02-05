@@ -301,7 +301,7 @@ def _get_app_info_tab() -> dbc.Tab:
 
     # Build content sections
     content_sections = [
-        html.H5("Burndown Chart", className="mb-3"),
+        html.H5("Burndown", className="mb-3"),
         html.P(
             [
                 html.Strong("Version: "),
@@ -901,7 +901,7 @@ def create_about_dialog() -> dbc.Modal:
                 dbc.ModalTitle(
                     [
                         html.I(className="fas fa-info-circle me-2"),
-                        "About Burndown Chart",
+                        "About Burndown",
                     ]
                 ),
                 close_button=True,

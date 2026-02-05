@@ -74,7 +74,7 @@ cleanup_old_logs(log_dir=str(installation_context.logs_path), max_age_days=30)
 
 # Get logger for this module
 logger = logging.getLogger(__name__)
-logger.info("Starting Burndown Chart application")
+logger.info("Starting Burndown application")
 
 #######################################################################
 # TEMP FILE CLEANUP
@@ -84,7 +84,7 @@ logger.info("Starting Burndown Chart application")
 def cleanup_orphaned_temp_updaters() -> None:
     """Remove orphaned temp updater files from previous sessions.
 
-    Temp updater copies (BurndownChartUpdater-temp-*.exe) are created during
+    Temp updater copies (BurndownUpdater-temp-*.exe) are created during
     updates but cannot delete themselves while running. This function cleans
     up any leftover files from previous update sessions.
 
@@ -99,33 +99,41 @@ def cleanup_orphaned_temp_updaters() -> None:
 
         # Cleanup temp updater executables
         cleaned_count = 0
-        for temp_updater in temp_dir.glob("BurndownChartUpdater-temp-*.exe"):
-            try:
-                # Only delete if older than 1 hour (safety margin)
-                if temp_updater.stat().st_mtime < cutoff_time:
-                    temp_updater.unlink()
-                    cleaned_count += 1
-                    logger.info(f"Cleaned up orphaned updater: {temp_updater.name}")
-            except (PermissionError, OSError) as e:
-                # File might be in use, skip silently
-                logger.debug(f"Could not delete {temp_updater.name}: {e}")
-
-        # Cleanup orphaned extraction directories (burndown_chart_update_*)
-        for extract_dir in temp_dir.glob("burndown_chart_update_*"):
-            if extract_dir.is_dir():
+        temp_updater_patterns = [
+            "BurndownUpdater-temp-*.exe",
+            "BurndownChartUpdater-temp-*.exe",  # Legacy name for older releases.
+        ]
+        for pattern in temp_updater_patterns:
+            for temp_updater in temp_dir.glob(pattern):
                 try:
                     # Only delete if older than 1 hour (safety margin)
-                    if extract_dir.stat().st_mtime < cutoff_time:
-                        import shutil
-
-                        shutil.rmtree(extract_dir)
+                    if temp_updater.stat().st_mtime < cutoff_time:
+                        temp_updater.unlink()
                         cleaned_count += 1
-                        logger.info(
-                            f"Cleaned up orphaned extraction dir: {extract_dir.name}"
-                        )
+                        logger.info(f"Cleaned up orphaned updater: {temp_updater.name}")
                 except (PermissionError, OSError) as e:
-                    # Directory might be in use, skip silently
-                    logger.debug(f"Could not delete {extract_dir.name}: {e}")
+                    # File might be in use, skip silently
+                    logger.debug(f"Could not delete {temp_updater.name}: {e}")
+
+        # Cleanup orphaned extraction directories (burndown_update_*)
+        extract_dir_patterns = ["burndown_update_*", "burndown_chart_update_*"]
+        for pattern in extract_dir_patterns:
+            for extract_dir in temp_dir.glob(pattern):
+                if extract_dir.is_dir():
+                    try:
+                        # Only delete if older than 1 hour (safety margin)
+                        if extract_dir.stat().st_mtime < cutoff_time:
+                            import shutil
+
+                            shutil.rmtree(extract_dir)
+                            cleaned_count += 1
+                            logger.info(
+                                "Cleaned up orphaned extraction dir: "
+                                f"{extract_dir.name}"
+                            )
+                    except (PermissionError, OSError) as e:
+                        # Directory might be in use, skip silently
+                        logger.debug(f"Could not delete {extract_dir.name}: {e}")
 
         if cleaned_count > 0:
             logger.info(
@@ -382,7 +390,7 @@ background_callback_manager = DiskcacheManager(cache)
 # Initialize the Dash app with PWA support
 app = dash.Dash(
     __name__,
-    title="Burndown Chart Generator",  # Custom browser tab title
+    title="Burndown",  # Custom browser tab title
     assets_folder="assets",  # Explicitly set assets folder
     background_callback_manager=background_callback_manager,  # Enable background callbacks
     external_stylesheets=[
@@ -418,7 +426,7 @@ app = dash.Dash(
         {"name": "theme-color", "content": "#0d6efd"},
         {"name": "apple-mobile-web-app-capable", "content": "yes"},
         {"name": "apple-mobile-web-app-status-bar-style", "content": "default"},
-        {"name": "apple-mobile-web-app-title", "content": "Burndown Chart"},
+        {"name": "apple-mobile-web-app-title", "content": "Burndown"},
         {"name": "mobile-web-app-capable", "content": "yes"},
         # Performance and SEO
         {
@@ -429,7 +437,7 @@ app = dash.Dash(
             "name": "keywords",
             "content": "burndown chart, agile, project management, JIRA, forecasting",
         },
-        {"property": "og:title", "content": "Burndown Chart Generator"},
+        {"property": "og:title", "content": "Burndown"},
         {"property": "og:type", "content": "website"},
         {
             "property": "og:description",
@@ -673,7 +681,7 @@ if __name__ == "__main__":
                 tray_icon = pystray.Icon(
                     "burndown-chart",
                     Image.open(str(icon_path)),
-                    f"Burndown Chart - Running on http://{server_config['host']}:{server_config['port']}",
+                    f"Burndown - Running on http://{server_config['host']}:{server_config['port']}",
                     menu=pystray.Menu(
                         pystray.MenuItem("Open in Browser", on_open),
                         pystray.MenuItem("Quit", on_quit),

@@ -313,7 +313,7 @@ def create_executive_summary_section(
                                                         html.Span(
                                                             "Forecast: ",
                                                             style={"fontWeight": "600"},
-                                                            title=f"PERT-weighted forecast based on {'story points' if settings.get('show_points', True) else 'items'} velocity (matches Burndown Chart and Report)",
+                                                            title=f"PERT-weighted forecast based on {'story points' if settings.get('show_points', True) else 'items'} velocity (matches Burndown and Report)",
                                                         ),
                                                         html.Span(
                                                             forecast_data.get(

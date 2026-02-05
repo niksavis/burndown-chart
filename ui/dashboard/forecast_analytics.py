@@ -257,7 +257,7 @@ def create_forecast_analytics_section(
                         help_text="Calculated using PERT three-point estimation: (Optimistic + 4×Most_Likely + Pessimistic) ÷ 6. "
                         "Shows forecasts based on both items and story points velocity. "
                         "This weighted average emphasizes the most likely scenario (4x weight) while accounting for best/worst cases from your historical velocity data. "
-                        "Same method used in Burndown Chart and Report.",
+                        "Same method used in Burndown and Report.",
                         id_suffix="metric-expected_completion",
                         placement="top",
                         variant="dark",

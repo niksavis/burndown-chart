@@ -2,7 +2,7 @@
 Database connection management for SQLite persistence.
 
 This module provides connection management, integrity checks, and
-database initialization utilities for the burndown chart application.
+database initialization utilities for the Burndown application.
 
 Architecture:
 - Connection-per-request pattern (no global connections)
