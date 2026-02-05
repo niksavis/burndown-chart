@@ -386,3 +386,111 @@ class TestBuildEpicTimeline:
             "PROJ-4",
             "PROJ-5",
         ]
+
+    def test_build_epic_timeline_sorts_epics_by_completion_desc(self):
+        """Test epic ordering by completion percentage with completed last."""
+        issues = [
+            {
+                "issue_key": "PROJ-10",
+                "status": "Done",
+                "points": 8.0,
+                "parent": "EPIC-B",
+                "health_indicators": {"is_completed": True},
+            },
+            {
+                "issue_key": "PROJ-11",
+                "status": "To Do",
+                "points": 2.0,
+                "parent": "EPIC-B",
+                "health_indicators": {},
+            },
+            {
+                "issue_key": "PROJ-20",
+                "status": "Done",
+                "points": 5.0,
+                "parent": "EPIC-A",
+                "health_indicators": {"is_completed": True},
+            },
+            {
+                "issue_key": "PROJ-21",
+                "status": "In Progress",
+                "points": 5.0,
+                "parent": "EPIC-A",
+                "health_indicators": {"is_wip": True},
+            },
+            {
+                "issue_key": "PROJ-30",
+                "status": "Done",
+                "points": 3.0,
+                "parent": "EPIC-C",
+                "health_indicators": {"is_completed": True},
+            },
+            {
+                "issue_key": "PROJ-31",
+                "status": "Done",
+                "points": 2.0,
+                "parent": "EPIC-C",
+                "health_indicators": {"is_completed": True},
+            },
+        ]
+
+        timeline = _build_epic_timeline(
+            issues=issues,
+            backend=None,
+            profile_id=None,
+            query_id=None,
+            parent_field="parent",
+            flow_end_statuses=["Done"],
+            flow_wip_statuses=["In Progress"],
+            all_issues_unfiltered=issues,
+        )
+
+        epic_order = [epic["epic_key"] for epic in timeline]
+        assert epic_order == ["EPIC-B", "EPIC-A", "EPIC-C"]
+
+    def test_build_epic_timeline_sorts_epics_by_health_priority_on_tie(self):
+        """Test health priority tie-breaker for epics with equal completion."""
+        issues = [
+            {
+                "issue_key": "PROJ-40",
+                "status": "Done",
+                "points": 5.0,
+                "parent": "EPIC-X",
+                "health_indicators": {"is_completed": True},
+            },
+            {
+                "issue_key": "PROJ-41",
+                "status": "In Progress",
+                "points": 5.0,
+                "parent": "EPIC-X",
+                "health_indicators": {"is_blocked": True},
+            },
+            {
+                "issue_key": "PROJ-50",
+                "status": "Done",
+                "points": 5.0,
+                "parent": "EPIC-Y",
+                "health_indicators": {"is_completed": True},
+            },
+            {
+                "issue_key": "PROJ-51",
+                "status": "In Progress",
+                "points": 5.0,
+                "parent": "EPIC-Y",
+                "health_indicators": {"is_aging": True},
+            },
+        ]
+
+        timeline = _build_epic_timeline(
+            issues=issues,
+            backend=None,
+            profile_id=None,
+            query_id=None,
+            parent_field="parent",
+            flow_end_statuses=["Done"],
+            flow_wip_statuses=["In Progress"],
+            all_issues_unfiltered=issues,
+        )
+
+        epic_order = [epic["epic_key"] for epic in timeline]
+        assert epic_order == ["EPIC-X", "EPIC-Y"]

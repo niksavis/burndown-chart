@@ -18,6 +18,8 @@ from typing import Dict, List, Optional
 from datetime import datetime, timezone
 from collections import defaultdict
 
+from data.active_work_sorting import get_epic_sort_key
+
 logger = logging.getLogger(__name__)
 
 
@@ -615,8 +617,8 @@ def _build_epic_timeline(
             }
         )
 
-    # Sort epics by completion % (active first)
-    timeline.sort(key=lambda x: x["completion_pct"])
+    # Sort epics by completion %, health priority, and completion bucket
+    timeline.sort(key=get_epic_sort_key)
 
     logger.info(f"Built timeline with {len(timeline)} epics")
     return timeline
