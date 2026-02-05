@@ -1,5 +1,32 @@
 # Changelog
 
+## v2.9.0
+
+*Released: 2026-02-05*
+
+### Features
+
+- **Active Work Timeline**: New Active Work tab visualizes parent and epic progress over time with status health indicators, badges, and a dedicated timeline view
+- **Configurable Parent Tracking**: Choose the parent link field and parent issue types so rollups match your JIRA hierarchy
+- **Weekly Progress Help Refresh**: Improved help layout with clearer guidance for weekly progress
+
+### Improvements
+
+- Tab labels are more stable and accessible, with reordered tabs for a clearer navigation flow
+- Active Work legend, headers, and icon styling are aligned for a more consistent timeline view
+
+### Bug Fixes
+
+- Update notification toast can be dismissed without breaking update flow
+- Weekly Progress help modal reliably opens again after recent changes
+- Parent summaries now resolve correctly by querying all issues and using the right project settings
+- Scope calculations exclude parent-only issue types and honor development projects configuration
+- Active Work timeline no longer registers stale callbacks and avoids UI syntax errors
+
+### Documentation
+
+- Architecture and help documentation reorganized for easier reference
+
 ## v2.8.0
 
 *Released: 2026-02-03*
