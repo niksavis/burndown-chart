@@ -114,6 +114,9 @@ def create_nested_epic_timeline(
         elif wip_issues:
             status_key = "wip"
             status_color = "#007bff"
+        elif todo_issues:
+            status_key = "todo"
+            status_color = "#6c757d"
         else:
             status_key = "idle"
             status_color = "#c65f5f"

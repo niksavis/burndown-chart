@@ -113,6 +113,7 @@ def _get_status_icon_class(status_key: str) -> str:
         "wip": "fas fa-spinner",
         "done": "fas fa-check",
         "idle": "fas fa-minus",
+        "todo": "fas fa-circle",
     }
     return status_map.get(status_key, "fas fa-minus")
 
@@ -204,8 +205,15 @@ def create_active_work_legend(
             autohide=True,
         ),
         dbc.Tooltip(
-            "Epic is idle when any child issue is idle (5+ days unchanged) or no other signal applies",
+            "Epic is idle when any child issue is idle (5+ days unchanged)",
             target="legend-epic-idle",
+            placement="top",
+            trigger="click",
+            autohide=True,
+        ),
+        dbc.Tooltip(
+            "Epic is to do when all issues are not in progress, aging, idle, or done",
+            target="legend-epic-todo",
             placement="top",
             trigger="click",
             autohide=True,
@@ -282,6 +290,17 @@ def create_active_work_legend(
                     ],
                     className="badge bg-light text-dark me-2 active-work-legend-signal",
                     id="legend-epic-wip",
+                ),
+                html.Span(
+                    [
+                        html.I(
+                            className=f"{_get_status_icon_class('todo')} me-1",
+                            style={"color": "#6c757d"},
+                        ),
+                        "To Do",
+                    ],
+                    className="badge bg-light text-dark me-2 active-work-legend-signal",
+                    id="legend-epic-todo",
                 ),
                 html.Span(
                     [

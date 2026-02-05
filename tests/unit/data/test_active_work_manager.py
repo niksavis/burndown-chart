@@ -274,6 +274,35 @@ class TestHealthIndicators:
         assert issue["health_indicators"]["is_aging"] is False
         assert issue["health_indicators"]["is_wip"] is False
 
+    def test_add_health_indicators_pre_start_not_idle_or_aging(self):
+        """Test pre-start statuses do not count as idle or aging."""
+        now = datetime.now(timezone.utc)
+
+        changelog_entries = {
+            "PROJ-5": [{"change_date": (now - timedelta(days=6)).isoformat()}]
+        }
+
+        class FakeBackend:
+            def get_changelog_entries(
+                self, profile_id, query_id, issue_key, field_name
+            ):
+                return changelog_entries.get(issue_key, [])
+
+        backend = FakeBackend()
+
+        issue = _add_health_indicators(
+            {"issue_key": "PROJ-5", "status": "To Do"},
+            backend,
+            "profile",
+            "query",
+            flow_end_statuses=["Done"],
+            flow_wip_statuses=["In Progress"],
+        )
+
+        assert issue["health_indicators"]["is_blocked"] is False
+        assert issue["health_indicators"]["is_aging"] is False
+        assert issue["health_indicators"]["is_wip"] is False
+
 
 class TestBuildEpicTimeline:
     """Test suite for epic timeline aggregation."""

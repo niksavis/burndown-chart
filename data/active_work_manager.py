@@ -362,9 +362,9 @@ def _add_health_indicators(
                             days_since_status_change = (now - change_dt).days
 
                             # Apply new logic based on status change velocity
-                            if days_since_status_change >= 5:
+                            if is_in_wip_status and days_since_status_change >= 5:
                                 is_blocked = True  # Stuck for 5+ days
-                            elif days_since_status_change >= 3:
+                            elif is_in_wip_status and days_since_status_change >= 3:
                                 is_aging = True  # Approaching blocked (3-5 days)
                             elif is_in_wip_status and days_since_status_change <= 2:
                                 is_wip = True  # Active work (changed recently)
@@ -385,9 +385,9 @@ def _add_health_indicators(
                                 created_dt = created_dt.replace(tzinfo=timezone.utc)
                             days_since_created = (now - created_dt).days
 
-                            if days_since_created >= 5:
+                            if is_in_wip_status and days_since_created >= 5:
                                 is_blocked = True
-                            elif days_since_created >= 3:
+                            elif is_in_wip_status and days_since_created >= 3:
                                 is_aging = True
                         except (ValueError, AttributeError):
                             pass
