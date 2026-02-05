@@ -1,5 +1,26 @@
 # Changelog
 
+## v2.9.1
+
+*Released: 2026-02-05*
+
+### Features
+
+- **Active Work Epic Ordering**: Active Work timeline uses hybrid epic ordering so related epics stay grouped in a consistent sequence
+- **Burndown Rebrand**: Application branding now reflects the Burndown name across the experience
+
+### Improvements
+
+- Active Work points badge color updated for clearer contrast
+
+### Bug Fixes
+
+- Active Work timeline no longer counts pre-start idle time in duration tracking
+
+### Documentation
+
+- Added SQLite query guidance to repository rules
+
 ## v2.9.0
 
 *Released: 2026-02-05*
