@@ -6,16 +6,16 @@ Concise operational rules for multi-agent coordination and beads workflow. Repos
 
 ## Codebase Metrics
 
-**Last Updated**: 2026-02-05
+**Last Updated**: 2026-02-06
 
 | Category | Files | Lines | Tokens |
 |----------|-------|-------|--------|
-| **Total** | 635 | 204.2K | **~1.8M** |
-| Code (Python + JS/CSS) | 428 | 147.4K | ~1.3M |
-| Python (no tests) | 347 | 135.1K | ~1.2M |
+| **Total** | 635 | 204.4K | **~1.8M** |
+| Code (Python + JS/CSS) | 428 | 147.5K | ~1.3M |
+| Python (no tests) | 347 | 135.2K | ~1.2M |
 | Frontend (JS/CSS) | 81 | 12.3K | ~83.3K |
-| Tests | 135 | 39.7K | ~349.6K |
-| Documentation (MD) | 72 | 17.1K | ~137.9K |
+| Tests | 135 | 39.8K | ~350.0K |
+| Documentation (MD) | 72 | 17.1K | ~138.1K |
 
 **Agent Guidance**:
 - **Too large for context**: Use targeted `semantic_search`, avoid broad reads
