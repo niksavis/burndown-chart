@@ -52,6 +52,8 @@ import sqlite3
 from pathlib import Path
 from typing import Optional
 
+from updater.support_files import replace_support_files
+
 APP_NAME = "Burndown"
 MAIN_EXE_NAME = "Burndown.exe"
 LEGACY_MAIN_EXE_NAME = "BurndownChart.exe"
@@ -620,6 +622,8 @@ def main() -> int:
         return 5
 
     print_status("App update completed successfully!")
+
+    replace_support_files(extract_dir, current_exe.parent, print_status)
 
     launch_exe = current_exe
     if current_exe.name != MAIN_EXE_NAME:
