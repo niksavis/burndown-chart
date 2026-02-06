@@ -1,5 +1,13 @@
 # Changelog
 
+## v2.9.2
+
+*Released: 2026-02-06*
+
+### Improvements
+
+- **Update Packaging Migration**: Releases now publish separate legacy and new Windows ZIPs, the app auto-selects the correct asset, and legacy executables are removed after a successful update
+
 ## v2.9.1
 
 *Released: 2026-02-05*
