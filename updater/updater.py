@@ -360,6 +360,83 @@ def replace_executable(new_exe_path: Path, target_exe_path: Path) -> bool:
     return False
 
 
+def copy_executable(source_path: Path, target_path: Path, description: str) -> bool:
+    """Copy an executable with retry logic for transient locks.
+
+    Args:
+        source_path: Path to the source executable
+        target_path: Destination path for the copy
+        description: Human-readable description for status logs
+
+    Returns:
+        True if copy succeeded, False otherwise
+    """
+    max_retries = 10
+    retry_delay = 0.5
+
+    for attempt in range(max_retries):
+        try:
+            if attempt > 0:
+                time.sleep(retry_delay)
+                retry_delay = min(retry_delay * 1.5, 3.0)
+
+            if target_path.exists():
+                target_path.unlink()
+
+            shutil.copy2(source_path, target_path)
+            print_status(f"Created {description}: {target_path.name}")
+            return True
+        except PermissionError:
+            if attempt == max_retries - 1:
+                print_status(
+                    f"WARNING: Failed to create {description} due to file lock"
+                )
+                return False
+        except Exception as e:
+            print_status(f"WARNING: Failed to create {description}: {e}")
+            return False
+
+    return False
+
+
+def remove_legacy_executable(legacy_path: Path, description: str) -> bool:
+    """Remove a legacy executable with retry logic.
+
+    Args:
+        legacy_path: Path to the legacy executable
+        description: Human-readable description for status logs
+
+    Returns:
+        True if removal succeeded or file is absent, False otherwise
+    """
+    if not legacy_path.exists():
+        return True
+
+    max_retries = 10
+    retry_delay = 0.5
+
+    for attempt in range(max_retries):
+        try:
+            if attempt > 0:
+                time.sleep(retry_delay)
+                retry_delay = min(retry_delay * 1.5, 3.0)
+
+            legacy_path.unlink()
+            print_status(f"Removed {description}: {legacy_path.name}")
+            return True
+        except PermissionError:
+            if attempt == max_retries - 1:
+                print_status(
+                    f"WARNING: Failed to remove {description} due to file lock"
+                )
+                return False
+        except Exception as e:
+            print_status(f"WARNING: Failed to remove {description}: {e}")
+            return False
+
+    return False
+
+
 def set_post_update_flag(exe_path: Path) -> None:
     """Set post-update flags in database before launching app.
 
@@ -527,8 +604,6 @@ def main() -> int:
     app_exe_names = [MAIN_EXE_NAME]
     if current_exe.name not in app_exe_names:
         app_exe_names.append(current_exe.name)
-    if LEGACY_MAIN_EXE_NAME not in app_exe_names:
-        app_exe_names.append(LEGACY_MAIN_EXE_NAME)
 
     new_exe = find_executable_in_extract(extract_dir, app_exe_names)
     if not new_exe:
@@ -549,12 +624,10 @@ def main() -> int:
     launch_exe = current_exe
     if current_exe.name != MAIN_EXE_NAME:
         main_exe_path = current_exe.parent / MAIN_EXE_NAME
-        try:
-            shutil.copy2(new_exe, main_exe_path)
+        if copy_executable(current_exe, main_exe_path, "main executable"):
             launch_exe = main_exe_path
-            print_status(f"Created {MAIN_EXE_NAME} for rebrand compatibility")
-        except Exception as e:
-            print_status(f"WARNING: Failed to create {MAIN_EXE_NAME}: {e}")
+            if current_exe.name == LEGACY_MAIN_EXE_NAME:
+                remove_legacy_executable(current_exe, "legacy main executable")
 
     # Step 5: Replace updater executable (if self-update requested)
     if updater_exe:
@@ -568,11 +641,12 @@ def main() -> int:
             )
         else:
             # Find new updater in extracted files
-            updater_names = [updater_exe.name]
-            if updater_exe.name != UPDATER_EXE_NAME:
-                updater_names.append(UPDATER_EXE_NAME)
-            if updater_exe.name != LEGACY_UPDATER_EXE_NAME:
-                updater_names.append(LEGACY_UPDATER_EXE_NAME)
+            updater_names = [
+                UPDATER_EXE_NAME,
+                LEGACY_UPDATER_EXE_NAME,
+                updater_exe.name,
+            ]
+            updater_names = list(dict.fromkeys(updater_names))
 
             new_updater = find_executable_in_extract(extract_dir, updater_names)
             if not new_updater:
@@ -598,20 +672,25 @@ def main() -> int:
                     print_status("Updater self-update completed successfully!")
                     if updater_exe.name != UPDATER_EXE_NAME:
                         updater_alias = updater_exe.parent / UPDATER_EXE_NAME
-                        try:
-                            shutil.copy2(updater_exe, updater_alias)
-                            print_status(
-                                f"Created {UPDATER_EXE_NAME} for rebrand compatibility"
-                            )
-                        except Exception as e:
-                            print_status(
-                                f"WARNING: Failed to create {UPDATER_EXE_NAME}: {e}"
-                            )
+                        if copy_executable(updater_exe, updater_alias, "updater"):
+                            if updater_exe.name == LEGACY_UPDATER_EXE_NAME:
+                                remove_legacy_executable(
+                                    updater_exe, "legacy updater executable"
+                                )
                     # Remove updater backup after successful update
                     if updater_backup.exists():
                         updater_backup.unlink()
 
     print_status("All updates completed successfully!")
+
+    legacy_main_path = current_exe.parent / LEGACY_MAIN_EXE_NAME
+    if launch_exe.name == MAIN_EXE_NAME and legacy_main_path.exists():
+        remove_legacy_executable(legacy_main_path, "legacy main executable")
+
+    legacy_updater_path = current_exe.parent / LEGACY_UPDATER_EXE_NAME
+    new_updater_path = current_exe.parent / UPDATER_EXE_NAME
+    if new_updater_path.exists() and legacy_updater_path.exists():
+        remove_legacy_executable(legacy_updater_path, "legacy updater executable")
 
     # Step 6: Launch updated application
     launch_application(launch_exe)

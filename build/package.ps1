@@ -29,6 +29,38 @@ function Write-Error {
     Write-Host "[ERROR] $Message" -ForegroundColor Red
 }
 
+function Copy-SharedAssets {
+    param([string]$TargetDir)
+
+    # Copy THIRD_PARTY_LICENSES.txt (bundled in executable, also in ZIP for transparency)
+    # Note: Detailed licenses/ folder is bundled in executable and accessible via About dialog
+    $thirdPartyLicenses = Join-Path $ProjectRoot "licenses\THIRD_PARTY_LICENSES.txt"
+    if (Test-Path $thirdPartyLicenses) {
+        Copy-Item -Path $thirdPartyLicenses -Destination $TargetDir
+        Write-Success "Copied THIRD_PARTY_LICENSES.txt"
+    }
+    else {
+        Write-Host "[WARN] THIRD_PARTY_LICENSES.txt not found, skipping" -ForegroundColor Yellow
+    }
+
+    # Copy README.txt (Windows quick start guide)
+    $readmeTxtSource = Join-Path $BuildDir "README.txt"
+    if (Test-Path $readmeTxtSource) {
+        Copy-Item -Path $readmeTxtSource -Destination $TargetDir
+        Write-Success "Copied README.txt (quick start guide)"
+    }
+    else {
+        Write-Host "[WARN] README.txt not found, skipping" -ForegroundColor Yellow
+    }
+
+    # Copy LICENSE as LICENSE.txt (Windows convention, matches app extraction)
+    $licenseSource = Join-Path $ProjectRoot "LICENSE"
+    if (Test-Path $licenseSource) {
+        Copy-Item -Path $licenseSource -Destination (Join-Path $TargetDir "LICENSE.txt")
+        Write-Success "Copied LICENSE as LICENSE.txt"
+    }
+}
+
 # Main packaging process
 try {
     Write-Host "`nBurndown - Package Script" -ForegroundColor Yellow
@@ -82,109 +114,91 @@ try {
         Write-Success "Using specified version: $Version"
     }
 
-    # Step 3: Create package staging directory
-    Write-Step "Creating package staging directory"
-    $stagingDir = Join-Path $DistDir "staging"
-    if (Test-Path $stagingDir) {
-        Remove-Item -Path $stagingDir -Recurse -Force
+    # Step 3: Create package staging directories
+    Write-Step "Creating package staging directories"
+    $stagingNewDir = Join-Path $DistDir "staging_new"
+    $stagingLegacyDir = Join-Path $DistDir "staging_legacy"
+    foreach ($dir in @($stagingNewDir, $stagingLegacyDir)) {
+        if (Test-Path $dir) {
+            Remove-Item -Path $dir -Recurse -Force
+        }
+        New-Item -ItemType Directory -Path $dir | Out-Null
     }
-    New-Item -ItemType Directory -Path $stagingDir | Out-Null
-    Write-Success "Created staging directory"
+    Write-Success "Created staging directories"
 
-    # Step 4: Copy files to staging
-    Write-Step "Copying files to staging"
-    
-    # Copy main application
-    Copy-Item -Path $mainExe -Destination $stagingDir
+    # Step 4: Copy files to staging (new)
+    Write-Step "Copying files to staging (new)"
+    Copy-Item -Path $mainExe -Destination $stagingNewDir
     Write-Success "Copied main application"
-
-    # Legacy compatibility: keep old executable name for auto-update transitions
-    Copy-Item -Path $mainExe -Destination (Join-Path $stagingDir "BurndownChart.exe")
-    Write-Success "Copied legacy main executable name"
-    
-    # Copy updater if exists
     if ($updaterExe) {
-        Copy-Item -Path $updaterExe -Destination $stagingDir
+        Copy-Item -Path $updaterExe -Destination $stagingNewDir
         Write-Success "Copied updater"
+    }
+    Copy-SharedAssets -TargetDir $stagingNewDir
 
-        # Legacy compatibility: keep old updater name for auto-update transitions
-        Copy-Item -Path $updaterExe -Destination (Join-Path $stagingDir "BurndownChartUpdater.exe")
+    # Step 4b: Copy files to staging (legacy)
+    Write-Step "Copying files to staging (legacy)"
+    Copy-Item -Path $mainExe -Destination (Join-Path $stagingLegacyDir "BurndownChart.exe")
+    Write-Success "Copied legacy main executable name"
+    if ($updaterExe) {
+        Copy-Item -Path $updaterExe -Destination (Join-Path $stagingLegacyDir "BurndownChartUpdater.exe")
         Write-Success "Copied legacy updater executable name"
     }
-    
-    # Copy THIRD_PARTY_LICENSES.txt (bundled in executable, also in ZIP for transparency)
-    # Note: Detailed licenses/ folder is bundled in executable and accessible via About dialog
-    $thirdPartyLicenses = Join-Path $ProjectRoot "licenses\THIRD_PARTY_LICENSES.txt"
-    if (Test-Path $thirdPartyLicenses) {
-        Copy-Item -Path $thirdPartyLicenses -Destination $stagingDir
-        Write-Success "Copied THIRD_PARTY_LICENSES.txt"
-    }
-    else {
-        Write-Host "[WARN] THIRD_PARTY_LICENSES.txt not found, skipping" -ForegroundColor Yellow
-    }
-    
-    # Copy README.txt (Windows quick start guide)
-    $readmeTxtSource = Join-Path $BuildDir "README.txt"
-    if (Test-Path $readmeTxtSource) {
-        Copy-Item -Path $readmeTxtSource -Destination $stagingDir
-        Write-Success "Copied README.txt (quick start guide)"
-    }
-    else {
-        Write-Host "[WARN] README.txt not found, skipping" -ForegroundColor Yellow
-    }
-    
-    # Copy LICENSE as LICENSE.txt (Windows convention, matches app extraction)
-    $licenseSource = Join-Path $ProjectRoot "LICENSE"
-    if (Test-Path $licenseSource) {
-        Copy-Item -Path $licenseSource -Destination (Join-Path $stagingDir "LICENSE.txt")
-        Write-Success "Copied LICENSE as LICENSE.txt"
-    }
+    Copy-SharedAssets -TargetDir $stagingLegacyDir
 
-    # Step 5: Create ZIP file
-    Write-Step "Creating distribution package"
+    # Step 5: Create ZIP files
+    Write-Step "Creating distribution packages"
     $zipName = "Burndown-Windows-$Version.zip"
     $zipPath = Join-Path $DistDir $zipName
-    
-    # Remove existing ZIP if present
-    if (Test-Path $zipPath) {
-        Remove-Item -Path $zipPath -Force
-        Write-Success "Removed existing ZIP"
-    }
-    
-    # Create ZIP archive
-    Compress-Archive -Path "$stagingDir\*" -DestinationPath $zipPath -CompressionLevel Optimal
-    Write-Success "Created ZIP package"
+    $legacyZipName = "BurndownChart-Windows-$Version.zip"
+    $legacyZipPath = Join-Path $DistDir $legacyZipName
 
-    # Step 6: Verify package
-    Write-Step "Verifying package"
-    if (-not (Test-Path $zipPath)) {
-        Write-Error "Package not created at: $zipPath"
-        exit 1
+    foreach ($path in @($zipPath, $legacyZipPath)) {
+        if (Test-Path $path) {
+            Remove-Item -Path $path -Force
+            Write-Success "Removed existing ZIP: $path"
+        }
     }
-    
-    $zipSize = (Get-Item $zipPath).Length / 1MB
-    Write-Success "Package: $zipPath ($([math]::Round($zipSize, 2)) MB)"
-    
-    # List contents
-    Write-Host "`nPackage contents:" -ForegroundColor White
-    Expand-Archive -Path $zipPath -DestinationPath "$env:TEMP\burndown-verify" -Force | Out-Null
-    Get-ChildItem -Path "$env:TEMP\burndown-verify" -Recurse -File | ForEach-Object {
-        $relativePath = $_.FullName.Replace("$env:TEMP\burndown-verify\", "")
-        Write-Host "  - $relativePath" -ForegroundColor Gray
+
+    Compress-Archive -Path "$stagingNewDir\*" -DestinationPath $zipPath -CompressionLevel Optimal
+    Write-Success "Created ZIP package: $zipName"
+
+    Compress-Archive -Path "$stagingLegacyDir\*" -DestinationPath $legacyZipPath -CompressionLevel Optimal
+    Write-Success "Created ZIP package: $legacyZipName"
+
+    # Step 6: Verify packages
+    Write-Step "Verifying packages"
+    foreach ($path in @($zipPath, $legacyZipPath)) {
+        if (-not (Test-Path $path)) {
+            Write-Error "Package not created at: $path"
+            exit 1
+        }
+        $zipSize = (Get-Item $path).Length / 1MB
+        Write-Success "Package: $path ($([math]::Round($zipSize, 2)) MB)"
+
+        $verifyDir = Join-Path $env:TEMP ("burndown-verify-" + [IO.Path]::GetFileNameWithoutExtension($path))
+        Write-Host "`nPackage contents ($path):" -ForegroundColor White
+        Expand-Archive -Path $path -DestinationPath $verifyDir -Force | Out-Null
+        Get-ChildItem -Path $verifyDir -Recurse -File | ForEach-Object {
+            $relativePath = $_.FullName.Replace("$verifyDir\", "")
+            Write-Host "  - $relativePath" -ForegroundColor Gray
+        }
+        Remove-Item -Path $verifyDir -Recurse -Force
     }
-    Remove-Item -Path "$env:TEMP\burndown-verify" -Recurse -Force
 
     # Step 7: Cleanup staging
-    Write-Step "Cleaning up staging directory"
-    Remove-Item -Path $stagingDir -Recurse -Force
+    Write-Step "Cleaning up staging directories"
+    Remove-Item -Path $stagingNewDir -Recurse -Force
+    Remove-Item -Path $stagingLegacyDir -Recurse -Force
     Write-Success "Staging cleaned"
 
     # Package complete
     Write-Host "`n=====================================" -ForegroundColor Green
-    Write-Host "Package created successfully!" -ForegroundColor Green
+    Write-Host "Packages created successfully!" -ForegroundColor Green
     Write-Host "=====================================" -ForegroundColor Green
-    Write-Host "`nPackage location: $zipPath" -ForegroundColor Cyan
-    Write-Host "Package size: $([math]::Round($zipSize, 2)) MB" -ForegroundColor Cyan
+    Write-Host "`nPackage locations:" -ForegroundColor Cyan
+    Write-Host "  - $zipPath" -ForegroundColor Cyan
+    Write-Host "  - $legacyZipPath" -ForegroundColor Cyan
     Write-Host "`nNext steps:" -ForegroundColor Yellow
     Write-Host "  1. Test the package on a clean system" -ForegroundColor White
     Write-Host "  2. Upload to release distribution server" -ForegroundColor White

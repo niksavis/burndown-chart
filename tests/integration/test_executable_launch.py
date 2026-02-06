@@ -22,15 +22,9 @@ def test_executable_exists():
     This verifies the build process completed successfully.
     """
     project_root = Path(__file__).parent.parent.parent
-    candidates = ["Burndown.exe", "BurndownChart.exe"]
-    exe_path = None
-    for candidate in candidates:
-        candidate_path = project_root / "dist" / candidate
-        if candidate_path.exists():
-            exe_path = candidate_path
-            break
+    exe_path = project_root / "dist" / "Burndown.exe"
 
-    if exe_path is None:
+    if not exe_path.exists():
         pytest.skip("Executable not found - build required before running this test")
 
     assert exe_path.exists(), f"Executable not found at {exe_path}"
@@ -44,15 +38,9 @@ def test_updater_executable_exists():
     This verifies the two-executable architecture is properly built.
     """
     project_root = Path(__file__).parent.parent.parent
-    candidates = ["BurndownUpdater.exe", "BurndownChartUpdater.exe"]
-    updater_path = None
-    for candidate in candidates:
-        candidate_path = project_root / "dist" / candidate
-        if candidate_path.exists():
-            updater_path = candidate_path
-            break
+    updater_path = project_root / "dist" / "BurndownUpdater.exe"
 
-    if updater_path is None:
+    if not updater_path.exists():
         pytest.skip(
             "Updater executable not found - build required before running this test"
         )

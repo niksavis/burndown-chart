@@ -232,6 +232,7 @@ def test_check_for_updates_with_newer_version():
         with patch("data.update_manager.sys") as mock_sys:
             # Mock frozen=True to simulate executable
             mock_sys.frozen = True
+            mock_sys.executable = "C:/Program Files/Burndown/Burndown.exe"
 
             # Mock API response with newer version
             mock_response = Mock()
@@ -241,10 +242,15 @@ def test_check_for_updates_with_newer_version():
                 "body": "## What's New\n\n- Feature X",
                 "assets": [
                     {
-                        "name": "burndown-windows-v99.0.0.zip",
-                        "browser_download_url": "https://github.com/owner/repo/releases/download/v99.0.0/burndown-windows-v99.0.0.zip",
+                        "name": "Burndown-Windows-99.0.0.zip",
+                        "browser_download_url": "https://github.com/owner/repo/releases/download/v99.0.0/Burndown-Windows-99.0.0.zip",
                         "size": 95420160,
-                    }
+                    },
+                    {
+                        "name": "BurndownChart-Windows-99.0.0.zip",
+                        "browser_download_url": "https://github.com/owner/repo/releases/download/v99.0.0/BurndownChart-Windows-99.0.0.zip",
+                        "size": 95420160,
+                    },
                 ],
             }
             mock_response.raise_for_status.return_value = None
@@ -258,6 +264,42 @@ def test_check_for_updates_with_newer_version():
         assert "github.com" in progress.download_url
         assert progress.file_size == 95420160
         assert progress.release_notes is not None
+
+
+def test_check_for_updates_selects_legacy_asset():
+    """Test check_for_updates selects legacy ZIP when running from legacy exe."""
+    with patch("data.update_manager.requests.get") as mock_get:
+        with patch("data.update_manager.sys") as mock_sys:
+            # Mock frozen=True to simulate executable
+            mock_sys.frozen = True
+            mock_sys.executable = "C:/Program Files/Burndown/BurndownChart.exe"
+
+            # Mock API response with newer version
+            mock_response = Mock()
+            mock_response.json.return_value = {
+                "tag_name": "v99.0.0",
+                "prerelease": False,
+                "assets": [
+                    {
+                        "name": "Burndown-Windows-99.0.0.zip",
+                        "browser_download_url": "https://github.com/owner/repo/releases/download/v99.0.0/Burndown-Windows-99.0.0.zip",
+                        "size": 95420160,
+                    },
+                    {
+                        "name": "BurndownChart-Windows-99.0.0.zip",
+                        "browser_download_url": "https://github.com/owner/repo/releases/download/v99.0.0/BurndownChart-Windows-99.0.0.zip",
+                        "size": 95420160,
+                    },
+                ],
+            }
+            mock_response.raise_for_status.return_value = None
+            mock_get.return_value = mock_response
+
+            progress = check_for_updates()
+
+            assert progress.state == UpdateState.AVAILABLE
+            assert progress.download_url is not None
+            assert "BurndownChart-Windows-99.0.0.zip" in progress.download_url
 
 
 def test_check_for_updates_same_version():

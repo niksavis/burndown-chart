@@ -12,6 +12,7 @@
 .\build\collect_licenses.ps1  # → licenses/THIRD_PARTY_LICENSES.txt
 .\build\build.ps1             # → dist/Burndown.exe (~101 MB)
 .\build\package.ps1           # → dist/Burndown-Windows-{version}.zip
+                              # → dist/BurndownChart-Windows-{version}.zip (legacy)
 
 # Automated release (venv must be active)
 python release.py [patch|minor|major]  # Version bump → changelog → metrics → push → triggers CI
@@ -33,12 +34,17 @@ python update_codebase_metrics.py  # → agents.md (auto-commits)
 .\build\package.ps1 [-Version "X.Y.Z"]  # ZIP with: exes, LICENSE.txt, THIRD_PARTY_LICENSES.txt, README.txt
 ```
 
-**Output**: `dist/Burndown-Windows-{version}.zip` (~109 MB)
+**Output**:
+- `dist/Burndown-Windows-{version}.zip` (~109 MB)
+- `dist/BurndownChart-Windows-{version}.zip` (legacy, ~109 MB)
 
 **Test**:
 ```powershell
 Expand-Archive dist\Burndown-Windows-*.zip -DestinationPath C:\Temp\Test
 C:\Temp\Test\Burndown.exe  # Verify: starts, correct version in About, LICENSE.txt extracted
+
+Expand-Archive dist\BurndownChart-Windows-*.zip -DestinationPath C:\Temp\TestLegacy
+C:\Temp\TestLegacy\BurndownChart.exe  # Verify legacy update path
 ```
 
 ---
@@ -70,6 +76,7 @@ git tag -d v2.6.0-test && git push origin :refs/tags/v2.6.0-test  # Delete after
 - Install: pip install -r requirements.txt pyinstaller>=6.0.0 pip-licenses>=5.0.0 pillow>=10.0.0
 - Build: .\build\collect_licenses.ps1 && .\build\build.ps1 && .\build\package.ps1
 - Artifact: dist/Burndown-Windows-*.zip
+- Artifact: dist/BurndownChart-Windows-*.zip
 ```
 
 **Environment override**: `$env:VERSION = "X.Y.Z"` before package.ps1

@@ -79,6 +79,8 @@ LEGACY_MAIN_EXE_NAME = "BurndownChart.exe"
 UPDATER_EXE_NAME = "BurndownUpdater.exe"
 LEGACY_UPDATER_EXE_NAME = "BurndownChartUpdater.exe"
 TEMP_UPDATER_PREFIX = "BurndownUpdater-temp-"
+WINDOWS_ZIP_PREFIX = "burndown-windows-"
+LEGACY_WINDOWS_ZIP_PREFIX = "burndownchart-windows-"
 
 # GitHub API configuration
 GITHUB_API_URL = "https://api.github.com/repos/{owner}/{repo}/releases/latest"
@@ -350,6 +352,26 @@ def is_git_repository() -> bool:
         return False
 
 
+def _is_legacy_install() -> bool:
+    """Check if running from a legacy executable name."""
+    if not is_frozen():
+        return False
+    try:
+        return Path(sys.executable).name.lower() == LEGACY_MAIN_EXE_NAME.lower()
+    except Exception:
+        return False
+
+
+def _find_windows_asset(assets: list[dict], prefix: str) -> Optional[dict]:
+    """Find a Windows ZIP asset by name prefix."""
+    for asset in assets:
+        name = asset.get("name", "")
+        lower_name = name.lower()
+        if prefix in lower_name and lower_name.endswith(".zip"):
+            return asset
+    return None
+
+
 #######################################################################
 # CORE FUNCTIONS
 #######################################################################
@@ -547,13 +569,17 @@ def check_for_updates() -> UpdateProgress:
 
             # Find Windows ZIP asset (only for executable mode)
             assets = release_data.get("assets", [])
-            windows_asset = None
+            prefer_legacy = _is_legacy_install()
+            preferred_prefix = (
+                LEGACY_WINDOWS_ZIP_PREFIX if prefer_legacy else WINDOWS_ZIP_PREFIX
+            )
+            fallback_prefix = (
+                WINDOWS_ZIP_PREFIX if prefer_legacy else LEGACY_WINDOWS_ZIP_PREFIX
+            )
 
-            for asset in assets:
-                asset_name = asset.get("name", "")
-                if "windows" in asset_name.lower() and asset_name.endswith(".zip"):
-                    windows_asset = asset
-                    break
+            windows_asset = _find_windows_asset(assets, preferred_prefix)
+            if not windows_asset:
+                windows_asset = _find_windows_asset(assets, fallback_prefix)
 
             if not windows_asset:
                 logger.warning(
@@ -562,6 +588,8 @@ def check_for_updates() -> UpdateProgress:
                         "operation": "check_for_updates",
                         "version": available_version,
                         "assets": [a.get("name") for a in assets],
+                        "preferred_prefix": preferred_prefix,
+                        "fallback_prefix": fallback_prefix,
                     },
                 )
                 progress.state = UpdateState.ERROR

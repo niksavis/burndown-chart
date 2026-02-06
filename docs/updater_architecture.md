@@ -80,13 +80,16 @@ if VERSION_CHECK_RESULT.state == UpdateState.AVAILABLE:
 progress = download_update(progress)  # state: DOWNLOADING → READY
 ```
 
-**Location**: `%TEMP%\burndown_updates\Burndown-Windows-X.Y.Z.zip`  
+**Location** (new installs): `%TEMP%\burndown_updates\Burndown-Windows-X.Y.Z.zip`  
+**Location** (legacy installs): `%TEMP%\burndown_updates\BurndownChart-Windows-X.Y.Z.zip`  
 **Progress**: Tracked via `UpdateProgress.progress_percent` (0-100)  
+**Asset selection**: App chooses legacy or new ZIP based on the running executable name.
 **Persistence**: Download path saved to database (`app_state` table)
 
 **Database Keys**:
 - `pending_update_version`: "2.7.0"
 - `pending_update_path`: "C:\Users\...\AppData\Local\Temp\burndown_updates\Burndown-Windows-2.7.0.zip"
+- `pending_update_path` (legacy): "C:\Users\...\AppData\Local\Temp\burndown_updates\BurndownChart-Windows-2.7.0.zip"
 - `pending_update_url`: Download URL (for re-download if needed)
 - `pending_update_checked_at`: ISO timestamp (staleness check)
 
