@@ -19,7 +19,7 @@ import dash_bootstrap_components as dbc
 from dash import html
 
 from ui.style_constants import COLOR_PALETTE
-from ui.tooltip_utils import create_info_tooltip
+from ui.styles import create_metric_card_header
 
 logger = logging.getLogger(__name__)
 
@@ -83,25 +83,14 @@ def create_pace_health_card(
     return dbc.Card(
         [
             # Card Header
-            dbc.CardHeader(
-                [
-                    html.Span(
-                        "Required Pace",
-                        className="metric-card-title",
-                    ),
-                    " ",
-                    create_info_tooltip(
-                        help_text=(
-                            "Shows your current velocity vs. required velocity to meet the deadline. "
-                            "Progress bars indicate velocity achievement percentage (current / required). "
-                            "Green: on track | Yellow: at risk | Red: behind schedule."
-                        ),
-                        id_suffix="pace-health-card",
-                        placement="top",
-                        variant="dark",
-                    ),
-                ],
-                className="d-flex align-items-center",
+            create_metric_card_header(
+                title="Required Pace",
+                tooltip_text=(
+                    "Shows your current velocity vs. required velocity to meet the deadline. "
+                    "Progress bars indicate velocity achievement percentage (current / required). "
+                    "Green: on track | Yellow: at risk | Red: behind schedule."
+                ),
+                tooltip_id="pace-health-card",
             ),
             # Card Body
             dbc.CardBody(

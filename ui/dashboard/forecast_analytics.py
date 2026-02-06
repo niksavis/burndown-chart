@@ -21,7 +21,7 @@ from dash import html
 
 from ui.budget_cards import create_forecast_alignment_card
 from ui.style_constants import COLOR_PALETTE
-from ui.tooltip_utils import create_info_tooltip
+from ui.styles import create_metric_card_header
 
 
 def get_forecast_history() -> tuple[list, list, list]:
@@ -246,24 +246,13 @@ def create_forecast_analytics_section(
     # Create Enhanced Expected Completion card with BOTH forecasts
     expected_completion_card = dbc.Card(
         [
-            dbc.CardHeader(
-                [
-                    html.Span(
-                        "Expected Completion",
-                        className="metric-card-title",
-                    ),
-                    " ",
-                    create_info_tooltip(
-                        help_text="Calculated using PERT three-point estimation: (Optimistic + 4×Most_Likely + Pessimistic) ÷ 6. "
-                        "Shows forecasts based on both items and story points velocity. "
-                        "This weighted average emphasizes the most likely scenario (4x weight) while accounting for best/worst cases from your historical velocity data. "
-                        "Same method used in Burndown and Report.",
-                        id_suffix="metric-expected_completion",
-                        placement="top",
-                        variant="dark",
-                    ),
-                ],
-                className="d-flex align-items-center",
+            create_metric_card_header(
+                title="Expected Completion",
+                tooltip_text="Calculated using PERT three-point estimation: (Optimistic + 4×Most_Likely + Pessimistic) ÷ 6. "
+                "Shows forecasts based on both items and story points velocity. "
+                "This weighted average emphasizes the most likely scenario (4x weight) while accounting for best/worst cases from your historical velocity data. "
+                "Same method used in Burndown and Report.",
+                tooltip_id="metric-expected_completion",
             ),
             dbc.CardBody(
                 [
@@ -473,24 +462,13 @@ def create_forecast_analytics_section(
     # Enhanced Confidence Intervals card with bigger dates and better spacing
     confidence_intervals_card = dbc.Card(
         [
-            dbc.CardHeader(
-                [
-                    html.Span(
-                        "Confidence Intervals",
-                        className="metric-card-title",
-                    ),
-                    " ",
-                    create_info_tooltip(
-                        help_text=f"Statistical probability ranges based on {forecast_metric} velocity variability. "
-                        f"50%: 50th percentile (median) - the PERT forecast itself. "
-                        f"95%: 95th percentile - conservative estimate with 1.65σ buffer (adds uncertainty for remaining work). "
-                        f"Wider spread indicates higher velocity uncertainty. Calculated from your historical data variance.",
-                        id_suffix="metric-confidence_intervals",
-                        placement="top",
-                        variant="dark",
-                    ),
-                ],
-                className="d-flex align-items-center",
+            create_metric_card_header(
+                title="Confidence Intervals",
+                tooltip_text=f"Statistical probability ranges based on {forecast_metric} velocity variability. "
+                f"50%: 50th percentile (median) - the PERT forecast itself. "
+                f"95%: 95th percentile - conservative estimate with 1.65σ buffer (adds uncertainty for remaining work). "
+                f"Wider spread indicates higher velocity uncertainty. Calculated from your historical data variance.",
+                tooltip_id="metric-confidence_intervals",
             ),
             dbc.CardBody(
                 [
@@ -644,23 +622,12 @@ def create_forecast_analytics_section(
     # Enhanced On-Track Probability card with visual indicator
     on_track_card = dbc.Card(
         [
-            dbc.CardHeader(
-                [
-                    html.Span(
-                        "On-Track Probability",
-                        className="metric-card-title",
-                    ),
-                    " ",
-                    create_info_tooltip(
-                        help_text="Statistical probability of meeting deadline using normal distribution. "
-                        "Calculated via Z-score: (deadline_days - expected_days) / forecast_std_dev. "
-                        "Based on how many standard deviations your deadline is from expected completion, adjusted for velocity consistency.",
-                        id_suffix="metric-on_track_probability",
-                        placement="top",
-                        variant="dark",
-                    ),
-                ],
-                className="d-flex align-items-center",
+            create_metric_card_header(
+                title="On-Track Probability",
+                tooltip_text="Statistical probability of meeting deadline using normal distribution. "
+                "Calculated via Z-score: (deadline_days - expected_days) / forecast_std_dev. "
+                "Based on how many standard deviations your deadline is from expected completion, adjusted for velocity consistency.",
+                tooltip_id="metric-on_track_probability",
             ),
             dbc.CardBody(
                 [

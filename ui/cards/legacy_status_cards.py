@@ -22,6 +22,7 @@ import pandas as pd
 from dash import html
 
 from configuration import COLOR_PALETTE
+from ui.styles import create_metric_card_header
 from ui.tooltip_utils import create_info_tooltip
 
 
@@ -182,14 +183,10 @@ def create_project_status_card(statistics_df, settings) -> dbc.Card:
         # Create the card component
         return dbc.Card(
             [
-                dbc.CardHeader(
-                    [
-                        html.H4("Project Status Summary", className="d-inline"),
-                        create_info_tooltip(
-                            "project-status",
-                            "Summary of your project's current progress and metrics.",
-                        ),
-                    ]
+                create_metric_card_header(
+                    title="Project Status Summary",
+                    tooltip_text="Summary of your project's current progress and metrics.",
+                    tooltip_id="project-status",
                 ),
                 dbc.CardBody(
                     [
@@ -414,8 +411,8 @@ def create_project_status_card(statistics_df, settings) -> dbc.Card:
         # Return an error card if something goes wrong
         return dbc.Card(
             [
-                dbc.CardHeader(
-                    html.H4("Project Status Summary", className="text-danger")
+                create_metric_card_header(
+                    title="Project Status Summary",
                 ),
                 dbc.CardBody(
                     [

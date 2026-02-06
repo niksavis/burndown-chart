@@ -9,7 +9,19 @@ body {
   font-size: var(--text-base);
   line-height: var(--leading-normal);
   color: var(--color-neutral-700);
-  background: linear-gradient(180deg, var(--color-neutral-50) 0%, #ffffff 100%);
+  background-color: var(--color-neutral-50);
+  background-image:
+    radial-gradient(
+      1200px 600px at 8% -10%,
+      rgba(59, 130, 246, 0.08),
+      transparent 55%
+    ),
+    radial-gradient(
+      1000px 600px at 100% -20%,
+      rgba(20, 184, 166, 0.08),
+      transparent 48%
+    ),
+    linear-gradient(180deg, var(--color-neutral-50) 0%, #ffffff 100%);
   background-attachment: fixed;
   background-repeat: no-repeat;
   min-height: 100vh;

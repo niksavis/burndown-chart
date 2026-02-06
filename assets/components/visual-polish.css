@@ -70,7 +70,7 @@ body {
 .card.metric-card:hover,
 .card[onclick]:hover {
   transform: translateY(-2px);
-  box-shadow: 0 0.75rem 1.5rem rgba(0, 0, 0, 0.12);
+  box-shadow: var(--shadow-card);
 }
 
 /* Better tab styling */
@@ -157,7 +157,7 @@ body {
 /* Input focus glow effect */
 .form-control:focus,
 .form-select:focus {
-  box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.15);
+  box-shadow: var(--focus-ring);
   border-color: var(--color-primary);
 }
 

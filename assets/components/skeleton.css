@@ -9,36 +9,36 @@
 /* Shimmer animation for visible skeleton loaders */
 @keyframes skeleton-shimmer {
   0% {
-    background-position: -1000px 0;
+    background-position: calc(var(--skeleton-shimmer-size) * -1) 0;
   }
   100% {
-    background-position: 1000px 0;
+    background-position: var(--skeleton-shimmer-size) 0;
   }
 }
 
 .skeleton-shimmer {
   background: linear-gradient(
     to right,
-    #e9ecef 0%,
-    #f8f9fa 20%,
-    #e9ecef 40%,
-    #e9ecef 100%
+    var(--skeleton-base) 0%,
+    var(--skeleton-highlight) 20%,
+    var(--skeleton-base) 40%,
+    var(--skeleton-base) 100%
   );
-  background-size: 1000px 100%;
-  animation: skeleton-shimmer 2s linear infinite;
-  border-radius: 4px;
+  background-size: var(--skeleton-shimmer-size) 100%;
+  animation: skeleton-shimmer var(--skeleton-shimmer-duration) linear infinite;
+  border-radius: var(--skeleton-radius);
 }
 
 /* Skeleton container - show immediately to prevent flash of empty content */
 .metric-cards-skeleton {
   opacity: 1; /* Start visible immediately */
   /* Remove animation - skeleton should be visible right away */
-  margin-top: 0.75rem; /* 12px spacing at top - MUST match .metric-cards-grid */
-  padding-top: 0.25rem; /* Minimal padding for animation buffer - MUST match .metric-cards-grid */
-  padding-left: 0.5rem; /* Horizontal padding for shadow clearance - MUST match .metric-cards-grid */
-  padding-right: 0.5rem; /* Horizontal padding for shadow clearance - MUST match .metric-cards-grid */
-  margin-left: -0.25rem; /* Compensate for added padding - MUST match .metric-cards-grid */
-  margin-right: -0.25rem; /* Compensate for added padding - MUST match .metric-cards-grid */
+  margin-top: var(--metric-cards-grid-margin-top);
+  padding-top: var(--metric-cards-grid-padding-top);
+  padding-left: var(--metric-cards-grid-padding-x);
+  padding-right: var(--metric-cards-grid-padding-x);
+  margin-left: var(--metric-cards-grid-margin-x);
+  margin-right: var(--metric-cards-grid-margin-x);
 }
 
 /* Content that replaces skeleton - smooth fade-in to prevent flicker */
@@ -49,19 +49,19 @@
 
 /* Add top spacing so cards don't get cut off when they "fly up" */
 .metric-cards-grid {
-  margin-top: 0.75rem; /* 12px spacing at top - reduced from 1.5rem */
-  padding-top: 0.25rem; /* Minimal padding for animation buffer */
-  padding-left: 0.5rem; /* Horizontal padding to prevent shadow clipping on outer edges */
-  padding-right: 0.5rem; /* Horizontal padding to prevent shadow clipping on outer edges */
-  margin-left: -0.25rem; /* Compensate for added padding to maintain grid alignment */
-  margin-right: -0.25rem; /* Compensate for added padding to maintain grid alignment */
+  margin-top: var(--metric-cards-grid-margin-top);
+  padding-top: var(--metric-cards-grid-padding-top);
+  padding-left: var(--metric-cards-grid-padding-x);
+  padding-right: var(--metric-cards-grid-padding-x);
+  margin-left: var(--metric-cards-grid-margin-x);
+  margin-right: var(--metric-cards-grid-margin-x);
 }
 
 /* Container for metric cards - prevent layout shift during updates */
 #dora-metrics-cards-container,
 #flow-metrics-cards-container,
 #flow-distribution-chart-container {
-  min-height: 400px; /* Reserve space to prevent layout shift */
+  min-height: var(--metric-cards-container-min-height);
   transition: min-height 0.2s ease-out;
   overflow: visible !important; /* Allow cards to fly up without clipping */
 }
@@ -75,10 +75,112 @@
   -moz-font-variant-emoji: text;
 }
 
+.skeleton-text-sm {
+  font-size: 0.8rem;
+}
+
+.skeleton-text-xs {
+  font-size: 0.75rem;
+}
+
+.skeleton-bar-title {
+  height: 20px;
+  width: 60%;
+  background-color: var(--skeleton-base);
+  display: inline-block;
+}
+
+.skeleton-bar-badge {
+  height: 20px;
+  width: 60px;
+  background-color: var(--skeleton-base);
+  display: inline-block;
+}
+
+.skeleton-bar-value {
+  height: 38px;
+  width: 100px;
+  background-color: var(--skeleton-base);
+  margin: 0 auto;
+}
+
+.skeleton-bar-unit {
+  height: 16px;
+  width: 180px;
+  background-color: var(--skeleton-base);
+  margin: 0 auto;
+}
+
+.skeleton-bar-relationship {
+  height: 14px;
+  width: 250px;
+  background-color: var(--skeleton-base);
+  margin: 0 auto;
+}
+
+.skeleton-bar-deployments {
+  height: 14px;
+  width: 160px;
+  background-color: var(--skeleton-base);
+  margin: 0 auto;
+}
+
+.skeleton-bar-forecast {
+  height: 16px;
+  width: 200px;
+  background-color: var(--skeleton-base);
+  margin: 0 auto;
+}
+
+.skeleton-bar-trend {
+  height: 14px;
+  width: 140px;
+  background-color: var(--skeleton-base);
+  margin: 0 auto;
+}
+
+.skeleton-divider {
+  border-top: 1px solid var(--color-border-subtle);
+  padding-top: var(--space-1);
+}
+
+.skeleton-bar-label {
+  height: 12px;
+  width: 150px;
+  background-color: var(--skeleton-base);
+  margin: 0 auto;
+}
+
+.skeleton-bar-sparkline {
+  height: 40px;
+  width: 200px;
+  background-color: var(--skeleton-base);
+  margin: 0 auto;
+}
+
+.skeleton-sparkline {
+  height: 40px;
+  gap: var(--skeleton-sparkline-gap);
+}
+
+.skeleton-bar-button {
+  height: 20px;
+  width: 110px;
+  background-color: var(--skeleton-base);
+  margin: 0 auto;
+}
+
+.skeleton-bar-footer {
+  height: 12px;
+  width: 100px;
+  background-color: var(--skeleton-base);
+  margin: 0 auto;
+}
+
 @keyframes smoothFadeIn {
   0% {
     opacity: 0;
-    transform: translateY(-5px);
+    transform: translateY(calc(var(--skeleton-fade-translate) * -1));
   }
   100% {
     opacity: 1;

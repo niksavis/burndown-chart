@@ -580,37 +580,39 @@ def create_quality_insights_panel(
         insight_item = dbc.Card(
             [
                 dbc.CardHeader(
-                    dbc.Row(
+                    html.Div(
                         [
-                            dbc.Col(
+                            html.Div(
                                 [
                                     html.I(
                                         className=f"fas {severity_config['icon']} me-2"
                                     ),
-                                    html.Span(insight["message"]),
+                                    html.Span(
+                                        insight["message"],
+                                        className="insight-header-text",
+                                    ),
                                 ],
-                                width=10,
+                                className="insight-header-main",
                             ),
-                            dbc.Col(
+                            html.Div(
                                 [
                                     dbc.Badge(
                                         severity_config["badge_text"],
                                         color=severity_config["color"],
-                                        className="me-2",
+                                        className="insight-severity-badge",
                                     ),
                                     dbc.Button(
                                         html.I(className="fas fa-chevron-down"),
                                         id=f"insight-toggle-{idx}",
                                         color="link",
                                         size="sm",
-                                        className="p-0",
+                                        className="p-0 insight-toggle-btn",
                                     ),
                                 ],
-                                width=2,
-                                className="text-end",
+                                className="insight-header-actions",
                             ),
                         ],
-                        align="center",
+                        className="insight-header-row",
                     ),
                     className=f"bg-{severity_config['color']} bg-opacity-10 border-{severity_config['color']}",
                     style={"cursor": "pointer"},
@@ -624,7 +626,8 @@ def create_quality_insights_panel(
                                 insight["actionable_recommendation"],
                                 className="mb-0",
                             ),
-                        ]
+                        ],
+                        className="insight-body",
                     ),
                     id=collapse_id,
                     is_open=False,

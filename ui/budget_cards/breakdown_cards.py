@@ -18,6 +18,8 @@ import dash_bootstrap_components as dbc
 import plotly.graph_objects as go
 from dash import dcc, html
 
+from ui.styles import create_metric_card_header
+
 logger = logging.getLogger(__name__)
 
 
@@ -158,8 +160,8 @@ def create_cost_breakdown_card(
 
     card_content = dbc.Card(
         [
-            dbc.CardHeader(
-                html.Span("Cost Breakdown by Work Distribution", className="fw-bold"),
+            create_metric_card_header(
+                title="Cost Breakdown by Work Distribution",
             ),
             dbc.CardBody(
                 [
@@ -183,7 +185,7 @@ def create_cost_breakdown_card(
             ),
         ],
         id=card_id,
-        className="metric-card mb-3 h-100",
+        className="metric-card metric-card-large mb-3 h-100",
     )
 
     return card_content

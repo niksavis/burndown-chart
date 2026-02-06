@@ -1,7 +1,67 @@
 /* ====================
-   INSIGHTS CARDS
-   Content was extracted during refactoring and may be in other files.
-   This placeholder prevents import errors.
-   ==================== */
+    INSIGHTS CARDS
+    ==================== */
 
+.insight-header-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  width: 100%;
+  font-size: var(--text-sm);
+  line-height: var(--leading-tight);
+}
 
+.insight-header-main {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.insight-header-text {
+  min-width: 0;
+  flex: 1 1 auto;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.insight-header-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  margin-left: auto;
+  white-space: nowrap;
+  flex: 0 0 auto;
+}
+
+.insight-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+.insight-body {
+  font-size: var(--text-sm);
+  line-height: var(--leading-normal);
+}
+
+.insight-body h6 {
+  font-size: var(--text-sm);
+}
+
+@media (max-width: 768px) {
+  .insight-header-row {
+    align-items: flex-start;
+  }
+
+  .insight-header-text {
+    white-space: normal;
+  }
+
+  .insight-header-actions {
+    align-self: flex-start;
+  }
+}

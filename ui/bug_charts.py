@@ -31,7 +31,10 @@ def BugTrendChart(
         Dash Bootstrap Components Card with bug trend chart
     """
     try:
-        from visualization.bug_charts import create_bug_trend_chart
+        from visualization.bug_charts import (
+            create_bug_trend_chart,
+            get_mobile_chart_layout,
+        )
         from configuration.chart_config import get_bug_analysis_chart_config
 
         # Create the chart figure
@@ -39,6 +42,9 @@ def BugTrendChart(
 
         # Get unified chart config for consistency across the app
         chart_config = get_bug_analysis_chart_config()
+
+        chart_layout = get_mobile_chart_layout(viewport_size)
+        chart_height = chart_layout.get("height", 500)
 
         # Return chart directly without Card wrapper (like Items per Week tab)
         # This prevents Bootstrap dismissal issues
@@ -58,7 +64,7 @@ def BugTrendChart(
                     id="bug-trend-graph",
                     figure=fig,
                     config=chart_config,  # type: ignore
-                    style={"height": "500px"},
+                    style={"height": f"{chart_height}px"},
                 ),
                 html.Small(
                     [
@@ -111,7 +117,10 @@ def BugInvestmentChart(
         Dash Bootstrap Components Div with bug investment chart
     """
     try:
-        from visualization.bug_charts import create_bug_investment_chart
+        from visualization.bug_charts import (
+            create_bug_investment_chart,
+            get_mobile_chart_layout,
+        )
         from configuration.chart_config import get_bug_analysis_chart_config
 
         # Create the chart figure
@@ -119,6 +128,9 @@ def BugInvestmentChart(
 
         # Get unified chart config for consistency across the app
         chart_config = get_bug_analysis_chart_config()
+
+        chart_layout = get_mobile_chart_layout(viewport_size)
+        chart_height = chart_layout.get("height", 500)
 
         # Return chart directly without Card wrapper (consistent with BugTrendChart)
         return html.Div(
@@ -137,7 +149,7 @@ def BugInvestmentChart(
                     id="bug-investment-graph",
                     figure=fig,
                     config=chart_config,  # type: ignore
-                    style={"height": "500px"},
+                    style={"height": f"{chart_height}px"},
                 ),
                 html.Small(
                     [

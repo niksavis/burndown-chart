@@ -25,6 +25,7 @@ from dash import html
 
 from configuration import COLOR_PALETTE
 from configuration.settings import PROJECT_HELP_TEXTS
+from ui.styles import create_metric_card_header
 from ui.tooltip_utils import create_info_tooltip
 
 
@@ -151,8 +152,7 @@ def create_project_summary_card(
                                         ],
                                     ),
                                 ],
-                                className="border-bottom pb-1 mb-3",
-                                style={"fontSize": "1.1rem", "fontWeight": "bold"},
+                                className="legacy-section-title border-bottom pb-1 mb-3",
                             ),
                             # PERT Forecast in compact table format
                             dbc.Row(
@@ -293,8 +293,7 @@ def create_project_summary_card(
                                         help_text=PROJECT_HELP_TEXTS["weekly_averages"],
                                     ),
                                 ],
-                                className="border-bottom pb-1 mb-3",
-                                style={"fontSize": "1.1rem", "fontWeight": "bold"},
+                                className="legacy-section-title border-bottom pb-1 mb-3",
                             ),
                             dbc.Row(
                                 [
@@ -433,18 +432,10 @@ def create_project_summary_card(
 
         return dbc.Card(
             [
-                dbc.CardHeader(
-                    [
-                        html.H4(
-                            "Project Dashboard",
-                            className="d-inline",
-                        ),
-                        create_info_tooltip(
-                            "project-dashboard",
-                            "Project analysis based on your historical data.",
-                        ),
-                    ],
-                    className="py-2",
+                create_metric_card_header(
+                    title="Project Dashboard",
+                    tooltip_text="Project analysis based on your historical data.",
+                    tooltip_id="project-dashboard",
                 ),
                 dbc.CardBody(
                     [
@@ -464,12 +455,8 @@ def create_project_summary_card(
         # Fallback card in case of errors
         return dbc.Card(
             [
-                dbc.CardHeader(
-                    html.H4(
-                        "Project Dashboard",
-                        className="d-inline",
-                        style={"fontSize": "1.4rem"},  # Increased heading size
-                    )
+                create_metric_card_header(
+                    title="Project Dashboard",
                 ),
                 dbc.CardBody(
                     [

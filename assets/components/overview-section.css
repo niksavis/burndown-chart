@@ -8,7 +8,11 @@
 
 /* Overview section with distinct background for metric overview cards */
 .overview-section {
-  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%) !important;
+  background: linear-gradient(
+    135deg,
+    var(--color-surface-muted) 0%,
+    var(--color-neutral-100) 100%
+  ) !important;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05) !important;
   transition: box-shadow 0.3s ease;
   overflow: visible !important; /* Allow cards to lift without clipping */
