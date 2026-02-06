@@ -66,17 +66,13 @@ def filter_sprint_by_issue_type(
         if not all_issues:
             return create_no_sprints_state()
 
-        # CRITICAL: Filter out parent issues dynamically (don't hardcode "Epic")
+        # Filter to only configured development project issues (exclude parents/parent types)
         settings = load_app_settings()
-        parent_field = settings.get("field_mappings", {}).get("general", {}).get("parent_field")
-        
-        if parent_field:
-            from data.parent_filter import filter_parent_issues
-            all_issues = filter_parent_issues(
-                all_issues,
-                parent_field,
-                log_prefix="SPRINT FILTERS"
-            )
+        from data.issue_filtering import filter_issues_for_metrics
+
+        all_issues = filter_issues_for_metrics(
+            all_issues, settings=settings, log_prefix="SPRINT FILTERS"
+        )
 
         # Filter to tracked issue types (Story/Task/Bug only)
         if issue_type_filter == "all":

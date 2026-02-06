@@ -103,30 +103,19 @@ def _render_sprint_tracker_content(
 
         logger.info(f"Loaded {len(all_issues)} issues from database")
 
-        # CRITICAL: Filter out parent issues dynamically (don't hardcode "Epic")
-        # Use parent field mapping from settings
+        # Filter to only configured development project issues (exclude parents/parent types)
         from data.persistence import load_app_settings
-        settings = load_app_settings()
-        parent_field = settings.get("field_mappings", {}).get("general", {}).get("parent_field")
-        
-        if parent_field:
-            from data.parent_filter import filter_parent_issues
-            all_issues = filter_parent_issues(
-                all_issues,
-                parent_field,
-                log_prefix="SPRINT TRACKER"
-            )
+        from data.issue_filtering import filter_issues_for_metrics
 
-        # Get configuration for filtering and sprint field
-        development_projects = settings.get("development_projects", [])
-        devops_projects = settings.get("devops_projects", [])
+        settings = load_app_settings()
+        all_issues = filter_issues_for_metrics(
+            all_issues, settings=settings, log_prefix="SPRINT TRACKER"
+        )
+        logger.info(f"After project filtering: {len(all_issues)} development issues")
+
+        # Get configuration for sprint field
         field_mappings = settings.get("field_mappings", {})
         general_mappings = field_mappings.get("general", {})
-        
-        # Filter to only configured development project issues
-        from data.project_filter import filter_development_issues
-        all_issues = filter_development_issues(all_issues, development_projects, devops_projects)
-        logger.info(f"After project filtering: {len(all_issues)} development issues")
 
         # Filter to tracked issue types (Story, Task, Bug - exclude sub-tasks)
         from data.sprint_manager import filter_sprint_issues
@@ -491,7 +480,7 @@ def update_sprint_charts(selected_sprint, charts_visible, points_toggle_list):
         # Load data from backend
         backend = get_backend()
         from data.project_filter import filter_development_issues
-        
+
         active_profile_id = backend.get_app_state("active_profile_id")
         active_query_id = backend.get_app_state("active_query_id")
 
@@ -505,34 +494,41 @@ def update_sprint_charts(selected_sprint, charts_visible, points_toggle_list):
 
         # Get settings (including project classification and field mappings)
         settings = load_app_settings()
-        
+
         # Load issues and changelog
         all_issues = backend.get_issues(active_profile_id, active_query_id)
         logger.info(
             f"update_sprint_charts: Loaded {len(all_issues) if all_issues else 0} issues"
         )
-        
+
         # CRITICAL: Filter out parent issues dynamically (don't hardcode "Epic")
         if all_issues:
-            parent_field = settings.get("field_mappings", {}).get("general", {}).get("parent_field")
+            parent_field = (
+                settings.get("field_mappings", {})
+                .get("general", {})
+                .get("parent_field")
+            )
             if parent_field:
                 from data.parent_filter import filter_parent_issues
+
                 all_issues = filter_parent_issues(
-                    all_issues,
-                    parent_field,
-                    log_prefix="SPRINT CHARTS"
+                    all_issues, parent_field, log_prefix="SPRINT CHARTS"
                 )
-        
+
         # Filter to only configured development project issues
         development_projects = settings.get("development_projects", [])
         devops_projects = settings.get("devops_projects", [])
-        all_issues = filter_development_issues(all_issues, development_projects, devops_projects)
+        all_issues = filter_development_issues(
+            all_issues, development_projects, devops_projects
+        )
         logger.info(
             f"update_sprint_charts: After project filtering: {len(all_issues)} issues"
         )
-        
+
         if not all_issues:
-            logger.warning("update_sprint_charts: No issues found after project filtering")
+            logger.warning(
+                "update_sprint_charts: No issues found after project filtering"
+            )
             return no_update
 
         field_mappings = settings.get("field_mappings", {})

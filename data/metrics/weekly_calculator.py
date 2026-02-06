@@ -137,14 +137,16 @@ def calculate_and_save_weekly_metrics(
 
         # CRITICAL: Filter out parent issues dynamically (don't hardcode "Epic")
         # Use parent field mapping to detect which issues are parents
-        parent_field = app_settings.get("field_mappings", {}).get("general", {}).get("parent_field")
+        parent_field = (
+            app_settings.get("field_mappings", {})
+            .get("general", {})
+            .get("parent_field")
+        )
         if parent_field:
             from data.parent_filter import filter_parent_issues
-            
+
             all_issues_raw = filter_parent_issues(
-                all_issues_raw,
-                parent_field,
-                log_prefix="WEEKLY CALC"
+                all_issues_raw, parent_field, log_prefix="WEEKLY CALC"
             )
 
         # CRITICAL: Filter to only configured development project issues
@@ -156,7 +158,9 @@ def calculate_and_save_weekly_metrics(
         if development_projects or devops_projects:
             from data.project_filter import filter_development_issues
 
-            all_issues = filter_development_issues(all_issues_raw, development_projects, devops_projects)
+            all_issues = filter_development_issues(
+                all_issues_raw, development_projects, devops_projects
+            )
             filtered_count = len(all_issues_raw) - len(all_issues)
             logger.info(
                 f"Filtered to {len(all_issues)} development project issues (excluded {filtered_count} other issues)"
@@ -164,6 +168,23 @@ def calculate_and_save_weekly_metrics(
         else:
             all_issues = all_issues_raw
             logger.info("No project classification configured, using all issues")
+
+        # Exclude parent issue types from metrics (if configured)
+        from data.jira.query_builder import extract_parent_types_from_config
+
+        parent_types = extract_parent_types_from_config(app_settings)
+        if parent_types:
+            from data.jira.parent_filter import filter_out_parent_types
+
+            total_before_parent_filter = len(all_issues)
+            all_issues = filter_out_parent_types(all_issues, parent_types)
+            parent_filtered_count = total_before_parent_filter - len(all_issues)
+
+            if parent_filtered_count > 0:
+                logger.info(
+                    f"Excluded {parent_filtered_count} parent issue(s) from metrics "
+                    f"(types: {', '.join(parent_types)})"
+                )
 
         # Check if changelog data exists in database
         # NOTE: Changelog is OPTIONAL - only needed for Flow Time and Flow Efficiency

@@ -99,28 +99,17 @@ def _render_bug_analysis_content(
         except Exception as e:
             logger.warning(f"Could not load from JIRA cache: {e}")
 
-        # Filter to only configured development project issues
+        # Filter to only configured development project issues (exclude parents/parent types)
         if all_issues:
-            # CRITICAL: Filter out parent issues dynamically (don't hardcode "Epic")
             from data.persistence import load_app_settings
+            from data.issue_filtering import filter_issues_for_metrics
+
             settings = load_app_settings()
-            
-            parent_field = settings.get("field_mappings", {}).get("general", {}).get("parent_field")
-            if parent_field:
-                from data.parent_filter import filter_parent_issues
-                all_issues = filter_parent_issues(
-                    all_issues,
-                    parent_field,
-                    log_prefix="BUG ANALYSIS"
-                )
-
-            from data.project_filter import filter_development_issues
-
-            development_projects = settings.get("development_projects", [])
-            devops_projects = settings.get("devops_projects", [])
 
             original_count = len(all_issues)
-            all_issues = filter_development_issues(all_issues, development_projects, devops_projects)
+            all_issues = filter_issues_for_metrics(
+                all_issues, settings=settings, log_prefix="BUG ANALYSIS"
+            )
             filtered_count = original_count - len(all_issues)
             if filtered_count > 0:
                 logger.info(
