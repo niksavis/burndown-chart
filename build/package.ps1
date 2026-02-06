@@ -61,6 +61,35 @@ function Copy-SharedAssets {
     }
 }
 
+function Write-Checksums {
+    param(
+        [string]$TargetDir,
+        [string[]]$FileNames
+    )
+
+    $checksumPath = Join-Path $TargetDir "BURNDOWN_CHECKSUMS.txt"
+    $lines = @()
+
+    foreach ($name in $FileNames) {
+        $filePath = Join-Path $TargetDir $name
+        if (-not (Test-Path $filePath)) {
+            Write-Host "[WARN] Checksum target not found: $name" -ForegroundColor Yellow
+            continue
+        }
+
+        $hash = (Get-FileHash -Path $filePath -Algorithm SHA256).Hash.ToLower()
+        $lines += "$hash  $name"
+    }
+
+    if ($lines.Count -eq 0) {
+        Write-Host "[WARN] No checksum entries written" -ForegroundColor Yellow
+        return
+    }
+
+    $lines | Set-Content -Path $checksumPath -Encoding ASCII
+    Write-Success "Wrote checksums to BURNDOWN_CHECKSUMS.txt"
+}
+
 # Main packaging process
 try {
     Write-Host "`nBurndown - Package Script" -ForegroundColor Yellow
@@ -135,6 +164,11 @@ try {
         Write-Success "Copied updater"
     }
     Copy-SharedAssets -TargetDir $stagingNewDir
+    $checksumFilesNew = @("Burndown.exe", "LICENSE.txt", "README.txt", "THIRD_PARTY_LICENSES.txt")
+    if ($updaterExe) {
+        $checksumFilesNew += "BurndownUpdater.exe"
+    }
+    Write-Checksums -TargetDir $stagingNewDir -FileNames $checksumFilesNew
 
     # Step 4b: Copy files to staging (legacy)
     Write-Step "Copying files to staging (legacy)"
@@ -145,6 +179,11 @@ try {
         Write-Success "Copied legacy updater executable name"
     }
     Copy-SharedAssets -TargetDir $stagingLegacyDir
+    $checksumFilesLegacy = @("BurndownChart.exe", "LICENSE.txt", "README.txt", "THIRD_PARTY_LICENSES.txt")
+    if ($updaterExe) {
+        $checksumFilesLegacy += "BurndownChartUpdater.exe"
+    }
+    Write-Checksums -TargetDir $stagingLegacyDir -FileNames $checksumFilesLegacy
 
     # Step 5: Create ZIP files
     Write-Step "Creating distribution packages"
