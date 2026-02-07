@@ -7,7 +7,7 @@ Matches architecture of existing burndown/statistics dashboards.
 All field mappings and configuration values come from app_settings.json - no hardcoded values.
 """
 
-from dash import callback, Output, Input, State, html
+from dash import callback, Output, Input, State, html, no_update
 from dash.exceptions import PreventUpdate
 from datetime import datetime, timedelta
 from typing import Dict, Any, Optional, List
@@ -131,7 +131,10 @@ def _calculate_dynamic_forecast(
 
 
 @callback(
-    Output("dora-metrics-cards-container", "children"),
+    [
+        Output("dora-metrics-cards-container", "children"),
+        Output("dora-metrics-store", "data"),
+    ],
     [
         Input("jira-issues-store", "data"),  # Check if JIRA data is loaded
         Input("chart-tabs", "active_tab"),
@@ -161,7 +164,7 @@ def load_and_display_dora_metrics(
         refresh_trigger: Timestamp of last metrics refresh (triggers update)
 
     Returns:
-        Metrics cards HTML (no toast messages, consistent with Flow Metrics)
+        Tuple of metrics cards HTML and raw metrics data for detail charts
     """
     try:
         import dash_bootstrap_components as dbc
@@ -193,25 +196,28 @@ def load_and_display_dora_metrics(
             from dash import no_update
 
             logger.info("DORA: Not on DORA tab, skipping render")
-            return no_update
+            return no_update, no_update
 
         # Check if data is being loaded (None or empty = initial load, show skeleton)
         # Only show "No Data" if we have a populated jira_data_store with no issues
         if jira_data_store is None or not jira_data_store:
             logger.info("DORA: Initial load, showing skeleton cards")
             # Return skeleton cards for all 4 DORA metrics
-            return dbc.Row(
-                [
-                    dbc.Col(
-                        create_skeleton_loader(type="card", height="200px"),
-                        xs=12,
-                        sm=6,
-                        lg=3,
-                        className="mb-4",
-                    )
-                    for _ in range(4)
-                ],
-                className="g-4",
+            return (
+                dbc.Row(
+                    [
+                        dbc.Col(
+                            create_skeleton_loader(type="card", height="200px"),
+                            xs=12,
+                            sm=6,
+                            lg=3,
+                            className="mb-4",
+                        )
+                        for _ in range(4)
+                    ],
+                    className="g-4",
+                ),
+                {},
             )
 
         # Check if JIRA data has been loaded but is empty
@@ -219,7 +225,7 @@ def load_and_display_dora_metrics(
             from ui.empty_states import create_no_data_state
 
             logger.info("DORA: No JIRA issues in loaded data, showing 'No Data' state")
-            return create_no_data_state()
+            return create_no_data_state(), {}
 
         # Get number of weeks to display (default 12 if not set)
         n_weeks = data_points if data_points and data_points > 0 else 12
@@ -258,7 +264,7 @@ def load_and_display_dora_metrics(
             # No cache available - show unified empty state
             from ui.empty_states import create_no_metrics_state
 
-            return create_no_metrics_state(metric_type="DORA")
+            return create_no_metrics_state(metric_type="DORA"), {}
 
         # Load metrics from cache and create display
         # Use .get() with defaults to safely handle missing or None values
@@ -477,37 +483,40 @@ def load_and_display_dora_metrics(
             if trend_vs_forecast:
                 metrics_data[metric_name]["trend_vs_forecast"] = trend_vs_forecast
 
-        return create_metric_cards_grid(metrics_data)
+        return create_metric_cards_grid(metrics_data), metrics_data
 
     except PreventUpdate:
         raise
     except Exception as e:
         logger.error(f"Error loading DORA metrics from cache: {e}", exc_info=True)
 
-        return create_metric_cards_grid(
-            {
-                "deployment_frequency": {
-                    "metric_name": "deployment_frequency",
-                    "value": None,
-                    "error_state": "error",
-                    "error_message": "Error loading metrics - check logs",
-                },
-                "lead_time_for_changes": {
-                    "metric_name": "lead_time_for_changes",
-                    "value": None,
-                    "error_state": "error",
-                },
-                "change_failure_rate": {
-                    "metric_name": "change_failure_rate",
-                    "value": None,
-                    "error_state": "error",
-                },
-                "mean_time_to_recovery": {
-                    "metric_name": "mean_time_to_recovery",
-                    "value": None,
-                    "error_state": "error",
-                },
-            }
+        return (
+            create_metric_cards_grid(
+                {
+                    "deployment_frequency": {
+                        "metric_name": "deployment_frequency",
+                        "value": None,
+                        "error_state": "error",
+                        "error_message": "Error loading metrics - check logs",
+                    },
+                    "lead_time_for_changes": {
+                        "metric_name": "lead_time_for_changes",
+                        "value": None,
+                        "error_state": "error",
+                    },
+                    "change_failure_rate": {
+                        "metric_name": "change_failure_rate",
+                        "value": None,
+                        "error_state": "error",
+                    },
+                    "mean_time_to_recovery": {
+                        "metric_name": "mean_time_to_recovery",
+                        "value": None,
+                        "error_state": "error",
+                    },
+                }
+            ),
+            {},
         )
 
 
@@ -517,7 +526,10 @@ def load_and_display_dora_metrics(
 
 
 @callback(
-    Output("flow-metrics-cards-container", "children"),
+    [
+        Output("flow-metrics-cards-container", "children"),
+        Output("flow-metrics-store", "data"),
+    ],
     [
         Input("jira-issues-store", "data"),
         Input("chart-tabs", "active_tab"),  # Check which tab is active
@@ -553,7 +565,7 @@ def calculate_and_display_flow_metrics(
         app_settings: Application settings including field mappings
 
     Returns:
-        Tuple of (metrics_cards_html, distribution_chart_html)
+        Tuple of metrics cards HTML and raw metrics data for detail charts
     """
     try:
         import dash_bootstrap_components as dbc
@@ -585,25 +597,28 @@ def calculate_and_display_flow_metrics(
             from dash import no_update
 
             logger.info("FLOW: Not on Flow tab, skipping render")
-            return no_update
+            return no_update, no_update
 
         # Check if data is being loaded (None or empty = initial load, show skeleton)
         # Only show "No Data" if we have a populated jira_data_store with no issues
         if jira_data_store is None or not jira_data_store:
             logger.info("Flow: Initial load, showing skeleton cards")
             # Return skeleton cards for all 4 Flow metrics
-            return dbc.Row(
-                [
-                    dbc.Col(
-                        create_skeleton_loader(type="card", height="200px"),
-                        xs=12,
-                        sm=6,
-                        lg=3,
-                        className="mb-4",
-                    )
-                    for _ in range(4)
-                ],
-                className="g-4",
+            return (
+                dbc.Row(
+                    [
+                        dbc.Col(
+                            create_skeleton_loader(type="card", height="200px"),
+                            xs=12,
+                            sm=6,
+                            lg=3,
+                            className="mb-4",
+                        )
+                        for _ in range(4)
+                    ],
+                    className="g-4",
+                ),
+                {},
             )
 
         # Validate inputs - if store is populated but has no issues
@@ -611,7 +626,7 @@ def calculate_and_display_flow_metrics(
             from ui.empty_states import create_no_data_state
 
             # Return no_data state for all metrics (Work Distribution included in same container)
-            return create_no_data_state()
+            return create_no_data_state(), {}
 
         if not app_settings:
             logger.warning("No app settings available, loading from disk")
@@ -621,7 +636,7 @@ def calculate_and_display_flow_metrics(
         if not app_settings:
             error_msg = "Failed to load app settings"
             logger.error(error_msg)
-            return html.Div(error_msg, className="alert alert-danger p-4")
+            return html.Div(error_msg, className="alert alert-danger p-4"), {}
 
         # Get number of weeks to display (default 12 if not set)
         n_weeks = data_points if data_points and data_points > 0 else 12
@@ -659,10 +674,7 @@ def calculate_and_display_flow_metrics(
             )
 
             # Return no_metrics state for metrics + HIDE Work Distribution card (like other cards)
-            return (
-                create_no_metrics_state(metric_type="Flow"),
-                html.Div(),  # Empty div - hide Work Distribution when no metrics
-            )
+            return create_no_metrics_state(metric_type="Flow"), {}
 
         # READ METRICS FROM SNAPSHOTS (instant, no calculation)
         # AGGREGATED across all weeks in selected period (like DORA metrics)
@@ -1040,12 +1052,12 @@ def calculate_and_display_flow_metrics(
         if metrics_html and metrics_html.children:
             metrics_html.children.append(dist_col)
 
-        return metrics_html
+        return metrics_html, metrics_data
 
     except Exception as e:
         logger.error(f"Error calculating Flow metrics: {e}", exc_info=True)
 
-        return html.Div("Error loading metrics", className="alert alert-danger p-4")
+        return html.Div("Error loading metrics", className="alert alert-danger p-4"), {}
 
 
 #######################################################################
@@ -1432,6 +1444,226 @@ def toggle_change_failure_rate_details(n_clicks, is_open):
 def toggle_mean_time_to_recovery_details(n_clicks, is_open):
     """Toggle Mean Time to Recovery detailed chart collapse."""
     return not is_open if n_clicks else is_open
+
+
+def _get_metric_display_name(metric_name: str, metric_data: Dict[str, Any]) -> str:
+    """Resolve display name for a metric chart."""
+    alternative_name = metric_data.get("alternative_name")
+    if alternative_name:
+        return str(alternative_name)
+
+    return metric_name.replace("_", " ").title()
+
+
+def _get_dora_tier_hex_color(tier_color: str) -> str:
+    """Map DORA tier colors to hex values for trend lines."""
+    return {
+        "green": "#198754",
+        "blue": "#0dcaf0",
+        "yellow": "#ffc107",
+        "orange": "#fd7e14",
+    }.get(tier_color, "#6c757d")
+
+
+def _build_metric_details_chart(metric_name: str, metric_data: Dict[str, Any]) -> Any:
+    """Create a detail chart for the expanded metric card."""
+    from ui.metric_cards import (
+        _create_detailed_chart,
+        _get_flow_performance_tier_color_hex,
+    )
+
+    weekly_labels = metric_data.get("weekly_labels", [])
+    weekly_values = metric_data.get("weekly_values", [])
+    if not weekly_labels or not weekly_values:
+        return html.Div()
+
+    display_name = _get_metric_display_name(metric_name, metric_data)
+    latest_value = weekly_values[-1] if weekly_values else 0
+
+    if metric_name.startswith("flow_"):
+        sparkline_color = _get_flow_performance_tier_color_hex(
+            metric_name, latest_value
+        )
+    else:
+        sparkline_color = _get_dora_tier_hex_color(
+            metric_data.get("performance_tier_color", "")
+        )
+
+    return _create_detailed_chart(
+        metric_name=metric_name,
+        display_name=display_name,
+        weekly_labels=weekly_labels,
+        weekly_values=weekly_values,
+        metric_data=metric_data,
+        sparkline_color=sparkline_color,
+    )
+
+
+def _render_metric_details_chart(
+    is_open: bool,
+    metrics_store: Optional[Dict[str, Any]],
+    metric_name: str,
+    current_children: Any,
+) -> Any:
+    """Render the metric details chart only when the collapse is open."""
+    if not is_open:
+        return no_update
+
+    if current_children:
+        return no_update
+
+    if not metrics_store:
+        return html.Div()
+
+    metric_data = metrics_store.get(metric_name)
+    if not isinstance(metric_data, dict):
+        return html.Div()
+
+    return _build_metric_details_chart(metric_name, metric_data)
+
+
+@callback(
+    Output("flow_velocity-details-chart", "children"),
+    Input("flow_velocity-details-collapse", "is_open"),
+    State("flow-metrics-store", "data"),
+    State("flow_velocity-details-chart", "children"),
+    prevent_initial_call=True,
+)
+def render_flow_velocity_details_chart(
+    is_open: bool,
+    metrics_store: Optional[Dict[str, Any]],
+    current_children: Any,
+) -> Any:
+    """Render Flow Velocity detail chart lazily."""
+    return _render_metric_details_chart(
+        is_open, metrics_store, "flow_velocity", current_children
+    )
+
+
+@callback(
+    Output("flow_time-details-chart", "children"),
+    Input("flow_time-details-collapse", "is_open"),
+    State("flow-metrics-store", "data"),
+    State("flow_time-details-chart", "children"),
+    prevent_initial_call=True,
+)
+def render_flow_time_details_chart(
+    is_open: bool,
+    metrics_store: Optional[Dict[str, Any]],
+    current_children: Any,
+) -> Any:
+    """Render Flow Time detail chart lazily."""
+    return _render_metric_details_chart(
+        is_open, metrics_store, "flow_time", current_children
+    )
+
+
+@callback(
+    Output("flow_efficiency-details-chart", "children"),
+    Input("flow_efficiency-details-collapse", "is_open"),
+    State("flow-metrics-store", "data"),
+    State("flow_efficiency-details-chart", "children"),
+    prevent_initial_call=True,
+)
+def render_flow_efficiency_details_chart(
+    is_open: bool,
+    metrics_store: Optional[Dict[str, Any]],
+    current_children: Any,
+) -> Any:
+    """Render Flow Efficiency detail chart lazily."""
+    return _render_metric_details_chart(
+        is_open, metrics_store, "flow_efficiency", current_children
+    )
+
+
+@callback(
+    Output("flow_load-details-chart", "children"),
+    Input("flow_load-details-collapse", "is_open"),
+    State("flow-metrics-store", "data"),
+    State("flow_load-details-chart", "children"),
+    prevent_initial_call=True,
+)
+def render_flow_load_details_chart(
+    is_open: bool,
+    metrics_store: Optional[Dict[str, Any]],
+    current_children: Any,
+) -> Any:
+    """Render Flow Load detail chart lazily."""
+    return _render_metric_details_chart(
+        is_open, metrics_store, "flow_load", current_children
+    )
+
+
+@callback(
+    Output("deployment_frequency-details-chart", "children"),
+    Input("deployment_frequency-details-collapse", "is_open"),
+    State("dora-metrics-store", "data"),
+    State("deployment_frequency-details-chart", "children"),
+    prevent_initial_call=True,
+)
+def render_deployment_frequency_details_chart(
+    is_open: bool,
+    metrics_store: Optional[Dict[str, Any]],
+    current_children: Any,
+) -> Any:
+    """Render Deployment Frequency detail chart lazily."""
+    return _render_metric_details_chart(
+        is_open, metrics_store, "deployment_frequency", current_children
+    )
+
+
+@callback(
+    Output("lead_time_for_changes-details-chart", "children"),
+    Input("lead_time_for_changes-details-collapse", "is_open"),
+    State("dora-metrics-store", "data"),
+    State("lead_time_for_changes-details-chart", "children"),
+    prevent_initial_call=True,
+)
+def render_lead_time_details_chart(
+    is_open: bool,
+    metrics_store: Optional[Dict[str, Any]],
+    current_children: Any,
+) -> Any:
+    """Render Lead Time for Changes detail chart lazily."""
+    return _render_metric_details_chart(
+        is_open, metrics_store, "lead_time_for_changes", current_children
+    )
+
+
+@callback(
+    Output("change_failure_rate-details-chart", "children"),
+    Input("change_failure_rate-details-collapse", "is_open"),
+    State("dora-metrics-store", "data"),
+    State("change_failure_rate-details-chart", "children"),
+    prevent_initial_call=True,
+)
+def render_change_failure_rate_details_chart(
+    is_open: bool,
+    metrics_store: Optional[Dict[str, Any]],
+    current_children: Any,
+) -> Any:
+    """Render Change Failure Rate detail chart lazily."""
+    return _render_metric_details_chart(
+        is_open, metrics_store, "change_failure_rate", current_children
+    )
+
+
+@callback(
+    Output("mean_time_to_recovery-details-chart", "children"),
+    Input("mean_time_to_recovery-details-collapse", "is_open"),
+    State("dora-metrics-store", "data"),
+    State("mean_time_to_recovery-details-chart", "children"),
+    prevent_initial_call=True,
+)
+def render_mean_time_to_recovery_details_chart(
+    is_open: bool,
+    metrics_store: Optional[Dict[str, Any]],
+    current_children: Any,
+) -> Any:
+    """Render Mean Time to Recovery detail chart lazily."""
+    return _render_metric_details_chart(
+        is_open, metrics_store, "mean_time_to_recovery", current_children
+    )
 
 
 #######################################################################
