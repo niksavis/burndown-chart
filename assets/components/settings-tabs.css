@@ -8,9 +8,9 @@
 /* ===== REUSABLE BLUE ACCENT STYLING (DRY) ===== */
 /* Shared styling for flyout panels only - consistent blue accent border */
 .blue-accent-panel {
-  border: 2px solid rgba(13, 110, 253, 0.35); /* Subtle blue border */
+  border: 2px solid var(--color-neutral-200); /* Subtle neutral border */
   border-radius: 6px; /* Slightly rounded to match tab buttons */
-  background: #f8fafc; /* Very light gray background */
+  background: var(--color-surface-raised); /* Calm neutral background */
   overflow: hidden; /* Clip content to prevent overflow */
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06); /* Subtle shadow for depth */
 }
@@ -19,7 +19,9 @@
 .parameter-panel-expanded,
 .import-export-panel-expanded {
   /* Very subtle blue tint - almost white */
-  background: #f8fbff; /* Lighter than btn-outline-primary for subtlety */
+  background: var(
+    --color-surface-raised
+  ); /* Lighter than btn-outline-primary for subtlety */
   border-radius: 6px;
   padding: 1rem;
   /* Enhanced shadow for clear visual separation from content below */
@@ -33,7 +35,9 @@
 .tabbed-settings-panel {
   padding: 0;
   /* Very subtle blue tint - almost white */
-  background: #f8fbff; /* Lighter than btn-outline-primary for subtlety */
+  background: var(
+    --color-surface-raised
+  ); /* Lighter than btn-outline-primary for subtlety */
   border-radius: 6px;
   overflow: hidden;
   /* Enhanced shadow for clear visual separation from content below */
@@ -45,9 +49,11 @@
 }
 
 .settings-tabs {
-  border-bottom: 2px solid #e9ecef;
+  border-bottom: 2px solid var(--color-neutral-200);
   /* Very subtle blue tint - almost white */
-  background: #f8fbff; /* Lighter than btn-outline-primary for subtlety */
+  background: var(
+    --color-surface
+  ); /* Lighter than btn-outline-primary for subtlety */
   margin: 0;
   padding: 0.25rem 0.5rem 0; /* Small top/side padding for breathing room */
 }
@@ -68,22 +74,22 @@
 }
 
 .settings-tabs .nav-link:hover {
-  background-color: rgba(13, 110, 253, 0.08); /* Light blue hover */
-  border-color: rgba(13, 110, 253, 0.35);
-  color: #0d6efd;
+  background-color: var(--color-brand-100); /* Light blue hover */
+  border-color: #3f5f94;
+  color: #24466d;
   text-decoration: none;
 }
 
 .settings-tabs .nav-link.active {
-  background-color: rgba(13, 110, 253, 0.05); /* Match outline-primary button */
-  border-color: rgba(13, 110, 253, 0.5);
-  color: #0d6efd;
+  background-color: var(--color-brand-100); /* Match outline-primary button */
+  border-color: #2f4a76;
+  color: #1e3252;
   font-weight: 600;
   box-shadow: 0 -2px 4px rgba(0, 0, 0, 0.04); /* Subtle lift effect */
 }
 
 .settings-tabs .nav-link:focus-visible {
-  outline: 2px solid rgba(13, 110, 253, 0.6);
+  outline: 2px solid var(--color-brand-500);
   outline-offset: 2px;
 }
 

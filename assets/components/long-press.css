@@ -21,7 +21,13 @@
   left: 0;
   height: 100%;
   width: var(--progress-width, 0%);
-  background: rgba(10, 88, 202, 0.75); /* Dark blue tint (btn-primary active) */
+  background: repeating-linear-gradient(
+    135deg,
+    rgba(36, 70, 109, 0.88) 0,
+    rgba(36, 70, 109, 0.88) 12px,
+    rgba(120, 150, 190, 0.45) 12px,
+    rgba(120, 150, 190, 0.45) 24px
+  ); /* Blue stripe fill for force refresh progress */
   z-index: 0;
   transition: none; /* Controlled by JavaScript */
   pointer-events: none;
@@ -55,6 +61,31 @@
   font-size: 1rem !important;
   padding: 0.75rem 1rem !important;
   font-weight: 500;
+}
+
+.action-button.btn-primary {
+  background-color: #24466d !important;
+  border-color: #1e3252 !important;
+}
+
+.action-button.btn-primary:hover,
+.action-button.btn-primary:focus {
+  background-color: #1e3252 !important;
+  border-color: #182740 !important;
+}
+
+.action-button.btn-primary:active,
+.action-button.btn-primary.active {
+  background-color: #1e3252 !important;
+  border-color: #182740 !important;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.15) !important;
+}
+
+.action-button.btn-primary:disabled,
+.action-button.btn-primary.disabled {
+  background-color: var(--color-brand-300) !important;
+  border-color: var(--color-brand-300) !important;
+  color: var(--color-neutral-600) !important;
 }
 
 .action-button i {

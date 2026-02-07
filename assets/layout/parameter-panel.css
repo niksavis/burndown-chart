@@ -10,14 +10,16 @@
   top: 0; /* At the very top for app-like feel */
   z-index: var(--z-index-sticky);
   /* Subtle gradient for visual hierarchy */
-  background: linear-gradient(to bottom, 
-    rgba(239, 246, 255, 0.98) 0%,
-    rgba(249, 251, 255, 0.98) 100%);
+  background: linear-gradient(
+    to bottom,
+    rgba(248, 250, 252, 0.98) 0%,
+    rgba(255, 255, 255, 0.98) 100%
+  );
   box-shadow: var(--shadow-sm);
   margin-bottom: 0; /* Compact: no margin */
   padding-bottom: 0; /* Compact: no padding */
   /* Subtle blue accent to indicate interactive panel area */
-  border-bottom: 2px solid rgba(13, 110, 253, 0.1); /* Very subtle blue hint */
+  border-bottom: 2px solid rgba(148, 163, 184, 0.25); /* Subtle neutral hint */
 }
 
 /* Parameter panel container spacing */
@@ -61,7 +63,7 @@
 .parameter-bar-collapsed {
   cursor: default;
   background-color: rgba(248, 250, 252, 0.95) !important;
-  border-bottom: 1px solid rgba(13, 110, 253, 0.08);
+  border-bottom: 1px solid rgba(148, 163, 184, 0.2);
 }
 
 /* Ensure parameter items wrap gracefully but buttons never wrap */
@@ -197,16 +199,18 @@
 #btn-expand-parameters.active,
 #settings-button.active,
 #toggle-import-export-panel.active {
-  background-color: var(--bs-primary) !important;
+  background-color: #24466d !important;
   color: white !important;
-  border-color: var(--bs-primary) !important;
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.2), 0 2px 6px rgba(13, 110, 253, 0.25) !important;
+  border-color: #1e3252 !important;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.2),
+    0 2px 6px rgba(24, 39, 64, 0.35) !important;
 }
 
 #btn-expand-parameters.active:hover,
 #settings-button.active:hover,
 #toggle-import-export-panel.active:hover {
-  background-color: var(--bs-primary) !important;
+  background-color: #1e3252 !important;
   opacity: 0.95;
   transform: translateY(0) !important; /* No lift when active */
 }

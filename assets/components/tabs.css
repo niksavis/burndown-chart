@@ -69,21 +69,21 @@
 /* Enhanced active state with pill/button appearance */
 .nav-tabs-modern .nav-item .nav-link.active {
   color: white !important;
-  background: var(--color-brand-600);
-  border-color: var(--color-brand-600);
+  background: #24466d;
+  border-color: #24466d;
   font-weight: var(--font-semibold);
   box-shadow:
-    0 2px 4px rgba(59, 130, 246, 0.2),
+    0 2px 4px rgba(24, 39, 64, 0.35),
     0 1px 2px rgba(0, 0, 0, 0.05),
     inset 0 1px 0 rgba(255, 255, 255, 0.1);
 }
 
 .nav-tabs-modern .nav-item .nav-link.active:hover {
   color: white !important;
-  background: var(--color-brand-700);
-  border-color: var(--color-brand-700);
+  background: #1e3252;
+  border-color: #1e3252;
   box-shadow:
-    0 3px 6px rgba(59, 130, 246, 0.25),
+    0 3px 6px rgba(24, 39, 64, 0.4),
     0 2px 4px rgba(0, 0, 0, 0.08),
     inset 0 1px 0 rgba(255, 255, 255, 0.1);
   transform: translateY(-1px);
