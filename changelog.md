@@ -1,5 +1,20 @@
 # Changelog
 
+## v2.9.3
+
+*Released: 2026-02-07*
+
+### Improvements
+
+- Cards, insights, and accents use more consistent typography and tones for easier scanning
+- Tooltips and chart layouts are steadier to reduce visual jitter while browsing metrics
+
+### Bug Fixes
+
+- Metrics filtering now stays aligned so detail views match your selected filters
+- Detail charts load on demand without jumping heights during render
+- Auto-update verifies package integrity and refreshes required support files
+
 ## v2.9.2
 
 *Released: 2026-02-06*
