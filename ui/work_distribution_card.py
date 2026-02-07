@@ -6,7 +6,7 @@ with stacked bar chart showing historical trends. Matches the style of other DOR
 This card is 2x wider than regular metric cards (width=12 instead of 6).
 """
 
-from typing import Dict, Any, Optional, List
+from typing import Any, Dict, List, Optional, cast
 import dash_bootstrap_components as dbc
 from dash import html, dcc
 from ui.styles import create_metric_card_header
@@ -359,6 +359,8 @@ def create_work_distribution_card(
             style={"fontSize": "0.8rem", "fontStyle": "italic"},
         )
 
+    chart_height = cast(int, getattr(fig.layout, "height", None) or 400)
+
     # Chart component with optimized height for readability
     chart = html.Div(
         [
@@ -366,7 +368,7 @@ def create_work_distribution_card(
             dcc.Graph(
                 figure=fig,
                 config={"displayModeBar": False, "responsive": True},
-                style={"height": "400px"},  # Increased 15% from 350px
+                style={"height": f"{chart_height}px"},
             ),
         ],
     )
