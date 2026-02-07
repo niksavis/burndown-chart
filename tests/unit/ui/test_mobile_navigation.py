@@ -26,9 +26,7 @@ class TestMobileNavigation:
 
         # Test tab configuration
         tabs_config = get_mobile_tabs_config()
-        assert (
-            len(tabs_config) == 7
-        )  # Updated: Dashboard, Burndown, Scope Tracking, Bug Analysis, Flow, DORA, Weekly Data
+        assert len(tabs_config) == 9  # Updated: includes Active Work and Sprint Tracker
         assert all("id" in tab for tab in tabs_config)
         assert all("label" in tab for tab in tabs_config)
         assert all("icon" in tab for tab in tabs_config)
@@ -68,6 +66,8 @@ class TestMobileNavigation:
             "tab-bug-analysis",  # Added in Feature 004
             "tab-dora-metrics",  # Added in Feature 007
             "tab-flow-metrics",  # Added in Feature 007
+            "tab-active-work-timeline",
+            "tab-sprint-tracker",
             "tab-statistics-data",  # Added for manual data entry (burndown-chart-jtax)
         ]
         assert set(tab_ids) == set(expected_ids)
@@ -246,9 +246,9 @@ class TestMobileNavigationIntegration:
         tabs_component = create_tabs()
         assert tabs_component is not None
 
-        # Check that mobile navigation is included
+        # Tabs module returns content container only
         tabs_str = str(tabs_component)
-        assert "mobile-nav" in tabs_str or "mobile-drawer" in tabs_str
+        assert "tab-content-container" in tabs_str
 
     def test_mobile_navigation_javascript_integration(self):
         """Test that mobile navigation JavaScript file exists and is properly structured."""
@@ -288,18 +288,34 @@ class TestMobileNavigationIntegration:
         with open(css_file_path, "r", encoding="utf-8") as f:
             css_content = f.read()
 
-        # Check for mobile navigation CSS sections
-        css_sections = [
+        # Check for mobile navigation CSS imports
+        import_lines = [
+            '@import url("layout/mobile-navigation.css");',
+            '@import url("components/drawer.css");',
+            '@import url("components/bottom-nav.css");',
+            '@import url("components/mobile-tabs.css");',
+        ]
+
+        for import_line in import_lines:
+            assert import_line in css_content, f"Missing CSS import: {import_line}"
+
+        # Check for mobile navigation CSS sections in component files
+        component_files = [
+            "assets/components/drawer.css",
+            "assets/components/bottom-nav.css",
+            "assets/components/mobile-tabs.css",
+        ]
+        section_markers = [
             "MOBILE DRAWER NAVIGATION",
             "MOBILE BOTTOM NAVIGATION",
             "MOBILE TAB CONTROLS",
-            "mobile-drawer",
-            "mobile-bottom-navigation",
-            "mobile-menu-toggle",
         ]
 
-        for section in css_sections:
-            assert section in css_content, f"Missing CSS section: {section}"
+        for file_path, marker in zip(component_files, section_markers, strict=True):
+            assert os.path.exists(file_path), f"Missing CSS file: {file_path}"
+            with open(file_path, "r", encoding="utf-8") as f:
+                component_content = f.read()
+            assert marker in component_content, f"Missing CSS section: {marker}"
 
 
 class TestMobileNavigationPerformance:

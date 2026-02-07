@@ -84,7 +84,7 @@ def test_update_check_error_handling():
 
         assert result.state == UpdateState.ERROR
         assert result.error_message is not None
-        assert "Failed to check for updates" in result.error_message
+        assert "no network connection available" in result.error_message.lower()
         assert result.current_version is not None
 
 

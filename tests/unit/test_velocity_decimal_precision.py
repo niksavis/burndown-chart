@@ -124,17 +124,17 @@ class TestUIComponentsFormatting:
     @pytest.mark.parametrize(
         "value,expected",
         [
-            (8.7, "8.7"),  # Value with one decimal place
-            (7.0, "7.0"),  # Integer-like value with zero decimal
-            (8.75, "8.8"),  # Value with two decimals (should round to one)
-            (9.99, "10.0"),  # Value close to integer (rounds up)
-            (10, "10.0"),  # Integer value (should show one decimal)
-            (0.1, "0.1"),  # Small decimal value
-            (123.456, "123.5"),  # Larger value with multiple decimals
+            (8.7, "8.70"),  # Value with one decimal place
+            (7.0, "7.00"),  # Integer-like value with zero decimals
+            (8.75, "8.75"),  # Value with two decimals
+            (9.99, "9.99"),  # Value close to integer
+            (10, "10.00"),  # Integer value
+            (0.1, "0.10"),  # Small decimal value
+            (123.456, "123.46"),  # Larger value with multiple decimals
         ],
     )
     def test_velocity_card_decimal_formatting(self, value, expected):
-        """Test that velocity metric card formats values with one decimal place."""
+        """Test that velocity metric card formats values with two decimal places."""
         metric_data = {
             "title": "Average",
             "value": value,
@@ -193,6 +193,6 @@ class TestUIComponentsFormatting:
         assert formatted_value.count(".") <= 1, "Should have at most one decimal point"
         if "." in formatted_value:
             integer_part, decimal_part = formatted_value.split(".")
-            assert len(decimal_part) == 1, (
-                "Should have exactly one digit after decimal point"
+            assert len(decimal_part) == 2, (
+                "Should have exactly two digits after decimal point"
             )

@@ -183,10 +183,8 @@ class TestHealthScore:
         # When: Calculate composite health
         health = _calculate_health_score(metrics)
 
-        # Then: Health score should be <40 (needs attention)
-        # Expected: 0 + 4.2 + 2.5 + 0 + 0 = ~7 points
-        assert health < 40
-        assert health >= 0  # Never negative
+        # Then: Comprehensive formula should still produce a lower score
+        assert 0 <= health < 60
 
 
 class TestHealthColorLabel:

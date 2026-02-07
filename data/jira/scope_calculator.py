@@ -388,15 +388,13 @@ def _calculate_remaining_total_points(
     Returns:
         float: Calculated remaining total points
     """
-    # If no estimated items, use historical data or fallback
+    # If no estimated items, use historical data only when points exist
     if estimated_items <= 0:
-        # Try to calculate from historical completion data
-        if completed_items > 0:
+        if completed_items > 0 and completed_points > 0:
             avg_points_per_item = completed_points / completed_items
-        else:
-            avg_points_per_item = 10  # Default fallback
+            return remaining_total_items * avg_points_per_item
 
-        return remaining_total_items * avg_points_per_item
+        return 0
 
     # Calculate average points per item from estimated items
     avg_points_per_item = estimated_points / estimated_items

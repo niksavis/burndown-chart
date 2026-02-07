@@ -217,11 +217,11 @@ class TestJiraScopeCalculationFormulas(unittest.TestCase):
         self.assertEqual(
             result["remaining_total_points"],
             0,
-            "No points when field is unavailable",
+            "No points when no data exists",
         )
-        self.assertFalse(
+        self.assertTrue(
             result["points_field_available"],
-            "Points field should be marked as unavailable",
+            "Points field should be available when configured",
         )
 
 
