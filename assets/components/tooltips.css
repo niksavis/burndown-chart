@@ -6,6 +6,7 @@
 
 /* Base tooltip style enhancements */
 .tooltip {
+  position: absolute;
   opacity: 0;
   transition: opacity var(--transition-base);
   pointer-events: none;

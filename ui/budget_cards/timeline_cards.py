@@ -23,6 +23,8 @@ from typing import Any, Dict, Optional
 import dash_bootstrap_components as dbc
 from dash import html
 
+from ui.styles import create_metric_card_header
+
 logger = logging.getLogger(__name__)
 
 
@@ -120,7 +122,7 @@ def create_forecast_alignment_card(
                     [
                         html.Span(
                             "Forecast vs Budget Alignment",
-                            className="fw-bold",
+                            className="metric-card-title",
                         ),
                         " ",
                         html.I(
@@ -149,7 +151,7 @@ def create_forecast_alignment_card(
                 ),
             ],
             id=card_id,
-            className="mb-3",
+            className="metric-card metric-card-large mb-3",
         )
 
     # Calculate gaps
@@ -337,7 +339,7 @@ def create_forecast_alignment_card(
                         style={"gap": "0.25rem"},
                     ),
                 ],
-                className="p-3 mt-3",
+                className="metric-large-panel mt-3",
                 style={
                     "borderRadius": "0.375rem",
                     "border": "1px solid #dee2e6",
@@ -516,41 +518,25 @@ def create_forecast_alignment_card(
         )
 
     # Create card with health status badge
-    from ui.tooltip_utils import create_info_tooltip
-
     card = dbc.Card(
         [
-            dbc.CardHeader(
-                [
-                    html.Span(
-                        "Forecast vs Budget Alignment",
-                        className="fw-bold",
-                    ),
-                    " ",
-                    create_info_tooltip(
-                        help_text="Compares PERT forecast completion time with budget runway. "
-                        "Positive gap = budget outlasts forecast (healthy). "
-                        "Negative gap = budget exhausts before completion (risk). "
-                        "Budget runway is calculated from ACTUAL work completed, not just team cost.",
-                        id_suffix="metric-forecast_alignment",
-                        placement="top",
-                        variant="dark",
-                    ),
-                    html.Div(
-                        html.Span(
-                            overall_health,
-                            className="badge",
-                            style={
-                                "backgroundColor": health_color,
-                                "color": "white",
-                                "fontSize": "0.85rem",
-                                "padding": "0.35rem 0.65rem",
-                            },
-                        ),
-                        className="ms-auto",
-                    ),
-                ],
-                className="d-flex align-items-center",
+            create_metric_card_header(
+                title="Forecast vs Budget Alignment",
+                tooltip_text="Compares PERT forecast completion time with budget runway. "
+                "Positive gap = budget outlasts forecast (healthy). "
+                "Negative gap = budget exhausts before completion (risk). "
+                "Budget runway is calculated from ACTUAL work completed, not just team cost.",
+                tooltip_id="metric-forecast_alignment",
+                badge=dbc.Badge(
+                    overall_health,
+                    className="badge",
+                    style={
+                        "backgroundColor": health_color,
+                        "color": "white",
+                        "fontSize": "0.85rem",
+                        "padding": "0.35rem 0.65rem",
+                    },
+                ),
             ),
             dbc.CardBody(
                 [
@@ -591,7 +577,7 @@ def create_forecast_alignment_card(
             ),
         ],
         id=card_id,
-        className="metric-card mb-3 h-100",
+        className="metric-card metric-card-large mb-3 h-100",
     )
 
     return card
@@ -1004,7 +990,7 @@ def create_budget_timeline_card(
     # Build card
     card = dbc.Card(
         [
-            dbc.CardHeader(html.Div(html.Span("Budget Timeline", className="fw-bold"))),
+            create_metric_card_header(title="Budget Timeline"),
             dbc.CardBody(
                 [timeline_visual, html.Hr(className="my-3"), timeline_table],
                 className="p-3",
@@ -1015,7 +1001,7 @@ def create_budget_timeline_card(
             ),
         ],
         id=card_id,
-        className="metric-card mb-3 h-100",
+        className="metric-card metric-card-large mb-3 h-100",
     )
 
     return card

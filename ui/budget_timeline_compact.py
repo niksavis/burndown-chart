@@ -11,6 +11,8 @@ import logging
 import dash_bootstrap_components as dbc
 from dash import html
 
+from ui.styles import create_metric_card_header
+
 logger = logging.getLogger(__name__)
 
 
@@ -40,7 +42,17 @@ def create_budget_timeline_card(
         >>> card = create_budget_timeline_card(baseline_data, 15.0)
     """
     from datetime import datetime
-    from ui.budget_cards import _create_card_footer
+    from ui import budget_cards
+
+    def _fallback_card_footer(text: str, icon: str) -> dbc.CardFooter:
+        return dbc.CardFooter(
+            [html.I(className=f"fas {icon} me-1"), html.Span(text)],
+            className="text-muted small",
+        )
+
+    _create_card_footer = getattr(
+        budget_cards, "_create_card_footer", _fallback_card_footer
+    )
 
     # Extract dates
     start_date_str = baseline_data["baseline"]["start_date"]
@@ -442,14 +454,7 @@ def create_budget_timeline_card(
     # Build card
     card = dbc.Card(
         [
-            dbc.CardHeader(
-                html.Div(
-                    [
-                        html.I(className="fas fa-timeline me-2"),
-                        html.Span("Budget Timeline", className="fw-bold"),
-                    ]
-                )
-            ),
+            create_metric_card_header(title="Budget Timeline"),
             dbc.CardBody([timeline_bar, metrics_row], className="pb-3"),
             _create_card_footer(
                 "Purple: elapsed • Yellow: baseline remaining • Green/Red: forecast/runway markers",
@@ -457,7 +462,7 @@ def create_budget_timeline_card(
             ),
         ],
         id=card_id,
-        className="metric-card mb-3 h-100",
+        className="metric-card metric-card-large mb-3 h-100",
     )
 
     return card

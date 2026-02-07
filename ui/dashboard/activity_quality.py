@@ -15,6 +15,7 @@ from dash import html
 import dash_bootstrap_components as dbc
 
 from ui.metric_cards import create_metric_card as create_professional_metric_card
+from ui.styles import create_metric_card_header
 from ui.tooltip_utils import create_info_tooltip
 from ui.style_constants import COLOR_PALETTE
 
@@ -341,24 +342,10 @@ def create_quality_scope_section(
                         [
                             dbc.Card(
                                 [
-                                    dbc.CardHeader(
-                                        [
-                                            html.I(
-                                                className="fas fa-expand-arrows-alt me-2"
-                                            ),
-                                            "Scope Management",
-                                            html.Span(
-                                                " ", style={"marginRight": "8px"}
-                                            ),
-                                            create_info_tooltip(
-                                                "Track scope changes and backlog growth. Shows ratio of new items added vs completed, helping identify scope creep early. Healthy projects maintain balance between scope growth and completion rate.",
-                                                "scope-management-card",
-                                            ),
-                                        ],
-                                        style={
-                                            "display": "flex",
-                                            "alignItems": "center",
-                                        },
+                                    create_metric_card_header(
+                                        title="Scope Management",
+                                        tooltip_text="Track scope changes and backlog growth. Shows ratio of new items added vs completed, helping identify scope creep early. Healthy projects maintain balance between scope growth and completion rate.",
+                                        tooltip_id="scope-management-card",
                                     ),
                                     dbc.CardBody(
                                         [
@@ -440,6 +427,7 @@ def create_quality_scope_section(
                                         className="text-center bg-light border-top py-2",
                                     ),
                                 ],
+                                id="scope-management-card",
                                 className="h-100 shadow-sm border-0 metric-card",
                             )
                         ],
@@ -451,24 +439,10 @@ def create_quality_scope_section(
                         [
                             dbc.Card(
                                 [
-                                    dbc.CardHeader(
-                                        [
-                                            html.I(
-                                                className="fas fa-check-circle me-2"
-                                            ),
-                                            "Quality Indicators",
-                                            html.Span(
-                                                " ", style={"marginRight": "8px"}
-                                            ),
-                                            create_info_tooltip(
-                                                "Measures delivery predictability and consistency. High values (80%+) indicate stable, reliable team performance. Use these metrics to assess forecast accuracy and process maturity.",
-                                                "quality-indicators-card",
-                                            ),
-                                        ],
-                                        style={
-                                            "display": "flex",
-                                            "alignItems": "center",
-                                        },
+                                    create_metric_card_header(
+                                        title="Quality Indicators",
+                                        tooltip_text="Measures delivery predictability and consistency. High values (80%+) indicate stable, reliable team performance. Use these metrics to assess forecast accuracy and process maturity.",
+                                        tooltip_id="quality-indicators-card",
                                     ),
                                     dbc.CardBody(
                                         [
@@ -538,6 +512,7 @@ def create_quality_scope_section(
                                         className="text-center bg-light border-top py-2",
                                     ),
                                 ],
+                                id="quality-indicators-card",
                                 className="h-100 shadow-sm border-0 metric-card",
                             )
                         ],

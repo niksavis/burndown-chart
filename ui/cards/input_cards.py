@@ -28,7 +28,7 @@ from ui.jql_components import (
     should_show_character_warning,
 )
 from ui.jql_editor import create_jql_editor
-from ui.styles import create_card_header_with_tooltip, create_standardized_card
+from ui.styles import create_metric_card_header, create_standardized_card
 from ui.tooltip_utils import create_info_tooltip
 
 
@@ -52,12 +52,10 @@ def create_input_parameters_card(
         Dash Card component for data import configuration
     """
     # Create the card header
-    header_content = create_card_header_with_tooltip(
-        "Data Import Configuration",
-        tooltip_id="data-import-config",
+    header_content = create_metric_card_header(
+        title="Data Import Configuration",
         tooltip_text="Configure data sources and import settings for your project.",
-        help_key="data_import_guide",
-        help_category="data",
+        tooltip_id="data-import-config",
     )
 
     # Create the card body content - only Data Import Configuration

@@ -6,13 +6,13 @@
 
 .form-control,
 .form-select {
-  border: 1.5px solid var(--color-neutral-300);
+  border: 1.5px solid var(--color-border-subtle);
   border-radius: var(--radius-md);
   padding: 0.5rem 0.75rem;
   font-size: var(--text-base);
   line-height: var(--leading-normal);
   color: var(--color-neutral-700);
-  background-color: var(--color-white);
+  background-color: var(--color-surface);
   transition: all var(--transition-fast);
 }
 
@@ -24,13 +24,13 @@
 .form-control:focus,
 .form-select:focus {
   border-color: var(--color-brand-500);
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  box-shadow: var(--focus-ring);
   outline: none;
 }
 
 .form-control:disabled,
 .form-select:disabled {
-  background-color: var(--color-neutral-100);
+  background-color: var(--color-surface-muted);
   border-color: var(--color-neutral-200);
   color: var(--color-neutral-500);
   cursor: not-allowed;

@@ -524,6 +524,7 @@ def _create_detailed_chart(
         )
 
         figure = create_flow_efficiency_trend_chart(trend_data, line_color=tier_color)
+        chart_height = int(getattr(figure.layout, "height", 300) or 300)
 
         # CRITICAL: Remove plotly toolbar completely
         return dcc.Graph(
@@ -533,6 +534,7 @@ def _create_detailed_chart(
                 "staticPlot": False,  # Allow hover but no tools
                 "responsive": True,  # Mobile-responsive scaling
             },
+            style={"height": f"{chart_height}px"},
         )
     elif metric_name == "flow_load":
         # Use specialized Flow Load chart with dynamic WIP thresholds and tier-based color
@@ -570,6 +572,7 @@ def _create_detailed_chart(
         figure = create_flow_load_trend_chart(
             trend_data, wip_thresholds=wip_thresholds, line_color=tier_color
         )
+        chart_height = int(getattr(figure.layout, "height", 300) or 300)
 
         # CRITICAL: Remove plotly toolbar completely
         return dcc.Graph(
@@ -579,6 +582,7 @@ def _create_detailed_chart(
                 "staticPlot": False,  # Allow hover but no tools
                 "responsive": True,  # Mobile-responsive scaling
             },
+            style={"height": f"{chart_height}px"},
         )
     else:
         # Use sparkline for other Flow metrics
@@ -1265,15 +1269,10 @@ def _create_success_card(
                     dbc.Collapse(
                         dbc.CardBody(
                             [
-                                # Removed HTML heading - chart has its own title
-                                # Special handling for deployment_frequency to show dual lines
-                                _create_detailed_chart(
-                                    metric_name=metric_name,
-                                    display_name=display_name,
-                                    weekly_labels=weekly_labels,
-                                    weekly_values=weekly_values,
-                                    metric_data=metric_data,
-                                    sparkline_color=sparkline_color,
+                                # Render chart lazily on first expand to avoid zero-width sizing.
+                                html.Div(
+                                    id=f"{metric_name}-details-chart",
+                                    className="metric-details-chart",
                                 ),
                                 html.Div(
                                     [

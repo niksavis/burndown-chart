@@ -58,7 +58,11 @@
 }
 
 .nav-pills .nav-link.active {
-  background: linear-gradient(135deg, var(--color-brand-500), var(--color-brand-600));
+  background: linear-gradient(
+    135deg,
+    var(--color-brand-500),
+    var(--color-brand-600)
+  );
   color: white;
   box-shadow: var(--shadow-sm);
 }
@@ -85,9 +89,10 @@
 
 /* Panel containers */
 .panel {
-  background: white;
+  background: var(--color-surface);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-sm);
+  border: 1px solid var(--color-border-subtle);
   padding: var(--space-4);
   margin-bottom: var(--space-4);
   transition: all var(--transition-base);
@@ -115,8 +120,8 @@
 
 /* Well container (deprecated in BS5 but useful) */
 .well {
-  background-color: var(--color-neutral-50);
-  border: 1px solid var(--color-neutral-200);
+  background-color: var(--color-surface-muted);
+  border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius-lg);
   padding: var(--space-4);
   margin-bottom: var(--space-4);

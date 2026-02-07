@@ -40,7 +40,7 @@ def _create_info_card_row(cards: List[Dict[str, Any]]) -> dbc.Row:
                         className="text-center",
                     )
                 ),
-                className="border-0 shadow-sm h-100",
+                className="empty-state-card border-0 shadow-sm h-100",
             ),
             xs=12,
             md=5,
@@ -127,7 +127,7 @@ def create_loading_placeholder() -> html.Div:
                                     "Placeholder text to match alert height exactly.",
                                 ],
                                 color="info",
-                                className="mb-0",
+                                className="mb-0 empty-state-alert",
                             ),
                         ],
                         width=12,
@@ -136,7 +136,7 @@ def create_loading_placeholder() -> html.Div:
                 className="mt-4",
             ),
         ],
-        className="p-5",  # Match padding of actual empty state
+        className="p-5 empty-state-banner",  # Match padding of actual empty state
         style={"opacity": "0"},  # Completely invisible but takes up space
     )
 
@@ -164,7 +164,7 @@ def create_no_metrics_state(metric_type: str = "Flow") -> html.Div:
                                     ),
                                     html.H4(
                                         "Metrics Not Yet Calculated",
-                                        className="text-dark mb-3",
+                                        className="empty-state-title mb-3",
                                     ),
                                     html.P(
                                         [
@@ -174,7 +174,7 @@ def create_no_metrics_state(metric_type: str = "Flow") -> html.Div:
                                             if metric_type == "DORA"
                                             else "to ensure accurate metric calculation.",
                                         ],
-                                        className="text-muted mb-4",
+                                        className="empty-state-lead mb-4",
                                     ),
                                 ],
                                 className="text-center mb-4",
@@ -235,11 +235,11 @@ def create_no_data_state() -> html.Div:
                                     ),
                                     html.H4(
                                         "No JIRA Data Loaded",
-                                        className="text-dark mb-3",
+                                        className="empty-state-title mb-3",
                                     ),
                                     html.P(
                                         "Load your JIRA project data to start tracking metrics.",
-                                        className="text-muted mb-4",
+                                        className="empty-state-lead mb-4",
                                     ),
                                 ],
                                 className="text-center mb-4",
@@ -302,15 +302,15 @@ def create_no_bugs_state() -> html.Div:
                                     ),
                                     html.H4(
                                         "No Bugs Found",
-                                        className="text-dark mb-3",
+                                        className="empty-state-title mb-3",
                                     ),
                                     html.P(
                                         "Great news! No bugs were found in the current dataset.",
-                                        className="text-muted mb-2",
+                                        className="empty-state-lead mb-2",
                                     ),
                                     html.P(
                                         "This could mean your project has excellent quality, or bug tracking uses different issue types.",
-                                        className="text-muted small",
+                                        className="empty-state-subtle",
                                     ),
                                 ],
                                 className="text-center mb-4",
@@ -370,23 +370,10 @@ def create_metrics_skeleton(num_cards: int = 4) -> dbc.Row:
                 html.Div(
                     [
                         html.Div(
-                            style={
-                                "height": "20px",
-                                "width": "60%",
-                                "backgroundColor": "#e9ecef",
-                                "display": "inline-block",
-                            },
-                            className="skeleton-shimmer",
+                            className="skeleton-shimmer skeleton-bar-title",
                         ),
                         html.Div(
-                            style={
-                                "height": "20px",
-                                "width": "60px",
-                                "backgroundColor": "#e9ecef",
-                                "display": "inline-block",
-                                "float": "right",
-                            },
-                            className="skeleton-shimmer",
+                            className="skeleton-shimmer skeleton-bar-badge",
                         ),
                     ],
                     className="d-flex align-items-center justify-content-between w-100",
@@ -397,55 +384,30 @@ def create_metrics_skeleton(num_cards: int = 4) -> dbc.Row:
                     # H2 metric value placeholder (text-center metric-value mb-2)
                     html.H2(
                         html.Div(
-                            style={
-                                "height": "38px",
-                                "width": "100px",
-                                "backgroundColor": "#e9ecef",
-                                "margin": "0 auto",
-                            },
-                            className="skeleton-shimmer",
+                            className="skeleton-shimmer skeleton-bar-value",
                         ),
                         className="text-center metric-value mb-2",
                     ),
                     # P unit text placeholder (text-muted text-center metric-unit mb-1)
                     html.P(
                         html.Div(
-                            style={
-                                "height": "16px",
-                                "width": "180px",
-                                "backgroundColor": "#e9ecef",
-                                "margin": "0 auto",
-                            },
-                            className="skeleton-shimmer",
+                            className="skeleton-shimmer skeleton-bar-unit",
                         ),
                         className="text-muted text-center metric-unit mb-1",
                     ),
                     # P relationship hint placeholder (optional, small mb-2)
                     html.P(
                         html.Div(
-                            style={
-                                "height": "14px",
-                                "width": "250px",
-                                "backgroundColor": "#e9ecef",
-                                "margin": "0 auto",
-                            },
-                            className="skeleton-shimmer",
+                            className="skeleton-shimmer skeleton-bar-relationship",
                         ),
-                        className="text-muted text-center small mb-2",
-                        style={"fontSize": "0.8rem"},
+                        className="text-muted text-center small mb-2 skeleton-text-sm",
                     ),
                     # Div deployment count placeholder (text-center text-muted small mb-2)
                     html.Div(
                         html.Div(
-                            style={
-                                "height": "14px",
-                                "width": "160px",
-                                "backgroundColor": "#e9ecef",
-                                "margin": "0 auto",
-                            },
-                            className="skeleton-shimmer",
+                            className="skeleton-shimmer skeleton-bar-deployments",
                         ),
-                        className="text-center text-muted small mb-2",
+                        className="text-center text-muted small mb-2 skeleton-text-sm",
                     ),
                     # Forecast section placeholder (mt-2 mb-2 with border-top)
                     html.Div(
@@ -453,36 +415,19 @@ def create_metrics_skeleton(num_cards: int = 4) -> dbc.Row:
                             # Forecast value line
                             html.Div(
                                 html.Div(
-                                    style={
-                                        "height": "16px",
-                                        "width": "200px",
-                                        "backgroundColor": "#e9ecef",
-                                        "margin": "0 auto",
-                                    },
-                                    className="skeleton-shimmer",
+                                    className="skeleton-shimmer skeleton-bar-forecast",
                                 ),
                                 className="text-center mb-1",
                             ),
                             # Trend vs forecast line
                             html.Div(
                                 html.Div(
-                                    style={
-                                        "height": "14px",
-                                        "width": "140px",
-                                        "backgroundColor": "#e9ecef",
-                                        "margin": "0 auto",
-                                    },
-                                    className="skeleton-shimmer",
+                                    className="skeleton-shimmer skeleton-bar-trend",
                                 ),
-                                className="text-center small",
-                                style={"fontSize": "0.8rem"},
+                                className="text-center small skeleton-text-sm",
                             ),
                         ],
-                        className="mt-2 mb-2",
-                        style={
-                            "borderTop": "1px solid #dee2e6",
-                            "paddingTop": "0.5rem",
-                        },
+                        className="mt-2 mb-2 skeleton-divider",
                     ),
                     # Div metric-trend-section
                     html.Div(
@@ -493,13 +438,7 @@ def create_metrics_skeleton(num_cards: int = 4) -> dbc.Row:
                             html.Div(
                                 html.Small(
                                     html.Div(
-                                        style={
-                                            "height": "12px",
-                                            "width": "150px",
-                                            "backgroundColor": "#e9ecef",
-                                            "margin": "0 auto",
-                                        },
-                                        className="skeleton-shimmer",
+                                        className="skeleton-shimmer skeleton-bar-label",
                                     ),
                                     className="text-muted d-block mb-1",
                                 ),
@@ -508,30 +447,16 @@ def create_metrics_skeleton(num_cards: int = 4) -> dbc.Row:
                             # Sparkline bars placeholder (d-flex align-items-end justify-content-center, height: 40px)
                             html.Div(
                                 html.Div(
-                                    style={
-                                        "height": "40px",
-                                        "width": "200px",
-                                        "backgroundColor": "#e9ecef",
-                                        "margin": "0 auto",
-                                    },
-                                    className="skeleton-shimmer",
+                                    className="skeleton-shimmer skeleton-bar-sparkline",
                                 ),
-                                className="d-flex align-items-end justify-content-center",
-                                style={"height": "40px", "gap": "1px"},
+                                className="d-flex align-items-end justify-content-center skeleton-sparkline",
                             ),
                             # "Show Details" button placeholder (mt-2 p-0)
                             html.Div(
                                 html.Div(
-                                    style={
-                                        "height": "20px",
-                                        "width": "110px",
-                                        "backgroundColor": "#e9ecef",
-                                        "margin": "0 auto",
-                                    },
-                                    className="skeleton-shimmer",
+                                    className="skeleton-shimmer skeleton-bar-button",
                                 ),
-                                className="text-center",
-                                style={"marginTop": "0.5rem"},
+                                className="text-center mt-2",
                             ),
                         ],
                         className="metric-trend-section",
@@ -541,15 +466,9 @@ def create_metrics_skeleton(num_cards: int = 4) -> dbc.Row:
                     # Bottom info placeholder (text-muted d-block text-center)
                     html.Small(
                         html.Div(
-                            style={
-                                "height": "12px",
-                                "width": "100px",
-                                "backgroundColor": "#e9ecef",
-                                "margin": "0 auto",
-                            },
-                            className="skeleton-shimmer",
+                            className="skeleton-shimmer skeleton-bar-footer",
                         ),
-                        className="text-muted d-block text-center",
+                        className="text-muted d-block text-center skeleton-text-sm",
                     ),
                 ],
             ),
@@ -557,8 +476,8 @@ def create_metrics_skeleton(num_cards: int = 4) -> dbc.Row:
             dbc.CardFooter(
                 html.Div(
                     "\u00a0",  # Non-breaking space to maintain minimal height
-                    className="text-center text-muted",
-                    style={"fontSize": "0.75rem", "opacity": "0"},
+                    className="text-center text-muted skeleton-text-xs",
+                    style={"opacity": "0"},
                 ),
                 className="bg-light border-top py-2",  # Same padding and styling as real cards
             ),

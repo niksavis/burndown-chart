@@ -173,6 +173,14 @@
   width: 100%;
 }
 
+.active-work-epic-card .card-header {
+  display: block;
+}
+
+.active-work-epic-progress {
+  width: 100%;
+}
+
 .active-work-epic-card > summary {
   list-style: none;
   cursor: pointer;

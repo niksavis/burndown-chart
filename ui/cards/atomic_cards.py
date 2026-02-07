@@ -24,6 +24,7 @@ import dash_bootstrap_components as dbc
 from dash import html
 
 from ui.style_constants import get_card_style, get_color, get_spacing
+from ui.styles import create_metric_card_header
 
 
 def create_info_card(
@@ -128,15 +129,8 @@ def create_info_card(
         # Title is already a component (e.g., with help icon)
         header_content.append(title)
 
-    card_header = dbc.CardHeader(
-        header_content,
-        style={
-            "display": "flex",
-            "alignItems": "center",
-            "backgroundColor": get_color("neutral-50"),
-            "borderBottom": f"1px solid {get_color('neutral-200')}",
-            "padding": get_spacing("sm" if size == "sm" else "md"),
-        },
+    card_header = create_metric_card_header(
+        title=title_str,
     )
 
     # Build body with value and subtitle

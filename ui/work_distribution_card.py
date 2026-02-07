@@ -6,10 +6,10 @@ with stacked bar chart showing historical trends. Matches the style of other DOR
 This card is 2x wider than regular metric cards (width=12 instead of 6).
 """
 
-from typing import Dict, Any, Optional, List
+from typing import Any, Dict, List, Optional, cast
 import dash_bootstrap_components as dbc
 from dash import html, dcc
-from ui.tooltip_utils import create_info_tooltip
+from ui.styles import create_metric_card_header
 from visualization.flow_distribution_chart import create_work_distribution_chart
 
 
@@ -86,15 +86,12 @@ def create_work_distribution_card(
     if critical_count > 0:
         badge_text = "Critical"
         badge_color = "danger"
-        badge_tooltip = f"{critical_count} work type(s) at critical levels - immediate action needed"
     elif warning_count > 0:
         badge_text = "Needs Attention"
         badge_color = "warning"
-        badge_tooltip = f"{warning_count} work type(s) need attention"
     else:
         badge_text = "Healthy"
         badge_color = "success"
-        badge_tooltip = "All work types are at healthy levels"
 
     # For range indicators (show green check if healthy, warning otherwise)
     feature_in_range = feature_status == "healthy"
@@ -105,43 +102,16 @@ def create_work_distribution_card(
     # Build card header with title and badge with tooltip
     badge_id = f"{card_id}-badge" if card_id else "work-distribution-badge"
 
-    card_header = dbc.CardHeader(
-        html.Div(
-            [
-                html.Span(
-                    [
-                        "Work Distribution",
-                        " ",
-                        create_info_tooltip(
-                            help_text="Distribution of completed work across Flow item types. Healthy balance: Feature >60% (higher is better), Defect <20% (lower is better), Tech Debt <10% (lower is better), Risk 0-10% (acceptable).",
-                            id_suffix="work-distribution",
-                            placement="top",
-                            variant="dark",
-                        ),
-                    ],
-                    className="metric-card-title",
-                ),
-                html.Div(
-                    [
-                        dbc.Badge(
-                            badge_text,
-                            color=badge_color,
-                            className="ms-auto",
-                            style={"fontSize": "0.75rem", "fontWeight": "600"},
-                            id=badge_id,
-                        ),
-                        dbc.Tooltip(
-                            badge_tooltip,
-                            target=badge_id,
-                            placement="top",
-                            trigger="click",
-                            autohide=True,
-                        ),
-                    ],
-                    className="d-inline-block",
-                ),
-            ],
-            className="d-flex align-items-center justify-content-between w-100",
+    card_header = create_metric_card_header(
+        title="Work Distribution",
+        tooltip_text="Distribution of completed work across Flow item types. Healthy balance: Feature >60% (higher is better), Defect <20% (lower is better), Tech Debt <10% (lower is better), Risk 0-10% (acceptable).",
+        tooltip_id="work-distribution",
+        badge=dbc.Badge(
+            badge_text,
+            color=badge_color,
+            className="ms-auto",
+            style={"fontSize": "0.75rem", "fontWeight": "600"},
+            id=badge_id,
         ),
     )
 
@@ -389,6 +359,8 @@ def create_work_distribution_card(
             style={"fontSize": "0.8rem", "fontStyle": "italic"},
         )
 
+    chart_height = cast(int, getattr(fig.layout, "height", None) or 400)
+
     # Chart component with optimized height for readability
     chart = html.Div(
         [
@@ -396,7 +368,7 @@ def create_work_distribution_card(
             dcc.Graph(
                 figure=fig,
                 config={"displayModeBar": False, "responsive": True},
-                style={"height": "400px"},  # Increased 15% from 350px
+                style={"height": f"{chart_height}px"},
             ),
         ],
     )
@@ -447,7 +419,9 @@ def create_work_distribution_card(
         )
 
     # Build complete card
-    card_props = {"className": "metric-card mb-3 h-100"}
+    card_props = {
+        "className": "metric-card metric-card-large metric-card-chart mb-3 h-100"
+    }
     if card_id:
         card_props["id"] = card_id
 
@@ -467,34 +441,14 @@ def create_work_distribution_no_data_card(card_id: Optional[str] = None) -> dbc.
     Returns:
         dbc.Card component with 2x width (for width=12 column)
     """
-    card_props = {"className": "metric-card mb-3 h-100"}
+    card_props = {"className": "metric-card metric-card-large mb-3 h-100"}
     if card_id:
         card_props["id"] = card_id
 
     # Card header
-    card_header = dbc.CardHeader(
-        dbc.Row(
-            [
-                dbc.Col(
-                    [
-                        html.I(className="fas fa-chart-pie me-2"),
-                        html.Span("Work Distribution"),
-                    ],
-                    width="auto",
-                ),
-                dbc.Col(
-                    dbc.Badge(
-                        "No Data",
-                        color="secondary",
-                        className="ms-2",
-                    ),
-                    width="auto",
-                    className="ms-auto",
-                ),
-            ],
-            className="align-items-center",
-        ),
-        className="bg-white border-bottom",
+    card_header = create_metric_card_header(
+        title="Work Distribution",
+        badge=dbc.Badge("No Data", color="secondary", className="ms-2"),
     )
 
     # Card body - empty state message

@@ -11,7 +11,7 @@ Analysis Cards:
 import dash_bootstrap_components as dbc
 from dash import html
 
-from ui.styles import create_card_header_with_tooltip, create_standardized_card
+from ui.styles import create_metric_card_header, create_standardized_card
 
 
 def create_pert_analysis_card() -> dbc.Card:
@@ -22,12 +22,10 @@ def create_pert_analysis_card() -> dbc.Card:
         Dash Card component for PERT analysis
     """
     # Create the card header with tooltip and Phase 9.2 Progressive Disclosure help button
-    header_content = create_card_header_with_tooltip(
-        "PERT Analysis",
-        tooltip_id="pert-info",
+    header_content = create_metric_card_header(
+        title="PERT Analysis",
         tooltip_text="PERT (Program Evaluation and Review Technique) estimates project completion time based on optimistic, pessimistic, and most likely scenarios.",
-        help_key="pert_analysis_detailed",
-        help_category="forecast",
+        tooltip_id="pert-info",
     )
 
     # Create the card body content

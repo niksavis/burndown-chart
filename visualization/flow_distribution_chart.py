@@ -80,6 +80,7 @@ def create_work_distribution_chart(
         barmode="stack",
         bargap=0.05,  # Minimal gap to make bars wider with less white space
         hovermode="x unified",
+        height=400,
         legend=dict(
             orientation="h",
             yanchor="bottom",

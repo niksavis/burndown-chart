@@ -75,8 +75,8 @@
 
   /* === Typography === */
   --font-sans:
-    -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Helvetica Neue",
-    Arial, sans-serif;
+    "Manrope", "Segoe UI Variable Text", "Segoe UI", "Helvetica Neue", Arial,
+    sans-serif;
   --font-mono:
     ui-monospace, "SF Mono", "Cascadia Code", "Consolas", "Courier New",
     monospace;
@@ -135,6 +135,8 @@
   --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.07), 0 2px 4px rgba(0, 0, 0, 0.06);
   --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1), 0 4px 6px rgba(0, 0, 0, 0.05);
   --shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.15), 0 10px 10px rgba(0, 0, 0, 0.04);
+  --shadow-card:
+    0 12px 30px rgba(15, 23, 42, 0.08), 0 2px 8px rgba(15, 23, 42, 0.05);
 
   /* === Border Radius === */
   --radius-sm: 0.25rem; /* 4px */
@@ -154,6 +156,7 @@
   --transition-base: 200ms cubic-bezier(0.4, 0, 0.2, 1);
   --transition-slow: 300ms cubic-bezier(0.4, 0, 0.2, 1);
   --easing-default: cubic-bezier(0.4, 0, 0.2, 1);
+  --focus-ring: 0 0 0 3px rgba(59, 130, 246, 0.2);
 
   /* === Z-Index Scale === */
   --z-base: 0;
@@ -172,6 +175,28 @@
 
   /* === Mobile === */
   --touch-target-min: 44px;
+
+  /* === Surfaces === */
+  --color-surface: #ffffff;
+  --color-surface-muted: #f8fafc;
+  --color-surface-raised: #fcfcfd;
+  --color-border-subtle: rgba(15, 23, 42, 0.12);
+
+  /* === Skeleton === */
+  --skeleton-base: var(--color-neutral-200);
+  --skeleton-highlight: var(--color-neutral-100);
+  --skeleton-radius: var(--radius-md);
+  --skeleton-shimmer-size: 1000px;
+  --skeleton-sparkline-gap: 1px;
+  --skeleton-shimmer-duration: 2s;
+  --skeleton-fade-translate: 5px;
+
+  /* === Metric Card Grid === */
+  --metric-cards-grid-margin-top: calc(var(--space-1) * 1.5);
+  --metric-cards-grid-padding-top: calc(var(--space-1) * 0.5);
+  --metric-cards-grid-padding-x: var(--space-1);
+  --metric-cards-grid-margin-x: calc(var(--space-1) * -0.5);
+  --metric-cards-container-min-height: 400px;
 
   /* === Flow Metrics Colors (using semantic colors) === */
   --flow-feature-color: var(--color-success); /* Green */

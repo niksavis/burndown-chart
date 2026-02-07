@@ -8,6 +8,8 @@ It implements a design system with consistent colors, typography, and spacing.
 #######################################################################
 # IMPORTS
 #######################################################################
+from typing import Optional
+
 from dash import html
 import dash_bootstrap_components as dbc
 
@@ -967,6 +969,46 @@ def create_card_header_with_tooltip(
         )
 
     return header_components
+
+
+def create_metric_card_header(
+    title: str,
+    tooltip_text: Optional[str] = None,
+    tooltip_id: Optional[str] = None,
+    badge: Optional[dbc.Badge] = None,
+) -> dbc.CardHeader:
+    """
+    Create a standardized metric card header with optional tooltip and badge.
+
+    Args:
+        title: Header title text
+        tooltip_text: Optional tooltip content
+        tooltip_id: Optional tooltip ID suffix
+        badge: Optional badge element aligned to the right
+
+    Returns:
+        CardHeader component with consistent layout
+    """
+    header_children = [html.Span(title, className="metric-card-title")]
+
+    if tooltip_text and tooltip_id:
+        from ui.tooltip_utils import create_info_tooltip
+
+        header_children.append(
+            create_info_tooltip(
+                help_text=tooltip_text,
+                id_suffix=tooltip_id,
+                placement="top",
+                variant="dark",
+            )
+        )
+
+    if badge is not None:
+        header_children.append(html.Span(badge, className="ms-auto"))
+
+    return dbc.CardHeader(
+        html.Div(header_children, className="metric-card-header w-100")
+    )
 
 
 #######################################################################

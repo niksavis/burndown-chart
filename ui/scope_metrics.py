@@ -2,15 +2,18 @@
 UI components for displaying scope change metrics.
 """
 
+from typing import Mapping, cast
+
 import dash_bootstrap_components as dbc
-from dash import html, dcc
-import plotly.graph_objs as go
 import pandas as pd
-from ui.trend_components import TREND_ICONS, TREND_COLORS
-from ui.tooltip_utils import create_info_tooltip
+import plotly.graph_objs as go
+from dash import dcc, html
+
 from configuration import SCOPE_HELP_TEXTS
 from configuration.chart_config import get_scope_metrics_chart_config
 from data.schema import DEFAULT_SETTINGS  # Import the DEFAULT_SETTINGS
+from ui.trend_components import TREND_COLORS, TREND_ICONS
+from ui.tooltip_utils import create_info_tooltip
 
 
 def create_scope_change_indicator(
@@ -229,17 +232,18 @@ create_scope_creep_indicator = create_scope_change_indicator
 def create_scope_growth_chart(weekly_growth_data, show_points=True):
     """Create a bar chart showing weekly scope growth with side-by-side bars and separate y-axes for items and points."""
     if weekly_growth_data.empty:
+        empty_layout = go.Layout(
+            title="Weekly Scope Growth",
+            xaxis={"title": "Week"},
+            yaxis={"title": "Growth"},
+            height=300,
+        )
+        empty_figure = go.Figure(data=[], layout=empty_layout)
+        chart_height = cast(int, getattr(empty_layout, "height", None) or 300)
         return dcc.Graph(
-            figure={
-                "data": [],
-                "layout": go.Layout(
-                    title="Weekly Scope Growth",
-                    xaxis={"title": "Week"},
-                    yaxis={"title": "Growth"},
-                    height=300,
-                ),
-            },
+            figure=empty_figure,
             config=get_scope_metrics_chart_config(),  # type: ignore[arg-type]
+            style={"height": f"{chart_height}px"},
         )
 
     # Calculate the data ranges to align zero lines
@@ -396,9 +400,11 @@ def create_scope_growth_chart(weekly_growth_data, show_points=True):
             line=dict(color="rgba(253, 126, 20, 0.5)", width=1, dash="dot"),
         )
 
+    chart_height = cast(int, getattr(figure.layout, "height", None) or 300)
     return dcc.Graph(
         figure=figure,
         config=get_scope_metrics_chart_config(),  # type: ignore[arg-type]
+        style={"height": f"{chart_height}px"},
     )
 
 
@@ -543,9 +549,11 @@ def create_enhanced_stability_gauge(
         # Hide toolbar for cleaner UI on gauge charts
         chart_config = {"displayModeBar": False, "responsive": True}  # type: ignore[arg-type]
 
+    chart_height = cast(int, getattr(figure.layout, "height", None) or height)
     return dcc.Graph(
         figure=figure,
         config=chart_config,  # type: ignore[arg-type]
+        style={"height": f"{chart_height}px"},
     )
 
 
@@ -581,17 +589,18 @@ def create_cumulative_scope_chart(
         dcc.Graph: A graph component with backlog size evolution
     """
     if weekly_growth_data.empty:
+        empty_layout = go.Layout(
+            title="Backlog Size Over Time",
+            xaxis={"title": "Week"},
+            yaxis={"title": "Items Remaining"},
+            height=350,
+        )
+        empty_figure = go.Figure(data=[], layout=empty_layout)
+        chart_height = cast(int, getattr(empty_layout, "height", None) or 350)
         return dcc.Graph(
-            figure={
-                "data": [],
-                "layout": go.Layout(
-                    title="Backlog Size Over Time",
-                    xaxis={"title": "Week"},
-                    yaxis={"title": "Items Remaining"},
-                    height=350,
-                ),
-            },
+            figure=empty_figure,
             config=get_scope_metrics_chart_config(),  # type: ignore[arg-type]
+            style={"height": f"{chart_height}px"},
         )
 
     # Sort data by week to ensure proper accumulation
@@ -707,9 +716,11 @@ def create_cumulative_scope_chart(
         layout=layout,
     )
 
+    chart_height = cast(int, getattr(figure.layout, "height", None) or 350)
     return dcc.Graph(
         figure=figure,
         config=get_scope_metrics_chart_config(),  # type: ignore[arg-type]
+        style={"height": f"{chart_height}px"},
     )
 
 
@@ -792,9 +803,19 @@ def create_scope_metrics_dashboard(
     from data.persistence import load_project_data
 
     try:
-        project_data = load_project_data()
-        remaining_items = project_data.get("total_items", 34)
-        remaining_points = project_data.get("total_points", 154)
+        project_data = cast(Mapping[str, object], load_project_data())
+        total_items_value = project_data.get("total_items", 34)
+        total_points_value = project_data.get("total_points", 154)
+        remaining_items = (
+            int(total_items_value)
+            if isinstance(total_items_value, (int, float, str))
+            else 34
+        )
+        remaining_points = (
+            int(total_points_value)
+            if isinstance(total_points_value, (int, float, str))
+            else 154
+        )
     except Exception:
         # If we can't read the file, use defaults
         remaining_items = 34

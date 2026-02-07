@@ -23,7 +23,7 @@ from dash import dash_table, html
 
 from configuration.settings import STATISTICS_HELP_TEXTS
 from ui.styles import (
-    create_card_header_with_tooltip,
+    create_metric_card_header,
     create_standardized_card,
     NEUTRAL_COLORS,
     get_vertical_rhythm,
@@ -59,12 +59,10 @@ def create_statistics_data_card(current_statistics) -> dbc.Card:
     statistics_df = pd.DataFrame(current_statistics)
 
     # Card header with title and tooltip
-    header_content = create_card_header_with_tooltip(
-        "Weekly Progress Data",
-        tooltip_id="statistics-data",
+    header_content = create_metric_card_header(
+        title="Weekly Progress Data",
         tooltip_text="Weekly tracking of completed and newly created work items and story points. Each Monday date represents work done during that week (Monday through Sunday). This data drives all velocity calculations and forecasting.",
-        help_key="weekly_progress_data_explanation",
-        help_category="statistics",
+        tooltip_id="statistics-data",
     )
 
     # Ensure required columns exist in the DataFrame
