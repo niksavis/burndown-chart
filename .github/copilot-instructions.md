@@ -58,6 +58,8 @@ Applies to: python scripts, pytest, pip install, release.py, regenerate_changelo
 - **Logging**: follow docs/LOGGING_STANDARDS.md; never log sensitive data.
 - **Performance**: page < 2s, charts < 500ms, interactions < 100ms.
 - **Windows**: PowerShell only; no bash utilities.
+- **Simplicity**: Keep implementations simple (KISS). Avoid over-engineering.
+- **Reusability**: Extract shared logic to reusable functions (DRY). No duplication.
 
 ## Security and Data Safety
 

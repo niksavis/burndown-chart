@@ -260,7 +260,7 @@ def categorize_commit(commit_msg: str) -> tuple[str, str] | None:
         r"^merge ",
         r"markdownlint|MD\d{3}",
         r"requirements\.txt|pip-compile",
-        r"^beads|^bd-\d+|spec-kit",
+        r"^beads|^bd-\d+",
     ]
     if any(re.search(pattern, commit_lower) for pattern in noise_patterns):
         return None

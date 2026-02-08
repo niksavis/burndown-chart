@@ -71,6 +71,13 @@ sqlite3 .\profiles\burndown.db "SELECT name FROM sqlite_master WHERE type='table
 - Persistence lives under data/persistence/.
 - JIRA access goes through data/jira_query_manager.py.
 
+## Data Architecture
+
+- **Persistence**: SQLite database at `profiles/burndown.db`
+- **Tables** (12): profiles, queries, jira_cache, jira_issues, jira_changelog_entries, project_statistics, project_scope, metrics_data_points, budget_revisions, budget_settings, app_state, task_progress
+- **JSON usage**: Export/import/reports only (not primary storage)
+- **User Data Protection**: All user data in `profiles/` (excluded via `.gitignore`)
+
 ## Code Standards
 
 - No emoji in code, comments, or logs.

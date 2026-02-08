@@ -204,8 +204,8 @@ git push origin refactor/remove-unused-20251112
 
 For comprehensive guidance, see:
 
-- **Constitutional principles**: `.specify/memory/constitution.md` → "Core Principle VI: Defensive Refactoring"
-- **Personal workspace guide** (optional): Create `.github/copilot-instructions.md` with detailed refactoring procedures based on this guide
+- **Core axioms**: `.github/copilot-instructions.md` → Core Axioms (Zero Errors, Layering, Test Isolation, etc.)
+- **Repository rules**: `repo_rules.md` → Architecture and Layering, Code Standards, Testing
 
 ## 🔄 Rollback Plan
 
@@ -230,7 +230,7 @@ git push --force-with-lease origin main
 
 When performing refactoring tasks:
 
-1. **ALWAYS verify against constitution**: Check `.specify/memory/constitution.md` Core Principle VI before removing code
+1. **ALWAYS verify against core axioms**: Check `.github/copilot-instructions.md` Core Axioms before removing code
 2. **Context gathering**: Use semantic search and grep to find ALL references before declaring code unused
 3. **Test-driven**: Run tests before AND after each removal - failures mean the code wasn't actually unused
 4. **Incremental commits**: One function removal per commit with clear message format: `refactor: remove unused <function_name> from <module>`
@@ -288,10 +288,9 @@ Write-Host "Refactoring impact: $linesRemoved lines removed, $functionsRemoved f
 
 ## 🔗 Related Documentation
 
-- **Constitutional principle**: `.specify/memory/constitution.md` → Core Principle VI: Defensive Refactoring
-- **Layered architecture**: `.specify/memory/constitution.md` → Core Principle I (understand before removing callbacks)
-- **Test isolation**: `.specify/memory/constitution.md` → Core Principle II (ensure test cleanup after refactoring)
-- **Personal workspace guide** (optional): Developers may create `.github/copilot-instructions.md` with project-specific patterns
+- **Core axioms**: `.github/copilot-instructions.md` → Core Axioms (Zero Errors, Layering, Test Isolation)
+- **Repository rules**: `repo_rules.md` → Architecture and Layering, Code Standards, Testing
+- **Architecture guidelines**: `docs/architecture/` → Language-specific guidelines and best practices
 
 ---
 

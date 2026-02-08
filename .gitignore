@@ -235,12 +235,7 @@ backups/
 /test_*.png
 /debug_*.md
 
-# Spec Kit temporary/build files (following official spec-kit .gitignore pattern)
-sdd-*/
-.genreleases/
-*.zip
-
-# GitHub Copilot and spec-kit agent files (may contain credentials/tokens)
+# GitHub Copilot agent files (may contain credentials/tokens)
 # Ignore everything in .github/ except specific public files
 .github/*
 !.github/copilot-instructions.md
@@ -296,6 +291,5 @@ playwright-screenshots/
 !package.json
 !tsconfig.json
 !*.example.json
-!spec-kit.json
 !data/ai_assistant/knowledge_base.json
 !.vscode/*.json
