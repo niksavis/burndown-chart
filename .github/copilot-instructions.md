@@ -92,9 +92,18 @@ release.py updates version files, regenerates version info, updates agents.md me
 
 ## Beads Workflow (Required)
 
+- **ALWAYS** include `--description` when creating beads (issues without descriptions lack context).
+- **NEVER** use `bd edit` (opens interactive editor that agents cannot use).
 - Close bead before push.
 - Beads metadata lives in separate worktree and must be pushed.
-- Always include --description when creating beads.
+
+## Priority System
+
+- `0` - Critical (security, data loss, broken builds)
+- `1` - High (major features, important bugs)
+- `2` - Medium (default, nice-to-have)
+- `3` - Low (polish, optimization)
+- `4` - Backlog (future ideas)
 
 ## Testing
 

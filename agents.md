@@ -8,14 +8,14 @@ Concise operational rules for multi-agent coordination and beads workflow. Repos
 
 **Last Updated**: 2026-02-07
 
-| Category | Files | Lines | Tokens |
-|----------|-------|-------|--------|
-| **Total** | 641 | 204.5K | **~1.8M** |
-| Code (Python + JS/CSS) | 432 | 147.4K | ~1.3M |
-| Python (no tests) | 352 | 135.6K | ~1.2M |
-| Frontend (JS/CSS) | 80 | 11.7K | ~76.2K |
-| Tests | 136 | 40.0K | ~352.1K |
-| Documentation (MD) | 73 | 17.1K | ~138.5K |
+| Category               | Files | Lines  | Tokens    |
+| ---------------------- | ----- | ------ | --------- |
+| **Total**              | 641   | 204.5K | **~1.8M** |
+| Code (Python + JS/CSS) | 432   | 147.4K | ~1.3M     |
+| Python (no tests)      | 352   | 135.6K | ~1.2M     |
+| Frontend (JS/CSS)      | 80    | 11.7K  | ~76.2K    |
+| Tests                  | 136   | 40.0K  | ~352.1K   |
+| Documentation (MD)     | 73    | 17.1K  | ~138.5K   |
 
 **Agent Guidance**:
 - **Too large for context**: Use targeted `semantic_search`, avoid broad reads
@@ -51,15 +51,35 @@ git pull --rebase
 bd ready --json
 bd show <id> --json
 bd update <id> --status in_progress
-bd create "Title" --description="Context" -p 1-4 -t bug|feature|task --json
+bd create "Title" --description="Context" -p 0-4 -t bug|feature|task --json
 bd close <id> --reason "Done" --json
 ```
 
 Rules:
 
-- Always include `--description` when creating beads.
-- Do not use `bd edit`.
+- **ALWAYS** include `--description` when creating beads (issues without descriptions lack context).
+- **NEVER** use `bd edit` (opens interactive editor that agents cannot use).
+- Use `bd update <id> --description "text"` for description changes.
 - Beads metadata lives in `.git/beads-worktrees/beads-metadata/` and must be pushed.
+
+## Priority System
+
+- `0` - Critical (security, data loss, broken builds)
+- `1` - High (major features, important bugs)
+- `2` - Medium (default, nice-to-have)
+- `3` - Low (polish, optimization)
+- `4` - Backlog (future ideas)
+
+## Non-Interactive Commands (Required)
+
+ALWAYS use `-Force` flag to avoid interactive prompts that hang agents:
+
+```powershell
+Copy-Item -Force source dest    # NOT: Copy-Item source dest
+Move-Item -Force source dest    # NOT: Move-Item source dest  
+Remove-Item -Force file         # NOT: Remove-Item file
+Remove-Item -Recurse -Force dir # For directories
+```
 
 ## Beads Conflict Resolution (Required)
 
@@ -71,10 +91,10 @@ git show :1:.beads\issues.jsonl > beads.base.jsonl
 git show :2:.beads\issues.jsonl > beads.ours.jsonl
 git show :3:.beads\issues.jsonl > beads.theirs.jsonl
 bd merge beads.merged.jsonl beads.base.jsonl beads.ours.jsonl beads.theirs.jsonl --debug
-Copy-Item beads.merged.jsonl .beads\issues.jsonl
+Copy-Item -Force beads.merged.jsonl .beads\issues.jsonl
 git add .beads\issues.jsonl
 git merge --continue
-Remove-Item beads.*.jsonl
+Remove-Item -Force beads.*.jsonl
 Pop-Location
 ```
 
@@ -94,20 +114,25 @@ Before any file change:
 
 ## Session End (Landing Sequence)
 
-Complete only when both main and beads-metadata are pushed.
+Work is NOT complete until `git push` succeeds. MANDATORY steps:
 
 1. Create beads for unfinished work.
 2. `get_errors` and tests pass (if code changed).
 3. Close bead, commit.
-4. Push main.
-5. Push beads-metadata.
-6. Hand off: `Continue work on bd-X: [title]. [context]`.
+4. **PUSH TO REMOTE** (this is mandatory):
+   - Push main branch
+   - Push beads-metadata worktree
+   - Verify with `git status` (must show "up to date")
+5. Hand off: `Continue work on bd-X: [title]. [context]`.
 
 ```powershell
 git pull --rebase
-git push
+git push  # If push fails, resolve and retry until success
 Push-Location .git\beads-worktrees\beads-metadata
 git pull --rebase
-git push
+git push  # MANDATORY - work is not complete without this
 Pop-Location
+git status  # Verify: both branches up to date with remote
 ```
+
+**CRITICAL**: NEVER stop before pushing. NEVER say "ready to push when you are" - YOU must push.
