@@ -18,11 +18,11 @@ Concise operational rules for multi-agent coordination and beads workflow. Repos
 | Documentation (MD)     | 73    | 17.1K  | ~138.5K   |
 
 **Agent Guidance**:
+
 - **Too large for context**: Use targeted `semantic_search`, avoid broad reads
 - **File size check**: Prefer reading <500 lines per file
 - **Module focus**: Target specific folders (data/, ui/, callbacks/, etc.)
 - **Test coverage**: 136 test files (20% of codebase)
-
 
 ## Visual Design (Required)
 
