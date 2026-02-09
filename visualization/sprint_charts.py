@@ -224,6 +224,165 @@ def _create_status_legend(
     )
 
 
+def _calculate_issue_health_priority(
+    issue_key: str,
+    issue_state: Dict,
+    changelog_entries: List[Dict],
+    flow_end_statuses: List[str],
+    flow_wip_statuses: List[str],
+) -> tuple[int, int]:
+    """Calculate completion bucket and health priority for issue sorting.
+
+    Matches Active Work page logic:
+    - Completion bucket 0 (active): Non-completed items
+    - Completion bucket 1 (completed): Completed items
+    - Health priority 1-5: blocked, aging, active wip, todo, completed
+
+    Args:
+        issue_key: Issue identifier
+        issue_state: Issue state dict with status, summary, etc.
+        changelog_entries: Status changelog for all issues
+        flow_end_statuses: List of completion statuses
+        flow_wip_statuses: List of work-in-progress statuses
+
+    Returns:
+        Tuple of (completion_bucket, health_priority):
+        - completion_bucket: 0=active, 1=completed
+        - health_priority: 1=blocked, 2=aging, 3=wip, 4=todo, 5=completed
+    """
+    now = datetime.now(timezone.utc)
+    status = issue_state.get("status", "Unknown")
+
+    # Check if completed
+    is_completed = status in flow_end_statuses
+    if is_completed:
+        return (1, 5)  # Completion bucket 1, priority 5 (bottom)
+
+    # Check if in WIP status
+    is_in_wip_status = status in flow_wip_statuses
+
+    # Get last status change from changelog
+    days_since_status_change = None
+    issue_changes = [
+        entry for entry in changelog_entries if entry.get("issue_key") == issue_key
+    ]
+
+    if issue_changes:
+        # Changelog is sorted by change_date DESC (most recent first)
+        latest_change = issue_changes[0]
+        change_date_str = latest_change.get("change_date")
+
+        if change_date_str:
+            try:
+                if change_date_str.endswith("Z"):
+                    change_date_str = change_date_str[:-1] + "+00:00"
+                change_dt = datetime.fromisoformat(change_date_str)
+                if change_dt.tzinfo is None:
+                    change_dt = change_dt.replace(tzinfo=timezone.utc)
+
+                days_since_status_change = (now - change_dt).days
+            except (ValueError, AttributeError) as e:
+                logger.debug(f"Could not parse status change date for {issue_key}: {e}")
+
+    # If no changelog, use created date as fallback
+    if days_since_status_change is None:
+        created_str = issue_state.get("created")
+        if created_str:
+            try:
+                if created_str.endswith("Z"):
+                    created_str = created_str[:-1] + "+00:00"
+                created_dt = datetime.fromisoformat(created_str)
+                if created_dt.tzinfo is None:
+                    created_dt = created_dt.replace(tzinfo=timezone.utc)
+                days_since_status_change = (now - created_dt).days
+            except (ValueError, AttributeError):
+                pass
+
+    # Calculate health priority based on WIP status and velocity
+    if is_in_wip_status and days_since_status_change is not None:
+        if days_since_status_change >= 5:
+            return (0, 1)  # Blocked (highest priority)
+        elif days_since_status_change >= 3:
+            return (0, 2)  # Aging (approaching blocked)
+        else:
+            return (0, 3)  # Active WIP (healthy progress)
+    elif is_in_wip_status:
+        # In WIP but no change date info - treat as active WIP
+        return (0, 3)
+    else:
+        # Not WIP, not completed = To Do
+        return (0, 4)
+
+
+def _sort_issues_by_health_priority(
+    issue_states: Dict[str, Dict],
+    changelog_entries: List[Dict],
+    flow_end_statuses: Optional[List[str]],
+    flow_wip_statuses: Optional[List[str]],
+) -> List[str]:
+    """Sort issues by completion bucket, health priority, and issue key.
+
+    Sorting order:
+    1. Completion bucket (0=active first, 1=completed last)
+    2. Health priority (1=blocked first, 5=completed last)
+    3. Issue key descending (PROJ-200 before PROJ-199)
+
+    Args:
+        issue_states: Dict of issue_key -> issue_state
+        changelog_entries: Status changelog entries
+        flow_end_statuses: List of completion statuses
+        flow_wip_statuses: List of WIP statuses
+
+    Returns:
+        Sorted list of issue keys
+    """
+    if not issue_states:
+        return []
+
+    # Ensure flow statuses are lists
+    if flow_end_statuses is None:
+        flow_end_statuses = ["Done", "Closed", "Resolved"]
+    if flow_wip_statuses is None:
+        flow_wip_statuses = ["In Progress"]
+
+    # Calculate priority for each issue
+    issue_priorities = []
+    for issue_key, issue_state in issue_states.items():
+        completion_bucket, health_priority = _calculate_issue_health_priority(
+            issue_key,
+            issue_state,
+            changelog_entries,
+            flow_end_statuses,
+            flow_wip_statuses,
+        )
+        issue_priorities.append((completion_bucket, health_priority, issue_key))
+
+    # Sort by completion bucket, health priority (both ascending), then issue key descending
+    # For issue key: extract numeric part if possible for proper sorting
+    def sort_key(item):
+        completion_bucket, health_priority, issue_key = item
+        # Try to extract numeric part from issue key (e.g., "PROJ-123" -> 123)
+        try:
+            # Split by dash and get last part as number
+            parts = issue_key.split("-")
+            if len(parts) > 1:
+                numeric_part = int(parts[-1])
+                return (
+                    completion_bucket,
+                    health_priority,
+                    -numeric_part,
+                )  # Negative for descending
+        except (ValueError, AttributeError):
+            pass
+        # Fallback to string comparison (reverse for descending)
+        return (completion_bucket, health_priority, issue_key)
+
+    sorted_items = sorted(issue_priorities, key=sort_key)
+
+    # Return just the issue keys
+    return [item[2] for item in sorted_items]
+
+
 def create_sprint_progress_bars(
     sprint_data: Dict,
     changelog_entries: Optional[List[Dict]] = None,
@@ -356,7 +515,10 @@ def create_sprint_progress_bars(
         sprint_duration_seconds = 14 * 86400  # Default 14 days
 
     # Build HTML progress bars for each issue
-    issue_keys = sorted(issue_states.keys(), reverse=True)
+    # Sort by health priority: blocked first, completed last
+    issue_keys = _sort_issues_by_health_priority(
+        issue_states, changelog_entries, flow_end_statuses, flow_wip_statuses
+    )
 
     logger.info(
         f"[SPRINT PROGRESS] Building progress bars for {len(issue_keys)} issues"
@@ -1281,8 +1443,26 @@ def _create_simple_html_bars(
     if flow_end_statuses is None:
         flow_end_statuses = ["Done", "Closed", "Resolved"]
 
+    # Sort issues: non-completed first, completed last, then by issue key descending
+    def simple_sort_key(issue_key):
+        state = issue_states[issue_key]
+        status = state.get("status", "Unknown")
+        is_completed = 1 if status in flow_end_statuses else 0
+
+        # Extract numeric part from issue key for proper sorting
+        try:
+            parts = issue_key.split("-")
+            if len(parts) > 1:
+                numeric_part = int(parts[-1])
+                return (is_completed, -numeric_part)  # Negative for descending
+        except (ValueError, AttributeError):
+            pass
+        return (is_completed, issue_key)
+
+    sorted_issue_keys = sorted(issue_states.keys(), key=simple_sort_key)
+
     bars = []
-    for issue_key in sorted(issue_states.keys(), reverse=True):
+    for issue_key in sorted_issue_keys:
         state = issue_states[issue_key]
         summary = state.get("summary", "")
         points = state.get("points", 0) if show_points else None
