@@ -685,6 +685,8 @@ def create_sprint_progress_bars(
                             f"Issues added to this sprint after it started ({added_count} issues)",
                             target="badge-added-inline",
                             placement="top",
+                            trigger="click",
+                            autohide=True,
                         ),
                         dbc.Badge(
                             [
@@ -706,6 +708,8 @@ def create_sprint_progress_bars(
                             f"Issues removed from this sprint after it started ({removed_count} issues)",
                             target="badge-removed-inline",
                             placement="top",
+                            trigger="click",
+                            autohide=True,
                         ),
                         dbc.Badge(
                             [
@@ -731,6 +735,8 @@ def create_sprint_progress_bars(
                             f"Net scope change after sprint start: {net_sign}{net_change} issues (Added - Removed). Note: Initial issues present at sprint start are not included in this count.",
                             target="badge-net-change-inline",
                             placement="top",
+                            trigger="click",
+                            autohide=True,
                         ),
                         dbc.Badge(
                             [
@@ -752,6 +758,8 @@ def create_sprint_progress_bars(
                             f"{initial_issues} issues were already in the sprint when it started. Total issues = {initial_issues} initial + {net_change} net change = {total_issues}",
                             target="badge-initial-inline",
                             placement="top",
+                            trigger="click",
+                            autohide=True,
                         ),
                         dbc.Badge(
                             [
