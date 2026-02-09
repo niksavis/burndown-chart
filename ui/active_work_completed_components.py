@@ -14,6 +14,7 @@ from ui.active_work_components import (
     create_issue_count_badge,
     create_points_badge,
     create_compact_issue_row,
+    create_status_indicator_badge,
 )
 
 
@@ -43,6 +44,7 @@ def create_completed_items_section(
             display_label=week_data["display_label"],
             issues=week_data["issues"],
             total_issues=week_data["total_issues"],
+            total_epics=week_data.get("total_epics", 0),
             total_points=week_data["total_points"],
             is_current=week_data["is_current"],
             show_points=show_points,
@@ -61,6 +63,7 @@ def create_week_container(
     display_label: str,
     issues: List[Dict],
     total_issues: int,
+    total_epics: int,
     total_points: float,
     is_current: bool,
     show_points: bool = False,
@@ -83,14 +86,14 @@ def create_week_container(
         Details element with collapsible week content
     """
     # Badges
-    count_badge = create_issue_count_badge(total_issues)
-    points_badge = create_points_badge(total_points, show_points)
-
-    # Completed icon (green checkmark)
-    completed_icon = html.Span(
-        html.I(className="fas fa-check", style={"color": "#28a745"}),
-        className="active-work-status-badge me-2",
+    status_badge = create_status_indicator_badge("done", "#28a745")
+    epic_count_badge = html.Span(
+        f"{total_epics}",
+        className="active-work-count-badge",
+        title="Epics",
     )
+    issue_count_badge = create_issue_count_badge(total_issues)
+    points_badge = create_points_badge(total_points, show_points)
 
     # Create issue rows
     issue_rows = []
@@ -107,8 +110,9 @@ def create_week_container(
                     [
                         html.Div(
                             [
-                                completed_icon,
-                                count_badge,
+                                status_badge,
+                                epic_count_badge,
+                                issue_count_badge,
                                 points_badge,
                                 html.Span(
                                     display_label,
@@ -119,7 +123,26 @@ def create_week_container(
                                     className="active-work-epic-arrow",
                                 ),
                             ],
-                            className="d-flex align-items-center",
+                            className="d-flex align-items-center mb-2 active-work-epic-title-row",
+                        ),
+                        html.Div(
+                            [
+                                html.Span(
+                                    [
+                                        html.I(className="fas fa-flag me-1"),
+                                        f"{total_epics} Epic{'s' if total_epics != 1 else ''}",
+                                    ],
+                                    className="badge bg-secondary me-2",
+                                ),
+                                html.Span(
+                                    [
+                                        html.I(className="fas fa-check me-1"),
+                                        f"{total_issues} Issue{'s' if total_issues != 1 else ''}",
+                                    ],
+                                    className="badge bg-success",
+                                ),
+                            ],
+                            className="d-flex",
                         ),
                     ],
                     className="card-header p-3",
@@ -131,7 +154,7 @@ def create_week_container(
                     html.H6(
                         [
                             html.I(className="fas fa-check me-1"),
-                            f"Completed ({total_issues})",
+                            f"Completed ({total_issues} issues, {total_epics} epics)",
                         ],
                         className="text-success mb-2 mt-2",
                         style={"fontSize": "0.9rem"},

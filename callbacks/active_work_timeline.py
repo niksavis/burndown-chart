@@ -155,6 +155,7 @@ def _render_active_work_timeline_content(
             issues=issues,
             flow_end_statuses=flow_end_statuses if flow_end_statuses else None,
             n_weeks=2,  # Current week + last week
+            parent_field=parent_field,
         )
 
         completed_section = create_completed_items_section(

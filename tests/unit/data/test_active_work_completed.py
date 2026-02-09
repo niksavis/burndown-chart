@@ -48,6 +48,7 @@ class TestGetCompletedItemsByWeek:
             assert "issues" in week_data
             assert "is_current" in week_data
             assert "total_issues" in week_data
+            assert "total_epics" in week_data
             assert "total_points" in week_data
 
     def test_filters_only_completed_status(self):
@@ -120,6 +121,65 @@ class TestGetCompletedItemsByWeek:
         # Should only include PROJ-1
         total_issues = sum(week["total_issues"] for week in result.values())
         assert total_issues == 1
+
+    def test_accepts_flat_resolved_field(self):
+        """Test that flat resolved field is accepted for bucketing."""
+        from data.active_work_completed import get_completed_items_by_week
+        from datetime import datetime, timedelta
+
+        now = datetime.now()
+        recent_date = (now - timedelta(days=2)).strftime("%Y-%m-%dT10:00:00.000+0000")
+
+        issues = [
+            {
+                "issue_key": "PROJ-1",
+                "status": "Done",
+                "resolved": recent_date,
+                "points": 3.0,
+            }
+        ]
+
+        result = get_completed_items_by_week(issues, n_weeks=2)
+
+        total_issues = sum(week["total_issues"] for week in result.values())
+        assert total_issues == 1
+
+    def test_counts_epics_and_filters_parent_issues(self):
+        """Test epic counting and parent filtering when parent_field is provided."""
+        from data.active_work_completed import get_completed_items_by_week
+        from datetime import datetime, timedelta
+
+        now = datetime.now()
+        recent_date = (now - timedelta(days=2)).strftime("%Y-%m-%dT10:00:00.000+0000")
+
+        issues = [
+            {
+                "issue_key": "EPIC-1",
+                "status": "Done",
+                "resolved": recent_date,
+                "issue_type": "Epic",
+            },
+            {
+                "issue_key": "PROJ-1",
+                "status": "Done",
+                "resolved": recent_date,
+                "parent": {"key": "EPIC-1", "summary": "Epic One"},
+            },
+            {
+                "issue_key": "PROJ-2",
+                "status": "Done",
+                "resolved": recent_date,
+                "parent": {"key": "EPIC-1", "summary": "Epic One"},
+            },
+        ]
+
+        result = get_completed_items_by_week(issues, n_weeks=2, parent_field="parent")
+
+        total_issues = sum(week["total_issues"] for week in result.values())
+        total_epics = sum(week["total_epics"] for week in result.values())
+
+        assert total_epics == 1
+        assert total_issues == 2
 
     def test_empty_issues_list(self):
         """Test handling of empty issues list."""

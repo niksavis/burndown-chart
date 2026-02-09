@@ -13,6 +13,7 @@ from typing import Dict, List, Optional
 from collections import OrderedDict
 
 from data.iso_week_bucketing import get_last_n_weeks, bucket_issues_by_week
+from data.parent_filter import extract_parent_keys, filter_parent_issues
 
 logger = logging.getLogger(__name__)
 
@@ -21,6 +22,7 @@ def get_completed_items_by_week(
     issues: List[Dict],
     n_weeks: int = 2,
     flow_end_statuses: Optional[List[str]] = None,
+    parent_field: Optional[str] = None,
 ) -> Dict[str, Dict]:
     """Bucket completed issues into current week and last week.
 
@@ -32,6 +34,7 @@ def get_completed_items_by_week(
         n_weeks: Number of weeks to include (default: 2 for current + last week)
         flow_end_statuses: List of statuses indicating completion
             (default: ["Done", "Closed", "Resolved"])
+        parent_field: Field name for parent/epic grouping (e.g., "parent")
 
     Returns:
         OrderedDict mapping week_label -> dict with:
@@ -40,6 +43,7 @@ def get_completed_items_by_week(
             "issues": [issue1, issue2, ...],
             "is_current": True/False,
             "total_issues": 5,
+            "total_epics": 2,
             "total_points": 12.0
         }
 
@@ -56,37 +60,59 @@ def get_completed_items_by_week(
         flow_end_statuses = ["Done", "Closed", "Resolved"]
 
     logger.info(
-        f"[COMPLETED ITEMS] Filtering completed issues for last {n_weeks} weeks"
+        f"[COMPLETED ITEMS] Filtering completed issues for last {n_weeks} weeks, "
+        f"using flow_end_statuses={flow_end_statuses}, parent_field={parent_field}"
     )
 
     # Filter to only completed issues with resolutiondate
     completed_issues = []
     for issue in issues:
-        # Access status from fields dict (JIRA format) or direct property
-        status = (
-            issue.get("fields", {})
-            .get("status", {})
-            .get("name", issue.get("status", ""))
-        )
-        resolutiondate = issue.get("fields", {}).get(
-            "resolutiondate", issue.get("resolutiondate")
-        )
+        # Access status - try flat format first (database), then JIRA nested format
+        status = issue.get("status")
+        if not status:
+            status = issue.get("fields", {}).get("status", {}).get("name", "")
+
+        # Access resolutiondate - try flat format first (database), then JIRA nested format
+        resolutiondate = issue.get("resolutiondate")
+        if not resolutiondate:
+            resolutiondate = issue.get("resolved")
+        if not resolutiondate:
+            resolutiondate = issue.get("fields", {}).get("resolutiondate")
+
+        # Debug: Log first few issues details
+        issue_key = issue.get("key", issue.get("issue_key", "unknown"))
+        if len(completed_issues) < 3:  # Only log first few to avoid spam
+            logger.info(
+                f"[COMPLETED ITEMS DEBUG] Issue {issue_key}: status={status}, "
+                f"resolutiondate={resolutiondate}, "
+                f"in flow_end_statuses={status in flow_end_statuses}"
+            )
 
         if status in flow_end_statuses and resolutiondate:
             completed_issues.append(issue)
 
     logger.info(
-        f"[COMPLETED ITEMS] Found {len(completed_issues)} completed issues with resolutiondate"
+        f"[COMPLETED ITEMS] Found {len(completed_issues)} completed issues with resolutiondate (out of {len(issues)} total)"
     )
 
     if not completed_issues:
         # Return empty structure for consistency
+        logger.warning(
+            "[COMPLETED ITEMS] No completed issues found - returning empty structure"
+        )
         return _create_empty_week_structure(n_weeks)
 
     # Bucket issues by week using resolutiondate
+    logger.info(
+        f"[COMPLETED ITEMS] Bucketing {len(completed_issues)} completed issues by week"
+    )
     buckets = bucket_issues_by_week(
         issues=completed_issues, date_field="resolutiondate", n_weeks=n_weeks
     )
+
+    # Log bucket results
+    for week_label, week_issues in buckets.items():
+        logger.info(f"[COMPLETED ITEMS] Week {week_label}: {len(week_issues)} issues")
 
     # Get week definitions for formatting
     weeks = get_last_n_weeks(n_weeks)
@@ -101,9 +127,18 @@ def get_completed_items_by_week(
     for week_label, monday, sunday in reversed(weeks):
         week_issues = buckets.get(week_label, [])
 
+        parent_keys = set()
+        display_issues = week_issues
+        if parent_field:
+            parent_keys = extract_parent_keys(week_issues, parent_field)
+            display_issues = filter_parent_issues(
+                week_issues, parent_field, log_prefix="COMPLETED ITEMS"
+            )
+
         # Calculate totals
-        total_issues = len(week_issues)
-        total_points = sum(issue.get("points", 0.0) or 0.0 for issue in week_issues)
+        total_issues = len(display_issues)
+        total_epics = len(parent_keys)
+        total_points = sum(issue.get("points", 0.0) or 0.0 for issue in display_issues)
 
         # Format display label
         display_label = _format_week_label(
@@ -115,14 +150,16 @@ def get_completed_items_by_week(
 
         result[week_label] = {
             "display_label": display_label,
-            "issues": week_issues,
+            "issues": display_issues,
             "is_current": week_label == current_week_label,
             "total_issues": total_issues,
+            "total_epics": total_epics,
             "total_points": total_points,
         }
 
         logger.info(
-            f"[COMPLETED ITEMS] {display_label}: {total_issues} issues, {total_points:.1f} points"
+            f"[COMPLETED ITEMS] {display_label}: {total_issues} issues, "
+            f"{total_epics} epics, {total_points:.1f} points"
         )
 
     return result
@@ -191,6 +228,7 @@ def _create_empty_week_structure(n_weeks: int = 2) -> Dict[str, Dict]:
             "issues": [],
             "is_current": week_label == current_week_label,
             "total_issues": 0,
+            "total_epics": 0,
             "total_points": 0.0,
         }
 
