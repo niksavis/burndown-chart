@@ -230,7 +230,7 @@ def _calculate_issue_health_priority(
     changelog_entries: List[Dict],
     flow_end_statuses: List[str],
     flow_wip_statuses: List[str],
-) -> tuple[int, int]:
+) -> tuple[int, int, float]:
     """Calculate completion bucket and health priority for issue sorting.
 
     Matches Active Work page logic:
@@ -246,9 +246,10 @@ def _calculate_issue_health_priority(
         flow_wip_statuses: List of work-in-progress statuses
 
     Returns:
-        Tuple of (completion_bucket, health_priority):
+        Tuple of (completion_bucket, health_priority, days_in_completed):
         - completion_bucket: 0=active, 1=completed
         - health_priority: 1=blocked, 2=aging, 3=wip, 4=todo, 5=completed
+        - days_in_completed: For completed items, days since completion (used for sorting)
     """
     now = datetime.now(timezone.utc)
     status = issue_state.get("status", "Unknown")
@@ -256,7 +257,36 @@ def _calculate_issue_health_priority(
     # Check if completed
     is_completed = status in flow_end_statuses
     if is_completed:
-        return (1, 5)  # Completion bucket 1, priority 5 (bottom)
+        # Calculate when the issue transitioned to completed status
+        days_in_completed = (
+            999999.0  # Default to very high (treat as completed long ago)
+        )
+
+        issue_changes = [
+            entry for entry in changelog_entries if entry.get("issue_key") == issue_key
+        ]
+
+        # Find the most recent transition TO a completed status
+        for change in issue_changes:
+            new_status = change.get("new_value", "")
+            if new_status in flow_end_statuses:
+                change_date_str = change.get("change_date")
+                if change_date_str:
+                    try:
+                        if change_date_str.endswith("Z"):
+                            change_date_str = change_date_str[:-1] + "+00:00"
+                        change_dt = datetime.fromisoformat(change_date_str)
+                        if change_dt.tzinfo is None:
+                            change_dt = change_dt.replace(tzinfo=timezone.utc)
+
+                        days_in_completed = (now - change_dt).total_seconds() / 86400
+                        break  # Found most recent transition, stop
+                    except (ValueError, AttributeError) as e:
+                        logger.debug(
+                            f"Could not parse completion date for {issue_key}: {e}"
+                        )
+
+        return (1, 5, days_in_completed)  # Completion bucket 1, priority 5
 
     # Check if in WIP status
     is_in_wip_status = status in flow_wip_statuses
@@ -301,17 +331,80 @@ def _calculate_issue_health_priority(
     # Calculate health priority based on WIP status and velocity
     if is_in_wip_status and days_since_status_change is not None:
         if days_since_status_change >= 5:
-            return (0, 1)  # Blocked (highest priority)
+            return (0, 1, 0.0)  # Blocked (highest priority)
         elif days_since_status_change >= 3:
-            return (0, 2)  # Aging (approaching blocked)
+            return (0, 2, 0.0)  # Aging (approaching blocked)
         else:
-            return (0, 3)  # Active WIP (healthy progress)
+            return (0, 3, 0.0)  # Active WIP (healthy progress)
     elif is_in_wip_status:
         # In WIP but no change date info - treat as active WIP
-        return (0, 3)
+        return (0, 3, 0.0)
     else:
         # Not WIP, not completed = To Do
-        return (0, 4)
+        return (0, 4, 0.0)
+
+
+def _calculate_completion_percentage(
+    issue_key: str,
+    changelog_entries: List[Dict],
+    flow_end_statuses: List[str],
+    sprint_start: Optional[datetime],
+    sprint_end: Optional[datetime],
+    now: datetime,
+) -> float:
+    """Calculate what percentage of sprint time the issue spent in completed status.
+
+    Args:
+        issue_key: Issue identifier
+        changelog_entries: Status changelog for all issues
+        flow_end_statuses: List of completion statuses
+        sprint_start: Sprint start datetime
+        sprint_end: Sprint end datetime
+        now: Current datetime
+
+    Returns:
+        Percentage of sprint time spent in completed status (0-100)
+    """
+    if not sprint_start or not sprint_end:
+        return 0.0
+
+    sprint_duration = (sprint_end - sprint_start).total_seconds()
+    if sprint_duration <= 0:
+        return 0.0
+
+    # Find when issue transitioned to completed status
+    issue_changes = [
+        entry
+        for entry in changelog_entries
+        if entry.get("issue_key") == issue_key and entry.get("field") == "status"
+    ]
+
+    completion_time = None
+    for change in issue_changes:
+        new_status = change.get("new_value", "")
+        if new_status in flow_end_statuses:
+            change_date_str = change.get("change_date")
+            if change_date_str:
+                try:
+                    if change_date_str.endswith("Z"):
+                        change_date_str = change_date_str[:-1] + "+00:00"
+                    change_dt = datetime.fromisoformat(change_date_str)
+                    if change_dt.tzinfo is None:
+                        change_dt = change_dt.replace(tzinfo=timezone.utc)
+                    completion_time = change_dt
+                    break  # Use first transition to completed status
+                except (ValueError, AttributeError):
+                    pass
+
+    if not completion_time:
+        return 0.0
+
+    # Calculate time in completed status (from completion to now, bounded by sprint)
+    effective_end = min(now, sprint_end)
+    time_in_completed = max(0, (effective_end - completion_time).total_seconds())
+
+    # Return as percentage of sprint duration
+    return (time_in_completed / sprint_duration) * 100
 
 
 def _sort_issues_by_health_priority(
@@ -319,19 +412,24 @@ def _sort_issues_by_health_priority(
     changelog_entries: List[Dict],
     flow_end_statuses: Optional[List[str]],
     flow_wip_statuses: Optional[List[str]],
+    sprint_start_date: Optional[str] = None,
+    sprint_end_date: Optional[str] = None,
 ) -> List[str]:
-    """Sort issues by completion bucket, health priority, and issue key.
+    """Sort issues by completion bucket, health priority, completion percentage, and issue key.
 
     Sorting order:
     1. Completion bucket (0=active first, 1=completed last)
     2. Health priority (1=blocked first, 5=completed last)
-    3. Issue key descending (PROJ-200 before PROJ-199)
+    3. For completed items: completion percentage ascending (recently completed first)
+    4. Issue key descending (PROJ-200 before PROJ-199)
 
     Args:
         issue_states: Dict of issue_key -> issue_state
         changelog_entries: Status changelog entries
         flow_end_statuses: List of completion statuses
         flow_wip_statuses: List of WIP statuses
+        sprint_start_date: Sprint start date ISO string
+        sprint_end_date: Sprint end date ISO string
 
     Returns:
         Sorted list of issue keys
@@ -345,22 +443,48 @@ def _sort_issues_by_health_priority(
     if flow_wip_statuses is None:
         flow_wip_statuses = ["In Progress"]
 
-    # Calculate priority for each issue
+    # Parse sprint dates
+    sprint_start = None
+    sprint_end = None
+
+    if sprint_start_date:
+        try:
+            sprint_start = datetime.fromisoformat(sprint_start_date)
+            if sprint_start.tzinfo is None:
+                sprint_start = sprint_start.replace(tzinfo=timezone.utc)
+        except (ValueError, AttributeError):
+            pass
+
+    if sprint_end_date:
+        try:
+            sprint_end = datetime.fromisoformat(sprint_end_date)
+            if sprint_end.tzinfo is None:
+                sprint_end = sprint_end.replace(tzinfo=timezone.utc)
+        except (ValueError, AttributeError):
+            pass
+
+    # Calculate priority and completion percentage for each issue
     issue_priorities = []
     for issue_key, issue_state in issue_states.items():
-        completion_bucket, health_priority = _calculate_issue_health_priority(
-            issue_key,
-            issue_state,
-            changelog_entries,
-            flow_end_statuses,
-            flow_wip_statuses,
+        completion_bucket, health_priority, days_in_completed = (
+            _calculate_issue_health_priority(
+                issue_key,
+                issue_state,
+                changelog_entries,
+                flow_end_statuses,
+                flow_wip_statuses,
+            )
         )
-        issue_priorities.append((completion_bucket, health_priority, issue_key))
 
-    # Sort by completion bucket, health priority (both ascending), then issue key descending
-    # For issue key: extract numeric part if possible for proper sorting
+        # For completed items, use days_in_completed for sorting
+        # (lower value = completed more recently = should appear first)
+        issue_priorities.append(
+            (completion_bucket, health_priority, days_in_completed, issue_key)
+        )
+
+    # Sort by completion bucket, health priority, days_in_completed (for completed), then issue key
     def sort_key(item):
-        completion_bucket, health_priority, issue_key = item
+        completion_bucket, health_priority, days_in_completed, issue_key = item
         # Try to extract numeric part from issue key (e.g., "PROJ-123" -> 123)
         try:
             # Split by dash and get last part as number
@@ -370,17 +494,18 @@ def _sort_issues_by_health_priority(
                 return (
                     completion_bucket,
                     health_priority,
-                    -numeric_part,
-                )  # Negative for descending
+                    days_in_completed,  # Ascending: fewer days (recently completed) first
+                    -numeric_part,  # Negative for descending
+                )
         except (ValueError, AttributeError):
             pass
         # Fallback to string comparison (reverse for descending)
-        return (completion_bucket, health_priority, issue_key)
+        return (completion_bucket, health_priority, days_in_completed, issue_key)
 
     sorted_items = sorted(issue_priorities, key=sort_key)
 
     # Return just the issue keys
-    return [item[2] for item in sorted_items]
+    return [item[3] for item in sorted_items]
 
 
 def create_sprint_progress_bars(
@@ -517,7 +642,12 @@ def create_sprint_progress_bars(
     # Build HTML progress bars for each issue
     # Sort by health priority: blocked first, completed last
     issue_keys = _sort_issues_by_health_priority(
-        issue_states, changelog_entries, flow_end_statuses, flow_wip_statuses
+        issue_states,
+        changelog_entries,
+        flow_end_statuses,
+        flow_wip_statuses,
+        sprint_start_date,
+        sprint_end_date,
     )
 
     logger.info(
@@ -1314,6 +1444,8 @@ def _create_multi_segment_bar(
 
     # Build segments scaled to elapsed sprint time
     segments = []
+    total_rendered_percentage = 0  # Track actually rendered percentage
+
     for segment in time_segments:
         status = segment["status"]
         # Calculate percentage of TOTAL ELAPSED TIME (not sprint duration)
@@ -1326,6 +1458,9 @@ def _create_multi_segment_bar(
 
         if duration_pct_of_sprint < 0.3:  # Skip tiny segments
             continue
+
+        # Track what we're actually rendering
+        total_rendered_percentage += duration_pct_of_sprint
 
         # Use dynamic color based on flow configuration
         color = _get_status_color(
@@ -1362,12 +1497,33 @@ def _create_multi_segment_bar(
             )
         )
 
-    # Add remaining sprint time as light gray empty segment
-    if remaining_percentage > 0.5:
+    # Calculate gap from skipped segments or issue starting after sprint start
+    # This gap should be shown before the issue segments
+    gap_before_issue = time_progress_percentage - total_rendered_percentage
+
+    # If there's a gap, add it as a light segment at the beginning
+    if gap_before_issue > 0.1:
+        # Insert at beginning
+        segments.insert(
+            0,
+            html.Div(
+                "",
+                title=f"Before issue activity: {gap_before_issue:.1f}%",
+                style={
+                    "width": f"{gap_before_issue}%",
+                    "backgroundColor": "#f8f9fa",  # Very light gray
+                    "borderRight": "1px solid #dee2e6",
+                },
+            ),
+        )
+
+    # Add remaining sprint time - use the ORIGINAL remaining_percentage
+    # (based on sprint dates, same for all issues)
+    if remaining_percentage > 0:
         segments.append(
             html.Div(
                 "",
-                title=f"Remaining sprint time: {remaining_percentage:.0f}%",
+                title=f"Remaining sprint time: {remaining_percentage:.1f}%",
                 style={
                     "width": f"{remaining_percentage}%",
                     "backgroundColor": "#e9ecef",  # Light gray for remaining time

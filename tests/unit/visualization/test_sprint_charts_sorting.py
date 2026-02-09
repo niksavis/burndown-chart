@@ -17,12 +17,15 @@ class TestCalculateIssueHealthPriority:
         flow_end_statuses = ["Done", "Closed"]
         flow_wip_statuses = ["In Progress"]
 
-        bucket, priority = _calculate_issue_health_priority(
+        bucket, priority, days_in_completed = _calculate_issue_health_priority(
             "PROJ-1", issue_state, [], flow_end_statuses, flow_wip_statuses
         )
 
         assert bucket == 1
         assert priority == 5
+        assert (
+            days_in_completed == 999999.0
+        )  # Sentinel value for unknown completion date
 
     def test_blocked_issue_returns_bucket_0_priority_1(self):
         """Blocked issues (5+ days) should be in bucket 0 with priority 1."""
@@ -39,12 +42,13 @@ class TestCalculateIssueHealthPriority:
         flow_end_statuses = ["Done"]
         flow_wip_statuses = ["In Progress"]
 
-        bucket, priority = _calculate_issue_health_priority(
+        bucket, priority, days_in_completed = _calculate_issue_health_priority(
             "PROJ-1", issue_state, changelog, flow_end_statuses, flow_wip_statuses
         )
 
         assert bucket == 0
         assert priority == 1
+        assert days_in_completed == 0.0  # Not completed
 
     def test_aging_issue_returns_bucket_0_priority_2(self):
         """Aging issues (3-4 days) should be in bucket 0 with priority 2."""
@@ -61,12 +65,13 @@ class TestCalculateIssueHealthPriority:
         flow_end_statuses = ["Done"]
         flow_wip_statuses = ["In Progress"]
 
-        bucket, priority = _calculate_issue_health_priority(
+        bucket, priority, days_in_completed = _calculate_issue_health_priority(
             "PROJ-1", issue_state, changelog, flow_end_statuses, flow_wip_statuses
         )
 
         assert bucket == 0
         assert priority == 2
+        assert days_in_completed == 0.0  # Not completed
 
     def test_active_wip_returns_bucket_0_priority_3(self):
         """Active WIP (changed recently) should be in bucket 0 with priority 3."""
@@ -83,12 +88,13 @@ class TestCalculateIssueHealthPriority:
         flow_end_statuses = ["Done"]
         flow_wip_statuses = ["In Progress"]
 
-        bucket, priority = _calculate_issue_health_priority(
+        bucket, priority, days_in_completed = _calculate_issue_health_priority(
             "PROJ-1", issue_state, changelog, flow_end_statuses, flow_wip_statuses
         )
 
         assert bucket == 0
         assert priority == 3
+        assert days_in_completed == 0.0  # Not completed
 
     def test_todo_issue_returns_bucket_0_priority_4(self):
         """To Do issues should be in bucket 0 with priority 4."""
@@ -96,12 +102,13 @@ class TestCalculateIssueHealthPriority:
         flow_end_statuses = ["Done"]
         flow_wip_statuses = ["In Progress"]
 
-        bucket, priority = _calculate_issue_health_priority(
+        bucket, priority, days_in_completed = _calculate_issue_health_priority(
             "PROJ-1", issue_state, [], flow_end_statuses, flow_wip_statuses
         )
 
         assert bucket == 0
         assert priority == 4
+        assert days_in_completed == 0.0  # Not completed
 
     def test_no_changelog_uses_created_date(self):
         """When no changelog exists, should fall back to created date."""
@@ -115,13 +122,14 @@ class TestCalculateIssueHealthPriority:
         flow_end_statuses = ["Done"]
         flow_wip_statuses = ["In Progress"]
 
-        bucket, priority = _calculate_issue_health_priority(
+        bucket, priority, days_in_completed = _calculate_issue_health_priority(
             "PROJ-1", issue_state, [], flow_end_statuses, flow_wip_statuses
         )
 
         # Should be blocked since created 6 days ago
         assert bucket == 0
         assert priority == 1
+        assert days_in_completed == 0.0  # Not completed
 
     def test_handles_z_suffix_in_timestamps(self):
         """Should handle timestamps with Z suffix."""
@@ -140,12 +148,13 @@ class TestCalculateIssueHealthPriority:
         flow_end_statuses = ["Done"]
         flow_wip_statuses = ["In Progress"]
 
-        bucket, priority = _calculate_issue_health_priority(
+        bucket, priority, days_in_completed = _calculate_issue_health_priority(
             "PROJ-1", issue_state, changelog, flow_end_statuses, flow_wip_statuses
         )
 
         assert bucket == 0
         assert priority == 1  # Blocked at 5 days
+        assert days_in_completed == 0.0  # Not completed
 
     def test_wip_status_without_changelog_treated_as_active(self):
         """WIP status without changelog should be treated as active WIP."""
@@ -153,12 +162,13 @@ class TestCalculateIssueHealthPriority:
         flow_end_statuses = ["Done"]
         flow_wip_statuses = ["In Progress"]
 
-        bucket, priority = _calculate_issue_health_priority(
+        bucket, priority, days_in_completed = _calculate_issue_health_priority(
             "PROJ-1", issue_state, [], flow_end_statuses, flow_wip_statuses
         )
 
         assert bucket == 0
         assert priority == 3  # Active WIP (default for WIP without dates)
+        assert days_in_completed == 0.0  # Not completed
 
 
 class TestSortIssuesByHealthPriority:
