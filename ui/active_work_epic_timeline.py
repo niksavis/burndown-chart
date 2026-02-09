@@ -22,6 +22,7 @@ def create_nested_epic_timeline(
     show_points: bool = False,
     parent_field_configured: bool = True,
     summary_text: str | None = None,
+    completed_section: html.Div | None = None,
 ) -> html.Div:
     """Create nested epic timeline with compact issue lists under each epic.
 
@@ -29,6 +30,8 @@ def create_nested_epic_timeline(
         timeline: List of epic dicts with child_issues
         show_points: Whether to show story points
         parent_field_configured: Whether parent field is configured
+        summary_text: Optional summary text for legend
+        completed_section: Optional completed items section to insert after legend
 
     Returns:
         Nested timeline div
@@ -44,6 +47,16 @@ def create_nested_epic_timeline(
     legend = create_active_work_legend(summary_text)
 
     epic_sections: List = [legend]
+
+    # Insert completed items section after legend if provided
+    if completed_section:
+        epic_sections.extend(
+            [
+                html.H5("Completed Work", className="active-work-section-header"),
+                completed_section,
+                html.H5("All Work", className="active-work-section-header"),
+            ]
+        )
 
     for epic in timeline:
         epic_key = epic.get("epic_key", "Unknown")

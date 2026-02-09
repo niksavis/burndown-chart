@@ -133,8 +133,12 @@ def bucket_issues_by_week(
 
     # Bucket issues
     for issue in issues:
-        # Get the date value from the issue
-        date_value = issue.get("fields", {}).get(date_field)
+        # Get the date value from the issue - try flat format first (database), then JIRA nested format
+        date_value = issue.get(date_field)
+        if not date_value and date_field == "resolutiondate":
+            date_value = issue.get("resolved")
+        if not date_value:
+            date_value = issue.get("fields", {}).get(date_field)
 
         if not date_value:
             continue

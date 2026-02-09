@@ -109,14 +109,23 @@ def test_render_builds_timeline_when_data_available(monkeypatch):
             ]
         },
     )
+    monkeypatch.setattr(
+        "data.active_work_completed.get_completed_items_by_week",
+        lambda *args, **kwargs: {},  # Return empty dict for completed items
+    )
 
     captured = {}
 
     def fake_create_nested_epic_timeline(
-        timeline, show_points, parent_field_configured, summary_text
+        timeline,
+        show_points,
+        parent_field_configured,
+        summary_text,
+        completed_section=None,
     ):
         captured["summary_text"] = summary_text
         captured["parent_field_configured"] = parent_field_configured
+        captured["completed_section"] = completed_section
         return html.Div("timeline")
 
     monkeypatch.setattr(
