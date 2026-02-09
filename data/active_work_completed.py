@@ -43,7 +43,8 @@ def get_completed_items_by_week(
             "issues": [issue1, issue2, ...],
             "is_current": True/False,
             "total_issues": 5,
-            "total_epics": 2,
+            "total_epics_closed": 1,
+            "total_epics_linked": 2,
             "total_points": 12.0
         }
 
@@ -128,16 +129,21 @@ def get_completed_items_by_week(
         week_issues = buckets.get(week_label, [])
 
         parent_keys = set()
+        closed_epic_keys = set()
         display_issues = week_issues
+        epic_groups = []
         if parent_field:
             parent_keys = extract_parent_keys(week_issues, parent_field)
+            closed_epic_keys = _get_closed_epic_keys(week_issues, parent_keys)
             display_issues = filter_parent_issues(
                 week_issues, parent_field, log_prefix="COMPLETED ITEMS"
             )
+            epic_groups = _group_issues_by_epic(display_issues, parent_field, issues)
 
         # Calculate totals
         total_issues = len(display_issues)
-        total_epics = len(parent_keys)
+        total_epics_linked = len(parent_keys)
+        total_epics_closed = len(closed_epic_keys)
         total_points = sum(issue.get("points", 0.0) or 0.0 for issue in display_issues)
 
         # Format display label
@@ -153,13 +159,16 @@ def get_completed_items_by_week(
             "issues": display_issues,
             "is_current": week_label == current_week_label,
             "total_issues": total_issues,
-            "total_epics": total_epics,
+            "total_epics_closed": total_epics_closed,
+            "total_epics_linked": total_epics_linked,
             "total_points": total_points,
+            "epic_groups": epic_groups,
         }
 
         logger.info(
             f"[COMPLETED ITEMS] {display_label}: {total_issues} issues, "
-            f"{total_epics} epics, {total_points:.1f} points"
+            f"{total_epics_closed} closed epics, {total_epics_linked} linked epics, "
+            f"{total_points:.1f} points"
         )
 
     return result
@@ -228,8 +237,105 @@ def _create_empty_week_structure(n_weeks: int = 2) -> Dict[str, Dict]:
             "issues": [],
             "is_current": week_label == current_week_label,
             "total_issues": 0,
-            "total_epics": 0,
+            "total_epics_closed": 0,
+            "total_epics_linked": 0,
             "total_points": 0.0,
+            "epic_groups": [],
         }
 
     return result
+
+
+def _get_closed_epic_keys(issues: List[Dict], parent_keys: set[str]) -> set[str]:
+    """Get parent keys that are also completed issues.
+
+    Args:
+        issues: Completed issues in the week
+        parent_keys: Parent keys extracted from child issues
+
+    Returns:
+        Set of epic keys that are explicitly completed in this week
+    """
+    closed_epics = set()
+    for issue in issues:
+        issue_key = issue.get("issue_key", issue.get("key"))
+        if issue_key and issue_key in parent_keys:
+            closed_epics.add(issue_key)
+    return closed_epics
+
+
+def _group_issues_by_epic(
+    issues: List[Dict], parent_field: str, all_issues: List[Dict]
+) -> List[Dict]:
+    """Group issues by parent epic for display.
+
+    Args:
+        issues: Issues to group (parents already filtered out)
+        parent_field: Field name for parent/epic
+
+    Returns:
+        List of groups with epic_key, epic_summary, and issues
+    """
+    grouped = OrderedDict()
+
+    for issue in issues:
+        epic_key, epic_summary = _get_parent_info(issue, parent_field, all_issues)
+        if not epic_key:
+            epic_key = "No Parent"
+            epic_summary = "Other"
+
+        if epic_key not in grouped:
+            grouped[epic_key] = {
+                "epic_key": epic_key,
+                "epic_summary": epic_summary,
+                "issues": [],
+            }
+
+        grouped[epic_key]["issues"].append(issue)
+
+    return list(grouped.values())
+
+
+def _get_parent_info(
+    issue: Dict, parent_field: str, all_issues: List[Dict]
+) -> tuple[str | None, str | None]:
+    """Extract parent epic key and summary from an issue.
+
+    Args:
+        issue: Issue dict
+        parent_field: Parent field name
+
+    Returns:
+        Tuple of (parent_key, parent_summary)
+    """
+    parent = issue.get(parent_field)
+    if not parent and parent_field.startswith("customfield_"):
+        custom_fields = issue.get("custom_fields", {})
+        parent = custom_fields.get(parent_field)
+
+    if not parent:
+        return None, None
+
+    if isinstance(parent, dict):
+        parent_key = parent.get("key")
+        parent_summary = parent.get("summary") or parent.get("fields", {}).get(
+            "summary"
+        )
+        return parent_key, parent_summary
+
+    if isinstance(parent, str):
+        parent_key = parent
+        epic_issue = next(
+            (
+                item
+                for item in all_issues
+                if item.get("issue_key") == parent_key or item.get("key") == parent_key
+            ),
+            None,
+        )
+        if epic_issue:
+            epic_summary = epic_issue.get("summary", parent_key)
+            return parent_key, epic_summary
+        return parent_key, parent_key
+
+    return None, None

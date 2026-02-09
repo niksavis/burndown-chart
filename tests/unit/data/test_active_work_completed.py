@@ -48,8 +48,10 @@ class TestGetCompletedItemsByWeek:
             assert "issues" in week_data
             assert "is_current" in week_data
             assert "total_issues" in week_data
-            assert "total_epics" in week_data
+            assert "total_epics_closed" in week_data
+            assert "total_epics_linked" in week_data
             assert "total_points" in week_data
+            assert "epic_groups" in week_data
 
     def test_filters_only_completed_status(self):
         """Test that only completed statuses are included."""
@@ -176,10 +178,43 @@ class TestGetCompletedItemsByWeek:
         result = get_completed_items_by_week(issues, n_weeks=2, parent_field="parent")
 
         total_issues = sum(week["total_issues"] for week in result.values())
-        total_epics = sum(week["total_epics"] for week in result.values())
+        total_epics_closed = sum(week["total_epics_closed"] for week in result.values())
+        total_epics_linked = sum(week["total_epics_linked"] for week in result.values())
 
-        assert total_epics == 1
+        assert total_epics_closed == 1
+        assert total_epics_linked == 1
         assert total_issues == 2
+
+    def test_uses_epic_summary_from_all_issues(self):
+        """Test epic summary lookup when parent field is a string key."""
+        from data.active_work_completed import get_completed_items_by_week
+        from datetime import datetime, timedelta
+
+        now = datetime.now()
+        recent_date = (now - timedelta(days=2)).strftime("%Y-%m-%dT10:00:00.000+0000")
+
+        issues = [
+            {
+                "issue_key": "EPIC-1",
+                "status": "In Progress",
+                "summary": "Customer Validation for Tariff Change",
+            },
+            {
+                "issue_key": "PROJ-1",
+                "status": "Done",
+                "resolved": recent_date,
+                "parent": "EPIC-1",
+            },
+        ]
+
+        result = get_completed_items_by_week(issues, n_weeks=2, parent_field="parent")
+
+        epic_groups = next(
+            (week["epic_groups"] for week in result.values() if week["epic_groups"]),
+            [],
+        )
+        assert epic_groups[0]["epic_key"] == "EPIC-1"
+        assert epic_groups[0]["epic_summary"] == "Customer Validation for Tariff Change"
 
     def test_empty_issues_list(self):
         """Test handling of empty issues list."""

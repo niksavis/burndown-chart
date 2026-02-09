@@ -50,7 +50,13 @@ def create_nested_epic_timeline(
 
     # Insert completed items section after legend if provided
     if completed_section:
-        epic_sections.append(completed_section)
+        epic_sections.extend(
+            [
+                html.H5("Completed Work", className="active-work-section-header"),
+                completed_section,
+                html.H5("All Work", className="active-work-section-header"),
+            ]
+        )
 
     for epic in timeline:
         epic_key = epic.get("epic_key", "Unknown")

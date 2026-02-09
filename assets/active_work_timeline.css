@@ -123,6 +123,10 @@
   text-align: center;
 }
 
+.completed-epic-count-badge {
+  background-color: #1f6f8b;
+}
+
 .active-work-issue-row {
   display: flex;
   align-items: center;
@@ -165,6 +169,13 @@
   text-overflow: ellipsis;
   min-width: 0;
   flex: 1 1 auto;
+}
+
+.active-work-section-header {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #1f2933;
+  margin: 0.75rem 0 0.5rem;
 }
 
 .active-work-epic-title-row {
@@ -235,4 +246,24 @@
 
 .week-toggle {
   cursor: pointer;
+}
+
+.completed-epic-group {
+  margin-bottom: 0.75rem;
+}
+
+.completed-epic-header {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-bottom: 0.35rem;
+}
+
+.completed-epic-summary {
+  color: #212529;
+  font-weight: 600;
+  font-size: 0.95rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }

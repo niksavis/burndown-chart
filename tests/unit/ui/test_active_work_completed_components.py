@@ -30,8 +30,10 @@ class TestCreateCompletedItemsSection:
                         ],
                         "is_current": True,
                         "total_issues": 1,
-                        "total_epics": 1,
+                        "total_epics_closed": 1,
+                        "total_epics_linked": 1,
                         "total_points": 3.0,
+                        "epic_groups": [],
                     },
                 ),
                 (
@@ -41,8 +43,10 @@ class TestCreateCompletedItemsSection:
                         "issues": [],
                         "is_current": False,
                         "total_issues": 0,
-                        "total_epics": 0,
+                        "total_epics_closed": 0,
+                        "total_epics_linked": 0,
                         "total_points": 0.0,
+                        "epic_groups": [],
                     },
                 ),
             ]
@@ -88,8 +92,10 @@ class TestCreateCompletedItemsSection:
                         ],
                         "is_current": True,
                         "total_issues": 1,
-                        "total_epics": 1,
+                        "total_epics_closed": 1,
+                        "total_epics_linked": 1,
                         "total_points": 5.0,
+                        "epic_groups": [],
                     },
                 )
             ]
@@ -114,9 +120,11 @@ class TestCreateWeekContainer:
             display_label="Current Week (Feb 3-9)",
             issues=[],
             total_issues=0,
-            total_epics=0,
+            total_epics_closed=0,
+            total_epics_linked=0,
             total_points=0.0,
             is_current=True,
+            epic_groups=[],
             show_points=True,
         )
 
@@ -132,9 +140,11 @@ class TestCreateWeekContainer:
             display_label="Current Week (Feb 3-9)",
             issues=[],
             total_issues=0,
-            total_epics=0,
+            total_epics_closed=0,
+            total_epics_linked=0,
             total_points=0.0,
             is_current=True,
+            epic_groups=[],
             show_points=True,
         )
 
@@ -153,9 +163,11 @@ class TestCreateWeekContainer:
             display_label="Last Week (Jan 27 - Feb 2)",
             issues=[],
             total_issues=0,
-            total_epics=0,
+            total_epics_closed=0,
+            total_epics_linked=0,
             total_points=0.0,
             is_current=False,
+            epic_groups=[],
             show_points=True,
         )
 
@@ -172,9 +184,11 @@ class TestCreateWeekContainer:
             display_label=display_label,
             issues=[],
             total_issues=0,
-            total_epics=0,
+            total_epics_closed=0,
+            total_epics_linked=0,
             total_points=0.0,
             is_current=True,
+            epic_groups=[],
             show_points=True,
         )
 
@@ -190,9 +204,11 @@ class TestCreateWeekContainer:
             display_label="Current Week (Feb 3-9)",
             issues=[],
             total_issues=0,
-            total_epics=0,
+            total_epics_closed=0,
+            total_epics_linked=0,
             total_points=0.0,
             is_current=True,
+            epic_groups=[],
             show_points=True,
         )
 
@@ -226,9 +242,11 @@ class TestCreateWeekContainer:
             display_label="Current Week (Feb 3-9)",
             issues=issues,
             total_issues=2,
-            total_epics=1,
+            total_epics_closed=1,
+            total_epics_linked=1,
             total_points=8.0,
             is_current=True,
+            epic_groups=[],
             show_points=True,
         )
 
@@ -246,9 +264,11 @@ class TestCreateWeekContainer:
             display_label="Current Week (Feb 3-9)",
             issues=[],
             total_issues=0,
-            total_epics=0,
+            total_epics_closed=0,
+            total_epics_linked=0,
             total_points=0.0,
             is_current=True,
+            epic_groups=[],
             show_points=True,
         )
 
@@ -263,9 +283,11 @@ class TestCreateWeekContainer:
             display_label="Current Week (Feb 3-9)",
             issues=[],
             total_issues=5,
-            total_epics=1,
+            total_epics_closed=1,
+            total_epics_linked=1,
             total_points=12.0,
             is_current=True,
+            epic_groups=[],
             show_points=True,
         )
 
@@ -283,9 +305,11 @@ class TestCreateWeekContainer:
             display_label="Current Week (Feb 3-9)",
             issues=[],
             total_issues=5,
-            total_epics=1,
+            total_epics_closed=1,
+            total_epics_linked=1,
             total_points=12.0,
             is_current=True,
+            epic_groups=[],
             show_points=False,
         )
 

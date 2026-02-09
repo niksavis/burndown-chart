@@ -16,6 +16,7 @@ from ui.active_work_components import (
     create_compact_issue_row,
     create_status_indicator_badge,
 )
+from ui.jira_link_helper import create_jira_issue_link
 
 
 def create_completed_items_section(
@@ -44,9 +45,11 @@ def create_completed_items_section(
             display_label=week_data["display_label"],
             issues=week_data["issues"],
             total_issues=week_data["total_issues"],
-            total_epics=week_data.get("total_epics", 0),
+            total_epics_closed=week_data.get("total_epics_closed", 0),
+            total_epics_linked=week_data.get("total_epics_linked", 0),
             total_points=week_data["total_points"],
             is_current=week_data["is_current"],
+            epic_groups=week_data.get("epic_groups", []),
             show_points=show_points,
         )
         week_containers.append(container)
@@ -63,9 +66,11 @@ def create_week_container(
     display_label: str,
     issues: List[Dict],
     total_issues: int,
-    total_epics: int,
+    total_epics_closed: int,
+    total_epics_linked: int,
     total_points: float,
     is_current: bool,
+    epic_groups: List[Dict],
     show_points: bool = False,
 ) -> html.Details:
     """Create collapsible week container for completed items.
@@ -78,8 +83,11 @@ def create_week_container(
         display_label: Formatted display label (e.g., "Current Week (Feb 3-9)")
         issues: List of completed issues in this week
         total_issues: Total issue count
+        total_epics_closed: Total completed epic count
+        total_epics_linked: Total linked epic count
         total_points: Total story points
         is_current: Whether this is the current week
+        epic_groups: Grouped issues by epic
         show_points: Whether to show story points
 
     Returns:
@@ -88,9 +96,9 @@ def create_week_container(
     # Badges
     status_badge = create_status_indicator_badge("done", "#28a745")
     epic_count_badge = html.Span(
-        f"{total_epics}",
-        className="active-work-count-badge",
-        title="Epics",
+        f"{total_epics_closed}",
+        className="active-work-count-badge completed-epic-count-badge",
+        title="Closed Epics",
     )
     issue_count_badge = create_issue_count_badge(total_issues)
     points_badge = create_points_badge(total_points, show_points)
@@ -98,7 +106,14 @@ def create_week_container(
     # Create issue rows
     issue_rows = []
     if issues:
-        issue_rows = [create_compact_issue_row(issue, show_points) for issue in issues]
+        if epic_groups:
+            issue_rows = [
+                _create_epic_group_section(group, show_points) for group in epic_groups
+            ]
+        else:
+            issue_rows = [
+                create_compact_issue_row(issue, show_points) for issue in issues
+            ]
     else:
         issue_rows = [html.P("No items completed this week", className="text-muted")]
 
@@ -130,7 +145,7 @@ def create_week_container(
                                 html.Span(
                                     [
                                         html.I(className="fas fa-flag me-1"),
-                                        f"{total_epics} Epic{'s' if total_epics != 1 else ''}",
+                                        f"{total_epics_linked} Epic{'s' if total_epics_linked != 1 else ''}",
                                     ],
                                     className="badge bg-secondary me-2",
                                 ),
@@ -154,7 +169,7 @@ def create_week_container(
                     html.H6(
                         [
                             html.I(className="fas fa-check me-1"),
-                            f"Completed ({total_issues} issues, {total_epics} epics)",
+                            f"Completed ({total_issues} issues, {total_epics_closed} epics)",
                         ],
                         className="text-success mb-2 mt-2",
                         style={"fontSize": "0.9rem"},
@@ -167,4 +182,51 @@ def create_week_container(
         open=False,  # Collapsed by default
         className=f"card mb-3 shadow-sm active-work-epic-card week-container week-{'current' if is_current else 'last'}",
         id=f"week-{week_label}",
+    )
+
+
+def _create_epic_group_section(group: Dict, show_points: bool) -> html.Div:
+    """Create a mini epic header with child issues.
+
+    Args:
+        group: Epic group dict with epic_key, epic_summary, issues
+        show_points: Whether to show story points
+
+    Returns:
+        Div containing epic header and its issues
+    """
+    epic_key = group.get("epic_key")
+    epic_summary = group.get("epic_summary", "Other")
+    issues = group.get("issues", [])
+
+    epic_key_badge = None
+    if epic_key and epic_key != "No Parent":
+        epic_key_badge = create_jira_issue_link(
+            epic_key,
+            text=epic_key,
+            className="active-work-key-badge",
+        )
+
+    issue_rows = [create_compact_issue_row(issue, show_points) for issue in issues]
+
+    return html.Div(
+        [
+            html.Div(
+                [
+                    epic_key_badge
+                    if epic_key_badge
+                    else html.Span(
+                        epic_key or "No Parent",
+                        className="active-work-key-badge",
+                    ),
+                    html.Span(
+                        epic_summary,
+                        className="completed-epic-summary",
+                    ),
+                ],
+                className="completed-epic-header",
+            ),
+            html.Div(issue_rows, className="ms-3"),
+        ],
+        className="completed-epic-group",
     )
