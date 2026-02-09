@@ -1,5 +1,26 @@
 # Changelog
 
+## v2.10.0
+
+*Released: 2026-02-09*
+
+### Features
+
+- **Sprint Tracker Sorting**: Sprint progress bars now sort issues by health priority (blocked → aging → active → todo → completed) with completed issues ordered by completion time, showing recently completed items first
+- **Active Work Completed Items**: Active Work timeline displays completed epics and issues grouped by week with completion counts and progress metrics
+- **Epic Grouping**: Active Work timeline groups issues under their parent epics with improved visual hierarchy and standalone epic support
+
+### Improvements
+
+- Sprint Scope Changes legend uses click-to-show tooltips for better usability
+- Completed items UI enhanced with status icons and week-based organization
+- Epic counts and issue counts shown for each completed week
+
+### Documentation
+
+- Aligned agent guidance with Beads v0.49.6 workflow
+- Removed spec-kit tooling and reorganized documentation
+
 ## v2.9.3
 
 *Released: 2026-02-07*
