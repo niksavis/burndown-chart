@@ -93,12 +93,19 @@ def create_week_container(
     Returns:
         Details element with collapsible week content
     """
+    # Calculate assignee count
+    assignees = set()
+    for issue in issues:
+        assignee = issue.get("assignee")
+        if assignee:
+            assignees.add(assignee)
+    assignee_count = len(assignees)
+
     # Badges
     status_badge = create_status_indicator_badge("done", "#28a745")
     epic_count_badge = html.Span(
         f"{total_epics_closed}",
         className="active-work-count-badge completed-epic-count-badge",
-        title="Closed Epics",
     )
     issue_count_badge = create_issue_count_badge(total_issues)
     points_badge = create_points_badge(total_points, show_points)
@@ -133,6 +140,17 @@ def create_week_container(
                                     display_label,
                                     className="active-work-epic-summary",
                                 ),
+                                # Assignee count badge (if more than 1 person)
+                                html.Span(
+                                    [
+                                        html.I(className="fas fa-users me-1"),
+                                        str(assignee_count),
+                                    ],
+                                    className="badge bg-info text-dark me-2",
+                                    style={"fontSize": "0.75rem"},
+                                )
+                                if assignee_count > 0
+                                else None,
                                 html.Span(
                                     "▾",
                                     className="active-work-epic-arrow",
@@ -198,6 +216,7 @@ def _create_epic_group_section(group: Dict, show_points: bool) -> html.Div:
     epic_key = group.get("epic_key")
     epic_summary = group.get("epic_summary", "Other")
     issues = group.get("issues", [])
+    item_count = len(issues)
 
     epic_key_badge = None
     if epic_key and epic_key != "No Parent":
@@ -213,6 +232,11 @@ def _create_epic_group_section(group: Dict, show_points: bool) -> html.Div:
         [
             html.Div(
                 [
+                    # Purple epic flag icon
+                    html.I(
+                        className="fas fa-flag me-2",
+                        style={"color": "#6f42c1", "fontSize": "0.85rem"},
+                    ),
                     epic_key_badge
                     if epic_key_badge
                     else html.Span(
@@ -222,6 +246,16 @@ def _create_epic_group_section(group: Dict, show_points: bool) -> html.Div:
                     html.Span(
                         epic_summary,
                         className="completed-epic-summary",
+                    ),
+                    # Item count
+                    html.Span(
+                        f"{item_count} item{'s' if item_count != 1 else ''}",
+                        className="ms-2",
+                        style={
+                            "fontSize": "0.8rem",
+                            "fontStyle": "italic",
+                            "color": "#17a2b8",
+                        },
                     ),
                 ],
                 className="completed-epic-header",

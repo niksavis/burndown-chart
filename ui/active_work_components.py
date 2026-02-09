@@ -177,6 +177,13 @@ def create_active_work_legend(
             autohide=True,
         ),
         dbc.Tooltip(
+            "Number of team members who completed work in the week",
+            target="legend-assignee-count",
+            placement="top",
+            trigger="click",
+            autohide=True,
+        ),
+        dbc.Tooltip(
             "Story points for the epic or issue",
             target="legend-points",
             placement="top",
@@ -332,6 +339,15 @@ def create_active_work_legend(
                     "12",
                     className="active-work-count-badge me-2 active-work-legend-muted",
                     id="legend-issue-count",
+                ),
+                html.Span(
+                    [
+                        html.I(className="fas fa-users me-1"),
+                        "5",
+                    ],
+                    className="badge bg-info text-dark me-2 active-work-legend-muted",
+                    style={"fontSize": "0.75rem"},
+                    id="legend-assignee-count",
                 ),
                 html.Span(
                     "25",
