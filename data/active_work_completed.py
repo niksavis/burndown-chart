@@ -272,6 +272,7 @@ def _group_issues_by_epic(
     Args:
         issues: Issues to group (parents already filtered out)
         parent_field: Field name for parent/epic
+        all_issues: All issues for epic summary lookup
 
     Returns:
         List of groups with epic_key, epic_summary, and issues
@@ -279,6 +280,21 @@ def _group_issues_by_epic(
     grouped = OrderedDict()
 
     for issue in issues:
+        issue_type = issue.get("issue_type", "").lower()
+        issue_key = issue.get("issue_key") or issue.get("key")
+
+        # If this issue is an epic itself, create a group for it with 0 child items
+        if "epic" in issue_type and issue_key:
+            if issue_key not in grouped:
+                grouped[issue_key] = {
+                    "epic_key": issue_key,
+                    "epic_summary": issue.get("summary", issue_key),
+                    "issues": [],
+                }
+            # Don't add the epic to its own issues list
+            continue
+
+        # Regular issue - group by parent
         epic_key, epic_summary = _get_parent_info(issue, parent_field, all_issues)
         if not epic_key:
             epic_key = "No Parent"

@@ -228,39 +228,42 @@ def _create_epic_group_section(group: Dict, show_points: bool) -> html.Div:
 
     issue_rows = [create_compact_issue_row(issue, show_points) for issue in issues]
 
+    # Build header children list explicitly
+    header_children = [
+        # Purple epic flag icon
+        html.I(
+            className="fas fa-flag me-2",
+            style={"color": "#6f42c1", "fontSize": "0.85rem"},
+        ),
+        epic_key_badge
+        if epic_key_badge
+        else html.Span(
+            epic_key or "No Parent",
+            className="active-work-key-badge",
+        ),
+        html.Span(
+            epic_summary,
+            className="completed-epic-summary",
+        ),
+        # Item count - always shown
+        html.Span(
+            f"{item_count} item{'s' if item_count != 1 else ''}",
+            className="ms-2",
+            style={
+                "fontSize": "0.8rem",
+                "fontStyle": "italic",
+                "color": "#17a2b8",
+            },
+        ),
+    ]
+
     return html.Div(
         [
             html.Div(
-                [
-                    # Purple epic flag icon
-                    html.I(
-                        className="fas fa-flag me-2",
-                        style={"color": "#6f42c1", "fontSize": "0.85rem"},
-                    ),
-                    epic_key_badge
-                    if epic_key_badge
-                    else html.Span(
-                        epic_key or "No Parent",
-                        className="active-work-key-badge",
-                    ),
-                    html.Span(
-                        epic_summary,
-                        className="completed-epic-summary",
-                    ),
-                    # Item count
-                    html.Span(
-                        f"{item_count} item{'s' if item_count != 1 else ''}",
-                        className="ms-2",
-                        style={
-                            "fontSize": "0.8rem",
-                            "fontStyle": "italic",
-                            "color": "#17a2b8",
-                        },
-                    ),
-                ],
+                header_children,
                 className="completed-epic-header",
             ),
-            html.Div(issue_rows, className="ms-3"),
+            html.Div(issue_rows, className="ms-4"),
         ],
         className="completed-epic-group",
     )
