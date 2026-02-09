@@ -12,6 +12,8 @@ import dash_bootstrap_components as dbc
 
 logger = logging.getLogger(__name__)
 
+logger = logging.getLogger(__name__)
+
 
 def _render_active_work_timeline_content(
     show_points: bool = False, data_points_count: int = 30
@@ -145,6 +147,20 @@ def _render_active_work_timeline_content(
 
         logger.info(f"Found {len(timeline)} epics with {total_issues} total issues")
 
+        # Get recently completed items by week
+        from data.active_work_completed import get_completed_items_by_week
+        from ui.active_work_completed_components import create_completed_items_section
+
+        completed_by_week = get_completed_items_by_week(
+            issues=issues,
+            flow_end_statuses=flow_end_statuses if flow_end_statuses else None,
+            n_weeks=2,  # Current week + last week
+        )
+
+        completed_section = create_completed_items_section(
+            completed_by_week, show_points=show_points
+        )
+
         # Create nested epic timeline
         summary_text = (
             f"Showing {len(timeline)} epics with {total_issues} issues "
@@ -157,6 +173,7 @@ def _render_active_work_timeline_content(
             show_points,
             parent_field_configured,
             summary_text,
+            completed_section=completed_section,  # Insert between legend and epics
         )
 
         # Assemble layout
@@ -164,7 +181,7 @@ def _render_active_work_timeline_content(
             [
                 dbc.Container(
                     [
-                        # Nested epic timeline
+                        # Nested epic timeline (includes legend, completed items, and epics)
                         timeline_content,
                     ],
                     fluid=True,
