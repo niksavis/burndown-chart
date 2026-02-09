@@ -215,3 +215,24 @@
 .active-work-epic-progress .progress-bar.bg-success {
   background: linear-gradient(90deg, #2ca7b8, #3bbf9a);
 }
+
+/* Completed Items Section */
+.completed-items-section {
+  margin-bottom: 1rem;
+}
+
+.week-container {
+  border-left: 3px solid #28a745;
+}
+
+.week-container.week-current {
+  border-left-color: #20c997;
+}
+
+.week-container.week-last {
+  border-left-color: #6c757d;
+}
+
+.week-toggle {
+  cursor: pointer;
+}
