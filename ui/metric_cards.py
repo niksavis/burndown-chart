@@ -1309,6 +1309,48 @@ def _create_success_card(
             className="mb-3",
         )
         card_body_children.append(blend_section)
+    elif blend_metadata and not blend_metadata.get("is_blended"):
+        # Weekend (Fri-Sun): Using 100% actual data, no blending needed
+        day_name = blend_metadata.get("day_name", "Today")
+        blend_placeholder = html.Div(
+            [
+                html.Hr(className="my-2"),
+                html.Div(
+                    [
+                        html.I(className="fas fa-check-circle me-2 text-success"),
+                        html.Small(
+                            f"Using actual data ({day_name})",
+                            className="text-muted fst-italic",
+                        ),
+                    ],
+                    className="text-center",
+                    style={"fontSize": "0.8rem"},
+                ),
+            ],
+            className="mb-3",
+        )
+        card_body_children.append(blend_placeholder)
+    elif forecast_data and not blend_metadata:
+        # Forecast exists but blending not available (insufficient historical data for blending)
+        weeks_count = len(weekly_values) if weekly_values else 0
+        blend_placeholder = html.Div(
+            [
+                html.Hr(className="my-2"),
+                html.Div(
+                    [
+                        html.I(className="fas fa-info-circle me-2 text-muted"),
+                        html.Small(
+                            f"Blending requires 2+ weeks of data (have {weeks_count})",
+                            className="text-muted fst-italic",
+                        ),
+                    ],
+                    className="text-center",
+                    style={"fontSize": "0.8rem"},
+                ),
+            ],
+            className="mb-3",
+        )
+        card_body_children.append(blend_placeholder)
 
     # Add optional text details (e.g., baseline comparisons for budget cards)
     if text_details:

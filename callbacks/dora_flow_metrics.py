@@ -330,40 +330,34 @@ def load_and_display_dora_metrics(
 
         if lead_time_weekly_values and len(lead_time_weekly_values) >= 2:
             current_week_actual = lead_time_weekly_values[-1]
-            if current_week_actual > 0:  # Only blend if we have data
-                prior_weeks = [v for v in lead_time_weekly_values[:-1] if v > 0]
-                forecast_weeks = (
-                    prior_weeks[-4:] if len(prior_weeks) >= 4 else prior_weeks
-                )
+            # Calculate forecast from prior weeks (exclude current week, filter zeros)
+            prior_weeks = [v for v in lead_time_weekly_values[:-1] if v > 0]
+            forecast_weeks = prior_weeks[-4:] if len(prior_weeks) >= 4 else prior_weeks
 
-                if len(forecast_weeks) >= 2:
-                    try:
-                        forecast_data = calculate_forecast(forecast_weeks)
-                        forecast_value = (
-                            forecast_data.get("forecast_value", 0)
-                            if forecast_data
-                            else 0
+            if len(forecast_weeks) >= 2:
+                try:
+                    forecast_data = calculate_forecast(forecast_weeks)
+                    forecast_value = (
+                        forecast_data.get("forecast_value", 0) if forecast_data else 0
+                    )
+
+                    if forecast_value > 0:
+                        blended_value = calculate_current_week_blend(
+                            current_week_actual, forecast_value
                         )
+                        lead_time_blend_metadata = get_blend_metadata(
+                            current_week_actual, forecast_value
+                        )
+                        # Create adjusted array (copy + replace last value)
+                        lead_time_weekly_values_adjusted = list(lead_time_weekly_values)
+                        lead_time_weekly_values_adjusted[-1] = blended_value
 
-                        if forecast_value > 0:
-                            blended_value = calculate_current_week_blend(
-                                current_week_actual, forecast_value
-                            )
-                            lead_time_blend_metadata = get_blend_metadata(
-                                current_week_actual, forecast_value
-                            )
-                            # Create adjusted array (copy + replace last value)
-                            lead_time_weekly_values_adjusted = list(
-                                lead_time_weekly_values
-                            )
-                            lead_time_weekly_values_adjusted[-1] = blended_value
-
-                            logger.info(
-                                f"[Blending] Lead Time - Actual: {current_week_actual:.1f}, "
-                                f"Forecast: {forecast_value:.1f}, Blended: {blended_value:.1f}"
-                            )
-                    except Exception as e:
-                        logger.warning(f"Failed to blend lead time: {e}")
+                        logger.info(
+                            f"[Blending] Lead Time - Actual: {current_week_actual:.1f}, "
+                            f"Forecast: {forecast_value:.1f}, Blended: {blended_value:.1f}"
+                        )
+                except Exception as e:
+                    logger.warning(f"Failed to blend lead time: {e}")
 
         # ========================================================================
         # MTTR BLENDING (Time-based median)
@@ -376,38 +370,34 @@ def load_and_display_dora_metrics(
 
         if mttr_weekly_values and len(mttr_weekly_values) >= 2:
             current_week_actual = mttr_weekly_values[-1]
-            if current_week_actual > 0:  # Only blend if we have data
-                prior_weeks = [v for v in mttr_weekly_values[:-1] if v > 0]
-                forecast_weeks = (
-                    prior_weeks[-4:] if len(prior_weeks) >= 4 else prior_weeks
-                )
+            # Calculate forecast from prior weeks (exclude current week, filter zeros)
+            prior_weeks = [v for v in mttr_weekly_values[:-1] if v > 0]
+            forecast_weeks = prior_weeks[-4:] if len(prior_weeks) >= 4 else prior_weeks
 
-                if len(forecast_weeks) >= 2:
-                    try:
-                        forecast_data = calculate_forecast(forecast_weeks)
-                        forecast_value = (
-                            forecast_data.get("forecast_value", 0)
-                            if forecast_data
-                            else 0
+            if len(forecast_weeks) >= 2:
+                try:
+                    forecast_data = calculate_forecast(forecast_weeks)
+                    forecast_value = (
+                        forecast_data.get("forecast_value", 0) if forecast_data else 0
+                    )
+
+                    if forecast_value > 0:
+                        blended_value = calculate_current_week_blend(
+                            current_week_actual, forecast_value
                         )
+                        mttr_blend_metadata = get_blend_metadata(
+                            current_week_actual, forecast_value
+                        )
+                        # Create adjusted array (copy + replace last value)
+                        mttr_weekly_values_adjusted = list(mttr_weekly_values)
+                        mttr_weekly_values_adjusted[-1] = blended_value
 
-                        if forecast_value > 0:
-                            blended_value = calculate_current_week_blend(
-                                current_week_actual, forecast_value
-                            )
-                            mttr_blend_metadata = get_blend_metadata(
-                                current_week_actual, forecast_value
-                            )
-                            # Create adjusted array (copy + replace last value)
-                            mttr_weekly_values_adjusted = list(mttr_weekly_values)
-                            mttr_weekly_values_adjusted[-1] = blended_value
-
-                            logger.info(
-                                f"[Blending] MTTR - Actual: {current_week_actual:.1f}, "
-                                f"Forecast: {forecast_value:.1f}, Blended: {blended_value:.1f}"
-                            )
-                    except Exception as e:
-                        logger.warning(f"Failed to blend MTTR: {e}")
+                        logger.info(
+                            f"[Blending] MTTR - Actual: {current_week_actual:.1f}, "
+                            f"Forecast: {forecast_value:.1f}, Blended: {blended_value:.1f}"
+                        )
+                except Exception as e:
+                    logger.warning(f"Failed to blend MTTR: {e}")
 
         # Import tier calculation function
         from data.dora_metrics import (
@@ -908,38 +898,34 @@ def calculate_and_display_flow_metrics(
         flow_time_blend_metadata = None
         if flow_time_values and len(flow_time_values) >= 2:
             current_week_actual = flow_time_values[-1]
-            if current_week_actual > 0:  # Only blend if we have data
-                prior_weeks = [v for v in flow_time_values[:-1] if v > 0]
-                forecast_weeks = (
-                    prior_weeks[-4:] if len(prior_weeks) >= 4 else prior_weeks
-                )
+            # Calculate forecast from prior weeks (exclude current week, filter zeros)
+            prior_weeks = [v for v in flow_time_values[:-1] if v > 0]
+            forecast_weeks = prior_weeks[-4:] if len(prior_weeks) >= 4 else prior_weeks
 
-                if len(forecast_weeks) >= 2:
-                    try:
-                        forecast_data = calculate_forecast(forecast_weeks)
-                        forecast_value = (
-                            forecast_data.get("forecast_value", 0)
-                            if forecast_data
-                            else 0
+            if len(forecast_weeks) >= 2:
+                try:
+                    forecast_data = calculate_forecast(forecast_weeks)
+                    forecast_value = (
+                        forecast_data.get("forecast_value", 0) if forecast_data else 0
+                    )
+
+                    if forecast_value > 0:
+                        blended_value = calculate_current_week_blend(
+                            current_week_actual, forecast_value
                         )
+                        flow_time_blend_metadata = get_blend_metadata(
+                            current_week_actual, forecast_value
+                        )
+                        # Create adjusted array (copy + replace last value)
+                        flow_time_values_adjusted = list(flow_time_values)
+                        flow_time_values_adjusted[-1] = blended_value
 
-                        if forecast_value > 0:
-                            blended_value = calculate_current_week_blend(
-                                current_week_actual, forecast_value
-                            )
-                            flow_time_blend_metadata = get_blend_metadata(
-                                current_week_actual, forecast_value
-                            )
-                            # Create adjusted array (copy + replace last value)
-                            flow_time_values_adjusted = list(flow_time_values)
-                            flow_time_values_adjusted[-1] = blended_value
-
-                            logger.info(
-                                f"[Blending] Flow Time - Actual: {current_week_actual:.1f}, "
-                                f"Forecast: {forecast_value:.1f}, Blended: {blended_value:.1f}"
-                            )
-                    except Exception as e:
-                        logger.warning(f"Failed to blend flow time: {e}")
+                        logger.info(
+                            f"[Blending] Flow Time - Actual: {current_week_actual:.1f}, "
+                            f"Forecast: {forecast_value:.1f}, Blended: {blended_value:.1f}"
+                        )
+                except Exception as e:
+                    logger.warning(f"Failed to blend flow time: {e}")
 
         # AGGREGATE Flow metrics across selected period (like DORA)
         # Flow Velocity: Average items/week across period
