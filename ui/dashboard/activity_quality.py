@@ -10,6 +10,9 @@ predictability for effective project management and forecasting.
 
 from __future__ import annotations
 
+import logging
+from typing import Any, Optional
+
 import pandas as pd
 from dash import html
 import dash_bootstrap_components as dbc
@@ -18,6 +21,9 @@ from ui.metric_cards import create_metric_card as create_professional_metric_car
 from ui.styles import create_metric_card_header
 from ui.tooltip_utils import create_info_tooltip
 from ui.style_constants import COLOR_PALETTE
+
+
+logger = logging.getLogger(__name__)
 
 
 def safe_divide(numerator, denominator, default=0):
@@ -29,7 +35,9 @@ def safe_divide(numerator, denominator, default=0):
 
 
 def create_recent_activity_section(
-    statistics_df: pd.DataFrame, show_points: bool = True
+    statistics_df: pd.DataFrame,
+    show_points: bool = True,
+    additional_context: Optional[dict[str, Any]] = None,
 ) -> html.Div:
     """Create compact recent performance section showing completed items clearly.
 
@@ -69,6 +77,103 @@ def create_recent_activity_section(
         recent_data["completed_points"].tolist() if has_points_data else [0, 0, 0, 0]
     )
 
+    # PROGRESSIVE BLENDING: Calculate blend_metadata for current week (Feature bd-a1vn)
+    items_blend_metadata = None
+    points_blend_metadata = None
+
+    if (
+        additional_context
+        and additional_context.get("current_week_label")
+        and len(recent_data) >= 2
+    ):
+        from data.metrics.blending import get_blend_metadata
+        from data.metrics_calculator import calculate_forecast
+
+        # Check if last week in recent_data is the current week
+        last_week_label = (
+            recent_data.index[-1]
+            if hasattr(recent_data, "index") and len(recent_data.index) > 0
+            else None
+        )
+        current_week_label = additional_context["current_week_label"]
+
+        if last_week_label == current_week_label:
+            # Current week is in recent data - apply blending
+            items_values = items_sparkline_values.copy()
+
+            if len(items_values) >= 2:
+                current_week_actual = items_values[-1]
+                prior_weeks = items_values[:-1]
+                forecast_weeks = (
+                    prior_weeks[-4:] if len(prior_weeks) >= 4 else prior_weeks
+                )
+
+                # Calculate items forecast
+                if len(forecast_weeks) >= 2:
+                    try:
+                        forecast_weeks_float = [float(v) for v in forecast_weeks]
+                        forecast_data = calculate_forecast(forecast_weeks_float)
+                        forecast_value = (
+                            forecast_data.get("forecast_value", 0)
+                            if forecast_data
+                            else 0
+                        )
+
+                        if forecast_value > 0:
+                            items_blend_metadata = get_blend_metadata(
+                                current_week_actual, forecast_value
+                            )
+                            logger.info(
+                                f"[Blending-RecentCompletions-Items] Actual: {current_week_actual:.1f}, "
+                                f"Forecast: {forecast_value:.1f}, "
+                                f"Blended: {items_blend_metadata['blended']:.1f}"
+                            )
+                    except Exception as e:
+                        logger.warning(
+                            f"Failed to calculate items forecast for recent completions blending: {e}"
+                        )
+
+            # Calculate points blend metadata
+            if has_points_data and show_points:
+                points_values = points_sparkline_values.copy()
+
+                if len(points_values) >= 2:
+                    current_week_actual_pts = points_values[-1]
+                    prior_weeks_pts = points_values[:-1]
+                    forecast_weeks_pts = (
+                        prior_weeks_pts[-4:]
+                        if len(prior_weeks_pts) >= 4
+                        else prior_weeks_pts
+                    )
+
+                    if len(forecast_weeks_pts) >= 2:
+                        try:
+                            forecast_weeks_pts_float = [
+                                float(v) for v in forecast_weeks_pts
+                            ]
+                            forecast_data_pts = calculate_forecast(
+                                forecast_weeks_pts_float
+                            )
+                            forecast_value_pts = (
+                                forecast_data_pts.get("forecast_value", 0)
+                                if forecast_data_pts
+                                else 0
+                            )
+
+                            if forecast_value_pts > 0:
+                                points_blend_metadata = get_blend_metadata(
+                                    current_week_actual_pts, forecast_value_pts
+                                )
+                                logger.info(
+                                    f"[Blending-RecentCompletions-Points] Actual: {current_week_actual_pts:.1f}, "
+                                    f"Forecast: {forecast_value_pts:.1f}, "
+                                    f"Blended: {points_blend_metadata['blended']:.1f}"
+                                )
+                        except Exception as e:
+                            logger.warning(
+                                f"Failed to calculate points forecast for recent completions blending: {e}"
+                            )
+
     # Create metric cards for Recent Completions
     items_cards = [
         create_professional_metric_card(
@@ -89,13 +194,14 @@ def create_recent_activity_section(
                 "value": avg_items_weekly,
                 "unit": "items/week",
                 "_n_weeks": recent_window,
-                "tooltip": f"Average items completed per week over the last {recent_window} weeks. Indicates current team velocity.",
+                "tooltip": f"Average items completed per week over the last {recent_window} weeks. Indicates current team velocity. Progressive blending is applied to the current week to smooth Monday reliability drops.",
                 "error_state": "success",
                 "total_issue_count": 0,
                 "weekly_values": items_sparkline_values,
                 "weekly_labels": [
                     f"W{i + 1}" for i in range(len(items_sparkline_values))
                 ],
+                "blend_metadata": items_blend_metadata,  # Progressive blending (bd-a1vn)
             },
             show_details_button=False,
         ),
@@ -123,13 +229,14 @@ def create_recent_activity_section(
                     "value": avg_points_weekly,
                     "unit": "points/week",
                     "_n_weeks": recent_window,
-                    "tooltip": f"Average story points completed per week over the last {recent_window} weeks. Indicates current team velocity in terms of story points.",
+                    "tooltip": f"Average story points completed per week over the last {recent_window} weeks. Indicates current team velocity in terms of story points. Progressive blending is applied to the current week to smooth Monday reliability drops.",
                     "error_state": "success",
                     "total_issue_count": 0,
                     "weekly_values": points_sparkline_values,
                     "weekly_labels": [
                         f"W{i + 1}" for i in range(len(points_sparkline_values))
                     ],
+                    "blend_metadata": points_blend_metadata,  # Progressive blending (bd-a1vn)
                 },
                 show_details_button=False,
             ),

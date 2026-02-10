@@ -354,7 +354,9 @@ def create_comprehensive_dashboard(
                 additional_context,
             ),
             # Recent Completions Section - uses unfiltered data for consistent 4-week view
-            create_recent_activity_section(statistics_df_unfiltered, show_points),
+            create_recent_activity_section(
+                statistics_df_unfiltered, show_points, additional_context
+            ),
             # Delivery Forecast Section
             create_forecast_analytics_section(
                 forecast_data,

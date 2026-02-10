@@ -984,7 +984,6 @@ def calculate_and_display_flow_metrics(
                     "Technical Debt": tech_debt_count,
                     "Risk": risk_count,
                 },
-                "blend_metadata": blend_metadata,  # Progressive blending metadata (bd-a1vn)
             },
             "flow_time": {
                 "metric_name": "flow_time",
