@@ -415,6 +415,7 @@ def _create_detailed_chart(
     display_name: str,
     weekly_labels: List[str],
     weekly_values: List[float],
+    weekly_values_adjusted: Optional[List[float]],
     metric_data: Dict[str, Any],
     sparkline_color: str,
 ) -> Any:
@@ -429,6 +430,7 @@ def _create_detailed_chart(
         display_name: Display name for chart title
         weekly_labels: Week labels
         weekly_values: Primary metric values
+        weekly_values_adjusted: Optional adjusted values for current week blending
         metric_data: Full metric data dict with potential weekly_release_values
         sparkline_color: Color for the chart
 
@@ -446,6 +448,7 @@ def _create_detailed_chart(
     # Special case 1: deployment_frequency with release tracking
     if metric_name == "deployment_frequency" and "weekly_release_values" in metric_data:
         weekly_release_values = metric_data.get("weekly_release_values", [])
+        adjusted_deployment_values = weekly_values_adjusted
 
         # Use performance tier color already calculated from overall metric value
         # (Don't recalculate based on latest week - use the metric_data color)
@@ -463,6 +466,7 @@ def _create_detailed_chart(
             week_labels=weekly_labels,
             deployment_values=weekly_values,
             release_values=weekly_release_values,
+            adjusted_deployment_values=adjusted_deployment_values,
             height=250,
             show_axes=True,
             primary_color=primary_color,  # Dynamic color based on performance
@@ -500,6 +504,7 @@ def _create_detailed_chart(
         return create_metric_trend_full(
             week_labels=weekly_labels,
             values=weekly_values,
+            adjusted_values=weekly_values_adjusted,
             metric_name=metric_name,  # Use internal name for zone matching
             unit=metric_data.get("unit", ""),
             height=250,
@@ -593,6 +598,7 @@ def _create_detailed_chart(
         return create_metric_trend_sparkline(
             week_labels=weekly_labels,
             values=weekly_values,
+            adjusted_values=weekly_values_adjusted,
             metric_name=display_name,
             unit=metric_data.get("unit", ""),
             height=200,

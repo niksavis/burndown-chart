@@ -321,6 +321,39 @@ class TestUIIntegration:
         # Verify card creation
         assert card is not None
 
+    def test_detailed_chart_includes_adjusted_line(self):
+        """Verify adjusted values render as a separate line when provided."""
+        from ui.metric_cards import _create_detailed_chart
+
+        weekly_labels = [
+            "2026-W06",
+            "2026-W07",
+            "2026-W08",
+            "2026-W09",
+            "2026-W10",
+        ]
+        weekly_values = [10.0, 11.0, 12.0, 13.0, 2.0]
+        weekly_values_adjusted = [10.0, 11.0, 12.0, 13.0, 9.6]
+        metric_data = {
+            "metric_name": "flow_velocity",
+            "unit": "items/week",
+            "performance_tier_color": "green",
+        }
+
+        chart = _create_detailed_chart(
+            metric_name="flow_velocity",
+            display_name="Flow Velocity",
+            weekly_labels=weekly_labels,
+            weekly_values=weekly_values,
+            weekly_values_adjusted=weekly_values_adjusted,
+            metric_data=metric_data,
+            sparkline_color="#198754",
+        )
+
+        figure = chart.figure
+        assert figure is not None
+        assert len(figure["data"]) == 2
+
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

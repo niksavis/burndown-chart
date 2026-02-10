@@ -164,6 +164,7 @@ def create_metric_trend_sparkline(
     week_labels: List[str],
     values: List[float],
     metric_name: str,
+    adjusted_values: Optional[List[float]] = None,
     unit: str = "",
     height: int = 80,
     show_axes: bool = False,
@@ -176,6 +177,7 @@ def create_metric_trend_sparkline(
         week_labels: List of week labels (e.g., ["2025-W43", "2025-W44", ...])
         values: List of metric values corresponding to each week
         metric_name: Name of the metric (for accessibility)
+        adjusted_values: Optional adjusted values for blended current week
         unit: Unit of measurement (for tooltip)
         height: Height of chart in pixels (default: 80)
         show_axes: Whether to show axis labels (default: False for sparkline)
@@ -229,10 +231,23 @@ def create_metric_trend_sparkline(
         name=metric_name,
     )
 
+    adjusted_trace = None
+    if adjusted_values and len(adjusted_values) == len(week_labels):
+        adjusted_trace = go.Scatter(
+            x=week_labels,
+            y=adjusted_values,
+            mode="lines+markers",
+            line={"color": color, "width": 2, "dash": "dot"},
+            marker={"size": 5, "color": color, "symbol": "circle-open"},
+            hovertemplate=f"<b>%{{x}}</b><br>Adjusted: %{{y:.2f}} {unit}<extra></extra>",
+            name="Adjusted",
+        )
+
     # Determine y-axis range for better visualization
-    if values:
-        min_val = min(values)
-        max_val = max(values)
+    all_values = values + adjusted_values if adjusted_values else values
+    if all_values:
+        min_val = min(all_values)
+        max_val = max(all_values)
         range_padding = (max_val - min_val) * 0.2 if max_val > min_val else 1
         y_min = min_val - range_padding
         y_max = max_val + range_padding
@@ -281,7 +296,11 @@ def create_metric_trend_sparkline(
         "paper_bgcolor": "white",  # White background for visibility
     }
 
-    figure = {"data": [trace], "layout": layout}
+    chart_traces = [trace]
+    if adjusted_trace is not None:
+        chart_traces.append(adjusted_trace)
+
+    figure = {"data": chart_traces, "layout": layout}
 
     return dcc.Graph(
         figure=figure,
@@ -301,6 +320,7 @@ def create_metric_trend_full(
     week_labels: List[str],
     values: List[float],
     metric_name: str,
+    adjusted_values: Optional[List[float]] = None,
     unit: str = "",
     target_line: Optional[float] = None,
     target_label: str = "Target",
@@ -318,6 +338,7 @@ def create_metric_trend_full(
         week_labels: List of week labels
         values: List of metric values
         metric_name: Name of the metric
+        adjusted_values: Optional adjusted values for blended current week
         unit: Unit of measurement
         target_line: Optional target value to show as horizontal line
         target_label: Label for target line
@@ -358,8 +379,9 @@ def create_metric_trend_full(
         )
 
     # Determine y-axis range
-    min_val = min(values)
-    max_val = max(values)
+    all_values = values + adjusted_values if adjusted_values else values
+    min_val = min(all_values)
+    max_val = max(all_values)
     range_padding = (max_val - min_val) * 0.2 if max_val > min_val else 1
     y_min = max(0, min_val - range_padding)  # Never go below 0
     y_max = max_val + range_padding
@@ -376,6 +398,19 @@ def create_metric_trend_full(
             name=metric_name,
         )
     ]
+
+    if adjusted_values and len(adjusted_values) == len(week_labels):
+        traces.append(
+            go.Scatter(
+                x=week_labels,
+                y=adjusted_values,
+                mode="lines+markers",
+                line={"color": line_color, "width": 2, "dash": "dot"},
+                marker={"size": 6, "color": line_color, "symbol": "circle-open"},
+                hovertemplate=f"<b>%{{x}}</b><br>Adjusted: %{{y:.2f}} {unit}<extra></extra>",
+                name="Adjusted",
+            )
+        )
 
     # Add target line if provided
     if target_line is not None:
@@ -546,6 +581,7 @@ def create_dual_line_trend(
     week_labels: List[str],
     deployment_values: List[float],
     release_values: List[float],
+    adjusted_deployment_values: Optional[List[float]] = None,
     height: int = 250,
     show_axes: bool = True,
     primary_color: str = "#0d6efd",
@@ -637,8 +673,25 @@ def create_dual_line_trend(
         )
     )
 
+    if adjusted_deployment_values and len(adjusted_deployment_values) == len(
+        week_labels
+    ):
+        traces.append(
+            go.Scatter(
+                x=week_labels,
+                y=adjusted_deployment_values,
+                mode="lines+markers",
+                name="Adjusted Deployments",
+                line={"color": secondary_color, "width": 2, "dash": "dash"},
+                marker={"size": 5, "color": secondary_color, "symbol": "circle-open"},
+                hovertemplate="<b>%{x}</b><br>Adjusted: %{y}<extra></extra>",
+            )
+        )
+
     # Determine y-axis range based on both lines
     all_values = deployment_values + release_values
+    if adjusted_deployment_values:
+        all_values += adjusted_deployment_values
     if all_values:
         min_val = min(all_values)
         max_val = max(all_values)

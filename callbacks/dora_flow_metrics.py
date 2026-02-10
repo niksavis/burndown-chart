@@ -284,6 +284,7 @@ def load_and_display_dora_metrics(
         deployment_weekly_values = cached_metrics.get("deployment_frequency", {}).get(
             "weekly_values", []
         )
+        deployment_weekly_values_adjusted = None  # Will store blended values for charts
         deployment_blend_metadata = None
 
         if deployment_weekly_values and len(deployment_weekly_values) >= 2:
@@ -305,7 +306,11 @@ def load_and_display_dora_metrics(
                         deployment_blend_metadata = get_blend_metadata(
                             current_week_actual, forecast_value
                         )
-                        deployment_weekly_values[-1] = blended_value
+                        # Create adjusted array (copy + replace last value)
+                        deployment_weekly_values_adjusted = list(
+                            deployment_weekly_values
+                        )
+                        deployment_weekly_values_adjusted[-1] = blended_value
 
                         logger.info(
                             f"[Blending] Deployment Frequency - Actual: {current_week_actual:.1f}, "
@@ -320,6 +325,7 @@ def load_and_display_dora_metrics(
         lead_time_weekly_values = cached_metrics.get("lead_time_for_changes", {}).get(
             "weekly_values", []
         )
+        lead_time_weekly_values_adjusted = None  # Will store blended values for charts
         lead_time_blend_metadata = None
 
         if lead_time_weekly_values and len(lead_time_weekly_values) >= 2:
@@ -346,7 +352,11 @@ def load_and_display_dora_metrics(
                             lead_time_blend_metadata = get_blend_metadata(
                                 current_week_actual, forecast_value
                             )
-                            lead_time_weekly_values[-1] = blended_value
+                            # Create adjusted array (copy + replace last value)
+                            lead_time_weekly_values_adjusted = list(
+                                lead_time_weekly_values
+                            )
+                            lead_time_weekly_values_adjusted[-1] = blended_value
 
                             logger.info(
                                 f"[Blending] Lead Time - Actual: {current_week_actual:.1f}, "
@@ -361,6 +371,7 @@ def load_and_display_dora_metrics(
         mttr_weekly_values = cached_metrics.get("mean_time_to_recovery", {}).get(
             "weekly_values", []
         )
+        mttr_weekly_values_adjusted = None  # Will store blended values for charts
         mttr_blend_metadata = None
 
         if mttr_weekly_values and len(mttr_weekly_values) >= 2:
@@ -387,7 +398,9 @@ def load_and_display_dora_metrics(
                             mttr_blend_metadata = get_blend_metadata(
                                 current_week_actual, forecast_value
                             )
-                            mttr_weekly_values[-1] = blended_value
+                            # Create adjusted array (copy + replace last value)
+                            mttr_weekly_values_adjusted = list(mttr_weekly_values)
+                            mttr_weekly_values_adjusted[-1] = blended_value
 
                             logger.info(
                                 f"[Blending] MTTR - Actual: {current_week_actual:.1f}, "
@@ -409,9 +422,13 @@ def load_and_display_dora_metrics(
         # Use RELEASE count as primary deployment frequency (unique fixVersions)
         # This represents actual production deployments, not individual operational tasks
         # NOTE: Use blended values if available
+        deployment_weekly_values_for_calc = (
+            deployment_weekly_values_adjusted or deployment_weekly_values
+        )
         deployment_freq_value = (
-            sum(deployment_weekly_values) / len(deployment_weekly_values)
-            if deployment_weekly_values
+            sum(deployment_weekly_values_for_calc)
+            / len(deployment_weekly_values_for_calc)
+            if deployment_weekly_values_for_calc
             else cached_metrics.get("deployment_frequency", {}).get("release_value", 0)
         )
         # Fallback to task count if release_value not available
@@ -433,6 +450,13 @@ def load_and_display_dora_metrics(
         )
 
         lead_time_value = cached_metrics.get("lead_time_for_changes", {}).get("value")
+        lead_time_values_for_calc = (
+            lead_time_weekly_values_adjusted or lead_time_weekly_values
+        )
+        if lead_time_values_for_calc:
+            non_zero_values = [v for v in lead_time_values_for_calc if v > 0]
+            if non_zero_values:
+                lead_time_value = sum(non_zero_values) / len(non_zero_values)
         lead_time_tier = (
             _determine_performance_tier(lead_time_value, LEAD_TIME_TIERS)
             if lead_time_value is not None
@@ -443,6 +467,11 @@ def load_and_display_dora_metrics(
         cfr_tier = _determine_performance_tier(cfr_value, CHANGE_FAILURE_RATE_TIERS)
 
         mttr_value = cached_metrics.get("mean_time_to_recovery", {}).get("value")
+        mttr_values_for_calc = mttr_weekly_values_adjusted or mttr_weekly_values
+        if mttr_values_for_calc:
+            non_zero_values = [v for v in mttr_values_for_calc if v > 0]
+            if non_zero_values:
+                mttr_value = sum(non_zero_values) / len(non_zero_values)
         mttr_tier = (
             _determine_performance_tier(mttr_value, MTTR_TIERS)
             if mttr_value is not None
@@ -469,7 +498,8 @@ def load_and_display_dora_metrics(
                 "weekly_labels": cached_metrics.get("deployment_frequency", {}).get(
                     "weekly_labels", []
                 ),
-                "weekly_values": deployment_weekly_values,  # Use blended values
+                "weekly_values": deployment_weekly_values,  # Raw values for "Actual" line
+                "weekly_values_adjusted": deployment_weekly_values_adjusted,  # Blended values for "Adjusted" line (bd-3pff)
                 "weekly_release_values": cached_metrics.get(
                     "deployment_frequency", {}
                 ).get(
@@ -479,7 +509,7 @@ def load_and_display_dora_metrics(
             },
             "lead_time_for_changes": {
                 "metric_name": "lead_time_for_changes",
-                "value": cached_metrics.get("lead_time_for_changes", {}).get("value"),
+                "value": lead_time_value,
                 "value_hours": cached_metrics.get("lead_time_for_changes", {}).get(
                     "value_hours"
                 ),  # Secondary: hours equivalent
@@ -494,10 +524,7 @@ def load_and_display_dora_metrics(
                 ),  # NEW: Mean lead time
                 "_n_weeks": n_weeks_display,  # For card footer display
                 "unit": "days",  # Footer shows aggregation method and time period
-                "error_state": "success"
-                if cached_metrics.get("lead_time_for_changes", {}).get("value")
-                is not None
-                else "no_data",
+                "error_state": "success" if lead_time_value is not None else "no_data",
                 "performance_tier": lead_time_tier["tier"],
                 "performance_tier_color": lead_time_tier["color"],
                 "total_issue_count": cached_metrics.get(
@@ -507,7 +534,8 @@ def load_and_display_dora_metrics(
                 "weekly_labels": cached_metrics.get("lead_time_for_changes", {}).get(
                     "weekly_labels", []
                 ),
-                "weekly_values": lead_time_weekly_values,  # Use blended values
+                "weekly_values": lead_time_weekly_values,  # Raw values for "Actual" line
+                "weekly_values_adjusted": lead_time_weekly_values_adjusted,  # Blended values for "Adjusted" line (bd-3pff)
                 "blend_metadata": lead_time_blend_metadata,  # NEW: Progressive blending info (bd-3pff)
             },
             "change_failure_rate": {
@@ -539,7 +567,7 @@ def load_and_display_dora_metrics(
             },
             "mean_time_to_recovery": {
                 "metric_name": "mean_time_to_recovery",
-                "value": cached_metrics.get("mean_time_to_recovery", {}).get("value"),
+                "value": mttr_value,
                 "value_hours": cached_metrics.get("mean_time_to_recovery", {}).get(
                     "value_hours"
                 ),  # Secondary: hours equivalent
@@ -554,10 +582,7 @@ def load_and_display_dora_metrics(
                 ),  # NEW: Mean MTTR
                 "_n_weeks": n_weeks_display,  # For card footer display
                 "unit": "hours",  # Footer shows aggregation method and time period
-                "error_state": "success"
-                if cached_metrics.get("mean_time_to_recovery", {}).get("value")
-                is not None
-                else "no_data",
+                "error_state": "success" if mttr_value is not None else "no_data",
                 "performance_tier": mttr_tier["tier"],
                 "performance_tier_color": mttr_tier["color"],
                 "total_issue_count": cached_metrics.get(
@@ -567,7 +592,8 @@ def load_and_display_dora_metrics(
                 "weekly_labels": cached_metrics.get("mean_time_to_recovery", {}).get(
                     "weekly_labels", []
                 ),
-                "weekly_values": mttr_weekly_values,  # Use blended values
+                "weekly_values": mttr_weekly_values,  # Raw values for "Actual" line
+                "weekly_values_adjusted": mttr_weekly_values_adjusted,  # Blended values for "Adjusted" line (bd-3pff)
                 "blend_metadata": mttr_blend_metadata,  # NEW: Progressive blending info (bd-3pff)
             },
         }
@@ -587,7 +613,9 @@ def load_and_display_dora_metrics(
         }
 
         for metric_name in metrics_data.keys():
-            weekly_values = metrics_data[metric_name].get("weekly_values", [])
+            weekly_values = metrics_data[metric_name].get(
+                "weekly_values_adjusted"
+            ) or metrics_data[metric_name].get("weekly_values", [])
             current_value = metrics_data[metric_name].get("value")
             metric_type = metric_type_mapping.get(metric_name, "higher_better")
 
@@ -829,6 +857,7 @@ def calculate_and_display_flow_metrics(
 
         # PROGRESSIVE BLENDING: Apply blending to current week (Feature bd-a1vn)
         # This eliminates Monday reliability drop by blending forecast with actuals
+        velocity_values_adjusted = None  # Will store blended values for charts
         blend_metadata = None
         if velocity_values and len(velocity_values) >= 2:
             # Current week is last item in velocity_values
@@ -860,8 +889,9 @@ def calculate_and_display_flow_metrics(
                 # Get blend metadata for UI display
                 blend_metadata = get_blend_metadata(current_week_actual, forecast_value)
 
-                # Replace current week value with blended value
-                velocity_values[-1] = blended_value
+                # Create adjusted array (copy + replace last value)
+                velocity_values_adjusted = list(velocity_values)
+                velocity_values_adjusted[-1] = blended_value
 
                 logger.info(
                     f"[Blending] Flow Velocity - Actual: {current_week_actual:.1f}, "
@@ -874,6 +904,7 @@ def calculate_and_display_flow_metrics(
                 logger.debug("[Blending] Skipped - insufficient forecast data")
 
         # PROGRESSIVE BLENDING: Apply to Flow Time (Feature bd-3pff)
+        flow_time_values_adjusted = None  # Will store blended values for charts
         flow_time_blend_metadata = None
         if flow_time_values and len(flow_time_values) >= 2:
             current_week_actual = flow_time_values[-1]
@@ -899,7 +930,9 @@ def calculate_and_display_flow_metrics(
                             flow_time_blend_metadata = get_blend_metadata(
                                 current_week_actual, forecast_value
                             )
-                            flow_time_values[-1] = blended_value
+                            # Create adjusted array (copy + replace last value)
+                            flow_time_values_adjusted = list(flow_time_values)
+                            flow_time_values_adjusted[-1] = blended_value
 
                             logger.info(
                                 f"[Blending] Flow Time - Actual: {current_week_actual:.1f}, "
@@ -910,12 +943,16 @@ def calculate_and_display_flow_metrics(
 
         # AGGREGATE Flow metrics across selected period (like DORA)
         # Flow Velocity: Average items/week across period
+        velocity_values_for_calc = velocity_values_adjusted or velocity_values
         avg_velocity = (
-            sum(velocity_values) / len(velocity_values) if velocity_values else 0
+            sum(velocity_values_for_calc) / len(velocity_values_for_calc)
+            if velocity_values_for_calc
+            else 0
         )
 
         # Flow Time: Median of weekly medians (exclude zeros = weeks with no completions)
-        non_zero_flow_times = [v for v in flow_time_values if v > 0]
+        flow_time_values_for_calc = flow_time_values_adjusted or flow_time_values
+        non_zero_flow_times = [v for v in flow_time_values_for_calc if v > 0]
         if non_zero_flow_times:
             sorted_times = sorted(non_zero_flow_times)
             mid = len(sorted_times) // 2
@@ -1138,6 +1175,8 @@ def calculate_and_display_flow_metrics(
                 "total_issue_count": issues_in_period_count,
                 "weekly_labels": week_labels,
                 "weekly_values": velocity_values,
+                "weekly_values_adjusted": velocity_values_adjusted,  # Blended values for "Adjusted" line (bd-3pff)
+                "blend_metadata": blend_metadata,  # Progressive blending info (bd-a1vn)
                 "details": {
                     "Feature": feature_count,
                     "Defect": defect_count,
@@ -1161,7 +1200,8 @@ def calculate_and_display_flow_metrics(
                 ),
                 "total_issue_count": issues_in_period_count,
                 "weekly_labels": week_labels,
-                "weekly_values": flow_time_values,  # Use blended values
+                "weekly_values": flow_time_values,  # Raw values for "Actual" line
+                "weekly_values_adjusted": flow_time_values_adjusted,  # Blended values for "Adjusted" line (bd-3pff)
                 "blend_metadata": flow_time_blend_metadata,  # NEW: Progressive blending info (bd-3pff)
             },
             "flow_efficiency": {
@@ -1687,6 +1727,7 @@ def _build_metric_details_chart(metric_name: str, metric_data: Dict[str, Any]) -
 
     weekly_labels = metric_data.get("weekly_labels", [])
     weekly_values = metric_data.get("weekly_values", [])
+    weekly_values_adjusted = metric_data.get("weekly_values_adjusted")
     if not weekly_labels or not weekly_values:
         return html.Div()
 
@@ -1707,6 +1748,7 @@ def _build_metric_details_chart(metric_name: str, metric_data: Dict[str, Any]) -
         display_name=display_name,
         weekly_labels=weekly_labels,
         weekly_values=weekly_values,
+        weekly_values_adjusted=weekly_values_adjusted,
         metric_data=metric_data,
         sparkline_color=sparkline_color,
     )
