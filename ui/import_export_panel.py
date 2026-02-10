@@ -7,6 +7,7 @@ Separated from main JIRA integration for cleaner UI organization.
 
 import dash_bootstrap_components as dbc
 from dash import dcc, html
+from ui.button_utils import create_panel_collapse_button
 
 
 def create_import_export_panel():
@@ -548,28 +549,36 @@ def create_import_export_flyout(is_open: bool = False):
             dbc.Collapse(
                 html.Div(
                     [
-                        # Tabbed interface matching Settings panel
-                        dbc.Tabs(
+                        # Tabs row with collapse button
+                        html.Div(
                             [
-                                dbc.Tab(
-                                    label="Reports",
-                                    tab_id="reports-tab",
-                                    children=_create_reports_tab(),
-                                ),
-                                dbc.Tab(
-                                    label="Import/Export",
-                                    tab_id="import-export-tab",
-                                    children=_create_import_export_tab(),
-                                ),
-                                dbc.Tab(
-                                    label="AI Prompt",
-                                    tab_id="ai-prompt-tab",
-                                    children=_create_ai_prompt_tab(),
+                                # Collapse button (positioned absolutely, so order doesn't matter)
+                                create_panel_collapse_button("import-export-collapse"),
+                                # Tabbed interface matching Settings panel
+                                dbc.Tabs(
+                                    [
+                                        dbc.Tab(
+                                            label="Reports",
+                                            tab_id="reports-tab",
+                                            children=_create_reports_tab(),
+                                        ),
+                                        dbc.Tab(
+                                            label="Import/Export",
+                                            tab_id="import-export-tab",
+                                            children=_create_import_export_tab(),
+                                        ),
+                                        dbc.Tab(
+                                            label="AI Prompt",
+                                            tab_id="ai-prompt-tab",
+                                            children=_create_ai_prompt_tab(),
+                                        ),
+                                    ],
+                                    id="data-tabs",
+                                    active_tab="reports-tab",
+                                    className="settings-tabs",
                                 ),
                             ],
-                            id="data-tabs",
-                            active_tab="reports-tab",
-                            className="settings-tabs",
+                            className="panel-tabs-container",
                         ),
                     ],
                     className="tabbed-settings-panel blue-accent-panel",

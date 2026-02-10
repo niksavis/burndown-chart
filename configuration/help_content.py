@@ -666,7 +666,7 @@ PARAMETER_INPUTS_TOOLTIPS = {
 
 # FLOW METRICS HELP CONTENT - Tooltips for Flow Framework metrics
 FLOW_METRICS_TOOLTIPS = {
-    "flow_velocity": "Completed items per week (average). Forecast uses last 4 weeks weighted [10%, 20%, 30%, 40%]. Higher velocity = faster delivery.",
+    "flow_velocity": "Completed items per week (average). Forecast uses last 4 weeks weighted [10%, 20%, 30%, 40%]. Current week uses progressive blending to avoid Monday drops (0-100% actual by day of week). Higher velocity = faster delivery.",
     "flow_time": "Start-to-completion time (median of weekly medians). Forecast uses last 4 weeks weighted [10%, 20%, 30%, 40%]. Lower time = faster cycles.",
     "flow_efficiency": "Active work time ÷ total time (average). Forecast uses last 4 weeks weighted [10%, 20%, 30%, 40%]. 25-40% is typical for healthy teams.",
     "flow_load": "Current work in progress (WIP snapshot). Forecast uses last 4 weeks weighted [10%, 20%, 30%, 40%]. Lower WIP = better focus and faster delivery.",

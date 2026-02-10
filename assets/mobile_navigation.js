@@ -31,13 +31,55 @@ if (typeof window.mobileTabsConfig === "undefined") {
       id: "tab-dashboard",
       label: "Project Dashboard",
       short_label: "Dashboard",
+      show_in_bottom_nav: true,
     },
-    { id: "tab-burndown", label: "Burndown Chart", short_label: "Chart" },
-    { id: "tab-scope-tracking", label: "Scope Changes", short_label: "Scope" },
+    {
+      id: "tab-burndown",
+      label: "Burndown Chart",
+      short_label: "Chart",
+      show_in_bottom_nav: true,
+    },
+    {
+      id: "tab-scope-tracking",
+      label: "Scope Changes",
+      short_label: "Scope",
+      show_in_bottom_nav: true,
+    },
     {
       id: "tab-bug-analysis",
       label: "Bug Analysis & Quality",
       short_label: "Bugs",
+      show_in_bottom_nav: true,
+    },
+    {
+      id: "tab-dora-metrics",
+      label: "DORA Metrics",
+      short_label: "DORA",
+      show_in_bottom_nav: true,
+    },
+    {
+      id: "tab-flow-metrics",
+      label: "Flow Metrics",
+      short_label: "Flow",
+      show_in_bottom_nav: true,
+    },
+    {
+      id: "tab-active-work-timeline",
+      label: "Active Work",
+      short_label: "Active",
+      show_in_bottom_nav: false,
+    },
+    {
+      id: "tab-sprint-tracker",
+      label: "Sprint Tracker",
+      short_label: "Sprint",
+      show_in_bottom_nav: false,
+    },
+    {
+      id: "tab-statistics-data",
+      label: "Weekly Data",
+      short_label: "Data",
+      show_in_bottom_nav: false,
     },
   ];
 }
@@ -51,6 +93,7 @@ function initializeMobileNavigation() {
 
   initializeDrawerNavigation();
   initializeBottomNavigation();
+  initializeOverflowMenu();
   initializeSwipeGestures();
   initializeTouchOptimizations();
 }
@@ -270,6 +313,82 @@ function closeMobileDrawer() {
 }
 
 /**
+ * Open overflow menu
+ */
+function openOverflowMenu() {
+  const menu = document.getElementById("mobile-overflow-menu");
+  const overlay = document.getElementById("mobile-overflow-overlay");
+
+  if (menu && overlay) {
+    menu.style.transform = "translateY(0)";
+    overlay.style.display = "block";
+
+    // Prevent body scroll
+    document.body.style.overflow = "hidden";
+  }
+}
+
+/**
+ * Close overflow menu
+ */
+function closeOverflowMenu() {
+  const menu = document.getElementById("mobile-overflow-menu");
+  const overlay = document.getElementById("mobile-overflow-overlay");
+
+  if (menu && overlay) {
+    menu.style.transform = "translateY(100%)";
+    overlay.style.display = "none";
+
+    // Restore body scroll
+    document.body.style.overflow = "";
+  }
+}
+
+/**
+ * Initialize overflow menu
+ */
+function initializeOverflowMenu() {
+  const moreButton = document.getElementById("bottom-nav-more-menu");
+  const overlay = document.getElementById("mobile-overflow-overlay");
+  const header = document.getElementById("mobile-overflow-header");
+
+  // Open overflow menu on More button click
+  if (moreButton) {
+    moreButton.addEventListener("click", () => {
+      openOverflowMenu();
+    });
+  }
+
+  // Close overflow menu on overlay click
+  if (overlay) {
+    overlay.addEventListener("click", () => {
+      closeOverflowMenu();
+    });
+  }
+
+  // Close overflow menu on header swipe down
+  if (header) {
+    header.addEventListener("click", () => {
+      closeOverflowMenu();
+    });
+  }
+
+  // Initialize overflow menu item click handlers
+  const overflowTabs = window.mobileTabsConfig.filter(
+    (tab) => !tab.show_in_bottom_nav,
+  );
+  overflowTabs.forEach((tab) => {
+    const menuItem = document.getElementById(`overflow-menu-${tab.id}`);
+    if (menuItem) {
+      menuItem.addEventListener("click", () => {
+        switchToTab(tab.id);
+        closeOverflowMenu();
+      });
+    }
+  });
+}
+
+/**
  * Switch to a specific tab
  */
 function switchToTab(tabId) {
@@ -320,6 +439,9 @@ function handleOrientationChange() {
     closeMobileDrawer();
   }
 
+  // Close overflow menu on orientation change
+  closeOverflowMenu();
+
   // Reinitialize if switching between mobile/desktop
   setTimeout(() => {
     if (window.innerWidth >= 768) {
@@ -360,6 +482,8 @@ if (typeof window !== "undefined") {
     switchToTab,
     openMobileDrawer,
     closeMobileDrawer,
+    openOverflowMenu,
+    closeOverflowMenu,
     mobileNavState,
   };
 }

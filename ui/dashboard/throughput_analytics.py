@@ -16,7 +16,7 @@ use metric snapshots (requires changelog).
 from __future__ import annotations
 
 import logging
-from typing import Any, Optional
+from typing import Any, Optional, Dict
 
 import dash_bootstrap_components as dbc
 import pandas as pd
@@ -149,6 +149,98 @@ def create_throughput_analytics_section(
         items_trend = None
         points_trend = None
 
+    # PROGRESSIVE BLENDING: Calculate blend_metadata for current week (Feature bd-a1vn)
+    items_blend_metadata = None
+    points_blend_metadata = None
+
+    if (
+        additional_context
+        and additional_context.get("current_week_label")
+        and not statistics_df.empty
+        and len(statistics_df) >= 2
+    ):
+        from data.metrics.blending import get_blend_metadata
+        from data.metrics_calculator import calculate_forecast
+
+        # Check if last week in dataframe is the current week
+        last_week_label = None
+        if "week_label" in statistics_df.columns and len(statistics_df) > 0:
+            last_week_label = statistics_df["week_label"].iloc[-1]
+        current_week_label = additional_context["current_week_label"]
+
+        if last_week_label == current_week_label:
+            # Current week is in the data - apply blending
+            items_values = list(statistics_df["completed_items"])
+
+            if len(items_values) >= 2:
+                current_week_actual = items_values[-1]
+                prior_weeks = items_values[:-1]
+                forecast_weeks = (
+                    prior_weeks[-4:] if len(prior_weeks) >= 4 else prior_weeks
+                )
+
+                # Calculate items forecast
+                if len(forecast_weeks) >= 2:
+                    try:
+                        items_forecast_data: Optional[Dict[str, Any]] = (
+                            calculate_forecast(forecast_weeks)
+                        )
+                        forecast_value = (
+                            items_forecast_data.get("forecast_value", 0)
+                            if items_forecast_data
+                            else 0
+                        )
+
+                        if forecast_value > 0:
+                            items_blend_metadata = get_blend_metadata(
+                                current_week_actual, forecast_value
+                            )
+                            logger.info(
+                                f"[Blending-Dashboard-Items] Actual: {current_week_actual:.1f}, "
+                                f"Forecast: {forecast_value:.1f}, "
+                                f"Blended: {items_blend_metadata['blended']:.1f}"
+                            )
+                    except Exception as e:
+                        logger.warning(
+                            f"Failed to calculate items forecast for blending: {e}"
+                        )
+
+            # Calculate points blend metadata
+            if show_points and "completed_points" in statistics_df.columns:
+                points_values = list(statistics_df["completed_points"])
+
+                if len(points_values) >= 2:
+                    current_week_actual_pts = points_values[-1]
+                    prior_weeks_pts = points_values[:-1]
+                    forecast_weeks_pts = (
+                        prior_weeks_pts[-4:]
+                        if len(prior_weeks_pts) >= 4
+                        else prior_weeks_pts
+                    )
+
+                    if len(forecast_weeks_pts) >= 2:
+                        try:
+                            forecast_data_pts = calculate_forecast(forecast_weeks_pts)
+                            forecast_value_pts = (
+                                forecast_data_pts.get("forecast_value", 0)
+                                if forecast_data_pts
+                                else 0
+                            )
+
+                            if forecast_value_pts > 0:
+                                points_blend_metadata = get_blend_metadata(
+                                    current_week_actual_pts, forecast_value_pts
+                                )
+                                logger.info(
+                                    f"[Blending-Dashboard-Points] Actual: {current_week_actual_pts:.1f}, "
+                                    f"Forecast: {forecast_value_pts:.1f}, "
+                                    f"Blended: {points_blend_metadata['blended']:.1f}"
+                                )
+                        except Exception as e:
+                            logger.warning(
+                                f"Failed to calculate points forecast for blending: {e}"
+                            )
+
     return html.Div(
         [
             html.H5(
@@ -181,7 +273,7 @@ def create_throughput_analytics_section(
                                     else "orange",
                                     "error_state": "success",
                                     "_n_weeks": data_points_count,
-                                    "tooltip": "Average number of work items completed per week. Calculated using the corrected velocity method that counts actual weeks with data (not date range spans).",
+                                    "tooltip": "Average number of work items completed per week. Calculated using the corrected velocity method that counts actual weeks with data (not date range spans). Progressive blending is applied to the current week to smooth Monday reliability drops.",
                                     "weekly_values": list(
                                         statistics_df["completed_items"]
                                     )
@@ -193,6 +285,7 @@ def create_throughput_analytics_section(
                                     "trend_percent": items_trend.get("percent", 0)
                                     if items_trend
                                     else 0,
+                                    "blend_metadata": items_blend_metadata,  # Progressive blending (bd-a1vn)
                                 }
                             )
                         ],
@@ -234,7 +327,7 @@ def create_throughput_analytics_section(
                                     if not show_points
                                     else "No story points data available. Configure story points field in Settings or complete items with point estimates.",
                                     "_n_weeks": data_points_count,
-                                    "tooltip": "Average story points completed per week. Story points represent work complexity and effort. Higher values indicate faster delivery of larger work items."
+                                    "tooltip": "Average story points completed per week. Story points represent work complexity and effort. Higher values indicate faster delivery of larger work items. Progressive blending is applied to the current week to smooth Monday reliability drops."
                                     if (show_points and avg_points and avg_points > 0)
                                     else "Enable Points Tracking in Parameters panel and configure the points field in JIRA Configuration to view this metric. When disabled, forecasts use item counts instead."
                                     if not show_points
@@ -259,6 +352,7 @@ def create_throughput_analytics_section(
                                     and avg_points
                                     and avg_points > 0
                                     else 0,
+                                    "blend_metadata": points_blend_metadata,  # Progressive blending (bd-a1vn)
                                 }
                             )
                         ],
@@ -296,15 +390,108 @@ def create_throughput_analytics_section(
                                     if not show_points
                                     else "No story points data available. Configure story points field in Settings or complete items with point estimates.",
                                     "_n_weeks": data_points_count,
-                                    "tooltip": "Average story points per completed work item. Shows typical item complexity. Higher values mean larger items taking longer to complete. Use this to understand capacity: fewer large items or more small items per sprint."
+                                    "tooltip": "Average story points per completed work item. Shows typical item complexity. Higher values mean larger items taking longer to complete. Use this to understand capacity: fewer large items or more small items per sprint. Breakdown shows Week 1 (oldest) to Week 4 (newest)."
                                     if (show_points and avg_points and avg_points > 0)
                                     else "Enable Points Tracking in Parameters panel and configure the points field in JIRA Configuration to view this metric. When disabled, forecasts use item counts instead."
                                     if not show_points
                                     else "No story points data available for the selected time period.",
-                                    "weekly_values": [],
-                                    "trend_direction": "stable",
-                                    "trend_percent": 0,
-                                }
+                                },
+                                text_details=[
+                                    html.Div(
+                                        [
+                                            html.Div(
+                                                className="text-muted mb-2",
+                                                children=[
+                                                    html.I(
+                                                        className="fas fa-history me-1",
+                                                        style={"fontSize": "0.8rem"},
+                                                    ),
+                                                    html.Span(
+                                                        "Past 4 Weeks (oldest → newest)",
+                                                        className="fw-bold",
+                                                        style={"fontSize": "0.85rem"},
+                                                    ),
+                                                ],
+                                            ),
+                                            html.Div(
+                                                [
+                                                    html.Div(
+                                                        [
+                                                            html.Small(
+                                                                f"Week {4 - i}: ",
+                                                                className="text-muted",
+                                                            ),
+                                                            html.Small(
+                                                                f"{safe_divide(statistics_df['completed_points'].iloc[-(i + 1)], statistics_df['completed_items'].iloc[-(i + 1)]):.1f} pts/item",
+                                                                className="fw-bold",
+                                                            ),
+                                                        ],
+                                                        className="d-flex justify-content-between mb-1",
+                                                        style={"fontSize": "0.8rem"},
+                                                    )
+                                                    for i in range(
+                                                        min(4, len(statistics_df)) - 1,
+                                                        -1,
+                                                        -1,
+                                                    )
+                                                ],
+                                                className="small",
+                                                style={
+                                                    "backgroundColor": "#f8f9fa",
+                                                    "padding": "8px",
+                                                    "borderRadius": "4px",
+                                                    "fontSize": "0.8rem",
+                                                },
+                                            ),
+                                            html.Div(
+                                                [
+                                                    html.I(
+                                                        className=f"fas fa-arrow-{'up' if len(statistics_df) >= 2 and safe_divide(statistics_df['completed_points'].iloc[-1], statistics_df['completed_items'].iloc[-1]) > safe_divide(statistics_df['completed_points'].iloc[0], statistics_df['completed_items'].iloc[0]) else 'down' if len(statistics_df) >= 2 else 'right'} me-1",
+                                                        style={
+                                                            "color": "#28a745"
+                                                            if len(statistics_df) >= 2
+                                                            and safe_divide(
+                                                                statistics_df[
+                                                                    "completed_points"
+                                                                ].iloc[-1],
+                                                                statistics_df[
+                                                                    "completed_items"
+                                                                ].iloc[-1],
+                                                            )
+                                                            > safe_divide(
+                                                                statistics_df[
+                                                                    "completed_points"
+                                                                ].iloc[0],
+                                                                statistics_df[
+                                                                    "completed_items"
+                                                                ].iloc[0],
+                                                            )
+                                                            else "#dc3545"
+                                                            if len(statistics_df) >= 2
+                                                            else "#6c757d"
+                                                        },
+                                                    ),
+                                                    html.Small(
+                                                        f"{'Growing' if len(statistics_df) >= 2 and safe_divide(statistics_df['completed_points'].iloc[-1], statistics_df['completed_items'].iloc[-1]) > safe_divide(statistics_df['completed_points'].iloc[0], statistics_df['completed_items'].iloc[0]) else 'Shrinking' if len(statistics_df) >= 2 else 'Stable'} item size",
+                                                        className="text-muted fst-italic",
+                                                    ),
+                                                ],
+                                                className="mt-2",
+                                                style={"fontSize": "0.75rem"},
+                                            ),
+                                        ],
+                                        className="mb-3",
+                                    ),
+                                ]
+                                if (
+                                    show_points
+                                    and avg_points
+                                    and avg_points > 0
+                                    and not statistics_df.empty
+                                    and "completed_points" in statistics_df.columns
+                                    and "completed_items" in statistics_df.columns
+                                )
+                                else None,
                             )
                         ],
                         width=12,

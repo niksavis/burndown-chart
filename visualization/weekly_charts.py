@@ -288,6 +288,49 @@ def create_weekly_items_chart(
             )
         )
 
+    # Add adjusted line for current week (progressive blending)
+    adjusted_items = None
+    if len(weekly_df) >= 2:
+        from data.metrics.blending import calculate_current_week_blend
+        from data.metrics_calculator import calculate_forecast
+
+        item_values = weekly_df["items"].tolist()
+        prior_weeks = item_values[:-1]
+        forecast_weeks = prior_weeks[-4:] if len(prior_weeks) >= 4 else prior_weeks
+
+        if len(forecast_weeks) >= 2:
+            forecast_data = calculate_forecast(forecast_weeks)
+            forecast_value = (
+                forecast_data.get("forecast_value", 0) if forecast_data else 0
+            )
+
+            if forecast_value > 0:
+                adjusted_items = list(item_values)
+                adjusted_items[-1] = calculate_current_week_blend(
+                    item_values[-1], forecast_value
+                )
+
+    if adjusted_items:
+        fig.add_trace(
+            go.Scatter(
+                x=weekly_df["week_label"],
+                y=adjusted_items,
+                mode="lines+markers",
+                name="Adjusted",
+                line=dict(color="#198754", width=2, dash="dot"),
+                marker=dict(size=5, color="#198754", symbol="circle-open"),
+                customdata=weekly_df["week_label"],
+                hovertemplate=format_hover_template(
+                    title="Adjusted Items",
+                    fields={
+                        "Week of": "%{customdata}",
+                        "Adjusted": "%{y:.1f} items",
+                    },
+                ),
+                hoverlabel=create_hoverlabel_config("info"),
+            )
+        )
+
     # Add forecast data if requested
     if include_forecast and len(weekly_df) > 0:
         # Generate forecast data using filtered statistics data
@@ -578,6 +621,49 @@ def create_weekly_points_chart(
                 ),
                 hoverlabel=create_hoverlabel_config("info"),
                 hoverinfo="all",  # Ensure hover info shows
+            )
+        )
+
+    # Add adjusted line for current week (progressive blending)
+    adjusted_points = None
+    if len(weekly_df) >= 2:
+        from data.metrics.blending import calculate_current_week_blend
+        from data.metrics_calculator import calculate_forecast
+
+        point_values = weekly_df["points"].tolist()
+        prior_weeks = point_values[:-1]
+        forecast_weeks = prior_weeks[-4:] if len(prior_weeks) >= 4 else prior_weeks
+
+        if len(forecast_weeks) >= 2:
+            forecast_data = calculate_forecast(forecast_weeks)
+            forecast_value = (
+                forecast_data.get("forecast_value", 0) if forecast_data else 0
+            )
+
+            if forecast_value > 0:
+                adjusted_points = list(point_values)
+                adjusted_points[-1] = calculate_current_week_blend(
+                    point_values[-1], forecast_value
+                )
+
+    if adjusted_points:
+        fig.add_trace(
+            go.Scatter(
+                x=weekly_df["week_label"],
+                y=adjusted_points,
+                mode="lines+markers",
+                name="Adjusted",
+                line=dict(color="#198754", width=2, dash="dot"),
+                marker=dict(size=5, color="#198754", symbol="circle-open"),
+                customdata=weekly_df["week_label"],
+                hovertemplate=format_hover_template(
+                    title="Adjusted Points",
+                    fields={
+                        "Week of": "%{customdata}",
+                        "Adjusted": "%{y:.1f} points",
+                    },
+                ),
+                hoverlabel=create_hoverlabel_config("info"),
             )
         )
 

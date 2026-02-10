@@ -86,7 +86,7 @@ def create_mobile_drawer_navigation(tabs_config):
 
 def create_mobile_bottom_navigation(tabs_config, active_tab="tab-dashboard"):
     """
-    Create bottom navigation for mobile devices with primary actions.
+    Create bottom navigation for mobile devices with primary actions and overflow menu.
 
     Args:
         tabs_config: List of tab configuration dictionaries
@@ -97,7 +97,10 @@ def create_mobile_bottom_navigation(tabs_config, active_tab="tab-dashboard"):
     """
     nav_items = []
 
-    for tab in tabs_config:
+    # Filter to only show tabs that should be in bottom nav
+    primary_tabs = [tab for tab in tabs_config if tab.get("show_in_bottom_nav", True)]
+
+    for tab in primary_tabs:
         is_active = tab["id"] == active_tab
         nav_items.append(
             html.Div(
@@ -135,6 +138,43 @@ def create_mobile_bottom_navigation(tabs_config, active_tab="tab-dashboard"):
                 className="mobile-bottom-nav-wrapper",
             )
         )
+
+    # Add "More" button for overflow menu
+    nav_items.append(
+        html.Div(
+            [
+                html.Button(
+                    [
+                        html.I(
+                            className="fas fa-ellipsis-h", style={"fontSize": "1.1rem"}
+                        ),
+                        html.Div(
+                            "More",
+                            className="mobile-bottom-nav-label",
+                        ),
+                    ],
+                    id="bottom-nav-more-menu",
+                    className="mobile-bottom-nav-item",
+                    style={
+                        "color": "#6c757d",
+                        "flexDirection": "column",
+                        "border": "none",
+                        "background": "transparent",
+                        "padding": "0.375rem",
+                        "minHeight": "44px",
+                        "minWidth": "44px",
+                        "display": "flex",
+                        "alignItems": "center",
+                        "justifyContent": "center",
+                        "textDecoration": "none",
+                        "transition": "all 0.2s ease",
+                        "borderRadius": "0.5rem",
+                    },
+                )
+            ],
+            className="mobile-bottom-nav-wrapper",
+        )
+    )
 
     return html.Div(
         nav_items,
@@ -206,7 +246,10 @@ def get_mobile_tabs_config():
     Get mobile-optimized tab configuration.
 
     Returns:
-        List of tab configuration dictionaries optimized for mobile
+        List of tab configuration dictionaries optimized for mobile.
+        Each tab has a 'show_in_bottom_nav' flag:
+        - True: Show in bottom navigation bar (6 primary tabs)
+        - False: Show in overflow "More" menu (3 secondary tabs)
     """
     from configuration.settings import get_bug_analysis_config
 
@@ -217,6 +260,7 @@ def get_mobile_tabs_config():
             "short_label": "Dashboard",
             "icon": "fas fa-tachometer-alt",
             "color": "#0d6efd",
+            "show_in_bottom_nav": True,
         },
         {
             "id": "tab-burndown",
@@ -224,6 +268,7 @@ def get_mobile_tabs_config():
             "short_label": "Chart",
             "icon": "fas fa-chart-line",
             "color": "#0d6efd",
+            "show_in_bottom_nav": True,
         },
         {
             "id": "tab-scope-tracking",
@@ -231,6 +276,7 @@ def get_mobile_tabs_config():
             "short_label": "Scope",
             "icon": "fas fa-project-diagram",
             "color": "#6f42c1",
+            "show_in_bottom_nav": True,
         },
     ]
 
@@ -244,43 +290,154 @@ def get_mobile_tabs_config():
                 "short_label": "Bugs",
                 "icon": "fas fa-bug",
                 "color": "#dc3545",
+                "show_in_bottom_nav": True,
             }
         )
 
-    # Add Flow Metrics tab
-    tabs.append(
-        {
-            "id": "tab-flow-metrics",
-            "label": "Flow Metrics",
-            "short_label": "Flow",
-            "icon": "fas fa-stream",
-            "color": "#20c997",  # teal color
-        }
-    )
-
-    # Add DORA Metrics tab
+    # Add DORA Metrics tab (primary)
     tabs.append(
         {
             "id": "tab-dora-metrics",
             "label": "DORA Metrics",
             "short_label": "DORA",
             "icon": "fas fa-rocket",
-            "color": "#6610f2",  # indigo color
+            "color": "#6610f2",
+            "show_in_bottom_nav": True,
         }
     )
 
-    # Add Weekly Data tab
+    # Add Flow Metrics tab (primary)
+    tabs.append(
+        {
+            "id": "tab-flow-metrics",
+            "label": "Flow Metrics",
+            "short_label": "Flow",
+            "icon": "fas fa-stream",
+            "color": "#20c997",
+            "show_in_bottom_nav": True,
+        }
+    )
+
+    # Add Active Work Timeline tab (overflow menu)
+    tabs.append(
+        {
+            "id": "tab-active-work-timeline",
+            "label": "Active Work",
+            "short_label": "Active",
+            "icon": "fas fa-clipboard-list",
+            "color": "#17a2b8",
+            "show_in_bottom_nav": False,
+        }
+    )
+
+    # Add Sprint Tracker tab (overflow menu)
+    tabs.append(
+        {
+            "id": "tab-sprint-tracker",
+            "label": "Sprint Tracker",
+            "short_label": "Sprint",
+            "icon": "fas fa-running",
+            "color": "#ffc107",
+            "show_in_bottom_nav": False,
+        }
+    )
+
+    # Add Weekly Data tab (overflow menu)
     tabs.append(
         {
             "id": "tab-statistics-data",
             "label": "Weekly Data",
             "short_label": "Data",
             "icon": "fas fa-table",
-            "color": "#6c757d",  # secondary color
+            "color": "#6c757d",
+            "show_in_bottom_nav": False,
         }
     )
 
     return tabs
+
+
+def create_mobile_overflow_menu(tabs_config):
+    """
+    Create overflow menu for secondary tabs (slides up from bottom).
+
+    Args:
+        tabs_config: List of tab configuration dictionaries
+
+    Returns:
+        Dash component for mobile overflow menu
+    """
+    # Filter to only show overflow tabs
+    overflow_tabs = [
+        tab for tab in tabs_config if not tab.get("show_in_bottom_nav", True)
+    ]
+
+    overflow_items = []
+    for tab in overflow_tabs:
+        overflow_items.append(
+            html.Button(
+                [
+                    html.I(
+                        className=f"{tab['icon']} me-3",
+                        style={"fontSize": "1.2rem", "color": tab["color"]},
+                    ),
+                    html.Span(tab["label"], style={"fontSize": "1rem"}),
+                ],
+                id=f"overflow-menu-{tab['id']}",
+                className="mobile-overflow-menu-item w-100 text-start",
+                style={
+                    "border": "none",
+                    "background": "transparent",
+                    "padding": "1rem",
+                    "display": "flex",
+                    "alignItems": "center",
+                    "color": "#212529",
+                    "transition": "background 0.2s ease",
+                },
+            )
+        )
+
+    return html.Div(
+        [
+            # Overlay
+            html.Div(
+                id="mobile-overflow-overlay",
+                className="mobile-overflow-overlay",
+                style={"display": "none"},
+            ),
+            # Overflow menu content (slides up from bottom)
+            html.Div(
+                [
+                    # Handle bar
+                    html.Div(
+                        html.Div(
+                            className="mobile-overflow-handle",
+                            style={
+                                "width": "40px",
+                                "height": "4px",
+                                "backgroundColor": "#dee2e6",
+                                "borderRadius": "2px",
+                                "margin": "0 auto",
+                            },
+                        ),
+                        className="mobile-overflow-header p-3 text-center",
+                        style={"cursor": "pointer"},
+                        id="mobile-overflow-header",
+                    ),
+                    # Menu items
+                    html.Div(
+                        overflow_items,
+                        className="mobile-overflow-body",
+                        style={"padding": "0.5rem 0"},
+                    ),
+                ],
+                id="mobile-overflow-menu",
+                className="mobile-overflow-menu",
+                style={"transform": "translateY(100%)"},
+            ),
+        ],
+        id="mobile-overflow-container",
+    )
 
 
 def create_mobile_navigation_system():
@@ -298,6 +455,8 @@ def create_mobile_navigation_system():
             create_mobile_drawer_navigation(tabs_config),
             # Bottom navigation for mobile
             create_mobile_bottom_navigation(tabs_config),
+            # Overflow menu for secondary tabs
+            create_mobile_overflow_menu(tabs_config),
             # Mobile nav state store is now in main layout
         ]
     )

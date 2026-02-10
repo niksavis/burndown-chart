@@ -217,3 +217,51 @@
 .settings-tab-content .row {
   margin-bottom: 0 !important;
 }
+
+/* ===== PANEL COLLAPSE BUTTON ===== */
+/* Container for tabs navigation and collapse button */
+.panel-tabs-container {
+  position: relative;
+  /* Normal block layout - no flex to avoid affecting tab content */
+}
+
+/* Make tabs bar the positioning context for the button */
+.panel-tabs-container .settings-tabs {
+  position: relative;
+}
+
+/* Collapse button styling - positioned absolutely within tabs bar */
+.panel-collapse-btn {
+  position: absolute;
+  top: 0.25rem; /* Align with tabs top padding */
+  right: 0.5rem; /* Align with tabs side padding */
+  background: transparent;
+  border: none;
+  color: #24466d; /* App blue button color for chevron icon */
+  font-size: 1rem;
+  padding: 0.5rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 4px;
+}
+
+.panel-collapse-btn:hover {
+  background-color: var(--color-neutral-100);
+  color: #24466d; /* Keep chevron blue on hover */
+  transform: translateY(-1px);
+}
+
+.panel-collapse-btn:active {
+  transform: translateY(0);
+}
+
+.panel-collapse-btn:focus-visible {
+  outline: 2px solid var(--color-brand-500);
+  outline-offset: 2px;
+}

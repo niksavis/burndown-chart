@@ -415,6 +415,7 @@ def _create_detailed_chart(
     display_name: str,
     weekly_labels: List[str],
     weekly_values: List[float],
+    weekly_values_adjusted: Optional[List[float]],
     metric_data: Dict[str, Any],
     sparkline_color: str,
 ) -> Any:
@@ -429,6 +430,7 @@ def _create_detailed_chart(
         display_name: Display name for chart title
         weekly_labels: Week labels
         weekly_values: Primary metric values
+        weekly_values_adjusted: Optional adjusted values for current week blending
         metric_data: Full metric data dict with potential weekly_release_values
         sparkline_color: Color for the chart
 
@@ -446,6 +448,7 @@ def _create_detailed_chart(
     # Special case 1: deployment_frequency with release tracking
     if metric_name == "deployment_frequency" and "weekly_release_values" in metric_data:
         weekly_release_values = metric_data.get("weekly_release_values", [])
+        adjusted_deployment_values = weekly_values_adjusted
 
         # Use performance tier color already calculated from overall metric value
         # (Don't recalculate based on latest week - use the metric_data color)
@@ -463,6 +466,7 @@ def _create_detailed_chart(
             week_labels=weekly_labels,
             deployment_values=weekly_values,
             release_values=weekly_release_values,
+            adjusted_deployment_values=adjusted_deployment_values,
             height=250,
             show_axes=True,
             primary_color=primary_color,  # Dynamic color based on performance
@@ -500,6 +504,7 @@ def _create_detailed_chart(
         return create_metric_trend_full(
             week_labels=weekly_labels,
             values=weekly_values,
+            adjusted_values=weekly_values_adjusted,
             metric_name=metric_name,  # Use internal name for zone matching
             unit=metric_data.get("unit", ""),
             height=250,
@@ -593,6 +598,7 @@ def _create_detailed_chart(
         return create_metric_trend_sparkline(
             week_labels=weekly_labels,
             values=weekly_values,
+            adjusted_values=weekly_values_adjusted,
             metric_name=display_name,
             unit=metric_data.get("unit", ""),
             height=200,
@@ -870,7 +876,19 @@ def _create_success_card(
     )  # NEW: deployment count (operational tasks)
 
     if value is not None:
-        formatted_value = f"{value:.2f}"
+        # Apply different decimal precision based on metric type
+        if metric_name == "items_completed":
+            # Items are countable - show as natural number
+            formatted_value = f"{int(round(value))}"
+        elif "items_per_week" in metric_name or "items/week" in metric_name:
+            # Items per week average can have decimals (e.g., 3.5 items/week)
+            formatted_value = f"{value:.1f}"
+        elif "points" in metric_name:
+            # Points are typically Fibonacci-based (0.5, 1, 2, 3, 5, 8, etc.) - 1 decimal
+            formatted_value = f"{value:.1f}"
+        else:
+            # Default: 2 decimal places
+            formatted_value = f"{value:.2f}"
     else:
         formatted_value = "N/A"
 
@@ -1205,6 +1223,134 @@ def _create_success_card(
         )
         if forecast_section.children:  # Only add if forecast section has content
             card_body_children.append(forecast_section)
+
+    # PROGRESSIVE BLENDING: Display blend breakdown (Feature bd-a1vn)
+    blend_metadata = metric_data.get("blend_metadata")
+    if blend_metadata and blend_metadata.get("is_blended"):
+        from data.metrics.blending import format_blend_description
+
+        # Create blend indicator section with f(x,y) breakdown
+        blend_section = html.Div(
+            [
+                html.Hr(className="my-2"),
+                html.Div(
+                    [
+                        html.I(
+                            className="fas fa-chart-line me-1",
+                            style={"fontSize": "0.8rem"},
+                        ),
+                        html.Span(
+                            "Current Week (Blended)",
+                            className="fw-bold",
+                            style={"fontSize": "0.85rem"},
+                        ),
+                        html.Span(
+                            " 📊",
+                            style={"fontSize": "1rem", "marginLeft": "4px"},
+                        ),
+                    ],
+                    className="text-muted mb-2",
+                ),
+                # Breakdown details in compact format
+                html.Div(
+                    [
+                        html.Div(
+                            [
+                                html.Small("Adjusted Total: ", className="text-muted"),
+                                html.Small(
+                                    f"{blend_metadata['blended']:.1f}",
+                                    className="fw-bold",
+                                ),
+                            ],
+                            className="d-flex justify-content-between mb-1",
+                        ),
+                        html.Div(
+                            [
+                                html.Small("Actual So Far: ", className="text-muted"),
+                                html.Small(
+                                    f"{blend_metadata['actual']:.0f}",
+                                    className="text-secondary",
+                                ),
+                            ],
+                            className="d-flex justify-content-between mb-1",
+                        ),
+                        html.Div(
+                            [
+                                html.Small("Expected: ", className="text-muted"),
+                                html.Small(
+                                    f"{blend_metadata['forecast']:.1f}",
+                                    className="text-secondary",
+                                ),
+                            ],
+                            className="d-flex justify-content-between mb-1",
+                        ),
+                    ],
+                    className="small",
+                    style={
+                        "backgroundColor": "#f8f9fa",
+                        "padding": "8px",
+                        "borderRadius": "4px",
+                        "fontSize": "0.8rem",
+                    },
+                ),
+                # Blend description
+                html.Div(
+                    [
+                        html.I(className="fas fa-info-circle me-1"),
+                        html.Small(
+                            format_blend_description(blend_metadata),
+                            className="text-muted fst-italic",
+                        ),
+                    ],
+                    className="mt-2",
+                    style={"fontSize": "0.75rem"},
+                ),
+            ],
+            className="mb-3",
+        )
+        card_body_children.append(blend_section)
+    elif blend_metadata and not blend_metadata.get("is_blended"):
+        # Weekend (Fri-Sun): Using 100% actual data, no blending needed
+        day_name = blend_metadata.get("day_name", "Today")
+        blend_placeholder = html.Div(
+            [
+                html.Hr(className="my-2"),
+                html.Div(
+                    [
+                        html.I(className="fas fa-check-circle me-2 text-success"),
+                        html.Small(
+                            f"Using actual data ({day_name})",
+                            className="text-muted fst-italic",
+                        ),
+                    ],
+                    className="text-center",
+                    style={"fontSize": "0.8rem"},
+                ),
+            ],
+            className="mb-3",
+        )
+        card_body_children.append(blend_placeholder)
+    elif forecast_data and not blend_metadata:
+        # Forecast exists but blending not available (insufficient historical data for blending)
+        weeks_count = len(weekly_values) if weekly_values else 0
+        blend_placeholder = html.Div(
+            [
+                html.Hr(className="my-2"),
+                html.Div(
+                    [
+                        html.I(className="fas fa-info-circle me-2 text-muted"),
+                        html.Small(
+                            f"Blending requires 2+ weeks of data (have {weeks_count})",
+                            className="text-muted fst-italic",
+                        ),
+                    ],
+                    className="text-center",
+                    style={"fontSize": "0.8rem"},
+                ),
+            ],
+            className="mb-3",
+        )
+        card_body_children.append(blend_placeholder)
 
     # Add optional text details (e.g., baseline comparisons for budget cards)
     if text_details:
