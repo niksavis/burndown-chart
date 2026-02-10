@@ -40,6 +40,44 @@ Metric cards show a forecast benchmark derived from recent history to avoid misl
 
 When insufficient historical data exists, the cards show a baseline-building or insufficient-data message.
 
+## Progressive Current Week Blending (Feature bd-a1vn)
+
+**Problem**: Monday metrics showed reliability drops because incomplete current week (few completions) was included in calculations, causing metrics to artificially decline early in the week.
+
+**Solution**: Progressive blending that combines forecast (from prior 4 weeks) with actual current week value, weighted by day of week.
+
+### How It Works
+
+**Weekday Weights** (Fixed Mon-Fri Schedule):
+- **Monday**: 0% actual, 100% forecast → Shows stable forecast
+- **Tuesday**: 20% actual, 80% forecast → Gradually transitions to actual
+- **Wednesday**: 50% actual, 50% forecast → Balanced blend
+- **Thursday**: 80% actual, 20% forecast → Mostly actual
+- **Friday-Sunday**: 100% actual, 0% forecast → Pure actual value
+
+**Formula**: `blended = (actual × weight) + (forecast × (1 - weight))`
+
+**Applies to**: Deployment Frequency, Lead Time for Changes, Mean Time to Recovery
+
+**UI Transparency**: Metric cards show breakdown when blending is active:
+```
+Current Week (Blended) 📊
+• Blended (f): 2.5 days
+• Forecast (x): 3.0 days
+• Current Week (y): 2.0 days (Tuesday)
+• Blend Ratio: 20% actual, 80% forecast
+```
+
+**Benefits**:
+- ✅ Monday metrics stable (no artificial drops)
+- ✅ Smooth progression through week
+- ✅ Real-time feedback maintained
+- ✅ User trust improved (transparent calculation)
+
+**Note**: Same blending algorithm used for Flow metrics. See [Flow Metrics Guide](./flow_metrics.md) for detailed algorithm explanation.
+
+---
+
 ## Field Configuration
 
 ### Required JIRA Fields

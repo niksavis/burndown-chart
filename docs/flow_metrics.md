@@ -81,7 +81,9 @@ Current Week (Blended) 📊
 - ✅ Real-time feedback maintained (partial actuals visible)
 - ✅ User trust improved (transparent calculation)
 
-**See Also**: [Blending Algorithm Documentation](./blending_algorithm.md) for complete technical details.
+**Note**: Same blending algorithm applies to DORA metrics (Deployment Frequency, Lead Time, MTTR). See [DORA Metrics Guide](./dora_metrics.md) for DORA-specific details.
+
+---
 
 ## Field Configuration
 

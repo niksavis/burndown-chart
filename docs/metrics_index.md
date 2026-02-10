@@ -52,6 +52,8 @@ Covers the **DORA & Flow Metrics** tab - Flow section:
 
 **Flow Framework** - Process metrics from Mik Kersten's "Project to Product" methodology.
 
+**Note**: Flow Velocity and Flow Time use progressive current week blending to eliminate Monday reliability drops (stable metrics throughout the week). See guide for details.
+
 ---
 
 ### 4. [Budget Metrics](./budget_metrics.md)
