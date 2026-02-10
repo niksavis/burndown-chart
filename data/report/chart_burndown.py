@@ -18,58 +18,50 @@ def generate_burndown_chart(
     items = historical.get("remaining_items", [])
     points = historical.get("remaining_points", [])
 
-    annotations = {}
+    # Calculate label positions based on chronological order to prevent overlap
+    from datetime import datetime
 
+    date_labels = []
     if milestone:
-        annotations["milestone"] = f"""{{
-            type: 'line',
-            xMin: '{milestone}',
-            xMax: '{milestone}',
-            borderColor: '#ffc107',
-            borderWidth: 3,
-            borderDash: [10, 5],
-            label: {{
-                display: true,
-                content: 'Milestone',
-                position: 'start',
-                yAdjust: -60,
-                backgroundColor: '#ffc107',
-                color: '#000'
-            }}
-        }}"""
-
+        date_labels.append(
+            ("milestone", milestone, "Milestone", "#ffc107", "#000", 3, [10, 5])
+        )
     if forecast_date:
-        annotations["forecast"] = f"""{{
-            type: 'line',
-            xMin: '{forecast_date}',
-            xMax: '{forecast_date}',
-            borderColor: '#198754',
-            borderWidth: 2,
-            borderDash: [5, 5],
-            label: {{
-                display: true,
-                content: 'Forecast',
-                position: 'start',
-                yAdjust: -30,
-                backgroundColor: '#198754',
-                color: '#fff'
-            }}
-        }}"""
-
+        date_labels.append(
+            ("forecast", forecast_date, "Forecast", "#198754", "#fff", 2, [5, 5])
+        )
     if deadline:
-        annotations["deadline"] = f"""{{
+        date_labels.append(("deadline", deadline, "Deadline", "#dc3545", "#fff", 2, []))
+
+    # Sort by date chronologically
+    date_labels.sort(key=lambda x: datetime.strptime(x[1], "%Y-%m-%d"))
+
+    # Assign yAdjust values: space labels 30px apart starting from top (-90, -60, -30, 0...)
+    # Start from -90 to ensure no overlap with chart area
+    base_y = -90
+    spacing = 30
+
+    annotations = {}
+    for idx, (key, date_str, label, border_color, text_color, width, dash) in enumerate(
+        date_labels
+    ):
+        y_adjust = base_y + (idx * spacing)
+        dash_str = f"[{', '.join(map(str, dash))}]" if dash else "[]"
+
+        annotations[key] = f"""{{
             type: 'line',
-            xMin: '{deadline}',
-            xMax: '{deadline}',
-            borderColor: '#dc3545',
-            borderWidth: 2,
+            xMin: '{date_str}',
+            xMax: '{date_str}',
+            borderColor: '{border_color}',
+            borderWidth: {width},
+            borderDash: {dash_str},
             label: {{
                 display: true,
-                content: 'Deadline',
+                content: '{label}',
                 position: 'start',
-                yAdjust: 0,
-                backgroundColor: '#dc3545',
-                color: '#fff'
+                yAdjust: {y_adjust},
+                backgroundColor: '{border_color}',
+                color: '{text_color}'
             }}
         }}"""
 
