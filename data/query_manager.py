@@ -235,6 +235,37 @@ def get_query_dropdown_options(profile_id: Optional[str] = None) -> List[Dict]:
     # Build dropdown options
     options = [{"label": "→ Create New Query", "value": "__create_new__"}]
 
+    # Fetch timestamps for ALL queries in a SINGLE database query (performance optimization)
+    timestamp_map = {}
+    try:
+        from pathlib import Path
+
+        db_path = getattr(backend, "db_path", Path("profiles/burndown.db"))
+
+        with get_db_connection(Path(db_path)) as conn:
+            cursor = conn.cursor()
+            # Get latest fetched_at for each query_id in this profile
+            cursor.execute(
+                """
+                SELECT query_id, MAX(fetched_at) as latest_fetch
+                FROM jira_issues
+                WHERE profile_id = ?
+                GROUP BY query_id
+                """,
+                (profile_id,),
+            )
+            rows = cursor.fetchall()
+            timestamp_map = {row[0]: row[1] for row in rows}
+            logger.info(
+                f"[DROPDOWN] Fetched timestamps for {len(timestamp_map)} queries in single query"
+            )
+    except Exception as e:
+        logger.error(
+            f"[DROPDOWN] Failed to fetch timestamps: {e}",
+            exc_info=True,
+        )
+
+    # Build dropdown options using pre-fetched timestamps
     for query in queries:
         label = query.get("name", "Unnamed Query")
         query_id = query.get("id", "")
@@ -247,40 +278,14 @@ def get_query_dropdown_options(profile_id: Optional[str] = None) -> List[Dict]:
         if query.get("is_active", False):
             label += " [Active]"
 
-        # Add timestamp for ALL queries (not just active)
-        try:
-            from pathlib import Path
-
-            db_path = getattr(backend, "db_path", Path("profiles/burndown.db"))
-
-            with get_db_connection(Path(db_path)) as conn:
-                cursor = conn.cursor()
-                cursor.execute(
-                    """
-                    SELECT fetched_at
-                    FROM jira_issues
-                    WHERE profile_id = ? AND query_id = ?
-                    ORDER BY fetched_at DESC
-                    LIMIT 1
-                    """,
-                    (profile_id, query_id),
-                )
-                row = cursor.fetchone()
-
-                if row:
-                    timestamp_iso = row[0]
-                    logger.info(
-                        f"[DROPDOWN] Found timestamp for {query_id}: {timestamp_iso}"
-                    )
-                    relative_time = get_relative_time_string(timestamp_iso)
-                    label += f" ({relative_time})"
-                else:
-                    logger.debug(f"[DROPDOWN] No data fetched yet for query {query_id}")
-        except Exception as e:
-            logger.error(
-                f"[DROPDOWN] Failed to get timestamp for query {query_id}: {e}",
-                exc_info=True,
-            )
+        # Add timestamp from pre-fetched map
+        if query_id in timestamp_map:
+            timestamp_iso = timestamp_map[query_id]
+            logger.info(f"[DROPDOWN] Found timestamp for {query_id}: {timestamp_iso}")
+            relative_time = get_relative_time_string(timestamp_iso)
+            label += f" ({relative_time})"
+        else:
+            logger.debug(f"[DROPDOWN] No data fetched yet for query {query_id}")
 
         options.append({"label": label, "value": query_id})
 
