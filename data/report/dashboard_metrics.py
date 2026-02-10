@@ -533,6 +533,8 @@ def calculate_dashboard_metrics(
         "velocity_items": velocity_items,
         "velocity_points": velocity_points,
         "weeks_count": weeks_count,
+        "pert_time_items": pert_time_items,  # Raw PERT days for items (for deadline calculations)
+        "pert_time_points": pert_time_points,  # Raw PERT days for points
         "pert_time_items_weeks": (pert_time_items / 7.0) if pert_time_items else 0,
         "pert_time_points_weeks": (pert_time_points / 7.0) if pert_time_points else 0,
         "show_points": show_points,  # Pass show_points flag for template

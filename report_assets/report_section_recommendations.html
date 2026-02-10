@@ -1,0 +1,66 @@
+<!-- Key Recommendations Section -->
+{% if metrics.recommendations and metrics.recommendations.insights %}
+<div class="section">
+  <h2 class="section-title">
+    <i class="fas fa-lightbulb"></i>
+    Key Recommendations
+  </h2>
+  
+  <p class="text-muted mb-3" style="font-size: 0.875rem;">
+    <i class="fas fa-info-circle me-1"></i>
+    Top priority actions based on current metrics and trends
+  </p>
+
+  <div class="table-responsive">
+    <table class="table table-sm table-bordered">
+      <thead>
+        <tr>
+          <th style="width: 15%; background-color: #f8f9fa;">Priority</th>
+          <th style="width: 40%; background-color: #f8f9fa;">Finding</th>
+          <th style="width: 45%; background-color: #f8f9fa;">Recommended Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for insight in metrics.recommendations.insights %}
+        <tr>
+          <td class="text-center align-middle">
+            {% if insight.severity == 'danger' %}
+              <span class="badge bg-danger" style="font-size: 0.75rem;">CRITICAL</span>
+            {% elif insight.severity == 'warning' %}
+              <span class="badge bg-warning text-dark" style="font-size: 0.75rem;">HIGH</span>
+            {% elif insight.severity == 'info' %}
+              <span class="badge bg-info text-dark" style="font-size: 0.75rem;">MEDIUM</span>
+            {% else %}
+              <span class="badge bg-success" style="font-size: 0.75rem;">LOW</span>
+            {% endif %}
+          </td>
+          <td style="font-size: 0.875rem;">
+            {% if insight.severity == 'danger' %}
+              <i class="fas fa-exclamation-triangle text-danger me-1"></i>
+            {% elif insight.severity == 'warning' %}
+              <i class="fas fa-exclamation-circle text-warning me-1"></i>
+            {% elif insight.severity == 'info' %}
+              <i class="fas fa-info-circle text-info me-1"></i>
+            {% else %}
+              <i class="fas fa-check-circle text-success me-1"></i>
+            {% endif %}
+            {{ insight.message }}
+          </td>
+          <td style="font-size: 0.875rem;">
+            {{ insight.recommendation }}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <p class="text-muted mt-3 mb-0" style="font-size: 0.8rem;">
+    <i class="fas fa-info-circle me-1"></i>
+    <small>
+      These recommendations are automatically generated based on {{ metrics.recommendations.data_points_count }}-week analysis window. 
+      Priority levels: Critical (immediate action required), High (address within 1-2 weeks), Medium (monitor and plan), Low (optimize when capacity allows).
+    </small>
+  </p>
+</div>
+{% endif %}
