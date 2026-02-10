@@ -180,14 +180,82 @@ def create_recent_activity_section(
                 "value": total_items_completed,
                 "unit": "items",
                 "_n_weeks": recent_window,
-                "tooltip": f"Total items completed in the last {recent_window} weeks. This metric shows recent delivery throughput regardless of the data points filter.",
+                "tooltip": f"Total items completed in the last {recent_window} weeks. This metric shows recent delivery throughput regardless of the data points filter. Breakdown shows Week 1 (oldest) to Week 4 (newest).",
                 "error_state": "success",
                 "total_issue_count": 0,
-                "weekly_values": items_sparkline_values,
-                "weekly_labels": [
-                    f"W{i + 1}" for i in range(len(items_sparkline_values))
-                ],
-            }
+            },
+            text_details=[
+                html.Div(
+                    [
+                        html.Div(
+                            className="text-muted mb-2",
+                            children=[
+                                html.I(
+                                    className="fas fa-history me-1",
+                                    style={"fontSize": "0.8rem"},
+                                ),
+                                html.Span(
+                                    "Past 4 Weeks (oldest → newest)",
+                                    className="fw-bold",
+                                    style={"fontSize": "0.85rem"},
+                                ),
+                            ],
+                        ),
+                        html.Div(
+                            [
+                                html.Div(
+                                    [
+                                        html.Small(
+                                            f"Week {4 - i}: ", className="text-muted"
+                                        ),
+                                        html.Small(
+                                            f"{int(items_sparkline_values[-(i + 1)])} items",
+                                            className="fw-bold",
+                                        ),
+                                    ],
+                                    className="d-flex justify-content-between mb-1",
+                                    style={"fontSize": "0.8rem"},
+                                )
+                                for i in range(
+                                    min(4, len(items_sparkline_values)) - 1, -1, -1
+                                )
+                            ],
+                            className="small",
+                            style={
+                                "backgroundColor": "#f8f9fa",
+                                "padding": "8px",
+                                "borderRadius": "4px",
+                                "fontSize": "0.8rem",
+                            },
+                        ),
+                        html.Div(
+                            [
+                                html.I(
+                                    className=f"fas fa-arrow-{'up' if len(items_sparkline_values) >= 2 and items_sparkline_values[-1] > items_sparkline_values[0] else 'down' if len(items_sparkline_values) >= 2 else 'right'} me-1",
+                                    style={
+                                        "color": "#28a745"
+                                        if len(items_sparkline_values) >= 2
+                                        and items_sparkline_values[-1]
+                                        > items_sparkline_values[0]
+                                        else "#dc3545"
+                                        if len(items_sparkline_values) >= 2
+                                        else "#6c757d"
+                                    },
+                                ),
+                                html.Small(
+                                    f"{'Growing' if len(items_sparkline_values) >= 2 and items_sparkline_values[-1] > items_sparkline_values[0] else 'Declining' if len(items_sparkline_values) >= 2 else 'Stable'} throughput",
+                                    className="text-muted fst-italic",
+                                ),
+                            ],
+                            className="mt-2",
+                            style={"fontSize": "0.75rem"},
+                        ),
+                    ],
+                    className="mb-3",
+                ),
+            ]
+            if items_sparkline_values and len(items_sparkline_values) > 0
+            else None,
         ),
         create_professional_metric_card(
             {
@@ -219,14 +287,83 @@ def create_recent_activity_section(
                     "value": total_points_completed,
                     "unit": "points",
                     "_n_weeks": recent_window,
-                    "tooltip": f"Total story points completed in the last {recent_window} weeks. This metric shows recent delivery throughput in terms of story points.",
+                    "tooltip": f"Total story points completed in the last {recent_window} weeks. This metric shows recent delivery throughput in terms of story points. Breakdown shows Week 1 (oldest) to Week 4 (newest).",
                     "error_state": "success",
                     "total_issue_count": 0,
-                    "weekly_values": points_sparkline_values,
-                    "weekly_labels": [
-                        f"W{i + 1}" for i in range(len(points_sparkline_values))
-                    ],
-                }
+                },
+                text_details=[
+                    html.Div(
+                        [
+                            html.Div(
+                                className="text-muted mb-2",
+                                children=[
+                                    html.I(
+                                        className="fas fa-history me-1",
+                                        style={"fontSize": "0.8rem"},
+                                    ),
+                                    html.Span(
+                                        "Past 4 Weeks (oldest → newest)",
+                                        className="fw-bold",
+                                        style={"fontSize": "0.85rem"},
+                                    ),
+                                ],
+                            ),
+                            html.Div(
+                                [
+                                    html.Div(
+                                        [
+                                            html.Small(
+                                                f"Week {4 - i}: ",
+                                                className="text-muted",
+                                            ),
+                                            html.Small(
+                                                f"{int(points_sparkline_values[-(i + 1)])} pts",
+                                                className="fw-bold",
+                                            ),
+                                        ],
+                                        className="d-flex justify-content-between mb-1",
+                                        style={"fontSize": "0.8rem"},
+                                    )
+                                    for i in range(
+                                        min(4, len(points_sparkline_values)) - 1, -1, -1
+                                    )
+                                ],
+                                className="small",
+                                style={
+                                    "backgroundColor": "#f8f9fa",
+                                    "padding": "8px",
+                                    "borderRadius": "4px",
+                                    "fontSize": "0.8rem",
+                                },
+                            ),
+                            html.Div(
+                                [
+                                    html.I(
+                                        className=f"fas fa-arrow-{'up' if len(points_sparkline_values) >= 2 and points_sparkline_values[-1] > points_sparkline_values[0] else 'down' if len(points_sparkline_values) >= 2 else 'right'} me-1",
+                                        style={
+                                            "color": "#28a745"
+                                            if len(points_sparkline_values) >= 2
+                                            and points_sparkline_values[-1]
+                                            > points_sparkline_values[0]
+                                            else "#dc3545"
+                                            if len(points_sparkline_values) >= 2
+                                            else "#6c757d"
+                                        },
+                                    ),
+                                    html.Small(
+                                        f"{'Growing' if len(points_sparkline_values) >= 2 and points_sparkline_values[-1] > points_sparkline_values[0] else 'Declining' if len(points_sparkline_values) >= 2 else 'Stable'} throughput",
+                                        className="text-muted fst-italic",
+                                    ),
+                                ],
+                                className="mt-2",
+                                style={"fontSize": "0.75rem"},
+                            ),
+                        ],
+                        className="mb-3",
+                    ),
+                ]
+                if points_sparkline_values and len(points_sparkline_values) > 0
+                else None,
             ),
             create_professional_metric_card(
                 {

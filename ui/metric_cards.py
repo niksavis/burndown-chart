@@ -1238,7 +1238,7 @@ def _create_success_card(
                     [
                         html.Div(
                             [
-                                html.Small("Blended (f): ", className="text-muted"),
+                                html.Small("Adjusted Total: ", className="text-muted"),
                                 html.Small(
                                     f"{blend_metadata['blended']:.1f}",
                                     className="fw-bold",
@@ -1248,9 +1248,9 @@ def _create_success_card(
                         ),
                         html.Div(
                             [
-                                html.Small("Forecast (x): ", className="text-muted"),
+                                html.Small("Actual So Far: ", className="text-muted"),
                                 html.Small(
-                                    f"{blend_metadata['forecast']:.1f}",
+                                    f"{blend_metadata['actual']:.0f}",
                                     className="text-secondary",
                                 ),
                             ],
@@ -1258,9 +1258,9 @@ def _create_success_card(
                         ),
                         html.Div(
                             [
-                                html.Small("Current (y): ", className="text-muted"),
+                                html.Small("Expected: ", className="text-muted"),
                                 html.Small(
-                                    f"{blend_metadata['actual']:.0f}",
+                                    f"{blend_metadata['forecast']:.1f}",
                                     className="text-secondary",
                                 ),
                             ],

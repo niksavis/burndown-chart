@@ -390,91 +390,108 @@ def create_throughput_analytics_section(
                                     if not show_points
                                     else "No story points data available. Configure story points field in Settings or complete items with point estimates.",
                                     "_n_weeks": data_points_count,
-                                    "tooltip": "Average story points per completed work item. Shows typical item complexity. Higher values mean larger items taking longer to complete. Use this to understand capacity: fewer large items or more small items per sprint."
+                                    "tooltip": "Average story points per completed work item. Shows typical item complexity. Higher values mean larger items taking longer to complete. Use this to understand capacity: fewer large items or more small items per sprint. Breakdown shows Week 1 (oldest) to Week 4 (newest)."
                                     if (show_points and avg_points and avg_points > 0)
                                     else "Enable Points Tracking in Parameters panel and configure the points field in JIRA Configuration to view this metric. When disabled, forecasts use item counts instead."
                                     if not show_points
                                     else "No story points data available for the selected time period.",
-                                    "weekly_values": [
-                                        safe_divide(
-                                            statistics_df["completed_points"].iloc[i],
-                                            statistics_df["completed_items"].iloc[i],
-                                        )
-                                        for i in range(len(statistics_df))
-                                    ]
-                                    if (
-                                        show_points
-                                        and avg_points
-                                        and avg_points > 0
-                                        and not statistics_df.empty
-                                        and "completed_points" in statistics_df.columns
-                                        and "completed_items" in statistics_df.columns
-                                    )
-                                    else [],
-                                    "trend_direction": (
-                                        "up"
-                                        if len(statistics_df) >= 2
-                                        and safe_divide(
-                                            statistics_df["completed_points"].iloc[-1],
-                                            statistics_df["completed_items"].iloc[-1],
-                                        )
-                                        > safe_divide(
-                                            statistics_df["completed_points"].iloc[0],
-                                            statistics_df["completed_items"].iloc[0],
-                                        )
-                                        else "down"
-                                        if len(statistics_df) >= 2
-                                        else "stable"
-                                    )
-                                    if (
-                                        show_points
-                                        and avg_points
-                                        and avg_points > 0
-                                        and not statistics_df.empty
-                                    )
-                                    else "stable",
-                                    "trend_percent": (
-                                        abs(
-                                            (
-                                                safe_divide(
-                                                    statistics_df[
-                                                        "completed_points"
-                                                    ].iloc[-1],
-                                                    statistics_df[
-                                                        "completed_items"
-                                                    ].iloc[-1],
-                                                )
-                                                - safe_divide(
-                                                    statistics_df[
-                                                        "completed_points"
-                                                    ].iloc[0],
-                                                    statistics_df[
-                                                        "completed_items"
-                                                    ].iloc[0],
-                                                )
-                                            )
-                                            / safe_divide(
-                                                statistics_df["completed_points"].iloc[
-                                                    0
+                                },
+                                text_details=[
+                                    html.Div(
+                                        [
+                                            html.Div(
+                                                className="text-muted mb-2",
+                                                children=[
+                                                    html.I(
+                                                        className="fas fa-history me-1",
+                                                        style={"fontSize": "0.8rem"},
+                                                    ),
+                                                    html.Span(
+                                                        "Past 4 Weeks (oldest → newest)",
+                                                        className="fw-bold",
+                                                        style={"fontSize": "0.85rem"},
+                                                    ),
                                                 ],
-                                                statistics_df["completed_items"].iloc[
-                                                    0
+                                            ),
+                                            html.Div(
+                                                [
+                                                    html.Div(
+                                                        [
+                                                            html.Small(
+                                                                f"Week {4 - i}: ",
+                                                                className="text-muted",
+                                                            ),
+                                                            html.Small(
+                                                                f"{safe_divide(statistics_df['completed_points'].iloc[-(i + 1)], statistics_df['completed_items'].iloc[-(i + 1)]):.1f} pts/item",
+                                                                className="fw-bold",
+                                                            ),
+                                                        ],
+                                                        className="d-flex justify-content-between mb-1",
+                                                        style={"fontSize": "0.8rem"},
+                                                    )
+                                                    for i in range(
+                                                        min(4, len(statistics_df)) - 1,
+                                                        -1,
+                                                        -1,
+                                                    )
                                                 ],
-                                                1,
-                                            )
-                                            * 100
-                                        )
-                                        if len(statistics_df) >= 2
-                                        else 0
-                                    )
-                                    if (
-                                        show_points
-                                        and avg_points
-                                        and avg_points > 0
-                                        and not statistics_df.empty
-                                    )
-                                    else 0,
-                                }
+                                                className="small",
+                                                style={
+                                                    "backgroundColor": "#f8f9fa",
+                                                    "padding": "8px",
+                                                    "borderRadius": "4px",
+                                                    "fontSize": "0.8rem",
+                                                },
+                                            ),
+                                            html.Div(
+                                                [
+                                                    html.I(
+                                                        className=f"fas fa-arrow-{'up' if len(statistics_df) >= 2 and safe_divide(statistics_df['completed_points'].iloc[-1], statistics_df['completed_items'].iloc[-1]) > safe_divide(statistics_df['completed_points'].iloc[0], statistics_df['completed_items'].iloc[0]) else 'down' if len(statistics_df) >= 2 else 'right'} me-1",
+                                                        style={
+                                                            "color": "#28a745"
+                                                            if len(statistics_df) >= 2
+                                                            and safe_divide(
+                                                                statistics_df[
+                                                                    "completed_points"
+                                                                ].iloc[-1],
+                                                                statistics_df[
+                                                                    "completed_items"
+                                                                ].iloc[-1],
+                                                            )
+                                                            > safe_divide(
+                                                                statistics_df[
+                                                                    "completed_points"
+                                                                ].iloc[0],
+                                                                statistics_df[
+                                                                    "completed_items"
+                                                                ].iloc[0],
+                                                            )
+                                                            else "#dc3545"
+                                                            if len(statistics_df) >= 2
+                                                            else "#6c757d"
+                                                        },
+                                                    ),
+                                                    html.Small(
+                                                        f"{'Growing' if len(statistics_df) >= 2 and safe_divide(statistics_df['completed_points'].iloc[-1], statistics_df['completed_items'].iloc[-1]) > safe_divide(statistics_df['completed_points'].iloc[0], statistics_df['completed_items'].iloc[0]) else 'Shrinking' if len(statistics_df) >= 2 else 'Stable'} item size",
+                                                        className="text-muted fst-italic",
+                                                    ),
+                                                ],
+                                                className="mt-2",
+                                                style={"fontSize": "0.75rem"},
+                                            ),
+                                        ],
+                                        className="mb-3",
+                                    ),
+                                ]
+                                if (
+                                    show_points
+                                    and avg_points
+                                    and avg_points > 0
+                                    and not statistics_df.empty
+                                    and "completed_points" in statistics_df.columns
+                                    and "completed_items" in statistics_df.columns
+                                )
+                                else None,
                             )
                         ],
                         width=12,
