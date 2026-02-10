@@ -1206,6 +1206,92 @@ def _create_success_card(
         if forecast_section.children:  # Only add if forecast section has content
             card_body_children.append(forecast_section)
 
+    # PROGRESSIVE BLENDING: Display blend breakdown (Feature bd-a1vn)
+    blend_metadata = metric_data.get("blend_metadata")
+    if blend_metadata and blend_metadata.get("is_blended"):
+        from data.metrics.blending import format_blend_description
+
+        # Create blend indicator section with f(x,y) breakdown
+        blend_section = html.Div(
+            [
+                html.Hr(className="my-2"),
+                html.Div(
+                    [
+                        html.I(
+                            className="fas fa-chart-line me-1",
+                            style={"fontSize": "0.8rem"},
+                        ),
+                        html.Span(
+                            "Current Week (Blended)",
+                            className="fw-bold",
+                            style={"fontSize": "0.85rem"},
+                        ),
+                        html.Span(
+                            " 📊",
+                            style={"fontSize": "1rem", "marginLeft": "4px"},
+                        ),
+                    ],
+                    className="text-muted mb-2",
+                ),
+                # Breakdown details in compact format
+                html.Div(
+                    [
+                        html.Div(
+                            [
+                                html.Small("Blended (f): ", className="text-muted"),
+                                html.Small(
+                                    f"{blend_metadata['blended']:.1f}",
+                                    className="fw-bold",
+                                ),
+                            ],
+                            className="d-flex justify-content-between mb-1",
+                        ),
+                        html.Div(
+                            [
+                                html.Small("Forecast (x): ", className="text-muted"),
+                                html.Small(
+                                    f"{blend_metadata['forecast']:.1f}",
+                                    className="text-secondary",
+                                ),
+                            ],
+                            className="d-flex justify-content-between mb-1",
+                        ),
+                        html.Div(
+                            [
+                                html.Small("Current (y): ", className="text-muted"),
+                                html.Small(
+                                    f"{blend_metadata['actual']:.0f}",
+                                    className="text-secondary",
+                                ),
+                            ],
+                            className="d-flex justify-content-between mb-1",
+                        ),
+                    ],
+                    className="small",
+                    style={
+                        "backgroundColor": "#f8f9fa",
+                        "padding": "8px",
+                        "borderRadius": "4px",
+                        "fontSize": "0.8rem",
+                    },
+                ),
+                # Blend description
+                html.Div(
+                    [
+                        html.I(className="fas fa-info-circle me-1"),
+                        html.Small(
+                            format_blend_description(blend_metadata),
+                            className="text-muted fst-italic",
+                        ),
+                    ],
+                    className="mt-2",
+                    style={"fontSize": "0.75rem"},
+                ),
+            ],
+            className="mb-3",
+        )
+        card_body_children.append(blend_section)
+
     # Add optional text details (e.g., baseline comparisons for budget cards)
     if text_details:
         card_body_children.append(html.Hr(className="my-2"))

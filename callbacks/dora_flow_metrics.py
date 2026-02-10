@@ -696,6 +696,58 @@ def calculate_and_display_flow_metrics(
             week_labels, "flow_velocity", "completed_count"
         )
 
+        # PROGRESSIVE BLENDING: Apply blending to current week (Feature bd-a1vn)
+        # This eliminates Monday reliability drop by blending forecast with actuals
+        blend_metadata = None
+        if velocity_values and len(velocity_values) >= 2:
+            from data.metrics.blending import (
+                calculate_current_week_blend,
+                get_blend_metadata,
+            )
+            from data.metrics_calculator import calculate_forecast
+
+            # Current week is last item in velocity_values
+            current_week_actual = velocity_values[-1]
+
+            # Calculate forecast from prior weeks (exclude current week)
+            prior_weeks = velocity_values[:-1]  # All weeks except current
+            # Use last 4 prior weeks for forecast (or fewer if not available)
+            forecast_weeks = prior_weeks[-4:] if len(prior_weeks) >= 4 else prior_weeks
+
+            # Calculate forecast value
+            forecast_data = None
+            forecast_value = 0
+            if len(forecast_weeks) >= 2:  # Need at least 2 weeks for forecast
+                try:
+                    forecast_data = calculate_forecast(forecast_weeks)
+                    forecast_value = (
+                        forecast_data.get("forecast_value", 0) if forecast_data else 0
+                    )
+                except Exception as e:
+                    logger.warning(f"Failed to calculate velocity forecast: {e}")
+
+            # Apply blending if we have a valid forecast
+            if forecast_value > 0:
+                blended_value = calculate_current_week_blend(
+                    current_week_actual, forecast_value
+                )
+
+                # Get blend metadata for UI display
+                blend_metadata = get_blend_metadata(current_week_actual, forecast_value)
+
+                # Replace current week value with blended value
+                velocity_values[-1] = blended_value
+
+                logger.info(
+                    f"[Blending] Flow Velocity - Actual: {current_week_actual:.1f}, "
+                    f"Forecast: {forecast_value:.1f}, "
+                    f"Blended: {blended_value:.1f} "
+                    f"({blend_metadata['actual_percent']:.0f}% actual, "
+                    f"{blend_metadata['forecast_percent']:.0f}% forecast on {blend_metadata['day_name']})"
+                )
+            else:
+                logger.debug("[Blending] Skipped - insufficient forecast data")
+
         # AGGREGATE Flow metrics across selected period (like DORA)
         # Flow Velocity: Average items/week across period
         avg_velocity = (
@@ -932,6 +984,7 @@ def calculate_and_display_flow_metrics(
                     "Technical Debt": tech_debt_count,
                     "Risk": risk_count,
                 },
+                "blend_metadata": blend_metadata,  # Progressive blending metadata (bd-a1vn)
             },
             "flow_time": {
                 "metric_name": "flow_time",

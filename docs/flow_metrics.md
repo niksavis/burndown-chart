@@ -43,6 +43,46 @@ Metric cards include forecast benchmarks to provide context early in the week.
 
 When insufficient historical data exists, cards show a baseline-building or insufficient-data message.
 
+## Progressive Current Week Blending (Feature bd-a1vn)
+
+**Problem**: Monday metrics showed 25% reliability drop because incomplete current week (0 completions) was included in rolling average with 40% weight.
+
+**Solution**: Progressive blending that combines forecast (from prior 4 weeks) with actual current week value, weighted by day of week.
+
+### How It Works
+
+**Weekday Weights** (Fixed Mon-Fri Schedule):
+- **Monday**: 0% actual, 100% forecast → Shows stable forecast (e.g., 12.0 items/week)
+- **Tuesday**: 20% actual, 80% forecast → Gradually transitions to actual
+- **Wednesday**: 50% actual, 50% forecast → Balanced blend
+- **Thursday**: 80% actual, 20% forecast → Mostly actual
+- **Friday-Sunday**: 100% actual, 0% forecast → Pure actual value
+
+**Formula**: `blended = (actual × weight) + (forecast × (1 - weight))`
+
+**Example** (Forecast = 12.0 items/week):
+- Monday with 0 completions → 12.0 items/week (was 8.4, -25% drop ❌)
+- Tuesday with 2 completions → 10.0 items/week (smooth transition ✅)
+- Wednesday with 5 completions → 8.5 items/week
+- Friday with 10 completions → 10.0 items/week (pure actual)
+
+**UI Transparency**: Flow Velocity card shows breakdown when blending is active:
+```
+Current Week (Blended) 📊
+• Blended (f): 10.0 items/week
+• Forecast (x): 12.0 items/week
+• Current Week (y): 2 items (Tuesday)
+• Blend Ratio: 20% actual, 80% forecast
+```
+
+**Benefits**:
+- ✅ Monday metrics stable (no 25% drop)
+- ✅ Smooth progression through week (no sawtooth pattern)
+- ✅ Real-time feedback maintained (partial actuals visible)
+- ✅ User trust improved (transparent calculation)
+
+**See Also**: [Blending Algorithm Documentation](./blending_algorithm.md) for complete technical details.
+
 ## Field Configuration
 
 ### Required Status Configurations

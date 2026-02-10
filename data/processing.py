@@ -846,6 +846,51 @@ def calculate_weekly_averages(
                 week_labels, "flow_velocity", "completed_count"
             )
 
+            # PROGRESSIVE BLENDING: Apply blending to current week (Feature bd-a1vn)
+            # This eliminates Monday reliability drop by blending forecast with actuals
+            if velocity_items and len(velocity_items) >= 2:
+                from data.metrics.blending import calculate_current_week_blend
+                from data.metrics_calculator import calculate_forecast
+
+                # Current week is last item in velocity_items
+                current_week_actual = velocity_items[-1]
+
+                # Calculate forecast from prior weeks (exclude current week)
+                prior_weeks = velocity_items[:-1]  # All weeks except current
+                # Use last 4 prior weeks for forecast (or fewer if not available)
+                forecast_weeks = (
+                    prior_weeks[-4:] if len(prior_weeks) >= 4 else prior_weeks
+                )
+
+                # Calculate forecast value
+                forecast_value = 0
+                if len(forecast_weeks) >= 2:  # Need at least 2 weeks for forecast
+                    try:
+                        forecast_data = calculate_forecast(forecast_weeks)
+                        forecast_value = (
+                            forecast_data.get("forecast_value", 0)
+                            if forecast_data
+                            else 0
+                        )
+                    except Exception as e:
+                        logger.warning(
+                            f"Failed to calculate velocity forecast in processing.py: {e}"
+                        )
+
+                # Apply blending if we have a valid forecast
+                if forecast_value > 0:
+                    blended_value = calculate_current_week_blend(
+                        current_week_actual, forecast_value
+                    )
+
+                    # Replace current week value with blended value
+                    velocity_items[-1] = blended_value
+
+                    logger.info(
+                        f"[Blending-Dashboard] Flow Velocity - Actual: {current_week_actual:.1f}, "
+                        f"Forecast: {forecast_value:.1f}, Blended: {blended_value:.1f}"
+                    )
+
             if velocity_items and any(v > 0 for v in velocity_items):
                 # Calculate from snapshots (source of truth)
                 avg_items = (
