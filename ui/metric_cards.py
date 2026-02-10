@@ -876,7 +876,19 @@ def _create_success_card(
     )  # NEW: deployment count (operational tasks)
 
     if value is not None:
-        formatted_value = f"{value:.2f}"
+        # Apply different decimal precision based on metric type
+        if metric_name == "items_completed":
+            # Items are countable - show as natural number
+            formatted_value = f"{int(round(value))}"
+        elif "items_per_week" in metric_name or "items/week" in metric_name:
+            # Items per week average can have decimals (e.g., 3.5 items/week)
+            formatted_value = f"{value:.1f}"
+        elif "points" in metric_name:
+            # Points are typically Fibonacci-based (0.5, 1, 2, 3, 5, 8, etc.) - 1 decimal
+            formatted_value = f"{value:.1f}"
+        else:
+            # Default: 2 decimal places
+            formatted_value = f"{value:.2f}"
     else:
         formatted_value = "N/A"
 

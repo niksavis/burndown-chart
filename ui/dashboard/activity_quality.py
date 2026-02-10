@@ -317,7 +317,7 @@ def create_recent_activity_section(
                                                 className="text-muted",
                                             ),
                                             html.Small(
-                                                f"{int(points_sparkline_values[-(i + 1)])} pts",
+                                                f"{points_sparkline_values[-(i + 1)]:.1f} pts",
                                                 className="fw-bold",
                                             ),
                                         ],
