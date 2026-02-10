@@ -163,11 +163,9 @@ def create_throughput_analytics_section(
         from data.metrics_calculator import calculate_forecast
 
         # Check if last week in dataframe is the current week
-        last_week_label = (
-            statistics_df.index[-1]
-            if hasattr(statistics_df, "index") and len(statistics_df.index) > 0
-            else None
-        )
+        last_week_label = None
+        if "week_label" in statistics_df.columns and len(statistics_df) > 0:
+            last_week_label = statistics_df["week_label"].iloc[-1]
         current_week_label = additional_context["current_week_label"]
 
         if last_week_label == current_week_label:

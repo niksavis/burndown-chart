@@ -90,11 +90,9 @@ def create_recent_activity_section(
         from data.metrics_calculator import calculate_forecast
 
         # Check if last week in recent_data is the current week
-        last_week_label = (
-            recent_data.index[-1]
-            if hasattr(recent_data, "index") and len(recent_data.index) > 0
-            else None
-        )
+        last_week_label = None
+        if "week_label" in recent_data.columns and len(recent_data) > 0:
+            last_week_label = recent_data["week_label"].iloc[-1]
         current_week_label = additional_context["current_week_label"]
 
         if last_week_label == current_week_label:
