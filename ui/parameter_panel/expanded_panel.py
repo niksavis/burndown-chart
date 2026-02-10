@@ -9,6 +9,7 @@ from dash import dcc, html
 
 from ui.budget_settings_card import create_budget_settings_card
 from ui.help_system import create_parameter_tooltip
+from ui.button_utils import create_panel_collapse_button
 
 
 def create_parameter_panel_expanded(
@@ -78,58 +79,66 @@ def create_parameter_panel_expanded(
         [
             html.Div(
                 [
-                    # Tabbed interface matching Settings panel
-                    dbc.Tabs(
+                    # Tabs row with collapse button
+                    html.Div(
                         [
-                            dbc.Tab(
-                                label="Parameters",
-                                tab_id="parameters-tab",
-                                label_style={"width": "100%"},
-                                children=[
-                                    html.Div(
-                                        [
-                                            # No header - tab label serves as title
-                                            # Section 1: Project Timeline
+                            # Collapse button (positioned absolutely, so order doesn't matter)
+                            create_panel_collapse_button("parameter-collapse"),
+                            # Tabbed interface matching Settings panel
+                            dbc.Tabs(
+                                [
+                                    dbc.Tab(
+                                        label="Parameters",
+                                        tab_id="parameters-tab",
+                                        label_style={"width": "100%"},
+                                        children=[
                                             html.Div(
-                                                _create_timeline_section(
-                                                    pert_factor,
-                                                    data_points_count,
-                                                    data_points_marks,
-                                                    max_data_points,
-                                                ),
-                                                className="mb-4 pb-3 border-bottom",
-                                            ),
-                                            # Section 2: Work Scope
-                                            html.Div(
-                                                _create_work_scope_section(
-                                                    total_items,
-                                                    estimated_items,
-                                                    total_points,
-                                                    estimated_points,
-                                                    show_points,
-                                                ),
-                                            ),
+                                                [
+                                                    # No header - tab label serves as title
+                                                    # Section 1: Project Timeline
+                                                    html.Div(
+                                                        _create_timeline_section(
+                                                            pert_factor,
+                                                            data_points_count,
+                                                            data_points_marks,
+                                                            max_data_points,
+                                                        ),
+                                                        className="mb-4 pb-3 border-bottom",
+                                                    ),
+                                                    # Section 2: Work Scope
+                                                    html.Div(
+                                                        _create_work_scope_section(
+                                                            total_items,
+                                                            estimated_items,
+                                                            total_points,
+                                                            estimated_points,
+                                                            show_points,
+                                                        ),
+                                                    ),
+                                                ],
+                                                className="settings-tab-content",
+                                            )
                                         ],
-                                        className="settings-tab-content",
-                                    )
+                                    ),
+                                    # Budget Tab
+                                    dbc.Tab(
+                                        label="Budget",
+                                        tab_id="budget-tab",
+                                        label_style={"width": "100%"},
+                                        children=[
+                                            html.Div(
+                                                [create_budget_settings_card()],
+                                                className="settings-tab-content",
+                                            )
+                                        ],
+                                    ),
                                 ],
-                            ),
-                            # Budget Tab
-                            dbc.Tab(
-                                label="Budget",
-                                tab_id="budget-tab",
-                                label_style={"width": "100%"},
-                                children=[
-                                    html.Div(
-                                        [create_budget_settings_card()],
-                                        className="settings-tab-content",
-                                    )
-                                ],
+                                id="parameter-tabs",
+                                active_tab="parameters-tab",
+                                className="settings-tabs",
                             ),
                         ],
-                        id="parameter-tabs",
-                        active_tab="parameters-tab",
-                        className="settings-tabs",
+                        className="panel-tabs-container",
                     ),
                 ],
                 className="tabbed-settings-panel blue-accent-panel",

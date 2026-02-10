@@ -181,4 +181,46 @@ def toggle_import_export_panel(
     return new_import_export_state, new_settings_state, new_parameter_state
 
 
+@callback(
+    Output("settings-collapse", "is_open", allow_duplicate=True),
+    Input("settings-collapse-btn", "n_clicks"),
+    State("settings-collapse", "is_open"),
+    prevent_initial_call=True,
+)
+def collapse_settings_panel(n_clicks, is_open):
+    """Collapse settings panel when collapse button is clicked."""
+    if n_clicks:
+        logger.info("Settings collapse button clicked - closing panel")
+        return False
+    return no_update
+
+
+@callback(
+    Output("parameter-collapse", "is_open", allow_duplicate=True),
+    Input("parameter-collapse-btn", "n_clicks"),
+    State("parameter-collapse", "is_open"),
+    prevent_initial_call=True,
+)
+def collapse_parameter_panel(n_clicks, is_open):
+    """Collapse parameter panel when collapse button is clicked."""
+    if n_clicks:
+        logger.info("Parameter collapse button clicked - closing panel")
+        return False
+    return no_update
+
+
+@callback(
+    Output("import-export-collapse", "is_open", allow_duplicate=True),
+    Input("import-export-collapse-btn", "n_clicks"),
+    State("import-export-collapse", "is_open"),
+    prevent_initial_call=True,
+)
+def collapse_import_export_panel(n_clicks, is_open):
+    """Collapse import/export panel when collapse button is clicked."""
+    if n_clicks:
+        logger.info("Import/Export collapse button clicked - closing panel")
+        return False
+    return no_update
+
+
 # Function removed - was causing undefined variable errors and not being used

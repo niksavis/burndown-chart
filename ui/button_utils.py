@@ -659,3 +659,33 @@ def create_pill_button(
         style=pill_style,
         **kwargs,
     )
+
+
+def create_panel_collapse_button(panel_id: str) -> html.Button:
+    """
+    Create a collapse button for panel headers to close expanded panels.
+
+    This button provides a visual indicator that the panel is expanded
+    and allows users to collapse it by clicking. Positioned in the top
+    right corner of the panel's tab row.
+
+    Args:
+        panel_id: ID of the collapse panel (e.g., 'parameter-collapse',
+                  'settings-collapse', 'import-export-collapse')
+
+    Returns:
+        html.Button: Collapse button with chevron-up icon
+
+    Examples:
+        >>> create_panel_collapse_button('parameter-collapse')
+        >>> create_panel_collapse_button('settings-collapse')
+    """
+    button_id = f"{panel_id}-btn"
+
+    return html.Button(
+        html.I(className="fas fa-chevron-up"),
+        id=button_id,
+        className="panel-collapse-btn",
+        title="Collapse panel",
+        **{"aria-label": "Collapse panel"},
+    )

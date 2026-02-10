@@ -19,6 +19,7 @@ from dash import dcc, html
 from ui.profile_settings_card import create_profile_settings_card
 from ui.jira_config_modal import create_jira_config_button
 from ui.jql_editor import create_jql_editor
+from ui.button_utils import create_panel_collapse_button
 
 
 def create_connect_tab_content() -> html.Div:
@@ -369,58 +370,68 @@ def create_tabbed_settings_panel() -> html.Div:
         [
             # Configuration status store
             dcc.Store(id="configuration-status-store", data={}),
-            # Tabs
-            dbc.Tabs(
+            # Tabs row with collapse button
+            html.Div(
                 [
-                    dbc.Tab(
-                        label="Profile",
-                        tab_id="profile-tab",
-                        label_style={"width": "100%"},
-                        children=[
-                            html.Div(
-                                [create_profile_settings_card()],
-                                className="settings-tab-content",
-                            )
+                    # Collapse button (positioned absolutely, so order doesn't matter)
+                    create_panel_collapse_button("settings-collapse"),
+                    # Tabs
+                    dbc.Tabs(
+                        [
+                            dbc.Tab(
+                                label="Profile",
+                                tab_id="profile-tab",
+                                label_style={"width": "100%"},
+                                children=[
+                                    html.Div(
+                                        [create_profile_settings_card()],
+                                        className="settings-tab-content",
+                                    )
+                                ],
+                            ),
+                            dbc.Tab(
+                                label="Connect",
+                                tab_id="connect-tab",
+                                label_style={"width": "100%"},
+                                children=[
+                                    # Combined JIRA + Fields content
+                                    html.Div(
+                                        id="jira-config-section-content",
+                                        children=[create_connect_tab_content()],
+                                    ),
+                                    # Keep legacy field-mapping-section-content for callbacks
+                                    html.Div(
+                                        id="field-mapping-section-content",
+                                        style={"display": "none"},
+                                    ),
+                                ],
+                            ),
+                            dbc.Tab(
+                                label="Queries",
+                                tab_id="queries-tab",
+                                label_style={"width": "100%"},
+                                children=[
+                                    # Combined Queries + Data content
+                                    html.Div(
+                                        id="query-management-section-content",
+                                        children=[
+                                            create_queries_and_data_tab_content()
+                                        ],
+                                    ),
+                                    # Keep legacy data-actions-section-content for callbacks
+                                    html.Div(
+                                        id="data-actions-section-content",
+                                        style={"display": "none"},
+                                    ),
+                                ],
+                            ),
                         ],
-                    ),
-                    dbc.Tab(
-                        label="Connect",
-                        tab_id="connect-tab",
-                        label_style={"width": "100%"},
-                        children=[
-                            # Combined JIRA + Fields content
-                            html.Div(
-                                id="jira-config-section-content",
-                                children=[create_connect_tab_content()],
-                            ),
-                            # Keep legacy field-mapping-section-content for callbacks
-                            html.Div(
-                                id="field-mapping-section-content",
-                                style={"display": "none"},
-                            ),
-                        ],
-                    ),
-                    dbc.Tab(
-                        label="Queries",
-                        tab_id="queries-tab",
-                        label_style={"width": "100%"},
-                        children=[
-                            # Combined Queries + Data content
-                            html.Div(
-                                id="query-management-section-content",
-                                children=[create_queries_and_data_tab_content()],
-                            ),
-                            # Keep legacy data-actions-section-content for callbacks
-                            html.Div(
-                                id="data-actions-section-content",
-                                style={"display": "none"},
-                            ),
-                        ],
+                        id="settings-tabs",
+                        active_tab="profile-tab",
+                        className="settings-tabs",
                     ),
                 ],
-                id="settings-tabs",
-                active_tab="profile-tab",
-                className="settings-tabs",
+                className="panel-tabs-container",
             ),
             # Status indicators
             html.Div(id="dependency-status-display", className="mt-3 d-none"),
