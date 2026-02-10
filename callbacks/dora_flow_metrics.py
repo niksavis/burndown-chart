@@ -270,6 +270,132 @@ def load_and_display_dora_metrics(
         # Use .get() with defaults to safely handle missing or None values
         n_weeks_display = cached_metrics.get("_n_weeks", 12)
 
+        # PROGRESSIVE BLENDING: Apply to DORA count metrics (Feature bd-3pff)
+        # Import blending functions
+        from data.metrics.blending import (
+            calculate_current_week_blend,
+            get_blend_metadata,
+        )
+        from data.metrics_calculator import calculate_forecast
+
+        # ========================================================================
+        # DEPLOYMENT FREQUENCY BLENDING
+        # ========================================================================
+        deployment_weekly_values = cached_metrics.get("deployment_frequency", {}).get(
+            "weekly_values", []
+        )
+        deployment_blend_metadata = None
+
+        if deployment_weekly_values and len(deployment_weekly_values) >= 2:
+            current_week_actual = deployment_weekly_values[-1]
+            prior_weeks = deployment_weekly_values[:-1]
+            forecast_weeks = prior_weeks[-4:] if len(prior_weeks) >= 4 else prior_weeks
+
+            if len(forecast_weeks) >= 2:
+                try:
+                    forecast_data = calculate_forecast(forecast_weeks)
+                    forecast_value = (
+                        forecast_data.get("forecast_value", 0) if forecast_data else 0
+                    )
+
+                    if forecast_value > 0:
+                        blended_value = calculate_current_week_blend(
+                            current_week_actual, forecast_value
+                        )
+                        deployment_blend_metadata = get_blend_metadata(
+                            current_week_actual, forecast_value
+                        )
+                        deployment_weekly_values[-1] = blended_value
+
+                        logger.info(
+                            f"[Blending] Deployment Frequency - Actual: {current_week_actual:.1f}, "
+                            f"Forecast: {forecast_value:.1f}, Blended: {blended_value:.1f}"
+                        )
+                except Exception as e:
+                    logger.warning(f"Failed to blend deployment frequency: {e}")
+
+        # ========================================================================
+        # LEAD TIME BLENDING (Time-based median)
+        # ========================================================================
+        lead_time_weekly_values = cached_metrics.get("lead_time_for_changes", {}).get(
+            "weekly_values", []
+        )
+        lead_time_blend_metadata = None
+
+        if lead_time_weekly_values and len(lead_time_weekly_values) >= 2:
+            current_week_actual = lead_time_weekly_values[-1]
+            if current_week_actual > 0:  # Only blend if we have data
+                prior_weeks = [v for v in lead_time_weekly_values[:-1] if v > 0]
+                forecast_weeks = (
+                    prior_weeks[-4:] if len(prior_weeks) >= 4 else prior_weeks
+                )
+
+                if len(forecast_weeks) >= 2:
+                    try:
+                        forecast_data = calculate_forecast(forecast_weeks)
+                        forecast_value = (
+                            forecast_data.get("forecast_value", 0)
+                            if forecast_data
+                            else 0
+                        )
+
+                        if forecast_value > 0:
+                            blended_value = calculate_current_week_blend(
+                                current_week_actual, forecast_value
+                            )
+                            lead_time_blend_metadata = get_blend_metadata(
+                                current_week_actual, forecast_value
+                            )
+                            lead_time_weekly_values[-1] = blended_value
+
+                            logger.info(
+                                f"[Blending] Lead Time - Actual: {current_week_actual:.1f}, "
+                                f"Forecast: {forecast_value:.1f}, Blended: {blended_value:.1f}"
+                            )
+                    except Exception as e:
+                        logger.warning(f"Failed to blend lead time: {e}")
+
+        # ========================================================================
+        # MTTR BLENDING (Time-based median)
+        # ========================================================================
+        mttr_weekly_values = cached_metrics.get("mean_time_to_recovery", {}).get(
+            "weekly_values", []
+        )
+        mttr_blend_metadata = None
+
+        if mttr_weekly_values and len(mttr_weekly_values) >= 2:
+            current_week_actual = mttr_weekly_values[-1]
+            if current_week_actual > 0:  # Only blend if we have data
+                prior_weeks = [v for v in mttr_weekly_values[:-1] if v > 0]
+                forecast_weeks = (
+                    prior_weeks[-4:] if len(prior_weeks) >= 4 else prior_weeks
+                )
+
+                if len(forecast_weeks) >= 2:
+                    try:
+                        forecast_data = calculate_forecast(forecast_weeks)
+                        forecast_value = (
+                            forecast_data.get("forecast_value", 0)
+                            if forecast_data
+                            else 0
+                        )
+
+                        if forecast_value > 0:
+                            blended_value = calculate_current_week_blend(
+                                current_week_actual, forecast_value
+                            )
+                            mttr_blend_metadata = get_blend_metadata(
+                                current_week_actual, forecast_value
+                            )
+                            mttr_weekly_values[-1] = blended_value
+
+                            logger.info(
+                                f"[Blending] MTTR - Actual: {current_week_actual:.1f}, "
+                                f"Forecast: {forecast_value:.1f}, Blended: {blended_value:.1f}"
+                            )
+                    except Exception as e:
+                        logger.warning(f"Failed to blend MTTR: {e}")
+
         # Import tier calculation function
         from data.dora_metrics import (
             _determine_performance_tier,
@@ -282,9 +408,11 @@ def load_and_display_dora_metrics(
         # Calculate performance tiers for each metric
         # Use RELEASE count as primary deployment frequency (unique fixVersions)
         # This represents actual production deployments, not individual operational tasks
-        deployment_freq_value = cached_metrics.get("deployment_frequency", {}).get(
-            "release_value",
-            0,  # Use release_value (unique fixVersions) as primary metric
+        # NOTE: Use blended values if available
+        deployment_freq_value = (
+            sum(deployment_weekly_values) / len(deployment_weekly_values)
+            if deployment_weekly_values
+            else cached_metrics.get("deployment_frequency", {}).get("release_value", 0)
         )
         # Fallback to task count if release_value not available
         if deployment_freq_value == 0:
@@ -341,15 +469,13 @@ def load_and_display_dora_metrics(
                 "weekly_labels": cached_metrics.get("deployment_frequency", {}).get(
                     "weekly_labels", []
                 ),
-                "weekly_values": cached_metrics.get("deployment_frequency", {}).get(
-                    "weekly_values",
-                    [],  # Use deployment values for primary chart line
-                ),
+                "weekly_values": deployment_weekly_values,  # Use blended values
                 "weekly_release_values": cached_metrics.get(
                     "deployment_frequency", {}
                 ).get(
                     "weekly_release_values", []
                 ),  # Use release values for secondary chart line
+                "blend_metadata": deployment_blend_metadata,  # NEW: Progressive blending info (bd-3pff)
             },
             "lead_time_for_changes": {
                 "metric_name": "lead_time_for_changes",
@@ -381,9 +507,8 @@ def load_and_display_dora_metrics(
                 "weekly_labels": cached_metrics.get("lead_time_for_changes", {}).get(
                     "weekly_labels", []
                 ),
-                "weekly_values": cached_metrics.get("lead_time_for_changes", {}).get(
-                    "weekly_values", []
-                ),
+                "weekly_values": lead_time_weekly_values,  # Use blended values
+                "blend_metadata": lead_time_blend_metadata,  # NEW: Progressive blending info (bd-3pff)
             },
             "change_failure_rate": {
                 "metric_name": "change_failure_rate",
@@ -442,9 +567,8 @@ def load_and_display_dora_metrics(
                 "weekly_labels": cached_metrics.get("mean_time_to_recovery", {}).get(
                     "weekly_labels", []
                 ),
-                "weekly_values": cached_metrics.get("mean_time_to_recovery", {}).get(
-                    "weekly_values", []
-                ),
+                "weekly_values": mttr_weekly_values,  # Use blended values
+                "blend_metadata": mttr_blend_metadata,  # NEW: Progressive blending info (bd-3pff)
             },
         }
 
@@ -680,6 +804,13 @@ def calculate_and_display_flow_metrics(
         # AGGREGATED across all weeks in selected period (like DORA metrics)
         from data.metrics_snapshots import get_metric_snapshot
 
+        # Import blending functions (Feature bd-a1vn, bd-3pff)
+        from data.metrics.blending import (
+            calculate_current_week_blend,
+            get_blend_metadata,
+        )
+        from data.metrics_calculator import calculate_forecast
+
         # Load historical metric values from snapshots for sparklines AND aggregation
         from data.metrics_snapshots import get_metric_weekly_values
 
@@ -700,12 +831,6 @@ def calculate_and_display_flow_metrics(
         # This eliminates Monday reliability drop by blending forecast with actuals
         blend_metadata = None
         if velocity_values and len(velocity_values) >= 2:
-            from data.metrics.blending import (
-                calculate_current_week_blend,
-                get_blend_metadata,
-            )
-            from data.metrics_calculator import calculate_forecast
-
             # Current week is last item in velocity_values
             current_week_actual = velocity_values[-1]
 
@@ -747,6 +872,41 @@ def calculate_and_display_flow_metrics(
                 )
             else:
                 logger.debug("[Blending] Skipped - insufficient forecast data")
+
+        # PROGRESSIVE BLENDING: Apply to Flow Time (Feature bd-3pff)
+        flow_time_blend_metadata = None
+        if flow_time_values and len(flow_time_values) >= 2:
+            current_week_actual = flow_time_values[-1]
+            if current_week_actual > 0:  # Only blend if we have data
+                prior_weeks = [v for v in flow_time_values[:-1] if v > 0]
+                forecast_weeks = (
+                    prior_weeks[-4:] if len(prior_weeks) >= 4 else prior_weeks
+                )
+
+                if len(forecast_weeks) >= 2:
+                    try:
+                        forecast_data = calculate_forecast(forecast_weeks)
+                        forecast_value = (
+                            forecast_data.get("forecast_value", 0)
+                            if forecast_data
+                            else 0
+                        )
+
+                        if forecast_value > 0:
+                            blended_value = calculate_current_week_blend(
+                                current_week_actual, forecast_value
+                            )
+                            flow_time_blend_metadata = get_blend_metadata(
+                                current_week_actual, forecast_value
+                            )
+                            flow_time_values[-1] = blended_value
+
+                            logger.info(
+                                f"[Blending] Flow Time - Actual: {current_week_actual:.1f}, "
+                                f"Forecast: {forecast_value:.1f}, Blended: {blended_value:.1f}"
+                            )
+                    except Exception as e:
+                        logger.warning(f"Failed to blend flow time: {e}")
 
         # AGGREGATE Flow metrics across selected period (like DORA)
         # Flow Velocity: Average items/week across period
@@ -1001,7 +1161,8 @@ def calculate_and_display_flow_metrics(
                 ),
                 "total_issue_count": issues_in_period_count,
                 "weekly_labels": week_labels,
-                "weekly_values": flow_time_values,
+                "weekly_values": flow_time_values,  # Use blended values
+                "blend_metadata": flow_time_blend_metadata,  # NEW: Progressive blending info (bd-3pff)
             },
             "flow_efficiency": {
                 "metric_name": "flow_efficiency",
