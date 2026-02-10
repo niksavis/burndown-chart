@@ -113,13 +113,65 @@ class TestMobileNavigation:
         assert "mobile-bottom-navigation" in bottom_nav_str
         assert "d-md-none" in bottom_nav_str  # Hidden on desktop
 
-        # Check for navigation items
-        for tab in tabs_config:
+        # Check for navigation items (only primary tabs)
+        primary_tabs = [
+            tab for tab in tabs_config if tab.get("show_in_bottom_nav", True)
+        ]
+        for tab in primary_tabs:
             assert f"bottom-nav-{tab['id']}" in bottom_nav_str
             assert (
                 tab["short_label"] in bottom_nav_str
                 or tab["label"].split()[0] in bottom_nav_str
             )
+
+        # Check for More button
+        assert "bottom-nav-more-menu" in bottom_nav_str
+        assert "More" in bottom_nav_str
+
+        # Check that overflow tabs are NOT in bottom nav
+        overflow_tabs = [
+            tab for tab in tabs_config if not tab.get("show_in_bottom_nav", True)
+        ]
+        for tab in overflow_tabs:
+            assert f"bottom-nav-{tab['id']}" not in bottom_nav_str
+
+    def test_mobile_overflow_menu_structure(self):
+        """Test mobile overflow menu structure and elements."""
+        from ui.mobile_navigation import (
+            create_mobile_overflow_menu,
+            get_mobile_tabs_config,
+        )
+
+        tabs_config = get_mobile_tabs_config()
+        overflow_menu = create_mobile_overflow_menu(tabs_config)
+
+        # Convert to string for content checking
+        overflow_str = str(overflow_menu)
+
+        # Check for essential overflow menu elements
+        assert "mobile-overflow-container" in overflow_str
+        assert "mobile-overflow-overlay" in overflow_str
+        assert "mobile-overflow-menu" in overflow_str
+        assert "mobile-overflow-header" in overflow_str
+        assert "mobile-overflow-body" in overflow_str
+
+        # Check for overflow menu items (only secondary tabs)
+        overflow_tabs = [
+            tab for tab in tabs_config if not tab.get("show_in_bottom_nav", True)
+        ]
+        for tab in overflow_tabs:
+            assert f"overflow-menu-{tab['id']}" in overflow_str
+            assert tab["label"] in overflow_str
+
+        # Verify we have exactly 3 overflow tabs
+        assert len(overflow_tabs) == 3
+
+        # Check that primary tabs are NOT in overflow menu
+        primary_tabs = [
+            tab for tab in tabs_config if tab.get("show_in_bottom_nav", True)
+        ]
+        for tab in primary_tabs:
+            assert f"overflow-menu-{tab['id']}" not in overflow_str
 
     def test_mobile_tab_controls_elements(self):
         """Test mobile tab controls contain required elements."""
@@ -149,6 +201,7 @@ class TestMobileNavigation:
         nav_system_str = str(nav_system)
         assert "mobile-drawer" in nav_system_str
         assert "mobile-bottom-navigation" in nav_system_str
+        assert "mobile-overflow-menu" in nav_system_str
 
     def test_mobile_navigation_css_classes(self):
         """Test that mobile navigation uses correct CSS classes."""

@@ -69,7 +69,7 @@ def handle_mobile_drawer(menu_clicks, close_clicks, overlay_clicks, nav_state):
 # Clientside callback to handle mobile navigation tab switching
 clientside_callback(
     """
-    function(dashboard_clicks, burndown_clicks, items_clicks, points_clicks, scope_clicks, bugs_clicks, dora_clicks, flow_clicks) {
+    function(dashboard_clicks, burndown_clicks, scope_clicks, bugs_clicks, dora_clicks, flow_clicks) {
         // Get the callback context to see which button was clicked
         if (!window.dash_clientside.callback_context.triggered.length) {
             return window.dash_clientside.no_update;
@@ -77,15 +77,14 @@ clientside_callback(
         
         const trigger_id = window.dash_clientside.callback_context.triggered[0].prop_id.split('.')[0];
         
-        // Map mobile nav buttons to tab IDs
+        // Map mobile nav buttons to tab IDs (only primary tabs in bottom nav)
         const tab_mapping = {
             'bottom-nav-tab-dashboard': 'tab-dashboard',
             'bottom-nav-tab-burndown': 'tab-burndown',
             'bottom-nav-tab-scope-tracking': 'tab-scope-tracking',
             'bottom-nav-tab-bug-analysis': 'tab-bug-analysis',
             'bottom-nav-tab-dora-metrics': 'tab-dora-metrics',
-            'bottom-nav-tab-flow-metrics': 'tab-flow-metrics',
-            'bottom-nav-tab-statistics-data': 'tab-statistics-data'
+            'bottom-nav-tab-flow-metrics': 'tab-flow-metrics'
         };
         
         const target_tab = tab_mapping[trigger_id];
@@ -110,7 +109,6 @@ clientside_callback(
         Input("bottom-nav-tab-bug-analysis", "n_clicks"),
         Input("bottom-nav-tab-dora-metrics", "n_clicks"),
         Input("bottom-nav-tab-flow-metrics", "n_clicks"),
-        Input("bottom-nav-tab-statistics-data", "n_clicks"),
     ],
     prevent_initial_call=True,
 )
@@ -125,12 +123,10 @@ clientside_callback(
             return window.dash_clientside.no_update;
         }
         
-        // Tab configuration (matching Python config)
+        // Tab configuration for primary tabs in bottom nav (matching Python config)
         const tabs_config = [
             { id: 'tab-dashboard', color: '#0d6efd' },
             { id: 'tab-burndown', color: '#0d6efd' },
-            { id: 'tab-items', color: '#20c997' },
-            { id: 'tab-points', color: '#fd7e14' },
             { id: 'tab-scope-tracking', color: '#6f42c1' },
             { id: 'tab-bug-analysis', color: '#dc3545' },
             { id: 'tab-dora-metrics', color: '#6610f2' },
@@ -216,6 +212,90 @@ clientside_callback(
     """,
     Output("ui-state", "data", allow_duplicate=True),
     Input("mobile-bottom-navigation", "children"),
+    prevent_initial_call=True,
+)
+
+
+# Callback to handle overflow menu open/close
+@callback(
+    [
+        Output("mobile-overflow-menu", "style"),
+        Output("mobile-overflow-overlay", "style"),
+    ],
+    [
+        Input("bottom-nav-more-menu", "n_clicks"),
+        Input("mobile-overflow-overlay", "n_clicks"),
+        Input("mobile-overflow-header", "n_clicks"),
+    ],
+    [State("mobile-overflow-menu", "style")],
+    prevent_initial_call=True,
+)
+def handle_overflow_menu(more_clicks, overlay_clicks, header_clicks, menu_style):
+    """Handle overflow menu open/close actions."""
+    # Check if menu is currently open
+    is_open = menu_style and menu_style.get("transform") == "translateY(0)"
+
+    if is_open:
+        # Close the menu
+        return (
+            {"transform": "translateY(100%)"},
+            {"display": "none"},
+        )
+    else:
+        # Open the menu
+        return (
+            {"transform": "translateY(0)"},
+            {"display": "block"},
+        )
+
+
+# Clientside callback to handle overflow menu navigation
+clientside_callback(
+    """
+    function(active_work_clicks, sprint_clicks, data_clicks) {
+        // Get the callback context to see which button was clicked
+        if (!window.dash_clientside.callback_context.triggered.length) {
+            return [window.dash_clientside.no_update, window.dash_clientside.no_update, window.dash_clientside.no_update];
+        }
+        
+        const trigger_id = window.dash_clientside.callback_context.triggered[0].prop_id.split('.')[0];
+        
+        // Map overflow menu buttons to tab IDs
+        const tab_mapping = {
+            'overflow-menu-tab-active-work-timeline': 'tab-active-work-timeline',
+            'overflow-menu-tab-sprint-tracker': 'tab-sprint-tracker',
+            'overflow-menu-tab-statistics-data': 'tab-statistics-data'
+        };
+        
+        const target_tab = tab_mapping[trigger_id];
+        
+        if (target_tab) {
+            // Update JavaScript state
+            if (window.mobileNavigation && window.mobileNavigation.mobileNavState) {
+                window.mobileNavigation.mobileNavState.currentTab = target_tab;
+            }
+            
+            // Close the overflow menu
+            return [
+                target_tab,
+                {'transform': 'translateY(100%)'},
+                {'display': 'none'}
+            ];
+        }
+        
+        return [window.dash_clientside.no_update, window.dash_clientside.no_update, window.dash_clientside.no_update];
+    }
+    """,
+    [
+        Output("chart-tabs", "active_tab", allow_duplicate=True),
+        Output("mobile-overflow-menu", "style", allow_duplicate=True),
+        Output("mobile-overflow-overlay", "style", allow_duplicate=True),
+    ],
+    [
+        Input("overflow-menu-tab-active-work-timeline", "n_clicks"),
+        Input("overflow-menu-tab-sprint-tracker", "n_clicks"),
+        Input("overflow-menu-tab-statistics-data", "n_clicks"),
+    ],
     prevent_initial_call=True,
 )
 

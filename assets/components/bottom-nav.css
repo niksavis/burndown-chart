@@ -73,3 +73,81 @@
   text-align: center;
   line-height: 1;
 }
+/* ===== MOBILE OVERFLOW MENU ===== */
+
+/* Overflow menu overlay (darkens background) */
+.mobile-overflow-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 1040;
+  transition: opacity 0.3s ease;
+  cursor: pointer;
+}
+
+/* Overflow menu container (slides up from bottom) */
+.mobile-overflow-menu {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background-color: var(--color-white);
+  border-top-left-radius: 1rem;
+  border-top-right-radius: 1rem;
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.15);
+  z-index: 1050;
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  max-height: 50vh;
+  overflow-y: auto;
+}
+
+/* Overflow menu header (handle bar area) */
+.mobile-overflow-header {
+  padding: 1rem;
+  cursor: pointer;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* Overflow menu handle bar */
+.mobile-overflow-handle {
+  width: 40px;
+  height: 4px;
+  background-color: var(--color-gray-400);
+  border-radius: 2px;
+  margin: 0 auto;
+}
+
+/* Overflow menu body */
+.mobile-overflow-body {
+  padding: 0.5rem 0 1rem 0;
+}
+
+/* Overflow menu items */
+.mobile-overflow-menu-item {
+  border: none !important;
+  background: transparent !important;
+  padding: 1rem !important;
+  display: flex !important;
+  align-items: center !important;
+  width: 100% !important;
+  text-align: left !important;
+  color: var(--color-gray-900) !important;
+  transition: background 0.2s ease !important;
+  font-size: 1rem !important;
+  cursor: pointer !important;
+}
+
+.mobile-overflow-menu-item:hover,
+.mobile-overflow-menu-item:active {
+  background-color: var(--color-gray-100) !important;
+}
+
+.mobile-overflow-menu-item i {
+  font-size: 1.2rem;
+  margin-right: 0.75rem;
+}
