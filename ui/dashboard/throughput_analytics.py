@@ -395,9 +395,85 @@ def create_throughput_analytics_section(
                                     else "Enable Points Tracking in Parameters panel and configure the points field in JIRA Configuration to view this metric. When disabled, forecasts use item counts instead."
                                     if not show_points
                                     else "No story points data available for the selected time period.",
-                                    "weekly_values": [],
-                                    "trend_direction": "stable",
-                                    "trend_percent": 0,
+                                    "weekly_values": [
+                                        safe_divide(
+                                            statistics_df["completed_points"].iloc[i],
+                                            statistics_df["completed_items"].iloc[i],
+                                        )
+                                        for i in range(len(statistics_df))
+                                    ]
+                                    if (
+                                        show_points
+                                        and avg_points
+                                        and avg_points > 0
+                                        and not statistics_df.empty
+                                        and "completed_points" in statistics_df.columns
+                                        and "completed_items" in statistics_df.columns
+                                    )
+                                    else [],
+                                    "trend_direction": (
+                                        "up"
+                                        if len(statistics_df) >= 2
+                                        and safe_divide(
+                                            statistics_df["completed_points"].iloc[-1],
+                                            statistics_df["completed_items"].iloc[-1],
+                                        )
+                                        > safe_divide(
+                                            statistics_df["completed_points"].iloc[0],
+                                            statistics_df["completed_items"].iloc[0],
+                                        )
+                                        else "down"
+                                        if len(statistics_df) >= 2
+                                        else "stable"
+                                    )
+                                    if (
+                                        show_points
+                                        and avg_points
+                                        and avg_points > 0
+                                        and not statistics_df.empty
+                                    )
+                                    else "stable",
+                                    "trend_percent": (
+                                        abs(
+                                            (
+                                                safe_divide(
+                                                    statistics_df[
+                                                        "completed_points"
+                                                    ].iloc[-1],
+                                                    statistics_df[
+                                                        "completed_items"
+                                                    ].iloc[-1],
+                                                )
+                                                - safe_divide(
+                                                    statistics_df[
+                                                        "completed_points"
+                                                    ].iloc[0],
+                                                    statistics_df[
+                                                        "completed_items"
+                                                    ].iloc[0],
+                                                )
+                                            )
+                                            / safe_divide(
+                                                statistics_df["completed_points"].iloc[
+                                                    0
+                                                ],
+                                                statistics_df["completed_items"].iloc[
+                                                    0
+                                                ],
+                                                1,
+                                            )
+                                            * 100
+                                        )
+                                        if len(statistics_df) >= 2
+                                        else 0
+                                    )
+                                    if (
+                                        show_points
+                                        and avg_points
+                                        and avg_points > 0
+                                        and not statistics_df.empty
+                                    )
+                                    else 0,
                                 }
                             )
                         ],

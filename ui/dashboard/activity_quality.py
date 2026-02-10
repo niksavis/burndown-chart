@@ -183,6 +183,10 @@ def create_recent_activity_section(
                 "tooltip": f"Total items completed in the last {recent_window} weeks. This metric shows recent delivery throughput regardless of the data points filter.",
                 "error_state": "success",
                 "total_issue_count": 0,
+                "weekly_values": items_sparkline_values,
+                "weekly_labels": [
+                    f"W{i + 1}" for i in range(len(items_sparkline_values))
+                ],
             }
         ),
         create_professional_metric_card(
@@ -218,6 +222,10 @@ def create_recent_activity_section(
                     "tooltip": f"Total story points completed in the last {recent_window} weeks. This metric shows recent delivery throughput in terms of story points.",
                     "error_state": "success",
                     "total_issue_count": 0,
+                    "weekly_values": points_sparkline_values,
+                    "weekly_labels": [
+                        f"W{i + 1}" for i in range(len(points_sparkline_values))
+                    ],
                 }
             ),
             create_professional_metric_card(
