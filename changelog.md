@@ -1,5 +1,29 @@
 # Changelog
 
+## v2.11.0
+
+*Released: 2026-02-10*
+
+### Features
+
+- **Progressive Current Week Blending**: Metrics now use intelligent blending to eliminate Monday reliability drops. Flow Velocity and DORA metrics smoothly transition from forecast (Monday) to actual values (Friday) throughout the week, providing stable and trustworthy metrics every day. UI shows transparent breakdown with blend ratios.
+- **Expanded Report Insights**: HTML reports now include 24+ actionable recommendations across velocity trends, WIP management, quality signals, and deployment maturity
+- **Mobile Overflow Menu**: Bottom navigation now includes overflow menu for better touch-friendly navigation and responsive design
+- **Panel Collapse Controls**: Expanded settings panels now have collapse buttons for easier navigation
+
+### Improvements
+
+- Dashboard cards enriched with weekly breakdowns and business-friendly labels
+- Adjusted trend lines in charts show blended values for better current week visualization
+- Decimal formatting improved for items and points cards with preserved precision
+- Burndown chart date labels now display in chronological order in reports
+- Timestamp fetch optimized for faster dropdown performance
+
+### Documentation
+
+- Progressive blending algorithm documented across Flow Metrics, DORA Metrics, Metrics Index, and Correlation Guide
+- Added Current Week Calculations section explaining blending impact on validation rules
+
 ## v2.10.0
 
 *Released: 2026-02-09*
