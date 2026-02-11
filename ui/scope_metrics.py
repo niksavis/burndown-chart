@@ -610,19 +610,20 @@ def create_cumulative_scope_chart(
     weekly_data["cum_items_growth"] = weekly_data["items_growth"].cumsum()
     weekly_data["cum_points_growth"] = weekly_data["points_growth"].cumsum()
 
-    # Show NET scope change from zero (positive = scope grew, negative = scope reduced)
-    # This makes it clear: line going UP = scope creep, line going DOWN = backlog reduction
-    weekly_data["net_scope_items"] = weekly_data["cum_items_growth"]
-    weekly_data["net_scope_points"] = weekly_data["cum_points_growth"]
+    # Calculate actual remaining work over time by starting from baseline and applying cumulative changes
+    # This represents the actual backlog size at each week (baseline + net_change)
+    # Cannot go negative as long as baseline is positive
+    weekly_data["net_scope_items"] = baseline_items + weekly_data["cum_items_growth"]
+    weekly_data["net_scope_points"] = baseline_points + weekly_data["cum_points_growth"]
 
-    # Create traces for items (yaxis1) - showing NET change from zero
+    # Create traces for items (yaxis1) - showing actual remaining work from baseline
     items_baseline_trace = go.Scatter(
         x=weekly_data["week_label"],
-        y=[0] * len(weekly_data),
+        y=[baseline_items] * len(weekly_data),
         mode="lines",
-        name="Zero Line (Baseline)",
+        name="Initial Baseline",
         line=dict(color="rgba(128, 128, 128, 0.5)", width=2, dash="dash"),
-        hovertemplate="<b>Baseline</b><br>Week: %{x}<br>No net change<extra></extra>",
+        hovertemplate=f"<b>Initial Baseline</b><br>Week: %{{x}}<br>Items: {baseline_items}<extra></extra>",
         yaxis="y",
         showlegend=True,
     )
@@ -631,37 +632,48 @@ def create_cumulative_scope_chart(
         x=weekly_data["week_label"],
         y=weekly_data["net_scope_items"],
         mode="lines+markers",
-        name="Items Net Scope Change",
+        name="Items Remaining",
         line=dict(color="rgba(0, 123, 255, 1)", width=3),
         marker=dict(size=7),
-        fill="tozeroy",
+        fill="tonexty",
         fillcolor="rgba(0, 123, 255, 0.1)",
-        hovertemplate="<b>Items Net Change</b><br>Week: %{x}<br>Net: %{y}<br><i>+Positive = Scope grew<br>-Negative = Scope reduced</i><extra></extra>",
+        hovertemplate="<b>Items Remaining</b><br>Week: %{x}<br>Remaining: %{y}<extra></extra>",
         yaxis="y",
     )
 
     # Create traces for points with different color (yaxis2)
+    points_baseline_trace = go.Scatter(
+        x=weekly_data["week_label"],
+        y=[baseline_points] * len(weekly_data),
+        mode="lines",
+        name="Points Baseline",
+        line=dict(color="rgba(253, 126, 20, 0.3)", width=2, dash="dash"),
+        hovertemplate=f"<b>Points Baseline</b><br>Week: %{{x}}<br>Points: {baseline_points:.1f}<extra></extra>",
+        yaxis="y2",
+        showlegend=False,
+    )
+
     points_scope_trace = go.Scatter(
         x=weekly_data["week_label"],
         y=weekly_data["net_scope_points"],
         mode="lines+markers",
-        name="Points Net Scope Change",
+        name="Points Remaining",
         line=dict(color="rgba(253, 126, 20, 1)", width=3),
         marker=dict(size=7),
-        fill="tozeroy",
+        fill="tonexty",
         fillcolor="rgba(253, 126, 20, 0.1)",
-        hovertemplate="<b>Points Net Change</b><br>Week: %{x}<br>Net: %{y}<br><i>+Positive = Scope grew<br>-Negative = Scope reduced</i><extra></extra>",
+        hovertemplate="<b>Points Remaining</b><br>Week: %{x}<br>Remaining: %{y:.1f}<extra></extra>",
         yaxis="y2",
     )
 
     # Create data list - include points traces only if points tracking is enabled
-    # Zero line is shared between both axes
+    # Baseline traces show initial scope at start of period
     data_traces = [
         items_baseline_trace,
         items_scope_trace,
     ]
     if show_points:
-        data_traces.append(points_scope_trace)
+        data_traces.extend([points_baseline_trace, points_scope_trace])
 
     # Create layout with dual y-axes
     layout = go.Layout(

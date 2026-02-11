@@ -260,12 +260,19 @@ def register(app):
             current_remaining_items = 0
             current_remaining_points = 0
 
-        # Calculate baseline as: current remaining + sum of completed in period
+        # Calculate baseline as: current remaining + sum of completed in period - sum of created in period
+        # This represents the scope at the START of the filtered time window
         total_completed_items = df_filtered["completed_items"].sum()
         total_completed_points = df_filtered["completed_points"].sum()
+        total_created_items = df_filtered["created_items"].sum()
+        total_created_points = df_filtered["created_points"].sum()
 
-        baseline_items = int(current_remaining_items + total_completed_items)
-        baseline_points = current_remaining_points + total_completed_points
+        baseline_items = int(
+            current_remaining_items + total_completed_items - total_created_items
+        )
+        baseline_points = (
+            current_remaining_points + total_completed_points - total_created_points
+        )
 
         # Debug logging to verify baseline calculation
         logger.debug(
@@ -273,6 +280,7 @@ def register(app):
             f"filtered_rows={len(df_filtered)}, "
             f"current_remaining={current_remaining_items}/{current_remaining_points}, "
             f"completed_sum={total_completed_items}/{total_completed_points}, "
+            f"created_sum={total_created_items}/{total_created_points}, "
             f"calculated_baseline={baseline_items}/{baseline_points}"
         )
 
