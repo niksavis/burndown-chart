@@ -25,6 +25,18 @@ import pandas as pd
 from dash import html
 import dash_bootstrap_components as dbc
 
+from data.recommendations.budget_signals import (
+    build_budget_forecast_signals_from_pert,
+    build_budget_health_signals,
+)
+from data.recommendations.pace_signals import build_required_pace_signals
+from data.recommendations.scope_signals import build_scope_signals
+from data.recommendations.velocity_signals import (
+    build_throughput_signals,
+    build_velocity_consistency_signals,
+    build_velocity_trend_signals,
+)
+
 
 def create_insights_section(
     statistics_df: pd.DataFrame,
@@ -60,155 +72,171 @@ def create_insights_section(
 
     if not statistics_df.empty:
         # Velocity insights - compare first half vs second half of filtered data
-        mid_point = len(statistics_df) // 2
-        if mid_point > 0:
-            recent_velocity = statistics_df.iloc[mid_point:]["completed_items"].mean()
-            historical_velocity = statistics_df.iloc[:mid_point][
-                "completed_items"
-            ].mean()
-        else:
-            # Fallback if dataset is too small to split
-            recent_velocity = statistics_df["completed_items"].mean()
-            historical_velocity = recent_velocity
-
-        if historical_velocity > 0 and recent_velocity > historical_velocity * 1.1:
-            insights.append(
-                {
-                    "severity": "success",
-                    "message": f"Accelerating Delivery - Team velocity increased {((recent_velocity / historical_velocity - 1) * 100):.2f}% in recent weeks ({recent_velocity:.1f} vs {historical_velocity:.1f} items/week)",
-                    "recommendation": "Consider taking on additional scope or bringing forward deliverables to capitalize on this momentum.",
-                }
-            )
-        elif historical_velocity > 0 and recent_velocity < historical_velocity * 0.9:
-            insights.append(
-                {
-                    "severity": "warning",
-                    "message": f"Velocity Decline - Team velocity decreased {((1 - recent_velocity / historical_velocity) * 100):.2f}% recently ({recent_velocity:.1f} vs {historical_velocity:.1f} items/week)",
-                    "recommendation": "Review team capacity, identify blockers, and assess scope complexity. Consider retrospectives to understand root causes.",
-                }
-            )
-
-        # Budget insights (if budget data is available)
-        if budget_data:
-            import math
-
-            utilization_pct = budget_data.get("utilization_percentage", 0)
-            runway_weeks = budget_data.get("runway_weeks", 0)
-            burn_rate = budget_data.get("burn_rate", 0)
-            currency = budget_data.get("currency_symbol", "€")
-
-            # Handle infinity runway (when burn rate is 0)
-            if math.isinf(runway_weeks):
+        velocity_signals = build_velocity_trend_signals(statistics_df)
+        for signal in velocity_signals:
+            metrics = signal["metrics"]
+            if signal["id"] == "velocity_acceleration":
                 insights.append(
                     {
-                        "severity": "info",
+                        "severity": signal["severity"],
+                        "message": "Accelerating Delivery - Team velocity increased "
+                        f"{metrics['pct_change']:.2f}% in recent weeks "
+                        f"({metrics['recent_velocity']:.1f} vs "
+                        f"{metrics['historical_velocity']:.1f} items/week)",
+                        "recommendation": "Consider taking on additional scope or bringing forward deliverables to capitalize on this momentum.",
+                    }
+                )
+            elif signal["id"] == "velocity_decline":
+                insights.append(
+                    {
+                        "severity": signal["severity"],
+                        "message": "Velocity Decline - Team velocity decreased "
+                        f"{metrics['pct_change']:.2f}% recently "
+                        f"({metrics['recent_velocity']:.1f} vs "
+                        f"{metrics['historical_velocity']:.1f} items/week)",
+                        "recommendation": "Review team capacity, identify blockers, and assess scope complexity. Consider retrospectives to understand root causes.",
+                    }
+                )
+
+        # Budget insights (if budget data is available)
+        budget_signals = build_budget_health_signals(budget_data)
+        for signal in budget_signals:
+            metrics = signal["metrics"]
+            if signal["id"] == "budget_no_consumption":
+                insights.append(
+                    {
+                        "severity": signal["severity"],
                         "message": "Budget Status - No consumption detected",
                         "recommendation": "Budget tracking will begin once team velocity and costs are established. Ensure project parameters and team costs are configured correctly.",
                     }
                 )
-            elif utilization_pct > 90:
+            elif signal["id"] == "budget_critical":
                 insights.append(
                     {
-                        "severity": "danger",
-                        "message": f"Budget Critical - {utilization_pct:.2f}% consumed with only {runway_weeks:.2f} weeks remaining",
-                        "recommendation": f"Immediate action required: Review remaining scope, consider budget increase, or reduce team costs. Current burn rate: {currency}{burn_rate:,.0f}/week.",
+                        "severity": signal["severity"],
+                        "message": "Budget Critical - "
+                        f"{metrics['utilization_pct']:.2f}% consumed with only "
+                        f"{metrics['runway_weeks']:.2f} weeks remaining",
+                        "recommendation": "Immediate action required: Review remaining scope, consider budget increase, or reduce team costs. Current burn rate: "
+                        f"{metrics['currency']}{metrics['burn_rate']:,.0f}/week.",
                     }
                 )
-            elif utilization_pct > 75:
+            elif signal["id"] == "budget_alert":
                 insights.append(
                     {
-                        "severity": "warning",
-                        "message": f"Budget Alert - {utilization_pct:.2f}% consumed, approaching budget limits",
-                        "recommendation": f"Monitor closely: {runway_weeks:.2f} weeks of runway remaining at current burn rate ({currency}{burn_rate:,.2f}/week). Consider optimizing team costs or adjusting scope.",
+                        "severity": signal["severity"],
+                        "message": "Budget Alert - "
+                        f"{metrics['utilization_pct']:.2f}% consumed, approaching budget limits",
+                        "recommendation": "Monitor closely: "
+                        f"{metrics['runway_weeks']:.2f} weeks of runway remaining at current burn rate "
+                        f"({metrics['currency']}{metrics['burn_rate']:,.2f}/week). Consider optimizing team costs or adjusting scope.",
                     }
                 )
-            elif runway_weeks < 8 and runway_weeks > 0:
+            elif signal["id"] == "budget_limited_runway":
                 insights.append(
                     {
-                        "severity": "warning",
-                        "message": f"Limited Runway - Only {runway_weeks:.2f} weeks of budget remaining",
-                        "recommendation": f"Plan for project completion or budget extension. Current burn rate: {currency}{burn_rate:,.0f}/week. Review if remaining scope aligns with available runway.",
+                        "severity": signal["severity"],
+                        "message": "Limited Runway - Only "
+                        f"{metrics['runway_weeks']:.2f} weeks of budget remaining",
+                        "recommendation": "Plan for project completion or budget extension. Current burn rate: "
+                        f"{metrics['currency']}{metrics['burn_rate']:,.0f}/week. Review if remaining scope aligns with available runway.",
                     }
                 )
-            elif utilization_pct < 50 and runway_weeks > 12:
+            elif signal["id"] == "budget_healthy":
                 insights.append(
                     {
-                        "severity": "success",
-                        "message": f"Healthy Budget - {utilization_pct:.2f}% consumed with {runway_weeks:.2f} weeks of runway",
-                        "recommendation": f"Budget on track. Continue monitoring burn rate ({currency}{burn_rate:,.0f}/week) and adjust forecasts as scope evolves.",
+                        "severity": signal["severity"],
+                        "message": "Healthy Budget - "
+                        f"{metrics['utilization_pct']:.2f}% consumed with "
+                        f"{metrics['runway_weeks']:.2f} weeks of runway",
+                        "recommendation": "Budget on track. Continue monitoring burn rate "
+                        f"({metrics['currency']}{metrics['burn_rate']:,.0f}/week) and adjust forecasts as scope evolves.",
                     }
                 )
 
         # Scope change insights
-        if "created_items" in statistics_df.columns:
-            scope_growth = statistics_df["created_items"].sum()
-            scope_completion = statistics_df["completed_items"].sum()
-
-            # Calculate time window info for clarity
-            time_window_desc = ""
-            if len(statistics_df) > 0:
-                weeks_count = len(statistics_df)
-                time_window_desc = f" over {weeks_count} weeks"
-
-            if scope_growth > scope_completion * 0.2:
-                # Calculate ratio for clarity
-                ratio = scope_growth / scope_completion if scope_completion > 0 else 0
+        scope_signals = build_scope_signals(statistics_df)
+        for signal in scope_signals:
+            metrics = signal["metrics"]
+            if signal["id"] == "scope_creep_acceleration":
+                weeks_over = metrics["weeks_over"]
+                excess_pct = metrics["excess_pct"]
                 insights.append(
                     {
-                        "severity": "warning",
-                        "message": f"High Scope Growth{time_window_desc} - For every completed item, {ratio:.2f} new items are being created ({scope_growth} created vs {scope_completion} completed)",
-                        "recommendation": "Consider scope prioritization and implement change management processes. Assess if continuous scope growth impacts delivery predictability.",
+                        "severity": signal["severity"],
+                        "message": f"Accelerating Scope Creep - New items added faster than completion rate for {weeks_over} consecutive weeks (backlog growing by {excess_pct:.2f}%)",
+                        "recommendation": "Implement change control immediately: (1) Temporary freeze on new items to stabilize backlog, (2) Require stakeholder approval for all additions, (3) Establish scope change buffer in forecast, (4) Review and prioritize existing backlog before accepting new work.",
                     }
                 )
-            elif scope_growth > 0:
-                ratio = scope_growth / scope_completion if scope_completion > 0 else 0
+            elif signal["id"] == "scope_burndown_acceleration":
+                weeks_over = metrics["weeks_over"]
                 insights.append(
                     {
-                        "severity": "info",
-                        "message": f"Active Scope Management{time_window_desc} - Moderate scope growth with {ratio:.2f} new items created per completed item ({scope_growth} created vs {scope_completion} completed)",
-                        "recommendation": "Continue monitoring scope changes and maintaining stakeholder feedback loops to ensure alignment.",
+                        "severity": signal["severity"],
+                        "message": f"Backlog Burn-Down Accelerating - Completing items faster than new additions for {weeks_over} consecutive weeks",
+                        "recommendation": "Leverage momentum to maximize value delivery: (1) Consider accepting additional valuable scope, (2) Advance roadmap items, or (3) Use capacity for quality/UX enhancements. Coordinate with product stakeholders.",
                     }
                 )
+            elif signal["id"] == "scope_growth_ratio":
+                ratio = metrics["ratio"]
+                scope_growth = metrics["total_created"]
+                scope_completion = metrics["total_completed"]
+                weeks_count = metrics["weeks_count"]
+                time_window_desc = (
+                    f" over {weeks_count} weeks" if weeks_count > 0 else ""
+                )
+                if signal["severity"] == "warning":
+                    insights.append(
+                        {
+                            "severity": signal["severity"],
+                            "message": f"High Scope Growth{time_window_desc} - For every completed item, {ratio:.2f} new items are being created ({scope_growth} created vs {scope_completion} completed)",
+                            "recommendation": "Consider scope prioritization and implement change management processes. Assess if continuous scope growth impacts delivery predictability.",
+                        }
+                    )
+                else:
+                    insights.append(
+                        {
+                            "severity": signal["severity"],
+                            "message": f"Active Scope Management{time_window_desc} - Moderate scope growth with {ratio:.2f} new items created per completed item ({scope_growth} created vs {scope_completion} completed)",
+                            "recommendation": "Continue monitoring scope changes and maintaining stakeholder feedback loops to ensure alignment.",
+                        }
+                    )
 
         # Consistency insights
-        velocity_cv = (
-            (
-                statistics_df["completed_items"].std()
-                / statistics_df["completed_items"].mean()
-                * 100
-            )
-            if statistics_df["completed_items"].mean() > 0
-            else 0
-        )
-
-        if velocity_cv < 20:
-            insights.append(
-                {
-                    "severity": "success",
-                    "message": f"Predictable Delivery - Low velocity variation ({velocity_cv:.2f}%) indicates predictable delivery rhythm",
-                    "recommendation": "Maintain current practices and leverage this predictability for better sprint planning and stakeholder commitments.",
-                }
-            )
-        elif velocity_cv > 50:
-            insights.append(
-                {
-                    "severity": "warning",
-                    "message": f"Inconsistent Velocity - High velocity variation ({velocity_cv:.2f}%) suggests unpredictable delivery",
-                    "recommendation": "Investigate root causes: story sizing accuracy, blockers, team availability, or external dependencies. Consider establishing sprint commitments discipline.",
-                }
-            )
-
-        # Throughput efficiency insights - compare first half vs second half of filtered data
-        if len(statistics_df) >= 8:
-            mid_point = len(statistics_df) // 2
-            recent_items = statistics_df.iloc[mid_point:]["completed_items"].sum()
-            prev_items = statistics_df.iloc[:mid_point]["completed_items"].sum()
-
-            if prev_items > 0 and recent_items > prev_items * 1.2:
+        consistency_signals = build_velocity_consistency_signals(statistics_df)
+        for signal in consistency_signals:
+            metrics = signal["metrics"]
+            if signal["id"] == "velocity_consistent":
                 insights.append(
                     {
-                        "severity": "success",
-                        "message": f"Increasing Throughput - Recent period delivered {recent_items} items, exceeding previous period by {((recent_items / prev_items - 1) * 100):.2f}% ({recent_items} vs {prev_items} items)",
+                        "severity": signal["severity"],
+                        "message": "Predictable Delivery - Low velocity variation "
+                        f"({metrics['velocity_cv']:.2f}%) indicates predictable delivery rhythm",
+                        "recommendation": "Maintain current practices and leverage this predictability for better sprint planning and stakeholder commitments.",
+                    }
+                )
+            elif signal["id"] == "velocity_inconsistent":
+                insights.append(
+                    {
+                        "severity": signal["severity"],
+                        "message": "Inconsistent Velocity - High velocity variation "
+                        f"({metrics['velocity_cv']:.2f}%) suggests unpredictable delivery",
+                        "recommendation": "Investigate root causes: story sizing accuracy, blockers, team availability, or external dependencies. Consider establishing sprint commitments discipline.",
+                    }
+                )
+
+        # Throughput efficiency insights - compare first half vs second half of filtered data
+        throughput_signals = build_throughput_signals(statistics_df)
+        for signal in throughput_signals:
+            metrics = signal["metrics"]
+            if signal["id"] == "throughput_increase":
+                insights.append(
+                    {
+                        "severity": signal["severity"],
+                        "message": "Increasing Throughput - Recent period delivered "
+                        f"{metrics['recent_items']:.0f} items, exceeding previous period by "
+                        f"{metrics['pct_increase']:.2f}% "
+                        f"({metrics['recent_items']:.0f} vs {metrics['prev_items']:.0f} items)",
                         "recommendation": "Analyze what's working well and consider scaling successful practices across the team or to other projects.",
                     }
                 )
@@ -222,7 +250,9 @@ def create_insights_section(
             # Parse deadline
             deadline_date = pd.to_datetime(deadline)
             if not pd.isna(deadline_date):
-                current_date = datetime.now()
+                current_date = datetime.combine(
+                    datetime.now().date(), datetime.min.time()
+                )
                 days_to_deadline = max(0, (deadline_date - current_date).days)
 
                 pert_most_likely_days = pert_data.get("pert_time_items", 0)
@@ -313,45 +343,30 @@ def create_insights_section(
 
     # === NEW INSIGHTS: Budget vs Forecast Misalignment ===
     if pert_data and budget_data:
-        import math
-
         try:
-            pert_forecast_weeks = (
-                pert_data.get("pert_time_items", 0) / 7.0
-                if pert_data.get("pert_time_items")
-                else 0
+            budget_forecast_signals = build_budget_forecast_signals_from_pert(
+                budget_data, pert_data
             )
-            pert_pessimistic_weeks = (
-                pert_data.get("pert_pessimistic_days", 0) / 7.0
-                if pert_data.get("pert_pessimistic_days")
-                else 0
-            )
-            runway_weeks = budget_data.get("runway_weeks", 0)
-            currency = budget_data.get("currency_symbol", "€")
-
-            if not math.isinf(runway_weeks) and pert_forecast_weeks > 0:
-                # B1: Runway Shorter Than Forecast (CRITICAL)
-                if runway_weeks > 0 and runway_weeks < pert_forecast_weeks - 2:
-                    shortfall_weeks = pert_forecast_weeks - runway_weeks
-                    shortfall_pct = (shortfall_weeks / pert_forecast_weeks) * 100
+            for signal in budget_forecast_signals:
+                metrics = signal["metrics"]
+                if signal["id"] == "budget_exhaustion_before_completion":
                     insights.append(
                         {
-                            "severity": "danger",
-                            "message": f"Budget Exhaustion Before Completion - Budget runs out {shortfall_weeks:.2f} weeks before forecast completion",
-                            "recommendation": f"Critical misalignment detected. Forecast requires {pert_forecast_weeks:.2f} weeks but only {runway_weeks:.2f} weeks of budget remain. Required actions: (1) Reduce burn rate by scaling down team, (2) Secure additional budget ({shortfall_pct:.2f}% increase needed), or (3) Aggressively descope to fit runway.",
+                            "severity": signal["severity"],
+                            "message": "Budget Exhaustion Before Completion - Budget runs out "
+                            f"{metrics['shortfall_weeks']:.2f} weeks before forecast completion",
+                            "recommendation": "Critical misalignment detected. Forecast requires "
+                            f"{metrics['pert_forecast_weeks']:.2f} weeks but only "
+                            f"{metrics['runway_weeks']:.2f} weeks of budget remain. Required actions: (1) Reduce burn rate by scaling down team, (2) Secure additional budget "
+                            f"({metrics['shortfall_pct']:.2f}% increase needed), or (3) Aggressively descope to fit runway.",
                         }
                     )
-
-                # B3: Budget Surplus Opportunity (LOW)
-                elif (
-                    pert_pessimistic_weeks > 0
-                    and runway_weeks > pert_pessimistic_weeks + 4
-                ):
-                    surplus_weeks = runway_weeks - pert_pessimistic_weeks
+                elif signal["id"] == "budget_surplus_likely":
                     insights.append(
                         {
-                            "severity": "success",
-                            "message": f"Budget Surplus Likely - Project forecast suggests {surplus_weeks:.2f} weeks of unspent budget",
+                            "severity": signal["severity"],
+                            "message": "Budget Surplus Likely - Project forecast suggests "
+                            f"{metrics['surplus_weeks']:.2f} weeks of unspent budget",
                             "recommendation": "Consider value-adding opportunities: (1) Adding high-priority backlog items within scope, (2) Investing in technical debt reduction or quality improvements, (3) Enhancing UX/documentation, or (4) Reallocating surplus to other initiatives. Confirm assumptions and opportunities with stakeholders.",
                         }
                     )
@@ -609,154 +624,68 @@ def create_insights_section(
     # === NEW INSIGHTS: Required Pace to Deadline ===
     if deadline and not statistics_df.empty:
         try:
-            from datetime import datetime
-            import pandas as pd
-            from data.velocity_projections import (
-                calculate_required_velocity,
-                assess_pace_health,
-            )
-
-            # Parse deadline
-            deadline_date = pd.to_datetime(deadline)
-            if not pd.isna(deadline_date):
-                current_date = datetime.now()
-                days_to_deadline = max(0, (deadline_date - current_date).days)
-
-                # Get remaining work from last data point
-                if (
-                    len(statistics_df) > 0
-                    and "remaining_items" in statistics_df.columns
-                ):
-                    remaining_items = statistics_df.iloc[-1]["remaining_items"]
-                    remaining_points = (
-                        statistics_df.iloc[-1].get("remaining_points", 0)
-                        if "remaining_points" in statistics_df.columns
-                        else None
+            pace_signals = build_required_pace_signals(statistics_df, deadline)
+            for signal in pace_signals:
+                metrics = signal["metrics"]
+                if signal["id"] == "pace_critically_behind":
+                    insights.append(
+                        {
+                            "severity": signal["severity"],
+                            "message": "Pace Critically Behind - Current velocity "
+                            f"{metrics['gap_pct']:.0f}% below required pace to meet deadline "
+                            f"({metrics['current_velocity_items']:.1f} vs "
+                            f"{metrics['required_velocity_items']:.1f} items/week)",
+                            "recommendation": "Immediate action required: (1) Increase team capacity if possible, (2) Aggressively descope to reduce remaining work by "
+                            f"{metrics['gap_pct']:.0f}% ({metrics['gap_pct'] / 100 * metrics['remaining_items']:.0f} items), (3) Request deadline extension of ~{metrics['delay_days']:.0f} days, or (4) Accept partial delivery risk. Current pace will miss deadline by significant margin. Need {metrics['gap_absolute']:.1f} more items/week.",
+                        }
                     )
-
-                    # Calculate current velocity from filtered data
-                    current_velocity_items = statistics_df["completed_items"].mean()
-
-                    # Calculate required velocity
-                    required_velocity_items = calculate_required_velocity(
-                        remaining_items, deadline_date, current_date, time_unit="week"
+                elif signal["id"] == "pace_at_risk":
+                    insights.append(
+                        {
+                            "severity": signal["severity"],
+                            "message": "Pace Below Target - Current velocity "
+                            f"{metrics['gap_pct']:.0f}% below required pace, need "
+                            f"{metrics['gap_absolute']:.1f} more items/week to meet deadline",
+                            "recommendation": "Close the gap by: (1) Removing blockers to increase throughput "
+                            f"{metrics['gap_pct']:.0f}%, (2) Reducing WIP limits to improve flow, (3) Descoping low-priority items (~{metrics['gap_pct'] / 100 * metrics['remaining_items']:.0f} items, {metrics['gap_pct']:.0f}% of remaining work), or (4) Minor deadline adjustment (+{metrics['delay_days']:.0f} days). Deadline achievable with focused improvements.",
+                        }
                     )
-
-                    # Only generate insights if required velocity is finite (deadline not passed)
-                    if required_velocity_items != float("inf"):
-                        # Assess pace health
-                        pace_health_items = assess_pace_health(
-                            current_velocity_items, required_velocity_items
-                        )
-
-                        # P1: Pace Critically Behind (CRITICAL)
-                        if (
-                            pace_health_items["status"] == "behind"
-                            and pace_health_items["ratio"] < 0.7
-                        ):
-                            gap_pct = (1 - pace_health_items["ratio"]) * 100
-                            gap_absolute = (
-                                required_velocity_items - current_velocity_items
-                            )
-                            delay_days = (gap_pct / 100) * days_to_deadline
-                            insights.append(
-                                {
-                                    "severity": "danger",
-                                    "message": f"Pace Critically Behind - Current velocity {gap_pct:.0f}% below required pace to meet deadline ({current_velocity_items:.1f} vs {required_velocity_items:.1f} items/week)",
-                                    "recommendation": f"Immediate action required: (1) Increase team capacity if possible, (2) Aggressively descope to reduce remaining work by {gap_pct:.0f}% ({gap_pct / 100 * remaining_items:.0f} items), (3) Request deadline extension of ~{delay_days:.0f} days, or (4) Accept partial delivery risk. Current pace will miss deadline by significant margin. Need {gap_absolute:.1f} more items/week.",
-                                }
-                            )
-
-                        # P2: Pace At Risk (WARNING)
-                        elif (
-                            pace_health_items["status"] == "at_risk"
-                            and 0.8 <= pace_health_items["ratio"] < 1.0
-                        ):
-                            gap_pct = (1 - pace_health_items["ratio"]) * 100
-                            gap_absolute = (
-                                required_velocity_items - current_velocity_items
-                            )
-                            delay_days = (gap_pct / 100) * days_to_deadline
-                            insights.append(
-                                {
-                                    "severity": "warning",
-                                    "message": f"Pace Below Target - Current velocity {gap_pct:.0f}% below required pace, need {gap_absolute:.1f} more items/week to meet deadline",
-                                    "recommendation": f"Close the gap by: (1) Removing blockers to increase throughput {gap_pct:.0f}%, (2) Reducing WIP limits to improve flow, (3) Descoping low-priority items (~{gap_pct / 100 * remaining_items:.0f} items, {gap_pct:.0f}% of remaining work), or (4) Minor deadline adjustment (+{delay_days:.0f} days). Deadline achievable with focused improvements.",
-                                }
-                            )
-
-                        # P3: Pace Significantly Ahead (SUCCESS)
-                        elif (
-                            pace_health_items["status"] == "on_pace"
-                            and pace_health_items["ratio"] >= 1.2
-                        ):
-                            ahead_pct = (pace_health_items["ratio"] - 1.0) * 100
-                            days_ahead = (ahead_pct / 100) * days_to_deadline
-                            extra_capacity_items = (ahead_pct / 100) * remaining_items
-                            insights.append(
-                                {
-                                    "severity": "success",
-                                    "message": f"Pace Significantly Ahead - Current velocity {ahead_pct:.0f}% above required pace, tracking to complete ~{days_ahead:.0f} days early",
-                                    "recommendation": f"Capitalize on momentum: (1) Consider adding high-value scope from backlog (~{extra_capacity_items:.0f} items, {ahead_pct:.0f}% more capacity available), (2) Bring forward future roadmap items, (3) Invest in quality improvements or technical debt reduction, or (4) Communicate early completion potential to stakeholders. Strong delivery position.",
-                                }
-                            )
-
-                        # P4: Pace Moderately Ahead (SUCCESS) - On track 100-120%
-                        elif (
-                            pace_health_items["status"] == "on_pace"
-                            and 1.0 <= pace_health_items["ratio"] < 1.2
-                        ):
-                            ahead_pct = (pace_health_items["ratio"] - 1.0) * 100
-                            insights.append(
-                                {
-                                    "severity": "success",
-                                    "message": f"Pace On Track - Current velocity {ahead_pct:.0f}% above required pace, well-positioned to meet deadline",
-                                    "recommendation": "Maintain current momentum and monitor for changes. Consider small scope additions or quality investments if sustained. Continue removing blockers and maintaining team capacity.",
-                                }
-                            )
-
-                        # P5: Points vs Items Divergence (WARNING)
-                        if (
-                            remaining_points
-                            and "completed_points" in statistics_df.columns
-                        ):
-                            current_velocity_points = statistics_df[
-                                "completed_points"
-                            ].mean()
-                            required_velocity_points = calculate_required_velocity(
-                                remaining_points,
-                                deadline_date,
-                                current_date,
-                                time_unit="week",
-                            )
-
-                            if required_velocity_points != float("inf"):
-                                pace_health_points = assess_pace_health(
-                                    current_velocity_points, required_velocity_points
-                                )
-
-                                # Check for significant divergence (>15% difference in ratios)
-                                ratio_diff = abs(
-                                    pace_health_items["ratio"]
-                                    - pace_health_points["ratio"]
-                                )
-                                if ratio_diff > 0.15:
-                                    insights.append(
-                                        {
-                                            "severity": "warning",
-                                            "message": f"Pace Metric Divergence - Items pace ({pace_health_items['ratio']:.0%}) and points pace ({pace_health_points['ratio']:.0%}) significantly differ",
-                                            "recommendation": "Investigate story sizing accuracy: (1) Are larger items being completed without proportional points delivery? (2) Review estimation practices in refinement, (3) Consider whether items or points is more accurate predictor for this team, (4) Adjust forecasting primary metric accordingly. This divergence suggests estimation inconsistency.",
-                                        }
-                                    )
-                    else:
-                        # P6: Deadline Passed (CRITICAL)
-                        insights.append(
-                            {
-                                "severity": "danger",
-                                "message": "Deadline Exceeded - Project deadline has passed with work remaining",
-                                "recommendation": "Critical status: (1) Establish new realistic deadline based on current velocity and remaining work, (2) Prioritize ruthlessly - complete only critical MVP features, (3) Communicate revised timeline to all stakeholders immediately, (4) Conduct post-mortem to understand planning gaps and prevent recurrence.",
-                            }
-                        )
+                elif signal["id"] == "pace_significantly_ahead":
+                    insights.append(
+                        {
+                            "severity": signal["severity"],
+                            "message": "Pace Significantly Ahead - Current velocity "
+                            f"{metrics['ahead_pct']:.0f}% above required pace, tracking to complete ~{metrics['days_ahead']:.0f} days early",
+                            "recommendation": "Capitalize on momentum: (1) Consider adding high-value scope from backlog (~"
+                            f"{metrics['extra_capacity_items']:.0f} items, {metrics['ahead_pct']:.0f}% more capacity available), (2) Bring forward future roadmap items, (3) Invest in quality improvements or technical debt reduction, or (4) Communicate early completion potential to stakeholders. Strong delivery position.",
+                        }
+                    )
+                elif signal["id"] == "pace_on_track":
+                    insights.append(
+                        {
+                            "severity": signal["severity"],
+                            "message": "Pace On Track - Current velocity "
+                            f"{metrics['ahead_pct']:.0f}% above required pace, well-positioned to meet deadline",
+                            "recommendation": "Maintain current momentum and monitor for changes. Consider small scope additions or quality investments if sustained. Continue removing blockers and maintaining team capacity.",
+                        }
+                    )
+                elif signal["id"] == "pace_metric_divergence":
+                    insights.append(
+                        {
+                            "severity": signal["severity"],
+                            "message": "Pace Metric Divergence - Items pace "
+                            f"({metrics['ratio_items']:.0%}) and points pace ({metrics['ratio_points']:.0%}) significantly differ",
+                            "recommendation": "Investigate story sizing accuracy: (1) Are larger items being completed without proportional points delivery? (2) Review estimation practices in refinement, (3) Consider whether items or points is more accurate predictor for this team, (4) Adjust forecasting primary metric accordingly. This divergence suggests estimation inconsistency.",
+                        }
+                    )
+                elif signal["id"] == "pace_deadline_exceeded":
+                    insights.append(
+                        {
+                            "severity": signal["severity"],
+                            "message": "Deadline Exceeded - Project deadline has passed with work remaining",
+                            "recommendation": "Critical status: (1) Establish new realistic deadline based on current velocity and remaining work, (2) Prioritize ruthlessly - complete only critical MVP features, (3) Communicate revised timeline to all stakeholders immediately, (4) Conduct post-mortem to understand planning gaps and prevent recurrence.",
+                        }
+                    )
         except Exception:
             pass
 
