@@ -1,5 +1,29 @@
 # Changelog
 
+## v2.12.0
+
+*Released: 2026-02-12*
+
+### Features
+
+- **EWMA Forecast**: New EWMA (Exponentially Weighted Moving Average) forecasting model provides weighted trend analysis with future markers for more accurate projections
+- **Import/Export Enhancements**: Import and export operations now include changelog data for better profile portability and data integrity
+- **Profile Conflict Resolution**: Multiple export modes provide flexible conflict resolution options during profile management
+
+### Improvements
+
+- Unified recommendation signals across the dashboard for more consistent insights
+
+### Bug Fixes
+
+- Scope tracking now aligns with report naming conventions for accuracy
+- Baseline calculations corrected to prevent negative values in burndown charts
+- Metrics refresh properly updates delta changelog
+
+### Documentation
+
+- Clarified scope change rate formula in health metrics documentation
+
 ## v2.11.0
 
 *Released: 2026-02-10*
