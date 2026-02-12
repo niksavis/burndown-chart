@@ -1,6 +1,6 @@
 """Callbacks for profile import/export functionality."""
 
-from datetime import datetime
+from datetime import datetime, timedelta
 import json
 import logging
 import time
@@ -27,9 +27,12 @@ logger = logging.getLogger(__name__)
     State("export-mode-radio", "value"),
     State("include-token-checkbox", "value"),
     State("include-budget-checkbox", "value"),
+    State("include-changelog-checkbox", "value"),
     prevent_initial_call=True,
 )
-def export_full_profile(n_clicks, export_mode, include_token, include_budget):
+def export_full_profile(
+    n_clicks, export_mode, include_token, include_budget, include_changelog
+):
     """Export profile with mode selection and optional token inclusion (T013)."""
     from ui.toast_notifications import create_toast
 
@@ -55,6 +58,7 @@ def export_full_profile(n_clicks, export_mode, include_token, include_budget):
             export_mode=export_mode or "CONFIG_ONLY",
             include_token=bool(include_token),
             include_budget=bool(include_budget),
+            include_changelog=bool(include_changelog),
         )
 
         # Generate filename (matches report format for easy archiving)
@@ -144,8 +148,9 @@ def detect_import_conflict(contents, filename):
                 f"Import conflict detected: Profile '{profile_id}' already exists"
             )
             # Suggest a default name for rename option
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            suggested_name = f"{profile_id}_{timestamp}"
+            timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            friendly_base = profile_name or profile_id
+            suggested_name = f"{friendly_base} (imported {timestamp})"
             return True, profile_name, import_data, suggested_name
         else:
             # No conflict - proceed with import directly
@@ -187,11 +192,17 @@ def import_without_conflict(import_data, modal_is_open):
     Input("conflict-cancel", "n_clicks"),
     State("conflict-resolution-strategy", "value"),
     State("conflict-rename-input", "value"),
+    State("conflict-rename-input", "placeholder"),
     State("import-data-store", "data"),
     prevent_initial_call=True,
 )
 def handle_conflict_resolution(
-    proceed_clicks, cancel_clicks, strategy, custom_name, import_data
+    proceed_clicks,
+    cancel_clicks,
+    strategy,
+    custom_name,
+    rename_placeholder,
+    import_data,
 ):
     """T052: Handle user's conflict resolution choice with optional custom name."""
     from ui.toast_notifications import create_toast
@@ -217,8 +228,16 @@ def handle_conflict_resolution(
         )
 
     # User chose to proceed with selected strategy
+    resolved_name = custom_name
+    if (
+        strategy == "rename"
+        and (not custom_name or not custom_name.strip())
+        and rename_placeholder
+    ):
+        resolved_name = rename_placeholder
+
     toast, refresh_trigger, profile_switch = perform_import(
-        import_data, strategy, custom_name
+        import_data, strategy, resolved_name
     )
     return toast, False, refresh_trigger, profile_switch, None  # Clear upload contents
 
@@ -439,8 +458,6 @@ def perform_import(import_data, conflict_strategy=None, custom_name=None):
                             if valid_issues:
                                 # Use cache key from query ID and current timestamp for expiration
                                 cache_key = f"import_{created_query_id}"
-                                from datetime import timedelta
-
                                 expires_at = datetime.now() + timedelta(days=1)
                                 backend.save_issues_batch(
                                     profile_id,
@@ -494,6 +511,28 @@ def perform_import(import_data, conflict_strategy=None, custom_name=None):
                             logger.info(
                                 f"Imported {len(metrics)} metrics data points for query '{query_name}'"
                             )
+
+                    if "changelog_entries" in query_data:
+                        changelog_entries = query_data["changelog_entries"]
+                        if changelog_entries:
+                            from data.import_export_changelog import (
+                                normalize_imported_changelog_entries,
+                            )
+
+                            normalized_entries = normalize_imported_changelog_entries(
+                                changelog_entries
+                            )
+                            if normalized_entries:
+                                expires_at = datetime.now() + timedelta(days=365)
+                                backend.save_changelog_batch(
+                                    profile_id,
+                                    created_query_id,
+                                    normalized_entries,
+                                    expires_at,
+                                )
+                                logger.info(
+                                    f"Imported {len(normalized_entries)} changelog entries for query '{query_name}'"
+                                )
 
                 # Import budget data if present in query (query-level budget)
                 if "budget_settings" in query_data:

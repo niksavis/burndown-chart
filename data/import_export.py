@@ -47,6 +47,7 @@ class ExportManifest:
     # T013: Enhanced Import/Export Options
     export_mode: str = "FULL_DATA"  # "CONFIG_ONLY" | "FULL_DATA"
     includes_token: bool = False  # Whether JIRA token is included
+    includes_changelog: bool = False  # Whether changelog entries are included
 
 
 class SetupStatusMigrator:
@@ -566,6 +567,7 @@ def export_profile_with_mode(
     export_mode: str,
     include_token: bool = False,
     include_budget: bool = False,
+    include_changelog: bool = False,
 ) -> Dict[str, Any]:
     """Export FULL profile with ALL queries and their data.
 
@@ -575,6 +577,7 @@ def export_profile_with_mode(
         export_mode: One of "CONFIG_ONLY", "FULL_DATA"
         include_token: Whether to include JIRA token (default: False)
         include_budget: Whether to include budget data (default: False)
+        include_changelog: Whether to include changelog entries (default: False)
 
     Returns:
         Export package dictionary with structure:
@@ -633,6 +636,7 @@ def export_profile_with_mode(
         includes_setup_status=True,
         export_mode=export_mode,
         includes_token=include_token,
+        includes_changelog=(export_mode == "FULL_DATA" and include_changelog),
     )
 
     # Build export package
@@ -692,6 +696,23 @@ def export_profile_with_mode(
                     f"Exported {len(metrics)} metrics data points for query '{current_query_id}'"
                 )
 
+            if include_changelog:
+                from data.import_export_changelog import collect_changelog_entries
+
+                sprint_field = (
+                    profile_data.get("field_mappings", {})
+                    .get("general", {})
+                    .get("sprint_field")
+                )
+                changelog_entries = collect_changelog_entries(
+                    backend, profile_id, current_query_id, sprint_field
+                )
+                if changelog_entries:
+                    query_data["changelog_entries"] = changelog_entries
+                    logger.info(
+                        f"Exported {len(changelog_entries)} changelog entries for query '{current_query_id}'"
+                    )
+
         # Export budget settings and revisions (query-level data) - only if explicitly requested
         if include_budget:
             budget_settings = backend.get_budget_settings(profile_id, current_query_id)
@@ -722,7 +743,8 @@ def export_profile_with_mode(
 
     logger.info(
         f"Exported profile '{profile_id}' with {exported_query_count} queries, "
-        f"mode='{export_mode}', token={include_token}, budget={include_budget}"
+        f"mode='{export_mode}', token={include_token}, budget={include_budget}, "
+        f"changelog={include_changelog}"
     )
 
     return export_package

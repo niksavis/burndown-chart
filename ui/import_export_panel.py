@@ -171,8 +171,8 @@ def _create_import_export_tab():
                                 "value": "FULL_DATA",
                             },
                         ],
-                        value="CONFIG_ONLY",  # Default to secure option
-                        className="mb-2",
+                        value="CONFIG_ONLY",
+                        labelStyle={"display": "block", "marginBottom": "0.35rem"},
                         style={"fontSize": "0.875rem"},
                     ),
                 ],
@@ -187,13 +187,6 @@ def _create_import_export_tab():
                         value=False,  # Default unchecked
                         style={"fontSize": "0.875rem"},
                     ),
-                    dbc.Tooltip(
-                        "Including token allows recipient to access your JIRA instance. Only enable for personal backups.",
-                        target="include-token-checkbox",
-                        placement="right",
-                        trigger="click",
-                        autohide=True,
-                    ),
                 ],
                 className="mb-2",
             ),
@@ -206,12 +199,17 @@ def _create_import_export_tab():
                         value=False,  # Default unchecked
                         style={"fontSize": "0.875rem"},
                     ),
-                    dbc.Tooltip(
-                        "Budget data is project-specific. Uncheck when sharing configurations with others.",
-                        target="include-budget-checkbox",
-                        placement="right",
-                        trigger="click",
-                        autohide=True,
+                ],
+                className="mb-2",
+            ),
+            # Changelog inclusion checkbox
+            html.Div(
+                [
+                    dbc.Checkbox(
+                        id="include-changelog-checkbox",
+                        label="Include Changelog Entries",
+                        value=False,  # Default unchecked
+                        style={"fontSize": "0.875rem"},
                     ),
                 ],
                 className="mb-2",
