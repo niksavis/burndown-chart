@@ -81,6 +81,7 @@ class TestPrepareVisualizationData(unittest.TestCase):
         self.assertIn("avg", result["items_forecasts"])
         self.assertIn("opt", result["items_forecasts"])
         self.assertIn("pes", result["items_forecasts"])
+        self.assertIn("ewma", result["items_forecasts"])
 
     def test_data_filtering(self):
         """Test that data filtering by count works correctly."""

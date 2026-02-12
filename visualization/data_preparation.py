@@ -248,8 +248,18 @@ def prepare_visualization_data(
             "df_calc": pd.DataFrame() if not isinstance(df, pd.DataFrame) else df,
             "pert_time_items": 0,
             "pert_time_points": 0,
-            "items_forecasts": {"avg": ([], []), "opt": ([], []), "pes": ([], [])},
-            "points_forecasts": {"avg": ([], []), "opt": ([], []), "pes": ([], [])},
+            "items_forecasts": {
+                "avg": ([], []),
+                "opt": ([], []),
+                "pes": ([], []),
+                "ewma": ([], []),
+            },
+            "points_forecasts": {
+                "avg": ([], []),
+                "opt": ([], []),
+                "pes": ([], []),
+                "ewma": ([], []),
+            },
             "max_items": total_items,
             "max_points": total_points,
             "start_date": datetime.now(),
@@ -369,8 +379,18 @@ def prepare_visualization_data(
             "df_calc": df_calc,
             "pert_time_items": 0,
             "pert_time_points": 0,
-            "items_forecasts": {"avg": ([], []), "opt": ([], []), "pes": ([], [])},
-            "points_forecasts": {"avg": ([], []), "opt": ([], []), "pes": ([], [])},
+            "items_forecasts": {
+                "avg": ([], []),
+                "opt": ([], []),
+                "pes": ([], []),
+                "ewma": ([], []),
+            },
+            "points_forecasts": {
+                "avg": ([], []),
+                "opt": ([], []),
+                "pes": ([], []),
+                "ewma": ([], []),
+            },
             "max_items": df_calc["cum_items"].max()
             if not df_calc.empty
             else total_items,
@@ -387,6 +407,32 @@ def prepare_visualization_data(
             if not df_calc.empty
             else total_points,
         }
+
+    from data.metrics.forecast_calculator import calculate_ewma_forecast
+
+    ewma_items_weekly = (
+        calculate_ewma_forecast(
+            grouped_items_non_zero["completed_items"].tolist(), alpha=0.3
+        )
+        if has_items_data
+        else None
+    )
+    ewma_points_weekly = (
+        calculate_ewma_forecast(
+            grouped_points_non_zero["completed_points"].tolist(), alpha=0.3
+        )
+        if has_points_data
+        else None
+    )
+
+    ewma_items_daily_rate = (
+        ewma_items_weekly.get("forecast_value", 0) / 7.0 if ewma_items_weekly else None
+    )
+    ewma_points_daily_rate = (
+        ewma_points_weekly.get("forecast_value", 0) / 7.0
+        if ewma_points_weekly
+        else None
+    )
 
     # Use items data for calculation if available, otherwise use points data
     # This ensures we can calculate forecasts even when only one type has data
@@ -505,6 +551,32 @@ def prepare_visualization_data(
                 max_points=100,
             ),
         }
+
+        items_ewma_forecast = (
+            daily_forecast_burnup(
+                last_items,
+                ewma_items_daily_rate,
+                start_date,
+                scope_items,
+                max_days=730,
+                max_points=100,
+            )
+            if ewma_items_daily_rate is not None
+            else ([], [])
+        )
+
+        points_ewma_forecast = (
+            daily_forecast_burnup(
+                last_points,
+                ewma_points_daily_rate,
+                start_date,
+                scope_points,
+                max_days=730,
+                max_points=100,
+            )
+            if ewma_points_daily_rate is not None
+            else ([], [])
+        )
     else:
         # For burndown charts, we need to ensure consistent end dates with burnup charts
         # First, calculate burnup forecasts to get end dates
@@ -546,6 +618,35 @@ def prepare_visualization_data(
             points_end_date,
         )
 
+        items_ewma_forecast = (
+            generate_burndown_forecast(
+                last_items,
+                ewma_items_daily_rate,
+                ewma_items_daily_rate,
+                ewma_items_daily_rate,
+                start_date,
+                items_end_date,
+            ).get("avg", ([], []))
+            if ewma_items_daily_rate is not None
+            else ([], [])
+        )
+
+        points_ewma_forecast = (
+            generate_burndown_forecast(
+                last_points,
+                ewma_points_daily_rate,
+                ewma_points_daily_rate,
+                ewma_points_daily_rate,
+                start_date,
+                points_end_date,
+            ).get("avg", ([], []))
+            if ewma_points_daily_rate is not None
+            else ([], [])
+        )
+
+    items_forecasts["ewma"] = items_ewma_forecast
+    points_forecasts["ewma"] = points_ewma_forecast
+
     # Calculate max values for axis scaling
     max_items = max(
         df_calc["cum_items"].max() if not df_calc.empty else total_items,
@@ -553,6 +654,7 @@ def prepare_visualization_data(
             max(items_forecasts["avg"][1]) if items_forecasts["avg"][1] else 0,
             max(items_forecasts["opt"][1]) if items_forecasts["opt"][1] else 0,
             max(items_forecasts["pes"][1]) if items_forecasts["pes"][1] else 0,
+            max(items_forecasts["ewma"][1]) if items_forecasts["ewma"][1] else 0,
         ),
     )
 
@@ -562,6 +664,7 @@ def prepare_visualization_data(
             max(points_forecasts["avg"][1]) if points_forecasts["avg"][1] else 0,
             max(points_forecasts["opt"][1]) if points_forecasts["opt"][1] else 0,
             max(points_forecasts["pes"][1]) if points_forecasts["pes"][1] else 0,
+            max(points_forecasts["ewma"][1]) if points_forecasts["ewma"][1] else 0,
         ),
     )
 

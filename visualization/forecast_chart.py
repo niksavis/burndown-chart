@@ -118,6 +118,36 @@ def create_plot_traces(
         }
     )
 
+    if items_forecasts.get("ewma", ([], []))[0]:
+        traces.append(
+            {
+                "data": go.Scatter(
+                    x=items_forecasts["ewma"][0],
+                    y=items_forecasts["ewma"][1],
+                    mode="lines+markers",
+                    name="Items Forecast (EWMA)",
+                    line=dict(color="#6b7c93", dash="dashdot", width=2.0),
+                    marker=dict(
+                        size=7,
+                        symbol="diamond",
+                        color="#6b7c93",
+                        line=dict(color="white", width=1),
+                    ),
+                    hovertemplate=format_hover_template(
+                        title="Items Forecast",
+                        fields={
+                            "Date": "%{x|%Y-%m-%d}",
+                            "Items": "%{y:.1f}",
+                            "Type": "EWMA",
+                        },
+                    ),
+                    hoverlabel=create_hoverlabel_config("info"),
+                    visible=True,
+                ),
+                "secondary_y": False,
+            }
+        )
+
     traces.append(
         {
             "data": go.Scatter(
@@ -238,6 +268,36 @@ def create_plot_traces(
                 "secondary_y": True,
             }
         )
+
+        if points_forecasts.get("ewma", ([], []))[0]:
+            traces.append(
+                {
+                    "data": go.Scatter(
+                        x=points_forecasts["ewma"][0],
+                        y=points_forecasts["ewma"][1],
+                        mode="lines+markers",
+                        name="Points Forecast (EWMA)",
+                        line=dict(color="#8a6d3b", dash="dashdot", width=2.0),
+                        marker=dict(
+                            size=7,
+                            symbol="diamond",
+                            color="#8a6d3b",
+                            line=dict(color="white", width=1),
+                        ),
+                        hovertemplate=format_hover_template(
+                            title="Points Forecast",
+                            fields={
+                                "Date": "%{x|%Y-%m-%d}",
+                                "Points": "%{y:.1f}",
+                                "Type": "EWMA",
+                            },
+                        ),
+                        hoverlabel=create_hoverlabel_config("info"),
+                        visible=True,
+                    ),
+                    "secondary_y": True,
+                }
+            )
 
         # Use gold color for optimistic points forecast (matching info card description)
         traces.append(
@@ -363,7 +423,15 @@ def configure_axes(fig, forecast_data):
 def apply_layout_settings(fig):
     """Apply common layout settings to the forecast plot."""
     fig.update_layout(
-        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="center", x=0.5),
+        legend=dict(
+            orientation="h",
+            yanchor="bottom",
+            y=1.02,
+            xanchor="center",
+            x=0.5,
+            itemclick="toggle",
+            itemdoubleclick=False,
+        ),
         hovermode="x unified",  # Changed from "closest" to "x unified" for vertical guideline
         margin=dict(l=60, r=60, t=80, b=50),
         height=700,
@@ -828,7 +896,13 @@ def create_forecast_plot(
         # Increased top margin from 80 to 100px to accommodate legend (y=1.06) and plotly toolbar without overlap
         fig.update_layout(
             legend=dict(
-                orientation="h", yanchor="bottom", y=1.06, xanchor="center", x=0.5
+                orientation="h",
+                yanchor="bottom",
+                y=1.06,
+                xanchor="center",
+                x=0.5,
+                itemclick="toggle",
+                itemdoubleclick=False,
             ),
             hovermode=hover_mode,
             margin=dict(l=60, r=60, t=100, b=50),
