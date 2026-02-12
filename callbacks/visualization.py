@@ -247,18 +247,40 @@ def register(app):
         # The df parameter is already filtered by data_points_count using week_label matching
         df_filtered = df
 
-        # Get current remaining from project_data.json (not from settings)
-        from typing import cast
-        from data.persistence import load_project_data
+        # Get current remaining from SETTINGS (same source as Project Health Overview)
+        # Settings contains remaining work values (not total scope).
+        current_remaining_items = settings.get("total_items", 0)
+        current_remaining_points = settings.get("total_points", 0)
 
+        # Defensive check: ensure settings align with project_scope remaining values.
+        # If they differ, prefer project_scope (source of truth for remaining work).
         try:
-            project_data = cast(dict, load_project_data())
-            current_remaining_items = project_data.get("total_items", 0)
-            current_remaining_points = project_data.get("total_points", 0)
+            from data.persistence import load_unified_project_data
+
+            project_scope = load_unified_project_data().get("project_scope", {})
+            scope_remaining_items = project_scope.get("remaining_items")
+            scope_remaining_points = project_scope.get("remaining_total_points")
+
+            if scope_remaining_items is not None and scope_remaining_points is not None:
+                items_mismatch = scope_remaining_items != current_remaining_items
+                points_mismatch = (
+                    abs(scope_remaining_points - current_remaining_points) > 0.1
+                )
+                if items_mismatch or points_mismatch:
+                    logger.warning(
+                        "[SCOPE BASELINE] Remaining mismatch: settings=%s/%s, scope=%s/%s. "
+                        "Using project_scope remaining values.",
+                        current_remaining_items,
+                        current_remaining_points,
+                        scope_remaining_items,
+                        scope_remaining_points,
+                    )
+                    current_remaining_items = scope_remaining_items
+                    current_remaining_points = scope_remaining_points
         except Exception as e:
-            logger.error(f"[SCOPE BASELINE APP] Failed to load project_data: {e}")
-            current_remaining_items = 0
-            current_remaining_points = 0
+            logger.warning(
+                "[SCOPE BASELINE] Failed to validate remaining values: %s", e
+            )
 
         # Calculate baseline as: current remaining + sum of completed in period - sum of created in period
         # This represents the scope at the START of the filtered time window
@@ -304,15 +326,15 @@ def register(app):
             df["created_points"], errors="coerce"
         ).fillna(0)
 
-        # Calculate scope creep rate with data filtering
+        # Calculate scope creep rate WITHOUT data filtering (data already filtered!)
         scope_creep_rate = calculate_scope_creep_rate(
-            df, baseline_items, baseline_points, data_points_count=data_points_count
+            df, baseline_items, baseline_points, data_points_count=None
         )
 
-        # Calculate weekly scope growth - ensure the function returns a DataFrame
+        # Calculate weekly scope growth WITHOUT data filtering (data already filtered!)
         try:
             weekly_growth_data = calculate_weekly_scope_growth(
-                df, data_points_count=data_points_count
+                df, data_points_count=None
             )
             # Verify the result is a DataFrame
             if not isinstance(weekly_growth_data, pd.DataFrame):
@@ -333,10 +355,30 @@ def register(app):
                 columns=["week_label", "items_growth", "points_growth", "start_date"]
             )
 
-        # Calculate scope stability index with data filtering
+        # Calculate scope stability index WITHOUT data filtering (data already filtered!)
         stability_index = calculate_scope_stability_index(
-            df, baseline_items, baseline_points, data_points_count=data_points_count
+            df, baseline_items, baseline_points, data_points_count=None
         )
+
+        # VALIDATION: Verify chart reconstruction matches current state
+        if not weekly_growth_data.empty:
+            cumulative_items_growth = weekly_growth_data["items_growth"].sum()
+            cumulative_points_growth = weekly_growth_data["points_growth"].sum()
+            reconstructed_items = baseline_items + cumulative_items_growth
+            reconstructed_points = baseline_points + cumulative_points_growth
+
+            logger.info(
+                f"[SCOPE VALIDATION] Baseline: {baseline_items} items, {baseline_points:.1f} points | "
+                f"Cumulative growth: {cumulative_items_growth:+d} items, {cumulative_points_growth:+.1f} points | "
+                f"Reconstructed: {reconstructed_items} items, {reconstructed_points:.1f} points | "
+                f"Current actual: {current_remaining_items} items, {current_remaining_points:.1f} points | "
+                f"Match: {reconstructed_items == current_remaining_items} items, {abs(reconstructed_points - current_remaining_points) < 0.1} points"
+            )
+
+            if reconstructed_items != current_remaining_items:
+                logger.error(
+                    f"[SCOPE ERROR] Chart reconstruction FAILED! Reconstructed {reconstructed_items} items != Current {current_remaining_items} items (off by {reconstructed_items - current_remaining_items})"
+                )
 
         # Create the scope metrics dashboard
         # Pass the correctly calculated baseline values

@@ -144,7 +144,7 @@ PROJECT_HELP_TEXTS = {
 # Scope Change and Stability Help Texts - Phase 9.1 Simplified
 # Note: Comprehensive content moved to configuration/help_content.py for Phase 9.2 help system
 SCOPE_HELP_TEXTS = {
-    "scope_change_rate": "New work added vs baseline scope. Baseline = work remaining at window start (current remaining + completed in period). Shows scope expansion within selected timeframe (e.g., 12 weeks).",
+    "scope_change_rate": "New work added vs baseline scope. Baseline = work remaining at window start (current remaining + completed in period - created in period). Shows scope expansion within selected timeframe (e.g., 12 weeks).",
     "throughput_ratio": "Work creation vs completion ratio. >1 = adding faster than completing (growing backlog), <1 = completing faster (shrinking backlog). Calculated for selected time window.",
     "threshold_color_coding": "Visual indicators showing velocity impact of scope changes.",
     "adaptability_index": "Scope Stability Index: Measures how stable the scope is relative to total work. Calculated as 1 - (created / total_scope). Higher values (0.7+) = stable, predictable scope with few additions. Lower values (0.3-0.6) = dynamic, evolving scope with frequent additions (normal for responsive agile teams).",
@@ -152,7 +152,7 @@ SCOPE_HELP_TEXTS = {
     "agile_scope_philosophy": "Scope changes are expected and valuable in agile projects.",
     "scope_metrics_explanation": "Tracks scope changes within selected time window. Baseline = scope at window start. All metrics respond to data point slider setting.",
     "jira_scope_calculation": "Intelligent extrapolation for items without story points.",
-    "cumulative_chart": "Cumulative net scope change from period start. Positive = scope grew, negative = backlog reduced. Starts at zero for clear trend visualization.",
+    "cumulative_chart": "Shows actual remaining work over time. Begins with the backlog size at the start of the selected window (baseline) and tracks week-by-week changes. Values represent real backlog size that cannot go negative.",
     "weekly_growth": "Week-by-week scope additions and reductions showing discovery patterns.",
 }
 

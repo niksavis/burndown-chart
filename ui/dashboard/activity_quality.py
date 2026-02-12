@@ -490,15 +490,18 @@ def create_quality_scope_section(
         total_completed = statistics_df["completed_items"].sum()
         scope_growth_rate = safe_divide(total_created, total_completed) * 100
 
-        # Calculate scope change rate (% of current backlog that's new work)
-        # Use remaining items from last snapshot + completed items as total_items
-        total_items = total_created + (
+        # Calculate scope change rate (% of initial baseline)
+        # Baseline = scope at START of period: remaining + completed - created
+        current_remaining = (
             statistics_df["remaining_items"].iloc[-1]
             if "remaining_items" in statistics_df.columns and not statistics_df.empty
             else 0
         )
+        baseline_items = current_remaining + total_completed - total_created
         scope_change_rate = (
-            safe_divide(total_created, total_items) * 100 if total_items > 0 else 0
+            safe_divide(total_created, baseline_items) * 100
+            if baseline_items > 0
+            else 0
         )
 
         # Get date range for context
@@ -526,10 +529,10 @@ def create_quality_scope_section(
                     "value": f"{scope_change_rate:.1f}%",
                     "color": "rgb(20, 168, 150)",  # Teal - distinct from items blue
                     "icon": "fa-chart-area",
-                    "tooltip": f"New work as % of current backlog. Added {total_created:,} of {total_items:,} items during {date_range} ({weeks_count} weeks). Healthy: <15%, Warning: 15-35%, Critical: >35%. Your value: {scope_change_rate:.1f}%",
+                    "tooltip": f"New work as % of initial baseline. Created {total_created:,} items of {baseline_items:,} baseline during {date_range} ({weeks_count} weeks). Healthy: <15%, Warning: 15-35%, Critical: >35%. Your value: {scope_change_rate:.1f}%",
                 },
                 {
-                    "label": "Scope Growth Rate",
+                    "label": "Creation vs Completion Rate",
                     "value": f"{scope_growth_rate:.1f}%",
                     "color": "#6610f2",
                     "icon": "fa-chart-line",

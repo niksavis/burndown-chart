@@ -581,8 +581,8 @@ def create_cumulative_scope_chart(
 
     Args:
         weekly_growth_data (DataFrame): DataFrame with weekly growth data
-        baseline_items (int): Initial baseline for items (remaining at start)
-        baseline_points (int): Initial baseline for points (remaining at start)
+        baseline_items (int): Initial baseline for items (backlog at period start = current + completed - created)
+        baseline_points (int): Initial baseline for points (backlog at period start = current + completed - created)
         show_points (bool): Whether to show points traces
 
     Returns:
@@ -621,9 +621,9 @@ def create_cumulative_scope_chart(
         x=weekly_data["week_label"],
         y=[baseline_items] * len(weekly_data),
         mode="lines",
-        name="Initial Baseline",
+        name="Items Baseline",
         line=dict(color="rgba(128, 128, 128, 0.5)", width=2, dash="dash"),
-        hovertemplate=f"<b>Initial Baseline</b><br>Week: %{{x}}<br>Items: {baseline_items}<extra></extra>",
+        hovertemplate=f"<b>Items Baseline</b><br>Week: %{{x}}<br>Items: {baseline_items}<extra></extra>",
         yaxis="y",
         showlegend=True,
     )
@@ -811,21 +811,24 @@ def create_scope_metrics_dashboard(
     Returns:
         html.Div: A dashboard component with scope metrics
     """
-    # Read remaining items from project data using new persistence functions
-    from data.persistence import load_project_data
+    # Read remaining items from project scope using new persistence functions
+    from data.persistence import load_unified_project_data
 
     try:
-        project_data = cast(Mapping[str, object], load_project_data())
-        total_items_value = project_data.get("total_items", 34)
-        total_points_value = project_data.get("total_points", 154)
+        project_data = load_unified_project_data()
+        project_scope = cast(
+            Mapping[str, object], project_data.get("project_scope", {})
+        )
+        remaining_items_value = project_scope.get("remaining_items", 34)
+        remaining_points_value = project_scope.get("remaining_total_points", 154)
         remaining_items = (
-            int(total_items_value)
-            if isinstance(total_items_value, (int, float, str))
+            int(remaining_items_value)
+            if isinstance(remaining_items_value, (int, float, str))
             else 34
         )
         remaining_points = (
-            int(total_points_value)
-            if isinstance(total_points_value, (int, float, str))
+            float(remaining_points_value)
+            if isinstance(remaining_points_value, (int, float, str))
             else 154
         )
     except Exception:
@@ -867,22 +870,23 @@ def create_scope_metrics_dashboard(
 
     # Calculate baselines (initial scope at start of data period)
     # CRITICAL: Use the baseline passed from callback - it's calculated correctly as:
-    # baseline = current_remaining + total_completed_in_filtered_period
+    # baseline = current_remaining + completed_in_period - created_in_period
     # This gives the total work that existed at the START of the filtered time window
-    # DO NOT recalculate with "- created" as that produces negative values!
     if total_items_scope is not None:
         baseline_items = total_items_scope  # Use provided initial scope from callback
     else:
-        # Fallback: If not provided, calculate as current + completed
+        # Fallback: If not provided, calculate from weekly data
         # Note: This should always be provided by the callback
-        baseline_items = remaining_items + total_completed_items
+        baseline_items = remaining_items + total_completed_items - total_created_items
 
     if total_points_scope is not None:
         baseline_points = total_points_scope  # Use provided initial scope from callback
     else:
-        # Fallback: If not provided, calculate as current + completed
+        # Fallback: If not provided, calculate from weekly data
         # Note: This should always be provided by the callback
-        baseline_points = remaining_points + total_completed_points
+        baseline_points = (
+            remaining_points + total_completed_points - total_created_points
+        )
 
     # Calculate threshold in absolute values - how many items/points can be added
     # before exceeding the threshold percentage
@@ -985,7 +989,7 @@ def create_scope_metrics_dashboard(
                                         style={"color": "#0d6efd"},  # Blue for items
                                     ),
                                     html.Span(
-                                        "Items Scope Growth",
+                                        "Scope Change vs Baseline (Items)",
                                         className="fw-medium",
                                     ),
                                     html.I(
@@ -999,7 +1003,7 @@ def create_scope_metrics_dashboard(
                             html.Div(
                                 [
                                     create_scope_change_indicator(
-                                        "Items Scope Growth",
+                                        "Scope Change vs Baseline (Items)",
                                         scope_change_rate["items_rate"],
                                         threshold,
                                         SCOPE_HELP_TEXTS["scope_change_rate"],
@@ -1073,7 +1077,7 @@ def create_scope_metrics_dashboard(
                                     ),
                                     create_info_tooltip(
                                         "items-scope-breakdown",
-                                        "Breakdown of scope metrics: Created items show new work added, Completed items show work finished, Threshold shows the alert level, and Baseline shows the initial backlog remaining at the start of this tracking period (calculated as current remaining + total completed).",
+                                        "Breakdown of scope metrics: Created items show new work added, Completed items show work finished, Threshold shows the alert level, and Baseline shows the initial backlog remaining at the start of this tracking period (calculated as current remaining + completed - created in period).",
                                     ),
                                 ],
                                 style={"display": "none"},
@@ -1096,7 +1100,7 @@ def create_scope_metrics_dashboard(
                                             style={"color": "#fd7e14"},
                                         ),
                                         html.Span(
-                                            "Points Scope Growth",
+                                            "Scope Change vs Baseline (Points)",
                                             className="fw-medium",
                                         ),
                                         html.I(
@@ -1110,7 +1114,7 @@ def create_scope_metrics_dashboard(
                                 html.Div(
                                     [
                                         create_scope_change_indicator(
-                                            "Points Scope Growth",
+                                            "Scope Change vs Baseline (Points)",
                                             scope_change_rate["points_rate"],
                                             threshold,
                                             SCOPE_HELP_TEXTS["scope_change_rate"]
@@ -1190,7 +1194,7 @@ def create_scope_metrics_dashboard(
                                         ),
                                         create_info_tooltip(
                                             "points-scope-breakdown",
-                                            "Breakdown of scope metrics based on story points: Created points show complexity of new work added, Completed points show effort delivered, Threshold shows the alert level for complexity growth, and Baseline shows the initial backlog remaining at the start of this tracking period (calculated as current remaining + total completed).",
+                                            "Breakdown of scope metrics based on story points: Created points show complexity of new work added, Completed points show effort delivered, Threshold shows the alert level for complexity growth, and Baseline shows the initial backlog remaining at the start of this tracking period (calculated as current remaining + completed - created in period).",
                                         ),
                                     ],
                                     style={"display": "none"},
@@ -1218,7 +1222,7 @@ def create_scope_metrics_dashboard(
                                         className="fas fa-chart-area me-2",
                                         style={"color": "#6610f2"},
                                     ),
-                                    "Net Scope Change Over Time",
+                                    "Backlog Size Over Time (Remaining Work)",
                                     html.Span(" "),
                                     create_info_tooltip(
                                         "cumulative_scope_chart",

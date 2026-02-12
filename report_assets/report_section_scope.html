@@ -160,7 +160,7 @@
   <div class="velocity-cards mt-3">
     <div class="velocity-card" style="border-left-color: #0d6efd;">
       <div class="velocity-card-title">
-        <i class="fas fa-plus-circle"></i> Items Creation Rate
+        <i class="fas fa-plus-circle"></i> Creation vs Completion Rate (Items)
       </div>
       <div class="velocity-card-value" style="color: #0d6efd;">
         {{ metrics.scope.items_ratio|dec2 }}
@@ -170,7 +170,7 @@
     {% if show_points %}
     <div class="velocity-card points" style="border-left-color: var(--color-orange);">
       <div class="velocity-card-title">
-        <i class="fas fa-plus-circle"></i> Points Creation Rate
+        <i class="fas fa-plus-circle"></i> Creation vs Completion Rate (Points)
       </div>
       <div class="velocity-card-value" style="color: var(--color-orange);">
         {{ metrics.scope.points_ratio|dec2 }}
