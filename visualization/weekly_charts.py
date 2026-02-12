@@ -360,7 +360,7 @@ def create_weekly_items_chart(
                     marker_color=COLOR_PALETTE["items"],
                     marker_pattern_shape="x",  # Add pattern to distinguish forecast
                     opacity=0.7,
-                    name="Next Week Forecast",
+                    name="PERT Forecast",
                     text=[round(val, 1) for val in most_likely],
                     textposition="outside",
                     error_y=dict(
@@ -373,7 +373,7 @@ def create_weekly_items_chart(
                         color="rgba(0, 0, 0, 0.3)",
                     ),
                     hovertemplate=format_hover_template(
-                        title="Next Week Items Forecast",
+                        title="PERT Items Forecast",
                         fields={
                             "Week": "%{x}",
                             "Predicted Items": "%{y:.1f}",
@@ -384,6 +384,37 @@ def create_weekly_items_chart(
                     hoverlabel=create_hoverlabel_config("info"),
                 )
             )
+
+            from data.metrics.forecast_calculator import calculate_ewma_forecast
+
+            ewma_data = calculate_ewma_forecast(weekly_df["items"].tolist(), alpha=0.3)
+            if ewma_data:
+                ewma_value = ewma_data.get("forecast_value")
+                if ewma_value is not None:
+                    fig.add_trace(
+                        go.Scatter(
+                            x=forecast_data["items"]["dates"],
+                            y=[ewma_value],
+                            mode="markers+text",
+                            name="EWMA Forecast",
+                            marker=dict(
+                                color="#6c757d",
+                                size=10,
+                                symbol="diamond",
+                            ),
+                            text=[round(ewma_value, 1)],
+                            textposition="top center",
+                            hovertemplate=format_hover_template(
+                                title="EWMA Items Forecast",
+                                fields={
+                                    "Week": "%{x}",
+                                    "Predicted Items": "%{y:.1f}",
+                                    "Method": "EWMA (alpha=0.3)",
+                                },
+                            ),
+                            hoverlabel=create_hoverlabel_config("info"),
+                        )
+                    )
 
             # Add vertical line between historical and forecast data
             fig.add_vline(
@@ -412,7 +443,14 @@ def create_weekly_items_chart(
         xaxis=dict(
             tickangle=45,
         ),
-        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+        legend=dict(
+            orientation="h",
+            yanchor="bottom",
+            y=1.18,
+            xanchor="center",
+            x=0.5,
+            tracegroupgap=6,
+        ),
         plot_bgcolor="rgba(255, 255, 255, 0.9)",
         margin=dict(
             b=70  # Reduced from 130 to 70
@@ -696,7 +734,7 @@ def create_weekly_points_chart(
                     marker_color=COLOR_PALETTE["points"],
                     marker_pattern_shape="x",  # Add pattern to distinguish forecast
                     opacity=0.7,
-                    name="Next Week Forecast",
+                    name="PERT Forecast",
                     text=[round(val, 1) for val in most_likely],
                     textposition="outside",
                     error_y=dict(
@@ -709,7 +747,7 @@ def create_weekly_points_chart(
                         color="rgba(0, 0, 0, 0.3)",
                     ),
                     hovertemplate=format_hover_template(
-                        title="Next Week Points Forecast",
+                        title="PERT Points Forecast",
                         fields={
                             "Week": "%{x}",
                             "Predicted Points": "%{y:.1f}",
@@ -720,6 +758,37 @@ def create_weekly_points_chart(
                     hoverlabel=create_hoverlabel_config("info"),
                 )
             )
+
+            from data.metrics.forecast_calculator import calculate_ewma_forecast
+
+            ewma_data = calculate_ewma_forecast(weekly_df["points"].tolist(), alpha=0.3)
+            if ewma_data:
+                ewma_value = ewma_data.get("forecast_value")
+                if ewma_value is not None:
+                    fig.add_trace(
+                        go.Scatter(
+                            x=forecast_data["points"]["dates"],
+                            y=[ewma_value],
+                            mode="markers+text",
+                            name="EWMA Forecast",
+                            marker=dict(
+                                color="#6c757d",
+                                size=10,
+                                symbol="diamond",
+                            ),
+                            text=[round(ewma_value, 1)],
+                            textposition="top center",
+                            hovertemplate=format_hover_template(
+                                title="EWMA Points Forecast",
+                                fields={
+                                    "Week": "%{x}",
+                                    "Predicted Points": "%{y:.1f}",
+                                    "Method": "EWMA (alpha=0.3)",
+                                },
+                            ),
+                            hoverlabel=create_hoverlabel_config("info"),
+                        )
+                    )
 
             # Add vertical line between historical and forecast data
             fig.add_vline(
@@ -748,7 +817,14 @@ def create_weekly_points_chart(
         xaxis=dict(
             tickangle=45,
         ),
-        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+        legend=dict(
+            orientation="h",
+            yanchor="bottom",
+            y=1.18,
+            xanchor="center",
+            x=0.5,
+            tracegroupgap=6,
+        ),
         plot_bgcolor="rgba(255, 255, 255, 0.9)",
         margin=dict(
             b=60  # Reduced from 130 to 60

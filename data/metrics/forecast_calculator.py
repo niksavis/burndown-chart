@@ -118,6 +118,64 @@ def calculate_forecast(
     }
 
 
+def calculate_ewma_forecast(
+    historical_values: List[float],
+    alpha: float = 0.3,
+    min_weeks: int = 2,
+    decimal_precision: int = 1,
+) -> Optional[Dict[str, Any]]:
+    """
+    Calculate an EWMA forecast using exponential smoothing.
+
+    Args:
+        historical_values: List of metric values from recent weeks (oldest to newest)
+        alpha: Smoothing factor between 0 and 1 (default: 0.3)
+        min_weeks: Minimum weeks required for forecast (default: 2)
+        decimal_precision: Number of decimal places to round forecast (default: 1)
+
+    Returns:
+        Dictionary with forecast data or None if insufficient data:
+        {
+            "forecast_value": float,
+            "alpha": float,
+            "weeks_available": int,
+        }
+
+    Raises:
+        ValueError: If negative values provided or alpha invalid
+        TypeError: If historical_values is not a list of numbers
+    """
+    if not isinstance(historical_values, list):
+        raise TypeError("historical_values must be a list")
+
+    if not historical_values:
+        return None
+
+    if alpha <= 0 or alpha >= 1:
+        raise ValueError("alpha must be between 0 and 1")
+
+    for v in historical_values:
+        if not isinstance(v, (int, float)):
+            raise TypeError(f"All historical values must be numbers, got {type(v)}")
+
+    if any(v < 0 for v in historical_values):
+        negative_val = min(historical_values)
+        raise ValueError(f"Historical values cannot be negative: {negative_val}")
+
+    if len(historical_values) < min_weeks:
+        return None
+
+    smoothed = float(historical_values[0])
+    for value in historical_values[1:]:
+        smoothed = alpha * float(value) + (1 - alpha) * smoothed
+
+    return {
+        "forecast_value": round(smoothed, decimal_precision),
+        "alpha": alpha,
+        "weeks_available": len(historical_values),
+    }
+
+
 def calculate_trend_vs_forecast(
     current_value: float,
     forecast_value: float,

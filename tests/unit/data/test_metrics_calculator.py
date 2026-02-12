@@ -14,6 +14,7 @@ import time
 import pytest
 from data.metrics_calculator import (
     calculate_forecast,
+    calculate_ewma_forecast,
     calculate_trend_vs_forecast,
     calculate_flow_load_range,
 )
@@ -143,6 +144,26 @@ class TestCalculateTrendVsForecast:
         )  # Special message for Monday morning
         assert result["color_class"] == "text-secondary"  # Neutral, not danger
         assert result["is_good"] is True  # Week starting is not a failure
+
+
+class TestCalculateEwmaForecast:
+    """Tests for calculate_ewma_forecast() function."""
+
+    def test_ewma_forecast_value(self):
+        """T053: Test EWMA forecast calculation."""
+        historical_values = [10.0, 12.0, 14.0]
+        result = calculate_ewma_forecast(historical_values, alpha=0.3)
+
+        assert result is not None
+        assert result["forecast_value"] == 11.6
+        assert result["weeks_available"] == 3
+
+    def test_ewma_invalid_alpha(self):
+        """T054: Test EWMA forecast rejects invalid alpha."""
+        historical_values = [10.0, 12.0]
+
+        with pytest.raises(ValueError, match="alpha must be between 0 and 1"):
+            calculate_ewma_forecast(historical_values, alpha=1.0)
 
 
 class TestCalculateFlowLoadRange:
