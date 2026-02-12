@@ -433,13 +433,35 @@ def sync_jira_scope_and_data(
         active_profile_id = backend.get_app_state("active_profile_id")
         active_query_id = backend.get_app_state("active_query_id")
 
+        issue_keys = []
+        delta_keys_key = None
+        if active_profile_id and active_query_id:
+            delta_keys_key = (
+                f"last_delta_changed_keys:{active_profile_id}:{active_query_id}"
+            )
+        if delta_keys_key:
+            try:
+                import json
+
+                delta_keys_raw = backend.get_app_state(delta_keys_key) or "[]"
+                parsed_keys = json.loads(delta_keys_raw)
+                if isinstance(parsed_keys, list):
+                    issue_keys = [str(key) for key in parsed_keys if key]
+            except (TypeError, ValueError) as e:
+                logger.warning(
+                    f"[JIRA] Failed to parse delta keys for changelog refresh: {e}"
+                )
+
         logger.info("[JIRA] Fetching changelog data for Flow/DORA metrics...")
         changelog_success, changelog_message = fetch_changelog_on_demand(
             config,
             profile_id=active_profile_id,
             query_id=active_query_id,
             progress_callback=None,
+            issue_keys=issue_keys or None,
         )
+        if delta_keys_key:
+            backend.set_app_state(delta_keys_key, "[]")
         if changelog_success:
             logger.info(f"[JIRA] Changelog fetch successful: {changelog_message}")
         else:

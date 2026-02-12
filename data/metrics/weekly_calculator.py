@@ -380,17 +380,17 @@ def calculate_and_save_weekly_metrics(
                     f"[DEBUG] Issue {issue_key} has {len(status_transitions)} status transitions"
                 )
 
-            timestamp_str = _find_first_transition_to_statuses(
-                changelog, flow_end_statuses
-            )
+            # Prefer resolved timestamp when available to avoid stale changelog data.
+            if "fields" in issue and isinstance(issue.get("fields"), dict):
+                timestamp_str = issue["fields"].get("resolutiondate")
+            else:
+                # Flat format: database stores resolution date as 'resolved'
+                timestamp_str = issue.get("resolved") or issue.get("resolutiondate")
 
             if not timestamp_str:
-                # Fallback: try resolutiondate field (handle both formats)
-                if "fields" in issue and isinstance(issue.get("fields"), dict):
-                    timestamp_str = issue["fields"].get("resolutiondate")
-                else:
-                    # Flat format: resolutiondate at top level
-                    timestamp_str = issue.get("resolutiondate")
+                timestamp_str = _find_first_transition_to_statuses(
+                    changelog, flow_end_statuses
+                )
 
             if not timestamp_str:
                 extraction_stats["not_found"] += 1

@@ -5,12 +5,11 @@ from datetime import datetime
 
 def get_current_iso_week() -> str:
     """
-    Get current ISO week label in format YYYY-WW (without "W" prefix).
+    Get current ISO week label in format YYYY-Wxx.
 
     Returns:
-        str: ISO week label (e.g., "2025-44")
+        str: ISO week label (e.g., "2025-W44")
     """
     now = datetime.now()
     iso_calendar = now.isocalendar()
-    # Format without "W" prefix to match dashboard format
-    return f"{iso_calendar.year}-{iso_calendar.week:02d}"
+    return f"{iso_calendar.year}-W{iso_calendar.week:02d}"

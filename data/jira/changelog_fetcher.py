@@ -493,6 +493,7 @@ def fetch_changelog_on_demand(
     profile_id: str | None = None,
     query_id: str | None = None,
     progress_callback=None,
+    issue_keys: list[str] | None = None,
 ) -> Tuple[bool, str]:
     """
     Fetch changelog data separately for Flow Time and DORA metrics with incremental saving.
@@ -511,6 +512,7 @@ def fetch_changelog_on_demand(
         profile_id: Profile ID to fetch changelog for (if None, reads from app_state)
         query_id: Query ID to fetch changelog for (if None, reads from app_state)
         progress_callback: Optional callback function(message: str) for progress updates
+        issue_keys: Optional list of issue keys to refresh even if cached
 
     Returns:
         Tuple of (success, message)
@@ -559,52 +561,64 @@ def fetch_changelog_on_demand(
 
         # Get all issues from database to determine which need changelog fetching
         issues_needing_changelog: list[str] | None = []
-        try:
-            all_issues = backend.get_issues(profile_id=profile_id, query_id=query_id)
-            # Database returns flat format with issue_key column
-            all_issue_keys: list[str] = [
-                str(issue.get("issue_key"))
-                for issue in all_issues
-                if issue.get("issue_key")
-            ]
-
-            # Find issues not in changelog cache
-            issues_needing_changelog = [
-                key for key in all_issue_keys if key not in cached_issue_keys
-            ]
-
+        if issue_keys:
+            issues_needing_changelog = sorted(set(issue_keys))
             logger.info(
-                f"[JIRA] Changelog analysis: {len(all_issue_keys)} total, "
-                f"{len(cached_issue_keys)} cached, {len(issues_needing_changelog)} need fetch"
+                f"[JIRA] Changelog refresh: targeting {len(issues_needing_changelog)} issues"
             )
+            if progress_callback:
+                progress_callback(
+                    f"Targeted changelog refresh: {len(issues_needing_changelog)} issues"
+                )
+        else:
+            try:
+                all_issues = backend.get_issues(
+                    profile_id=profile_id, query_id=query_id
+                )
+                # Database returns flat format with issue_key column
+                all_issue_keys: list[str] = [
+                    str(issue.get("issue_key"))
+                    for issue in all_issues
+                    if issue.get("issue_key")
+                ]
 
-            if issues_needing_changelog:
+                # Find issues not in changelog cache
+                issues_needing_changelog = [
+                    key for key in all_issue_keys if key not in cached_issue_keys
+                ]
+
                 logger.info(
-                    f"[Database] Optimized fetch: Only {len(issues_needing_changelog)} new issues"
-                )
-                if progress_callback:
-                    progress_callback(
-                        f"Smart fetch: {len(issues_needing_changelog)} new issues "
-                        f"({len(cached_issue_keys)} already cached)"
-                    )
-            else:
-                logger.info(
-                    "[Database] All issues have changelog cached, skipping fetch"
-                )
-                if progress_callback:
-                    progress_callback(
-                        f"[OK] All {len(cached_issue_keys)} issues already cached - skipping download"
-                    )
-                return (
-                    True,
-                    f"[OK] Changelog already cached for all {len(cached_issue_keys)} issues",
+                    f"[JIRA] Changelog analysis: {len(all_issue_keys)} total, "
+                    f"{len(cached_issue_keys)} cached, {len(issues_needing_changelog)} need fetch"
                 )
 
-        except Exception as e:
-            logger.warning(
-                f"[Database] Could not analyze issues from database: {e}, fetching all changelog"
-            )
-            issues_needing_changelog = None
+                if issues_needing_changelog:
+                    logger.info(
+                        f"[Database] Optimized fetch: Only {len(issues_needing_changelog)} new issues"
+                    )
+                    if progress_callback:
+                        progress_callback(
+                            f"Smart fetch: {len(issues_needing_changelog)} new issues "
+                            f"({len(cached_issue_keys)} already cached)"
+                        )
+                else:
+                    logger.info(
+                        "[Database] All issues have changelog cached, skipping fetch"
+                    )
+                    if progress_callback:
+                        progress_callback(
+                            f"[OK] All {len(cached_issue_keys)} issues already cached - skipping download"
+                        )
+                    return (
+                        True,
+                        f"[OK] Changelog already cached for all {len(cached_issue_keys)} issues",
+                    )
+
+            except Exception as e:
+                logger.warning(
+                    f"[Database] Could not analyze issues from database: {e}, fetching all changelog"
+                )
+                issues_needing_changelog = None
 
         # Fetch changelog (only for issues not in cache if we have the list)
         changelog_fetch_success, issues_with_changelog = (

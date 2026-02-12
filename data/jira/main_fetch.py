@@ -148,11 +148,15 @@ def fetch_jira_issues(
         active_query_id = backend.get_app_state("active_query_id")
         last_fetch_key = None
         last_delta_key = None
+        last_delta_keys_key = None
 
         if active_profile_id and active_query_id:
             last_fetch_key = f"last_fetch_time:{active_profile_id}:{active_query_id}"
             last_delta_key = (
                 f"last_delta_changed_count:{active_profile_id}:{active_query_id}"
+            )
+            last_delta_keys_key = (
+                f"last_delta_changed_keys:{active_profile_id}:{active_query_id}"
             )
 
         # Skip cache check if force_refresh is True
@@ -253,6 +257,13 @@ def fetch_jira_issues(
                             last_delta_key,
                             str(len(delta_issues)),
                         )
+                        if last_delta_keys_key:
+                            import json
+
+                            backend.set_app_state(
+                                last_delta_keys_key,
+                                json.dumps(changed_keys),
+                            )
                     return True, merged_issues
                 # Delta fetch failed, fall through to full fetch
             else:
@@ -293,6 +304,13 @@ def fetch_jira_issues(
                                     last_delta_key,
                                     str(len(delta_issues)),
                                 )
+                                if last_delta_keys_key:
+                                    import json
+
+                                    backend.set_app_state(
+                                        last_delta_keys_key,
+                                        json.dumps(changed_keys),
+                                    )
                             return True, merged_issues
                         # Delta fetch failed, fall through to full fetch
                     else:
@@ -314,6 +332,13 @@ def fetch_jira_issues(
                                 fields_requested=fields,
                                 config=config,
                             )
+                            if last_delta_keys_key:
+                                import json
+
+                                backend.set_app_state(
+                                    last_delta_keys_key,
+                                    json.dumps(changed_keys),
+                                )
                             return True, merged_issues
                         # Delta fetch failed, fall through to full fetch
                 else:
@@ -343,6 +368,13 @@ def fetch_jira_issues(
                                 last_delta_key,
                                 str(len(delta_issues)),
                             )
+                            if last_delta_keys_key:
+                                import json
+
+                                backend.set_app_state(
+                                    last_delta_keys_key,
+                                    json.dumps(changed_keys),
+                                )
                         logger.info(
                             "[JIRA] Delta fetch succeeded despite count check failure"
                         )
@@ -397,6 +429,10 @@ def fetch_jira_issues(
                 backend.set_app_state(
                     f"last_delta_changed_count:{active_profile_id}:{active_query_id}",
                     "-1",
+                )
+                backend.set_app_state(
+                    f"last_delta_changed_keys:{active_profile_id}:{active_query_id}",
+                    "[]",
                 )
             return True, all_issues
 
@@ -592,6 +628,10 @@ def fetch_jira_issues(
                 backend.set_app_state(
                     f"last_delta_changed_count:{active_profile_id}:{active_query_id}",
                     "-1",
+                )
+                backend.set_app_state(
+                    f"last_delta_changed_keys:{active_profile_id}:{active_query_id}",
+                    "[]",
                 )
         except Exception as e:
             logger.debug(f"[JIRA] Failed to update last_fetch_time: {e}")

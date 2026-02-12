@@ -91,7 +91,7 @@ def register(app):
 
         try:
             # Load statistics to verify fetch completed successfully
-            from data.persistence import load_statistics
+            from data.persistence.adapters.statistics import load_statistics
 
             statistics, _ = load_statistics()
 
@@ -148,6 +148,9 @@ def _calculate_weeks_from_statistics(statistics: list) -> tuple[int, list]:
     dates = [datetime.fromisoformat(stat["date"]) for stat in statistics]
     start_date = min(dates)
     end_date = max(dates)
+    now = datetime.now()
+    if end_date < now:
+        end_date = now
 
     # Get weeks covering the actual data range
     custom_weeks = get_weeks_from_date_range(start_date, end_date)
