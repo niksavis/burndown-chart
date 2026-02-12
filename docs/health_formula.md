@@ -344,6 +344,8 @@ Examples:
 **Source**: Scope metrics change rate (%)  
 **Calculation**: Logarithmic penalty with **context multiplier**
 
+**Note**: For health scoring, scope_change_rate is calculated as created items divided by (remaining + completed) within the selected time window. This differs from the baseline-at-window-start formula used in scope tracking views.
+
 ```python
 # Context factor based on project maturity:
 if completion < 25%:

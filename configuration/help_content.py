@@ -641,7 +641,7 @@ DASHBOARD_METRICS_TOOLTIPS = {
     "pert_expected": "Weighted average of optimistic, most likely, and pessimistic forecasts using the formula: (O + 4×ML + P) ÷ 6. Provides the most statistically reliable single-point estimate.",
     "confidence_range": "Uncertainty band around the forecast showing the range of possible completion dates. Wider ranges indicate higher unpredictability; narrower ranges show consistent velocity.",
     "scope_growth": "New work added vs baseline or completed work. Tracks requirement evolution and impact on forecasts. Two views: growth from baseline and creation vs completion rate.",
-    "health_score": "Health score (0-100 points). Automatically adapts to available data sources: Dashboard (Delivery Performance 25%, Predictability 20%), Process Quality (DORA metrics 20%), Delivery Efficiency (Flow metrics 15%), Risk Indicators (Bug Analysis, Scope, Budget 25%). Weights dynamically adjust based on data availability, gracefully handling missing metrics.",
+    "health_score": "Health score (0-100 points). Automatically adapts to available data sources: Dashboard (Delivery Performance 25%, Predictability 20%), Process Quality (DORA metrics 20%), Delivery Efficiency (Flow metrics 15%), Risk Indicators (Bug Analysis, Scope, Budget 25%). Weights dynamically adjust based on data availability, gracefully handling missing metrics. Note: scope change rate for health uses created divided by (remaining + completed) within the selected window, which differs from baseline-based scope tracking.",
 }
 
 # PARAMETER INPUTS HELP CONTENT - Tooltips for parameter panel controls
