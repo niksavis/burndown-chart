@@ -29,6 +29,43 @@
   "use strict";
 
   /**
+   * Ensure JQL mode is registered with the active CodeMirror instance.
+   */
+  function ensureJqlModeRegistered() {
+    if (typeof CodeMirror === "undefined" || !CodeMirror.defineMode) {
+      return;
+    }
+
+    if (CodeMirror.modes && CodeMirror.modes.jql) {
+      return;
+    }
+
+    if (typeof window !== "undefined" && window.jqlLanguageMode) {
+      CodeMirror.defineMode("jql", function () {
+        return window.jqlLanguageMode;
+      });
+    }
+  }
+
+  /**
+   * Check if JQL mode is registered with CodeMirror
+   */
+  function isJqlModeAvailable() {
+    if (typeof CodeMirror === "undefined") {
+      return false;
+    }
+
+    ensureJqlModeRegistered();
+
+    try {
+      const testMode = CodeMirror.getMode({}, "jql");
+      return testMode && testMode.name === "jql";
+    } catch (e) {
+      return false;
+    }
+  }
+
+  /**
    * Initialize all native CodeMirror editors
    */
   function initializeNativeEditors() {
@@ -40,9 +77,8 @@
       return;
     }
 
-    const jqlModeAvailable =
-      typeof CodeMirror.modes !== "undefined" &&
-      typeof CodeMirror.modes.jql !== "undefined";
+    // Check if JQL mode is available
+    const jqlModeAvailable = isJqlModeAvailable();
 
     if (!jqlModeAvailable) {
       console.warn("[Native JQL] JQL mode not loaded - using plain text");
@@ -81,8 +117,8 @@
       console.log(
         `[Native JQL] Creating editor for ${editorId} with value: "${actualInitialValue.substring(
           0,
-          50
-        )}..."`
+          50,
+        )}..."`,
       );
 
       // Create native CodeMirror
@@ -110,7 +146,7 @@
       const isVisible = container.offsetParent !== null;
       if (!isVisible) {
         console.log(
-          `[Native JQL] ${editorId} initialized in hidden tab, will refresh on tab show`
+          `[Native JQL] ${editorId} initialized in hidden tab, will refresh on tab show`,
         );
         container.setAttribute("data-needs-refresh", "true");
       }
@@ -140,7 +176,7 @@
 
       const originalDescriptor = Object.getOwnPropertyDescriptor(
         elementPrototype,
-        "value"
+        "value",
       );
 
       Object.defineProperty(hiddenInput, "value", {
@@ -158,7 +194,7 @@
       console.log(
         `[Native JQL] Initialized ${editorId} with ${
           actualInitialValue.length
-        } chars: "${actualInitialValue.substring(0, 50)}..."`
+        } chars: "${actualInitialValue.substring(0, 50)}..."`,
       );
     });
   }
@@ -175,14 +211,14 @@
   const maxRetries = 10;
   const retryInterval = setInterval(function () {
     const uninitializedContainers = Array.from(
-      document.querySelectorAll(".jql-codemirror-container")
+      document.querySelectorAll(".jql-codemirror-container"),
     ).filter((c) => !c._cmEditor);
 
     if (uninitializedContainers.length > 0) {
       console.log(
         `[Native JQL] Retry ${retryCount + 1}: Found ${
           uninitializedContainers.length
-        } uninitialized container(s)`
+        } uninitialized container(s)`,
       );
       initializeNativeEditors();
     }
@@ -208,7 +244,7 @@
             shouldReinit = true;
           } else if (node.querySelectorAll) {
             const containers = node.querySelectorAll(
-              ".jql-codemirror-container"
+              ".jql-codemirror-container",
             );
             if (containers.length > 0) {
               shouldReinit = true;
@@ -279,8 +315,8 @@
           if (needsRefresh) {
             console.log(
               `[Native JQL] Refreshing ${container.getAttribute(
-                "data-editor-id"
-              )} (was hidden on init)`
+                "data-editor-id",
+              )} (was hidden on init)`,
             );
             container.removeAttribute("data-needs-refresh");
           }

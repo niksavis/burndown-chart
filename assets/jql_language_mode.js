@@ -30,9 +30,12 @@
 (function () {
   "use strict";
 
-  // Skip if already loaded
-  if (typeof window !== "undefined" && window.jqlLanguageMode) {
-    console.log("[JQL Mode] Already loaded, skipping re-initialization");
+  // Skip if already registered with CodeMirror
+  if (
+    typeof CodeMirror !== "undefined" &&
+    CodeMirror.modes &&
+    CodeMirror.modes.jql
+  ) {
     return;
   }
 
@@ -120,8 +123,6 @@
    * Implements a token parser for JQL syntax using CodeMirror's StreamLanguage API.
    */
   const jqlLanguageMode = {
-    name: "jql",
-
     /**
      * Initialize parser state at start of document or line.
      *
@@ -303,9 +304,8 @@
 
   // Register with CodeMirror 5 if available
   if (typeof CodeMirror !== "undefined" && CodeMirror.defineMode) {
-    CodeMirror.defineMode("jql", function () {
+    CodeMirror.defineMode("jql", function (config, parserConfig) {
       return jqlLanguageMode;
     });
-    console.log("[JQL Mode] Registered JQL mode with CodeMirror 5");
   }
 })(); // End IIFE
