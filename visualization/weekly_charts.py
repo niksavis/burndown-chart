@@ -208,8 +208,12 @@ def create_weekly_items_chart(
         weekly_df["start_date"], format="mixed", errors="coerce"
     )
 
-    # Format date for display
-    weekly_df["week_label"] = weekly_df["start_date"].dt.strftime("%b %d")  # type: ignore[attr-defined]
+    # Format date for display using ISO week format (2026-W07)
+    weekly_df["week_label"] = (
+        weekly_df["start_date"].dt.isocalendar().year.astype(str)  # type: ignore[attr-defined]
+        + "-W"
+        + weekly_df["start_date"].dt.isocalendar().week.astype(str).str.zfill(2)  # type: ignore[attr-defined]
+    )
 
     # Calculate weighted moving average (last 4 weeks)
     # More weight given to recent weeks using exponential weights
@@ -582,8 +586,12 @@ def create_weekly_points_chart(
         weekly_df["start_date"], format="mixed", errors="coerce"
     )
 
-    # Format date for display
-    weekly_df["week_label"] = weekly_df["start_date"].dt.strftime("%b %d")  # type: ignore[attr-defined]
+    # Format date for display using ISO week format (2026-W07)
+    weekly_df["week_label"] = (
+        weekly_df["start_date"].dt.isocalendar().year.astype(str)  # type: ignore[attr-defined]
+        + "-W"
+        + weekly_df["start_date"].dt.isocalendar().week.astype(str).str.zfill(2)  # type: ignore[attr-defined]
+    )
 
     # Calculate weighted moving average (last 4 weeks)
     # More weight given to recent weeks using exponential weights
@@ -963,8 +971,12 @@ def create_weekly_items_forecast_chart(
         weekly_df["start_date"], format="mixed", errors="coerce"
     )
 
-    # Format date for display
-    weekly_df["week_label"] = weekly_df["start_date"].dt.strftime("%b %d")  # type: ignore[attr-defined]
+    # Format date for display using ISO week format (2026-W07)
+    weekly_df["week_label"] = (
+        weekly_df["start_date"].dt.isocalendar().year.astype(str)  # type: ignore[attr-defined]
+        + "-W"
+        + weekly_df["start_date"].dt.isocalendar().week.astype(str).str.zfill(2)  # type: ignore[attr-defined]
+    )
 
     # Generate forecast data using filtered statistics data
     forecast_data = generate_weekly_forecast(
@@ -1219,8 +1231,12 @@ def create_weekly_points_forecast_chart(
         weekly_df["start_date"], format="mixed", errors="coerce"
     )
 
-    # Format date for display
-    weekly_df["week_label"] = weekly_df["start_date"].dt.strftime("%b %d")  # type: ignore[attr-defined]
+    # Format date for display using ISO week format (2026-W07)
+    weekly_df["week_label"] = (
+        weekly_df["start_date"].dt.isocalendar().year.astype(str)  # type: ignore[attr-defined]
+        + "-W"
+        + weekly_df["start_date"].dt.isocalendar().week.astype(str).str.zfill(2)  # type: ignore[attr-defined]
+    )
 
     # Calculate weighted moving average (last 4 weeks)
     if len(weekly_df) >= 4:

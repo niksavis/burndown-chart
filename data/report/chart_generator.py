@@ -36,14 +36,22 @@ def generate_chart_scripts(metrics: Dict[str, Any], sections: List[str]) -> List
                 dashboard_metrics.get("forecast_date"),
                 dashboard_metrics.get("deadline"),
                 dashboard_metrics.get("show_points", False),
+                statistics=metrics.get("statistics", []),
+                pert_factor=dashboard_metrics.get("pert_factor", 3),
             )
         )
 
     if "burndown" in sections and metrics.get("burndown", {}).get("weekly_data"):
+        dashboard_metrics = metrics.get("dashboard", {})
         scripts.append(
             generate_weekly_breakdown_chart(
                 metrics["burndown"]["weekly_data"],
-                metrics.get("dashboard", {}).get("show_points", False),
+                dashboard_metrics.get("show_points", False),
+                statistics=metrics.get("statistics", []),
+                pert_factor=dashboard_metrics.get("pert_factor", 3),
+                deadline=dashboard_metrics.get("deadline"),
+                remaining_items=dashboard_metrics.get("remaining_items"),
+                remaining_points=dashboard_metrics.get("remaining_points"),
             )
         )
 

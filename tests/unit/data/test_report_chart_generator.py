@@ -2,17 +2,17 @@
 
 Tests the refactored chart generation modules that were split from chart_generator.py:
 - chart_burndown.py
-- chart_scope.py
 - chart_bugs.py
 - chart_flow.py
 """
+
+import pytest
 
 from data.report.chart_generator import generate_chart_scripts
 from data.report.chart_burndown import (
     generate_burndown_chart,
     generate_weekly_breakdown_chart,
 )
-from data.report.chart_scope import generate_scope_changes_chart
 from data.report.chart_bugs import generate_bug_trends_chart
 from data.report.chart_flow import generate_work_distribution_chart
 
@@ -65,7 +65,7 @@ class TestChartGeneratorOrchestration:
         assert all("Chart(" in s for s in scripts)
 
     def test_generate_chart_scripts_scope_section(self):
-        """Test scope section generates scope changes chart."""
+        """Test that scope changes chart is generated for scope creep analysis."""
         metrics = {
             "scope": {
                 "has_data": True,
@@ -87,7 +87,7 @@ class TestChartGeneratorOrchestration:
 
         scripts = generate_chart_scripts(metrics, sections)
 
-        assert len(scripts) >= 1
+        # Scope changes chart should be generated for scope creep tracking
         assert any("scopeChangesChart" in s for s in scripts)
 
     def test_generate_chart_scripts_bugs_section(self):
@@ -172,7 +172,8 @@ class TestBurndownCharts:
 
         assert "new Chart(" in script
         assert "burndownChart" in script
-        assert "2026-01-01" in script
+        # Dates should be in ISO week format (2026-W01, 2026-W03, 2026-W05)
+        assert "2026-W" in script
         assert "30" in script or "[30" in script
         assert "line" in script.lower()
 
@@ -209,85 +210,142 @@ class TestBurndownCharts:
         )
 
         assert "Milestone" in script
-        assert "2026-01-15" in script
+        # Check for ISO week format and human-readable dates
+        assert "2026-W" in script  # ISO week format
+        assert "Jan 15, 2026" in script  # Humanreadable milestone date
         assert "Forecast" in script
-        assert "2026-02-10" in script
+        assert "Feb 10, 2026" in script  # Human-readable forecast date
         assert "Deadline" in script
-        assert "2026-02-28" in script
+        assert "Feb 28, 2026" in script  # Human-readable deadline date
 
     def test_generate_weekly_breakdown_chart_basic(self):
-        """Test weekly breakdown chart generation."""
+        """Test weekly breakdown chart generation with new forecast features."""
         weekly_data = [
             {
-                "date": "2026-01-01",
+                "date": "2026-W01",
                 "created_items": 3,
                 "completed_items": 5,
                 "created_points": 4,
                 "completed_points": 8,
             },
             {
-                "date": "2026-01-08",
+                "date": "2026-W02",
                 "created_items": 4,
                 "completed_items": 7,
                 "created_points": 6,
                 "completed_points": 12,
             },
+            {
+                "date": "2026-W03",
+                "created_items": 2,
+                "completed_items": 6,
+                "created_points": 3,
+                "completed_points": 10,
+            },
+            {
+                "date": "2026-W04",
+                "created_items": 5,
+                "completed_items": 8,
+                "created_points": 7,
+                "completed_points": 15,
+            },
         ]
 
+        # Test without forecast (no statistics data)
         script = generate_weekly_breakdown_chart(weekly_data, False)
 
         assert "new Chart(" in script
         assert "weeklyBreakdownChart" in script
-        assert "2026-01-01" in script
-        assert "2026-01-08" in script
+        assert "2026-W01" in script
+        assert "2026-W04" in script
         assert "bar" in script.lower()
+        assert "Items Completed" in script
+
+    def test_generate_weekly_breakdown_chart_with_forecast(self):
+        """Test weekly breakdown chart includes PERT and EWMA forecasts."""
+        weekly_data = [
+            {"date": "2026-W01", "completed_items": 5, "completed_points": 8},
+            {"date": "2026-W02", "completed_items": 7, "completed_points": 12},
+            {"date": "2026-W03", "completed_items": 6, "completed_points": 10},
+            {"date": "2026-W04", "completed_items": 8, "completed_points": 15},
+        ]
+
+        statistics = [
+            {"date": "2026-01-01", "completed_items": 5, "completed_points": 8},
+            {"date": "2026-01-08", "completed_items": 7, "completed_points": 12},
+            {"date": "2026-01-15", "completed_items": 6, "completed_points": 10},
+            {"date": "2026-01-22", "completed_items": 8, "completed_points": 15},
+        ]
+
+        script = generate_weekly_breakdown_chart(
+            weekly_data, False, statistics=statistics, pert_factor=3
+        )
+
+        # Check that chart contains basics and forecasts but not removed features
+        assert "Items Completed" in script
+        assert "weeklyBreakdownChart" in script
+        assert "4-Week Weighted Avg" not in script  # Removed feature
+        assert "PERT Forecast" in script  # Should have PERT forecast
+        assert "EWMA Forecast" in script  # Should have EWMA forecast
 
     def test_generate_weekly_breakdown_chart_with_points(self):
         """Test weekly breakdown with points display."""
         weekly_data = [
             {
-                "date": "2026-01-01",
+                "date": "2026-W01",
                 "created_items": 0,
                 "completed_items": 5,
                 "created_points": 0,
                 "completed_points": 8,
-            }
+            },
+            {
+                "date": "2026-W02",
+                "created_items": 0,
+                "completed_items": 7,
+                "created_points": 0,
+                "completed_points": 12,
+            },
         ]
 
         script = generate_weekly_breakdown_chart(weekly_data, True)
 
-        assert "Points" in script or "points" in script
-        assert "8" in script or "[8" in script
+        assert "Points Completed" in script
+        assert "y1" in script  # Dual y-axis
+
+    def test_generate_weekly_breakdown_chart_with_required_velocity(self):
+        """Test weekly breakdown with required velocity line."""
+        weekly_data = [
+            {"date": "2026-W01", "completed_items": 5, "completed_points": 8},
+            {"date": "2026-W02", "completed_items": 7, "completed_points": 12},
+        ]
+
+        script = generate_weekly_breakdown_chart(
+            weekly_data,
+            False,
+            deadline="2026-03-01",
+            remaining_items=50,
+        )
+
+        assert "Required:" in script
+        assert "items/week" in script
 
 
 class TestScopeChart:
     """Test scope changes chart generation."""
 
     def test_generate_scope_changes_chart_basic(self):
-        """Test basic scope changes chart."""
-        metrics = {
-            "statistics": [
-                {"date": "2026-01-10", "created_items": 2, "completed_items": 1},
-                {"date": "2026-01-11", "created_items": 1, "completed_items": 1},
-                {"date": "2026-01-12", "created_items": 1, "completed_items": 0},
-            ]
-        }
-
-        script = generate_scope_changes_chart(metrics)
-
-        assert "new Chart(" in script
-        assert "scopeChangesChart" in script
-        assert "bar" in script.lower()
-        assert "Created" in script
-        assert "Completed" in script
+        """Test basic scope changes chart (deprecated - chart removed)."""
+        # This chart has been removed and consolidated into Weekly Breakdown
+        # Keeping test structure for compatibility but marking as skipped
+        pytest.skip(
+            "Scope changes chart removed - functionality merged into Weekly Breakdown"
+        )
 
     def test_generate_scope_changes_chart_no_data(self):
-        """Test scope chart with no items."""
-        metrics = {"statistics": []}
-
-        script = generate_scope_changes_chart(metrics)
-
-        assert script == ""
+        """Test scope chart with no items (deprecated)."""
+        pytest.skip(
+            "Scope changes chart removed - functionality merged into Weekly Breakdown"
+        )
 
 
 class TestBugsChart:
@@ -296,16 +354,31 @@ class TestBugsChart:
     def test_generate_bug_trends_chart_basic(self):
         """Test basic bug trends chart."""
         weekly_stats = [
-            {"week_start_date": "2026-01-01", "bugs_created": 3, "bugs_resolved": 2},
-            {"week_start_date": "2026-01-08", "bugs_created": 5, "bugs_resolved": 4},
-            {"week_start_date": "2026-01-15", "bugs_created": 2, "bugs_resolved": 3},
+            {
+                "week": "2026-W01",
+                "week_start_date": "2026-01-01",
+                "bugs_created": 3,
+                "bugs_resolved": 2,
+            },
+            {
+                "week": "2026-W02",
+                "week_start_date": "2026-01-08",
+                "bugs_created": 5,
+                "bugs_resolved": 4,
+            },
+            {
+                "week": "2026-W03",
+                "week_start_date": "2026-01-15",
+                "bugs_created": 2,
+                "bugs_resolved": 3,
+            },
         ]
 
         script = generate_bug_trends_chart(weekly_stats)
 
         assert "new Chart(" in script
         assert "bugTrendsChart" in script
-        assert "2026-01-01" in script
+        assert "2026-W01" in script  # ISO week format
         assert "line" in script.lower()
         assert "Created" in script or "created" in script
         assert "Closed" in script or "closed" in script
@@ -313,10 +386,30 @@ class TestBugsChart:
     def test_generate_bug_trends_chart_warning_backgrounds(self):
         """Test bug trends chart with consecutive negative weeks."""
         weekly_stats = [
-            {"week_start_date": "2026-01-01", "bugs_created": 5, "bugs_resolved": 2},
-            {"week_start_date": "2026-01-08", "bugs_created": 6, "bugs_resolved": 3},
-            {"week_start_date": "2026-01-15", "bugs_created": 7, "bugs_resolved": 4},
-            {"week_start_date": "2026-01-22", "bugs_created": 2, "bugs_resolved": 5},
+            {
+                "week": "2026-W01",
+                "week_start_date": "2026-01-01",
+                "bugs_created": 5,
+                "bugs_resolved": 2,
+            },
+            {
+                "week": "2026-W02",
+                "week_start_date": "2026-01-08",
+                "bugs_created": 6,
+                "bugs_resolved": 3,
+            },
+            {
+                "week": "2026-W03",
+                "week_start_date": "2026-01-15",
+                "bugs_created": 7,
+                "bugs_resolved": 4,
+            },
+            {
+                "week": "2026-W04",
+                "week_start_date": "2026-01-22",
+                "bugs_created": 2,
+                "bugs_resolved": 5,
+            },
         ]
 
         script = generate_bug_trends_chart(weekly_stats)

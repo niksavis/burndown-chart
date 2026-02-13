@@ -62,6 +62,8 @@ def calculate_dashboard_metrics(
             "milestone": None,
             "velocity_items": 0,
             "velocity_points": 0,
+            "velocity_items_recent_4w": 0,
+            "velocity_points_recent_4w": 0,
         }
 
     # Calculate completed items from WINDOWED statistics (same as app)
@@ -292,6 +294,27 @@ def calculate_dashboard_metrics(
     logger.debug(
         f"[REPORT VELOCITY] velocity_items={velocity_items:.2f} items/week, velocity_points={velocity_points:.2f} points/week"
     )
+
+    # Calculate recent 4-week velocity for short-term performance indicator
+    velocity_items_recent_4w = 0
+    velocity_points_recent_4w = 0
+    if not df_for_velocity.empty and len(df_for_velocity) >= 4:
+        # Get most recent 4 weeks
+        df_recent_4w = df_for_velocity.tail(4)
+        velocity_items_recent_4w = calculate_velocity_from_dataframe(
+            df_recent_4w, "completed_items"
+        )
+        velocity_points_recent_4w = calculate_velocity_from_dataframe(
+            df_recent_4w, "completed_points"
+        )
+        logger.debug(
+            f"[REPORT VELOCITY 4W] Recent 4 weeks: velocity_items={velocity_items_recent_4w:.2f}, "
+            f"velocity_points={velocity_points_recent_4w:.2f}"
+        )
+    elif not df_for_velocity.empty:
+        # If less than 4 weeks, use what we have
+        velocity_items_recent_4w = velocity_items
+        velocity_points_recent_4w = velocity_points
 
     # Calculate scope change rate from FILTERED data (same as app)
     # This must match the app's calculation in dashboard.py
@@ -532,6 +555,8 @@ def calculate_dashboard_metrics(
         "forecast_metric": forecast_metric,
         "velocity_items": velocity_items,
         "velocity_points": velocity_points,
+        "velocity_items_recent_4w": velocity_items_recent_4w,
+        "velocity_points_recent_4w": velocity_points_recent_4w,
         "weeks_count": weeks_count,
         "pert_time_items": pert_time_items,  # Raw PERT days for items (for deadline calculations)
         "pert_time_points": pert_time_points,  # Raw PERT days for points

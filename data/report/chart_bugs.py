@@ -6,12 +6,8 @@ from typing import Dict, List
 
 def generate_bug_trends_chart(weekly_stats: List[Dict]) -> str:
     """Generate Chart.js script for bug trends chart showing warning backgrounds."""
-    weeks_js = json.dumps(
-        [
-            stat.get("week_start_date", stat.get("week", ""))[:10]
-            for stat in weekly_stats
-        ]
-    )
+    # Use ISO week format (2026-W07) for consistency across all charts
+    weeks_js = json.dumps([stat.get("week", "") for stat in weekly_stats])
     bugs_created_js = json.dumps([stat.get("bugs_created", 0) for stat in weekly_stats])
     bugs_resolved_js = json.dumps(
         [stat.get("bugs_resolved", 0) for stat in weekly_stats]
@@ -28,12 +24,9 @@ def generate_bug_trends_chart(weekly_stats: List[Dict]) -> str:
                 warning_start_idx = idx
         else:
             if consecutive_negative_weeks >= 3 and warning_start_idx is not None:
-                start_week = weekly_stats[warning_start_idx].get(
-                    "week_start_date", weekly_stats[warning_start_idx].get("week", "")
-                )[:10]
-                end_week = weekly_stats[idx - 1].get(
-                    "week_start_date", weekly_stats[idx - 1].get("week", "")
-                )[:10]
+                # Use ISO week format for annotations
+                start_week = weekly_stats[warning_start_idx].get("week", "")
+                end_week = weekly_stats[idx - 1].get("week", "")
                 annotations[f"warning_{warning_start_idx}"] = f"""{{ 
                     type: 'box',
                     xMin: '{start_week}',
@@ -45,12 +38,9 @@ def generate_bug_trends_chart(weekly_stats: List[Dict]) -> str:
             warning_start_idx = None
 
     if consecutive_negative_weeks >= 3 and warning_start_idx is not None:
-        start_week = weekly_stats[warning_start_idx].get(
-            "week_start_date", weekly_stats[warning_start_idx].get("week", "")
-        )[:10]
-        end_week = weekly_stats[-1].get(
-            "week_start_date", weekly_stats[-1].get("week", "")
-        )[:10]
+        # Use ISO week format for annotations
+        start_week = weekly_stats[warning_start_idx].get("week", "")
+        end_week = weekly_stats[-1].get("week", "")
         annotations[f"warning_{warning_start_idx}"] = f"""{{ 
             type: 'box',
             xMin: '{start_week}',
@@ -99,7 +89,10 @@ def generate_bug_trends_chart(weekly_stats: List[Dict]) -> str:
                     responsive: true,
                     maintainAspectRatio: false,
                     scales: {{
-                        x: {{ grid: {{ display: false }} }},
+                        x: {{ 
+                            grid: {{ display: false }},
+                            ticks: {{ maxRotation: 45, minRotation: 45 }}
+                        }},
                         y: {{
                             beginAtZero: true,
                             grid: {{ color: '#e9ecef' }}
