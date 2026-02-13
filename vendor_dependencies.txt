@@ -1,0 +1,14 @@
+# Vendor Dependencies for Application Assets
+# Update versions here, then run: python download_vendor_dependencies.py
+
+# Bootstrap CSS Framework
+bootstrap==5.3.3
+
+# Bootswatch Themes
+bootswatch==5.3.5
+
+# Font Awesome Icon Library
+fontawesome-free==6.5.1
+
+# CodeMirror Code Editor
+codemirror==5.65.16
