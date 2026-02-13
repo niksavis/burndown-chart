@@ -89,9 +89,14 @@
   color: var(--color-neutral-900);
   display: flex;
   align-items: center;
-  gap: var(--space-2);
+  gap: 0.25rem;
 }
 
+.card-header .fa-info-circle {
+  margin-left: 0.25rem !important;
+}
+
+.card-header h4,
 .card-header h5,
 .card-header h6,
 .card-header .card-title {

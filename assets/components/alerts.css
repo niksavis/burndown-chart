@@ -9,7 +9,7 @@
   border: none;
   border-left: 4px solid;
   border-radius: var(--radius-lg);
-  padding: var(--space-4);
+  padding: var(--space-1);
   background: white;
   box-shadow: var(--shadow-sm);
   transition: all var(--transition-base);

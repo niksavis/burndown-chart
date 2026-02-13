@@ -355,7 +355,7 @@ HELP_ICON = {
 # Help icon positioning patterns
 HELP_ICON_POSITIONS = {
     "inline": {
-        "class": "ms-2",  # Margin start 2
+        "class": "ms-1",  # Margin start 1
         "vertical_align": "middle",
     },
     "header": {

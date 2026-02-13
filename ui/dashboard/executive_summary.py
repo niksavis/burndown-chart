@@ -212,11 +212,10 @@ def create_executive_summary_section(
                             html.Span(
                                 [
                                     html.I(
-                                        className="fas fa-info-circle ms-2",
+                                        className="fas fa-info-circle ms-2 text-info",
                                         id="health-calculation-info",
                                         style={
                                             "fontSize": "0.9rem",
-                                            "color": "#6c757d",
                                             "cursor": "pointer",
                                         },
                                     ),

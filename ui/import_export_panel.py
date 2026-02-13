@@ -396,7 +396,7 @@ def _create_reports_tab():
             # Report Section Header
             html.Div(
                 [
-                    html.I(className="fas fa-file-alt me-2 text-success"),
+                    html.I(className="fas fa-file-alt me-2"),
                     html.Span("Generate HTML Report", className="fw-bold"),
                 ],
                 className="d-flex align-items-center mb-2",

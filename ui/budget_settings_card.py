@@ -50,7 +50,7 @@ def _create_current_budget_card_content(
         return [
             html.H6(
                 [
-                    html.I(className="fas fa-info-circle text-muted me-2"),
+                    html.I(className="fas fa-info-circle text-info me-2"),
                     "Current Budget (Not Configured)",
                 ],
                 className="mb-3",
