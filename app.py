@@ -389,8 +389,10 @@ background_callback_manager = DiskcacheManager(cache)
 # Initialize the Dash app with PWA support
 app = dash.Dash(
     __name__,
+    serve_locally=True,  # Serve all Dash/Plotly assets locally (no CDN) for offline operation
     title="Burndown",  # Custom browser tab title
     assets_folder="assets",  # Explicitly set assets folder
+    assets_ignore=r"^vendor/.*",  # Prevent auto-loading vendor CSS/JS to preserve order
     background_callback_manager=background_callback_manager,  # Enable background callbacks
     external_stylesheets=[
         # Bootswatch Flatly theme (local copy for offline use)
@@ -405,6 +407,8 @@ app = dash.Dash(
         "/assets/help_system.css",  # Help system CSS for progressive disclosure
     ],
     external_scripts=[
+        # Bootstrap JS Bundle (required for CSS interactive states and transitions)
+        "/assets/vendor/bootstrap/js/bootstrap.bundle.min.js",
         # CodeMirror 5 (legacy) - Better script tag support than CM6
         # CM6 requires ES modules which don't work well with Dash script loading
         # CM5 provides adequate syntax highlighting for our use case
