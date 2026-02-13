@@ -357,9 +357,10 @@ body {
 
 /* Tooltip polish */
 .tooltip-inner {
-  border-radius: var(--border-radius-md);
-  padding: 0.5rem 0.75rem;
-  font-size: var(--font-size-sm);
+  border-radius: var(--radius-md);
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--text-sm);
+  max-width: min(520px, 90vw);
 }
 
 /* Toast notifications polish - enhanced with design system */
@@ -367,6 +368,11 @@ body {
   border: none;
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-lg);
+}
+
+.toast.app-toast {
+  min-width: 360px;
+  max-width: min(520px, 92vw);
 }
 
 .toast-header {

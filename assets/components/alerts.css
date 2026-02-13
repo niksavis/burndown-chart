@@ -9,7 +9,7 @@
   border: none;
   border-left: 4px solid;
   border-radius: var(--radius-lg);
-  padding: var(--space-4);
+  padding: var(--space-1);
   background: white;
   box-shadow: var(--shadow-sm);
   transition: all var(--transition-base);
@@ -79,7 +79,35 @@
   opacity: 1;
 }
 
+/* White close button for colored alerts (better contrast) */
+.alert-warning .btn-close,
+.alert-info .btn-close,
+.alert-success .btn-close,
+.alert-danger .btn-close {
+  filter: invert(1) grayscale(100%) brightness(200%);
+}
+
 /* Ensure alert content flexes properly */
 .alert.alert-dismissible > * {
   flex: 1;
+}
+
+/* Update notification alert helpers */
+.update-alert .update-alert-text {
+  font-size: var(--text-sm);
+}
+
+.update-alert .update-alert-notes {
+  font-size: var(--text-sm);
+  white-space: pre-wrap;
+  opacity: 0.9;
+}
+
+.update-alert .update-alert-muted {
+  font-size: var(--text-sm);
+  opacity: 0.8;
+}
+
+.update-alert .update-alert-progress {
+  height: 20px;
 }

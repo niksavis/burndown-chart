@@ -53,6 +53,7 @@ Documentation for developers extending the application, implementing new metrics
 
 ### Code Standards & Practices
 
+- **[Design System](design_system.md)** - Complete design token reference: colors, typography, spacing, component patterns
 - **[Logging Standards](logging_standards.md)** - Logging conventions, levels, and security practices
 - **[Defensive Refactoring Guide](defensive_refactoring_guide.md)** - Safely removing unused code and dependencies
 
@@ -73,19 +74,20 @@ For detailed implementation guides, see:
 
 ## 📖 Quick Navigation
 
-| I want to...                  | Go to                                                         |
-| ----------------------------- | ------------------------------------------------------------- |
-| Learn metrics basics          | [Metrics Index](metrics_index.md)                             |
-| Understand health score       | [Project Health Formula](health_formula.md)                   |
-| Configure DORA metrics        | [DORA Metrics Guide - Field Configuration](dora_metrics.md)   |
-| Configure Flow metrics        | [Flow Metrics Guide - Field Configuration](flow_metrics.md)   |
-| Validate metric relationships | [Metrics Correlation Guide](metrics_correlation_guide.md)     |
-| Map custom JIRA fields        | [Namespace Syntax](namespace_syntax.md)                       |
-| Understand caching behavior   | [Caching System](caching_system.md)                           |
-| Add logging to new features   | [Logging Standards](LOGGING_STANDARDS.md)                     |
-| Remove unused code safely     | [Defensive Refactoring Guide](defensive_refactoring_guide.md) |
-| Build standalone executable   | [Release Process](release_process.md)                         |
-| Understand update mechanism   | [Updater Architecture](updater_architecture.md)               |
+| I want to...                        | Go to                                                         |
+| ----------------------------------- | ------------------------------------------------------------- |
+| Learn metrics basics                | [Metrics Index](metrics_index.md)                             |
+| Understand health score             | [Project Health Formula](health_formula.md)                   |
+| Configure DORA metrics              | [DORA Metrics Guide - Field Configuration](dora_metrics.md)   |
+| Configure Flow metrics              | [Flow Metrics Guide - Field Configuration](flow_metrics.md)   |
+| Validate metric relationships       | [Metrics Correlation Guide](metrics_correlation_guide.md)     |
+| Map custom JIRA fields              | [Namespace Syntax](namespace_syntax.md)                       |
+| Use design tokens (colors, spacing) | [Design System](design_system.md)                             |
+| Understand caching behavior         | [Caching System](caching_system.md)                           |
+| Add logging to new features         | [Logging Standards](LOGGING_STANDARDS.md)                     |
+| Remove unused code safely           | [Defensive Refactoring Guide](defensive_refactoring_guide.md) |
+| Build standalone executable         | [Release Process](release_process.md)                         |
+| Understand update mechanism         | [Updater Architecture](updater_architecture.md)               |
 
 ---
 

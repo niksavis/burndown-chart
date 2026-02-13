@@ -92,7 +92,7 @@ def create_flow_dashboard() -> dbc.Container:
                     # Info banner with balanced spacing
                     html.P(
                         [
-                            html.I(className="fas fa-info-circle me-2"),
+                            html.I(className="fas fa-info-circle me-2 text-info"),
                             "Flow metrics calculated per ISO week. Use ",
                             html.Strong("Update Data / Force Refresh"),
                             " button to refresh. ",

@@ -10,7 +10,9 @@ from configuration.chart_config import (
     get_burndown_chart_config,
     get_weekly_chart_config,
 )
-from callbacks.visualization_helpers.ui_builders import create_trend_header_with_forecasts
+from callbacks.visualization_helpers.ui_builders import (
+    create_trend_header_with_forecasts,
+)
 
 
 def create_burndown_tab_content(
@@ -53,7 +55,7 @@ def create_burndown_tab_content(
                     items_trend,
                     "Weekly Items Trend",
                     "fas fa-tasks",
-                    "#0d6efd",  # Blue for items
+                    "brand",
                 ),
             ]
             + (
@@ -63,7 +65,7 @@ def create_burndown_tab_content(
                         points_trend,
                         "Weekly Items Trend",
                         "fas fa-chart-bar",
-                        "#fd7e14",
+                        "points",
                     ),
                 ]
                 if show_points
@@ -74,9 +76,7 @@ def create_burndown_tab_content(
         # Burndown chart with title
         html.H5(
             [
-                html.I(
-                    className="fas fa-chart-line me-2", style={"color": "#0d6efd"}
-                ),
+                html.I(className="fas fa-chart-line me-2 text-brand"),
                 "Forecast Based On Historical Data",
             ],
             className="mb-3 mt-4",
@@ -96,8 +96,7 @@ def create_burndown_tab_content(
             html.H5(
                 [
                     html.I(
-                        className="fas fa-tasks me-2",
-                        style={"color": "#0d6efd"},  # Blue for items
+                        className="fas fa-tasks me-2 text-brand",
                     ),
                     "Weekly Completed Items",
                 ],
@@ -108,7 +107,7 @@ def create_burndown_tab_content(
                 id="items-chart",
                 figure=items_fig,
                 config=get_weekly_chart_config(),  # type: ignore
-                style={"height": "700px"},
+                className="chart-height-700",
             ),
         ]
     )
@@ -120,8 +119,7 @@ def create_burndown_tab_content(
             html.H5(
                 [
                     html.I(
-                        className="fas fa-chart-bar me-2",
-                        style={"color": "#fd7e14"},
+                        className="fas fa-chart-bar me-2 text-points",
                     ),
                     "Weekly Completed Points",
                 ],
@@ -136,20 +134,17 @@ def create_burndown_tab_content(
         content.append(
             html.Div(
                 [
-                    html.I(className="fas fa-toggle-off fa-2x text-secondary mb-3"),
+                    html.I(className="fas fa-toggle-off fa-2x empty-state-icon mb-3"),
                     html.Div(
                         "Points Tracking Disabled",
-                        className="fw-bold mb-2",
-                        style={"fontSize": "1.2rem", "color": "#6c757d"},
+                        className="empty-state-title mb-2",
                     ),
                     html.Small(
                         "Enable Points Tracking in Parameters panel to view story points metrics.",
-                        className="text-muted",
-                        style={"fontSize": "0.9rem"},
+                        className="empty-state-lead empty-state-text",
                     ),
                 ],
-                className="d-flex align-items-center justify-content-center flex-column",
-                style={"gap": "0.25rem", "padding": "80px 20px"},
+                className="empty-state-center",
             )
         )
     elif not has_points_data:
@@ -157,24 +152,17 @@ def create_burndown_tab_content(
         content.append(
             html.Div(
                 [
-                    html.I(className="fas fa-database fa-lg text-secondary mb-3"),
+                    html.I(className="fas fa-database fa-lg empty-state-icon mb-3"),
                     html.Div(
                         "No Points Data",
-                        className="fw-bold mb-2",
-                        style={"fontSize": "1.2rem", "color": "#6c757d"},
+                        className="empty-state-title mb-2",
                     ),
                     html.Small(
                         "No story points data available in the selected time period. Configure story points field in Settings or complete items with point estimates.",
-                        className="text-muted",
-                        style={
-                            "fontSize": "0.9rem",
-                            "textAlign": "center",
-                            "maxWidth": "500px",
-                        },
+                        className="empty-state-lead empty-state-text",
                     ),
                 ],
-                className="d-flex align-items-center justify-content-center flex-column",
-                style={"gap": "0.25rem", "padding": "80px 20px"},
+                className="empty-state-center",
             )
         )
     else:
@@ -185,7 +173,7 @@ def create_burndown_tab_content(
                 id="points-chart",
                 figure=points_fig,
                 config=get_weekly_chart_config(),  # type: ignore
-                style={"height": "700px"},
+                className="chart-height-700",
             )
         )
 
@@ -213,7 +201,7 @@ def create_items_tab_content(items_trend: dict, items_fig):
                         items_trend,
                         "Weekly Items Trend",
                         "fas fa-tasks",
-                        "#0d6efd",  # Blue for items
+                        "brand",
                     ),
                 ],
                 className="mb-4",
@@ -223,7 +211,7 @@ def create_items_tab_content(items_trend: dict, items_fig):
                 id="items-chart",
                 figure=items_fig,
                 config=get_weekly_chart_config(),  # type: ignore
-                style={"height": "700px"},
+                className="chart-height-700",
             ),
         ]
     )
@@ -250,7 +238,7 @@ def create_points_tab_content(points_trend: dict, points_fig):
                         points_trend,
                         "Weekly Points Trend",
                         "fas fa-chart-bar",
-                        "#fd7e14",
+                        "points",
                     ),
                 ],
                 className="mb-4",
@@ -260,7 +248,7 @@ def create_points_tab_content(points_trend: dict, points_fig):
                 id="points-chart",
                 figure=points_fig,
                 config=get_weekly_chart_config(),  # type: ignore
-                style={"height": "700px"},
+                className="chart-height-700",
             ),
         ]
     )

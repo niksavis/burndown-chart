@@ -68,7 +68,7 @@ def BugTrendChart(
                 ),
                 html.Small(
                     [
-                        html.I(className="fas fa-info-circle me-1"),
+                        html.I(className="fas fa-info-circle me-1 text-info"),
                         "Red highlighted areas indicate 3+ weeks of bugs created exceeding bugs closed.",
                     ],
                     className="text-muted d-block mt-2",
@@ -153,7 +153,7 @@ def BugInvestmentChart(
                 ),
                 html.Small(
                     [
-                        html.I(className="fas fa-info-circle me-1"),
+                        html.I(className="fas fa-info-circle me-1 text-info"),
                         "Bars show bug item counts (left axis), lines show complexity in points (right axis). Compare created vs resolved to track bug investment trends.",
                     ],
                     className="text-muted d-block mt-2",

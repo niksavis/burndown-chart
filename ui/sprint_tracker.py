@@ -26,48 +26,6 @@ def create_sprint_tracker_tab() -> html.Div:
     return html.Div(id="sprint-tracker-tab-content", children=html.Div())
 
 
-def create_no_sprints_state() -> html.Div:
-    """Create empty state when no sprint data is detected.
-
-    Returns:
-        Centered empty state with icon and message
-    """
-    return html.Div(
-        [
-            html.Div(
-                [
-                    html.I(className="fas fa-info-circle fa-4x text-info mb-3"),
-                    html.H4("No Sprint Data Found", className="text-center mb-3"),
-                    html.P(
-                        [
-                            "Sprint tracking requires your JIRA instance to have Agile/Scrum boards with active sprints. ",
-                            "The sprint field (typically ",
-                            html.Code("customfield_10020"),
-                            ") should be auto-detected, or you can configure it manually.",
-                        ],
-                        className="text-center text-muted mb-3",
-                    ),
-                    html.P(
-                        [
-                            "To configure: Go to ",
-                            html.Strong(
-                                "Configure JIRA Mappings → Fields → General Fields → Sprint"
-                            ),
-                            ". After configuration, click ",
-                            html.Strong("Update Data"),
-                            " to fetch sprint changelog from JIRA.",
-                        ],
-                        className="text-center text-muted",
-                    ),
-                ],
-                className="d-flex flex-column align-items-center justify-content-center",
-                style={"minHeight": "400px"},
-            )
-        ],
-        className="container-fluid",
-    )
-
-
 def create_sprint_summary_cards(
     sprint_name: str, summary_data: Dict, show_points: bool = False
 ) -> html.Div:

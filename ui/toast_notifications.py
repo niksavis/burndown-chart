@@ -99,35 +99,31 @@ def create_toast(
     icon_name = icon or default_icons.get(toast_type, "info-circle")
     icon_color = icon_colors.get(toast_type, "text-info")
 
+    # Build custom header with icon
+    header_text = header or default_headers.get(toast_type, "Notification")
+    custom_header = html.Div(
+        [
+            html.I(className=f"fas fa-{icon_name} me-2 {icon_color}"),
+            html.Strong(header_text),
+        ],
+        className="d-flex align-items-center",
+    )
+
+    # Build message content (without icon, since it's now in header)
     if isinstance(message, str):
-        content = html.Div(
-            [
-                html.I(className=f"fas fa-{icon_name} me-2 {icon_color}"),
-                message,
-            ]
-        )
+        content = message
     elif isinstance(message, list):
-        # If message is already a list of components, prepend icon
-        content = html.Div(
-            [html.I(className=f"fas fa-{icon_name} me-2 {icon_color}")] + message
-        )
+        content = html.Div(message)
     else:
-        # Single component
-        content = html.Div(
-            [
-                html.I(className=f"fas fa-{icon_name} me-2 {icon_color}"),
-                message,
-            ]
-        )
+        content = message
 
     return dbc.Toast(
         content,
-        header=header or default_headers.get(toast_type, "Notification"),
-        icon=toast_type,
+        header=custom_header,
         is_open=True,
         dismissable=dismissable,
         duration=duration if duration > 0 else None,
-        style={"minWidth": "400px"},
+        className="app-toast",
     )
 
 

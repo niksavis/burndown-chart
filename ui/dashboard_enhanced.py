@@ -490,11 +490,10 @@ def _create_forecast_card(
                                     },
                                 ),
                                 html.I(
-                                    className="fas fa-info-circle ms-1",
+                                    className="fas fa-info-circle ms-1 text-info",
                                     id=f"ci-section-info-{card_id or 'default'}",
                                     style={
                                         "fontSize": "0.7rem",
-                                        "color": "#6c757d",
                                         "cursor": "help",
                                     },
                                 ),
@@ -514,11 +513,10 @@ def _create_forecast_card(
                                     [
                                         "50%: ",
                                         html.I(
-                                            className="fas fa-info-circle ms-1",
+                                            className="fas fa-info-circle ms-1 text-info",
                                             id=f"ci-50-info-{card_id or 'default'}",
                                             style={
                                                 "fontSize": "0.75rem",
-                                                "color": "#6c757d",
                                                 "cursor": "help",
                                             },
                                         ),
@@ -547,11 +545,10 @@ def _create_forecast_card(
                                     [
                                         "95%: ",
                                         html.I(
-                                            className="fas fa-info-circle ms-1",
+                                            className="fas fa-info-circle ms-1 text-info",
                                             id=f"ci-95-info-{card_id or 'default'}",
                                             style={
                                                 "fontSize": "0.75rem",
-                                                "color": "#6c757d",
                                                 "cursor": "help",
                                             },
                                         ),

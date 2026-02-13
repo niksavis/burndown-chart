@@ -254,7 +254,7 @@ def create_queries_and_data_tab_content() -> html.Div:
                     dbc.Button(
                         [html.I(className="fas fa-times me-2"), "Discard"],
                         id="discard-query-changes-btn",
-                        color="secondary",
+                        color="danger",
                         outline=True,
                         disabled=True,  # Enabled when changes detected
                     ),

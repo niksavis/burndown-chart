@@ -49,7 +49,7 @@ def create_jira_config_card() -> html.Div:
                 children=[
                     dbc.Alert(
                         [
-                            html.I(className="fas fa-info-circle me-2"),
+                            html.I(className="fas fa-info-circle me-2 text-info"),
                             "JIRA not configured. Click Configure to get started.",
                         ],
                         color="info",
@@ -266,7 +266,9 @@ def create_data_operations_card() -> html.Div:
                         [
                             html.Small(
                                 [
-                                    html.I(className="fas fa-info-circle me-1"),
+                                    html.I(
+                                        className="fas fa-info-circle me-1 text-info"
+                                    ),
                                     "Use the ",
                                     html.Strong("Data"),
                                     " button in the top bar to import/export project data.",

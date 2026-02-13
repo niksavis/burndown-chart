@@ -158,3 +158,44 @@
 }
 
 /* Special case styles for devices that should remain outside the consolidated block */
+
+/* ===== Global utility helpers ===== */
+.cursor-pointer {
+  cursor: pointer !important;
+}
+
+.text-brand {
+  color: var(--color-brand-500) !important;
+}
+
+.text-accent {
+  color: var(--color-accent-500) !important;
+}
+
+.text-points {
+  color: #fd7e14 !important;
+}
+
+.text-purple {
+  color: #6610f2 !important;
+}
+
+.text-size-sm {
+  font-size: 0.9rem !important;
+}
+
+.text-size-xs {
+  font-size: 0.85rem !important;
+}
+
+.text-size-xxs {
+  font-size: 0.75rem !important;
+}
+
+.opacity-30 {
+  opacity: 0.3 !important;
+}
+
+.chart-height-700 {
+  height: 700px !important;
+}

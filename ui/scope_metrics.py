@@ -82,35 +82,36 @@ def create_scope_change_indicator(
         value_text = f"{value}%"
         status_text = "Normal Change"
 
+    status_class = "ms-1 scope-change-status"
+    if value is None or pd.isna(value):
+        status_class = f"{status_class} scope-change-status--inherit"
+
     # Create the compact trend-style indicator
     indicator = html.Div(
-        className="compact-trend-indicator d-flex align-items-center p-2 rounded mb-3",
+        className=(
+            "compact-trend-indicator scope-change-indicator d-flex "
+            "align-items-center p-2 rounded mb-3 w-100"
+        ),
         style={
-            "backgroundColor": bg_color,
-            "border": f"1px solid {border_color}",
-            "maxWidth": "100%",
+            "--scope-indicator-bg": bg_color,
+            "--scope-indicator-border": border_color,
+            "--scope-indicator-text": text_color,
         },
         id=indicator_id,
         children=[
             # Icon with circle background
             html.Div(
-                className="trend-icon me-3 d-flex align-items-center justify-content-center rounded-circle",
-                style={
-                    "width": "36px",
-                    "height": "36px",
-                    "backgroundColor": "white",
-                    "boxShadow": "0 2px 4px rgba(0,0,0,0.1)",
-                    "flexShrink": 0,
-                },
+                className=(
+                    "trend-icon scope-change-icon me-3 d-flex "
+                    "align-items-center justify-content-center rounded-circle"
+                ),
                 children=html.I(
-                    className=f"{icon_class}",
-                    style={"color": text_color, "fontSize": "1rem"},
+                    className=f"{icon_class} scope-change-icon-symbol",
                 ),
             ),
             # Scope Change information
             html.Div(
-                className="trend-info",
-                style={"flexGrow": 1, "minWidth": 0},
+                className="trend-info scope-change-info",
                 children=[
                     html.Div(
                         className="d-flex justify-content-between align-items-baseline",
@@ -119,8 +120,7 @@ def create_scope_change_indicator(
                                 [
                                     html.Span(
                                         title,
-                                        className="fw-medium",
-                                        style={"fontSize": "0.9rem"},
+                                        className="fw-medium text-size-sm",
                                     ),
                                     # Phase 9.2 Progressive Disclosure: Add help button if help parameters provided
                                     (
@@ -139,13 +139,10 @@ def create_scope_change_indicator(
                                                     },
                                                     size="sm",
                                                     color="link",
-                                                    className="text-secondary p-0 ms-1",
-                                                    style={
-                                                        "border": "none",
-                                                        "background": "transparent",
-                                                        "fontSize": "0.6rem",
-                                                        "lineHeight": "1",
-                                                    },
+                                                    className=(
+                                                        "text-secondary p-0 ms-1 "
+                                                        "scope-change-help-button"
+                                                    ),
                                                     title=f"Get detailed help about {title.lower()}",
                                                 )
                                             ],
@@ -158,17 +155,12 @@ def create_scope_change_indicator(
                             ),
                             html.Span(
                                 value_text,
-                                style={
-                                    "color": text_color,
-                                    "fontWeight": "500",
-                                    "fontSize": "0.9rem",
-                                },
+                                className="fw-medium text-size-sm scope-change-value",
                             ),
                         ],
                     ),
                     html.Div(
-                        className="d-flex justify-content-between align-items-baseline mt-1",
-                        style={"fontSize": "0.8rem", "color": "#6c757d"},
+                        className="d-flex justify-content-between align-items-baseline mt-1 text-size-xs text-muted",
                         children=[
                             html.Span(
                                 [
@@ -180,25 +172,20 @@ def create_scope_change_indicator(
                                             " | Throughput Ratio: ",
                                             html.Span(
                                                 f"{throughput_ratio:.2f}x",
-                                                style={
-                                                    "color": "#dc3545"
+                                                className=(
+                                                    "text-danger"
                                                     if high_throughput_ratio
-                                                    else "#20c997"
-                                                },
+                                                    else "text-accent"
+                                                ),
                                             ),
                                         ]
                                     ),
                                 ],
-                                style={"marginRight": "15px"},
+                                className="me-3",
                             ),
                             html.Span(
                                 status_text,
-                                style={
-                                    "color": text_color
-                                    if value is not None and not pd.isna(value)
-                                    else "inherit",
-                                    "marginLeft": "5px",
-                                },
+                                className=status_class,
                             ),
                         ],
                     ),
@@ -736,28 +723,25 @@ def create_cumulative_scope_chart(
     )
 
 
-def create_forecast_pill(label, value, color):
+def create_forecast_pill(label, value, variant):
     """
     Create a forecast pill component.
 
     Args:
         label: The label for the pill
         value: The value to display
-        color: The color for the pill indicator
+        variant: The color variant for the pill indicator
 
     Returns:
         html.Div: A forecast pill component
     """
     return html.Div(
-        className="forecast-pill",
-        style={
-            "borderLeft": f"3px solid {color}",
-            "paddingLeft": "0.5rem",
-            "marginRight": "0.75rem",
-        },
+        className=f"forecast-pill forecast-pill--{variant}",
         children=[
-            html.I(className="fas fa-chart-line me-1", style={"color": color}),
-            html.Small([f"{label}: ", html.Strong(f"{value}", style={"color": color})]),
+            html.I(className="fas fa-chart-line me-1 forecast-icon"),
+            html.Small(
+                [f"{label}: ", html.Strong(f"{value}", className="forecast-value")]
+            ),
         ],
     )
 
@@ -769,7 +753,7 @@ def create_scope_metrics_header(title, icon, color):
     Args:
         title: The title to display
         icon: The icon class
-        color: The color for the icon
+        color: The color class or value for the icon
 
     Returns:
         html.Div: A header component
@@ -777,7 +761,10 @@ def create_scope_metrics_header(title, icon, color):
     return html.Div(
         className="d-flex align-items-center mb-2",
         children=[
-            html.I(className=f"{icon} me-2", style={"color": color}),
+            html.I(
+                className=f"{icon} me-2 scope-metrics-header-icon",
+                style={"--scope-metrics-icon-color": color},
+            ),
             html.Span(title, className="fw-medium"),
         ],
     )
@@ -985,17 +972,15 @@ def create_scope_metrics_dashboard(
                                 className="d-flex align-items-center mb-2",
                                 children=[
                                     html.I(
-                                        className="fas fa-tasks me-2",
-                                        style={"color": "#0d6efd"},  # Blue for items
+                                        className="fas fa-tasks me-2 text-brand",
                                     ),
                                     html.Span(
                                         "Scope Change vs Baseline (Items)",
                                         className="fw-medium",
                                     ),
                                     html.I(
-                                        className="fas fa-info-circle text-info ms-2",
+                                        className="fas fa-info-circle text-info ms-2 cursor-pointer",
                                         id="info-tooltip-items-scope-methodology",
-                                        style={"cursor": "pointer"},
                                     ),
                                 ],
                             ),
@@ -1011,25 +996,21 @@ def create_scope_metrics_dashboard(
                                     ),
                                     # Add scope calculation tooltip icon
                                     html.I(
-                                        className="fas fa-calculator text-info ms-2",
+                                        className="fas fa-calculator text-info ms-2 cursor-pointer",
                                         id="info-tooltip-items-scope-calculation",
-                                        style={"cursor": "pointer"},
                                     ),
                                     # Add throughput ratio tooltip icon
                                     html.I(
-                                        className="fas fa-chart-line text-info ms-2",
+                                        className="fas fa-chart-line text-info ms-2 cursor-pointer",
                                         id="info-tooltip-items-throughput-ratio",
-                                        style={"cursor": "pointer"},
                                     ),
                                     # Add scope breakdown methodology tooltip icon
                                     html.I(
-                                        className="fas fa-chart-bar text-info ms-2",
+                                        className="fas fa-chart-bar text-info ms-2 cursor-pointer",
                                         id="info-tooltip-items-scope-breakdown",
-                                        style={"cursor": "pointer"},
                                     ),
                                 ],
-                                className="d-flex align-items-center",
-                                style={"gap": "0.25rem"},
+                                className="d-flex align-items-center gap-1",
                             ),
                             # Enhanced forecast pills - matching weekly metrics style
                             html.Div(
@@ -1037,28 +1018,27 @@ def create_scope_metrics_dashboard(
                                     create_forecast_pill(
                                         "Created",
                                         f"{int(total_created_items)} items",
-                                        "#0d6efd",  # Blue for items created
+                                        "brand",
                                     ),
                                     create_forecast_pill(
                                         "Completed",
                                         f"{int(total_completed_items)} items",
-                                        "#20c997",  # Success green for completed
+                                        "accent",
                                     ),
                                     create_forecast_pill(
                                         "Threshold",
                                         f"{int(threshold_items)} items",
-                                        "#ffc107",  # Warning yellow for threshold
+                                        "warning",
                                     ),
                                     html.Div(
                                         html.Small(
                                             f"baseline: {int(baseline_items)} items",
                                             className="text-muted fst-italic",
                                         ),
-                                        style={"paddingTop": "2px"},
+                                        className="metric-baseline-note",
                                     ),
                                 ],
-                                className="d-flex flex-wrap align-items-center mt-2",
-                                style={"gap": "0.25rem"},
+                                className="d-flex flex-wrap align-items-center mt-2 gap-1",
                             ),
                             # Add all tooltip components at the end for proper rendering - matching weekly metrics pattern
                             html.Div(
@@ -1080,7 +1060,7 @@ def create_scope_metrics_dashboard(
                                         "Breakdown of scope metrics: Created items show new work added, Completed items show work finished, Threshold shows the alert level, and Baseline shows the initial backlog remaining at the start of this tracking period (calculated as current remaining + completed - created in period).",
                                     ),
                                 ],
-                                style={"display": "none"},
+                                className="d-none",
                             ),
                         ],
                         className="col-md-6 col-12 mb-3 pe-md-2",
@@ -1096,17 +1076,15 @@ def create_scope_metrics_dashboard(
                                     className="d-flex align-items-center mb-2",
                                     children=[
                                         html.I(
-                                            className="fas fa-chart-bar me-2",
-                                            style={"color": "#fd7e14"},
+                                            className="fas fa-chart-bar me-2 text-points",
                                         ),
                                         html.Span(
                                             "Scope Change vs Baseline (Points)",
                                             className="fw-medium",
                                         ),
                                         html.I(
-                                            className="fas fa-info-circle text-info ms-2",
+                                            className="fas fa-info-circle text-info ms-2 cursor-pointer",
                                             id="info-tooltip-points-scope-methodology",
-                                            style={"cursor": "pointer"},
                                         ),
                                     ],
                                 ),
@@ -1123,25 +1101,21 @@ def create_scope_metrics_dashboard(
                                         ),
                                         # Add scope calculation tooltip icon
                                         html.I(
-                                            className="fas fa-calculator text-info ms-2",
+                                            className="fas fa-calculator text-info ms-2 cursor-pointer",
                                             id="info-tooltip-points-scope-calculation",
-                                            style={"cursor": "pointer"},
                                         ),
                                         # Add throughput ratio tooltip icon
                                         html.I(
-                                            className="fas fa-chart-line text-info ms-2",
+                                            className="fas fa-chart-line text-info ms-2 cursor-pointer",
                                             id="info-tooltip-points-throughput-ratio",
-                                            style={"cursor": "pointer"},
                                         ),
                                         # Add scope breakdown methodology tooltip icon
                                         html.I(
-                                            className="fas fa-chart-bar text-info ms-2",
+                                            className="fas fa-chart-bar text-info ms-2 cursor-pointer",
                                             id="info-tooltip-points-scope-breakdown",
-                                            style={"cursor": "pointer"},
                                         ),
                                     ],
-                                    className="d-flex align-items-center",
-                                    style={"gap": "0.25rem"},
+                                    className="d-flex align-items-center gap-1",
                                 ),
                                 # Enhanced forecast pills - matching weekly metrics style
                                 html.Div(
@@ -1149,28 +1123,27 @@ def create_scope_metrics_dashboard(
                                         create_forecast_pill(
                                             "Created",
                                             f"{int(total_created_points)} points",
-                                            "#fd7e14",  # Orange for points created
+                                            "points",
                                         ),
                                         create_forecast_pill(
                                             "Completed",
                                             f"{int(total_completed_points)} points",
-                                            "#20c997",  # Success green for completed
+                                            "accent",
                                         ),
                                         create_forecast_pill(
                                             "Threshold",
                                             f"{int(threshold_points)} points",
-                                            "#ffc107",  # Warning yellow for threshold
+                                            "warning",
                                         ),
                                         html.Div(
                                             html.Small(
                                                 f"baseline: {int(baseline_points)} points",
                                                 className="text-muted fst-italic",
                                             ),
-                                            style={"paddingTop": "2px"},
+                                            className="metric-baseline-note",
                                         ),
                                     ],
-                                    className="d-flex flex-wrap align-items-center mt-2",
-                                    style={"gap": "0.25rem"},
+                                    className="d-flex flex-wrap align-items-center mt-2 gap-1",
                                 ),
                                 # Add all tooltip components at the end for proper rendering - matching weekly metrics pattern
                                 html.Div(
@@ -1197,7 +1170,7 @@ def create_scope_metrics_dashboard(
                                             "Breakdown of scope metrics based on story points: Created points show complexity of new work added, Completed points show effort delivered, Threshold shows the alert level for complexity growth, and Baseline shows the initial backlog remaining at the start of this tracking period (calculated as current remaining + completed - created in period).",
                                         ),
                                     ],
-                                    style={"display": "none"},
+                                    className="d-none",
                                 ),
                             ],
                             className="col-md-6 col-12 mb-3 ps-md-2",
@@ -1219,8 +1192,7 @@ def create_scope_metrics_dashboard(
                             html.H5(
                                 [
                                     html.I(
-                                        className="fas fa-chart-area me-2",
-                                        style={"color": "#6610f2"},
+                                        className="fas fa-chart-area me-2 text-purple",
                                     ),
                                     "Backlog Size Over Time (Remaining Work)",
                                     html.Span(" "),
@@ -1248,8 +1220,7 @@ def create_scope_metrics_dashboard(
                     html.H5(
                         [
                             html.I(
-                                className="fas fa-balance-scale me-2",
-                                style={"color": "#6610f2"},
+                                className="fas fa-balance-scale me-2 text-purple",
                             ),
                             "Scope Change vs Team Throughput",
                             html.Span(" "),
@@ -1268,17 +1239,15 @@ def create_scope_metrics_dashboard(
                                         "Items: ",
                                         html.Span(
                                             f"For every completed item, {items_throughput_ratio:.2f} new items are being created",
-                                            className="fw-medium",
-                                            style={
-                                                "color": "#dc3545"
+                                            className=(
+                                                "fw-medium text-danger"
                                                 if items_throughput_ratio > 1
-                                                else "#20c997"
-                                            },
+                                                else "fw-medium text-accent"
+                                            ),
                                         ),
                                         html.Span(
                                             f" ({total_created_items} created vs {total_completed_items} completed)",
-                                            className="text-muted ms-1",
-                                            style={"fontSize": "0.9rem"},
+                                            className="text-muted ms-1 text-size-sm",
                                         ),
                                     ]
                                 ),
@@ -1290,17 +1259,15 @@ def create_scope_metrics_dashboard(
                                             "Points: ",
                                             html.Span(
                                                 f"For every completed point, {points_throughput_ratio:.2f} new points are being created",
-                                                className="fw-medium",
-                                                style={
-                                                    "color": "#dc3545"
+                                                className=(
+                                                    "fw-medium text-danger"
                                                     if points_throughput_ratio > 1
-                                                    else "#20c997"
-                                                },
+                                                    else "fw-medium text-accent"
+                                                ),
                                             ),
                                             html.Span(
                                                 f" ({total_created_points} created vs {total_completed_points} completed)",
-                                                className="text-muted ms-1",
-                                                style={"fontSize": "0.9rem"},
+                                                className="text-muted ms-1 text-size-sm",
                                             ),
                                         ]
                                     ),
@@ -1327,8 +1294,7 @@ def create_scope_metrics_dashboard(
                             html.H5(
                                 [
                                     html.I(
-                                        className="fas fa-chart-bar me-2",
-                                        style={"color": "#fd7e14"},
+                                        className="fas fa-chart-bar me-2 text-points",
                                     ),
                                     "Weekly Scope Growth Patterns",
                                     html.Span(" "),
@@ -1350,8 +1316,7 @@ def create_scope_metrics_dashboard(
                 className="text-muted fst-italic small text-center mb-5 pb-3",
                 children=[
                     html.I(
-                        className="fas fa-seedling me-1",
-                        style={"color": "rgb(108, 117, 125)"},
+                        className="fas fa-seedling me-1 text-muted",
                     ),
                     "Growth Patterns: Positive spikes show scope additions from new requirements or discoveries. Negative values indicate backlog refinement or completion focus.",
                 ],
@@ -1359,9 +1324,7 @@ def create_scope_metrics_dashboard(
             # Adaptability section with title
             html.H5(
                 [
-                    html.I(
-                        className="fas fa-chart-pie me-2", style={"color": "#20c997"}
-                    ),
+                    html.I(className="fas fa-chart-pie me-2 text-accent"),
                     "Adaptability",
                 ],
                 className="mb-3 mt-4",
@@ -1447,9 +1410,8 @@ def create_scope_metrics_dashboard(
                 children=[
                     html.I(
                         className="fas fa-lightbulb me-1",
-                        style={"color": "rgb(108, 117, 125)"},
                     ),
-                    html.Strong("Agile Context: ", style={"fontWeight": "600"}),
+                    html.Strong("Agile Context: ", className="fw-semibold"),
                     "In agile projects, scope changes are normal and healthy—these metrics help you understand patterns, not problems. ",
                     "Lower stability values (0.3-0.6) indicate dynamic, evolving scope (typical for responsive agile teams). Higher values (0.7+) indicate more predictable, stable scope.",
                 ],

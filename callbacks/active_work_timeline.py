@@ -35,7 +35,7 @@ def _render_active_work_timeline_content(
         from data.persistence.factory import get_backend
         from data.active_work_manager import get_active_work_data
         from ui.active_work_epic_timeline import create_nested_epic_timeline
-        from ui.active_work_timeline import create_no_issues_state
+        from ui.empty_states import create_no_active_work_state
 
         backend = get_backend()
 
@@ -45,7 +45,7 @@ def _render_active_work_timeline_content(
 
         if not active_profile_id or not active_query_id:
             logger.warning("No active profile/query - cannot render timeline")
-            return create_no_issues_state()
+            return create_no_active_work_state()
 
         logger.info(
             f"[ACTIVE WORK] Rendering Active Work Timeline for profile={active_profile_id}, query={active_query_id}, data_points={data_points_count}"
@@ -193,9 +193,9 @@ def _render_active_work_timeline_content(
 
     except Exception as e:
         logger.error(f"Error rendering Active Work Timeline: {e}", exc_info=True)
-        from ui.active_work_timeline import create_no_issues_state
+        from ui.empty_states import create_no_active_work_state
 
-        return create_no_issues_state()
+        return create_no_active_work_state()
 
 
 def register(app):

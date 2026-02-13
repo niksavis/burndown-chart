@@ -354,7 +354,9 @@ def _create_import_export_tab():
                             ),
                             html.Div(
                                 [
-                                    html.I(className="fas fa-info-circle me-2"),
+                                    html.I(
+                                        className="fas fa-info-circle me-2 text-info"
+                                    ),
                                     html.Small(
                                         "Merge is recommended for config imports to preserve your JIRA token",
                                         className="text-muted",
@@ -396,7 +398,7 @@ def _create_reports_tab():
             # Report Section Header
             html.Div(
                 [
-                    html.I(className="fas fa-file-alt me-2 text-success"),
+                    html.I(className="fas fa-file-alt me-2"),
                     html.Span("Generate HTML Report", className="fw-bold"),
                 ],
                 className="d-flex align-items-center mb-2",
@@ -409,7 +411,7 @@ def _create_reports_tab():
             # Info about time period
             html.Div(
                 [
-                    html.I(className="fas fa-info-circle me-2"),
+                    html.I(className="fas fa-chart-line me-2 text-white"),
                     html.Span(
                         [
                             "Report will include data from the ",
@@ -483,7 +485,7 @@ def _create_ai_prompt_tab():
             # Info about time period (mirrors Reports tab)
             html.Div(
                 [
-                    html.I(className="fas fa-info-circle me-2"),
+                    html.I(className="fas fa-magic me-2 text-white"),
                     html.Span(
                         [
                             "AI analysis will include data from the ",

@@ -345,7 +345,7 @@ METRIC_CARD_BREAKPOINTS = {
 # Help/tooltip icon standardization
 HELP_ICON = {
     "class": "fas fa-info-circle",
-    "color": "#17a2b8",  # Bootstrap info color
+    "color": "#3b82f6",  # Brand blue (updated from #17a2b8)
     "size": "0.875rem",  # 14px
     "margin_left": "0.5rem",
     "cursor": "pointer",
@@ -355,7 +355,7 @@ HELP_ICON = {
 # Help icon positioning patterns
 HELP_ICON_POSITIONS = {
     "inline": {
-        "class": "ms-2",  # Margin start 2
+        "class": "ms-1",  # Margin start 1
         "vertical_align": "middle",
     },
     "header": {

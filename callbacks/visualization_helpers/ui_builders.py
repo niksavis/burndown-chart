@@ -13,7 +13,7 @@ from callbacks.visualization_helpers.pill_components import create_forecast_pill
 
 
 def create_trend_header_with_forecasts(
-    trend_data: dict, title: str, icon: str, color: str, unit: str = "week"
+    trend_data: dict, title: str, icon: str, variant: str, unit: str = "week"
 ) -> html.Div:
     """
     Create a header with trend indicator and forecast pills.
@@ -22,7 +22,7 @@ def create_trend_header_with_forecasts(
         trend_data: Dictionary with trend and forecast data (from prepare_trend_data)
         title: Title text for the header (e.g., "Weekly Items")
         icon: Icon class for the header (e.g., "fas fa-tasks")
-        color: Color hex code for the header icon (e.g., "#007bff")
+        variant: Color variant for the header icon (e.g., "brand")
         unit: Unit for trend values (default: "week")
 
     Returns:
@@ -33,7 +33,7 @@ def create_trend_header_with_forecasts(
         ...     items_trend,
         ...     "Weekly Items",
         ...     "fas fa-tasks",
-        ...     "#007bff"
+        ...     "brand"
         ... )
     """
     # Create forecast pills based on available forecast data
@@ -43,7 +43,7 @@ def create_trend_header_with_forecasts(
     if "most_likely_forecast" in trend_data:
         forecast_pills.append(
             create_forecast_pill(
-                "Most likely", trend_data["most_likely_forecast"], color
+                "Most likely", trend_data["most_likely_forecast"], variant
             )
         )
 
@@ -53,17 +53,16 @@ def create_trend_header_with_forecasts(
             create_forecast_pill(
                 "Optimistic",
                 trend_data["optimistic_forecast"],
-                "#28a745",  # Green color
+                "success",
             )
         )
 
     # Pessimistic forecast pill
     if "pessimistic_forecast" in trend_data:
         # Use consistent red color for pessimistic across both items and points
-        pessimistic_color = "#dc3545"  # Danger red for worst case
         forecast_pills.append(
             create_forecast_pill(
-                "Pessimistic", trend_data["pessimistic_forecast"], pessimistic_color
+                "Pessimistic", trend_data["pessimistic_forecast"], "danger"
             )
         )
 
@@ -74,7 +73,7 @@ def create_trend_header_with_forecasts(
                 f"{title.split()[1].lower()}/{unit}",
                 className="text-muted fst-italic",
             ),
-            style={"paddingTop": "2px"},
+            className="metric-baseline-note",
         )
     )
 
@@ -116,8 +115,7 @@ def create_trend_header_with_forecasts(
             html.Div(
                 [
                     html.I(
-                        className=f"{icon} me-2",
-                        style={"color": color},
+                        className=f"{icon} me-2 text-{variant}",
                     ),
                     html.Span(
                         title,
@@ -125,9 +123,8 @@ def create_trend_header_with_forecasts(
                     ),
                     # Add methodology tooltip icon only
                     html.I(
-                        className="fas fa-info-circle text-info ms-2",
+                        className="fas fa-info-circle text-info ms-2 cursor-pointer",
                         id=f"info-tooltip-weekly-chart-methodology-{title.split()[1].lower()}",
-                        style={"cursor": "pointer"},
                     ),
                 ],
                 className="d-flex align-items-center mb-2",
@@ -138,34 +135,29 @@ def create_trend_header_with_forecasts(
                     create_compact_trend_indicator(trend_data, title.split()[1]),
                     # Add weighted average explanation tooltip icon
                     html.I(
-                        className="fas fa-chart-line text-info ms-2",
+                        className="fas fa-chart-line text-info ms-2 cursor-pointer",
                         id=f"info-tooltip-weighted-average-{title.split()[1].lower()}",
-                        style={"cursor": "pointer"},
                     ),
                     # Add exponential weighting details tooltip icon
                     html.I(
-                        className="fas fa-calculator text-info ms-2",
+                        className="fas fa-calculator text-info ms-2 cursor-pointer",
                         id=f"info-tooltip-exponential-weighting-{title.split()[1].lower()}",
-                        style={"cursor": "pointer"},
                     ),
                     # Add forecast methodology tooltip icon
                     html.I(
-                        className="fas fa-chart-bar text-info ms-2",
+                        className="fas fa-chart-bar text-info ms-2 cursor-pointer",
                         id=f"info-tooltip-forecast-methodology-{title.split()[1].lower()}",
-                        style={"cursor": "pointer"},
                     ),
                 ],
-                className="d-flex align-items-center",
-                style={"gap": "0.25rem"},
+                className="d-flex align-items-center gap-1",
             ),
             # Enhanced forecast pills
             html.Div(
                 forecast_pills,
-                className="d-flex flex-wrap align-items-center mt-2",
-                style={"gap": "0.25rem"},
+                className="d-flex flex-wrap align-items-center mt-2 gap-1",
             ),
             # Add all tooltip components at the end for proper rendering
-            html.Div(tooltip_components, style={"display": "none"}),
+            html.Div(tooltip_components, className="d-none"),
         ],
         className="col-md-6 col-12 mb-3 pe-md-2",
     )
