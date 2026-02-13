@@ -22,7 +22,6 @@ from typing import Optional
 
 # Third-party library imports
 import dash
-import dash_bootstrap_components as dbc
 from dash import DiskcacheManager
 import atexit
 import diskcache
@@ -394,13 +393,14 @@ app = dash.Dash(
     assets_folder="assets",  # Explicitly set assets folder
     background_callback_manager=background_callback_manager,  # Enable background callbacks
     external_stylesheets=[
-        dbc.themes.FLATLY,
-        # SECURITY: Font Awesome 6.x from cdnjs (no tracking, no checkout popup injection)
+        # Bootswatch Flatly theme (local copy for offline use)
+        "/assets/vendor/bootswatch/flatly/bootstrap.min.css",
+        # SECURITY: Font Awesome served locally (no tracking, no checkout popup injection)
         # Using free version CSS-only (no kit system) to prevent checkout code injection
-        "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/fontawesome.min.css",  # Font Awesome core (CSS only)
-        "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/solid.min.css",  # Solid icons
-        "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/brands.min.css",  # Brand icons (GitHub, etc.)
-        "https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css",  # CodeMirror base styles
+        "/assets/vendor/fontawesome/css/fontawesome.min.css",  # Font Awesome core (CSS only)
+        "/assets/vendor/fontawesome/css/solid.min.css",  # Solid icons
+        "/assets/vendor/fontawesome/css/brands.min.css",  # Brand icons (GitHub, etc.)
+        "/assets/vendor/codemirror/codemirror.min.css",  # CodeMirror base styles
         "/assets/custom.css",  # Our custom CSS for standardized styling (includes CodeMirror theme overrides)
         "/assets/help_system.css",  # Help system CSS for progressive disclosure
     ],
@@ -408,8 +408,8 @@ app = dash.Dash(
         # CodeMirror 5 (legacy) - Better script tag support than CM6
         # CM6 requires ES modules which don't work well with Dash script loading
         # CM5 provides adequate syntax highlighting for our use case
-        "https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js",
-        "https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/sql/sql.min.js",  # Base for query language
+        "/assets/vendor/codemirror/codemirror.min.js",
+        "/assets/vendor/codemirror/mode/sql/sql.min.js",  # Base for query language
         "/assets/jql_language_mode.js",  # JQL tokenizer for syntax highlighting
         "/assets/jql_editor_native.js",  # Native CodeMirror editors (no textarea transformation)
         "/assets/mobile_navigation.js",  # Mobile navigation JavaScript for swipe gestures
