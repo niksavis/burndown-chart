@@ -4,4 +4,119 @@
    This placeholder prevents import errors.
    ==================== */
 
+/* Metric card typography helpers */
+.metric-badge {
+  font-size: 0.75rem;
+  font-weight: 600;
+}
 
+.metric-badge-sm {
+  font-size: 0.7rem;
+  font-weight: 600;
+}
+
+.metric-week-label {
+  font-weight: 600;
+}
+
+.metric-hint {
+  font-size: 0.8rem;
+  font-style: italic;
+}
+
+.metric-alert-text {
+  font-size: 0.85rem;
+  line-height: 1.4;
+}
+
+.metric-footer-placeholder {
+  font-size: 0.75rem;
+  opacity: 0;
+}
+
+.metric-baseline-note {
+  padding-top: 2px;
+}
+
+/* Scope change indicator styling */
+.scope-change-indicator {
+  background-color: var(--scope-indicator-bg);
+  border: 1px solid var(--scope-indicator-border);
+}
+
+.scope-change-icon {
+  width: 36px;
+  height: 36px;
+  background-color: var(--color-surface, #ffffff);
+  box-shadow: var(--shadow-sm, 0 2px 4px rgba(0, 0, 0, 0.1));
+  flex-shrink: 0;
+}
+
+.scope-change-icon-symbol {
+  color: var(--scope-indicator-text);
+  font-size: 1rem;
+}
+
+.scope-change-info {
+  flex-grow: 1;
+  min-width: 0;
+}
+
+.scope-change-value {
+  color: var(--scope-indicator-text);
+}
+
+.scope-change-status {
+  color: var(--scope-indicator-text);
+}
+
+.scope-change-status--inherit {
+  color: inherit;
+}
+
+.scope-change-help-button {
+  border: none;
+  background: transparent;
+  font-size: 0.6rem;
+  line-height: 1;
+}
+
+.scope-metrics-header-icon {
+  color: var(--scope-metrics-icon-color);
+}
+
+/* Forecast pill styling */
+.forecast-pill {
+  border-left: 3px solid var(--forecast-color);
+  padding-left: 0.5rem;
+  margin-right: 0.75rem;
+}
+
+.forecast-pill .forecast-icon,
+.forecast-pill .forecast-value {
+  color: var(--forecast-color);
+}
+
+.forecast-pill--brand {
+  --forecast-color: var(--color-brand-500);
+}
+
+.forecast-pill--accent {
+  --forecast-color: var(--color-accent-500);
+}
+
+.forecast-pill--warning {
+  --forecast-color: var(--color-warning);
+}
+
+.forecast-pill--points {
+  --forecast-color: #fd7e14;
+}
+
+.forecast-pill--success {
+  --forecast-color: var(--color-success);
+}
+
+.forecast-pill--danger {
+  --forecast-color: var(--color-danger);
+}

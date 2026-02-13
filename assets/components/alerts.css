@@ -83,3 +83,23 @@
 .alert.alert-dismissible > * {
   flex: 1;
 }
+
+/* Update notification alert helpers */
+.update-alert .update-alert-text {
+  font-size: var(--text-sm);
+}
+
+.update-alert .update-alert-notes {
+  font-size: var(--text-sm);
+  white-space: pre-wrap;
+  opacity: 0.9;
+}
+
+.update-alert .update-alert-muted {
+  font-size: var(--text-sm);
+  opacity: 0.8;
+}
+
+.update-alert .update-alert-progress {
+  height: 20px;
+}

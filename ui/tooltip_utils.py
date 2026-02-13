@@ -366,7 +366,7 @@ def create_tooltip(
     delay={"show": 200, "hide": 100},
     trigger="click",
     autohide=True,
-    max_width="300px",
+    max_width=None,
     className="",
     style=None,
 ):
@@ -383,7 +383,7 @@ def create_tooltip(
         position (str): Tooltip placement (top, bottom, left, right)
         variant (str): Tooltip style variant
         delay (dict): Delay for showing/hiding the tooltip
-        max_width (str): Maximum width of the tooltip
+        max_width (str | None): Maximum width of the tooltip
         className (str): Additional CSS classes
         style (dict): Additional inline styles
 
@@ -391,7 +391,9 @@ def create_tooltip(
         dbc.Tooltip: A styled tooltip component
     """
     # Set up base styling
-    tooltip_style = {"maxWidth": max_width}
+    tooltip_style = {}
+    if max_width:
+        tooltip_style["maxWidth"] = max_width
     if style:
         tooltip_style.update(style)
 
@@ -412,8 +414,10 @@ def create_tooltip(
         "trigger": trigger,
         "autohide": autohide,
         "className": full_class,
-        "style": tooltip_style,
     }
+
+    if tooltip_style:
+        tooltip_props["style"] = tooltip_style
 
     # Only add id if it's not None
     if tooltip_id is not None:

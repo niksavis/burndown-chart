@@ -109,8 +109,7 @@ def create_work_distribution_card(
         badge=dbc.Badge(
             badge_text,
             color=badge_color,
-            className="ms-auto",
-            style={"fontSize": "0.75rem", "fontWeight": "600"},
+            className="ms-auto metric-badge",
             id=badge_id,
         ),
     )
@@ -122,8 +121,7 @@ def create_work_distribution_card(
             dbc.Col(
                 html.Small(
                     week_label,
-                    className="text-muted text-center d-block mb-2",
-                    style={"fontWeight": "600"},
+                    className="text-muted text-center d-block mb-2 metric-week-label",
                 ),
                 width=12,
             ),
@@ -140,13 +138,11 @@ def create_work_distribution_card(
                                     [
                                         html.Span(
                                             f"{feature_count}",
-                                            className="h3 mb-0 me-2",
-                                            style={"color": "#198754"},
+                                            className="h3 mb-0 me-2 text-success",
                                         ),
                                         html.Span(
                                             f"{feature_pct:.0f}%",
-                                            className="h5 mb-0",
-                                            style={"color": "#198754"},
+                                            className="h5 mb-0 text-success",
                                         ),
                                     ],
                                     className="d-flex align-items-baseline justify-content-center",
@@ -157,8 +153,7 @@ def create_work_distribution_card(
                         dbc.Badge(
                             "Healthy" if feature_in_range else "Low",
                             color="success" if feature_in_range else "warning",
-                            className="mt-1",
-                            style={"fontSize": "0.7rem"},
+                            className="mt-1 metric-badge-sm",
                             id=f"{card_id}-feature-badge"
                             if card_id
                             else "work-dist-feature-badge",
@@ -193,13 +188,11 @@ def create_work_distribution_card(
                                     [
                                         html.Span(
                                             f"{defect_count}",
-                                            className="h3 mb-0 me-2",
-                                            style={"color": "#dc3545"},
+                                            className="h3 mb-0 me-2 text-danger",
                                         ),
                                         html.Span(
                                             f"{defect_pct:.0f}%",
-                                            className="h5 mb-0",
-                                            style={"color": "#dc3545"},
+                                            className="h5 mb-0 text-danger",
                                         ),
                                     ],
                                     className="d-flex align-items-baseline justify-content-center",
@@ -210,8 +203,7 @@ def create_work_distribution_card(
                         dbc.Badge(
                             "Healthy" if defect_in_range else "High",
                             color="success" if defect_in_range else "warning",
-                            className="mt-1",
-                            style={"fontSize": "0.7rem"},
+                            className="mt-1 metric-badge-sm",
                             id=f"{card_id}-defect-badge"
                             if card_id
                             else "work-dist-defect-badge",
@@ -247,13 +239,11 @@ def create_work_distribution_card(
                                     [
                                         html.Span(
                                             f"{tech_debt_count}",
-                                            className="h3 mb-0 me-2",
-                                            style={"color": "#fd7e14"},
+                                            className="h3 mb-0 me-2 text-points",
                                         ),
                                         html.Span(
                                             f"{tech_debt_pct:.0f}%",
-                                            className="h5 mb-0",
-                                            style={"color": "#fd7e14"},
+                                            className="h5 mb-0 text-points",
                                         ),
                                     ],
                                     className="d-flex align-items-baseline justify-content-center",
@@ -264,8 +254,7 @@ def create_work_distribution_card(
                         dbc.Badge(
                             "Healthy" if tech_debt_in_range else "High",
                             color="success" if tech_debt_in_range else "warning",
-                            className="mt-1",
-                            style={"fontSize": "0.7rem"},
+                            className="mt-1 metric-badge-sm",
                             id=f"{card_id}-techdebt-badge"
                             if card_id
                             else "work-dist-techdebt-badge",
@@ -300,13 +289,11 @@ def create_work_distribution_card(
                                     [
                                         html.Span(
                                             f"{risk_count}",
-                                            className="h3 mb-0 me-2",
-                                            style={"color": "#ffc107"},
+                                            className="h3 mb-0 me-2 text-warning",
                                         ),
                                         html.Span(
                                             f"{risk_pct:.0f}%",
-                                            className="h5 mb-0",
-                                            style={"color": "#ffc107"},
+                                            className="h5 mb-0 text-warning",
                                         ),
                                     ],
                                     className="d-flex align-items-baseline justify-content-center",
@@ -317,8 +304,7 @@ def create_work_distribution_card(
                         dbc.Badge(
                             "Healthy" if risk_in_range else "High",
                             color="success" if risk_in_range else "warning",
-                            className="mt-1",
-                            style={"fontSize": "0.7rem"},
+                            className="mt-1 metric-badge-sm",
                             id=f"{card_id}-risk-badge"
                             if card_id
                             else "work-dist-risk-badge",
@@ -355,8 +341,7 @@ def create_work_distribution_card(
                 html.I(className="fas fa-lightbulb me-1"),
                 "High defect/debt work reduces capacity for features and may signal quality issues",
             ],
-            className="text-muted text-center small mb-2",
-            style={"fontSize": "0.8rem", "fontStyle": "italic"},
+            className="text-muted text-center small mb-2 metric-hint",
         )
 
     chart_height = cast(int, getattr(fig.layout, "height", None) or 400)
@@ -402,8 +387,7 @@ def create_work_distribution_card(
                     html.Span(warning_text),
                 ],
                 color="warning",
-                className="mb-0 py-2 px-3",
-                style={"fontSize": "0.85rem", "lineHeight": "1.4"},
+                className="mb-0 py-2 px-3 metric-alert-text",
             ),
             className="bg-light border-top",
         )
@@ -412,8 +396,7 @@ def create_work_distribution_card(
         card_footer = dbc.CardFooter(
             html.Div(
                 "\u00a0",  # Non-breaking space to maintain minimal height
-                className="text-center text-muted",
-                style={"fontSize": "0.75rem", "opacity": "0"},
+                className="text-center text-muted metric-footer-placeholder",
             ),
             className="bg-light border-top py-2",  # Same padding and styling
         )
@@ -456,8 +439,7 @@ def create_work_distribution_no_data_card(card_id: Optional[str] = None) -> dbc.
         html.Div(
             [
                 html.I(
-                    className="fas fa-database fa-3x text-muted mb-3",
-                    style={"opacity": "0.3"},
+                    className="fas fa-database fa-3x text-muted mb-3 opacity-30",
                 ),
                 html.H5("No JIRA Data Loaded", className="text-dark mb-2"),
                 html.P(
@@ -482,8 +464,7 @@ def create_work_distribution_no_data_card(card_id: Optional[str] = None) -> dbc.
     card_footer = dbc.CardFooter(
         html.Div(
             "\u00a0",  # Non-breaking space to maintain minimal height
-            className="text-center text-muted",
-            style={"fontSize": "0.75rem", "opacity": "0"},
+            className="text-center text-muted metric-footer-placeholder",
         ),
         className="bg-light border-top py-2",
     )
@@ -541,8 +522,7 @@ def create_work_distribution_no_metrics_card(
         html.Div(
             [
                 html.I(
-                    className="fas fa-chart-line fa-3x text-muted mb-3",
-                    style={"opacity": "0.3"},
+                    className="fas fa-chart-line fa-3x text-muted mb-3 opacity-30",
                 ),
                 html.H5("Metrics Not Yet Calculated", className="text-dark mb-2"),
                 html.P(
@@ -567,8 +547,7 @@ def create_work_distribution_no_metrics_card(
     card_footer = dbc.CardFooter(
         html.Div(
             "\u00a0",  # Non-breaking space to maintain minimal height
-            className="text-center text-muted",
-            style={"fontSize": "0.75rem", "opacity": "0"},
+            className="text-center text-muted metric-footer-placeholder",
         ),
         className="bg-light border-top py-2",
     )

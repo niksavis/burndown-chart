@@ -100,4 +100,23 @@
   box-shadow: var(--shadow-xs);
 }
 
+/* Standard centered empty state layout */
+.empty-state-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: 5rem 1.25rem;
+  text-align: center;
+}
+
+.empty-state-icon {
+  color: var(--color-neutral-500);
+}
+
+.empty-state-text {
+  max-width: 32rem;
+}
+
 /* ================================================================

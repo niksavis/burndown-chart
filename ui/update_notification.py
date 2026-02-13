@@ -52,8 +52,7 @@ def create_update_notification(
         html.P(
             f"A new version of Burndown is available. "
             f"You are currently running version {current_version}.",
-            className="mb-2",
-            style={"fontSize": "0.9rem"},
+            className="mb-2 update-alert-text",
         ),
     ]
 
@@ -70,12 +69,7 @@ def create_update_notification(
                     html.Strong("What's New:", className="d-block mb-1"),
                     html.P(
                         notes,
-                        className="mb-2",
-                        style={
-                            "fontSize": "0.85rem",
-                            "whiteSpace": "pre-wrap",
-                            "opacity": "0.9",
-                        },
+                        className="mb-2 update-alert-notes",
                     ),
                 ]
             )
@@ -114,10 +108,7 @@ def create_update_notification(
         color="info",
         dismissable=True,
         is_open=True,
-        className="mb-3",
-        style={
-            "borderLeft": "4px solid #0dcaf0",
-        },
+        className="mb-3 update-alert",
     )
 
 
@@ -144,21 +135,19 @@ def create_update_downloading_alert(
             dbc.Progress(
                 value=progress_percent,
                 label=f"{progress_percent}%",
-                className="mb-2",
-                style={"height": "20px"},
+                className="mb-2 update-alert-progress",
             ),
             html.P(
                 "Please wait while the update is being downloaded. "
                 "This may take a few minutes depending on your connection.",
-                className="mb-0",
-                style={"fontSize": "0.85rem", "opacity": "0.8"},
+                className="mb-0 update-alert-muted",
             ),
         ],
         id="update-downloading-alert",
         color="info",
         dismissable=False,
         is_open=True,
-        className="mb-3",
+        className="mb-3 update-alert",
     )
 
 
@@ -181,8 +170,7 @@ def create_update_ready_alert() -> dbc.Alert:
                 "The update has been downloaded successfully. "
                 "Click 'Install Now' to apply the update. "
                 "The application will restart automatically.",
-                className="mb-2",
-                style={"fontSize": "0.9rem"},
+                className="mb-2 update-alert-text",
             ),
             dbc.Button(
                 [
@@ -198,10 +186,7 @@ def create_update_ready_alert() -> dbc.Alert:
         color="success",
         dismissable=False,
         is_open=True,
-        className="mb-3",
-        style={
-            "borderLeft": "4px solid #198754",
-        },
+        className="mb-3 update-alert",
     )
 
 
@@ -225,18 +210,16 @@ def create_update_error_alert(error_message: str) -> dbc.Alert:
             ),
             html.P(
                 error_message,
-                className="mb-2",
-                style={"fontSize": "0.9rem"},
+                className="mb-2 update-alert-text",
             ),
             html.P(
                 "You can check for updates manually by visiting the GitHub releases page.",
-                className="mb-0",
-                style={"fontSize": "0.85rem", "opacity": "0.8"},
+                className="mb-0 update-alert-muted",
             ),
         ],
         id="update-error-alert",
         color="warning",
         dismissable=True,
         is_open=True,
-        className="mb-3",
+        className="mb-3 update-alert",
     )
