@@ -150,21 +150,39 @@
   <div class="velocity-cards">
     <div class="velocity-card" style="border-left-color: #0d6efd;">
       <div class="velocity-card-title">
-        <i class="fas fa-tachometer-alt"></i> Velocity (Items)
+        <i class="fas fa-tachometer-alt"></i> Overall Velocity (Items)
       </div>
       <div class="velocity-card-value" style="color: #0d6efd;">
         {{ metrics.dashboard.velocity_items|dec2 }}
         <span class="velocity-card-unit">items/week</span>
       </div>
     </div>
+    <div class="velocity-card" style="border-left-color: #1e7ad3;">
+      <div class="velocity-card-title">
+        <i class="fas fa-fire"></i> Recent Velocity (Items)
+      </div>
+      <div class="velocity-card-value" style="color: #1e7ad3;">
+        {{ metrics.dashboard.velocity_items_recent_4w|dec2 }}
+        <span class="velocity-card-unit">items/week (4w)</span>
+      </div>
+    </div>
     {% if show_points %}
     <div class="velocity-card points" style="border-left-color: var(--color-orange);">
       <div class="velocity-card-title">
-        <i class="fas fa-tachometer-alt"></i> Velocity (Points)
+        <i class="fas fa-tachometer-alt"></i> Overall Velocity (Points)
       </div>
       <div class="velocity-card-value" style="color: var(--color-orange);">
         {{ metrics.dashboard.velocity_points|dec2 }}
         <span class="velocity-card-unit">points/week</span>
+      </div>
+    </div>
+    <div class="velocity-card points" style="border-left-color: #e67300;">
+      <div class="velocity-card-title">
+        <i class="fas fa-fire"></i> Recent Velocity (Points)
+      </div>
+      <div class="velocity-card-value" style="color: #e67300;">
+        {{ metrics.dashboard.velocity_points_recent_4w|dec2 }}
+        <span class="velocity-card-unit">points/week (4w)</span>
       </div>
     </div>
     {% endif %}
