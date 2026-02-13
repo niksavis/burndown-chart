@@ -1,0 +1,131 @@
+/* ==================================================
+   COLOR CONSISTENCY OVERRIDES
+   Ensures all controls and info icons use brand blue
+   
+   Purpose: Unify form control and info icon colors across
+   the entire application to follow DRY and KISS principles.
+   
+   Overrides Bootstrap vendor styles with !important to ensure
+   consistent brand color usage regardless of CSS load order.
+   ================================================== */
+
+/* ========================================
+   INFO ICON CONSISTENCY
+   ======================================== */
+
+/* Override Bootstrap's .text-info to use brand blue */
+.text-info,
+.fas.fa-info-circle.text-info,
+.far.fa-info-circle.text-info,
+i.text-info {
+  color: var(--color-brand-500) !important;
+}
+
+/* ========================================
+   FORM CONTROL CONSISTENCY
+   ======================================== */
+
+/* Checkbox and Radio Button - checked state */
+.form-check-input:checked,
+.form-check-input:checked:hover,
+.form-check-input:checked:focus,
+.form-check-input:checked:active {
+  background-color: var(--color-brand-600) !important;
+  border-color: var(--color-brand-600) !important;
+}
+
+/* Checkbox indeterminate state */
+.form-check-input[type="checkbox"]:indeterminate {
+  background-color: var(--color-brand-600) !important;
+  border-color: var(--color-brand-600) !important;
+}
+
+/* ========================================
+   RANGE SLIDER CONSISTENCY
+   ======================================== */
+
+/* Range slider thumb - WebKit (Chrome, Safari, Edge) */
+.form-range::-webkit-slider-thumb,
+.form-range::-webkit-slider-thumb:hover,
+.form-range::-webkit-slider-thumb:active {
+  background-color: var(--color-brand-600) !important;
+}
+
+/* Range slider thumb - Firefox */
+.form-range::-moz-range-thumb,
+.form-range::-moz-range-thumb:hover,
+.form-range::-moz-range-thumb:active {
+  background-color: var(--color-brand-600) !important;
+}
+
+/* Range slider thumb - IE/Edge legacy */
+.form-range::-ms-thumb {
+  background-color: var(--color-brand-600) !important;
+}
+
+/* ========================================
+   SWITCH/TOGGLE CONSISTENCY
+   ======================================== */
+
+/* Switch toggle - checked state */
+.form-switch .form-check-input:checked,
+.form-switch .form-check-input:checked:hover,
+.form-switch .form-check-input:checked:focus {
+  background-color: var(--color-brand-600) !important;
+  border-color: var(--color-brand-600) !important;
+}
+
+/* ========================================
+   FOCUS STATES
+   ======================================== */
+
+/* Focus ring for form controls - use brand color */
+.form-check-input:focus,
+.form-range:focus::-webkit-slider-thumb,
+.form-range:focus::-moz-range-thumb {
+  border-color: var(--color-brand-500) !important;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1) !important;
+}
+
+/* ========================================
+   DASH CORE COMPONENTS OVERRIDES
+   ======================================== */
+
+/* Dash Slider component - ensure consistency */
+.rc-slider-handle,
+.rc-slider-handle:hover,
+.rc-slider-handle:active,
+.rc-slider-handle:focus {
+  border-color: var(--color-brand-600) !important;
+  background-color: var(--color-brand-600) !important;
+}
+
+.rc-slider-track {
+  background-color: var(--color-brand-500) !important;
+}
+
+.rc-slider-dot-active {
+  border-color: var(--color-brand-600) !important;
+}
+
+/* ========================================
+   COMMENTS AND MAINTENANCE NOTES
+   ======================================== */
+
+/*
+IMPORTANT: Do NOT remove or lower the specificity of these rules.
+The !important declarations are REQUIRED to override vendor Bootstrap
+styles from multiple sources (standard Bootstrap + Flatly theme).
+
+If you need to change the brand color:
+1. Update --color-brand-500 and --color-brand-600 in assets/core/variables.css
+2. All colors will update automatically through CSS variables
+
+To add new form controls:
+- Use standard Bootstrap classes (.form-check-input, .form-range, etc.)
+- Colors will be inherited from these global overrides
+- No need to add inline styles or component-specific CSS
+
+Last Updated: 2026-02-13
+Related: docs/design_system.md (See "Form Controls" section)
+*/

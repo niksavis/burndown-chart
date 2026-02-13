@@ -626,7 +626,7 @@ def create_budget_settings_card() -> html.Div:
                                 [
                                     "Time Allocated ",
                                     html.I(
-                                        className="fas fa-info-circle text-muted ms-1",
+                                        className="fas fa-info-circle text-info ms-1",
                                         id="time-allocated-tooltip",
                                         style={"cursor": "pointer"},
                                     ),
@@ -681,7 +681,7 @@ def create_budget_settings_card() -> html.Div:
                                 [
                                     "Team Cost ",
                                     html.I(
-                                        className="fas fa-info-circle text-muted ms-1",
+                                        className="fas fa-info-circle text-info ms-1",
                                         id="team-cost-tooltip",
                                         style={"cursor": "pointer"},
                                     ),
@@ -750,7 +750,7 @@ def create_budget_settings_card() -> html.Div:
                                 [
                                     "Effective Date ",
                                     html.I(
-                                        className="fas fa-info-circle text-muted ms-1",
+                                        className="fas fa-info-circle text-info ms-1",
                                         id="budget-effective-date-info-tooltip",
                                         style={"cursor": "pointer"},
                                     ),
@@ -793,7 +793,7 @@ def create_budget_settings_card() -> html.Div:
                                 [
                                     "Reason (optional) ",
                                     html.I(
-                                        className="fas fa-info-circle text-muted ms-1",
+                                        className="fas fa-info-circle text-info ms-1",
                                         id="revision-reason-tooltip",
                                         style={"cursor": "pointer"},
                                     ),
@@ -947,7 +947,9 @@ def create_budget_settings_card() -> html.Div:
                             # Info about what remains
                             dbc.Alert(
                                 [
-                                    html.I(className="fas fa-info-circle me-2"),
+                                    html.I(
+                                        className="fas fa-info-circle me-2 text-info"
+                                    ),
                                     "Current budget configuration will remain active.",
                                 ],
                                 color="info",

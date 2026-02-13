@@ -79,6 +79,14 @@
   opacity: 1;
 }
 
+/* White close button for colored alerts (better contrast) */
+.alert-warning .btn-close,
+.alert-info .btn-close,
+.alert-success .btn-close,
+.alert-danger .btn-close {
+  filter: invert(1) grayscale(100%) brightness(200%);
+}
+
 /* Ensure alert content flexes properly */
 .alert.alert-dismissible > * {
   flex: 1;

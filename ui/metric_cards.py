@@ -1296,7 +1296,7 @@ def _create_success_card(
                 # Blend description
                 html.Div(
                     [
-                        html.I(className="fas fa-info-circle me-1"),
+                        html.I(className="fas fa-info-circle me-1 text-info"),
                         html.Small(
                             format_blend_description(blend_metadata),
                             className="text-muted fst-italic",
@@ -1338,7 +1338,7 @@ def _create_success_card(
                 html.Hr(className="my-2"),
                 html.Div(
                     [
-                        html.I(className="fas fa-info-circle me-2 text-muted"),
+                        html.I(className="fas fa-info-circle me-2 text-info"),
                         html.Small(
                             f"Blending requires 2+ weeks of data (have {weeks_count})",
                             className="text-muted fst-italic",

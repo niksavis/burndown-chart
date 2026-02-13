@@ -1111,7 +1111,7 @@ def create_help_icon(
     tooltip_id: str,
     position: str = "inline",
     icon_class: str = "fas fa-info-circle",
-    color: str = "#17a2b8",
+    color: str = "#3b82f6",
 ) -> html.I:
     """
     Create a standardized help icon with consistent styling.
@@ -1123,7 +1123,7 @@ def create_help_icon(
         tooltip_id: Unique ID for the tooltip target
         position: Icon position - "inline", "header", or "trailing" (default: "inline")
         icon_class: FontAwesome icon class (default: "fas fa-info-circle")
-        color: Icon color in hex (default: "#17a2b8" - Bootstrap info color)
+        color: Icon color in hex (default: "#3b82f6" - Brand blue)
 
     Returns:
         html.I: Icon component with standardized styling

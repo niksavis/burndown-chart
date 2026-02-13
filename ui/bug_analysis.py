@@ -33,7 +33,7 @@ def create_bug_metrics_cards(bug_metrics: Dict, forecast: Dict) -> html.Div:
             [
                 html.Div(
                     [
-                        html.I(className="fas fa-info-circle me-2"),
+                        html.I(className="fas fa-info-circle me-2 text-info"),
                         html.Span("No bugs found in the current dataset."),
                     ],
                     className="alert alert-info mb-3",
@@ -497,7 +497,7 @@ def create_quality_insights_panel(
         if weeks_available < 3:
             message = html.Div(
                 [
-                    html.I(className="fas fa-info-circle me-2"),
+                    html.I(className="fas fa-info-circle me-2 text-info"),
                     html.Div(
                         [
                             html.Strong("Insufficient data for insights"),
@@ -673,7 +673,7 @@ def create_bug_forecast_card(forecast: Dict, open_bugs: int) -> html.Div:
             [
                 html.Div(
                     [
-                        html.I(className="fas fa-info-circle me-2"),
+                        html.I(className="fas fa-info-circle me-2 text-info"),
                         html.Span(
                             "Insufficient data for forecasting. Need at least 4 weeks of bug resolution history."
                         ),

@@ -433,7 +433,7 @@ def create_statistics_data_card(current_statistics) -> dbc.Card:
             # Collapsible button for column explanations
             dbc.Button(
                 [
-                    html.I(className="fas fa-info-circle me-2"),
+                    html.I(className="fas fa-info-circle me-2 text-info"),
                     "Column Explanations",
                 ],
                 id="column-explanations-toggle",

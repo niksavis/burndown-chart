@@ -268,7 +268,7 @@ def create_app_layout(settings, statistics, is_sample_data):
                     dbc.Alert(
                         html.Div(
                             [
-                                html.I(className="fas fa-info-circle me-2"),
+                                html.I(className="fas fa-info-circle me-2 text-info"),
                                 html.Span(
                                     [
                                         html.Strong("Using Sample Data"),
@@ -356,7 +356,7 @@ def create_app_layout(settings, statistics, is_sample_data):
                                         html.A(
                                             [
                                                 html.I(
-                                                    className="fas fa-info-circle me-1",
+                                                    className="fas fa-info-circle me-1 text-info",
                                                     style={"fontSize": "0.85rem"},
                                                 ),
                                                 "About",

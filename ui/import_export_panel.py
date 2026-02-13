@@ -354,7 +354,9 @@ def _create_import_export_tab():
                             ),
                             html.Div(
                                 [
-                                    html.I(className="fas fa-info-circle me-2"),
+                                    html.I(
+                                        className="fas fa-info-circle me-2 text-info"
+                                    ),
                                     html.Small(
                                         "Merge is recommended for config imports to preserve your JIRA token",
                                         className="text-muted",
@@ -409,7 +411,7 @@ def _create_reports_tab():
             # Info about time period
             html.Div(
                 [
-                    html.I(className="fas fa-info-circle me-2"),
+                    html.I(className="fas fa-info-circle me-2 text-info"),
                     html.Span(
                         [
                             "Report will include data from the ",
@@ -483,7 +485,7 @@ def _create_ai_prompt_tab():
             # Info about time period (mirrors Reports tab)
             html.Div(
                 [
-                    html.I(className="fas fa-info-circle me-2"),
+                    html.I(className="fas fa-info-circle me-2 text-info"),
                     html.Span(
                         [
                             "AI analysis will include data from the ",

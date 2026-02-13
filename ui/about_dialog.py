@@ -189,7 +189,7 @@ def _create_license_accordion(licenses: list[dict]) -> html.Div | dbc.Alert:
     if not licenses:
         return dbc.Alert(
             [
-                html.I(className="fas fa-info-circle me-2"),
+                html.I(className="fas fa-info-circle me-2 text-info"),
                 "License information could not be parsed. The application uses open source dependencies - ",
                 "please see the project repository for full license details.",
             ],
@@ -263,7 +263,7 @@ def _create_license_accordion(licenses: list[dict]) -> html.Div | dbc.Alert:
         [
             html.P(
                 [
-                    html.I(className="fas fa-info-circle me-2"),
+                    html.I(className="fas fa-info-circle me-2 text-info"),
                     html.Span(
                         f"Showing {len(licenses)} dependencies",
                         id="license-count-text",
@@ -631,7 +631,7 @@ def _get_changelog_tab() -> dbc.Tab:
             html.Hr(),
             html.P(
                 [
-                    html.I(className="fas fa-info-circle me-2"),
+                    html.I(className="fas fa-info-circle me-2 text-info"),
                     "For detailed release notes, visit the ",
                     html.A(
                         "GitHub Releases",
@@ -767,7 +767,7 @@ def _read_and_parse_changelog() -> html.Div:
                 html.Hr(),
                 dbc.Alert(
                     [
-                        html.I(className="fas fa-info-circle me-2"),
+                        html.I(className="fas fa-info-circle me-2 text-info"),
                         "Changelog file not found. See GitHub Releases for full version history.",
                     ],
                     color="info",
@@ -900,7 +900,7 @@ def create_about_dialog() -> dbc.Modal:
             dbc.ModalHeader(
                 dbc.ModalTitle(
                     [
-                        html.I(className="fas fa-info-circle me-2"),
+                        html.I(className="fas fa-info-circle me-2 text-info"),
                         "About Burndown",
                     ]
                 ),

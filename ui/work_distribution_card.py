@@ -448,7 +448,7 @@ def create_work_distribution_no_data_card(card_id: Optional[str] = None) -> dbc.
                 ),
                 html.P(
                     [
-                        html.I(className="fas fa-info-circle me-2"),
+                        html.I(className="fas fa-info-circle me-2 text-info"),
                         "Click ",
                         html.Strong("Update Data"),
                         " in the Settings panel to fetch issues from JIRA.",

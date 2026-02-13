@@ -91,7 +91,7 @@ def create_profile_actions(id_suffix: str = "") -> dbc.Col:
                 dbc.Button(
                     [html.I(className="fas fa-edit me-1"), "Rename"],
                     id=f"rename-profile-btn{id_suffix}",
-                    color="secondary",
+                    color="primary",
                     outline=True,
                     className="me-1",
                 ),
