@@ -6,9 +6,9 @@ import dash_bootstrap_components as dbc
 from ui.active_work_timeline import (
     create_active_work_timeline_tab,
     create_issue_card,
-    create_no_issues_state,
     create_timeline_visualization,
 )
+from ui.empty_states import create_no_active_work_state
 
 
 def _find_first_component(component, component_type):
@@ -40,7 +40,7 @@ def test_create_active_work_timeline_tab_placeholder():
 
 def test_create_no_issues_state_unconfigured_parent_field():
     """Test empty state messaging when parent field is missing."""
-    component = create_no_issues_state(parent_field_configured=False)
+    component = create_no_active_work_state(parent_field_configured=False)
 
     content = str(component.to_plotly_json())
     assert "Configure Parent/Epic Field" in content
@@ -48,7 +48,7 @@ def test_create_no_issues_state_unconfigured_parent_field():
 
 def test_create_no_issues_state_configured_parent_field():
     """Test empty state messaging when no issues found."""
-    component = create_no_issues_state(parent_field_configured=True)
+    component = create_no_active_work_state(parent_field_configured=True)
 
     content = str(component.to_plotly_json())
     assert "No Active Work Found" in content

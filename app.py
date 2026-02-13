@@ -391,6 +391,7 @@ app = dash.Dash(
     __name__,
     serve_locally=True,  # Serve all Dash/Plotly assets locally (no CDN) for offline operation
     title="Burndown",  # Custom browser tab title
+    update_title="",  # Disable update title to prevent flicker
     assets_folder="assets",  # Explicitly set assets folder
     assets_ignore=r"^vendor/.*",  # Prevent auto-loading vendor CSS/JS to preserve order
     background_callback_manager=background_callback_manager,  # Enable background callbacks

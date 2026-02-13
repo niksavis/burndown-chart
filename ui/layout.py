@@ -356,7 +356,7 @@ def create_app_layout(settings, statistics, is_sample_data):
                                         html.A(
                                             [
                                                 html.I(
-                                                    className="fas fa-info-circle me-1 text-info",
+                                                    className="fas fa-question-circle me-1",
                                                     style={"fontSize": "0.85rem"},
                                                 ),
                                                 "About",

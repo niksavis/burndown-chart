@@ -411,7 +411,7 @@ def _create_reports_tab():
             # Info about time period
             html.Div(
                 [
-                    html.I(className="fas fa-info-circle me-2 text-info"),
+                    html.I(className="fas fa-chart-line me-2 text-white"),
                     html.Span(
                         [
                             "Report will include data from the ",
@@ -485,7 +485,7 @@ def _create_ai_prompt_tab():
             # Info about time period (mirrors Reports tab)
             html.Div(
                 [
-                    html.I(className="fas fa-info-circle me-2 text-info"),
+                    html.I(className="fas fa-magic me-2 text-white"),
                     html.Span(
                         [
                             "AI analysis will include data from the ",

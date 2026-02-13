@@ -142,10 +142,8 @@
       toastElement.style.minWidth = "400px";
       toastElement.innerHTML = `
       <div class="toast-header">
-        <svg class="rounded text-success" width="20" height="20" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice" focusable="false" role="img">
-          <rect fill="currentColor" width="100%" height="100%"></rect>
-        </svg>
-        <strong class="me-auto ms-2">Success</strong>
+        <i class="fas fa-check-circle text-success me-2" style="font-size: 1.2rem;"></i>
+        <strong class="me-auto">Success</strong>
         <button type="button" class="btn-close" aria-label="Close" data-dismiss="toast"></button>
       </div>
       <div class="toast-body">

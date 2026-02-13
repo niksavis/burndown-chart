@@ -88,7 +88,7 @@ def _render_sprint_tracker_content(
 
         if not active_profile_id or not active_query_id:
             logger.warning("No active profile/query configured")
-            from ui.sprint_tracker import create_no_sprints_state
+            from ui.empty_states import create_no_sprints_state
 
             return create_no_sprints_state()
 
@@ -97,7 +97,7 @@ def _render_sprint_tracker_content(
 
         if not all_issues:
             logger.warning("No issues found in database")
-            from ui.sprint_tracker import create_no_sprints_state
+            from ui.empty_states import create_no_sprints_state
 
             return create_no_sprints_state()
 
@@ -124,7 +124,7 @@ def _render_sprint_tracker_content(
 
         if not tracked_issues:
             logger.warning("No tracked issue types (Story/Task/Bug) found")
-            from ui.sprint_tracker import create_no_sprints_state
+            from ui.empty_states import create_no_sprints_state
 
             return create_no_sprints_state()
 
@@ -133,7 +133,7 @@ def _render_sprint_tracker_content(
 
         if not sprint_field:
             logger.warning("Sprint field not configured in field mappings")
-            from ui.sprint_tracker import create_no_sprints_state
+            from ui.empty_states import create_no_sprints_state
 
             return create_no_sprints_state()
 
@@ -157,7 +157,7 @@ def _render_sprint_tracker_content(
 
         if not changelog_entries or len(changelog_entries) == 0:
             logger.info("No sprint changelog data found - sprints not configured")
-            from ui.sprint_tracker import create_no_sprints_state
+            from ui.empty_states import create_no_sprints_state
 
             return create_no_sprints_state()
 
@@ -172,7 +172,7 @@ def _render_sprint_tracker_content(
 
         if not sprint_snapshots:
             logger.warning("No sprint snapshots built from changelog")
-            from ui.sprint_tracker import create_no_sprints_state
+            from ui.empty_states import create_no_sprints_state
 
             return create_no_sprints_state()
 
@@ -199,7 +199,7 @@ def _render_sprint_tracker_content(
             logger.info(f"No active sprint found, selected first: {selected_sprint_id}")
         else:
             logger.warning("No sprint snapshots available")
-            from ui.sprint_tracker import create_no_sprints_state
+            from ui.empty_states import create_no_sprints_state
 
             return create_no_sprints_state()
 

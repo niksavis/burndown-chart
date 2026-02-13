@@ -351,6 +351,207 @@ def create_no_bugs_state() -> html.Div:
     )
 
 
+def create_no_sprints_state() -> html.Div:
+    """Create empty state when no sprint data is detected.
+
+    Returns:
+        html.Div with empty state UI for sprint tracking
+    """
+    return html.Div(
+        [
+            dbc.Row(
+                [
+                    dbc.Col(
+                        [
+                            html.Div(
+                                [
+                                    html.I(
+                                        className="fas fa-tasks fa-4x text-primary mb-4",
+                                        style={"opacity": "0.3"},
+                                    ),
+                                    html.H4(
+                                        "No Sprint Data Found",
+                                        className="empty-state-title mb-3",
+                                    ),
+                                    html.P(
+                                        "Sprint tracking requires your JIRA instance to have Agile/Scrum boards with active sprints.",
+                                        className="empty-state-lead mb-4",
+                                    ),
+                                ],
+                                className="text-center mb-4",
+                            ),
+                        ],
+                        width=12,
+                    ),
+                ],
+            ),
+            dbc.Row(
+                [
+                    dbc.Col(
+                        _create_info_card_row(
+                            [
+                                {
+                                    "icon": "cog",
+                                    "icon_color": "info",
+                                    "title": "Configure Sprint Field",
+                                    "description": "The sprint field (typically customfield_10020) should be auto-detected, or configure it manually in Settings → Field Mappings → Fields → General Fields → Sprint.",
+                                },
+                                {
+                                    "icon": "sync-alt",
+                                    "icon_color": "primary",
+                                    "title": "Fetch Sprint Data",
+                                    "description": "After configuration, click Update Data to fetch sprint changelog from JIRA.",
+                                },
+                            ]
+                        ),
+                        xs=12,
+                        lg=10,
+                        xl=8,
+                        className="mx-auto",
+                    ),
+                ],
+            ),
+        ],
+        className="p-5 empty-state-banner",
+    )
+
+
+def create_no_active_work_state(parent_field_configured: bool = True) -> html.Div:
+    """Create empty state when no active work items are found.
+
+    Args:
+        parent_field_configured: Whether parent/epic field is configured
+
+    Returns:
+        html.Div with empty state UI for active work timeline
+    """
+    if not parent_field_configured:
+        return html.Div(
+            [
+                dbc.Row(
+                    [
+                        dbc.Col(
+                            [
+                                html.Div(
+                                    [
+                                        html.I(
+                                            className="fas fa-sitemap fa-4x text-info mb-4",
+                                            style={"opacity": "0.3"},
+                                        ),
+                                        html.H4(
+                                            "Configure Parent/Epic Field",
+                                            className="empty-state-title mb-3",
+                                        ),
+                                        html.P(
+                                            "Enable epic timeline visualization by configuring the Parent/Epic Link field.",
+                                            className="empty-state-lead mb-2",
+                                        ),
+                                        html.P(
+                                            "Issues will still be displayed, but without epic grouping.",
+                                            className="empty-state-subtle mb-4",
+                                        ),
+                                    ],
+                                    className="text-center mb-4",
+                                ),
+                            ],
+                            width=12,
+                        ),
+                    ],
+                ),
+                dbc.Row(
+                    [
+                        dbc.Col(
+                            _create_info_card_row(
+                                [
+                                    {
+                                        "icon": "cog",
+                                        "icon_color": "info",
+                                        "title": "Configure Field",
+                                        "description": "Go to Settings → Field Mappings → Fields → General Fields and set the Parent Field to your epic/parent field name (e.g., 'parent', 'Epic Link', 'customfield_10006').",
+                                    },
+                                    {
+                                        "icon": "sync-alt",
+                                        "icon_color": "primary",
+                                        "title": "Refresh Data",
+                                        "description": "Click Update Data after configuration to fetch parent/epic relationships from JIRA.",
+                                    },
+                                ]
+                            ),
+                            xs=12,
+                            lg=10,
+                            xl=8,
+                            className="mx-auto",
+                        ),
+                    ],
+                ),
+            ],
+            className="p-5 empty-state-banner",
+        )
+
+    # Parent field configured but no issues found
+    return html.Div(
+        [
+            dbc.Row(
+                [
+                    dbc.Col(
+                        [
+                            html.Div(
+                                [
+                                    html.I(
+                                        className="fas fa-project-diagram fa-4x text-success mb-4",
+                                        style={"opacity": "0.5"},
+                                    ),
+                                    html.H4(
+                                        "No Active Work Found",
+                                        className="empty-state-title mb-3",
+                                    ),
+                                    html.P(
+                                        "Active Work Timeline shows WIP issues and recent completions from the last 2 weeks.",
+                                        className="empty-state-lead mb-2",
+                                    ),
+                                    html.P(
+                                        "No active work detected in your current dataset.",
+                                        className="empty-state-subtle",
+                                    ),
+                                ],
+                                className="text-center mb-4",
+                            ),
+                        ],
+                        width=12,
+                    ),
+                ],
+            ),
+            dbc.Row(
+                [
+                    dbc.Col(
+                        _create_info_card_row(
+                            [
+                                {
+                                    "icon": "tasks",
+                                    "icon_color": "primary",
+                                    "title": "Check In-Progress Work",
+                                    "description": "Verify that your JQL query includes issues in WIP statuses (In Progress, In Review, etc.).",
+                                },
+                                {
+                                    "icon": "calendar-alt",
+                                    "icon_color": "info",
+                                    "title": "Adjust Time Window",
+                                    "description": "Active Work shows a 2-week window. Use the Data Points slider to include more recent issues.",
+                                },
+                            ]
+                        ),
+                        xs=12,
+                        lg=10,
+                        xl=8,
+                        className="mx-auto",
+                    ),
+                ],
+            ),
+        ],
+        className="p-5 empty-state-banner",
+    )
+
+
 def create_metrics_skeleton(num_cards: int = 4) -> dbc.Row:
     """Create a visible skeleton grid with shimmer effect.
 
