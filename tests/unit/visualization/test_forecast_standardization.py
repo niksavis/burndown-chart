@@ -57,7 +57,7 @@ class TestForecastVisualizationStandardization:
         # Look for forecast trace
         forecast_trace = None
         for trace in traces:
-            if trace.get("name") == "Next Week Forecast":
+            if trace.get("name") == "PERT Forecast":
                 forecast_trace = trace
                 break
 
@@ -89,7 +89,7 @@ class TestForecastVisualizationStandardization:
         # Look for forecast trace
         forecast_trace = None
         for trace in traces:
-            if trace.get("name") == "Next Week Forecast":
+            if trace.get("name") == "PERT Forecast":
                 forecast_trace = trace
                 break
 
@@ -113,12 +113,12 @@ class TestForecastVisualizationStandardization:
         points_forecast = None
 
         for trace in items_traces:
-            if trace.get("name") == "Next Week Forecast":
+            if trace.get("name") == "PERT Forecast":
                 items_forecast = trace
                 break
 
         for trace in points_traces:
-            if trace.get("name") == "Next Week Forecast":
+            if trace.get("name") == "PERT Forecast":
                 points_forecast = trace
                 break
 
@@ -185,10 +185,10 @@ class TestForecastVisualizationStandardization:
         points_traces = points_fig.to_dict().get("data", [])
 
         items_forecast = next(
-            (t for t in items_traces if t.get("name") == "Next Week Forecast"), None
+            (t for t in items_traces if t.get("name") == "PERT Forecast"), None
         )
         points_forecast = next(
-            (t for t in points_traces if t.get("name") == "Next Week Forecast"), None
+            (t for t in points_traces if t.get("name") == "PERT Forecast"), None
         )
 
         assert items_forecast is not None
@@ -218,10 +218,10 @@ class TestForecastVisualizationStandardization:
         points_traces = points_fig.to_dict().get("data", [])
 
         items_forecast = next(
-            (t for t in items_traces if t.get("name") == "Next Week Forecast"), None
+            (t for t in items_traces if t.get("name") == "PERT Forecast"), None
         )
         points_forecast = next(
-            (t for t in points_traces if t.get("name") == "Next Week Forecast"), None
+            (t for t in points_traces if t.get("name") == "PERT Forecast"), None
         )
 
         # Success criteria validation
@@ -277,10 +277,10 @@ class TestForecastVisualizationRegression:
         points_traces = points_fig.to_dict().get("data", [])
 
         items_forecast = next(
-            (t for t in items_traces if t.get("name") == "Next Week Forecast"), None
+            (t for t in items_traces if t.get("name") == "PERT Forecast"), None
         )
         points_forecast = next(
-            (t for t in points_traces if t.get("name") == "Next Week Forecast"), None
+            (t for t in points_traces if t.get("name") == "PERT Forecast"), None
         )
 
         assert items_forecast is None, (
