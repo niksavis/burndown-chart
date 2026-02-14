@@ -10,12 +10,12 @@ Concise operational rules for multi-agent coordination and beads workflow. Repos
 
 | Category | Files | Lines | Tokens |
 |----------|-------|-------|--------|
-| **Total** | 635 | 210.6K | **~1.8M** |
+| **Total** | 635 | 210.7K | **~1.8M** |
 | Code (Python + JS/CSS) | 442 | 153.0K | ~1.3M |
 | Python (no tests) | 361 | 140.6K | ~1.3M |
-| Frontend (JS/CSS) | 81 | 12.4K | ~79.5K |
-| Tests | 148 | 42.8K | ~374.5K |
-| Documentation (MD) | 45 | 14.9K | ~115.8K |
+| Frontend (JS/CSS) | 81 | 12.4K | ~79.4K |
+| Tests | 148 | 42.8K | ~374.6K |
+| Documentation (MD) | 45 | 15.0K | ~116.1K |
 
 **Agent Guidance**:
 - **Too large for context**: Use targeted `semantic_search`, avoid broad reads
