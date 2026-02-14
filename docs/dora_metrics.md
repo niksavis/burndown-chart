@@ -48,12 +48,13 @@ When insufficient historical data exists, the cards show a baseline-building or 
 
 ### How It Works
 
-**Weekday Weights** (Fixed Mon-Fri Schedule):
-- **Monday**: 0% actual, 100% forecast → Shows stable forecast
-- **Tuesday**: 20% actual, 80% forecast → Gradually transitions to actual
-- **Wednesday**: 50% actual, 50% forecast → Balanced blend
-- **Thursday**: 80% actual, 20% forecast → Mostly actual
-- **Friday-Sunday**: 100% actual, 0% forecast → Pure actual value
+**Weekday Weights** (Linear Progression: weight = days_completed / 5):
+- **Monday**: 0% actual, 100% forecast → Shows stable forecast [0/5]
+- **Tuesday**: 20% actual, 80% forecast → Gradually transitions to actual [1/5]
+- **Wednesday**: 40% actual, 60% forecast → Balanced blend [2/5]
+- **Thursday**: 60% actual, 40% forecast → Mostly actual [3/5]
+- **Friday**: 80% actual, 20% forecast → Nearly complete [4/5]
+- **Saturday-Sunday**: 100% actual, 0% forecast → Pure actual value [work week complete]
 
 **Formula**: `blended = (actual × weight) + (forecast × (1 - weight))`
 

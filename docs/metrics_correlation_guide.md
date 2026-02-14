@@ -215,7 +215,7 @@ Expected Flow Time = 10 ÷ 5 = 2 weeks
 
 ## Current Week Calculations
 
-### Progressive Blending (Monday-Thursday)
+### Progressive Blending (Monday-Friday)
 
 Metrics use **progressive blending** for the current week to eliminate Monday reliability drops:
 
@@ -225,14 +225,14 @@ Metrics use **progressive blending** for the current week to eliminate Monday re
 
 **How It Works**:
 - **Formula**: `blended = (actual × weight) + (forecast × (1 - weight))`
-- **Weights**: Monday=0%, Tuesday=20%, Wednesday=50%, Thursday=80%, Friday-Sunday=100%
-- **Result**: Smooth progression from forecast (Monday) to actual (Friday)
+- **Weights** (Linear Progression: weight = days_completed / 5): Monday=0%, Tuesday=20%, Wednesday=40%, Thursday=60%, Friday=80%, Saturday-Sunday=100%
+- **Result**: Smooth progression from forecast (Monday) to actual (Saturday)
 
 **Impact on Validation**:
 - ✅ Correlations remain valid (blending doesn't change relationships)
-- ✅ Monday-Thursday show blended values with 📊 indicator
-- ✅ Friday-Sunday show pure actual values
-- ⚠️ When comparing current week to historical weeks, note that Mon-Thu use blending
+- ✅ Monday-Friday show blended values with 📊 indicator
+- ✅ Saturday-Sunday show pure actual values
+- ⚠️ When comparing current week to historical weeks, note that Mon-Fri use blending
 
 **See Also**: [Flow Metrics Guide](./flow_metrics.md) or [DORA Metrics Guide](./dora_metrics.md) for complete algorithm details.
 

@@ -51,20 +51,21 @@ When insufficient historical data exists, cards show a baseline-building or insu
 
 ### How It Works
 
-**Weekday Weights** (Fixed Mon-Fri Schedule):
-- **Monday**: 0% actual, 100% forecast → Shows stable forecast (e.g., 12.0 items/week)
-- **Tuesday**: 20% actual, 80% forecast → Gradually transitions to actual
-- **Wednesday**: 50% actual, 50% forecast → Balanced blend
-- **Thursday**: 80% actual, 20% forecast → Mostly actual
-- **Friday-Sunday**: 100% actual, 0% forecast → Pure actual value
+**Weekday Weights** (Linear Progression: weight = days_completed / 5):
+- **Monday**: 0% actual, 100% forecast → Shows stable forecast (e.g., 12.0 items/week) [0/5]
+- **Tuesday**: 20% actual, 80% forecast → Gradually transitions to actual [1/5]
+- **Wednesday**: 40% actual, 60% forecast → Balanced blend [2/5]
+- **Thursday**: 60% actual, 40% forecast → Mostly actual [3/5]
+- **Friday**: 80% actual, 20% forecast → Nearly complete [4/5]
+- **Saturday-Sunday**: 100% actual, 0% forecast → Pure actual value [work week complete]
 
 **Formula**: `blended = (actual × weight) + (forecast × (1 - weight))`
 
 **Example** (Forecast = 12.0 items/week):
 - Monday with 0 completions → 12.0 items/week (was 8.4, -25% drop ❌)
 - Tuesday with 2 completions → 10.0 items/week (smooth transition ✅)
-- Wednesday with 5 completions → 8.5 items/week
-- Friday with 10 completions → 10.0 items/week (pure actual)
+- Wednesday with 5 completions → 9.2 items/week
+- Friday with 10 completions → 10.4 items/week (80% actual, 20% forecast)
 
 **UI Transparency**: Flow Velocity card shows breakdown when blending is active:
 ```

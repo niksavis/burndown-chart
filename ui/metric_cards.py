@@ -1310,7 +1310,7 @@ def _create_success_card(
         )
         card_body_children.append(blend_section)
     elif blend_metadata and not blend_metadata.get("is_blended"):
-        # Weekend (Fri-Sun): Using 100% actual data, no blending needed
+        # Weekend (Sat-Sun): Using 100% actual data, no blending needed
         day_name = blend_metadata.get("day_name", "Today")
         blend_placeholder = html.Div(
             [

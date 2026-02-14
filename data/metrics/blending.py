@@ -4,16 +4,19 @@ Implements f(forecast, actual) weighted blending to eliminate Monday reliability
 and provide smooth weekly progression for current week metrics.
 
 The blending formula uses day-of-week weights to progressively transition from
-forecast (100% on Monday) to actual (100% on Friday-Sunday):
+forecast (100% on Monday) to actual (100% on Saturday-Sunday):
 
     blended = (actual × weight) + (forecast × (1 - weight))
 
+Weights follow linear progression: weight = days_completed / 5
+
 Where weight is determined by the current day of week:
-- Monday (0): 0.0 (100% forecast, 0% actual)
-- Tuesday (1): 0.2 (80% forecast, 20% actual)
-- Wednesday (2): 0.5 (50% forecast, 50% actual)
-- Thursday (3): 0.8 (20% forecast, 80% actual)
-- Friday-Sunday (4-6): 1.0 (0% forecast, 100% actual)
+- Monday (0): 0.0 (100% forecast, 0% actual) [0/5 days]
+- Tuesday (1): 0.2 (80% forecast, 20% actual) [1/5 days]
+- Wednesday (2): 0.4 (60% forecast, 40% actual) [2/5 days]
+- Thursday (3): 0.6 (40% forecast, 60% actual) [3/5 days]
+- Friday (4): 0.8 (20% forecast, 80% actual) [4/5 days]
+- Saturday-Sunday (5-6): 1.0 (0% forecast, 100% actual) [work week complete]
 
 Created: 2026-02-10
 Related: Feature burndown-chart-a1vn
@@ -28,12 +31,13 @@ logger = logging.getLogger(__name__)
 # Day-of-week weights for progressive blending
 # Key: datetime.weekday() value (0=Monday, 6=Sunday)
 # Value: Actual weight (forecast weight = 1.0 - actual_weight)
+# Formula: weight = days_completed / 5 (linear progression)
 WEEKDAY_WEIGHTS = {
-    0: 0.0,  # Monday: 0% actual, 100% forecast
-    1: 0.2,  # Tuesday: 20% actual, 80% forecast
-    2: 0.5,  # Wednesday: 50% actual, 50% forecast
-    3: 0.8,  # Thursday: 80% actual, 20% forecast
-    4: 1.0,  # Friday: 100% actual, 0% forecast
+    0: 0.0,  # Monday: 0% actual, 100% forecast (0/5)
+    1: 0.2,  # Tuesday: 20% actual, 80% forecast (1/5)
+    2: 0.4,  # Wednesday: 40% actual, 60% forecast (2/5)
+    3: 0.6,  # Thursday: 60% actual, 40% forecast (3/5)
+    4: 0.8,  # Friday: 80% actual, 20% forecast (4/5)
     5: 1.0,  # Saturday: 100% actual (work week complete)
     6: 1.0,  # Sunday: 100% actual (work week complete)
 }
@@ -64,9 +68,9 @@ def get_weekday_weight(current_time: Optional[datetime] = None) -> float:
         >>> # On Monday
         >>> get_weekday_weight()  # Returns 0.0
         >>> # On Wednesday
-        >>> get_weekday_weight()  # Returns 0.5
+        >>> get_weekday_weight()  # Returns 0.4
         >>> # On Friday
-        >>> get_weekday_weight()  # Returns 1.0
+        >>> get_weekday_weight()  # Returns 0.8
     """
     if current_time is None:
         current_time = datetime.now()
@@ -103,10 +107,10 @@ def calculate_current_week_blend(
         11.5  # 100% forecast
         >>> # Wednesday: Team has 5 items, forecast is 11.5
         >>> calculate_current_week_blend(5, 11.5)
-        8.25  # 50% actual + 50% forecast
+        8.9  # 40% actual + 60% forecast
         >>> # Friday: Team has 10 items, forecast is 11.5
         >>> calculate_current_week_blend(10, 11.5)
-        10.0  # 100% actual
+        10.3  # 80% actual + 20% forecast
     """
     # Get day-of-week weight
     actual_weight = get_weekday_weight(current_time)
@@ -153,10 +157,10 @@ def get_blend_metadata(
     Example:
         >>> # Wednesday: 5 actual, 11.5 forecast
         >>> meta = get_blend_metadata(5, 11.5)
-        >>> meta['blended']  # 8.25
+        >>> meta['blended']  # 8.9
         >>> meta['day_name']  # "Wednesday"
-        >>> meta['actual_percent']  # 50
-        >>> meta['forecast_percent']  # 50
+        >>> meta['actual_percent']  # 40
+        >>> meta['forecast_percent']  # 60
     """
     if current_time is None:
         current_time = datetime.now()
@@ -172,11 +176,11 @@ def get_blend_metadata(
         "actual": actual,
         "actual_weight": actual_weight,
         "forecast_weight": forecast_weight,
-        "actual_percent": int(actual_weight * 100),
-        "forecast_percent": int(forecast_weight * 100),
+        "actual_percent": round(actual_weight * 100),
+        "forecast_percent": round(forecast_weight * 100),
         "weekday": weekday,
         "day_name": DAY_NAMES[weekday],
-        "is_blended": actual_weight < 1.0,  # Blending active Mon-Thu
+        "is_blended": actual_weight < 1.0,  # Blending active Mon-Fri
     }
 
     logger.debug(
@@ -200,10 +204,10 @@ def format_blend_description(metadata: Dict) -> str:
     Example:
         >>> meta = get_blend_metadata(5, 11.5)
         >>> format_blend_description(meta)
-        "Based on 50% actual, 50% forecast (Wednesday)"
+        "Based on 40% actual, 60% forecast (Wednesday)"
     """
     if not metadata.get("is_blended", False):
-        # No blending active (Fri-Sun, or weight=1.0)
+        # No blending active (Sat-Sun, or weight=1.0)
         return f"Current week actual ({metadata.get('day_name', 'Today')})"
 
     return (

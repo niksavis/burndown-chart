@@ -40,25 +40,25 @@ class TestWeekdayWeight:
         assert weight == 0.2
 
     def test_wednesday_weight(self):
-        """Wednesday should return 0.5 (50% forecast, 50% actual)."""
+        """Wednesday should return 0.4 (60% forecast, 40% actual)."""
         wednesday = datetime(2026, 2, 11, 10, 0, 0)  # Wednesday, Feb 11, 2026
         assert wednesday.weekday() == 2
         weight = get_weekday_weight(wednesday)
-        assert weight == 0.5
+        assert weight == 0.4
 
     def test_thursday_weight(self):
-        """Thursday should return 0.8 (20% forecast, 80% actual)."""
+        """Thursday should return 0.6 (40% forecast, 60% actual)."""
         thursday = datetime(2026, 2, 12, 10, 0, 0)  # Thursday, Feb 12, 2026
         assert thursday.weekday() == 3
         weight = get_weekday_weight(thursday)
-        assert weight == 0.8
+        assert weight == 0.6
 
     def test_friday_weight(self):
-        """Friday should return 1.0 (100% actual)."""
+        """Friday should return 0.8 (20% forecast, 80% actual)."""
         friday = datetime(2026, 2, 13, 10, 0, 0)  # Friday, Feb 13, 2026
         assert friday.weekday() == 4
         weight = get_weekday_weight(friday)
-        assert weight == 1.0
+        assert weight == 0.8
 
     def test_saturday_weight(self):
         """Saturday should return 1.0 (work week complete)."""
@@ -102,31 +102,32 @@ class TestCurrentWeekBlend:
         blended = calculate_current_week_blend(actual, forecast, tuesday)
         assert blended == pytest.approx(9.6, rel=0.01)
 
-    def test_wednesday_blend_50_50(self):
-        """Wednesday: 50% actual, 50% forecast."""
+    def test_wednesday_blend_40_60(self):
+        """Wednesday: 40% actual, 60% forecast."""
         wednesday = datetime(2026, 2, 11, 10, 0, 0)
         actual = 5.0
         forecast = 11.5
-        # Expected: (5 × 0.5) + (11.5 × 0.5) = 2.5 + 5.75 = 8.25
+        # Expected: (5 × 0.4) + (11.5 × 0.6) = 2.0 + 6.9 = 8.9
         blended = calculate_current_week_blend(actual, forecast, wednesday)
-        assert blended == pytest.approx(8.25, rel=0.01)
+        assert blended == pytest.approx(8.9, rel=0.01)
 
-    def test_thursday_blend_80_20(self):
-        """Thursday: 80% actual, 20% forecast."""
+    def test_thursday_blend_60_40(self):
+        """Thursday: 60% actual, 40% forecast."""
         thursday = datetime(2026, 2, 12, 10, 0, 0)
         actual = 8.0
         forecast = 11.5
-        # Expected: (8 × 0.8) + (11.5 × 0.2) = 6.4 + 2.3 = 8.7
+        # Expected: (8 × 0.6) + (11.5 × 0.4) = 4.8 + 4.6 = 9.4
         blended = calculate_current_week_blend(actual, forecast, thursday)
-        assert blended == pytest.approx(8.7, rel=0.01)
+        assert blended == pytest.approx(9.4, rel=0.01)
 
-    def test_friday_blend_pure_actual(self):
-        """Friday: 100% actual, 0% forecast."""
+    def test_friday_blend_80_20(self):
+        """Friday: 80% actual, 20% forecast."""
         friday = datetime(2026, 2, 13, 10, 0, 0)
         actual = 10.0
         forecast = 11.5
+        # Expected: (10 × 0.8) + (11.5 × 0.2) = 8.0 + 2.3 = 10.3
         blended = calculate_current_week_blend(actual, forecast, friday)
-        assert blended == pytest.approx(10.0, rel=0.01)
+        assert blended == pytest.approx(10.3, rel=0.01)
 
     def test_saturday_blend_pure_actual(self):
         """Saturday: 100% actual (work week complete)."""
@@ -155,10 +156,11 @@ class TestBoundaryConditions:
         assert blended == pytest.approx(11.5, rel=0.01)
 
     def test_zero_forecast_friday(self):
-        """Zero forecast on Friday should return pure actual."""
+        """Zero forecast on Friday should still blend (80% actual, 20% forecast)."""
         friday = datetime(2026, 2, 13, 10, 0, 0)
         blended = calculate_current_week_blend(10.0, 0.0, friday)
-        assert blended == pytest.approx(10.0, rel=0.01)
+        # Expected: (10 × 0.8) + (0 × 0.2) = 8.0
+        assert blended == pytest.approx(8.0, rel=0.01)
 
     def test_both_zero(self):
         """Both zero should return zero."""
@@ -171,15 +173,15 @@ class TestBoundaryConditions:
         wednesday = datetime(2026, 2, 11, 10, 0, 0)
         # If somehow negative values appear, formula still applies
         blended = calculate_current_week_blend(-5.0, 10.0, wednesday)
-        # Expected: (-5 × 0.5) + (10 × 0.5) = -2.5 + 5 = 2.5
-        assert blended == pytest.approx(2.5, rel=0.01)
+        # Expected: (-5 × 0.4) + (10 × 0.6) = -2.0 + 6.0 = 4.0
+        assert blended == pytest.approx(4.0, rel=0.01)
 
     def test_large_values(self):
         """Large values should work correctly."""
         wednesday = datetime(2026, 2, 11, 10, 0, 0)
         blended = calculate_current_week_blend(1000.0, 1500.0, wednesday)
-        # Expected: (1000 × 0.5) + (1500 × 0.5) = 500 + 750 = 1250
-        assert blended == pytest.approx(1250.0, rel=0.01)
+        # Expected: (1000 × 0.4) + (1500 × 0.6) = 400 + 900 = 1300
+        assert blended == pytest.approx(1300.0, rel=0.01)
 
 
 class TestBlendMetadata:
@@ -211,13 +213,13 @@ class TestBlendMetadata:
         wednesday = datetime(2026, 2, 11, 10, 0, 0)
         meta = get_blend_metadata(5.0, 11.5, wednesday)
 
-        assert meta["blended"] == pytest.approx(8.25, rel=0.01)
+        assert meta["blended"] == pytest.approx(8.9, rel=0.01)
         assert meta["forecast"] == 11.5
         assert meta["actual"] == 5.0
-        assert meta["actual_weight"] == 0.5
-        assert meta["forecast_weight"] == 0.5
-        assert meta["actual_percent"] == 50
-        assert meta["forecast_percent"] == 50
+        assert meta["actual_weight"] == 0.4
+        assert meta["forecast_weight"] == 0.6
+        assert meta["actual_percent"] == 40
+        assert meta["forecast_percent"] == 60
         assert meta["weekday"] == 2
         assert meta["day_name"] == "Wednesday"
         assert meta["is_blended"] is True
@@ -232,14 +234,14 @@ class TestBlendMetadata:
         assert meta["forecast_percent"] == 100
         assert meta["day_name"] == "Monday"
 
-    def test_metadata_friday_no_blending(self):
-        """Friday should show no blending (100% actual)."""
+    def test_metadata_friday_blending_active(self):
+        """Friday should show blending active (80% actual, 20% forecast)."""
         friday = datetime(2026, 2, 13, 10, 0, 0)
         meta = get_blend_metadata(10.0, 11.5, friday)
 
-        assert meta["is_blended"] is False
-        assert meta["actual_percent"] == 100
-        assert meta["forecast_percent"] == 0
+        assert meta["is_blended"] is True
+        assert meta["actual_percent"] == 80
+        assert meta["forecast_percent"] == 20
         assert meta["day_name"] == "Friday"
 
     def test_metadata_all_weekdays(self):
@@ -274,25 +276,24 @@ class TestBlendDescription:
         assert "Monday" in desc
 
     def test_description_wednesday(self):
-        """Wednesday description should show 50/50 split."""
+        """Wednesday description should show 40/60 split."""
         wednesday = datetime(2026, 2, 11, 10, 0, 0)
         meta = get_blend_metadata(5.0, 11.5, wednesday)
         desc = format_blend_description(meta)
 
-        assert "50% actual" in desc
-        assert "50% forecast" in desc
+        assert "40% actual" in desc
+        assert "60% forecast" in desc
         assert "Wednesday" in desc
 
-    def test_description_friday_no_blend(self):
-        """Friday description should show pure actual."""
+    def test_description_friday_blended(self):
+        """Friday description should show 80/20 blend."""
         friday = datetime(2026, 2, 13, 10, 0, 0)
         meta = get_blend_metadata(10.0, 11.5, friday)
         desc = format_blend_description(meta)
 
-        assert "Current week actual" in desc
+        assert "80% actual" in desc
+        assert "20% forecast" in desc
         assert "Friday" in desc
-        # Should NOT mention blend percentages
-        assert "%" not in desc or "100%" not in desc
 
     def test_description_saturday_no_blend(self):
         """Saturday description should show pure actual."""
@@ -312,7 +313,13 @@ class TestProgressionThroughWeek:
         # Scenario: Team averages 11.5 items/week, current week varying actuals
         forecast = 11.5
         actuals = [0, 2, 5, 8, 10]  # Mon-Fri
-        expected = [11.5, 9.6, 8.25, 8.7, 10.0]  # Expected blended values
+        expected = [
+            11.5,
+            9.6,
+            8.9,
+            9.4,
+            10.3,
+        ]  # Expected blended values (linear progression)
 
         dates = [
             datetime(2026, 2, 9 + i, 10, 0, 0)
@@ -341,11 +348,11 @@ class TestProgressionThroughWeek:
         )
         monday_blend = calculate_current_week_blend(monday_actual, forecast, monday)
 
-        # Friday should show actual (12.0)
-        assert friday_blend == pytest.approx(12.0, rel=0.01)
+        # Friday should show blended (80% actual, 20% forecast): 12*0.8 + 11.5*0.2 = 9.6 + 2.3 = 11.9
+        assert friday_blend == pytest.approx(11.9, rel=0.01)
         # Monday should show forecast (11.5), NOT zero
         assert monday_blend == pytest.approx(11.5, rel=0.01)
-        # Monday should be within 5% of Friday (no cliff!)
+        # Monday and Friday should be close (smooth transition, no cliff!)
         assert abs(monday_blend - friday_blend) / friday_blend <= 0.05
 
 
