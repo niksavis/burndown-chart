@@ -139,7 +139,6 @@
       toastElement.setAttribute("role", "alert");
       toastElement.setAttribute("aria-live", "assertive");
       toastElement.setAttribute("aria-atomic", "true");
-      toastElement.style.minWidth = "400px";
       toastElement.innerHTML = `
       <div class="toast-header">
         <i class="fas fa-check-circle text-success me-2" style="font-size: 1.2rem;"></i>
@@ -147,9 +146,7 @@
         <button type="button" class="btn-close" aria-label="Close" data-dismiss="toast"></button>
       </div>
       <div class="toast-body">
-        <div>
-          <i class="fas fa-check-circle me-2 text-success"></i>Successfully updated to v${version}!
-        </div>
+        Successfully updated to v${version}!
       </div>
     `;
 
