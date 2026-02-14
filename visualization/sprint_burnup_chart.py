@@ -290,7 +290,7 @@ def create_sprint_burnup_chart(
             title="Date",
             showgrid=True,
             gridcolor="rgba(0, 0, 0, 0.1)",
-            tickangle=-45,
+            tickangle=45,
         ),
         "yaxis": dict(
             title="Issue Count",

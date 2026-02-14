@@ -1241,10 +1241,11 @@ def generate_weekly_forecast(
         # Generate the next week forecast date (ensuring proper progression)
         next_date = last_date + timedelta(weeks=1)
 
-        # Format date for display - clear indication this is the next week
+        # Format date for display using ISO week format (2026-W07) to match historical data
         # Protect against NaT values
         if pd.notna(next_date):
-            formatted_date = next_date.strftime("%b %d")
+            year, week, _ = next_date.isocalendar()
+            formatted_date = f"{year}-W{week:02d}"
         else:
             formatted_date = "Next Week"
 

@@ -153,7 +153,7 @@ def create_sprint_cfd_chart(
             title="Date",
             showgrid=True,
             gridcolor="rgba(0, 0, 0, 0.1)",
-            tickangle=-45,
+            tickangle=45,
         ),
         yaxis=dict(
             title=metric_label,

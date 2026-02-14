@@ -100,7 +100,7 @@ def get_mobile_chart_layout(viewport_size: str = "mobile") -> Dict[str, Any]:
             "xaxis": {
                 "title": {"font": {"size": 10}},
                 "tickfont": {"size": 9},
-                "tickangle": -45,  # Rotate dates for better mobile fit
+                "tickangle": 45,  # Rotate dates for better mobile fit (right tilt)
             },
             "yaxis": {"title": {"font": {"size": 10}}, "tickfont": {"size": 9}},
             "yaxis2": {"title": {"font": {"size": 10}}, "tickfont": {"size": 9}},
@@ -468,7 +468,7 @@ def create_bug_trend_chart(
         title="Bug Trends: Creation vs Resolution",
         xaxis=dict(
             title="Week",
-            tickangle=-45 if viewport_size == "mobile" else 0,
+            tickangle=45 if viewport_size == "mobile" else 0,
             tickfont=dict(size=10 if viewport_size == "mobile" else 12),
         ),
         yaxis=dict(
@@ -790,7 +790,7 @@ def create_bug_investment_chart(
         title="Bug Investment: Count vs Points (+ Created, - Resolved)",
         xaxis=dict(
             title="Week",
-            tickangle=-45 if viewport_size == "mobile" else 0,
+            tickangle=45 if viewport_size == "mobile" else 0,
             tickfont=dict(size=10 if viewport_size == "mobile" else 12),
         ),
         hovermode="x unified",

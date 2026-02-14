@@ -278,7 +278,7 @@ def create_metric_trend_sparkline(
             "gridcolor": "rgba(0,0,0,0.1)",  # Consistent grid color
             "gridwidth": 1,
             "zeroline": False,
-            "tickangle": -45,  # Angle labels to prevent overlap with many data points
+            "tickangle": 45,  # Consistent 45° rotation (right tilt)
             "tickfont": {"size": 9},  # Slightly smaller font for better fit
         },
         "yaxis": {
@@ -433,7 +433,7 @@ def create_metric_trend_full(
             "showgrid": True,
             "gridcolor": "rgba(0,0,0,0.1)",
             "tickfont": {"size": 10},
-            "tickangle": -45,  # Consistent 45° rotation
+            "tickangle": 45,  # Consistent 45° rotation (right tilt)
         },
         "yaxis": {
             "title": "",  # No axis title
@@ -719,7 +719,7 @@ def create_dual_line_trend(
             "showgrid": True,
             "gridcolor": "rgba(0,0,0,0.1)",
             "zeroline": False,
-            "tickangle": -45,  # Consistent 45° rotation
+            "tickangle": 45,  # Consistent 45° rotation (right tilt)
             "tickfont": {"size": 9},
             "title": "",  # No axis title
         },

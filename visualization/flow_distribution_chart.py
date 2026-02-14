@@ -96,7 +96,7 @@ def create_work_distribution_chart(
             categoryarray=[d["week"] for d in distribution_history],
             showgrid=True,
             gridcolor="rgba(0,0,0,0.05)",
-            tickangle=-45,
+            tickangle=45,
             tickfont=dict(size=9),
             title=None,  # No x-axis label
         ),

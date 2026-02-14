@@ -99,7 +99,7 @@ def get_mobile_first_layout(
             "gridwidth": 1,
             "gridcolor": "rgba(0,0,0,0.1)",
             "tickfont": {"size": 10},
-            "tickangle": -45,  # Consistent 45° rotation
+            "tickangle": 45,  # Consistent 45° rotation (right tilt)
         },
         "yaxis": {
             "title": "",  # No axis title

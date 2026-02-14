@@ -392,9 +392,10 @@ def configure_axes(fig, forecast_data):
         title="",  # No axis title
         tickmode="auto",
         nticks=20,
+        tickformat="%Y-W%V",  # ISO week format (2026-W07)
         gridcolor="rgba(200, 200, 200, 0.2)",
         automargin=True,
-        tickangle=-45,  # Consistent 45° rotation
+        tickangle=45,  # Consistent 45° rotation (right tilt)
     )
 
     # Configure primary y-axis (items)
