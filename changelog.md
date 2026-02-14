@@ -1,5 +1,21 @@
 # Changelog
 
+## v2.12.2
+
+*Released: 2026-02-14*
+
+### Improvements
+
+- **Mathematically Sound Blending Weights**: Current week metrics now use linear progression formula (weight = days_completed / 5) with Wednesday at 40% actual/60% forecast, Thursday at 60% actual/40% forecast, and Friday at 80% actual/20% forecast for smoother and more predictable blended forecasts throughout the week
+- Active Work Timeline empty state rendering improved with correct state handling
+- Toast notification test coverage enhanced with proper structure validation
+
+### Bug Fixes
+
+- Friday now correctly shows blended data instead of prematurely switching to 100% actual data while work continues
+- Fixed 7 pre-existing callback test failures in active work timeline and budget settings modules
+- Active work timeline callbacks now use correct empty state function
+
 ## v2.12.1
 
 *Released: 2026-02-14*
