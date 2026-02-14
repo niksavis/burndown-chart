@@ -15,11 +15,6 @@
         "showReuseMessage": false,
         "clear": false
       },
-      "options": {
-        "env": {
-          "PATH": "D:\\Development\\tools\\bd;${env:PATH}"
-        }
-      },
       "runOptions": {
         "runOn": "folderOpen"
       }
