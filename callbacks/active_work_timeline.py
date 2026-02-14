@@ -58,7 +58,7 @@ def _render_active_work_timeline_content(
 
         if not issues:
             logger.warning("[ACTIVE WORK] No issues found for active profile/query")
-            return create_no_issues_state()
+            return create_no_active_work_state()
 
         logger.info(f"[ACTIVE WORK] Loaded {len(issues)} issues from database")
 
@@ -126,7 +126,7 @@ def _render_active_work_timeline_content(
             logger.error(
                 f"[ACTIVE WORK] Error in get_active_work_data: {e}", exc_info=True
             )
-            return create_no_issues_state(
+            return create_no_active_work_state(
                 parent_field_configured=parent_field_configured
             )
 
@@ -138,7 +138,7 @@ def _render_active_work_timeline_content(
             logger.warning(
                 "[ACTIVE WORK] No active work found after filtering - empty timeline"
             )
-            return create_no_issues_state(
+            return create_no_active_work_state(
                 parent_field_configured=parent_field_configured
             )
 

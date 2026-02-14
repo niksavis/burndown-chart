@@ -36,8 +36,8 @@ def test_save_requires_time_allocated(mock_db_connection):
 
     # Should fail with validation error
     assert result_notification is not None
-    toast_content = result_notification.children.children[1]
-    assert "time allocated" in toast_content.lower()
+    toast_message = result_notification.children
+    assert "time allocated" in toast_message.lower()
 
 
 def test_save_requires_team_cost(mock_db_connection):
@@ -59,8 +59,8 @@ def test_save_requires_team_cost(mock_db_connection):
 
     # Should fail with validation error
     assert result_notification is not None
-    toast_content = result_notification.children.children[1]
-    assert "team cost" in toast_content.lower()
+    toast_message = result_notification.children
+    assert "team cost" in toast_message.lower()
 
 
 def test_budget_calculates_from_time_and_cost(mock_db_connection):
@@ -82,8 +82,8 @@ def test_budget_calculates_from_time_and_cost(mock_db_connection):
 
     # Should succeed
     assert result_notification is not None
-    toast_content = result_notification.children.children[1]
-    assert "successfully" in toast_content.lower()
+    toast_message = result_notification.children
+    assert "successfully" in toast_message.lower()
 
     # Verify budget was calculated as time × cost = 10 × 3000 = 30000
     insert_call = mock_cursor.execute.call_args_list[0]
@@ -111,8 +111,8 @@ def test_budget_update_with_optional_fields(mock_db_connection):
 
     # Should succeed
     assert result_notification is not None
-    toast_content = result_notification.children.children[1]
-    assert "successfully" in toast_content.lower()
+    toast_message = result_notification.children
+    assert "successfully" in toast_message.lower()
 
     # Verify budget calculation
     insert_call = mock_cursor.execute.call_args_list[0]

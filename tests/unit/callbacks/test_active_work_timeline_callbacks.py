@@ -31,7 +31,7 @@ def test_render_returns_no_issues_when_no_active_profile(monkeypatch):
     monkeypatch.setattr("data.persistence.factory.get_backend", lambda: backend)
     sentinel = html.Div("empty")
     monkeypatch.setattr(
-        "ui.active_work_timeline.create_no_issues_state",
+        "ui.empty_states.create_no_active_work_state",
         lambda **kwargs: sentinel,
     )
 
@@ -50,7 +50,7 @@ def test_render_returns_no_issues_when_issue_list_empty(monkeypatch):
     monkeypatch.setattr("data.persistence.factory.get_backend", lambda: backend)
     sentinel = html.Div("empty")
     monkeypatch.setattr(
-        "ui.active_work_timeline.create_no_issues_state",
+        "ui.empty_states.create_no_active_work_state",
         lambda **kwargs: sentinel,
     )
 
