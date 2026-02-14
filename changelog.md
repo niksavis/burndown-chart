@@ -1,5 +1,29 @@
 # Changelog
 
+## v2.12.1
+
+*Released: 2026-02-14*
+
+### Features
+
+- **Chart Date Standardization**: All charts now use consistent ISO week format (2026-W07) for better readability and international compatibility
+- **Offline Report Support**: HTML reports now work completely offline with local copies of Font Awesome, Bootstrap, Chart.js, and other assets for easy sharing without internet access
+
+### Improvements
+
+- Chart labels consistently rotate 45° to the right across all visualizations for uniform appearance
+- Bug Analysis chart legends positioned properly to prevent overlap with axis labels on mobile devices
+- Vendor dependency version tracking with automated download script for reproducible builds
+- Browser tab title and favicon load without flicker for smoother user experience
+- Toast notification headers include Font Awesome icons for better visual feedback
+- CodeMirror JQL editor works offline with local mode definitions
+- Normalized header spacing and input heights across all UI panels
+
+### Bug Fixes
+
+- Font Awesome 6.7.2 eliminates glyph bounding box console warnings
+- Test suite now validates PERT forecast traces correctly (all 65 visualization tests passing)
+
 ## v2.12.0
 
 *Released: 2026-02-12*
