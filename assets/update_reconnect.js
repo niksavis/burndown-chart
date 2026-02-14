@@ -135,7 +135,7 @@
 
       // Create toast HTML (matching Dash Bootstrap Components style)
       const toastElement = document.createElement("div");
-      toastElement.className = "fade toast show";
+      toastElement.className = "fade toast show app-toast";
       toastElement.setAttribute("role", "alert");
       toastElement.setAttribute("aria-live", "assertive");
       toastElement.setAttribute("aria-atomic", "true");
