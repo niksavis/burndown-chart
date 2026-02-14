@@ -85,14 +85,14 @@ def get_mobile_chart_layout(viewport_size: str = "mobile") -> Dict[str, Any]:
             "margin": {
                 "t": 30,
                 "r": 15,
-                "b": 50,
+                "b": 130,  # Increased for rotated labels + legend below
                 "l": 50,
-            },  # Tighter margins for mobile
-            "height": 400,  # Shorter height for mobile screens
+            },
+            "height": 450,  # Slightly taller to accommodate larger bottom margin
             "legend": {
                 "orientation": "h",
                 "yanchor": "bottom",
-                "y": -0.15,  # Position legend below chart
+                "y": -0.35,  # Position legend further below to avoid x-axis overlap
                 "xanchor": "center",
                 "x": 0.5,
                 "font": {"size": 10},
@@ -487,9 +487,9 @@ def create_bug_trend_chart(
         legend=dict(
             orientation="h" if viewport_size == "mobile" else "v",
             yanchor="bottom",
-            y=-0.3
+            y=-0.35
             if viewport_size == "mobile"
-            else 0.5,  # Center vertically for desktop/tablet
+            else 0.5,  # Center vertically for desktop/tablet, further below for mobile
             xanchor="left" if viewport_size == "mobile" else "left",
             x=0 if viewport_size == "mobile" else 1.02,
             bgcolor="rgba(255,255,255,0.8)",
@@ -784,7 +784,9 @@ def create_bug_investment_chart(
 
     # Increase bottom margin for legend
     if "margin" in layout_config_clean:
-        layout_config_clean["margin"]["b"] = 120  # Space for legend below
+        layout_config_clean["margin"]["b"] = (
+            130  # Space for rotated labels + legend below
+        )
 
     fig.update_layout(
         title="Bug Investment: Count vs Points (+ Created, - Resolved)",
@@ -804,7 +806,7 @@ def create_bug_investment_chart(
         legend=dict(
             orientation="h",
             yanchor="top",
-            y=-0.2,  # Below chart
+            y=-0.35,  # Further below to avoid x-axis overlap
             xanchor="center",
             x=0.5,
             bgcolor="rgba(255,255,255,0.8)",
