@@ -3,12 +3,12 @@
 # Windows version information file for Burndown Updater
 # This file is used by PyInstaller to embed metadata into the .exe
 #
-# Auto-generated from configuration/__init__.py version: 2.12.1
+# Auto-generated from configuration/__init__.py version: 2.12.2
 
 VSVersionInfo(
   ffi=FixedFileInfo(
-    filevers=(2, 12, 1, 0),
-    prodvers=(2, 12, 1, 0),
+    filevers=(2, 12, 2, 0),
+    prodvers=(2, 12, 2, 0),
     mask=0x3f,
     flags=0x0,
     OS=0x40004,
@@ -23,12 +23,12 @@ VSVersionInfo(
         u'040904B0',
         [StringStruct(u'CompanyName', u'Niksa Visic'),
         StringStruct(u'FileDescription', u'Burndown Updater'),
-        StringStruct(u'FileVersion', u'2.12.1'),
+        StringStruct(u'FileVersion', u'2.12.2'),
         StringStruct(u'InternalName', u'BurndownUpdater'),
         StringStruct(u'LegalCopyright', u'Copyright (c) 2025-2026 Niksa Visic'),
         StringStruct(u'OriginalFilename', u'BurndownUpdater.exe'),
         StringStruct(u'ProductName', u'Burndown Updater'),
-        StringStruct(u'ProductVersion', u'2.12.1')])
+        StringStruct(u'ProductVersion', u'2.12.2')])
       ]), 
     VarFileInfo([VarStruct(u'Translation', [1033, 1200])])
   ]
