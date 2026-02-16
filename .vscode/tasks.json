@@ -2,22 +2,11 @@
   "version": "2.0.0",
   "tasks": [
     {
-      "label": "Start Beads Daemon with Auto-Sync",
+      "label": "Beads Sync Status",
       "type": "shell",
-      "command": "bd daemon start --auto-commit --auto-push",
-      "isBackground": true,
-      "problemMatcher": [],
-      "presentation": {
-        "echo": false,
-        "reveal": "never",
-        "focus": false,
-        "panel": "shared",
-        "showReuseMessage": false,
-        "clear": false
-      },
-      "runOptions": {
-        "runOn": "folderOpen"
-      }
+      "command": "bd sync --status",
+      "isBackground": false,
+      "problemMatcher": []
     }
   ]
 }
