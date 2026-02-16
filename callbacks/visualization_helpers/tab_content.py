@@ -84,7 +84,7 @@ def create_burndown_tab_content(
         dcc.Graph(
             id="forecast-graph",
             figure=burndown_fig,
-            config=get_burndown_chart_config(),  # type: ignore
+            config=get_burndown_chart_config(filename_prefix="burndown_chart"),  # type: ignore
             style={"height": f"{chart_height}px"},
         ),
     ]
@@ -106,7 +106,7 @@ def create_burndown_tab_content(
             dcc.Graph(
                 id="items-chart",
                 figure=items_fig,
-                config=get_weekly_chart_config(),  # type: ignore
+                config=get_weekly_chart_config(filename_prefix="weekly_items"),  # type: ignore
                 className="chart-height-700",
             ),
         ]
@@ -172,7 +172,7 @@ def create_burndown_tab_content(
             dcc.Graph(
                 id="points-chart",
                 figure=points_fig,
-                config=get_weekly_chart_config(),  # type: ignore
+                config=get_weekly_chart_config(filename_prefix="weekly_points"),  # type: ignore
                 className="chart-height-700",
             )
         )

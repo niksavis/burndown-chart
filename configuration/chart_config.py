@@ -11,7 +11,12 @@ Design Philosophy:
 - Professional, cohesive appearance
 """
 
+from datetime import datetime
 from typing import Dict, Any, Optional
+
+
+def _build_image_filename(prefix: str) -> str:
+    return f"{prefix}_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
 
 
 #######################################################################
@@ -24,6 +29,7 @@ def get_chart_config(
     display_mode_bar: Optional[bool] = None,
     display_logo: bool = False,
     mobile_friendly: bool = True,
+    filename_prefix: Optional[str] = None,
     **kwargs,
 ) -> Dict[str, Any]:
     """
@@ -41,6 +47,7 @@ def get_chart_config(
                          mobile_friendly setting (default: None)
         display_logo: Show Plotly logo in toolbar (default: False)
         mobile_friendly: Optimize for mobile devices (default: True)
+        filename_prefix: Optional prefix for PNG download filename
         **kwargs: Additional config options to override defaults
 
     Returns:
@@ -72,7 +79,7 @@ def get_chart_config(
         ],
         "toImageButtonOptions": {
             "format": "png",
-            "filename": "chart",
+            "filename": _build_image_filename(filename_prefix or "chart"),
             "height": None,  # Use current chart height
             "width": None,  # Use current chart width
             "scale": 2,  # High-resolution export (2x)
@@ -212,10 +219,13 @@ def get_chart_layout_config(
 #######################################################################
 
 
-def get_burndown_chart_config() -> Dict[str, Any]:
+def get_burndown_chart_config(
+    filename_prefix: str = "burndown_chart",
+) -> Dict[str, Any]:
     """Get preset config for burndown/burnup charts."""
     return get_chart_config(
         display_mode_bar=True,
+        filename_prefix=filename_prefix,
         modeBarButtonsToRemove=[
             "lasso2d",
             "select2d",
@@ -224,10 +234,13 @@ def get_burndown_chart_config() -> Dict[str, Any]:
     )
 
 
-def get_weekly_chart_config() -> Dict[str, Any]:
+def get_weekly_chart_config(
+    filename_prefix: str = "weekly_chart",
+) -> Dict[str, Any]:
     """Get preset config for weekly items/points bar charts."""
     return get_chart_config(
         display_mode_bar=True,
+        filename_prefix=filename_prefix,
         modeBarButtonsToRemove=[
             "lasso2d",
             "select2d",
@@ -236,10 +249,13 @@ def get_weekly_chart_config() -> Dict[str, Any]:
     )
 
 
-def get_scope_metrics_chart_config() -> Dict[str, Any]:
+def get_scope_metrics_chart_config(
+    filename_prefix: str = "scope_metrics",
+) -> Dict[str, Any]:
     """Get preset config for scope metrics indicator charts."""
     return get_chart_config(
         display_mode_bar=True,
+        filename_prefix=filename_prefix,
         modeBarButtonsToRemove=[
             "lasso2d",
             "select2d",
@@ -248,10 +264,13 @@ def get_scope_metrics_chart_config() -> Dict[str, Any]:
     )
 
 
-def get_bug_analysis_chart_config() -> Dict[str, Any]:
+def get_bug_analysis_chart_config(
+    filename_prefix: str = "bug_analysis",
+) -> Dict[str, Any]:
     """Get preset config for bug analysis charts."""
     return get_chart_config(
         display_mode_bar=True,
+        filename_prefix=filename_prefix,
         modeBarButtonsToRemove=[
             "lasso2d",
             "select2d",

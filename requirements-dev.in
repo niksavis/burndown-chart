@@ -9,7 +9,7 @@
 -r requirements.txt
 
 # Testing dependencies
-pytest==8.3.5
+pytest>=8.3.5  # Kaleido requires pytest>=9.0, allow newer versions
 pytest-cov==6.1.1
 playwright>=1.40.0
 

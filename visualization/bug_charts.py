@@ -10,6 +10,7 @@ for mobile-optimized chart configurations.
 # IMPORTS
 #######################################################################
 # Standard library imports
+from datetime import datetime
 from typing import Dict, Any
 
 # Third-party library imports
@@ -34,6 +35,11 @@ def get_mobile_chart_config(viewport_size: str = "mobile") -> Dict[str, Any]:
         "doubleClick": "reset+autosize",
         "showTips": True,
         "displaylogo": False,
+        "toImageButtonOptions": {
+            "format": "png",
+            "filename": f"burndown_chart_{datetime.now().strftime('%Y%m%d_%H%M%S')}",
+            "scale": 2,
+        },
     }
 
     if viewport_size == "mobile":
@@ -47,7 +53,7 @@ def get_mobile_chart_config(viewport_size: str = "mobile") -> Dict[str, Any]:
             ],
             "toImageButtonOptions": {
                 "format": "png",
-                "filename": "burndown_chart",
+                "filename": f"burndown_chart_{datetime.now().strftime('%Y%m%d_%H%M%S')}",
                 "height": 400,  # Smaller export size for mobile
                 "width": 600,  # Smaller export size for mobile
                 "scale": 2,

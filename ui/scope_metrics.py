@@ -229,7 +229,9 @@ def create_scope_growth_chart(weekly_growth_data, show_points=True):
         chart_height = cast(int, getattr(empty_layout, "height", None) or 300)
         return dcc.Graph(
             figure=empty_figure,
-            config=get_scope_metrics_chart_config(),  # type: ignore[arg-type]
+            config=get_scope_metrics_chart_config(
+                filename_prefix="weekly_scope_growth"
+            ),  # type: ignore[arg-type]
             style={"height": f"{chart_height}px"},
         )
 
@@ -390,7 +392,7 @@ def create_scope_growth_chart(weekly_growth_data, show_points=True):
     chart_height = cast(int, getattr(figure.layout, "height", None) or 300)
     return dcc.Graph(
         figure=figure,
-        config=get_scope_metrics_chart_config(),  # type: ignore[arg-type]
+        config=get_scope_metrics_chart_config(filename_prefix="weekly_scope_growth"),  # type: ignore[arg-type]
         style={"height": f"{chart_height}px"},
     )
 
@@ -586,7 +588,9 @@ def create_cumulative_scope_chart(
         chart_height = cast(int, getattr(empty_layout, "height", None) or 350)
         return dcc.Graph(
             figure=empty_figure,
-            config=get_scope_metrics_chart_config(),  # type: ignore[arg-type]
+            config=get_scope_metrics_chart_config(
+                filename_prefix="backlog_size_over_time"
+            ),  # type: ignore[arg-type]
             style={"height": f"{chart_height}px"},
         )
 
@@ -718,7 +722,7 @@ def create_cumulative_scope_chart(
     chart_height = cast(int, getattr(figure.layout, "height", None) or 350)
     return dcc.Graph(
         figure=figure,
-        config=get_scope_metrics_chart_config(),  # type: ignore[arg-type]
+        config=get_scope_metrics_chart_config(filename_prefix="backlog_size_over_time"),  # type: ignore[arg-type]
         style={"height": f"{chart_height}px"},
     )
 

@@ -4,6 +4,7 @@ Provides standardized chart configurations that follow mobile-first principles
 from the Copilot instructions for immediate value delivery.
 """
 
+from datetime import datetime
 from typing import Dict, Any, List
 
 
@@ -23,7 +24,7 @@ def get_mobile_first_config() -> Dict[str, Any]:
         "responsive": True,  # Mobile-responsive scaling
         "toImageButtonOptions": {
             "format": "png",
-            "filename": "chart",
+            "filename": f"chart_{datetime.now().strftime('%Y%m%d_%H%M%S')}",
             "height": 500,
             "width": 700,
             "scale": 1,

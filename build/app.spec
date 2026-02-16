@@ -36,6 +36,7 @@ hiddenimports = [
     'dash.dependencies',
     'dash_bootstrap_components',
     'plotly',
+    'kaleido',  # Required for plotly PNG export
     'pandas',
     'numpy',
     'scipy',
