@@ -1,5 +1,18 @@
 # Changelog
 
+## v2.12.3
+
+*Released: 2026-02-16*
+
+### Bug Fixes
+
+- **PNG Download Functionality**: Chart PNG downloads now work correctly - fixed Content Security Policy to allow the blob: URLs required by Plotly's image export feature
+
+### Improvements
+
+- Downloaded chart PNGs now have descriptive timestamped filenames (e.g., `burndown_chart_20260216_143522.png`) instead of generic `chart.png` for better file organization
+- Added kaleido package for future server-side image generation capabilities
+
 ## v2.12.2
 
 *Released: 2026-02-14*
