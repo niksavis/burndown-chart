@@ -1,0 +1,211 @@
+/* Active Work Search Styling */
+
+/* Search container */
+.active-work-search-container {
+  position: relative;
+  margin-bottom: 1rem;
+}
+
+.active-work-search-input {
+  font-family: "Courier New", Consolas, monospace;
+  font-size: 14px;
+  padding: 10px 14px;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  width: 100%;
+  transition:
+    border-color 0.15s ease-in-out,
+    box-shadow 0.15s ease-in-out;
+}
+
+.active-work-search-input:focus {
+  border-color: #007bff;
+  outline: 0;
+  box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+.active-work-search-input::placeholder {
+  color: #6c757d;
+  opacity: 0.7;
+}
+
+/* Autocomplete dropdown */
+.active-work-autocomplete-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: white;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  max-height: 300px;
+  overflow-y: auto;
+  z-index: 1050;
+  margin-top: 4px;
+}
+
+.autocomplete-list {
+  list-style: none;
+  margin: 0;
+  padding: 4px 0;
+}
+
+.autocomplete-item {
+  padding: 8px 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  transition: background-color 0.1s ease;
+  border-left: 3px solid transparent;
+}
+
+.autocomplete-item:hover,
+.autocomplete-item.selected {
+  background-color: #f8f9fa;
+  border-left-color: #007bff;
+}
+
+.autocomplete-item.selected {
+  background-color: #e7f1ff;
+}
+
+.autocomplete-icon {
+  margin-right: 10px;
+  font-size: 14px;
+  flex-shrink: 0;
+  width: 20px;
+  text-align: center;
+}
+
+.autocomplete-text {
+  font-family: "Courier New", Consolas, monospace;
+  font-size: 13px;
+  color: #212529;
+}
+
+/* Empty state */
+.active-work-no-results {
+  padding: 48px 24px;
+  text-align: center;
+  color: #6c757d;
+  background-color: #f8f9fa;
+  border-radius: 4px;
+  margin-top: 1rem;
+}
+
+.active-work-no-results-icon {
+  font-size: 64px;
+  margin-bottom: 16px;
+  opacity: 0.5;
+}
+
+/* Search help text */
+.active-work-search-help {
+  font-size: 12px;
+  color: #6c757d;
+  margin-top: 8px;
+  margin-bottom: 0;
+}
+
+.active-work-search-help code {
+  background-color: #f8f9fa;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-family: "Courier New", Consolas, monospace;
+  font-size: 11px;
+}
+
+.active-work-search-query-preview {
+  margin-top: 8px;
+}
+
+.active-work-query-preview-line {
+  font-family: "Courier New", Consolas, monospace;
+  font-size: 12px;
+  line-height: 1.5;
+  word-break: break-word;
+}
+
+.active-work-token-operator {
+  color: var(--bs-secondary-color);
+  font-weight: 600;
+}
+
+.active-work-token-text {
+  color: var(--bs-body-color);
+}
+
+.active-work-token-field {
+  color: var(--bs-success-text-emphasis);
+  font-weight: 600;
+}
+
+.active-work-token-invalid {
+  color: var(--bs-danger-text-emphasis);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.active-work-token-pending {
+  color: var(--bs-warning-text-emphasis);
+  font-weight: 600;
+}
+
+.active-work-query-status {
+  margin-top: 4px;
+  font-size: 11px;
+}
+
+.active-work-query-status-valid {
+  color: var(--bs-success-text-emphasis);
+}
+
+.active-work-query-status-invalid {
+  color: var(--bs-danger-text-emphasis);
+}
+
+/* Clear button styling */
+#active-work-search-clear {
+  flex-shrink: 0;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .active-work-search-input {
+    font-size: 16px; /* Prevent zoom on iOS */
+  }
+
+  .autocomplete-dropdown {
+    max-height: 200px;
+  }
+}
+
+/* Scrollbar styling for autocomplete */
+.active-work-autocomplete-dropdown::-webkit-scrollbar {
+  width: 8px;
+}
+
+.active-work-autocomplete-dropdown::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+.active-work-autocomplete-dropdown::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 4px;
+}
+
+.active-work-autocomplete-dropdown::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+
+/* Loading indicator (future enhancement) */
+.active-work-search-loading {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #007bff;
+}

@@ -102,6 +102,7 @@ from ui.layout import USE_ACCORDION_SETTINGS
 
 from callbacks import (
     about_dialog,  # About dialog modal callbacks (Feature 016, auto-registers via @callback)  # noqa: F401
+    active_work_timeline,
     ai_prompt_generation,  # AI prompt generation callbacks (Feature 017, auto-registers via @callback)  # noqa: F401
     app_update,  # Application auto-update callbacks (auto-registers via @callback)  # noqa: F401
     banner_status_icons,  # Banner icon animations during operations (auto-registers via @callback)  # noqa: F401
@@ -152,6 +153,7 @@ def register_all_callbacks(app):
     """Register all callbacks for the application."""
     statistics.register(app)
     visualization.register(app)
+    active_work_timeline.register(app)
 
     # Always register settings callbacks (needed for Parameters panel toggle)
     settings.register(app)

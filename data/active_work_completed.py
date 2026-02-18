@@ -67,6 +67,7 @@ def get_completed_items_by_week(
 
     # Filter to only completed issues with resolutiondate
     completed_issues = []
+    sampled_debug_logs = 0
     for issue in issues:
         # Access status - try flat format first (database), then JIRA nested format
         status = issue.get("status")
@@ -80,14 +81,15 @@ def get_completed_items_by_week(
         if not resolutiondate:
             resolutiondate = issue.get("fields", {}).get("resolutiondate")
 
-        # Debug: Log first few issues details
-        issue_key = issue.get("key", issue.get("issue_key", "unknown"))
-        if len(completed_issues) < 3:  # Only log first few to avoid spam
-            logger.info(
+        # Debug sample (limited) to aid troubleshooting without log spam
+        if sampled_debug_logs < 3:
+            issue_key = issue.get("key", issue.get("issue_key", "unknown"))
+            logger.debug(
                 f"[COMPLETED ITEMS DEBUG] Issue {issue_key}: status={status}, "
                 f"resolutiondate={resolutiondate}, "
                 f"in flow_end_statuses={status in flow_end_statuses}"
             )
+            sampled_debug_logs += 1
 
         if status in flow_end_statuses and resolutiondate:
             completed_issues.append(issue)

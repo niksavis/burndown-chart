@@ -554,10 +554,11 @@ def register(app):
             + str(import_trigger)
         )
         cache_key = f"{active_tab}_{data_hash}"
+        use_cache_for_tab = active_tab != "tab-active-work-timeline"
         logger.debug(f"[CTO DEBUG] Cache key generated: {cache_key}")
 
         # Check if we have cached content for this exact state
-        if cache_key in chart_cache:
+        if use_cache_for_tab and cache_key in chart_cache:
             # Return cached content immediately for <100ms response time
             logger.debug(
                 f"[CTO DEBUG] Returning CACHED content for active_tab='{active_tab}', cache_key={cache_key}"
@@ -1515,8 +1516,8 @@ def register(app):
                     show_points, data_points_count
                 )
 
-                # Cache the result for next time
-                chart_cache[cache_key] = timeline_content
+                if use_cache_for_tab:
+                    chart_cache[cache_key] = timeline_content
                 ui_state["loading"] = False
                 return timeline_content, chart_cache, ui_state
 

@@ -153,17 +153,119 @@ class IssuesCRUDMixin:
                 cursor = conn.cursor()
 
                 for issue in issues:
-                    fields = issue.get("fields", {})
+                    fields_raw = issue.get("fields", {})
+                    fields = fields_raw if isinstance(fields_raw, dict) else {}
+                    is_flat_issue = not fields
 
                     # RAW LAYER: Save ALL custom fields (immutable)
-                    custom_fields_raw = {
-                        k: v for k, v in fields.items() if k.startswith("customfield_")
-                    }
+                    if is_flat_issue:
+                        if isinstance(issue.get("custom_fields"), dict):
+                            custom_fields_raw = issue.get("custom_fields", {})
+                        else:
+                            custom_fields_raw = {
+                                k: v
+                                for k, v in issue.items()
+                                if isinstance(k, str) and k.startswith("customfield_")
+                            }
+                    else:
+                        custom_fields_raw = {
+                            k: v
+                            for k, v in fields.items()
+                            if k.startswith("customfield_")
+                        }
                     custom_fields_json = json.dumps(custom_fields_raw)
+
+                    issue_key = issue.get("key") or issue.get("issue_key")
+                    status_value = fields.get("status") if not is_flat_issue else None
+                    issue_type_value = (
+                        fields.get("issuetype") if not is_flat_issue else None
+                    )
+                    priority_value = (
+                        fields.get("priority") if not is_flat_issue else None
+                    )
+                    resolution_value = (
+                        fields.get("resolution") if not is_flat_issue else None
+                    )
+                    assignee_value = (
+                        fields.get("assignee") if not is_flat_issue else None
+                    )
+                    project_value = fields.get("project") if not is_flat_issue else None
+
+                    summary = (
+                        fields.get("summary", "")
+                        if not is_flat_issue
+                        else issue.get("summary", "")
+                    )
+                    status_name = (
+                        status_value.get("name", "")
+                        if isinstance(status_value, dict)
+                        else issue.get("status", "")
+                    )
+                    assignee_name = (
+                        assignee_value.get("displayName")
+                        if isinstance(assignee_value, dict)
+                        else issue.get("assignee")
+                    )
+                    issue_type_name = (
+                        issue_type_value.get("name", "")
+                        if isinstance(issue_type_value, dict)
+                        else issue.get("issue_type", "")
+                    )
+                    priority_name = (
+                        priority_value.get("name")
+                        if isinstance(priority_value, dict)
+                        else issue.get("priority")
+                    )
+                    resolution_name = (
+                        resolution_value.get("name")
+                        if isinstance(resolution_value, dict)
+                        else issue.get("resolution")
+                    )
+                    created_value = (
+                        extract_nested_field(fields, created_date_field)
+                        if not is_flat_issue
+                        else issue.get("created")
+                    )
+                    updated_value = (
+                        extract_nested_field(fields, updated_date_field)
+                        if not is_flat_issue
+                        else issue.get("updated")
+                    )
+                    resolved_value = (
+                        extract_nested_field(fields, completed_date_field)
+                        if not is_flat_issue
+                        else issue.get("resolved")
+                    )
+                    project_key = (
+                        project_value.get("key", "")
+                        if isinstance(project_value, dict)
+                        else issue.get("project_key", "")
+                    )
+                    project_name = (
+                        project_value.get("name", "")
+                        if isinstance(project_value, dict)
+                        else issue.get("project_name", "")
+                    )
+
+                    fix_versions_value = (
+                        fields.get("fixVersions")
+                        if not is_flat_issue
+                        else issue.get("fix_versions", issue.get("fixVersions"))
+                    )
+                    labels_value = (
+                        fields.get("labels")
+                        if not is_flat_issue
+                        else issue.get("labels")
+                    )
+                    components_value = (
+                        fields.get("components")
+                        if not is_flat_issue
+                        else issue.get("components")
+                    )
 
                     # NORMALIZED LAYER: Extract points via configured mapping
                     points = None
-                    if points_field:
+                    if points_field and not is_flat_issue:
                         points_raw = fields.get(points_field)
 
                         if points_raw is not None:
@@ -179,6 +281,13 @@ class IssuesCRUDMixin:
                                     )
                                     points = None
                             else:
+                                points = None
+                    elif is_flat_issue:
+                        points_raw = issue.get("points")
+                        if points_raw is not None:
+                            try:
+                                points = float(points_raw)
+                            except (ValueError, TypeError):
                                 points = None
 
                     cursor.execute(
@@ -211,28 +320,22 @@ class IssuesCRUDMixin:
                             profile_id,
                             query_id,
                             cache_key,
-                            issue.get("key"),
-                            fields.get("summary", ""),
-                            fields.get("status", {}).get("name", ""),
-                            fields.get("assignee", {}).get("displayName")
-                            if fields.get("assignee")
-                            else None,
-                            fields.get("issuetype", {}).get("name", ""),
-                            fields.get("priority", {}).get("name")
-                            if fields.get("priority")
-                            else None,
-                            fields.get("resolution", {}).get("name")
-                            if fields.get("resolution")
-                            else None,
-                            extract_nested_field(fields, created_date_field),
-                            extract_nested_field(fields, updated_date_field),
-                            extract_nested_field(fields, completed_date_field),
+                            issue_key,
+                            summary,
+                            status_name,
+                            assignee_name,
+                            issue_type_name,
+                            priority_name,
+                            resolution_name,
+                            created_value,
+                            updated_value,
+                            resolved_value,
                             points,
-                            fields.get("project", {}).get("key", ""),
-                            fields.get("project", {}).get("name", ""),
-                            json.dumps(fields.get("fixVersions")),
-                            json.dumps(fields.get("labels")),
-                            json.dumps(fields.get("components")),
+                            project_key,
+                            project_name,
+                            json.dumps(fix_versions_value),
+                            json.dumps(labels_value),
+                            json.dumps(components_value),
                             custom_fields_json,
                             expires_at.isoformat(),
                             datetime.now(timezone.utc).isoformat(),

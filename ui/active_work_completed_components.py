@@ -35,7 +35,10 @@ def create_completed_items_section(
         Section div with week containers
     """
     if not completed_by_week:
-        return html.Div()
+        return html.Div(
+            className="completed-items-section mb-3",
+            id="completed-items-section",
+        )
 
     week_containers = []
 
