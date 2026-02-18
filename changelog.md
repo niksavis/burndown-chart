@@ -1,5 +1,13 @@
 # Changelog
 
+## v2.13.0
+
+*Released: 2026-02-18*
+
+### Features
+
+- **Active Work Builder Search**: Added a new builder-first search experience for Active Work with field/value query construction, explicit AND/OR/Undo/Search/Clear actions, strict query validation, consistent filtering across All Work and Completed Work, color-coded query preview in the visible query box, simplified helper guidance, and internal cleanup to support long-term maintainability
+
 ## v2.12.4
 
 *Released: 2026-02-16*
