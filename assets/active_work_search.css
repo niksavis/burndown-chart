@@ -117,18 +117,22 @@
 }
 
 .active-work-search-query-preview {
-  margin-top: 8px;
+  margin-top: 0;
+  min-height: 42px;
+  display: flex;
+  align-items: center;
 }
 
 .active-work-query-preview-line {
   font-family: "Courier New", Consolas, monospace;
-  font-size: 12px;
-  line-height: 1.5;
+  font-size: 14px;
+  line-height: 1.4;
   word-break: break-word;
+  width: 100%;
 }
 
 .active-work-token-operator {
-  color: var(--bs-secondary-color);
+  color: var(--bs-secondary, #6c757d) !important;
   font-weight: 600;
 }
 
@@ -137,8 +141,12 @@
 }
 
 .active-work-token-field {
-  color: var(--bs-success-text-emphasis);
-  font-weight: 600;
+  color: var(--bs-success-text-emphasis, #0a3622) !important;
+  font-weight: 700;
+}
+
+.active-work-token-value {
+  color: var(--bs-info, #0dcaf0) !important;
 }
 
 .active-work-token-invalid {

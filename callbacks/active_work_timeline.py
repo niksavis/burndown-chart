@@ -267,6 +267,51 @@ def register(app):
         Input("active-work-issues-store", "data"),
     )
 
+    def _build_query_preview(query_text: str):
+        """Build color-coded query preview for fields, values, and operators."""
+        query = (query_text or "").strip()
+        if not query:
+            return ""
+
+        preview_parts = []
+        for token in re.split(r"(\s+|[&|()])", query):
+            if token is None or token == "":
+                continue
+
+            if token.isspace():
+                preview_parts.append(token)
+                continue
+
+            if token in {"&", "|", "(", ")"}:
+                preview_parts.append(
+                    html.Span(token, className="active-work-token-operator")
+                )
+                continue
+
+            if ":" in token:
+                field_name, value_text = token.split(":", 1)
+                if field_name:
+                    preview_parts.append(
+                        html.Span(field_name, className="active-work-token-field")
+                    )
+                preview_parts.append(
+                    html.Span(":", className="active-work-token-operator")
+                )
+                if value_text:
+                    preview_parts.append(
+                        html.Span(value_text, className="active-work-token-value")
+                    )
+                continue
+
+            preview_parts.append(html.Span(token, className="active-work-token-value"))
+
+        return html.Div(preview_parts, className="active-work-query-preview-line")
+
+    def _build_query_outputs(query_text: str):
+        """Return synchronized builder outputs with formatted preview."""
+        query = (query_text or "").strip()
+        return query, query, _build_query_preview(query)
+
     @app.callback(
         Output("active-work-builder-value-select", "options"),
         Output("active-work-builder-value-select", "style"),
@@ -320,22 +365,21 @@ def register(app):
         triggered = ctx.triggered_id
 
         if triggered is None:
-            query = (current_query or "").strip()
-            return query, query, query
+            return _build_query_outputs(current_query)
 
         if triggered == "active-work-search-clear":
             return "", "", ""
 
         if triggered == "active-work-builder-undo":
             next_query = _remove_last_clause(current_query or "")
-            return next_query, next_query, next_query
+            return _build_query_outputs(next_query)
 
         field_name = (selected_field or "").strip().lower()
         free_text = (text_value or "").strip()
         existing = (current_query or "").strip()
 
         if not field_name:
-            return existing, existing, existing
+            return _build_query_outputs(existing)
 
         if field_name in {"summary", "key"}:
             value_tokens = [
@@ -344,7 +388,7 @@ def register(app):
                 if token and token.strip()
             ]
             if not value_tokens:
-                return existing, existing, existing
+                return _build_query_outputs(existing)
 
             if field_name == "summary":
                 normalized_tokens = []
@@ -376,7 +420,7 @@ def register(app):
                 values = []
 
             if not values:
-                return existing, existing, existing
+                return _build_query_outputs(existing)
 
             formatted_values = []
             for value in values:
@@ -395,7 +439,7 @@ def register(app):
         else:
             next_query = existing
 
-        return next_query, next_query, next_query
+        return _build_query_outputs(next_query)
 
     # Server-side callback: Filter timeline based on search
     @app.callback(
