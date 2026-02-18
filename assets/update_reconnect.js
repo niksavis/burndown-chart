@@ -535,7 +535,12 @@
     })
       .then((response) => response.json())
       .then((versionData) => {
-        console.log("[update_reconnect] Version check:", versionData);
+        const version =
+          versionData && versionData.version ? versionData.version : "unknown";
+        const postUpdate = Boolean(versionData && versionData.post_update);
+        console.log(
+          `[update_reconnect] Version check: version=${version}, post_update=${postUpdate}`,
+        );
 
         // If post_update flag is set, this is a post-update restart
         if (versionData.post_update) {
