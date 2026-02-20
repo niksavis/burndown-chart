@@ -75,7 +75,9 @@ def manage_button_states(
 
     logger.info(
         f"[QueryManagement] CALLBACK FIRED - selected_query_id='{selected_query_id}', "
-        f"current_name='{current_name}', current_jql='{current_jql[:60] if current_jql else '(empty)'}...'"
+        "current_name='"
+        f"{current_name}', "
+        f"current_jql='{current_jql[:60] if current_jql else '(empty)'}...'"
     )
 
     # Detect if query-selector triggered this callback (query switch in progress)
@@ -86,7 +88,8 @@ def manage_button_states(
         triggered_by_selector = trigger_id == "query-selector"
         if triggered_by_selector:
             logger.info(
-                "[QueryManagement] Query switch in progress - suppressing alert to avoid race condition"
+                "[QueryManagement] Query switch in progress - "
+                "suppressing alert to avoid race condition"
             )
 
     try:
@@ -105,28 +108,35 @@ def manage_button_states(
             discard_disabled = not has_any_content
 
             logger.info(
-                f"[QueryManagement] Create New mode - Name: '{current_name}', JQL: '{current_jql[:50] if current_jql else ''}...', "
-                f"Save: {not save_disabled}, Save As: {not save_as_disabled}, Discard: {not discard_disabled}"
+                "[QueryManagement] Create New mode - "
+                f"Name: '{current_name}', "
+                f"JQL: '{current_jql[:50] if current_jql else ''}...', "
+                f"Save: {not save_disabled}, Save As: {not save_as_disabled}, "
+                f"Discard: {not discard_disabled}"
             )
 
             logger.info(
-                f"[QueryManagement] RETURNING: save_disabled={save_disabled}, save_as_disabled={save_as_disabled}, "
+                "[QueryManagement] RETURNING: "
+                f"save_disabled={save_disabled}, "
+                f"save_as_disabled={save_as_disabled}, "
                 f"discard_disabled={discard_disabled}, alert={has_any_content}"
             )
 
-            # Suppress alert if triggered by query selector (race condition during switch)
+            # Suppress alert if triggered by query selector
+            # (race condition during switch)
             show_alert = has_any_content and not triggered_by_selector
 
             return save_disabled, save_as_disabled, discard_disabled, show_alert
 
         # Handle no query selected (empty dropdown)
         if not selected_query_id:
-            # This is the first query in profile - enable Save/Save As when JQL is entered
+            # First query in profile: enable Save/Save As when JQL is entered
             has_name = bool(current_name and current_name.strip())
             has_jql = bool(current_jql and current_jql.strip())
             has_any_content = has_name or has_jql
 
-            # For first query: Enable Save when JQL present (name will be auto-generated)
+            # First query: Enable Save when JQL present
+            # (name will be auto-generated)
             # Save: Enabled when JQL is present (name auto-generated if empty)
             save_disabled = not has_jql
             # Save As: Enabled when JQL is present (user can provide custom name)
@@ -135,16 +145,22 @@ def manage_button_states(
             discard_disabled = not has_any_content
 
             logger.info(
-                f"[QueryManagement] First query mode (no selection) - Name: '{current_name}', JQL: '{current_jql[:50] if current_jql else ''}...', "
-                f"Save: {not save_disabled}, Save As: {not save_as_disabled}, Discard: {not discard_disabled}"
+                "[QueryManagement] First query mode (no selection) - "
+                f"Name: '{current_name}', "
+                f"JQL: '{current_jql[:50] if current_jql else ''}...', "
+                f"Save: {not save_disabled}, Save As: {not save_as_disabled}, "
+                f"Discard: {not discard_disabled}"
             )
 
             logger.info(
-                f"[QueryManagement] RETURNING: save_disabled={save_disabled}, save_as_disabled={save_as_disabled}, "
+                "[QueryManagement] RETURNING: "
+                f"save_disabled={save_disabled}, "
+                f"save_as_disabled={save_as_disabled}, "
                 f"discard_disabled={discard_disabled}, alert={has_any_content}"
             )
 
-            # Suppress alert if triggered by query selector (race condition during switch)
+            # Suppress alert if triggered by query selector
+            # (race condition during switch)
             show_alert = has_any_content and not triggered_by_selector
 
             return save_disabled, save_as_disabled, discard_disabled, show_alert
@@ -178,8 +194,10 @@ def manage_button_states(
         show_alert = any_changes and not triggered_by_selector
 
         logger.debug(
-            f"Button states - Save: {not save_disabled}, Save As: {not save_as_disabled}, "
-            f"Discard: {not discard_disabled}, Alert: {show_alert} (triggered_by_selector: {triggered_by_selector})"
+            f"Button states - Save: {not save_disabled}, "
+            f"Save As: {not save_as_disabled}, "
+            f"Discard: {not discard_disabled}, Alert: {show_alert} "
+            f"(triggered_by_selector: {triggered_by_selector})"
         )
 
         return save_disabled, save_as_disabled, discard_disabled, show_alert
@@ -344,7 +362,8 @@ def save_query_overwrite(
 
                 query_name = generate_query_name(query_jql.strip())
                 logger.info(
-                    f"[QueryManagement] Auto-generated name for first query: '{query_name}'"
+                    "[QueryManagement] Auto-generated name for first query: "
+                    f"'{query_name}'"
                 )
 
             # Create first query
@@ -360,7 +379,8 @@ def save_query_overwrite(
             switch_query(new_query_id)
 
             logger.info(
-                f"[QueryManagement] Created first query '{new_query_id}' in profile '{profile_id}'"
+                f"[QueryManagement] Created first query '{new_query_id}' "
+                f"in profile '{profile_id}'"
             )
 
             # Refresh dropdown and select new query
@@ -391,7 +411,8 @@ def save_query_overwrite(
 
                 query_name = generate_query_name(query_jql.strip())
                 logger.info(
-                    f"[QueryManagement] Auto-generated name for new query: '{query_name}'"
+                    "[QueryManagement] Auto-generated name for new query: "
+                    f"'{query_name}'"
                 )
 
             # Create new query
@@ -411,7 +432,9 @@ def save_query_overwrite(
                     from ui.toast_notifications import create_warning_toast
 
                     feedback = create_warning_toast(
-                        f"Query name '{query_name}' already exists. Please choose a different name.",
+                        "Query name "
+                        f"'{query_name}' already exists. "
+                        "Please choose a different name.",
                         header="Name Collision",
                     )
                     return "", no_update, no_update, feedback
@@ -420,7 +443,8 @@ def save_query_overwrite(
             switch_query(new_query_id)
 
             logger.info(
-                f"[QueryManagement] Created new query '{new_query_id}' in profile '{profile_id}'"
+                f"[QueryManagement] Created new query '{new_query_id}' "
+                f"in profile '{profile_id}'"
             )
 
             # Refresh dropdown and select new query
@@ -469,7 +493,9 @@ def save_query_overwrite(
                 from ui.toast_notifications import create_warning_toast
 
                 feedback = create_warning_toast(
-                    f"Query name '{query_name}' already exists. Please choose a different name.",
+                    "Query name "
+                    f"'{query_name}' already exists. "
+                    "Please choose a different name.",
                     header="Name Collision",
                 )
                 return "", no_update, no_update, feedback
@@ -578,7 +604,9 @@ def save_query_as_new(
                 from ui.toast_notifications import create_warning_toast
 
                 feedback = create_warning_toast(
-                    f"Query name '{query_name}' already exists. Please choose a different name.",
+                    "Query name "
+                    f"'{query_name}' already exists. "
+                    "Please choose a different name.",
                     header="Name Collision",
                 )
                 return "", no_update, no_update, feedback
