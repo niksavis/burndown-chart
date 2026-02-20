@@ -103,7 +103,8 @@ def _render_sprint_tracker_content(
 
         logger.info(f"Loaded {len(all_issues)} issues from database")
 
-        # Filter to only configured development project issues (exclude parents/parent types)
+        # Filter to configured development project issues
+        # (exclude parents/parent types).
         from data.issue_filtering import filter_issues_for_metrics
         from data.persistence import load_app_settings
 
@@ -140,7 +141,8 @@ def _render_sprint_tracker_content(
         logger.info(f"Using sprint field: {sprint_field}")
 
         # Load sprint changelog entries using configured sprint field
-        # Try both custom field ID and "Sprint" display name (JIRA uses display name in changelog)
+        # Try both custom field ID and "Sprint" display name
+        # (JIRA uses display name in changelog).
         changelog_entries = backend.get_changelog_entries(
             active_profile_id, active_query_id, field_name=sprint_field
         )
@@ -152,7 +154,9 @@ def _render_sprint_tracker_content(
             )
             if changelog_entries:
                 logger.info(
-                    f"Found {len(changelog_entries)} sprint entries using 'Sprint' field name"
+                    "Found "
+                    f"{len(changelog_entries)} sprint entries using "
+                    "'Sprint' field name"
                 )
 
         if not changelog_entries or len(changelog_entries) == 0:
@@ -293,7 +297,8 @@ def _render_sprint_tracker_content(
         )
 
         logger.info(
-            f"[SPRINT TRACKER] Loaded {len(status_changelog)} status changelog entries for sprint"
+            "[SPRINT TRACKER] Loaded "
+            f"{len(status_changelog)} status changelog entries for sprint"
         )
 
         # Load flow configuration for dynamic status colors
@@ -433,12 +438,14 @@ def update_sprint_charts(selected_sprint, charts_visible, points_toggle_list):
     """Update burnup chart when sprint selection changes OR when charts become visible.
 
     Note: points_toggle is a State (not Input) to prevent cascade when toggling.
-    The chart updates via sprint-selector-dropdown changes triggered by update_sprint_selection.
+    The chart updates via sprint-selector-dropdown changes
+    triggered by update_sprint_selection.
 
     Args:
         selected_sprint: Selected sprint name from dropdown
         charts_visible: Whether charts section is visible
-        points_toggle_list: Points toggle list (list with 'points' if enabled) - STATE only
+        points_toggle_list: Points toggle list
+            (list with 'points' if enabled) - STATE only
 
     Returns:
         Plotly figure for burnup chart
@@ -455,7 +462,9 @@ def update_sprint_charts(selected_sprint, charts_visible, points_toggle_list):
     triggered = callback_context.triggered[0] if callback_context.triggered else None
     trigger_id = triggered["prop_id"].split(".")[0] if triggered else "unknown"
     logger.info(
-        f"update_sprint_charts TRIGGERED by: {trigger_id} (sprint={selected_sprint}, points_toggle={points_toggle_list}, visible={charts_visible})"
+        "update_sprint_charts TRIGGERED by: "
+        f"{trigger_id} (sprint={selected_sprint}, "
+        f"points_toggle={points_toggle_list}, visible={charts_visible})"
     )
 
     if not selected_sprint:
@@ -475,7 +484,8 @@ def update_sprint_charts(selected_sprint, charts_visible, points_toggle_list):
         # Determine if using points (note: checklist uses 'show' as value, not 'points')
         show_points = points_toggle_list and "show" in points_toggle_list
         logger.info(
-            f"update_sprint_charts: show_points={show_points}, points_toggle_list={points_toggle_list}"
+            f"update_sprint_charts: show_points={show_points}, "
+            f"points_toggle_list={points_toggle_list}"
         )
 
         # Load data from backend
@@ -486,7 +496,9 @@ def update_sprint_charts(selected_sprint, charts_visible, points_toggle_list):
         active_query_id = backend.get_app_state("active_query_id")
 
         logger.info(
-            f"update_sprint_charts: active_profile_id={active_profile_id}, active_query_id={active_query_id}"
+            "update_sprint_charts: "
+            f"active_profile_id={active_profile_id}, "
+            f"active_query_id={active_query_id}"
         )
 
         if not active_profile_id or not active_query_id:
@@ -499,7 +511,8 @@ def update_sprint_charts(selected_sprint, charts_visible, points_toggle_list):
         # Load issues and changelog
         all_issues = backend.get_issues(active_profile_id, active_query_id)
         logger.info(
-            f"update_sprint_charts: Loaded {len(all_issues) if all_issues else 0} issues"
+            "update_sprint_charts: Loaded "
+            f"{len(all_issues) if all_issues else 0} issues"
         )
 
         # CRITICAL: Filter out parent issues dynamically (don't hardcode "Epic")
@@ -566,13 +579,15 @@ def update_sprint_charts(selected_sprint, charts_visible, points_toggle_list):
 
         if selected_sprint not in sprint_snapshots:
             logger.warning(
-                f"Selected sprint {selected_sprint} not in snapshots. Available: {list(sprint_snapshots.keys())[:5]}"
+                f"Selected sprint {selected_sprint} not in snapshots. "
+                f"Available: {list(sprint_snapshots.keys())[:5]}"
             )
             return no_update
 
         sprint_data = sprint_snapshots[selected_sprint]
         logger.info(
-            f"update_sprint_charts: Sprint data has {len(sprint_data.get('current_issues', []))} current issues"
+            "update_sprint_charts: Sprint data has "
+            f"{len(sprint_data.get('current_issues', []))} current issues"
         )
 
         # Get sprint dates
@@ -584,7 +599,8 @@ def update_sprint_charts(selected_sprint, charts_visible, points_toggle_list):
         sprint_start_date = sprint_dates.get("start_date")
         sprint_end_date = sprint_dates.get("end_date")
         logger.info(
-            f"update_sprint_charts: Sprint dates: {sprint_start_date} to {sprint_end_date}"
+            "update_sprint_charts: Sprint dates: "
+            f"{sprint_start_date} to {sprint_end_date}"
         )
 
         if not sprint_start_date or not sprint_end_date:
@@ -605,7 +621,8 @@ def update_sprint_charts(selected_sprint, charts_visible, points_toggle_list):
         )
 
         logger.info(
-            f"update_sprint_charts: Generated {len(daily_snapshots) if daily_snapshots else 0} daily snapshots"
+            "update_sprint_charts: Generated "
+            f"{len(daily_snapshots) if daily_snapshots else 0} daily snapshots"
         )
 
         if daily_snapshots:
