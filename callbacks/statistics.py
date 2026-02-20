@@ -32,10 +32,8 @@ def _create_capacity_metrics_content(capacity_metrics, total_capacity):
         return html.Div(
             [
                 html.P(
-                    (
-                        "No capacity metrics available. Please load project "
-                        "data to see metrics."
-                    )
+                    "No capacity metrics available. Please load project "
+                    "data to see metrics."
                 ),
             ],
             className="text-muted",
@@ -109,8 +107,7 @@ def _create_capacity_metrics_content(capacity_metrics, total_capacity):
                                             html.Span(
                                                 f"{utilization_percentage:.1f}% ",
                                                 className=(
-                                                    f"text-{color} "
-                                                    "font-weight-bold"
+                                                    f"text-{color} font-weight-bold"
                                                 ),
                                             ),
                                             html.Span(f"({status})"),
@@ -120,10 +117,8 @@ def _create_capacity_metrics_content(capacity_metrics, total_capacity):
                                         [
                                             html.Span("Used: ", className="text-muted"),
                                             html.Span(
-                                                (
-                                                    f"{utilized_capacity:.1f} "
-                                                    f"hrs of {total_capacity} hrs"
-                                                )
+                                                f"{utilized_capacity:.1f} "
+                                                f"hrs of {total_capacity} hrs"
                                             ),
                                         ]
                                     ),
