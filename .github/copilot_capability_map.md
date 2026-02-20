@@ -43,6 +43,7 @@ Purpose: one reviewable map of all Copilot customization artifacts, what each do
 | `.github/skills/release-management/SKILL.md`           | Release/changelog workflow safety              | Release prep and versioning          |
 | `.github/skills/frontend-javascript-quality/SKILL.md`  | Reliable JavaScript/clientside callbacks       | `assets/` JS/CSS changes             |
 | `.github/skills/updater-reliability/SKILL.md`          | Safe updater two-phase update flow             | `updater/` system changes            |
+| `.github/skills/refactor/SKILL.md`                     | Behavior-preserving refactoring workflow       | Large-file splits and cleanup tasks  |
 
 ## Custom Agents (Subagents)
 
@@ -101,7 +102,7 @@ Recommended baseline composition:
 - **Build/Packaging**: `build-pipeline` instruction + `release-management` skill (if release-related)
 - **Updater system**: `updater-reliability` skill + `build-pipeline` instruction
 - **Configuration**: `configuration-changes` instruction + `security-data-safety` instruction
-- **Refactor**: `safe-refactor-python` prompt + `layering-enforcer` agent + `testing-quality` instruction
+- **Refactor**: `refactor` skill + `safe-refactor-python` prompt + `layering-enforcer` agent + `testing-quality` instruction
 - **Release prep**: `release-management` skill + `release-readiness` agent + `release-notes-draft` prompt
 - **Documentation**: `documentation-update` prompt + accuracy verification against code
 

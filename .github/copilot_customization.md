@@ -47,6 +47,7 @@ Apply artifacts in this order:
 - `.github/skills/frontend-javascript-quality/SKILL.md`
 - `.github/skills/updater-reliability/SKILL.md`
 - `.github/skills/release-management/SKILL.md`
+- `.github/skills/refactor/SKILL.md`
 
 ## Prompts
 
