@@ -96,7 +96,8 @@ def register(app):
     def mark_initialization_complete(active_tab):
         """
         Mark the application as fully initialized after the tabs are rendered.
-        This prevents saving during initial load and avoids triggering callbacks prematurely.
+        This prevents saving during initial load
+        and avoids triggering callbacks prematurely.
         """
         return True
 
@@ -245,7 +246,8 @@ def register(app):
 
         # CRITICAL FIX: Do NOT re-filter here! Data is already filtered in the callback
         # to ensure consistency with Dashboard's Actionable Insights (T073 fix)
-        # The df parameter is already filtered by data_points_count using week_label matching
+        # The df parameter is already filtered by data_points_count
+        # using week_label matching
         df_filtered = df
 
         # Get current remaining from SETTINGS (same source as Project Health Overview)
@@ -269,7 +271,8 @@ def register(app):
                 )
                 if items_mismatch or points_mismatch:
                     logger.warning(
-                        "[SCOPE BASELINE] Remaining mismatch: settings=%s/%s, scope=%s/%s. "
+                        "[SCOPE BASELINE] Remaining mismatch: "
+                        "settings=%s/%s, scope=%s/%s. "
                         "Using project_scope remaining values.",
                         current_remaining_items,
                         current_remaining_points,
@@ -283,7 +286,8 @@ def register(app):
                 "[SCOPE BASELINE] Failed to validate remaining values: %s", e
             )
 
-        # Calculate baseline as: current remaining + sum of completed in period - sum of created in period
+        # Calculate baseline as:
+        # current remaining + sum(completed) - sum(created)
         # This represents the scope at the START of the filtered time window
         total_completed_items = df_filtered["completed_items"].sum()
         total_completed_points = df_filtered["completed_points"].sum()
@@ -356,7 +360,8 @@ def register(app):
                 columns=["week_label", "items_growth", "points_growth", "start_date"]
             )
 
-        # Calculate scope stability index WITHOUT data filtering (data already filtered!)
+        # Calculate scope stability index WITHOUT data filtering
+        # (data already filtered!)
         stability_index = calculate_scope_stability_index(
             df, baseline_items, baseline_points, data_points_count=None
         )
@@ -369,16 +374,26 @@ def register(app):
             reconstructed_points = baseline_points + cumulative_points_growth
 
             logger.info(
-                f"[SCOPE VALIDATION] Baseline: {baseline_items} items, {baseline_points:.1f} points | "
-                f"Cumulative growth: {cumulative_items_growth:+d} items, {cumulative_points_growth:+.1f} points | "
-                f"Reconstructed: {reconstructed_items} items, {reconstructed_points:.1f} points | "
-                f"Current actual: {current_remaining_items} items, {current_remaining_points:.1f} points | "
-                f"Match: {reconstructed_items == current_remaining_items} items, {abs(reconstructed_points - current_remaining_points) < 0.1} points"
+                "[SCOPE VALIDATION] Baseline: "
+                f"{baseline_items} items, {baseline_points:.1f} points | "
+                "Cumulative growth: "
+                f"{cumulative_items_growth:+d} items, "
+                f"{cumulative_points_growth:+.1f} points | "
+                f"Reconstructed: {reconstructed_items} items, "
+                f"{reconstructed_points:.1f} points | "
+                f"Current actual: {current_remaining_items} items, "
+                f"{current_remaining_points:.1f} points | "
+                "Match: "
+                f"{reconstructed_items == current_remaining_items} items, "
+                f"{abs(reconstructed_points - current_remaining_points) < 0.1} points"
             )
 
             if reconstructed_items != current_remaining_items:
                 logger.error(
-                    f"[SCOPE ERROR] Chart reconstruction FAILED! Reconstructed {reconstructed_items} items != Current {current_remaining_items} items (off by {reconstructed_items - current_remaining_items})"
+                    "[SCOPE ERROR] Chart reconstruction FAILED! "
+                    f"Reconstructed {reconstructed_items} items != Current "
+                    f"{current_remaining_items} items "
+                    f"(off by {reconstructed_items - current_remaining_items})"
                 )
 
         # Create the scope metrics dashboard
@@ -436,42 +451,58 @@ def register(app):
         viewport_size,
     ):
         """
-        Render the appropriate content based on the selected tab with lazy loading and caching.
+        Render the appropriate content based on the selected tab
+        with lazy loading and caching.
         Only generates charts for the active tab to improve performance.
-        Target: <500ms chart rendering, immediate skeleton loading, <100ms cached responses.
+        Target: <500ms chart rendering,
+        immediate skeleton loading, <100ms cached responses.
         """
-        # TECH LEAD FIX: The previous "CRITICAL FIX" code was CAUSING the bug, not fixing it!
+        # TECH LEAD FIX: The previous "CRITICAL FIX" code was causing
+        # the bug, not fixing it.
         #
-        # The bug: That code tried to work around stale active_tab by using ui_state["last_tab"]
+        # The bug: That code tried to work around stale active_tab
+        # by using ui_state["last_tab"]
         # when the trigger wasn't from tab change. But this is backwards logic!
         #
         # What actually happens:
-        # 1. User clicks scope tab -> active_tab="tab-scope-tracking", last_tab="tab-scope-tracking"
+        # 1. User clicks scope tab ->
+        #    active_tab="tab-scope-tracking", last_tab="tab-scope-tracking"
         # 2. User clicks burndown tab -> Dash correctly passes active_tab="tab-burndown"
-        # 3. BUT if any other input changes (settings, statistics, etc), the old code would
+        # 3. If any other input changes (settings, statistics, etc),
+        #    the old code would
         #    IGNORE the correct active_tab and use the stale last_tab instead!
         # 4. This caused scope content to render on every tab after visiting it once
         #
         # THE FIX: Trust Dash! The active_tab parameter is ALWAYS correct.
-        # Dash automatically provides the current tab state, even when other inputs trigger the callback.
+        # Dash automatically provides the current tab state,
+        # even when other inputs trigger the callback.
         # We should NEVER override it with stored state.
 
         ctx = callback_context
         trigger_info = ctx.triggered[0]["prop_id"] if ctx.triggered else "initial"
         logger.debug(
-            f"[CTO DEBUG] render_tab_content triggered by: {trigger_info}, active_tab='{active_tab}', cache_size={len(chart_cache) if chart_cache else 0}"
+            "[CTO DEBUG] render_tab_content triggered by: "
+            f"{trigger_info}, active_tab='{active_tab}', "
+            f"cache_size={len(chart_cache) if chart_cache else 0}"
         )
 
         # CRITICAL DEBUG: Log statistics data to diagnose query switching issue
         if statistics:
             logger.info(
-                f"[VISUALIZATION] render_tab_content received {len(statistics)} statistics"
+                "[VISUALIZATION] render_tab_content received "
+                f"{len(statistics)} statistics"
             )
             logger.info(
-                f"[VISUALIZATION] First stat: date={statistics[0].get('date')}, items={statistics[0].get('remaining_items')}, points={statistics[0].get('remaining_total_points')}"
+                "[VISUALIZATION] First stat: "
+                f"date={statistics[0].get('date')}, "
+                f"items={statistics[0].get('remaining_items')}, "
+                f"points={statistics[0].get('remaining_total_points')}"
             )
             logger.info(
-                f"[VISUALIZATION] Last stat: date={statistics[-1].get('date')}, items={statistics[-1].get('remaining_items')}, points={statistics[-1].get('remaining_total_points')}"
+                "[VISUALIZATION] Last stat: "
+                f"date={statistics[-1].get('date')}, "
+                f"items={statistics[-1].get('remaining_items')}, "
+                f"points={statistics[-1].get('remaining_total_points')}"
             )
         else:
             logger.warning(
@@ -506,7 +537,8 @@ def register(app):
         is_mobile = viewport_size == "mobile"
         is_tablet = viewport_size == "tablet"
         logger.info(
-            f"Rendering charts for viewport: {viewport_size} (mobile={is_mobile}, tablet={is_tablet})"
+            f"Rendering charts for viewport: {viewport_size} "
+            f"(mobile={is_mobile}, tablet={is_tablet})"
         )
 
         # Convert checklist value to boolean (points-toggle returns list, not boolean)
@@ -518,26 +550,31 @@ def register(app):
         # BUT: If we're switching tabs (trigger is from chart-tabs), clear ALL cache
         # to prevent any possibility of cross-tab contamination
         # ALSO: Clear ALL cache when budget changes to ensure fresh render
-        # ALSO: Clear ALL cache when statistics change (table edits) to ensure immediate reactivity
+        # ALSO: Clear ALL cache when statistics change (table edits)
+        # to ensure immediate reactivity
         trigger_info = ctx.triggered[0]["prop_id"] if ctx.triggered else ""
         if "chart-tabs" in trigger_info:
             logger.debug(
-                "[CTO DEBUG] Tab switch detected - CLEARING ALL CACHE to prevent contamination"
+                "[CTO DEBUG] Tab switch detected - "
+                "CLEARING ALL CACHE to prevent contamination"
             )
             chart_cache = {}
         elif "budget-settings-store" in trigger_info:
             logger.debug(
-                "[CTO DEBUG] Budget change detected - CLEARING ALL CACHE to refresh budget cards"
+                "[CTO DEBUG] Budget change detected - "
+                "CLEARING ALL CACHE to refresh budget cards"
             )
             chart_cache = {}
         elif "metrics-refresh-trigger" in trigger_info:
             logger.debug(
-                "[CTO DEBUG] Import/refresh detected - CLEARING ALL CACHE to reload data"
+                "[CTO DEBUG] Import/refresh detected - "
+                "CLEARING ALL CACHE to reload data"
             )
             chart_cache = {}
         elif "current-statistics.modified_timestamp" in trigger_info:
             logger.debug(
-                "[CTO DEBUG] Statistics modified (table edit) - CLEARING ALL CACHE to show changes immediately"
+                "[CTO DEBUG] Statistics modified (table edit) - "
+                "CLEARING ALL CACHE to show changes immediately"
             )
             chart_cache = {}
         elif len(chart_cache) > 5:
@@ -562,7 +599,8 @@ def register(app):
         if use_cache_for_tab and cache_key in chart_cache:
             # Return cached content immediately for <100ms response time
             logger.debug(
-                f"[CTO DEBUG] Returning CACHED content for active_tab='{active_tab}', cache_key={cache_key}"
+                "[CTO DEBUG] Returning CACHED content for "
+                f"active_tab='{active_tab}', cache_key={cache_key}"
             )
             ui_state["loading"] = False
             ui_state["last_tab"] = active_tab
@@ -596,19 +634,22 @@ def register(app):
             if active_tab == "tab-dashboard":
                 # Generate modern compact dashboard content
                 logger.debug(
-                    f"[CTO DEBUG] Creating NEW modern dashboard content, cache_key={cache_key}"
+                    "[CTO DEBUG] Creating NEW modern dashboard "
+                    f"content, cache_key={cache_key}"
                 )
 
-                # CRITICAL: Filter data ONCE before all calculations to ensure consistency
-                # This ensures all dashboard sections respect the data_points_count slider
+                # CRITICAL: Filter data once before all calculations
+                # to ensure consistency
+                # This ensures dashboard sections respect the data_points_count slider
                 # EXCEPT "Recent Completions" which always shows last 4 weeks
                 df_unfiltered = (
                     df.copy()
                 )  # Keep unfiltered copy for Recent Completions section
 
                 if not df.empty:
-                    # CRITICAL FIX: Apply data_points_count filter by WEEK LABELS, not date ranges
-                    # This ensures Dashboard and DORA/Flow metrics use the same time periods
+                    # CRITICAL FIX: Apply data_points_count filter by WEEK LABELS,
+                    # not date ranges
+                    # This keeps Dashboard and DORA/Flow metrics aligned
                     if data_points_count is not None and data_points_count > 0:
                         logger.info(
                             f"Filtering dashboard data by {data_points_count} weeks"
@@ -622,7 +663,8 @@ def register(app):
 
                         weeks = []
                         # CRITICAL: Start from last statistics date, not today
-                        # Statistics are weekly (Mondays), so starting from "now" may include
+                        # Statistics are weekly (Mondays), so starting from "now"
+                        # may include
                         # incomplete current week with no data
                         if not df.empty and "date" in df.columns:
                             df["date"] = pd.to_datetime(
@@ -642,17 +684,21 @@ def register(app):
                             reversed(weeks)
                         )  # Convert to set for fast lookup
 
-                        # Filter by week_label if available, otherwise fall back to date range
+                        # Filter by week_label if available,
+                        # otherwise fall back to date range
                         if "week_label" in df.columns:
                             df = df[df["week_label"].isin(week_labels)]
-                            # CRITICAL: Sort after filtering to ensure .iloc[-1] gets the chronologically last date
-                            # This matches report_generator.py logic and ensures forecast dates align
+                            # CRITICAL: Sort after filtering so .iloc[-1]
+                            # gets the chronologically last date.
+                            # This matches report_generator.py logic
+                            # and keeps forecast dates aligned.
                             df = df.sort_values("date", ascending=True)
                             logger.info(
                                 f"Filtered to {len(df)} rows using week_label matching"
                             )
                         else:
-                            # Fallback: date range filtering (old behavior for backward compatibility)
+                            # Fallback: date range filtering
+                            # (old behavior for backward compatibility)
                             df["date"] = pd.to_datetime(
                                 df["date"], format="mixed", errors="coerce"
                             )
@@ -665,7 +711,8 @@ def register(app):
                             )
                             df = df[df["date"] >= cutoff_date]
                             logger.warning(
-                                "No week_label column - using date range filtering (less accurate)"
+                                "No week_label column - "
+                                "using date range filtering (less accurate)"
                             )
 
                     df = compute_cumulative_values(df, total_items, total_points)
@@ -697,7 +744,8 @@ def register(app):
                 )
 
                 # CRITICAL: Calculate velocity for health using same method as report
-                # calculate_velocity_from_dataframe() counts actual weeks with data (5.06)
+                # calculate_velocity_from_dataframe()
+                # counts actual weeks with data (5.06)
                 # calculate_weekly_averages() uses Flow metrics snapshots (4.94)
                 # Report uses calculate_velocity_from_dataframe(), so app must match
                 from data.processing import calculate_velocity_from_dataframe
@@ -715,7 +763,8 @@ def register(app):
                     if pd.isna(deadline_date):
                         days_to_deadline = 0
                     else:
-                        # CRITICAL: Use last statistics date (not datetime.now()) for consistency with report
+                        # CRITICAL: Use last statistics date
+                        # (not datetime.now()) for report consistency
                         # This ensures health score remains stable between data updates
                         # and matches report calculation exactly
                         last_date = (
@@ -773,7 +822,8 @@ def register(app):
                                         pert_time_items / 7.0
                                     )  # Convert days to weeks
 
-                            # Get comprehensive baseline vs actual comparison (single call - DRY)
+                            # Get comprehensive baseline vs actual comparison
+                            # (single call - DRY)
                             baseline_comparison = get_budget_baseline_vs_actual(
                                 profile_id,
                                 query_id,
@@ -786,7 +836,8 @@ def register(app):
                                 f"variance={baseline_comparison['variance']}"
                             )
 
-                            # Extract metrics from comprehensive data (no redundant calculations)
+                            # Extract metrics from comprehensive data
+                            # (no redundant calculations)
                             consumed_eur = baseline_comparison["actual"]["consumed_eur"]
                             budget_total = baseline_comparison["baseline"][
                                 "budget_total_eur"
@@ -817,12 +868,14 @@ def register(app):
                                 )
                             )
                             logger.info(
-                                f"[BUDGET DEBUG] weekly_breakdowns count={len(weekly_breakdowns)}, "
+                                "[BUDGET DEBUG] weekly_breakdowns "
+                                f"count={len(weekly_breakdowns)}, "
                                 f"labels={weekly_breakdown_labels}"
                             )
 
                             # Get weekly burn rates for sparkline
-                            # weekly_breakdowns is a list of dicts with breakdowns by type per week
+                            # weekly_breakdowns is a list of dicts
+                            # with per-week breakdowns by type
                             # Sum up total costs for each week
                             weekly_burn_rates = []
                             for breakdown in weekly_breakdowns:
@@ -844,9 +897,9 @@ def register(app):
                                 "burn_rate": burn_rate,
                                 "runway_weeks": runway_weeks,
                                 "breakdown": cost_breakdown,
-                                "baseline_comparison": baseline_comparison,  # NEW: comprehensive data
-                                "pert_forecast_weeks": pert_forecast_weeks,  # For timeline card
-                                "last_date": last_date,  # Last statistics date for forecast alignment
+                                "baseline_comparison": baseline_comparison,
+                                "pert_forecast_weeks": pert_forecast_weeks,
+                                "last_date": last_date,
                                 # Weekly breakdowns for sparkline trend charts
                                 "weekly_breakdowns": weekly_breakdowns,
                                 "weekly_breakdown_labels": weekly_breakdown_labels,
@@ -856,9 +909,9 @@ def register(app):
                                 "weekly_burn_rates": weekly_burn_rates,
                                 "weekly_labels": weekly_labels,
                                 "burn_trend_pct": 0,  # TODO: Calculate trend
-                                "pert_cost_avg_item": None,  # TODO: Add PERT cost calculation
+                                "pert_cost_avg_item": None,
                                 "pert_cost_avg_point": None,
-                                "forecast_total": budget_total,  # TODO: Add forecast calculation
+                                "forecast_total": budget_total,
                                 "forecast_low": budget_total * 0.9,
                                 "forecast_high": budget_total * 1.1,
                             }
@@ -871,8 +924,10 @@ def register(app):
                                 runway_str = f"{runway_weeks:.1f}"
 
                             logger.info(
-                                f"Budget data calculated: {consumed_pct:.1f}% consumed, "
-                                f"runway={runway_str} weeks, cost_per_item={cost_per_item:.2f}"
+                                "Budget data calculated: "
+                                f"{consumed_pct:.1f}% consumed, "
+                                f"runway={runway_str} weeks, "
+                                f"cost_per_item={cost_per_item:.2f}"
                             )
                         else:
                             logger.debug(
@@ -898,7 +953,8 @@ def register(app):
                         )
 
                         if cached_metrics:
-                            # Extract values matching app structure (same as report logic)
+                            # Extract values matching app structure
+                            # (same as report logic)
                             deploy_data = cached_metrics.get("deployment_frequency", {})
                             deployment_freq = deploy_data.get(
                                 "release_value", 0
@@ -917,7 +973,8 @@ def register(app):
                             mttr_data = cached_metrics.get("mean_time_to_recovery", {})
                             mttr_hours = mttr_data.get("value")  # Already in hours
 
-                            # Check if there's any meaningful data (same logic as report)
+                            # Check if there is meaningful data
+                            # (same logic as report)
                             has_meaningful_data = (
                                 (deployment_freq > 0)
                                 or (lead_time_days is not None and lead_time_days > 0)
@@ -934,8 +991,10 @@ def register(app):
                                 }
                                 logger.info(
                                     f"[HEALTH v3.0] DORA metrics loaded: "
-                                    f"DF={deployment_freq:.2f}, LT={lead_time_days:.1f}d, "
-                                    f"CFR={change_failure_rate:.1f}%, MTTR={mttr_hours:.1f}h"
+                                    f"DF={deployment_freq:.2f}, "
+                                    f"LT={lead_time_days:.1f}d, "
+                                    f"CFR={change_failure_rate:.1f}%, "
+                                    f"MTTR={mttr_hours:.1f}h"
                                 )
                     except Exception as e:
                         logger.warning(f"[HEALTH v3.0] DORA metrics unavailable: {e}")
@@ -1022,7 +1081,8 @@ def register(app):
                                 else 0
                             )
 
-                            # Work Distribution: Sum across all weeks (for Sustainability dimension)
+                            # Work Distribution: Sum across all weeks
+                            # (for Sustainability dimension)
                             total_feature = 0
                             total_defect = 0
                             total_tech_debt = 0
@@ -1060,7 +1120,8 @@ def register(app):
                                 }
                                 logger.info(
                                     f"[HEALTH v3.0] Flow metrics loaded: "
-                                    f"Velocity={avg_velocity:.1f}, Efficiency={avg_efficiency:.1f}%, "
+                                    f"Velocity={avg_velocity:.1f}, "
+                                    f"Efficiency={avg_efficiency:.1f}%, "
                                     f"Flow Time={median_flow_time:.1f}d"
                                 )
                     except Exception as e:
@@ -1083,7 +1144,8 @@ def register(app):
                         if query_id_active and profile_id:
                             issues = backend.get_issues(profile_id, query_id_active)
 
-                            # Filter to only configured development project issues (exclude parents/parent types)
+                            # Filter to configured development project issues
+                            # (exclude parents/parent types)
                             if issues:
                                 from data.issue_filtering import (
                                     filter_issues_for_metrics,
@@ -1136,21 +1198,23 @@ def register(app):
                             )
 
                             if bug_data and bug_data.get("total_bugs", 0) > 0:
-                                # Convert resolution rate from decimal (0-1) to percentage (0-100) like report does
+                                # Convert resolution rate from decimal (0-1)
+                                # to percentage (0-100), like report logic
                                 resolution_rate_pct = (
                                     bug_data.get("resolution_rate", 0) * 100
                                 )
 
                                 logger.info(
-                                    f"[BUG METRICS] Passing to health: resolution_rate={resolution_rate_pct:.2f}%, "
+                                    "[BUG METRICS] Passing to health: "
+                                    f"resolution_rate={resolution_rate_pct:.2f}%, "
                                     f"total_bugs={bug_data.get('total_bugs', 0)}, "
-                                    f"avg_age_days={bug_data.get('avg_age_days', 0):.1f}d, "
+                                    f"avg_age_days={bug_data.get('avg_age_days', 0)}d, "
                                     f"all_bug_issues_count={len(all_bug_issues)}, "
                                     f"timeline_bugs_count={len(timeline_filtered_bugs)}"
                                 )
                                 extended_metrics["bug_analysis"] = {
                                     "has_data": True,
-                                    "resolution_rate": resolution_rate_pct,  # Already converted to percentage
+                                    "resolution_rate": resolution_rate_pct,
                                     "avg_resolution_time_days": bug_data.get(
                                         "avg_resolution_time_days", 0
                                     ),
@@ -1165,21 +1229,30 @@ def register(app):
                                     else 0,  # Convert % to decimal
                                     "open_bugs": bug_data.get("open_bugs", 0),
                                 }
+                                bug_resolution_rate = extended_metrics["bug_analysis"][
+                                    "resolution_rate"
+                                ]
+                                bug_capacity_pct = extended_metrics["bug_analysis"][
+                                    "capacity_consumed_by_bugs"
+                                ]
                                 logger.info(
                                     f"[HEALTH v3.0] Bug metrics available: "
-                                    f"Resolution={extended_metrics['bug_analysis']['resolution_rate']:.1f}%, "
-                                    f"Capacity={extended_metrics['bug_analysis']['capacity_consumed_by_bugs'] * 100:.1f}%"
+                                    "Resolution="
+                                    f"{bug_resolution_rate:.1f}%, "
+                                    "Capacity="
+                                    f"{bug_capacity_pct:.1%}"
                                 )
                     except Exception as e:
                         logger.warning(f"[HEALTH v3.0] Bug metrics unavailable: {e}")
 
-                    # Log extended metrics summary with ACTUAL VALUES for health debugging
+                    # Log extended metrics summary with actual values
+                    # for health debugging
                     logger.info(
                         f"[HEALTH v3.0] Extended metrics summary: "
-                        f"DORA={'✓' if 'dora' in extended_metrics else '✗'}, "
-                        f"Flow={'✓' if 'flow' in extended_metrics else '✗'}, "
-                        f"Bug={'✓' if 'bug_analysis' in extended_metrics else '✗'}, "
-                        f"Budget={'✓' if budget_data else '✗'}"
+                        f"DORA={'yes' if 'dora' in extended_metrics else 'no'}, "
+                        f"Flow={'yes' if 'flow' in extended_metrics else 'no'}, "
+                        f"Bug={'yes' if 'bug_analysis' in extended_metrics else 'no'}, "
+                        f"Budget={'yes' if budget_data else 'no'}"
                     )
 
                 # Import and use comprehensive dashboard
@@ -1188,17 +1261,17 @@ def register(app):
                 # Create the comprehensive dashboard layout
                 dashboard_content = create_comprehensive_dashboard(
                     statistics_df=df,
-                    statistics_df_unfiltered=df_unfiltered,  # For Recent Completions (always last 4 weeks)
+                    statistics_df_unfiltered=df_unfiltered,
                     pert_time_items=pert_data["pert_time_items"],
                     pert_time_points=pert_data["pert_time_points"],
-                    avg_weekly_items=velocity_for_health_items,  # CRITICAL: Use report's velocity calculation for health (not Flow metrics)
-                    avg_weekly_points=velocity_for_health_points,  # CRITICAL: Use report's velocity calculation for health (not Flow metrics)
+                    avg_weekly_items=velocity_for_health_items,
+                    avg_weekly_points=velocity_for_health_points,
                     med_weekly_items=med_weekly_items,
                     med_weekly_points=med_weekly_points,
                     days_to_deadline=days_to_deadline,
                     total_items=total_items,
                     total_points=total_points,
-                    data_points_count=data_points_count,  # Pass for metric snapshot lookup
+                    data_points_count=data_points_count,
                     deadline_str=deadline,
                     show_points=show_points,
                     additional_context={
@@ -1206,7 +1279,7 @@ def register(app):
                         "query_id": query_id,
                         "current_week_label": current_week_label,
                         "budget_data": budget_data,
-                        "extended_metrics": extended_metrics,  # v3.0 comprehensive health data
+                        "extended_metrics": extended_metrics,
                     },
                 )
 
@@ -1217,7 +1290,8 @@ def register(app):
 
             elif active_tab == "tab-burndown":
                 # Generate all required data for burndown tab
-                # CRITICAL: Pass data_points_count to ensure trend indicators use filtered data
+                # CRITICAL: Pass data_points_count so trend indicators
+                # use filtered data
                 items_trend, points_trend = prepare_trend_data(
                     statistics, pert_factor, data_points_count
                 )
@@ -1234,7 +1308,8 @@ def register(app):
                 effective_show_points = show_points and has_points_data
 
                 # Generate burndown chart only when needed
-                # NOTE: Don't pre-compute cumulative values - let create_forecast_plot handle it
+                # NOTE: Don't pre-compute cumulative values.
+                # Let create_forecast_plot handle it
                 # to avoid redundant DataFrame operations that slow down rendering
                 burndown_fig, _ = create_forecast_plot(
                     df=df,
@@ -1257,7 +1332,8 @@ def register(app):
                     try:
                         # Parse deadline
                         deadline_date = datetime.strptime(deadline, "%Y-%m-%d")
-                        # Use date() to ensure value doesn't change during the same day, then convert to datetime
+                        # Use date() to keep value stable during the same day,
+                        # then convert to datetime
                         current_date = datetime.combine(
                             datetime.now().date(), datetime.min.time()
                         )
@@ -1303,7 +1379,8 @@ def register(app):
                     title="Weekly Items" if not is_mobile else None,
                 )
 
-                # Generate points chart for consolidated view (only if enabled AND has data)
+                # Generate points chart for consolidated view
+                # (only if enabled and data exists)
                 points_fig = None
                 if show_points and has_points_data:
                     points_fig = create_weekly_points_chart(
@@ -1334,7 +1411,8 @@ def register(app):
                 )
                 # Cache the result for next time
                 logger.debug(
-                    f"[CTO DEBUG] Created NEW burndown content, caching with key={cache_key}"
+                    "[CTO DEBUG] Created NEW burndown content, "
+                    f"caching with key={cache_key}"
                 )
                 chart_cache[cache_key] = burndown_tab_content
                 ui_state["loading"] = False
@@ -1343,11 +1421,13 @@ def register(app):
             elif active_tab == "tab-scope-tracking":
                 # Generate scope tracking content only when needed
                 logger.debug(
-                    f"[CTO DEBUG] Creating NEW scope tracking content, cache_key={cache_key}"
+                    "[CTO DEBUG] Creating NEW scope tracking content, "
+                    f"cache_key={cache_key}"
                 )
 
                 # CRITICAL FIX: Apply SAME filtering as Dashboard to ensure consistency
-                # The Scope Analysis tab must use the same filtered time window as Dashboard's Actionable Insights
+                # Scope Analysis must use the same filtered time window
+                # as Dashboard Actionable Insights
                 # Otherwise they show different numbers for the same metrics (T073 bug)
                 df_for_scope = df.copy()
                 if (
@@ -1356,7 +1436,8 @@ def register(app):
                     and not df_for_scope.empty
                 ):
                     logger.info(
-                        f"[SCOPE FILTER] Filtering scope data by {data_points_count} weeks using week_label matching"
+                        "[SCOPE FILTER] Filtering scope data by "
+                        f"{data_points_count} weeks using week_label matching"
                     )
 
                     # Generate the same week labels that Dashboard uses
@@ -1383,14 +1464,16 @@ def register(app):
 
                     week_labels = set(reversed(weeks))  # Convert to set for fast lookup
 
-                    # Filter by week_label if available, otherwise fall back to date range
+                    # Filter by week_label if available,
+                    # otherwise fall back to date range
                     if "week_label" in df_for_scope.columns:
                         df_for_scope = df_for_scope[
                             df_for_scope["week_label"].isin(week_labels)
                         ]
                         df_for_scope = df_for_scope.sort_values("date", ascending=True)
                         logger.info(
-                            f"[SCOPE FILTER] Filtered to {len(df_for_scope)} rows using week_label matching"
+                            "[SCOPE FILTER] Filtered to "
+                            f"{len(df_for_scope)} rows using week_label matching"
                         )
                     else:
                         # Fallback: date range filtering
@@ -1401,17 +1484,20 @@ def register(app):
                         cutoff_date = latest_date - timedelta(weeks=data_points_count)
                         df_for_scope = df_for_scope[df_for_scope["date"] >= cutoff_date]
                         logger.warning(
-                            "[SCOPE FILTER] No week_label column - using date range filtering"
+                            "[SCOPE FILTER] No week_label column - "
+                            "using date range filtering"
                         )
 
-                # Check if points data exists in the filtered time period (respects Data Points slider)
+                # Check if points data exists in the filtered time period
+                # (respects Data Points slider)
                 has_points_data = False
                 if show_points:
                     has_points_data = check_has_points_in_period(
                         statistics, data_points_count
                     )
 
-                # Only show points in charts if tracking is enabled AND data exists in filtered period
+                # Only show points in charts when tracking is enabled
+                # and data exists in filtered period
                 effective_show_points = show_points and has_points_data
 
                 scope_tab_content = _create_scope_tracking_tab_content(
@@ -1504,7 +1590,8 @@ def register(app):
                 return sprint_tracker_content, chart_cache, ui_state
 
             elif active_tab == "tab-active-work-timeline":
-                # Generate Active Work Timeline content directly (no placeholder loading)
+                # Generate Active Work Timeline content directly
+                # (no placeholder loading)
                 from callbacks.active_work_timeline import (
                     _render_active_work_timeline_content,
                 )
@@ -1547,7 +1634,8 @@ def register(app):
             ui_state["loading"] = False
             return error_content, chart_cache, ui_state
 
-    # Enhance the existing update_date_range callback to immediately trigger chart updates
+    # Enhance the existing update_date_range callback
+    # to immediately trigger chart updates
     @app.callback(
         Output("date-range-weeks", "data"),
         [
