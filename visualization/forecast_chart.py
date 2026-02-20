@@ -45,7 +45,8 @@ def create_plot_traces(
     Args:
         forecast_data: Dictionary of forecast data from prepare_forecast_data
         show_forecast: Whether to show forecast lines (default: True)
-        forecast_visibility: Visibility mode for forecast traces - True, False, or "legendonly" (default: "legendonly")
+        forecast_visibility: Visibility mode for forecast traces
+            - True, False, or "legendonly" (default: "legendonly")
         show_points: Whether points tracking is enabled (default: True)
 
     Returns:
@@ -92,7 +93,7 @@ def create_plot_traces(
             "data": go.Scatter(
                 x=items_forecasts["avg"][0],
                 y=items_forecasts["avg"][1],
-                mode="lines+markers",  # Added markers for better data point visualization
+                mode="lines+markers",  # Added markers for better visibility
                 name="Items Forecast (Most Likely)",
                 line=dict(
                     color=COLOR_PALETTE["items"], dash="dash", width=3
@@ -331,7 +332,8 @@ def create_plot_traces(
             }
         )
 
-        # Use brown color for pessimistic points forecast (matching info card description)
+        # Use brown color for pessimistic points forecast
+        # (matching info card description)
         traces.append(
             {
                 "data": go.Scatter(
@@ -433,7 +435,8 @@ def apply_layout_settings(fig):
             itemclick="toggle",
             itemdoubleclick=False,
         ),
-        hovermode="x unified",  # Changed from "closest" to "x unified" for vertical guideline
+        # Changed from "closest" to "x unified" for vertical guideline
+        hovermode="x unified",
         margin=dict(l=60, r=60, t=80, b=50),
         height=700,
         template="plotly_white",
@@ -445,12 +448,14 @@ def add_metrics_annotations(fig, metrics_data, data_points_count=None):
     """
     Add metrics as annotations below the x-axis of the plot.
 
-    Organized for responsive display on various screen sizes with more consistent spacing.
+    Organized for responsive display on various screen sizes
+    with more consistent spacing.
 
     Args:
         fig: Plotly figure object
         metrics_data: Dictionary with metrics to display
-        data_points_count: Number of data points used for velocity calculations (for label display)
+        data_points_count: Number of data points used
+            for velocity calculations (for label display)
 
     Returns:
         Updated figure with metrics annotations
@@ -491,7 +496,8 @@ def add_metrics_annotations(fig, metrics_data, data_points_count=None):
         )
     )
 
-    # Additional check: if total_scope_points == total_points, it suggests no historical data
+    # Additional check: if total_scope_points == total_points,
+    # it suggests no historical data
     if (
         metrics_data.get("total_scope_points", 0) == metrics_data.get("total_points", 0)
         and metrics_data.get("completed_points", 0) == 0
@@ -690,7 +696,8 @@ def add_deadline_marker(fig, deadline, milestone=None):
     # Add shaded region before deadline
     current_date = pd.Timestamp.now()
 
-    # Add a light red shaded region for the critical period (last 14 days before deadline)
+    # Add a light red shaded region for the critical period
+    # (last 14 days before deadline)
     if current_date < deadline:
         # Calculate the start of the critical period (14 days before deadline)
         critical_start = deadline - pd.Timedelta(days=14)
@@ -800,12 +807,14 @@ def create_forecast_plot(
         milestone_str: Milestone date as string (YYYY-MM-DD), optional
         data_points_count: Number of most recent data points to use (defaults to all)
         show_forecast: Whether to show forecast traces
-        forecast_visibility: Visibility mode for forecast traces ("legendonly", True, False)
+        forecast_visibility: Visibility mode for forecast traces
+            ("legendonly", True, False)
         hover_mode: Hover mode for the plot ("x unified", "closest", etc.)
         show_points: Whether points tracking is enabled (default: True)
 
     Returns:
-        Tuple of (figure, pert_data_dict) where pert_data_dict contains all PERT forecast information
+        Tuple of (figure, pert_data_dict) where pert_data_dict
+        contains all PERT forecast information
     """
     # Import helper functions (to avoid circular dependency)
     from visualization.charts import (
@@ -883,7 +892,8 @@ def create_forecast_plot(
             )
 
             if not is_forecast or (is_forecast and show_forecast):
-                # Set visibility for all forecast traces based on forecast_visibility parameter
+                # Set visibility for all forecast traces
+                # based on forecast_visibility parameter
                 if is_forecast:
                     trace["data"].visible = forecast_visibility
 
@@ -894,7 +904,8 @@ def create_forecast_plot(
         fig = configure_axes(fig, forecast_data)
 
         # Apply layout settings with the specified hover_mode
-        # Increased top margin from 80 to 100px to accommodate legend (y=1.06) and plotly toolbar without overlap
+        # Increased top margin from 80 to 100px
+        # to accommodate legend (y=1.06) and toolbar without overlap
         fig.update_layout(
             legend=dict(
                 orientation="h",
