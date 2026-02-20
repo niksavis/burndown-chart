@@ -8,6 +8,26 @@
 - Repository rules override generic architecture guidelines when they conflict.
 - Store repo-specific conventions here (naming, tooling, workflow, release steps).
 
+## Copilot Customization Artifacts
+
+- Always-on instructions: `.github/copilot-instructions.md`
+- Conditional instructions: `.github/instructions/*.instructions.md`
+- Skills: `.github/skills/**/SKILL.md`
+- Prompts: `.github/prompts/*.prompt.md`
+- Agents: `.github/agents/*.agent.md`
+- Hooks: `.github/hooks/**`
+
+### Precedence
+
+Apply artifacts in this order when guidance overlaps:
+
+1. Always-on instructions
+2. Conditional instructions
+3. Skills
+4. Prompts
+
+Higher-precedence guidance overrides lower-precedence guidance.
+
 ## Platform and Tooling
 
 - Windows and PowerShell only. Do not use bash commands.
@@ -104,7 +124,7 @@ sqlite3 .\profiles\burndown.db "SELECT name FROM sqlite_master WHERE type='table
 
 ## File Naming
 
-- All file names use lowercase with underscores.
+- All file names use lowercase; do not use uppercase letters.
 - Avoid vague names such as utils.py or misc.py.
 
 ## Version Control and Beads

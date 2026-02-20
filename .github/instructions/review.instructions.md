@@ -1,3 +1,8 @@
+---
+applyTo: '**/*'
+description: 'Comprehensive code review standards for burndown-chart'
+---
+
 # Code Review Rules - Burndown
 
 **Stack**: Python 3.13, Dash, Plotly, SQLite | **Platform**: Windows

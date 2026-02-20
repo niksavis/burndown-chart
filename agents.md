@@ -1,40 +1,23 @@
-# Agent Instructions - Beads Workflow
+# Agent Instructions - Compatibility Shim
 
 ## Purpose
 
-Concise operational rules for multi-agent coordination and beads workflow. Repository-specific rules live in [repo_rules.md](repo_rules.md). Architecture rules live in [docs/architecture/readme.md](docs/architecture/readme.md).
+This file is a lightweight compatibility bootstrap for external agents (for example, Claude Code or Codex CLI) that may not automatically load `.github/copilot-instructions.md`.
 
-## Codebase Metrics
+## Source of Truth
 
-**Last Updated**: 2026-02-18
+- Canonical always-on policy: `.github/copilot-instructions.md`.
+- Repository-specific coding/workflow rules: `repo_rules.md`.
+- Architecture standards: `docs/architecture/readme.md` and language guideline files.
 
-| Category | Files | Lines | Tokens |
-|----------|-------|-------|--------|
-| **Total** | 637 | 212.4K | **~1.8M** |
-| Code (Python + JS/CSS) | 445 | 154.8K | ~1.4M |
-| Python (no tests) | 362 | 142.0K | ~1.3M |
-| Frontend (JS/CSS) | 83 | 12.8K | ~81.7K |
-| Tests | 148 | 42.6K | ~373.8K |
-| Documentation (MD) | 44 | 15.0K | ~116.1K |
+Do not duplicate policy text here. Keep this file concise and operational.
 
-**Agent Guidance**:
-- **Too large for context**: Use targeted `semantic_search`, avoid broad reads
-- **File size check**: Prefer reading <500 lines per file
-- **Module focus**: Target specific folders (data/, ui/, callbacks/, etc.)
-- **Test coverage**: 148 test files (20% of codebase)
+## Loading Strategy
 
+- VS Code Copilot agents: rely on `.github/copilot-instructions.md` and conditional instructions under `.github/instructions/`.
+- External agents: load this file first, then load `.github/copilot-instructions.md` for canonical policy.
 
-## Visual Design (Required)
-
-- Never use emoji-style icons in CLI output or logs.
-- Use small Unicode symbols: ○ ◐ ● ✓ ❄.
-
-## Session Start (Mandatory)
-
-1. Confirm venv activation in the shell before Python commands.
-2. Sync beads-metadata worktree.
-3. Find ready work.
-4. Optionally sync main.
+## External Agent Quick Start
 
 ```powershell
 bd daemon status
@@ -57,82 +40,31 @@ bd close <id> --reason "Done" --json
 
 Rules:
 
-- **ALWAYS** include `--description` when creating beads (issues without descriptions lack context).
-- **NEVER** use `bd edit` (opens interactive editor that agents cannot use).
-- Use `bd update <id> --description "text"` for description changes.
+- Always include `--description` when creating beads.
+- Never use `bd edit`.
 - Beads metadata lives in `.git/beads-worktrees/beads-metadata/` and must be pushed.
 
-## Priority System
+## Non-Interactive Command Rule
 
-- `0` - Critical (security, data loss, broken builds)
-- `1` - High (major features, important bugs)
-- `2` - Medium (default, nice-to-have)
-- `3` - Low (polish, optimization)
-- `4` - Backlog (future ideas)
-
-## Non-Interactive Commands (Required)
-
-ALWAYS use `-Force` flag to avoid interactive prompts that hang agents:
+Use `-Force` for file operations to avoid interactive hangs:
 
 ```powershell
-Copy-Item -Force source dest    # NOT: Copy-Item source dest
-Move-Item -Force source dest    # NOT: Move-Item source dest  
-Remove-Item -Force file         # NOT: Remove-Item file
-Remove-Item -Recurse -Force dir # For directories
+Copy-Item -Force source dest
+Move-Item -Force source dest
+Remove-Item -Force file
+Remove-Item -Recurse -Force dir
 ```
 
-## Beads Conflict Resolution (Required)
+## Session End (External Agents)
 
-If `.beads/issues.jsonl` has conflicts:
-
-```powershell
-Push-Location .git\beads-worktrees\beads-metadata
-git show :1:.beads\issues.jsonl > beads.base.jsonl
-git show :2:.beads\issues.jsonl > beads.ours.jsonl
-git show :3:.beads\issues.jsonl > beads.theirs.jsonl
-bd merge beads.merged.jsonl beads.base.jsonl beads.ours.jsonl beads.theirs.jsonl --debug
-Copy-Item -Force beads.merged.jsonl .beads\issues.jsonl
-git add .beads\issues.jsonl
-git merge --continue
-Remove-Item -Force beads.*.jsonl
-Pop-Location
-```
-
-## Code Creation Prerequisite
-
-Before any file change:
-
-1. Read architecture guidelines for the language.
-2. Check file size threshold (80% rule).
-3. If threshold exceeded, create a new file.
-4. Run `get_errors` after changes.
-
-## Commit Rules (Mandatory)
-
-- Format: `type(scope): description (bd-XXX)`
-- Close bead before push.
-
-## Session End (Landing Sequence)
-
-Work is NOT complete until `git push` succeeds. MANDATORY steps:
-
-1. Create beads for unfinished work.
-2. `get_errors` and tests pass (if code changed).
-3. Close bead, commit.
-4. **PUSH TO REMOTE** (this is mandatory):
-   - Push main branch
-   - Push beads-metadata worktree
-   - Verify with `git status` (must show "up to date")
-5. Hand off: `Continue work on bd-X: [title]. [context]`.
+Do not finish until both main and beads metadata are pushed:
 
 ```powershell
 git pull --rebase
-git push  # If push fails, resolve and retry until success
+git push
 Push-Location .git\beads-worktrees\beads-metadata
 git pull --rebase
-git push  # MANDATORY - work is not complete without this
+git push
 Pop-Location
-git status  # Verify: both branches up to date with remote
+git status
 ```
-
-**CRITICAL**: NEVER stop before pushing. NEVER say "ready to push when you are" - YOU must push.
