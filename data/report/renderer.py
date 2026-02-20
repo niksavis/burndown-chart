@@ -9,8 +9,10 @@ import logging
 import sys
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Dict, List, Any
+from typing import Any
+
 from jinja2 import Environment, FileSystemLoader
+from jinja2.runtime import Undefined
 
 logger = logging.getLogger(__name__)
 
@@ -19,8 +21,8 @@ def render_template(
     profile_name: str,
     query_name: str,
     time_period_weeks: int,
-    sections: List[str],
-    metrics: Dict[str, Any],
+    sections: list[str],
+    metrics: dict[str, Any],
     chart_script: str,
 ) -> str:
     """
@@ -48,19 +50,19 @@ def render_template(
     # Add number formatting filters
     def format_int(value):
         """Format as integer (no decimals)."""
-        if value is None:
+        if value is None or isinstance(value, Undefined):
             return "0"
         return f"{int(round(value)):,}"
 
     def format_decimal1(value):
         """Format with 1 decimal place."""
-        if value is None:
+        if value is None or isinstance(value, Undefined):
             return "0.0"
         return f"{value:.1f}"
 
     def format_decimal2(value):
         """Format with 2 decimal places."""
-        if value is None:
+        if value is None or isinstance(value, Undefined):
             return "0.00"
         return f"{value:.2f}"
 
@@ -78,7 +80,7 @@ def render_template(
 
     # Calculate date range for the report period
     from data.iso_week_bucketing import get_iso_week_bounds
-    from data.time_period_calculator import get_iso_week, format_year_week
+    from data.time_period_calculator import format_year_week, get_iso_week
 
     # Calculate start date (Monday of the oldest week)
     current_date = datetime.now()
@@ -171,7 +173,7 @@ def update_report_progress(percent: int, message: str) -> None:
         return
 
     try:
-        with open(progress_file, "r", encoding="utf-8") as f:
+        with open(progress_file, encoding="utf-8") as f:
             state = json.load(f)
 
         if state.get("task_id") != "generate_report":

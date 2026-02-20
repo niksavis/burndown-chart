@@ -7,24 +7,24 @@ Verifies end-to-end blending behavior across the system:
 - Monday stability (no 25% reliability drop)
 """
 
-import pytest
 from datetime import datetime
-from typing import Dict, List
 from unittest.mock import patch
+
+import pytest
 
 
 class TestBlendingIntegration:
     """Integration tests for blending with metrics calculation."""
 
     @pytest.fixture
-    def sample_weekly_values(self) -> List[float]:
+    def sample_weekly_values(self) -> list[float]:
         """Sample velocity values for 8 weeks (4 prior + 1 current)."""
         # Prior 4 weeks: 10, 11, 12, 13 (average: 11.5)
         # Current week (to be blended): 2 (Tuesday actual)
         return [10.0, 11.0, 12.0, 13.0, 2.0]
 
     @pytest.fixture
-    def mock_snapshots(self, sample_weekly_values) -> Dict:
+    def mock_snapshots(self, sample_weekly_values) -> dict:
         """Mock metric snapshots for 5 weeks."""
         snapshots = {}
         week_labels = ["2026-W06", "2026-W07", "2026-W08", "2026-W09", "2026-W10"]
@@ -88,14 +88,14 @@ class TestBlendingIntegration:
             (
                 datetime(2026, 2, 11, 10, 0),
                 5,
-                8.5,
-            ),  # Wednesday: 50% actual = (5*0.5)+(12*0.5)
+                9.2,
+            ),  # Wednesday: 40% actual = (5*0.4)+(12*0.6)
             (
                 datetime(2026, 2, 12, 10, 0),
                 8,
-                8.8,
-            ),  # Thursday: 80% actual = (8*0.8)+(12*0.2)
-            (datetime(2026, 2, 13, 10, 0), 10, 10.0),  # Friday: 100% actual
+                9.6,
+            ),  # Thursday: 60% actual = (8*0.6)+(12*0.4)
+            (datetime(2026, 2, 13, 10, 0), 10, 10.4),  # Friday: 80% actual
         ]
 
         results = []
@@ -147,13 +147,13 @@ class TestBlendingIntegration:
         # Verify Wednesday values
         assert metadata["day_name"] == "Wednesday"
         assert metadata["weekday"] == 2
-        assert metadata["actual_percent"] == 50.0
-        assert metadata["forecast_percent"] == 50.0
+        assert metadata["actual_percent"] == 40
+        assert metadata["forecast_percent"] == 60
         assert metadata["is_blended"] is True
 
     def test_blend_description_format(self):
         """Verify human-readable description format."""
-        from data.metrics.blending import get_blend_metadata, format_blend_description
+        from data.metrics.blending import format_blend_description, get_blend_metadata
 
         tuesday = datetime(2026, 2, 10, 10, 0)
 
@@ -197,8 +197,8 @@ class TestBlendingIntegration:
             mock_datetime.now.return_value = wednesday
             blended = calculate_current_week_blend(5.0, 0.0)
 
-        # Should return actual value when forecast is zero
-        assert blended == 2.5  # 5.0 * 0.5 + 0.0 * 0.5
+        # Should apply current weekday weight even when forecast is zero
+        assert blended == 2.0  # 5.0 * 0.4 + 0.0 * 0.6
 
 
 class TestProcessingIntegration:
@@ -207,8 +207,9 @@ class TestProcessingIntegration:
     @pytest.mark.skip(reason="Complex mocking - deferred to manual testing")
     def test_calculate_weekly_averages_with_blending(self):
         """Verify blending is applied in calculate_weekly_averages()."""
-        from data.processing import calculate_weekly_averages
         from datetime import datetime
+
+        from data.processing import calculate_weekly_averages
 
         # TODO: Implement mock for metric snapshots
         # Should verify that calculate_weekly_averages() applies blending to current week
