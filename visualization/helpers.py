@@ -29,7 +29,8 @@ def fill_missing_weeks(weekly_df, start_date, end_date, value_columns):
         weekly_df: DataFrame with aggregated weekly data (may have gaps)
         start_date: Start date of the time range
         end_date: End date of the time range
-        value_columns: List of column names to fill with zeros (e.g., ['items', 'points'])
+        value_columns: List of column names to fill with zeros
+            (e.g., ['items', 'points'])
 
     Returns:
         DataFrame with all weeks in the range, missing weeks filled with zeros
@@ -146,10 +147,12 @@ def get_weekly_metrics(df, data_points_count=None):
 
     Args:
         df: DataFrame with historical data
-        data_points_count: Number of data points to use for calculations (default: None, uses all data)
+        data_points_count: Number of data points to use for calculations
+            (default: None, uses all data)
 
     Returns:
-        Tuple of (avg_weekly_items, avg_weekly_points, med_weekly_items, med_weekly_points)
+        Tuple of (avg_weekly_items, avg_weekly_points,
+        med_weekly_items, med_weekly_points)
     """
     # Ensure data_points_count is an integer (could be float from UI slider)
     if data_points_count is not None:
@@ -166,7 +169,8 @@ def get_weekly_metrics(df, data_points_count=None):
     )
 
     if not df.empty:
-        # No pre-filtering needed - calculate_weekly_averages will handle it with date-based filtering
+        # No pre-filtering needed - calculate_weekly_averages
+        # handles date-based filtering
         # Get all four values from calculate_weekly_averages with filtering
         results = calculate_weekly_averages(
             df.to_dict("records"), data_points_count=data_points_count
@@ -215,7 +219,10 @@ def calculate_forecast_completion_dates(pert_time_items, pert_time_points):
         current_date = datetime.now()
         items_completion_date = current_date + timedelta(days=pert_time_items)
         items_completion_str = items_completion_date.strftime("%Y-%m-%d")
-        items_completion_enhanced = f"{items_completion_str} ({pert_time_items:.1f} days, {pert_time_items / 7:.1f} weeks)"
+        items_completion_enhanced = (
+            f"{items_completion_str} ({pert_time_items:.1f} days, "
+            f"{pert_time_items / 7:.1f} weeks)"
+        )
 
     if pert_time_points is None or (
         isinstance(pert_time_points, float) and math.isnan(pert_time_points)
@@ -225,7 +232,10 @@ def calculate_forecast_completion_dates(pert_time_items, pert_time_points):
         current_date = datetime.now()
         points_completion_date = current_date + timedelta(days=pert_time_points)
         points_completion_str = points_completion_date.strftime("%Y-%m-%d")
-        points_completion_enhanced = f"{points_completion_str} ({pert_time_points:.1f} days, {pert_time_points / 7:.1f} weeks)"
+        points_completion_enhanced = (
+            f"{points_completion_str} ({pert_time_points:.1f} days, "
+            f"{pert_time_points / 7:.1f} weeks)"
+        )
 
     return items_completion_enhanced, points_completion_enhanced
 
@@ -307,7 +317,8 @@ def generate_burndown_forecast(
     last_value, avg_rate, opt_rate, pes_rate, start_date, end_date
 ):
     """
-    Generate burndown forecast with a fixed end date to ensure consistency with burnup charts.
+    Generate burndown forecast with a fixed end date
+    to ensure consistency with burnup charts.
     Includes strict 10-year maximum cap for visualization performance.
 
     Args:
@@ -319,7 +330,8 @@ def generate_burndown_forecast(
         end_date: End date the forecast should reach (for alignment with burnup chart)
 
     Returns:
-        Dictionary containing forecasts for average, optimistic, and pessimistic scenarios
+        Dictionary containing forecasts for average,
+        optimistic, and pessimistic scenarios
     """
     from datetime import datetime
 
@@ -490,7 +502,12 @@ def handle_forecast_error(e):
                             {
                                 "annotations": [
                                     {
-                                        "text": f"Error in forecast plot generation:<br>{str(e)}<br><br>Stack trace (for developers):<br>{error_trace.replace(chr(10), '<br>')}",
+                                        "text": (
+                                            "Error in forecast plot generation:<br>"
+                                            f"{str(e)}<br><br>"
+                                            "Stack trace (for developers):<br>"
+                                            f"{error_trace.replace(chr(10), '<br>')}"
+                                        ),
                                         "xref": "paper",
                                         "yref": "paper",
                                         "x": 0.5,
@@ -535,11 +552,13 @@ def identify_significant_scope_growth(df, threshold_pct=10):
     Identify periods with significant scope growth.
 
     Args:
-        df: DataFrame with statistics data including cum_scope_items and cum_scope_points
+        df: DataFrame with statistics data
+            including cum_scope_items and cum_scope_points
         threshold_pct: Percentage threshold for significant growth (default: 10%)
 
     Returns:
-        List of dictionaries with start_date and end_date for periods of significant growth
+        List of dictionaries with start_date and end_date
+        for periods of significant growth
     """
     if df.empty:
         return []
