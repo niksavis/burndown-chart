@@ -130,7 +130,8 @@ def auto_configure_from_metadata(
                             else queries[0]
                         )
                         logger.info(
-                            f"[AutoConfigure] No active query, using first query: {active_query_id}"
+                            "[AutoConfigure] No active query, "
+                            f"using first query: {active_query_id}"
                         )
                     else:
                         # Last resort: Check for query directories
@@ -144,7 +145,8 @@ def auto_configure_from_metadata(
                             if query_dirs:
                                 active_query_id = query_dirs[0].name
                                 logger.info(
-                                    f"[AutoConfigure] Found query directory: {active_query_id}"
+                                    "[AutoConfigure] Found query directory: "
+                                    f"{active_query_id}"
                                 )
 
                 if active_query_id:
@@ -158,17 +160,20 @@ def auto_configure_from_metadata(
                         if query_data:
                             jql_query = query_data.get("jql", "")
                             logger.info(
-                                f"[AutoConfigure] Loaded JQL query from active query: {jql_query}"
+                                "[AutoConfigure] Loaded JQL query from active query: "
+                                f"{jql_query}"
                             )
                         else:
                             logger.warning(
-                                f"[AutoConfigure] Query {active_query_id} not found in database"
+                                f"[AutoConfigure] Query {active_query_id} "
+                                "not found in database"
                             )
                     except Exception as qe:
                         logger.warning(f"Could not load query from database: {qe}")
                 else:
                     logger.warning(
-                        "No active query ID found in profile and no fallback queries available"
+                        "No active query ID found in profile "
+                        "and no fallback queries available"
                     )
         except Exception as e:
             logger.warning(f"Could not load profile data: {e}")
@@ -201,8 +206,8 @@ def auto_configure_from_metadata(
                     + "/rest/api/2/search",
                     "token": jira_config.get("token", ""),
                     "story_points_field": jira_config.get("points_field", ""),
-                    "field_mappings": {},  # Empty for field detection - we want ALL fields
-                    "fields": "*all",  # CRITICAL: Request ALL fields including custom fields
+                    "field_mappings": {},  # Empty for field detection
+                    "fields": "*all",  # Request all fields including custom
                 }
 
                 # Fetch issues
@@ -233,7 +238,8 @@ def auto_configure_from_metadata(
         new_state = current_state.copy() if current_state else {}
 
         # CRITICAL: Store values in FLAT keys that the UI dropdowns read from
-        # The render_tab_content callback reads from these flat keys to populate dropdowns
+        # The render_tab_content callback reads these flat keys
+        # to populate dropdowns.
         new_state["flow_end_statuses"] = defaults["project_classification"][
             "flow_end_statuses"
         ]
@@ -270,7 +276,8 @@ def auto_configure_from_metadata(
         ):
             new_state["bug_types"] = defaults["project_classification"]["bug_types"]
             logger.info(
-                f"[AutoConfigure] Stored {len(new_state['bug_types'])} incident types for UI"
+                "[AutoConfigure] Stored "
+                f"{len(new_state['bug_types'])} incident types for UI"
             )
 
         # DevOps task types - store in flat key for UI (DevOps Task Types dropdown)
@@ -282,7 +289,8 @@ def auto_configure_from_metadata(
                 "devops_task_types"
             ]
             logger.info(
-                f"[AutoConfigure] Stored {len(new_state['devops_task_types'])} DevOps task types for UI"
+                "[AutoConfigure] Stored "
+                f"{len(new_state['devops_task_types'])} DevOps task types for UI"
             )
 
         # Field mappings - store if detected (DORA + Flow only)
@@ -308,7 +316,8 @@ def auto_configure_from_metadata(
             new_state["project_classification"] = {}
         new_state["project_classification"].update(defaults["project_classification"])
 
-        # Populate production_environment_values from auto-detected production identifiers
+        # Populate production_environment_values from
+        # auto-detected production identifiers
         # These are values matching patterns like "prod", "production", "live", "prd"
         auto_detected_prod = (
             metadata.get("auto_detected", {}).get("production_identifiers", [])
@@ -322,7 +331,9 @@ def auto_configure_from_metadata(
             )
             new_state["production_environment_values"] = auto_detected_prod
             logger.info(
-                f"[AutoConfigure] Pre-selected {len(auto_detected_prod)} auto-detected production identifiers: {auto_detected_prod}"
+                "[AutoConfigure] Pre-selected "
+                f"{len(auto_detected_prod)} auto-detected production identifiers: "
+                f"{auto_detected_prod}"
             )
         elif (
             "field_values" in defaults
@@ -332,7 +343,8 @@ def auto_configure_from_metadata(
             # The dropdown will show all available values for manual selection
             logger.info(
                 f"[AutoConfigure] No auto-detected production identifiers found. "
-                f"Available environment values: {len(defaults['field_values']['target_environment'])}"
+                "Available environment values: "
+                f"{len(defaults['field_values']['target_environment'])}"
             )
 
         if "flow_type_mappings" not in new_state:
@@ -354,7 +366,9 @@ def auto_configure_from_metadata(
                     defaults["field_values"]["effort_category"]
                 )
                 logger.info(
-                    f"[AutoConfigure] Populated {len(defaults['field_values']['effort_category'])} effort categories for {flow_type}"
+                    "[AutoConfigure] Populated "
+                    f"{len(defaults['field_values']['effort_category'])} "
+                    f"effort categories for {flow_type}"
                 )
 
         # Count what was configured
@@ -368,7 +382,8 @@ def auto_configure_from_metadata(
         logger.info(
             f"[AutoConfigure] Generated defaults: {completion_count} completion, "
             f"{active_count} active, {wip_count} WIP statuses, "
-            f"{feature_count} features, {defect_count} defects, {project_count} projects"
+            f"{feature_count} features, {defect_count} defects, "
+            f"{project_count} projects"
         )
 
         # Create success toast notification

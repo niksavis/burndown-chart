@@ -32,7 +32,10 @@ def _create_capacity_metrics_content(capacity_metrics, total_capacity):
         return html.Div(
             [
                 html.P(
-                    "No capacity metrics available. Please load project data to see metrics."
+                    (
+                        "No capacity metrics available. Please load project "
+                        "data to see metrics."
+                    )
                 ),
             ],
             className="text-muted",
@@ -42,6 +45,7 @@ def _create_capacity_metrics_content(capacity_metrics, total_capacity):
     avg_hours_per_item = capacity_metrics.get("avg_hours_per_item", 0)
     avg_hours_per_point = capacity_metrics.get("avg_hours_per_point", 0)
     utilization_percentage = capacity_metrics.get("utilization_percentage", 0)
+    recent_trend_percentage = capacity_metrics.get("recent_trend_percentage", 0)
 
     # Determine utilization status and color
     if utilization_percentage > 100:
@@ -104,7 +108,10 @@ def _create_capacity_metrics_content(capacity_metrics, total_capacity):
                                         [
                                             html.Span(
                                                 f"{utilization_percentage:.1f}% ",
-                                                className=f"text-{color} font-weight-bold",
+                                                className=(
+                                                    f"text-{color} "
+                                                    "font-weight-bold"
+                                                ),
                                             ),
                                             html.Span(f"({status})"),
                                         ]
@@ -113,7 +120,10 @@ def _create_capacity_metrics_content(capacity_metrics, total_capacity):
                                         [
                                             html.Span("Used: ", className="text-muted"),
                                             html.Span(
-                                                f"{utilized_capacity:.1f} hrs of {total_capacity} hrs"
+                                                (
+                                                    f"{utilized_capacity:.1f} "
+                                                    f"hrs of {total_capacity} hrs"
+                                                )
                                             ),
                                         ]
                                     ),
@@ -132,11 +142,19 @@ def _create_capacity_metrics_content(capacity_metrics, total_capacity):
                         [
                             html.Span("Trend: ", className="text-muted"),
                             html.Span(
-                                f"{capacity_metrics.get('recent_trend_percentage', 0):.1f}% ",
-                                className=f"{'text-success' if capacity_metrics.get('recent_trend_percentage', 0) <= 0 else 'text-danger'}",
+                                f"{recent_trend_percentage:.1f}% ",
+                                className=(
+                                    "text-success"
+                                    if recent_trend_percentage <= 0
+                                    else "text-danger"
+                                ),
                             ),
                             html.Span(
-                                f"({'decreasing' if capacity_metrics.get('recent_trend_percentage', 0) <= 0 else 'increasing'})",
+                                (
+                                    "(decreasing)"
+                                    if recent_trend_percentage <= 0
+                                    else "(increasing)"
+                                ),
                                 className="text-muted",
                             ),
                         ]
@@ -194,11 +212,12 @@ def register(app):
         from data.profile_manager import get_active_profile
 
         logger.info(
-            f"[Statistics] reload_statistics_from_database triggered by timestamp={timestamp}"
+            "[Statistics] reload_statistics_from_database "
+            f"triggered by timestamp={timestamp}"
         )
 
         try:
-            # Check if we have an active profile - prevent crash when last profile is deleted
+            # Check for active profile to prevent crash when last profile is deleted
             active_profile = get_active_profile()
             if not active_profile:
                 logger.info(
@@ -250,7 +269,8 @@ def register(app):
 
         CRITICAL: This callback can be triggered by:
         1. User manually editing a cell (SHOULD save)
-        2. Tab re-rendering with fresh data from database (SHOULD NOT save - would create loop)
+          2. Tab re-rendering with fresh data from database
+              (SHOULD NOT save - would create loop)
 
         To distinguish: Compare table_data with current_statistics. If they match,
         this is a re-render, not a user edit.
@@ -262,7 +282,8 @@ def register(app):
 
         logger.info(
             f"[Statistics] save_statistics_on_edit triggered: "
-            f"table_data={'None' if table_data is None else f'{len(table_data)} rows'}, "
+            "table_data="
+            f"{'None' if table_data is None else f'{len(table_data)} rows'}, "
             f"init_complete={init_complete}"
         )
 
@@ -296,7 +317,8 @@ def register(app):
                     == last_current.get("completed_items")
                 ):
                     logger.info(
-                        "[Statistics] PREVENTING save - table_data matches current_statistics "
+                        "[Statistics] PREVENTING save - table_data "
+                        "matches current_statistics "
                         "(tab re-render, not user edit)"
                     )
                     raise PreventUpdate
@@ -318,11 +340,12 @@ def register(app):
         try:
             save_statistics(table_data)
             logger.info(
-                f"[Statistics] ✓ Table edited and saved SUCCESSFULLY to DB: {len(table_data)} rows"
+                "[Statistics] Table edited and saved "
+                f"SUCCESSFULLY to DB: {len(table_data)} rows"
             )
         except Exception as e:
             logger.error(
-                f"[Statistics] ✗ FAILED to save statistics to DB: {e}",
+                f"[Statistics] FAILED to save statistics to DB: {e}",
                 exc_info=True,
             )
             # Still return the data to update the browser store
@@ -367,14 +390,17 @@ def register(app):
                 new_date = (most_recent_date + timedelta(days=7)).strftime("%Y-%m-%d")
 
                 # CRITICAL: Prevent future dates beyond today
-                # Statistics for future weeks make no sense (no completed/created items yet)
+                # Future-week stats do not make sense
+                # (no completed/created items yet)
                 today = datetime.now().replace(
                     hour=0, minute=0, second=0, microsecond=0
                 )
                 proposed_date = datetime.strptime(new_date, "%Y-%m-%d")
                 if proposed_date > today:
                     logger.warning(
-                        f"Cannot add row for future date {new_date} (beyond today {today.strftime('%Y-%m-%d')}). "
+                        "Cannot add row for future date "
+                        f"{new_date} (beyond today "
+                        f"{today.strftime('%Y-%m-%d')}). "
                         "Statistics are historical data only."
                     )
                     raise PreventUpdate
@@ -408,7 +434,8 @@ def register(app):
         return updated_data
 
     # REMOVED: update_and_save_statistics and update_table callbacks
-    # These callbacks referenced statistics-table which only exists in the Weekly Data tab,
+    # These callbacks referenced statistics-table that only exists
+    # in the Weekly Data tab,
     # causing ReferenceError at app registration (Dash validates all I/O at startup).
     #
     # Statistics are now:
@@ -429,7 +456,8 @@ def register(app):
     # JIRA data refresh now happens directly through the Update Data button
     # and statistics are reloaded via the existing callbacks
 
-    # REMOVED: Obsolete callback for updating project scope from jira-data-reload-trigger
+    # REMOVED: Obsolete callback for updating project scope from
+    # jira-data-reload-trigger
     # Project scope is now updated directly when JIRA data is fetched
     # via the Calculate Scope button in the settings panel
 
