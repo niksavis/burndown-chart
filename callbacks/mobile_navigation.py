@@ -68,13 +68,21 @@ def handle_mobile_drawer(menu_clicks, close_clicks, overlay_clicks, nav_state):
 # Clientside callback to handle mobile navigation tab switching
 clientside_callback(
     """
-    function(dashboard_clicks, burndown_clicks, scope_clicks, bugs_clicks, dora_clicks, flow_clicks) {
+    function(
+        dashboard_clicks,
+        burndown_clicks,
+        scope_clicks,
+        bugs_clicks,
+        dora_clicks,
+        flow_clicks
+    ) {
         // Get the callback context to see which button was clicked
         if (!window.dash_clientside.callback_context.triggered.length) {
             return window.dash_clientside.no_update;
         }
         
-        const trigger_id = window.dash_clientside.callback_context.triggered[0].prop_id.split('.')[0];
+        const trigger_id = window.dash_clientside.callback_context
+            .triggered[0].prop_id.split('.')[0];
         
         // Map mobile nav buttons to tab IDs (only primary tabs in bottom nav)
         const tab_mapping = {
@@ -113,7 +121,8 @@ clientside_callback(
 )
 
 
-# Use clientside callback to update mobile navigation styling without recreating elements
+# Use clientside callback to update mobile navigation styling
+# without recreating elements.
 clientside_callback(
     """
     function(nav_state, active_tab) {
@@ -147,7 +156,9 @@ clientside_callback(
                 
                 // Update styles
                 button.style.color = is_active ? tab.color : '#6c757d';
-                button.style.background = is_active ? 'rgba(13, 110, 253, 0.1)' : 'transparent';
+                button.style.background = is_active
+                    ? 'rgba(13, 110, 253, 0.1)'
+                    : 'transparent';
                 button.style.fontWeight = is_active ? '600' : 'normal';
             }
         });
@@ -166,7 +177,11 @@ clientside_callback(
     """
     function(active_tab) {
         // Synchronize JavaScript state with the actual active tab
-        if (window.mobileNavigation && window.mobileNavigation.mobileNavState && active_tab) {
+        if (
+            window.mobileNavigation &&
+            window.mobileNavigation.mobileNavState &&
+            active_tab
+        ) {
             window.mobileNavigation.mobileNavState.currentTab = active_tab;
         }
         
@@ -184,7 +199,9 @@ clientside_callback(
     """
     function() {
         // Add touch feedback to mobile navigation elements
-        const mobileNavItems = document.querySelectorAll('.mobile-bottom-nav-item, .mobile-drawer-item');
+        const mobileNavItems = document.querySelectorAll(
+            '.mobile-bottom-nav-item, .mobile-drawer-item'
+        );
         
         mobileNavItems.forEach(item => {
             // Remove existing listeners to prevent duplicates
@@ -254,10 +271,15 @@ clientside_callback(
     function(active_work_clicks, sprint_clicks, data_clicks) {
         // Get the callback context to see which button was clicked
         if (!window.dash_clientside.callback_context.triggered.length) {
-            return [window.dash_clientside.no_update, window.dash_clientside.no_update, window.dash_clientside.no_update];
+            return [
+                window.dash_clientside.no_update,
+                window.dash_clientside.no_update,
+                window.dash_clientside.no_update
+            ];
         }
         
-        const trigger_id = window.dash_clientside.callback_context.triggered[0].prop_id.split('.')[0];
+        const trigger_id = window.dash_clientside.callback_context
+            .triggered[0].prop_id.split('.')[0];
         
         // Map overflow menu buttons to tab IDs
         const tab_mapping = {
@@ -282,7 +304,11 @@ clientside_callback(
             ];
         }
         
-        return [window.dash_clientside.no_update, window.dash_clientside.no_update, window.dash_clientside.no_update];
+        return [
+            window.dash_clientside.no_update,
+            window.dash_clientside.no_update,
+            window.dash_clientside.no_update
+        ];
     }
     """,
     [

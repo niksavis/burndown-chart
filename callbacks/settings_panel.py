@@ -1,7 +1,8 @@
 """
 Settings Panel Callbacks
 
-Handles opening/closing of the settings collapsible panel and loading default/last used JQL query.
+Handles opening/closing of the settings collapsible panel and loading
+default/last used JQL query.
 """
 
 import logging
@@ -98,7 +99,8 @@ def toggle_settings_panel(
     # CRITICAL FIX: Prevent firing on initial button render
     if settings_clicks is None:
         logger.warning(
-            "Settings button clicks is None - this is initial render, returning no_update"
+            "Settings button clicks is None - this is initial render, "
+            "returning no_update"
         )
         return no_update, no_update, no_update
 
@@ -176,7 +178,8 @@ def toggle_import_export_panel(
     new_parameter_state = False if parameter_is_open else no_update
 
     logger.info(
-        f"Toggling import/export panel to: {new_import_export_state}, closing other panels"
+        "Toggling import/export panel to: "
+        f"{new_import_export_state}, closing other panels"
     )
 
     return new_import_export_state, new_settings_state, new_parameter_state

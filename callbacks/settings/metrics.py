@@ -33,7 +33,8 @@ def register(app):
         """
         Automatically calculate DORA/Flow metrics after data fetch completes.
 
-        This runs in a separate callback to allow the Update Data callback to return quickly,
+        This runs in a separate callback to allow the Update Data callback
+        to return quickly,
         enabling progress bar updates during the calculation phase.
 
         Args:
@@ -43,7 +44,8 @@ def register(app):
             Tuple: (trigger reset, metrics refresh trigger)
         """
         logger.info(
-            f"[Metrics] Auto-metrics callback triggered with timestamp: {trigger_timestamp}"
+            "[Metrics] Auto-metrics callback triggered with "
+            f"timestamp: {trigger_timestamp}"
         )
 
         # Import TaskProgress before checking trigger
@@ -63,7 +65,8 @@ def register(app):
         allowed_messages = ["", "Fetch complete, starting metrics calculation..."]
         if calc_message not in allowed_messages:
             logger.info(
-                f"[Metrics] Metrics already started (message='{calc_message[:50]}'), ignoring duplicate trigger"
+                "[Metrics] Metrics already started "
+                f"(message='{calc_message[:50]}'), ignoring duplicate trigger"
             )
             raise PreventUpdate
 
@@ -77,7 +80,8 @@ def register(app):
         if trigger_timestamp == 0:
             # 0 means fetch completed but explicitly skipped metrics
             logger.info(
-                "[Metrics] Trigger timestamp is 0 - fetch completed, no metrics calculation needed"
+                "[Metrics] Trigger timestamp is 0 - fetch completed, "
+                "no metrics calculation needed"
             )
             TaskProgress.complete_task(
                 "update_data",
@@ -157,7 +161,8 @@ def _calculate_weeks_from_statistics(statistics: list) -> tuple[int, list]:
     total_weeks = len(custom_weeks)
 
     logger.info(
-        f"[Metrics] Calculated {total_weeks} weeks from {start_date.date()} to {end_date.date()}"
+        f"[Metrics] Calculated {total_weeks} weeks from "
+        f"{start_date.date()} to {end_date.date()}"
     )
 
     return total_weeks, custom_weeks
@@ -166,7 +171,8 @@ def _calculate_weeks_from_statistics(statistics: list) -> tuple[int, list]:
 def _clear_existing_metrics() -> None:
     """Clear existing metrics for active query to force fresh calculation."""
     logger.info(
-        "[Metrics] Clearing existing metrics for active query to force fresh calculation"
+        "[Metrics] Clearing existing metrics for active query "
+        "to force fresh calculation"
     )
 
     from data.persistence.factory import get_backend
@@ -185,7 +191,8 @@ def _clear_existing_metrics() -> None:
 
             clear_snapshots_cache()
             logger.info(
-                f"[Metrics] Deleted existing metrics and cleared snapshots cache for {active_profile_id}/{active_query_id}"
+                "[Metrics] Deleted existing metrics and cleared snapshots cache "
+                f"for {active_profile_id}/{active_query_id}"
             )
         except Exception as e:
             logger.warning(f"[Metrics] Failed to clear metrics cache: {e}")

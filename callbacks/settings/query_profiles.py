@@ -325,7 +325,8 @@ def register(app: Any) -> None:
             if selected_profile:
                 # User-created profile - show edit and delete buttons
                 logger.info(
-                    f"DEBUG: Showing buttons for user profile: {selected_profile['name']}"
+                    "DEBUG: Showing buttons for user profile: "
+                    f"{selected_profile['name']}"
                 )
 
                 # Show load default button if there's a default query that's not current
@@ -503,7 +504,8 @@ def register(app: Any) -> None:
             delete_query(profile_id, current_query_id, allow_cascade=True)
 
             logger.info(
-                f"Deleted query '{current_query_id}' from profile '{profile_id}' via modal"
+                "Deleted query "
+                f"'{current_query_id}' from profile '{profile_id}' via modal"
             )
 
             # Reload query selector options and get active query data
@@ -636,7 +638,13 @@ def register(app: Any) -> None:
             current_profile_id: ID of profile to update
 
         Returns:
-            Tuple of (desktop_options, mobile_options, jql_value, validation_msg, validation_style)
+            Tuple of (
+                desktop_options,
+                mobile_options,
+                jql_value,
+                validation_msg,
+                validation_style,
+            )
         """
         if not edit_clicks or not current_profile_id or current_profile_id == "custom":
             raise PreventUpdate

@@ -147,7 +147,7 @@ def fetch_field_values_on_blur(
     affected_environment_value: str,
     current_store: dict[str, Any],
 ):
-    """Fetch field values when effort_category or affected_environment field loses focus.
+    """Fetch values when field-mapping inputs lose focus.
 
     Triggered when user finishes typing and leaves the field (on blur).
     Only fetches if value looks like a valid field ID AND has changed since last fetch.
@@ -183,7 +183,8 @@ def fetch_field_values_on_blur(
             existing = current_store.get("effort_category", {})
             if existing.get("field_id") == field_id:
                 logger.debug(
-                    f"[FieldValueFetch] Skipping effort_category fetch - already fetched for {field_id}"
+                    "[FieldValueFetch] Skipping effort_category fetch - "
+                    f"already fetched for {field_id}"
                 )
                 return no_update, no_update
 
@@ -217,7 +218,8 @@ def fetch_field_values_on_blur(
             existing = current_store.get("affected_environment", {})
             if existing.get("field_id") == field_id:
                 logger.debug(
-                    f"[FieldValueFetch] Skipping affected_environment fetch - already fetched for {field_id}"
+                    "[FieldValueFetch] Skipping affected_environment fetch - "
+                    f"already fetched for {field_id}"
                 )
                 return no_update, no_update
 

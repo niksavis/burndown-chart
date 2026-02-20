@@ -39,11 +39,13 @@ def show_version_update_toast(app_init_complete, toast_already_shown):
     toast notification is not cleared by other callbacks that output
     to app-notifications.
 
-    Only shows once per browser session (tracked via dcc.Store with storage_type='session').
+    Only shows once per browser session
+    (tracked via dcc.Store with storage_type='session').
 
     Args:
         app_init_complete: Flag indicating app initialization is complete
-        toast_already_shown: Boolean flag tracking if toast was already shown this session
+        toast_already_shown: Boolean flag tracking
+            if toast was already shown this session
 
     Returns:
         Tuple of (Toast component or no_update, toast_shown_flag)
@@ -62,7 +64,8 @@ def show_version_update_toast(app_init_complete, toast_already_shown):
 
     if version_changed and previous_version:
         logger.info(
-            f"Version changed: {previous_version} -> {current_version} (toast handled by JS)",
+            f"Version changed: {previous_version} -> {current_version} "
+            "(toast handled by JS)",
             extra={
                 "operation": "version_update_notification",
                 "previous_version": previous_version,
@@ -96,7 +99,8 @@ def show_version_update_toast(app_init_complete, toast_already_shown):
         toast = create_toast(
             [
                 html.Div(
-                    f"Version {progress.available_version} is available. You are running {progress.current_version} from source code."
+                    f"Version {progress.available_version} is available. "
+                    f"You are running {progress.current_version} from source code."
                 ),
                 dbc.Button(
                     [
@@ -112,7 +116,6 @@ def show_version_update_toast(app_init_complete, toast_already_shown):
             ],
             toast_type="info",
             header="Update Available (Manual)",
-            duration=20000,  # 20 seconds - enough time to read and click
             icon="arrow-circle-up",
         )
 
@@ -133,7 +136,8 @@ def show_version_update_toast(app_init_complete, toast_already_shown):
         toast = create_toast(
             [
                 html.Div(
-                    f"Version {progress.available_version} is available. You are running {progress.current_version}."
+                    f"Version {progress.available_version} is available. "
+                    f"You are running {progress.current_version}."
                 ),
                 dbc.Button(
                     [

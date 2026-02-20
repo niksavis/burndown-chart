@@ -82,7 +82,8 @@ def populate_query_dropdown(_pathname, profile_id):
             try:
                 profile_id = get_active_profile_id()
             except ValueError:
-                # App state not yet initialized (first-time startup) - return empty state
+                # App state not initialized yet (first startup).
+                # Return safe empty state.
                 logger.debug(
                     "[Query] App state not initialized, returning empty dropdown"
                 )
@@ -133,7 +134,8 @@ def populate_query_dropdown(_pathname, profile_id):
                 break
 
         logger.info(
-            f"[Query] Populated dropdown: {len(options) - 1} queries + Create New. Active: {active_value}"
+            f"[Query] Populated dropdown: {len(options) - 1} queries + "
+            f"Create New. Active: {active_value}"
         )
 
         # Return options, active query, and its JQL + name (sync to both editors)
@@ -238,7 +240,8 @@ def switch_query_callback(selected_query_id, current_options):
             raise PreventUpdate
 
         logger.info(
-            f"[Query] Selected (not switched): '{selected_name}', JQL length: {len(selected_jql)} chars. "
+            f"[Query] Selected (not switched): '{selected_name}', "
+            f"JQL length: {len(selected_jql)} chars. "
             f"Data will load when user clicks 'Load Query Data' button."
         )
         return (
@@ -499,12 +502,14 @@ def trigger_delete_query_modal_from_selector(delete_clicks, selected_query_id):
         Tuple of (modal_open, query_display_text)
     """
     logger.info(
-        f"[DELETE] Delete button clicked - delete_clicks={delete_clicks}, selected_query_id='{selected_query_id}'"
+        f"[DELETE] Delete button clicked - "
+        f"delete_clicks={delete_clicks}, selected_query_id='{selected_query_id}'"
     )
 
     if not delete_clicks or not selected_query_id:
         logger.warning(
-            f"[DELETE] Preventing update - delete_clicks={delete_clicks}, selected_query_id='{selected_query_id}'"
+            f"[DELETE] Preventing update - "
+            f"delete_clicks={delete_clicks}, selected_query_id='{selected_query_id}'"
         )
         raise PreventUpdate
 
@@ -636,14 +641,21 @@ def load_query_cached_data(n_clicks, selected_query_id):
         # Extract statistics
         statistics = unified_data.get("statistics", [])
         logger.info(
-            f"[QUERY SWITCH] Loaded {len(statistics)} statistics for query {selected_query_id}"
+            f"[QUERY SWITCH] Loaded {len(statistics)} statistics "
+            f"for query {selected_query_id}"
         )
         if statistics:
             logger.info(
-                f"[QUERY SWITCH] First stat: {statistics[0].get('date', 'NO DATE')} - items: {statistics[0].get('remaining_items', 'NO ITEMS')}, points: {statistics[0].get('remaining_total_points', 'NO POINTS')}"
+                "[QUERY SWITCH] First stat: "
+                f"{statistics[0].get('date', 'NO DATE')} - "
+                f"items: {statistics[0].get('remaining_items', 'NO ITEMS')}, "
+                f"points: {statistics[0].get('remaining_total_points', 'NO POINTS')}"
             )
             logger.info(
-                f"[QUERY SWITCH] Last stat: {statistics[-1].get('date', 'NO DATE')} - items: {statistics[-1].get('remaining_items', 'NO ITEMS')}, points: {statistics[-1].get('remaining_total_points', 'NO POINTS')}"
+                "[QUERY SWITCH] Last stat: "
+                f"{statistics[-1].get('date', 'NO DATE')} - "
+                f"items: {statistics[-1].get('remaining_items', 'NO ITEMS')}, "
+                f"points: {statistics[-1].get('remaining_total_points', 'NO POINTS')}"
             )
 
         # Extract scope
@@ -680,7 +692,9 @@ def load_query_cached_data(n_clicks, selected_query_id):
             [
                 html.I(className="fas fa-check-circle me-2 text-success"),
                 html.Span(
-                    f"Loaded cached data: {data_points_count} weekly data point{'s' if data_points_count != 1 else ''}",
+                    "Loaded cached data: "
+                    f"{data_points_count} weekly data point"
+                    f"{'s' if data_points_count != 1 else ''}",
                     className="fw-medium",
                 ),
             ],
@@ -812,7 +826,8 @@ def load_query_cached_data(n_clicks, selected_query_id):
 #         )
 #
 #         logger.info(
-#             f"Auto-reloaded data for query {selected_query_id}: {len(statistics)} data points"
+#             f"Auto-reloaded data for query {selected_query_id}: "
+#             f"{len(statistics)} data points"
 #         )
 #
 #         return (

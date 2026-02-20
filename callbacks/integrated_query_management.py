@@ -203,7 +203,13 @@ def load_query_jql(
         state: Current query state
 
     Returns:
-        Tuple of (jql_value, updated_state, delete_disabled, last_saved, indicator_style)
+        Tuple of (
+            jql_value,
+            updated_state,
+            delete_disabled,
+            last_saved,
+            indicator_style,
+        )
     """
     if not query_id:
         raise PreventUpdate
@@ -408,7 +414,13 @@ def save_query_confirm(
         state: Current query state
 
     Returns:
-        Tuple of (modal_open, validation_msg, updated_state, dropdown_options, selected_value)
+        Tuple of (
+            modal_open,
+            validation_msg,
+            updated_state,
+            dropdown_options,
+            selected_value,
+        )
     """
     if not n_clicks or not state:
         raise PreventUpdate
@@ -477,7 +489,10 @@ def save_query_confirm(
         all_queries = list_queries_for_profile(profile_id)
         dropdown_options = [
             {
-                "label": f"{q.get('name', 'Unnamed')} {'[Active]' if q.get('id') == selected_query_id else ''}",
+                "label": (
+                    f"{q.get('name', 'Unnamed')} "
+                    f"{'[Active]' if q.get('id') == selected_query_id else ''}"
+                ),
                 "value": q.get("id", ""),
             }
             for q in all_queries
@@ -633,7 +648,13 @@ def confirm_delete_query(
         state: Current query state
 
     Returns:
-        Tuple of (modal_open, dropdown_options, selected_value, jql_value, updated_state)
+        Tuple of (
+            modal_open,
+            dropdown_options,
+            selected_value,
+            jql_value,
+            updated_state,
+        )
     """
     if not n_clicks or not state:
         raise PreventUpdate
@@ -674,7 +695,10 @@ def confirm_delete_query(
             # Update dropdown
             dropdown_options = [
                 {
-                    "label": f"{q.get('name', 'Unnamed')} {'[Active]' if q.get('id') == first_query_id else ''}",
+                    "label": (
+                        f"{q.get('name', 'Unnamed')} "
+                        f"{'[Active]' if q.get('id') == first_query_id else ''}"
+                    ),
                     "value": q.get("id", ""),
                 }
                 for q in remaining_queries
@@ -738,7 +762,7 @@ def cancel_delete_query_modal(n_clicks: int) -> bool:
         Output("integrated-query-selector", "value", allow_duplicate=True),
     ],
     Input("query-state-store", "data"),
-    prevent_initial_call="initial_duplicate",  # Allow running on initial load with allow_duplicate
+    prevent_initial_call="initial_duplicate",
 )
 def initialize_query_dropdown(state: dict[str, Any]) -> tuple:
     """
@@ -770,7 +794,10 @@ def initialize_query_dropdown(state: dict[str, Any]) -> tuple:
 
         dropdown_options = [
             {
-                "label": f"{q.get('name', 'Unnamed')} {'[Active]' if q.get('id') == active_query_id else ''}",
+                "label": (
+                    f"{q.get('name', 'Unnamed')} "
+                    f"{'[Active]' if q.get('id') == active_query_id else ''}"
+                ),
                 "value": q.get("id", ""),
             }
             for q in all_queries

@@ -153,8 +153,13 @@ def _render_active_work_timeline_content(
             parent_field = "parent"  # Won't match anything, all issues will be orphaned
 
         logger.info(
+<<<<<<< HEAD
             f"[ACTIVE WORK] Using parent field: {parent_field} "
             f"(configured: {parent_field_configured})"
+=======
+            "[ACTIVE WORK] Using parent field: "
+            f"{parent_field} (configured: {parent_field_configured})"
+>>>>>>> 39680f83 (chore(ruff): continue E501 line-wrap cleanup in callbacks (bd-i6o4))
         )
 
         # Get active work data with nested structure
@@ -235,7 +240,12 @@ def _render_active_work_timeline_content(
             [
                 dbc.Container(
                     [
+<<<<<<< HEAD
                         # Nested epic timeline (legend, completed items, epics)
+=======
+                        # Nested epic timeline with legend,
+                        # completed items, and epics.
+>>>>>>> 39680f83 (chore(ruff): continue E501 line-wrap cleanup in callbacks (bd-i6o4))
                         timeline_content,
                     ],
                     fluid=True,

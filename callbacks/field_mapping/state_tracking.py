@@ -50,7 +50,8 @@ def track_form_state_changes(*args):
     # Update state based on which input was triggered
     if isinstance(triggered, dict):
         # Field mapping dropdown (pattern-matched ID)
-        # Structure: {"type": "field-mapping-dropdown", "metric": "dora", "field": "deployment_date"}
+        # Structure: {"type": "field-mapping-dropdown", "metric": "dora",
+        # "field": "deployment_date"}
         if triggered.get("type") == "field-mapping-dropdown":
             metric = triggered.get("metric")
             field = triggered.get("field")

@@ -213,7 +213,7 @@ def update_section_titles(config_status):
         Output("data-operations-alert", "is_open"),
     ],
     Input("configuration-status-store", "data"),
-    prevent_initial_call=True,  # Changed to True to avoid overriding restoration callback
+    prevent_initial_call=True,  # Avoid overriding restoration callback
 )
 def enforce_query_save_before_data_ops(config_status):
     """
@@ -222,8 +222,8 @@ def enforce_query_save_before_data_ops(config_status):
     This enforces the rule: "Query must be saved before it can be executed"
     which prevents users from accidentally fetching data for unsaved queries.
 
-    NOTE: If a task is already in progress (e.g., after app restart), this callback
-    will not override the restoration callback's button state.
+    NOTE: If a task is already in progress (for example, after app restart),
+    this callback will not override the restoration callback's button state.
 
     Args:
         config_status: Configuration status dict
@@ -236,7 +236,8 @@ def enforce_query_save_before_data_ops(config_status):
 
     active_task = TaskProgress.get_active_task()
     if active_task and active_task.get("task_id") == "update_data":
-        # Task in progress - don't change button state (let restoration callback handle it)
+        # Task in progress - keep current button state.
+        # Restoration callback handles state transitions.
         from dash.exceptions import PreventUpdate
 
         raise PreventUpdate

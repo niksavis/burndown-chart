@@ -66,7 +66,10 @@ def generate_and_copy_ai_prompt(n_clicks: int, data_points: int):
 
         # Show success message (matches export/import toast format)
         return create_toast(
-            f"AI analysis prompt ({len(prompt):,} characters) copied to clipboard and ready to paste.",
+            (
+                f"AI analysis prompt ({len(prompt):,} characters) "
+                "copied to clipboard and ready to paste."
+            ),
             toast_type="success",
             header="Prompt Generated Successfully",
             duration=5000,

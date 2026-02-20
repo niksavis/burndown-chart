@@ -29,7 +29,8 @@ def validate_active_wip_subset(active_statuses, wip_statuses, current_warning):
         current_warning: Current warning content (to avoid unnecessary updates)
 
     Returns:
-        Warning alert if validation fails, empty div otherwise, or no_update if unchanged
+        Warning alert if validation fails,
+        empty div otherwise, or no_update if unchanged
     """
     active_set = set(active_statuses or [])
     wip_set = set(wip_statuses or [])
@@ -88,7 +89,8 @@ def validate_flow_start_wip_subset(flow_start_statuses, wip_statuses, current_wa
         current_warning: Current warning content (to avoid unnecessary updates)
 
     Returns:
-        Warning alert if validation fails, empty div otherwise, or no_update if unchanged
+        Warning alert if validation fails,
+        empty div otherwise, or no_update if unchanged
     """
     flow_start_set = set(flow_start_statuses or [])
     wip_set = set(wip_statuses or [])

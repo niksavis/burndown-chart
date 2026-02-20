@@ -60,7 +60,8 @@ def populate_jira_issues_store(jira_status, statistics_data):
         db_query_time = time.perf_counter() - start_time
 
         logger.info(
-            f"backend.get_issues() returned {len(issues) if issues else 0} issues in {db_query_time:.3f}s"
+            "backend.get_issues() returned "
+            f"{len(issues) if issues else 0} issues in {db_query_time:.3f}s"
         )
 
         if not issues:
@@ -129,7 +130,8 @@ def populate_jira_issues_store(jira_status, statistics_data):
 
         if changelog_entries:
             logger.info(
-                f"Loaded changelog data for {len(changelog_by_issue)} issues from database"
+                "Loaded changelog data for "
+                f"{len(changelog_by_issue)} issues from database"
             )
 
         # Merge changelog data into issues
@@ -146,9 +148,11 @@ def populate_jira_issues_store(jira_status, statistics_data):
             )
 
         # CRITICAL CHANGE: Do NOT filter at store level!
-        # Each component (Dashboard, Flow, DORA) must filter what it needs:
+        # Each component (Dashboard, Flow, DORA)
+        # must filter what it needs:
         # - Dashboard/Flow: filter_development_issues() for dev project issues only
-        # - DORA: Uses BOTH dev projects (for bugs, lead time) AND devops projects (for deployments)
+        # - DORA: uses BOTH dev projects (bugs, lead time)
+        #   and devops projects (deployments)
         # Filtering at source breaks DORA metrics which need DevOps issues!
 
         total_time = time.perf_counter() - start_time

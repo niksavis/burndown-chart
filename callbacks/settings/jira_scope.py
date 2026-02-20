@@ -34,7 +34,13 @@ def register(app):
             jql_query: JQL query string
 
         Returns:
-            Tuple: (status_content, time_content, estimated_items, total_items, estimated_points)
+            Tuple: (
+                status_content,
+                time_content,
+                estimated_items,
+                total_items,
+                estimated_points,
+            )
         """
         if not n_clicks or n_clicks == 0:
             raise PreventUpdate
@@ -46,7 +52,11 @@ def register(app):
             if jira_config is None:
                 # Not configured - return error message
                 current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                status_message = "[!] JIRA is not configured. Please click the 'Configure JIRA' button to set up your JIRA connection before calculating project scope."
+                status_message = (
+                    "[!] JIRA is not configured. Please click the "
+                    "'Configure JIRA' button to set up your JIRA connection "
+                    "before calculating project scope."
+                )
                 return (
                     html.Div(status_message, className="text-warning"),
                     f"Last attempt: {current_time}",
@@ -132,7 +142,13 @@ def _handle_success(scope_data: dict, jira_config: dict, current_time: str) -> t
         current_time: Current timestamp string
 
     Returns:
-        Tuple of (status_content, time_content, estimated_items, total_items, estimated_points)
+        Tuple of (
+            status_content,
+            time_content,
+            estimated_items,
+            total_items,
+            estimated_points,
+        )
     """
     project_scope = scope_data
     points_field_available = project_scope.get("points_field_available", False)
@@ -143,7 +159,10 @@ def _handle_success(scope_data: dict, jira_config: dict, current_time: str) -> t
         total_items = project_scope.get("remaining_items", 0)
         estimated_points = project_scope.get("estimated_points", 0)
 
-        status_message = f"Project scope calculated from JIRA with {estimated_items} estimated items out of {total_items} total remaining items."
+        status_message = (
+            f"Project scope calculated from JIRA with {estimated_items} "
+            f"estimated items out of {total_items} total remaining items."
+        )
         status_class = "text-success"
     else:
         # Points field not configured - fallback to item counts only
@@ -153,9 +172,17 @@ def _handle_success(scope_data: dict, jira_config: dict, current_time: str) -> t
 
         points_field = jira_config.get("points_field", "")
         if points_field and points_field.strip():
-            status_message = f"[!] Points field '{points_field.strip()}' is configured but no valid data found. Only total item count ({total_items}) calculated."
+            status_message = (
+                f"[!] Points field '{points_field.strip()}' is configured but "
+                f"no valid data found. Only total item count ({total_items}) "
+                "calculated."
+            )
         else:
-            status_message = f"[!] No points field configured. Only total item count ({total_items}) calculated. Configure a valid points field for full scope calculation."
+            status_message = (
+                "[!] No points field configured. "
+                f"Only total item count ({total_items}) calculated. "
+                "Configure a valid points field for full scope calculation."
+            )
         status_class = "text-warning"
 
     status_content = html.Div(
@@ -168,7 +195,8 @@ def _handle_success(scope_data: dict, jira_config: dict, current_time: str) -> t
     time_content = html.Small(f"Last updated: {current_time}", className="text-muted")
 
     logger.info(
-        f"[Scope] Using JIRA scope values: {total_items} items, {estimated_points:.1f} points"
+        "[Scope] Using JIRA scope values: "
+        f"{total_items} items, {estimated_points:.1f} points"
     )
 
     return (

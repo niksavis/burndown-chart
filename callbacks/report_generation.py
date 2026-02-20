@@ -32,7 +32,10 @@ def update_report_weeks_display(data_points):
     prevent_initial_call=True,
 )
 def generate_and_download_report(n_clicks, sections, data_points):
-    """Generate report synchronously and trigger download (simplified - no progress bar)."""
+    """Generate report synchronously and trigger download.
+
+    Simplified implementation without progress bar.
+    """
     if not n_clicks:
         return no_update, no_update
 
@@ -49,7 +52,8 @@ def generate_and_download_report(n_clicks, sections, data_points):
             # No active profile - user hasn't set up any data yet
             logger.warning("Report generation attempted with no active profile")
             toast = create_warning_toast(
-                "Please create a profile and fetch JIRA data before generating reports.",
+                "Please create a profile and fetch JIRA data "
+                "before generating reports.",
                 header="No Data Available",
                 duration=5000,
             )
@@ -58,7 +62,8 @@ def generate_and_download_report(n_clicks, sections, data_points):
         if not profile_id:
             logger.error("No active profile for report generation")
             toast = create_warning_toast(
-                "Please create a profile and fetch JIRA data before generating reports.",
+                "Please create a profile and fetch JIRA data "
+                "before generating reports.",
                 header="No Data Available",
                 duration=5000,
             )
@@ -68,7 +73,9 @@ def generate_and_download_report(n_clicks, sections, data_points):
         time_period = data_points or 12
 
         logger.info(
-            f"Generating report: sections={sections}, time_period={time_period}w (raw data_points={data_points})"
+            "Generating report: "
+            f"sections={sections}, time_period={time_period}w "
+            f"(raw data_points={data_points})"
         )
 
         # Generate report (blocks until complete)

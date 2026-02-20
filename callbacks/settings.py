@@ -15,7 +15,8 @@ Package structure:
     - jql_test.py: JQL query testing (355 lines, 2 callbacks)
     - parameter_panel.py: Parameter panel UI (529 lines, 6 callbacks)
 
-Total: 8 modules, 3,199 lines, 29 callbacks (reduced from original 3,126-line monolithic file)
+Total: 8 modules, 3,199 lines, 29 callbacks
+(reduced from original 3,126-line monolithic file)
 """
 
 # Import all from the refactored settings package

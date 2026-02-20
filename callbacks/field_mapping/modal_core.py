@@ -44,7 +44,8 @@ def toggle_field_mapping_modal(
     Returns:
         Tuple of (new modal state, fetched values store data)
         - Modal state: True = open, False = closed
-        - Store data: Empty dict {} when opening (clears stale data), no_update otherwise
+        - Store data: Empty dict {} when opening
+          (clears stale data), no_update otherwise
     """
     ctx = callback_context
     if not ctx.triggered:
@@ -55,7 +56,8 @@ def toggle_field_mapping_modal(
 
     # Debug logging
     logger.info(
-        f"[FieldMapping] Modal toggle - trigger_id: {trigger_id}, value: {trigger_value}"
+        "[FieldMapping] Modal toggle - "
+        f"trigger_id: {trigger_id}, value: {trigger_value}"
     )
 
     # Close on cancel - don't clear store (user might reopen)
@@ -68,18 +70,21 @@ def toggle_field_mapping_modal(
         return False, no_update
 
     # Open when open button clicked (from settings panel or metric cards)
-    # Must verify it's an actual click (value > 0), not just a button being added to DOM (value = None or 0)
+    # Verify it's an actual click (value > 0), not button DOM insertion
+    # (value = None or 0)
     if trigger_id == "open-field-mapping-modal" or (
         trigger_id.startswith("{") and "open-field-mapping" in trigger_id
     ):
         # Only open if there was an actual click (not None, not 0, not empty list)
         if trigger_value and trigger_value != 0:
             logger.info(f"[FieldMapping] Opening modal from trigger: {trigger_id}")
-            # Clear fetched field values when opening to prevent stale data from other profiles
+            # Clear fetched field values when opening
+            # to prevent stale data from other profiles
             return True, {}
         else:
             logger.info(
-                f"[FieldMapping] Ignoring button render/initial state - trigger: {trigger_id}, value: {trigger_value}"
+                "[FieldMapping] Ignoring button render/initial state - "
+                f"trigger: {trigger_id}, value: {trigger_value}"
             )
             return is_open, no_update
 
