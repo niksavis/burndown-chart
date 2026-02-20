@@ -50,16 +50,25 @@ def save_or_validate_mappings(namespace_values, state_data):
         state_data: Current form state from state store
 
     Returns:
-        Tuple of (save_success, status_message, updated_state, toast_notification, metrics_refresh_trigger)
+        Tuple of (
+            save_success,
+            status_message,
+            updated_state,
+            toast_notification,
+            metrics_refresh_trigger,
+        )
         - save_success: True if save succeeded, False if failed, no_update otherwise
         - status_message: Status alert HTML or no_update
         - updated_state: Updated state store data or no_update
         - toast_notification: Toast notification HTML or no_update
-        - metrics_refresh_trigger: Timestamp to trigger metrics refresh (on save success), no_update otherwise
+                - metrics_refresh_trigger: Timestamp to trigger metrics refresh
+                    (on save success), no_update otherwise
     """
     from data.persistence import load_app_settings, save_app_settings
 
-    # namespace_values has structure: {trigger: "save"|"validate"|"tab_switch", values: {...}, validationErrors: [...]}
+    # namespace_values structure:
+    # {trigger: "save"|"validate"|"tab_switch", values: {...},
+    #  validationErrors: [...]}
     if not namespace_values or not isinstance(namespace_values, dict):
         return no_update, no_update, no_update, no_update, no_update
 
@@ -87,7 +96,8 @@ def save_or_validate_mappings(namespace_values, state_data):
                     state_data["field_mappings"][metric][field] = str(value).strip()
 
         logger.info(
-            f"[FieldMapping] Tab switch - saved {len(collected_values)} metric groups to state"
+            "[FieldMapping] Tab switch - "
+            f"saved {len(collected_values)} metric groups to state"
         )
         return no_update, no_update, state_data, no_update, no_update
 
@@ -98,7 +108,8 @@ def save_or_validate_mappings(namespace_values, state_data):
 
         # Log what we're starting with
         logger.info(
-            f"[FieldMapping] VALIDATE - state_data field_mappings: {state_data.get('field_mappings', {}) if state_data else 'None'}"
+            "[FieldMapping] VALIDATE - state_data field_mappings: "
+            f"{state_data.get('field_mappings', {}) if state_data else 'None'}"
         )
         logger.info(f"[FieldMapping] VALIDATE - collected_values: {collected_values}")
 
@@ -106,10 +117,11 @@ def save_or_validate_mappings(namespace_values, state_data):
         if "field_mappings" not in state_with_fields:
             state_with_fields["field_mappings"] = {}
 
-        # If we have collected values from the Fields tab, use them as the source of truth
-        # Otherwise, keep existing state_data values (user might be validating from another tab)
+        # If collected values exist from the Fields tab, use them as source of truth.
+        # Otherwise keep existing state_data values
+        # (user may be validating from another tab).
         if collected_values and isinstance(collected_values, dict):
-            # Process ALL metric sections (dora, flow, general) to ensure cleared fields are detected
+            # Process all metric sections to ensure cleared fields are detected.
             for metric in ["dora", "flow", "general"]:
                 # Clear the metric section first
                 state_with_fields["field_mappings"][metric] = {}
@@ -122,7 +134,9 @@ def save_or_validate_mappings(namespace_values, state_data):
 
         # Log what we're validating with
         logger.info(
-            f"[FieldMapping] VALIDATE - state_with_fields field_mappings after merge: {state_with_fields.get('field_mappings', {})}"
+            "[FieldMapping] VALIDATE - state_with_fields "
+            "field_mappings after merge: "
+            f"{state_with_fields.get('field_mappings', {})}"
         )
 
         # Run comprehensive validation across all tabs
@@ -155,7 +169,8 @@ def save_or_validate_mappings(namespace_values, state_data):
     # Check for clientside validation errors - reject save if any invalid values
     if validation_errors:
         logger.warning(
-            f"[FieldMapping] Save rejected due to clientside validation errors: {validation_errors}"
+            "[FieldMapping] Save rejected due to clientside "
+            f"validation errors: {validation_errors}"
         )
         return (
             False,
@@ -171,7 +186,7 @@ def save_or_validate_mappings(namespace_values, state_data):
     if collected_values:
         if "field_mappings" not in state_with_fields:
             state_with_fields["field_mappings"] = {}
-        # Process ALL metric sections (dora, flow, general) to ensure cleared fields are detected
+        # Process all metric sections to ensure cleared fields are detected
         for metric in ["dora", "flow", "general"]:
             # Clear the metric section first
             state_with_fields["field_mappings"][metric] = {}
@@ -191,7 +206,9 @@ def save_or_validate_mappings(namespace_values, state_data):
             f"{len(validation_result['errors'])} error(s)"
         )
         toast = create_error_toast(
-            f"Configuration has {len(validation_result['errors'])} error(s) that must be fixed before saving. "
+            "Configuration has "
+            f"{len(validation_result['errors'])} error(s) "
+            "that must be fixed before saving. "
             f"Click 'Validate' to see details.",
             header="Validation Failed",
             duration=8000,
@@ -207,7 +224,8 @@ def save_or_validate_mappings(namespace_values, state_data):
     # Log warnings but allow save
     if validation_result["warnings"]:
         logger.info(
-            f"[FieldMapping] Saving with {len(validation_result['warnings'])} warning(s)"
+            "[FieldMapping] Saving with "
+            f"{len(validation_result['warnings'])} warning(s)"
         )
 
     # Check JIRA configuration exists before allowing save
@@ -236,7 +254,8 @@ def save_or_validate_mappings(namespace_values, state_data):
                     if value and str(value).strip():
                         total_mapped_fields += 1
 
-    # Check state_data for dropdown-based configurations (Types, Status, Projects, Environment tabs)
+    # Check state_data for dropdown-based configurations
+    # (Types, Status, Projects, Environment tabs)
     if state_data and isinstance(state_data, dict):
         # Count projects (development and devops)
         dev_projects = state_data.get("development_projects", [])
@@ -272,7 +291,8 @@ def save_or_validate_mappings(namespace_values, state_data):
 
     if total_mapped_fields == 0:
         logger.warning(
-            "[FieldMapping] Save rejected - no field mappings configured in current form"
+            "[FieldMapping] Save rejected - no field mappings "
+            "configured in current form"
         )
         toast = create_error_toast(
             "Please configure at least one field mapping before saving.",
@@ -286,8 +306,10 @@ def save_or_validate_mappings(namespace_values, state_data):
 
     # CRITICAL: Invalidate metrics cache after validation passes, before save
     # This ensures metrics are recalculated with new config on next Update Data
-    # Only invalidated if validation succeeds - avoids clearing cache for rejected changes
-    # Affects ALL field mappings: status configs, project filters, issue types, environment values, etc.
+    # Only invalidate when validation succeeds.
+    # This avoids clearing cache for rejected changes.
+    # Affects all field mappings: status configs, project filters,
+    # issue types, environment values, etc.
     try:
         from data.metrics_snapshots import clear_snapshots_cache
         from data.persistence.factory import get_backend
@@ -301,7 +323,9 @@ def save_or_validate_mappings(namespace_values, state_data):
             # ALSO clear in-memory snapshots cache (used by Flow/DORA metrics display)
             clear_snapshots_cache()
             logger.info(
-                f"[FieldMapping] Invalidated metrics cache after validation ({deleted_count} records deleted, in-memory cache cleared)"
+                "[FieldMapping] Invalidated metrics cache after validation "
+                f"({deleted_count} records deleted, "
+                "in-memory cache cleared)"
             )
     except Exception as cache_error:
         # Non-fatal but log it - metrics will eventually be recalculated
@@ -311,14 +335,17 @@ def save_or_validate_mappings(namespace_values, state_data):
 
     # DEBUG: Log what we're about to save
     logger.info(
-        f"[FieldMapping] state_data keys: {list(state_data.keys()) if state_data else 'None'}"
+        "[FieldMapping] state_data keys: "
+        f"{list(state_data.keys()) if state_data else 'None'}"
     )
     logger.info(
-        f"[FieldMapping] collected_values keys: {list(collected_values.keys()) if collected_values else 'None'}"
+        "[FieldMapping] collected_values keys: "
+        f"{list(collected_values.keys()) if collected_values else 'None'}"
     )
     if state_data:
         logger.info(
-            f"[FieldMapping] development_projects: {state_data.get('development_projects')}"
+            "[FieldMapping] development_projects: "
+            f"{state_data.get('development_projects')}"
         )
         logger.info(
             f"[FieldMapping] devops_task_types: {state_data.get('devops_task_types')}"
@@ -336,16 +363,19 @@ def save_or_validate_mappings(namespace_values, state_data):
         if collected_values and isinstance(collected_values, dict):
             logger.info(f"[FieldMapping] Saving namespace values: {collected_values}")
             logger.info(
-                f"[FieldMapping] Metrics in collected_values: {list(collected_values.keys())}"
+                "[FieldMapping] Metrics in collected_values: "
+                f"{list(collected_values.keys())}"
             )
             # Build field_mappings from namespace input values
             state_data = state_data or {}
             if "field_mappings" not in state_data:
                 state_data["field_mappings"] = {}
 
-            # Process ALL metric sections (dora, flow, general) - not just those in collected_values
-            # This ensures that when ALL fields in a metric are cleared (clientside doesn't collect empty metrics),
-            # the metric gets properly cleared instead of preserving old values from state_data
+            # Process all metric sections (dora, flow, general),
+            # not only those present in collected_values.
+            # This ensures that when all fields in a metric are cleared
+            # (clientside does not collect empty metrics), the metric
+            # is cleared instead of preserving old state_data values.
             for metric in ["dora", "flow", "general"]:
                 # Clear the metric section first
                 state_data["field_mappings"][metric] = {}
@@ -359,11 +389,13 @@ def save_or_validate_mappings(namespace_values, state_data):
                                 value
                             ).strip()
                             logger.info(
-                                f"[FieldMapping] Saved namespace value: {metric}.{field} = {value}"
+                                "[FieldMapping] Saved namespace value: "
+                                f"{metric}.{field} = {value}"
                             )
                 else:
                     logger.info(
-                        f"[FieldMapping] Metric '{metric}' not in collected values - cleared to empty"
+                        f"[FieldMapping] Metric '{metric}' not in "
+                        "collected values - cleared to empty"
                     )
 
             # DEBUG: Log general mappings after processing collected values
@@ -371,7 +403,8 @@ def save_or_validate_mappings(namespace_values, state_data):
                 "general", {}
             )
             logger.info(
-                f"[FieldMapping] General mappings after collection: {general_mappings_after}"
+                "[FieldMapping] General mappings after collection: "
+                f"{general_mappings_after}"
             )
 
         # Update settings from state store
@@ -386,7 +419,8 @@ def save_or_validate_mappings(namespace_values, state_data):
             # DEBUG: Log general mappings being saved
             general_in_raw = raw_field_mappings.get("general", {})
             logger.info(
-                f"[FieldMapping] Saving field mappings - DORA: {len(raw_field_mappings.get('dora', {}))}, "
+                "[FieldMapping] Saving field mappings - "
+                f"DORA: {len(raw_field_mappings.get('dora', {}))}, "
                 f"Flow: {len(raw_field_mappings.get('flow', {}))}, "
                 f"General: {len(general_in_raw)} fields = {list(general_in_raw.keys())}"
             )
@@ -395,7 +429,8 @@ def save_or_validate_mappings(namespace_values, state_data):
                 "[FieldMapping] Field mappings not found in state - state may be empty"
             )
 
-        # CRITICAL: Add parent_issue_types to field_mappings.general (from Types tab dropdown)
+        # CRITICAL: Add parent_issue_types to field_mappings.general
+        # (from Types tab dropdown)
         # This enables query_builder to include parent types in JQL query
         if "parent_issue_types" in state_data:
             if "field_mappings" not in settings:
@@ -406,10 +441,13 @@ def save_or_validate_mappings(namespace_values, state_data):
                 "parent_issue_types"
             ]
             logger.info(
-                f"[FieldMapping] Saved parent_issue_types to field_mappings.general: {state_data['parent_issue_types']}"
+                "[FieldMapping] Saved parent_issue_types to "
+                "field_mappings.general: "
+                f"{state_data['parent_issue_types']}"
             )
 
-        # Read from nested project_classification structure (NEW format from auto-configure)
+        # Read from nested project_classification structure
+        # (new format from auto-configure)
         if "project_classification" in state_data:
             proj_class = state_data["project_classification"]
             settings["development_projects"] = proj_class.get(
@@ -429,17 +467,21 @@ def save_or_validate_mappings(namespace_values, state_data):
         if "development_projects" in state_data:
             settings["development_projects"] = state_data["development_projects"]
             logger.info(
-                f"[FieldMapping DEBUG] Found development_projects in state: {settings['development_projects']}"
+                "[FieldMapping DEBUG] Found development_projects "
+                f"in state: {settings['development_projects']}"
             )
         if "devops_projects" in state_data:
             settings["devops_projects"] = state_data["devops_projects"]
             logger.info(
-                f"[FieldMapping DEBUG] Found devops_projects in state: {settings['devops_projects']}"
+                "[FieldMapping DEBUG] Found devops_projects "
+                f"in state: {settings['devops_projects']}"
             )
 
         # CRITICAL DEBUG: Log what will be saved
         logger.info(
-            f"[FieldMapping DEBUG] About to save - development_projects: {settings.get('development_projects', [])}, devops_projects: {settings.get('devops_projects', [])}"
+            "[FieldMapping DEBUG] About to save - development_projects: "
+            f"{settings.get('development_projects', [])}, "
+            f"devops_projects: {settings.get('devops_projects', [])}"
         )
         if "flow_end_statuses" in state_data:
             settings["flow_end_statuses"] = state_data["flow_end_statuses"]
@@ -450,7 +492,8 @@ def save_or_validate_mappings(namespace_values, state_data):
         if "wip_statuses" in state_data:
             settings["wip_statuses"] = state_data["wip_statuses"]
 
-        # Fallback: Old flow type keys (kept for backward compatibility with manual edits)
+        # Fallback: Old flow type keys
+        # (kept for backward compatibility with manual edits)
         if (
             "flow_feature_issue_types" in state_data
             or "flow_defect_issue_types" in state_data
@@ -550,7 +593,8 @@ def save_or_validate_mappings(namespace_values, state_data):
             header="Configuration Saved",
         )
 
-        # Update state store with saved values so modal shows correct state when reopened
+        # Update state store with saved values so modal shows
+        # correct state when reopened
         # Trigger metrics refresh to show "No metrics" state immediately
         import time
 
