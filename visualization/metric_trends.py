@@ -242,8 +242,7 @@ def create_metric_trend_sparkline(
             line={"color": color, "width": 2, "dash": "dot"},
             marker={"size": 5, "color": color, "symbol": "circle-open"},
             hovertemplate=(
-                f"<b>%{{x}}</b><br>Adjusted: %{{y:.2f}} {unit}"
-                "<extra></extra>"
+                f"<b>%{{x}}</b><br>Adjusted: %{{y:.2f}} {unit}<extra></extra>"
             ),
             name="Adjusted",
         )
@@ -414,8 +413,7 @@ def create_metric_trend_full(
                 line={"color": line_color, "width": 2, "dash": "dot"},
                 marker={"size": 6, "color": line_color, "symbol": "circle-open"},
                 hovertemplate=(
-                    f"<b>%{{x}}</b><br>Adjusted: %{{y:.2f}} {unit}"
-                    "<extra></extra>"
+                    f"<b>%{{x}}</b><br>Adjusted: %{{y:.2f}} {unit}<extra></extra>"
                 ),
                 name="Adjusted",
             )
@@ -430,8 +428,7 @@ def create_metric_trend_full(
                 mode="lines",
                 line={"color": "red", "width": 2, "dash": "dash"},
                 hovertemplate=(
-                    f"<b>{target_label}</b><br>%{{y:.2f}} {unit}"
-                    "<extra></extra>"
+                    f"<b>{target_label}</b><br>%{{y:.2f}} {unit}<extra></extra>"
                 ),
                 name=target_label,
             )
