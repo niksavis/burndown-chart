@@ -126,21 +126,30 @@ def register(app: Any) -> None:
                             window.setJQLTestResultsLock(true);
                         }
                         
-                        // Remove the hidden class to allow Dash callback to show results
+                        // Remove hidden class so Dash callback
+                        // can show results
                         if (resultsArea) {
-                            console.log('[JQL Test] Removing hidden class from results area');
-                            resultsArea.className = resultsArea.className.replace('jql-test-results-hidden', '').trim();
+                            console.log(
+                                '[JQL Test] Removing hidden class from results area'
+                            );
+                            resultsArea.className = resultsArea.className
+                                .replace('jql-test-results-hidden', '')
+                                .trim();
                         }
                         
                         // Set loading state
                         button.disabled = true;
-                        button.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Testing...';
+                        button.innerHTML =
+                            '<i class="fas fa-spinner fa-spin me-1"></i>Testing...';
                         
                         // Reset after timeout or when operation completes
                         const resetButton = function() {
                             if (button && button.disabled) {
                                 button.disabled = false;
-                                button.innerHTML = '<i class="fas fa-check-circle me-1"></i><span class="d-none d-sm-inline">Test Query</span>';
+                                button.innerHTML =
+                                    '<i class="fas fa-check-circle me-1"></i>' +
+                                    '<span class="d-none d-sm-inline">' +
+                                    'Test Query</span>';
                             }
                         };
                         

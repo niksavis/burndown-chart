@@ -5,7 +5,6 @@ This module contains helper functions for preparing trend indicators
 and forecast data for visualizations.
 """
 
-
 import pandas as pd
 
 from data import (
@@ -25,7 +24,8 @@ def prepare_trend_data(
     Args:
         statistics: Statistics data (list or DataFrame)
         pert_factor: PERT factor for forecasts (typically 1-5)
-        data_points_count: Number of data points to use for calculations (None = all data)
+        data_points_count: Number of data points to use for calculations
+            (None = all data)
 
     Returns:
         tuple: (items_trend, points_trend) dictionaries with trend and forecast data

@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
     prevent_initial_call=True,
 )
 def update_sprint_selection(selected_sprint: str, show_points_list: list):
-    """Update Sprint Tracker data when user selects a different sprint OR toggles points.
+    """Update Sprint Tracker when sprint selection or points toggle changes.
 
     Args:
         selected_sprint: Sprint name/ID selected from dropdown
@@ -36,7 +36,8 @@ def update_sprint_selection(selected_sprint: str, show_points_list: list):
     triggered = callback_context.triggered[0] if callback_context.triggered else None
     trigger_id = triggered["prop_id"].split(".")[0] if triggered else "unknown"
     logger.info(
-        f"update_sprint_selection TRIGGERED by: {trigger_id} (sprint={selected_sprint}, points_toggle={show_points_list})"
+        "update_sprint_selection TRIGGERED by: "
+        f"{trigger_id} (sprint={selected_sprint}, points_toggle={show_points_list})"
     )
 
     if not selected_sprint:
@@ -47,7 +48,8 @@ def update_sprint_selection(selected_sprint: str, show_points_list: list):
     # Determine if story points should be shown (checklist uses "show" as value)
     show_points = "show" in (show_points_list or [])
 
-    # Return the same sprint value to trigger dependent callbacks (like chart update)
+    # Return the same sprint value
+    # to trigger dependent callbacks (like chart update)
     # This ensures chart updates when points toggle changes, without creating a cascade
 
     # Re-render the entire sprint tracker with the selected sprint
@@ -67,7 +69,8 @@ def update_sprint_selection(selected_sprint: str, show_points_list: list):
         # Load issues
         all_issues = backend.get_issues(active_profile_id, active_query_id)
 
-        # Filter to only configured development project issues (exclude parents/parent types)
+        # Filter to configured development project issues
+        # (exclude parents and parent issue types).
         if all_issues:
             settings = load_app_settings()
             from data.issue_filtering import filter_issues_for_metrics

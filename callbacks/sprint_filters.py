@@ -67,7 +67,8 @@ def filter_sprint_by_issue_type(
         if not all_issues:
             return create_no_sprints_state()
 
-        # Filter to only configured development project issues (exclude parents/parent types)
+        # Filter to configured development-project issues
+        # (exclude parents/parent types)
         settings = load_app_settings()
         from data.issue_filtering import filter_issues_for_metrics
 
@@ -93,7 +94,8 @@ def filter_sprint_by_issue_type(
                             html.I(className="fas fa-filter fa-2x mb-3"),
                             html.H5(f"No {issue_type_filter} Issues Found"),
                             html.P(
-                                f"No issues of type '{issue_type_filter}' in current sprint. "
+                                f"No issues of type '{issue_type_filter}' "
+                                "in current sprint. "
                                 "Try selecting 'All' or a different issue type."
                             ),
                         ],
@@ -152,7 +154,8 @@ def filter_sprint_by_issue_type(
             state.get("issue_type") for state in issue_states.values()
         )
         logger.info(
-            f"[Filter Debug] Issue types in sprint_data: {issue_types_in_sprint}, Filter: {issue_type_filter}"
+            "[Filter Debug] Issue types in sprint_data: "
+            f"{issue_types_in_sprint}, Filter: {issue_type_filter}"
         )
 
         # Calculate sprint progress
@@ -166,7 +169,8 @@ def filter_sprint_by_issue_type(
         # Calculate sprint scope changes
         scope_changes = calculate_sprint_scope_changes(sprint_data, None)
 
-        # Extract sprint_changes with issue lists for progress bars
+        # Extract sprint_changes with issue lists
+        # for progress bars
         sprint_changes = {
             "added": sprint_data.get("added_issues", []),
             "removed": sprint_data.get("removed_issues", []),

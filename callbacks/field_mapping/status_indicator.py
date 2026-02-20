@@ -62,7 +62,10 @@ def update_field_mapping_status(modal_is_open, save_clicks, profile_id):
                     html.Span(
                         f"Configured: {dora_count} DORA + {flow_count} Flow fields",
                         className="text-success small",
-                        title=f"DORA metrics: {dora_count} fields mapped, Flow metrics: {flow_count} fields mapped",
+                        title=(
+                            f"DORA metrics: {dora_count} fields mapped, "
+                            f"Flow metrics: {flow_count} fields mapped"
+                        ),
                     ),
                 ],
                 className="d-flex align-items-center",

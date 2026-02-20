@@ -95,7 +95,8 @@ def _fetch_jira_metadata(
         env_field_to_fetch = None
 
         if affected_env_field:
-            # Strip =Value suffix if present (e.g., "customfield_11309=PROD" -> "customfield_11309")
+            # Strip =Value suffix if present
+            # (e.g., "customfield_11309=PROD" -> "customfield_11309")
             env_field_to_fetch = affected_env_field.split("=")[0]
         elif target_env_field:
             env_field_to_fetch = target_env_field.split("=")[0]

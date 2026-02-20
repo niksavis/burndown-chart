@@ -31,9 +31,7 @@ logger = logging.getLogger(__name__)
 # ============================================================================
 
 
-def _validate_profile_name(
-    name: str, exclude_profile_id: str | None = None
-) -> tuple:
+def _validate_profile_name(name: str, exclude_profile_id: str | None = None) -> tuple:
     """Validate profile name with optional exclusion for rename.
 
     Args:
@@ -98,7 +96,10 @@ def _validate_profile_name(
 def refresh_profile_selector(
     form_modal_open, delete_modal_open, switch_trigger, metrics_refresh
 ):
-    """Refresh profile dropdown options when modals close, profiles switch, or data refreshes (import), and manage button states."""
+    """Refresh profile selector options and button states.
+
+    Triggers: modal close, profile switch, and import-driven metrics refresh.
+    """
     profiles = list_profiles()
     active_profile = get_active_profile()
     active_profile_id = active_profile.id if active_profile else None

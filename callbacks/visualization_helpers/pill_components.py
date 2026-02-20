@@ -12,7 +12,8 @@ def create_forecast_pill(forecast_type: str, value: float, variant: str) -> html
     Create a forecast pill component with consistent styling.
 
     Args:
-        forecast_type: Type of forecast (e.g., 'Most likely', 'Optimistic', 'Pessimistic')
+        forecast_type: Type of forecast
+            (e.g., 'Most likely', 'Optimistic', 'Pessimistic')
         value: Forecast value
         variant: Color variant for styling the pill
 

@@ -28,7 +28,7 @@ def create_burndown_tab_content(
     has_points_data: bool = True,
 ):
     """
-    Create content for the burndown tab with burndown chart, items chart, and points chart.
+    Create content for the burndown tab with burndown, items, and points charts.
 
     Args:
         df: DataFrame with statistics data
@@ -141,7 +141,8 @@ def create_burndown_tab_content(
                         className="empty-state-title mb-2",
                     ),
                     html.Small(
-                        "Enable Points Tracking in Parameters panel to view story points metrics.",
+                        "Enable Points Tracking in Parameters panel "
+                        "to view story points metrics.",
                         className="empty-state-lead empty-state-text",
                     ),
                 ],
@@ -159,7 +160,9 @@ def create_burndown_tab_content(
                         className="empty-state-title mb-2",
                     ),
                     html.Small(
-                        "No story points data available in the selected time period. Configure story points field in Settings or complete items with point estimates.",
+                        "No story points data available in the selected time period. "
+                        "Configure story points field in Settings or complete items "
+                        "with point estimates.",
                         className="empty-state-lead empty-state-text",
                     ),
                 ],

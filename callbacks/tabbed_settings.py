@@ -32,5 +32,6 @@ logger = logging.getLogger(__name__)
 #     ...
 
 logger.info(
-    "[Callbacks] Tabbed settings panel callbacks registered (tab label updates disabled - dbc 2.0.2 limitation)"
+    "[Callbacks] Tabbed settings panel callbacks registered "
+    "(tab label updates disabled - dbc 2.0.2 limitation)"
 )

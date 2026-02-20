@@ -39,11 +39,18 @@ def manage_modal_loading_state(is_open: bool, metadata: dict):
         metadata: App-level JIRA metadata (None while loading, dict when loaded)
 
     Returns:
-        Tuple of (status_alert, auto_configure_disabled, save_disabled,
-                 validate_disabled, overlay_style, toast_notification)
+        Tuple of (
+            status_alert,
+            auto_configure_disabled,
+            save_disabled,
+            validate_disabled,
+            overlay_style,
+            toast_notification,
+        )
     """
     # Style for showing/hiding the loading overlay
-    # Note: Use visibility instead of display because Bootstrap's d-flex class has !important
+    # Note: Use visibility instead of display because
+    # Bootstrap's d-flex class has !important.
     overlay_hidden = {
         "zIndex": 1000,
         "visibility": "hidden",
@@ -98,7 +105,8 @@ def manage_modal_loading_state(is_open: bool, metadata: dict):
 
     logger.info(
         f"[FieldMapping] Metadata ready: {len(fields)} fields, "
-        f"{len(projects)} projects, {len(issue_types)} issue types, {len(statuses)} statuses"
+        f"{len(projects)} projects, {len(issue_types)} issue types, "
+        f"{len(statuses)} statuses"
     )
 
     # Show brief success toast notification

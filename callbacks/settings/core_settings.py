@@ -61,13 +61,15 @@ def register(app):
         current_total_points_display,
     ):
         """
-        Update the total points calculation based on estimated items and points or historical data.
+        Update total points using estimated values or historical data.
 
         Uses the same extrapolation formula as JIRA scope calculator:
-        remaining_total_points = estimated_points + (avg_points_per_item × unestimated_items)
+        remaining_total_points = estimated_points
+        + (avg_points_per_item × unestimated_items)
 
         This ensures consistency between JIRA and manual data entry workflows.
-        Manual changes to inputs will always trigger recalculation, allowing users to
+        Manual changes to inputs will always trigger recalculation,
+        allowing users to
         adjust forecasts even when working with JIRA data.
         """
         # Input validation
@@ -115,7 +117,7 @@ def register(app):
         Input("calculation-results", "data"),
     )
     def update_remaining_points_formula(calc_results):
-        """Update the formula display to show the actual avg coefficient being used."""
+        """Update formula display with the actual average coefficient used."""
         if not calc_results:
             return "= Est. Points + (avg × unestimated)."
 
@@ -141,7 +143,8 @@ def register(app):
         Reload settings from database after import or profile switch.
 
         This ensures that imported profile settings (show_points, pert_factor, etc.)
-        are loaded into the UI, fixing the bug where imported settings weren't displayed.
+        are loaded into the UI, fixing the bug where imported settings
+        were not displayed.
         """
         from data.persistence import load_app_settings
         from data.profile_manager import get_active_profile
@@ -205,7 +208,8 @@ def register(app):
         """
         Update UI input components when current-settings store changes.
 
-        This ensures that when settings are reloaded from database (after import/profile switch),
+        This ensures that when settings are reloaded from database
+        (after import/profile switch),
         the visible UI inputs reflect the loaded values.
         """
         if not settings:

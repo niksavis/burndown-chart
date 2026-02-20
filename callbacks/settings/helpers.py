@@ -78,8 +78,14 @@ def calculate_remaining_work_for_data_window(data_points_count, statistics):
         statistics: List of statistics data points - not used, kept for compatibility
 
     Returns:
-        Tuple: (estimated_items, remaining_items, estimated_points, remaining_points_str, calc_results)
-               or None if calculation cannot be performed
+        Tuple: (
+            estimated_items,
+            remaining_items,
+            estimated_points,
+            remaining_points_str,
+            calc_results,
+        )
+            or None if calculation cannot be performed
     """
     if not data_points_count:
         return None
@@ -91,8 +97,10 @@ def calculate_remaining_work_for_data_window(data_points_count, statistics):
         unified_data = load_unified_project_data()
         project_scope = unified_data.get("project_scope", {})
 
-        # CRITICAL FIX: Parameter panel shows CURRENT remaining work, NOT windowed scope
-        # The slider filters statistics for forecasting, but remaining work is always current
+        # CRITICAL FIX: Parameter panel shows CURRENT remaining work,
+        # not windowed scope
+        # The slider filters statistics for forecasting,
+        # but remaining work is always current.
         estimated_items = project_scope.get("estimated_items", 0)
         remaining_items = project_scope.get("remaining_items", 0)
         estimated_points = project_scope.get("estimated_points", 0)
@@ -108,7 +116,8 @@ def calculate_remaining_work_for_data_window(data_points_count, statistics):
             f"  Estimated items: {estimated_items}, Remaining items: {remaining_items}"
         )
         logger.info(
-            f"  Estimated points: {estimated_points:.1f}, Remaining points: {remaining_points:.1f}"
+            "  Estimated points: "
+            f"{estimated_points:.1f}, Remaining points: {remaining_points:.1f}"
         )
         logger.info(f"  Avg: {avg_points_per_item:.2f} points/item")
 

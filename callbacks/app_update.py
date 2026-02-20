@@ -97,7 +97,8 @@ def handle_footer_update_click(footer_clicks: int):
         download_toast = create_toast(
             [
                 html.Div(
-                    f"Version {progress.available_version} is available. You are running {progress.current_version}."
+                    f"Version {progress.available_version} is available. "
+                    f"You are running {progress.current_version}."
                 ),
                 dbc.Button(
                     [
@@ -242,7 +243,10 @@ def handle_toast_download_click(download_clicks: int, status_data: dict | None):
                 style={"fontSize": "0.85rem", "opacity": "0.8"},
             ),
             html.Div(
-                "You can dismiss this notification - progress will continue in the footer.",
+                (
+                    "You can dismiss this notification - "
+                    "progress will continue in the footer."
+                ),
                 className="mt-2",
                 style={"fontSize": "0.75rem", "opacity": "0.6"},
             ),
@@ -281,7 +285,12 @@ def poll_download_progress(n_intervals):
         n_intervals: Number of polling intervals
 
     Returns:
-        Tuple of (toast notification, poll interval disabled, progress value, progress text)
+        Tuple of (
+            toast notification,
+            poll interval disabled,
+            progress value,
+            progress text,
+        )
     """
     from dash import html
 
@@ -411,7 +420,8 @@ def handle_update_install(install_clicks: int, status_data: dict | None):
             except Exception as e:
                 logger.error(f"Failed to launch updater: {e}", exc_info=True)
 
-        # Start updater in background thread with 2 second delay to give overlay time to show
+        # Start updater in background thread with 2 second delay
+        # to give overlay time to show
         import threading
 
         update_thread = threading.Timer(2.0, launch_and_exit)

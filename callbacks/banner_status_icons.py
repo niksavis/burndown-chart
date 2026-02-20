@@ -92,7 +92,8 @@ def update_banner_status_icons(
                         ).total_seconds()
                         if elapsed >= 5:
                             logger.warning(
-                                "[BannerStatus] Stale postprocess detected, showing idle icons"
+                                "[BannerStatus] Stale postprocess detected, "
+                                "showing idle icons"
                             )
                             return (
                                 "fas fa-folder me-1",
@@ -100,7 +101,8 @@ def update_banner_status_icons(
                             )
                     else:
                         logger.warning(
-                            "[BannerStatus] Invalid postprocess_time, showing idle icons"
+                            "[BannerStatus] Invalid postprocess_time, "
+                            "showing idle icons"
                         )
                         return "fas fa-folder me-1", "fas fa-search me-1"
 

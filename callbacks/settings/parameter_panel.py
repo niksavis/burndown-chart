@@ -154,11 +154,13 @@ def register(app: Any) -> None:
                 config_logger.warning(
                     "[Banner] Deadline is None (possibly invalid input). "
                     "Using default for banner display. "
-                    "NOTE: Deadline is optional - health score uses graceful degradation."
+                    "NOTE: Deadline is optional - health score uses "
+                    "graceful degradation."
                 )
             else:
                 config_logger.info(
-                    f"[Banner] Deadline from picker is None, using stored value: {deadline}"
+                    "[Banner] Deadline from picker is None, "
+                    f"using stored value: {deadline}"
                 )
 
         scope_items = scope_items or 0
@@ -369,7 +371,8 @@ def register(app: Any) -> None:
                       remaining_points, calc_results)
         """
         logger.info(
-            f"[Settings] Data Points slider callback fired: data_points={data_points_count}, "
+            "[Settings] Data Points slider callback fired: "
+            f"data_points={data_points_count}, "
             f"init_complete={init_complete}, "
             f"statistics count={len(statistics) if statistics else 0}"
         )
@@ -398,7 +401,7 @@ def register(app: Any) -> None:
         prevent_initial_call="initial_duplicate",
     )
     def restore_update_data_progress(pathname: str) -> tuple:
-        """Restore progress bar and button visibility if task is in progress on page load.
+        """Restore progress bar and button visibility on page load.
 
         This callback runs on page load to check if an Update Data task
         was in progress before the page was refreshed or app restarted.
@@ -426,7 +429,8 @@ def register(app: Any) -> None:
                 # If restart was within last 5 seconds, don't restore progress
                 if time.time() - restart_time < 5:
                     logger.info(
-                        "[Settings] App restart detected - not restoring stale task progress"
+                        "[Settings] App restart detected - "
+                        "not restoring stale task progress"
                     )
                     restart_marker.unlink()
                     raise PreventUpdate
@@ -469,13 +473,15 @@ def register(app: Any) -> None:
             fetch_percent = fetch_progress.get("percent", 0)
 
             logger.info(
-                f"[Settings] Recovery check: phase={phase}, fetch_percent={fetch_percent}"
+                "[Settings] Recovery check: "
+                f"phase={phase}, fetch_percent={fetch_percent}"
             )
 
             if phase == "calculate":
                 # Page refreshed during/after fetch - trigger metrics calculation
                 logger.info(
-                    "Task in calculate phase on page load - triggering metrics calculation"
+                    "Task in calculate phase on page load - "
+                    "triggering metrics calculation"
                 )
                 metrics_trigger = int(time.time() * 1000)
             elif phase == "fetch" and fetch_percent == 0:

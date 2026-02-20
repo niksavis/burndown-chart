@@ -97,7 +97,9 @@ def _render_active_work_timeline_content(
             return create_no_active_work_state()
 
         logger.info(
-            f"[ACTIVE WORK] Rendering Active Work Timeline for profile={active_profile_id}, query={active_query_id}, data_points={data_points_count}"
+            "[ACTIVE WORK] Rendering Active Work Timeline for "
+            f"profile={active_profile_id}, query={active_query_id}, "
+            f"data_points={data_points_count}"
         )
 
         # Load issues from database
@@ -151,13 +153,15 @@ def _render_active_work_timeline_content(
             parent_field = "parent"  # Won't match anything, all issues will be orphaned
 
         logger.info(
-            f"[ACTIVE WORK] Using parent field: {parent_field} (configured: {parent_field_configured})"
+            "[ACTIVE WORK] Using parent field: "
+            f"{parent_field} (configured: {parent_field_configured})"
         )
 
         # Get active work data with nested structure
         try:
             logger.info(
-                f"[ACTIVE WORK] Calling get_active_work_data with {len(issues)} issues..."
+                "[ACTIVE WORK] Calling get_active_work_data with "
+                f"{len(issues)} issues..."
             )
             work_data = get_active_work_data(
                 issues,
@@ -231,7 +235,8 @@ def _render_active_work_timeline_content(
             [
                 dbc.Container(
                     [
-                        # Nested epic timeline (includes legend, completed items, and epics)
+                        # Nested epic timeline with legend,
+                        # completed items, and epics.
                         timeline_content,
                     ],
                     fluid=True,

@@ -90,11 +90,13 @@ def create_dora_flow_mappings_display(field_mappings: dict) -> html.Div:
             dbc.Alert(
                 [
                     html.I(className="fas fa-info-circle me-2"),
-                    "DORA and Flow metrics use structured field mappings configured in ",
+                    "DORA and Flow metrics use structured field mappings "
+                    "configured in ",
                     html.Code("app_settings.json"),
                     ". See ",
                     html.Code("DORA_FLOW_FIELD_MAPPING.md"),
-                    " for detailed documentation on these mappings.",
+                    " for detailed documentation ",
+                    "on these mappings.",
                 ],
                 color="info",
                 className="mb-4",
