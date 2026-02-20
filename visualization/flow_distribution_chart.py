@@ -15,7 +15,8 @@ def create_work_distribution_chart(
 
     Args:
         distribution_history: List of weekly distribution data
-            [{"week": "2025-W34", "feature": 5, "defect": 3, "tech_debt": 2, "risk": 0, "total": 10}, ...]
+            [{"week": "2025-W34", "feature": 5, "defect": 3,
+            "tech_debt": 2, "risk": 0, "total": 10}, ...]
 
     Returns:
         Plotly Figure with stacked bar chart
@@ -72,7 +73,11 @@ def create_work_distribution_chart(
                     line=dict(color="white", width=0.5),
                 ),
                 customdata=counts,
-                hovertemplate=f"<b>{trace_name}</b><br>%{{y:.1f}}% (%{{customdata}} items)<br><i>Target: {target_range}</i><extra></extra>",
+                hovertemplate=(
+                    f"<b>{trace_name}</b><br>%{{y:.1f}}% "
+                    f"(%{{customdata}} items)<br>"
+                    f"<i>Target: {target_range}</i><extra></extra>"
+                ),
             )
         )
 

@@ -1,7 +1,8 @@
 """
 Visualization Elements Module
 
-This module provides low-level chart components like individual traces, axes configuration,
+This module provides low-level chart components like individual traces,
+axes configuration,
 markers, and styling elements used to build the complete forecast visualization.
 """
 
