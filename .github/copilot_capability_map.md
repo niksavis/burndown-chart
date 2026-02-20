@@ -26,6 +26,9 @@ Purpose: one reviewable map of all Copilot customization artifacts, what each do
 | `.github/instructions/testing-quality.instructions.md`       | `tests/**/*.py,data/**/*.py,callbacks/**/*.py`                                                                           | Requires targeted tests and isolation                      |
 | `.github/instructions/powershell-python-env.instructions.md` | `**/*.py,tests/**/*.py,release.py,regenerate_changelog.py`                                                               | Enforces PowerShell + venv command pattern                 |
 | `.github/instructions/release-workflow.instructions.md`      | `release.py,regenerate_changelog.py,changelog.md,docs/codebase_context_metrics.md,.github/codebase_context_metrics.json` | Standardizes changelog/release flow                        |
+| `.github/instructions/build-pipeline.instructions.md`        | `build/**/*,release.py,regenerate_changelog.py,pyproject.toml,build_config.yaml`                                         | Enforces safe build and packaging changes                  |
+| `.github/instructions/cache-management.instructions.md`      | `data/cache_manager.py,data/jira/cache_*.py,data/metrics_cache.py,data/persistence/sqlite/issues_cache.py`               | Enforces safe cache management patterns                    |
+| `.github/instructions/configuration-changes.instructions.md` | `configuration/**/*.py,data/config_validation.py,data/smart_defaults.py`                                                 | Enforces safe configuration management                     |
 | `.github/instructions/review-gate.instructions.md`           | `**/*`                                                                                                                   | Final completion quality gate                              |
 | `.github/instructions/review.instructions.md`                | Broad review policy document                                                                                             | Deep review checklist and coding standards                 |
 
@@ -38,6 +41,8 @@ Purpose: one reviewable map of all Copilot customization artifacts, what each do
 | `.github/skills/jira-integration-reliability/SKILL.md` | Reliable Jira fetch/cache/error handling       | Jira flows in `data/` + delegates    |
 | `.github/skills/plotly-visualization-quality/SKILL.md` | Chart correctness and render performance       | `visualization/` chart work          |
 | `.github/skills/release-management/SKILL.md`           | Release/changelog workflow safety              | Release prep and versioning          |
+| `.github/skills/frontend-javascript-quality/SKILL.md`  | Reliable JavaScript/clientside callbacks       | `assets/` JS/CSS changes             |
+| `.github/skills/updater-reliability/SKILL.md`          | Safe updater two-phase update flow             | `updater/` system changes            |
 
 ## Custom Agents (Subagents)
 
@@ -56,6 +61,7 @@ Purpose: one reviewable map of all Copilot customization artifacts, what each do
 | `.github/prompts/bug-triage-burndown.prompt.md`   | Root-cause + focused bug fix flow     | Bug investigations                    |
 | `.github/prompts/safe-refactor-python.prompt.md`  | Behavior-preserving refactor workflow | Python refactors                      |
 | `.github/prompts/add-targeted-tests.prompt.md`    | Add isolated targeted tests           | Test additions after behavior changes |
+| `.github/prompts/documentation-update.prompt.md`  | Documentation updates and accuracy    | Documentation changes                 |
 | `.github/prompts/pre-merge-self-review.prompt.md` | PASS/FAIL self review checklist       | Final review before merge             |
 | `.github/prompts/release-notes-draft.prompt.md`   | User-focused changelog bullets        | Release notes drafting                |
 
@@ -63,13 +69,16 @@ Purpose: one reviewable map of all Copilot customization artifacts, what each do
 
 | Artifact                                | Type             | Purpose                                               |
 | --------------------------------------- | ---------------- | ----------------------------------------------------- |
-| `.github/codebase_context_metrics.json` | Machine-readable | Agent context sizing, chunking strategy, folder focus |
-| `docs/codebase_context_metrics.md`      | Human-readable   | Quick operator view of codebase context size guidance |
+| `.github/codebase_context_metrics.json` | Machine-readable | Agent context sizing, chunking strategy, task routing |
+| `docs/codebase_context_metrics.md`      | Human-readable   | Context size guidance and task-to-folder routing      |
+| `.github/context-routing-map.md`        | Agent guide      | Comprehensive task-type to file mapping guide         |
 
 ## Hooks
 
 | Hook pack                                  | Mode           | Capability                                      |
 | ------------------------------------------ | -------------- | ----------------------------------------------- |
+| `.github/hooks/governance-audit/`          | Audit          | Threat-pattern scanning + local governance log  |
+| `.github/hooks/session-logger-lite/`       | Lite logger    | Session start/end local JSONL logging           |
 | `.github/hooks/governance-warn-only/`      | Warn-only      | Session reminders for governance and validation |
 | `.github/hooks/governance-strict/`         | Strict profile | Stronger completion gate reminders              |
 | `.github/hooks/layering-warn-only/`        | Warn-only      | Layering reminders                              |
@@ -77,14 +86,34 @@ Purpose: one reviewable map of all Copilot customization artifacts, what each do
 | `.github/hooks/release-hygiene-warn-only/` | Warn-only      | Release/changelog hygiene reminders             |
 | `.github/hooks/release-hygiene-strict/`    | Strict profile | Strict release hygiene validation reminders     |
 
+Recommended baseline composition:
+
+- `governance-warn-only` + `layering-warn-only` + `release-hygiene-warn-only`
+- plus `governance-audit` and `session-logger-lite` for local auditability
+
 ## Task-to-Artifact Routing
 
-- Python feature/bug: `python-backend-quality` skill + `bug-triage-burndown` prompt + layering/testing/security instructions.
-- Persistence change: `sqlite-persistence-safety` skill + testing/security instructions.
-- Chart change: `plotly-visualization-quality` skill + layering instructions.
-- Jira integration change: `jira-integration-reliability` skill + security/testing instructions.
-- Refactor: `safe-refactor-python` prompt + `layering-enforcer` agent.
-- Release prep: `release-management` skill + `release-readiness` agent + `release-notes-draft` prompt.
+- **Python backend**: `python-backend-quality` skill + `python-dash-layering` instruction + `testing-quality` instruction
+- **Frontend/JavaScript**: `frontend-javascript-quality` skill + `security-data-safety` instruction
+- **Persistence/Database**: `sqlite-persistence-safety` skill + `cache-management` instruction + `testing-quality` instruction
+- **Chart/Visualization**: `plotly-visualization-quality` skill + `python-dash-layering` instruction
+- **JIRA integration**: `jira-integration-reliability` skill + `cache-management` instruction + `security-data-safety` instruction
+- **Build/Packaging**: `build-pipeline` instruction + `release-management` skill (if release-related)
+- **Updater system**: `updater-reliability` skill + `build-pipeline` instruction
+- **Configuration**: `configuration-changes` instruction + `security-data-safety` instruction
+- **Refactor**: `safe-refactor-python` prompt + `layering-enforcer` agent + `testing-quality` instruction
+- **Release prep**: `release-management` skill + `release-readiness` agent + `release-notes-draft` prompt
+- **Documentation**: `documentation-update` prompt + accuracy verification against code
+
+## Context Loading Optimization
+
+For any non-trivial task:
+
+1. Start with `context-map-burndown` prompt to plan file loading
+2. Reference `.github/context-routing-map.md` for task-specific file paths
+3. Check `docs/codebase_context_metrics.md` for folder guidance
+4. Load files in priority order (critical → helpful → optional)
+5. Use `semantic_search` for unknown/exploratory searches
 
 ## Gap Review (Current)
 

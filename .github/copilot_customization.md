@@ -22,17 +22,21 @@ Apply artifacts in this order:
 ## Conditional Instructions
 
 - `.github/instructions/python-dash-layering.instructions.md`
-- `.github/instructions/review-gate.instructions.md`
 - `.github/instructions/security-data-safety.instructions.md`
 - `.github/instructions/testing-quality.instructions.md`
-- `.github/instructions/release-workflow.instructions.md`
 - `.github/instructions/powershell-python-env.instructions.md`
+- `.github/instructions/release-workflow.instructions.md`
+- `.github/instructions/build-pipeline.instructions.md`
+- `.github/instructions/cache-management.instructions.md`
+- `.github/instructions/configuration-changes.instructions.md`
+- `.github/instructions/review-gate.instructions.md`
 - `.github/instructions/review.instructions.md`
 
 ## Agent Discoverability Artifacts
 
-- `.github/codebase_context_metrics.json` (machine-readable context sizing and chunking guidance)
+- `.github/codebase_context_metrics.json` (machine-readable context sizing and task routing)
 - `docs/codebase_context_metrics.md` (human-readable companion summary)
+- `.github/context-routing-map.md` (comprehensive task-type to file mapping guide)
 
 ## Skills
 
@@ -40,6 +44,8 @@ Apply artifacts in this order:
 - `.github/skills/sqlite-persistence-safety/SKILL.md`
 - `.github/skills/jira-integration-reliability/SKILL.md`
 - `.github/skills/plotly-visualization-quality/SKILL.md`
+- `.github/skills/frontend-javascript-quality/SKILL.md`
+- `.github/skills/updater-reliability/SKILL.md`
 - `.github/skills/release-management/SKILL.md`
 
 ## Prompts
@@ -48,6 +54,7 @@ Apply artifacts in this order:
 - `.github/prompts/pre-merge-self-review.prompt.md`
 - `.github/prompts/bug-triage-burndown.prompt.md`
 - `.github/prompts/safe-refactor-python.prompt.md`
+- `.github/prompts/documentation-update.prompt.md`
 - `.github/prompts/add-targeted-tests.prompt.md`
 - `.github/prompts/release-notes-draft.prompt.md`
 
@@ -60,6 +67,8 @@ Apply artifacts in this order:
 
 ## Hook Packs
 
+- `.github/hooks/governance-audit/`
+- `.github/hooks/session-logger-lite/`
 - `.github/hooks/governance-warn-only/`
 - `.github/hooks/governance-strict/`
 - `.github/hooks/layering-warn-only/`
@@ -72,13 +81,16 @@ Apply artifacts in this order:
 Default profile:
 
 - Use warn-only packs during normal development to avoid blocking workflows.
+- Add `.github/hooks/governance-audit/hooks.json` for threat-pattern audit logging.
+- Add `.github/hooks/session-logger-lite/hooks.json` for session lifecycle logs without prompt body capture.
 
 Strict profile switch:
 
 1. Set governance profile to `.github/hooks/governance-strict/hooks.json` in your local Copilot hook configuration.
 2. Set layering profile to `.github/hooks/layering-strict/hooks.json`.
 3. Set release hygiene profile to `.github/hooks/release-hygiene-strict/hooks.json`.
-4. If strict enforcement causes false positives, switch back to corresponding warn-only packs and refine strict messages first.
+4. Keep `.github/hooks/governance-audit/hooks.json` enabled to retain auditable threat signals.
+5. If strict enforcement causes false positives, switch back to corresponding warn-only packs and refine strict messages first.
 
 Recommended rollout:
 

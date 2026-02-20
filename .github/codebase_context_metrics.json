@@ -42,11 +42,64 @@
   "guidance": {
     "max_lines_per_read": 500,
     "use_semantic_search": true,
-    "focus_folders": [
-      "data",
-      "ui",
-      "callbacks",
-      "visualization"
-    ]
+    "focus_folders": ["data", "ui", "callbacks", "visualization"],
+    "context_routing_reference": ".github/context-routing-map.md"
+  },
+  "task_routing": {
+    "python_backend": {
+      "folders": ["data/", "callbacks/"],
+      "typical_files": "3-8",
+      "docs": "docs/architecture/python_guidelines.md"
+    },
+    "frontend_js": {
+      "folders": ["assets/", "ui/"],
+      "typical_files": "2-5",
+      "docs": "docs/architecture/javascript_guidelines.md"
+    },
+    "visualization": {
+      "folders": ["visualization/", "data/"],
+      "typical_files": "3-6",
+      "docs": "See chart-specific docs in docs/"
+    },
+    "persistence": {
+      "folders": ["data/persistence/", "data/migration/"],
+      "typical_files": "4-10",
+      "docs": "docs/sqlite_persistence.md"
+    },
+    "jira_integration": {
+      "folders": ["data/jira/", "callbacks/jira_*"],
+      "typical_files": "3-7",
+      "docs": "docs/jira_configuration.md"
+    },
+    "ui_components": {
+      "folders": ["ui/", "assets/"],
+      "typical_files": "2-5",
+      "docs": "docs/design_system.md"
+    },
+    "build_release": {
+      "folders": ["build/", "root (release.py)"],
+      "typical_files": "3-6",
+      "docs": "docs/release_process.md"
+    },
+    "updater": {
+      "folders": ["updater/", "data/update_manager.py"],
+      "typical_files": "3-5",
+      "docs": "docs/updater_architecture.md"
+    },
+    "configuration": {
+      "folders": ["configuration/", "data/config_validation.py"],
+      "typical_files": "2-4",
+      "docs": "Config module docstrings"
+    },
+    "testing": {
+      "folders": ["tests/", "source being tested"],
+      "typical_files": "2-10",
+      "docs": "Test file docstrings"
+    },
+    "documentation": {
+      "folders": ["docs/", "related code"],
+      "typical_files": "1-3",
+      "docs": "docs/readme.md"
+    }
   }
 }
