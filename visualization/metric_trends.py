@@ -23,7 +23,8 @@ def _add_performance_tier_zones(
 
     Args:
         figure: Plotly figure object to add zones to
-        metric_name: DORA metric name (deployment_frequency, lead_time_for_changes, etc.)
+        metric_name: DORA metric name
+            (deployment_frequency, lead_time_for_changes, etc.)
         y_max: Maximum y-axis value for positioning zones
         x_range: X-axis range (typically week labels) for zone width
 
@@ -240,7 +241,10 @@ def create_metric_trend_sparkline(
             mode="lines+markers",
             line={"color": color, "width": 2, "dash": "dot"},
             marker={"size": 5, "color": color, "symbol": "circle-open"},
-            hovertemplate=f"<b>%{{x}}</b><br>Adjusted: %{{y:.2f}} {unit}<extra></extra>",
+            hovertemplate=(
+                f"<b>%{{x}}</b><br>Adjusted: %{{y:.2f}} {unit}"
+                "<extra></extra>"
+            ),
             name="Adjusted",
         )
 
@@ -345,7 +349,8 @@ def create_metric_trend_full(
         target_label: Label for target line
         height: Height of chart in pixels (default: 200)
         show_performance_zones: Whether to show performance tier zones (default: True)
-        line_color: Color for the trend line (default: blue, or dynamic based on performance tier)
+        line_color: Color for the trend line
+            (default: blue, or dynamic based on performance tier)
 
     Returns:
         Dash Graph component with full trend visualization
@@ -408,7 +413,10 @@ def create_metric_trend_full(
                 mode="lines+markers",
                 line={"color": line_color, "width": 2, "dash": "dot"},
                 marker={"size": 6, "color": line_color, "symbol": "circle-open"},
-                hovertemplate=f"<b>%{{x}}</b><br>Adjusted: %{{y:.2f}} {unit}<extra></extra>",
+                hovertemplate=(
+                    f"<b>%{{x}}</b><br>Adjusted: %{{y:.2f}} {unit}"
+                    "<extra></extra>"
+                ),
                 name="Adjusted",
             )
         )
@@ -421,7 +429,10 @@ def create_metric_trend_full(
                 y=[target_line, target_line],
                 mode="lines",
                 line={"color": "red", "width": 2, "dash": "dash"},
-                hovertemplate=f"<b>{target_label}</b><br>%{{y:.2f}} {unit}<extra></extra>",
+                hovertemplate=(
+                    f"<b>{target_label}</b><br>%{{y:.2f}} {unit}"
+                    "<extra></extra>"
+                ),
                 name=target_label,
             )
         )
@@ -601,7 +612,8 @@ def create_dual_line_trend(
         release_values: Release counts per week (unique fixVersions)
         height: Height of chart in pixels (default: 250)
         show_axes: Whether to show axis labels (default: True)
-        primary_color: Color for deployment line (default: blue, or dynamic based on performance)
+        primary_color: Color for deployment line
+            (default: blue, or dynamic based on performance)
         secondary_color: Color for release line (default: green)
         chart_title: Title to display on chart (default: "Deployment Frequency")
 
