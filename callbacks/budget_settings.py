@@ -251,7 +251,9 @@ def load_budget_settings(
                   page_info, prev_disabled, next_disabled)
     """
     logger.info(
-        f"[BUDGET LOAD] Called with profile_id={profile_id}, query_id={query_id}, active_tab={active_tab}"
+        "[BUDGET LOAD] Called with "
+        f"profile_id={profile_id}, query_id={query_id}, "
+        f"active_tab={active_tab}"
     )
 
     # Only skip if we don't have both profile_id and query_id
@@ -295,7 +297,8 @@ def load_budget_settings(
                 with get_db_connection() as conn:
                     cursor = conn.cursor()
                     cursor.execute(
-                        "SELECT created_at, updated_at FROM budget_settings WHERE profile_id = ? AND query_id = ?",
+                        "SELECT created_at, updated_at "
+                        "FROM budget_settings WHERE profile_id = ? AND query_id = ?",
                         (profile_id, query_id),
                     )
                     timestamps = cursor.fetchone()
@@ -315,13 +318,16 @@ def load_budget_settings(
                     "updated_at": timestamps[1] if timestamps else "",
                 }
                 logger.info(
-                    f"[BUDGET LOAD] Not on budget-tab, populating store only: time={store_data['time_allocated_weeks']}, cost={store_data['team_cost_per_week_eur']}"
+                    "[BUDGET LOAD] Not on budget-tab, populating store only: "
+                    f"time={store_data['time_allocated_weeks']}, "
+                    f"cost={store_data['team_cost_per_week_eur']}"
                 )
             else:
                 # No budget for this query - clear store
                 store_data = {}
                 logger.warning(
-                    "[BUDGET LOAD] No budget found, clearing store and returning no_update"
+                    "[BUDGET LOAD] No budget found, "
+                    "clearing store and returning no_update"
                 )
 
                 return (
@@ -670,7 +676,8 @@ def save_budget_settings(
             # Use effective date as ISO timestamp for created_at
             effective_dt_iso = effective_dt.replace(tzinfo=UTC).isoformat()
             logger.info(
-                f"Using effective date {effective_date} for budget revision (week: {current_week})"
+                f"Using effective date {effective_date} "
+                f"for budget revision (week: {current_week})"
             )
         else:
             effective_dt_iso = now_iso
@@ -688,10 +695,13 @@ def save_budget_settings(
                 "baseline_velocity_points", 0
             )
             logger.info(
-                f"Budget update: Preserving existing baseline velocity: items={baseline_velocity_items:.2f}, points={baseline_velocity_points:.2f}"
+                "Budget update: Preserving existing baseline velocity: "
+                f"items={baseline_velocity_items:.2f}, "
+                f"points={baseline_velocity_points:.2f}"
             )
         else:
-            # Create mode: Calculate baseline velocity from Recent Completions (last 4 weeks)
+            # Create mode: Calculate baseline velocity from
+            # Recent Completions (last 4 weeks)
             # Use the same method as Recent Completions cards for consistency
             import pandas as pd
 
@@ -722,7 +732,10 @@ def save_budget_settings(
                 baseline_velocity_points = 0.0
 
             logger.info(
-                f"Budget creation: Capturing baseline velocity from last 4 weeks (Recent Completions): items={baseline_velocity_items:.2f}, points={baseline_velocity_points:.2f}"
+                "Budget creation: Capturing baseline velocity "
+                "from last 4 weeks (Recent Completions): "
+                f"items={baseline_velocity_items:.2f}, "
+                f"points={baseline_velocity_points:.2f}"
             )
 
         with get_db_connection() as conn:
@@ -744,14 +757,16 @@ def save_budget_settings(
                         """
                         INSERT INTO budget_revisions (
                             profile_id, query_id, revision_date, week_label,
-                            time_allocated_weeks_delta, team_cost_delta, budget_total_delta,
+                            time_allocated_weeks_delta,
+                            team_cost_delta,
+                            budget_total_delta,
                             revision_reason, created_at
                         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """,
                         (
                             profile_id,
                             query_id,
-                            effective_dt_iso,  # Use effective date, not current timestamp
+                            effective_dt_iso,
                             current_week,
                             time_delta,
                             cost_delta,
@@ -762,7 +777,8 @@ def save_budget_settings(
                     )
 
                 # Update budget_settings
-                # If effective_date provided, also update created_at to reflect new effective date
+                # If effective_date provided,
+                # also update created_at to reflect it
                 cursor.execute(
                     """
                     UPDATE budget_settings
@@ -798,7 +814,8 @@ def save_budget_settings(
                 cursor.execute(
                     """
                     INSERT OR REPLACE INTO budget_settings (
-                        profile_id, query_id, time_allocated_weeks, team_cost_per_week_eur,
+                        profile_id, query_id,
+                        time_allocated_weeks, team_cost_per_week_eur,
                         budget_total_eur, currency_symbol,
                         baseline_velocity_items, baseline_velocity_points,
                         created_at, updated_at
@@ -825,7 +842,8 @@ def save_budget_settings(
             # Get created_at from database to reflect any updates made
             # (important when effective date is changed during update)
             cursor.execute(
-                "SELECT created_at FROM budget_settings WHERE profile_id = ? AND query_id = ?",
+                "SELECT created_at FROM budget_settings "
+                "WHERE profile_id = ? AND query_id = ?",
                 (profile_id, query_id),
             )
             result = cursor.fetchone()
@@ -953,7 +971,9 @@ def populate_inputs_on_tab_switch(active_tab, store_data):
         Tuple of (time_input, currency_input, cost_input, effective_date)
     """
     logger.info(
-        f"[POPULATE INPUTS] Called with active_tab={active_tab}, store_data={'present' if store_data else 'None'}"
+        "[POPULATE INPUTS] Called with "
+        f"active_tab={active_tab}, "
+        f"store_data={'present' if store_data else 'None'}"
     )
 
     # Only populate when switching TO budget tab
@@ -969,7 +989,9 @@ def populate_inputs_on_tab_switch(active_tab, store_data):
         return None, "€", None, None
 
     logger.info(
-        f"[POPULATE INPUTS] Populating inputs: time={store_data.get('time_allocated_weeks')}, cost={store_data.get('team_cost_per_week_eur')}"
+        "[POPULATE INPUTS] Populating inputs: "
+        f"time={store_data.get('time_allocated_weeks')}, "
+        f"cost={store_data.get('team_cost_per_week_eur')}"
     )
 
     # Get effective date from created_at
@@ -1011,7 +1033,8 @@ def refresh_budget_revision_history(
     store_data, profile_id, query_id, current_page, active_tab
 ):
     """
-    Refresh budget revision history when store updates or when Budget tab becomes active.
+    Refresh budget revision history when store updates
+    or when Budget tab becomes active.
 
     Args:
         store_data: Updated budget settings store
@@ -1350,7 +1373,8 @@ def confirm_delete_budget_history(n_clicks, profile_id, query_id):
             conn.commit()
 
         success = create_toast(
-            "Budget revision history deleted successfully. Budget baseline has been reset.",
+            "Budget revision history deleted successfully. "
+            "Budget baseline has been reset.",
             toast_type="success",
             header="History Deleted",
             duration=4000,
@@ -1460,7 +1484,14 @@ def confirm_delete_complete_budget(n_clicks, profile_id, query_id):
         query_id: Active query identifier
 
     Returns:
-        Tuple of (notification, updated_store, modal_state, history, time_input, cost_input)
+        Tuple of (
+            notification,
+            updated_store,
+            modal_state,
+            history,
+            time_input,
+            cost_input,
+        )
     """
     if not n_clicks or not profile_id or not query_id:
         return (
