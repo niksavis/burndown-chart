@@ -51,7 +51,8 @@ def render_tab_content(
         metadata: Cached JIRA metadata from store
         is_open: Whether modal is open
         refresh_trigger: Trigger value from auto-configure
-        fetched_field_values: Dynamically fetched field values (triggers re-render for Types/Env tabs)
+        fetched_field_values: Dynamically fetched field values
+            (triggers re-render for Types/Env tabs)
         profile_switch_trigger: Trigger value from profile switch (import)
         state_data: Current form state from state store
         collected_namespace_values: Values collected from namespace inputs (DOM)
@@ -88,7 +89,8 @@ def render_tab_content(
         f"triggered_by={triggered_id}"
     )
 
-    # If triggered by fetched-field-values-store and we're on Fields tab, don't re-render
+    # If triggered by fetched-field-values-store and we're on Fields tab,
+    # don't re-render
     # This prevents losing namespace input values when field values are fetched
     if triggered_id == "fetched-field-values-store" and active_tab == "tab-fields":
         logger.info(
@@ -111,8 +113,9 @@ def render_tab_content(
     # This preserves values when switching tabs
     # IMPORTANT: Do this BEFORE checking for empty state
     # CRITICAL: Only merge if triggered by tab switch, NOT when modal opens
-    # When modal opens, collected_namespace_values contains STALE data from previous save
-    # which causes cleared fields to reappear (Bug: general fields reappearing after clear+save)
+    # When modal opens, collected_namespace_values contains stale data
+    # from previous save, which causes cleared fields to reappear
+    # (Bug: general fields reappearing after clear+save)
     if collected_namespace_values and triggered_id != "field-mapping-modal":
         state_data = state_data.copy()  # Don't mutate original
         field_mappings = (
@@ -121,18 +124,29 @@ def render_tab_content(
             else {}
         )
 
-        # collected_namespace_values format: {_trigger: "save"|"mode_switch", values: {metric: {field: value}}}
+        # collected_namespace_values format:
+        # {_trigger: "save"|"mode_switch", values: {metric: {field: value}}}
         # Extract actual values from the wrapper structure
         actual_values = collected_namespace_values.get("values", {})
         if not actual_values and "_trigger" not in collected_namespace_values:
             # Backward compatibility: old format was {metric: {field: value}} directly
             actual_values = collected_namespace_values
 
+        collected_keys = (
+            list(collected_namespace_values.keys())
+            if isinstance(collected_namespace_values, dict)
+            else "NOT DICT"
+        )
+
         logger.debug(
-            f"[FieldMapping] collected_namespace_values type: {type(collected_namespace_values)}, keys: {list(collected_namespace_values.keys()) if isinstance(collected_namespace_values, dict) else 'NOT DICT'}"
+            "[FieldMapping] collected_namespace_values type: "
+            f"{type(collected_namespace_values)}, "
+            "keys: "
+            f"{collected_keys}"
         )
         logger.debug(
-            f"[FieldMapping] actual_values type: {type(actual_values)}, content: {actual_values}"
+            f"[FieldMapping] actual_values type: {type(actual_values)}, "
+            f"content: {actual_values}"
         )
 
         for metric, fields in actual_values.items():
@@ -150,20 +164,26 @@ def render_tab_content(
                 if value:  # Only update if there's a value
                     field_mappings[metric][field] = value
                     logger.debug(
-                        f"[FieldMapping] Merged collected value: {metric}.{field} = {value}"
+                        "[FieldMapping] Merged collected value: "
+                        f"{metric}.{field} = {value}"
                     )
 
         state_data["field_mappings"] = field_mappings
         logger.info(
-            f"[FieldMapping] Merged {len(collected_namespace_values)} metric groups from collected values"
+            "[FieldMapping] Merged "
+            f"{len(collected_namespace_values)} metric groups "
+            "from collected values"
         )
     elif collected_namespace_values and triggered_id == "field-mapping-modal":
         logger.info(
-            "[FieldMapping] Skipping merge of collected_namespace_values - modal just opened, values are stale from previous save"
+            "[FieldMapping] Skipping merge of collected_namespace_values - "
+            "modal just opened, values are stale from previous save"
         )
 
-    # Check if state is empty or only contains profile tracking metadata and/or field_mappings
-    # (state_data with only "_profile_id" and/or "field_mappings" keys should be re-initialized with other settings)
+    # Check if state is empty or only contains profile tracking
+    # metadata and/or field_mappings.
+    # (state_data with only "_profile_id" and/or "field_mappings"
+    # keys should be re-initialized with other settings)
     essential_keys = {"_profile_id", "field_mappings"}
     is_partial_state = not state_data or set(state_data.keys()).issubset(essential_keys)
 
@@ -262,7 +282,8 @@ def render_tab_content(
             # Check if metadata has error state
             if metadata and metadata.get("error"):
                 logger.warning(
-                    f"[FieldMapping] Metadata has error state: {metadata.get('error')}. "
+                    "[FieldMapping] Metadata has error state: "
+                    f"{metadata.get('error')}. "
                     "Fields tab will be empty. Check JIRA configuration."
                 )
                 # Return empty form - user needs to configure JIRA first
@@ -364,7 +385,9 @@ def render_tab_content(
                 "values", []
             )
             logger.info(
-                f"[FieldMapping] Using {len(available_effort_categories)} dynamically fetched effort categories"
+                "[FieldMapping] Using "
+                f"{len(available_effort_categories)} dynamically fetched "
+                "effort categories"
             )
         else:
             # Fallback to metadata field_options
@@ -375,18 +398,33 @@ def render_tab_content(
                     effort_category_field, []
                 )
                 logger.info(
-                    f"[FieldMapping] Using {len(available_effort_categories)} effort categories from metadata"
+                    "[FieldMapping] Using "
+                    f"{len(available_effort_categories)} effort categories "
+                    "from metadata"
                 )
 
         available_issue_types_list = metadata.get("issue_types", [])
         logger.info(
-            f"[FieldMapping] Rendering Types tab with {len(available_issue_types_list)} available issue types"
+            "[FieldMapping] Rendering Types tab with "
+            f"{len(available_issue_types_list)} available issue types"
         )
+        feature_count = len(
+            flow_type_mappings.get("Feature", {}).get("issue_types", [])
+        )
+        defect_count = len(flow_type_mappings.get("Defect", {}).get("issue_types", []))
+        technical_debt_count = len(
+            flow_type_mappings.get("Technical Debt", {}).get("issue_types", [])
+        )
+        risk_count = len(flow_type_mappings.get("Risk", {}).get("issue_types", []))
         logger.info(
-            f"[FieldMapping] Flow type mappings: Feature={len(flow_type_mappings.get('Feature', {}).get('issue_types', []))}, "
-            f"Defect={len(flow_type_mappings.get('Defect', {}).get('issue_types', []))}, "
-            f"TechnicalDebt={len(flow_type_mappings.get('Technical Debt', {}).get('issue_types', []))}, "
-            f"Risk={len(flow_type_mappings.get('Risk', {}).get('issue_types', []))}"
+            "[FieldMapping] Flow type mappings: "
+            "Feature="
+            f"{feature_count}, "
+            "Defect="
+            f"{defect_count}, "
+            "TechnicalDebt="
+            f"{technical_debt_count}, "
+            f"Risk={risk_count}"
         )
 
         # Get parent_issue_types from field_mappings.general
@@ -430,28 +468,35 @@ def render_tab_content(
         metadata_env_values = []
         fetched_env_values = []
 
-        # Priority 1: Use field options from metadata (if field was already mapped when modal opened)
+        # Priority 1: Use field options from metadata
+        # (if field was already mapped when modal opened)
         if affected_env_field and metadata.get("field_options"):
             metadata_env_values = metadata.get("field_options", {}).get(
                 affected_env_field, []
             )
             logger.debug(
-                f"[FieldMapping] Loaded {len(metadata_env_values)} values from metadata.field_options[{affected_env_field}]"
+                "[FieldMapping] Loaded "
+                f"{len(metadata_env_values)} values from "
+                f"metadata.field_options[{affected_env_field}]"
             )
 
-        # Priority 1b: Use fetched field values from store (auto-fetched when field mapping changed)
+        # Priority 1b: Use fetched field values from store
+        # (auto-fetched when field mapping changed)
         if fetched_field_values and fetched_field_values.get("affected_environment"):
             fetched_env_values = fetched_field_values["affected_environment"].get(
                 "values", []
             )
             logger.debug(
-                f"[FieldMapping] Loaded {len(fetched_env_values)} values from fetched-field-values-store"
+                "[FieldMapping] Loaded "
+                f"{len(fetched_env_values)} values from "
+                "fetched-field-values-store"
             )
 
         # Combine metadata and fetched values
         available_env_values = list(set(metadata_env_values + fetched_env_values))
 
-        # Priority 2: Use field_values from state (populated by auto-configure from issue analysis)
+        # Priority 2: Use field_values from state
+        # (populated by auto-configure from issue analysis)
         if not available_env_values:
             field_values = (state_data or {}).get("field_values", {})
             if field_values and "target_environment" in field_values:
@@ -459,11 +504,14 @@ def render_tab_content(
                 # Limit to first 50 values to prevent browser performance issues
                 if len(available_env_values) > 50:
                     logger.warning(
-                        f"[FieldMapping] Truncating environment values from {len(available_env_values)} to 50"
+                        "[FieldMapping] Truncating environment values "
+                        f"from {len(available_env_values)} to 50"
                     )
                     available_env_values = available_env_values[:50]
                 logger.debug(
-                    f"[FieldMapping] Loaded {len(available_env_values)} values from state_data.field_values.target_environment"
+                    "[FieldMapping] Loaded "
+                    f"{len(available_env_values)} values from "
+                    "state_data.field_values.target_environment"
                 )
 
         # Priority 3: Use auto-detected production identifiers from metadata as options
@@ -474,7 +522,9 @@ def render_tab_content(
             if prod_identifiers:
                 available_env_values = prod_identifiers
                 logger.debug(
-                    f"[FieldMapping] Using {len(available_env_values)} auto-detected production identifiers as options"
+                    "[FieldMapping] Using "
+                    f"{len(available_env_values)} auto-detected "
+                    "production identifiers as options"
                 )
 
         return create_environment_config_form(
