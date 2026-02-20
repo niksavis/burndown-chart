@@ -107,14 +107,17 @@ def create_weekly_items_chart(
     required_velocity=None,
 ):
     """
-    Create a bar chart showing weekly completed items with optional forecast for the next week.
+    Create a bar chart showing weekly completed items
+    with optional forecast for the next week.
 
     Args:
         statistics_data: List of dictionaries containing statistics data
         pert_factor: PERT factor for calculations (for forecast)
         include_forecast: Whether to include forecast data (default: True)
-        data_points_count: Number of data points to use for calculations (default: None, uses all data)
-        required_velocity: Optional required velocity to display as reference line (items/week)
+        data_points_count: Number of data points to use for calculations
+            (default: None, uses all data)
+        required_velocity: Optional required velocity to display
+            as reference line (items/week)
 
     Returns:
         Plotly figure object with the weekly items chart
@@ -348,10 +351,12 @@ def create_weekly_items_chart(
 
             # Calculate confidence interval bounds (25% of difference)
             upper_bound = [
-                ml + 0.25 * (opt - ml) for ml, opt in zip(most_likely, optimistic, strict=False)
+                ml + 0.25 * (opt - ml)
+                for ml, opt in zip(most_likely, optimistic, strict=False)
             ]
             lower_bound = [
-                ml - 0.25 * (ml - pes) for ml, pes in zip(most_likely, pessimistic, strict=False)
+                ml - 0.25 * (ml - pes)
+                for ml, pes in zip(most_likely, pessimistic, strict=False)
             ]
 
             # Single next week forecast with confidence interval
@@ -368,9 +373,13 @@ def create_weekly_items_chart(
                     error_y=dict(
                         type="data",
                         symmetric=False,
-                        array=[u - ml for u, ml in zip(upper_bound, most_likely, strict=False)],
+                        array=[
+                            u - ml
+                            for u, ml in zip(upper_bound, most_likely, strict=False)
+                        ],
                         arrayminus=[
-                            ml - lb for ml, lb in zip(most_likely, lower_bound, strict=False)
+                            ml - lb
+                            for ml, lb in zip(most_likely, lower_bound, strict=False)
                         ],
                         color="rgba(0, 0, 0, 0.3)",
                     ),
@@ -486,14 +495,18 @@ def create_weekly_points_chart(
     required_velocity=None,
 ):
     """
-    Create a bar chart showing weekly completed points with a weighted moving average line and optional forecast for next week.
+    Create a bar chart showing weekly completed points
+    with a weighted moving average line
+    and optional forecast for next week.
 
     Args:
         statistics_data: List of dictionaries containing statistics data
         pert_factor: PERT factor for calculations (for forecast)
         include_forecast: Whether to include forecast data (default: True)
-        data_points_count: Number of data points to use for calculations (default: None, uses all data)
-        required_velocity: Optional required velocity to display as reference line (points/week)
+        data_points_count: Number of data points to use for calculations
+            (default: None, uses all data)
+        required_velocity: Optional required velocity to display
+            as reference line (points/week)
 
     Returns:
         Plotly figure object with the weekly points chart
@@ -726,10 +739,12 @@ def create_weekly_points_chart(
 
             # Calculate confidence interval bounds (25% of difference)
             upper_bound = [
-                ml + 0.25 * (opt - ml) for ml, opt in zip(most_likely, optimistic, strict=False)
+                ml + 0.25 * (opt - ml)
+                for ml, opt in zip(most_likely, optimistic, strict=False)
             ]
             lower_bound = [
-                ml - 0.25 * (ml - pes) for ml, pes in zip(most_likely, pessimistic, strict=False)
+                ml - 0.25 * (ml - pes)
+                for ml, pes in zip(most_likely, pessimistic, strict=False)
             ]
 
             # Single next week forecast with confidence interval
@@ -746,9 +761,13 @@ def create_weekly_points_chart(
                     error_y=dict(
                         type="data",
                         symmetric=False,
-                        array=[u - ml for u, ml in zip(upper_bound, most_likely, strict=False)],
+                        array=[
+                            u - ml
+                            for u, ml in zip(upper_bound, most_likely, strict=False)
+                        ],
                         arrayminus=[
-                            ml - lb for ml, lb in zip(most_likely, lower_bound, strict=False)
+                            ml - lb
+                            for ml, lb in zip(most_likely, lower_bound, strict=False)
                         ],
                         color="rgba(0, 0, 0, 0.3)",
                     ),
@@ -870,8 +889,10 @@ def create_weekly_items_forecast_chart(
     Args:
         statistics_data: List of dictionaries containing statistics data
         pert_factor: Number of data points to use for optimistic/pessimistic scenarios
-        date_range_weeks: Number of weeks of historical data to display (default: 12 weeks)
-        data_points_count: Number of data points to use for calculations (default: None, uses all data)
+        date_range_weeks: Number of weeks of historical data to display
+            (default: 12 weeks)
+        data_points_count: Number of data points to use for calculations
+            (default: None, uses all data)
 
     Returns:
         Plotly figure object with the weekly items forecast chart
@@ -1101,10 +1122,17 @@ def create_weekly_items_forecast_chart(
                 xref="paper",
                 yref="paper",
                 text=(
-                    f"<b>Forecast Methodology:</b> Based on PERT analysis using historical data.<br>"
-                    f"<b>Most Likely:</b> {forecast_data['items'].get('most_likely_value', 0):.1f} items/week (historical average)<br>"
-                    f"<b>Optimistic:</b> {forecast_data['items'].get('optimistic_value', 0):.1f} items/week<br>"
-                    f"<b>Pessimistic:</b> {forecast_data['items'].get('pessimistic_value', 0):.1f} items/week"
+                    "<b>Forecast Methodology:</b> "
+                    "Based on PERT analysis using historical data.<br>"
+                    "<b>Most Likely:</b> "
+                    f"{forecast_data['items'].get('most_likely_value', 0):.1f} "
+                    "items/week (historical average)<br>"
+                    "<b>Optimistic:</b> "
+                    f"{forecast_data['items'].get('optimistic_value', 0):.1f} "
+                    "items/week<br>"
+                    "<b>Pessimistic:</b> "
+                    f"{forecast_data['items'].get('pessimistic_value', 0):.1f} "
+                    "items/week"
                 ),
                 showarrow=False,
                 font=dict(size=12),
@@ -1130,8 +1158,10 @@ def create_weekly_points_forecast_chart(
     Args:
         statistics_data: List of dictionaries containing statistics data
         pert_factor: Number of data points to use for optimistic/pessimistic scenarios
-        date_range_weeks: Number of weeks of historical data to display (default: 12 weeks)
-        data_points_count: Number of data points to use for calculations (default: None, uses all data)
+        date_range_weeks: Number of weeks of historical data to display
+            (default: 12 weeks)
+        data_points_count: Number of data points to use for calculations
+            (default: None, uses all data)
 
     Returns:
         Plotly figure object with the weekly points forecast chart
@@ -1324,10 +1354,12 @@ def create_weekly_points_forecast_chart(
 
         # Calculate upper and lower bounds for confidence interval (25% of difference)
         upper_bound = [
-            ml + 0.25 * (opt - ml) for ml, opt in zip(most_likely, optimistic, strict=False)
+            ml + 0.25 * (opt - ml)
+            for ml, opt in zip(most_likely, optimistic, strict=False)
         ]
         lower_bound = [
-            ml - 0.25 * (ml - pes) for ml, pes in zip(most_likely, pessimistic, strict=False)
+            ml - 0.25 * (ml - pes)
+            for ml, pes in zip(most_likely, pessimistic, strict=False)
         ]
 
         # Most likely forecast with confidence interval
@@ -1344,8 +1376,13 @@ def create_weekly_points_forecast_chart(
                 error_y=dict(
                     type="data",
                     symmetric=False,
-                    array=[u - ml for u, ml in zip(upper_bound, most_likely, strict=False)],
-                    arrayminus=[ml - lb for ml, lb in zip(most_likely, lower_bound, strict=False)],
+                    array=[
+                        u - ml for u, ml in zip(upper_bound, most_likely, strict=False)
+                    ],
+                    arrayminus=[
+                        ml - lb
+                        for ml, lb in zip(most_likely, lower_bound, strict=False)
+                    ],
                     color="rgba(0, 0, 0, 0.3)",
                 ),
                 hovertemplate=format_hover_template(
@@ -1439,11 +1476,20 @@ def create_weekly_points_forecast_chart(
                 xref="paper",
                 yref="paper",
                 text=(
-                    f"<b>Forecast Methodology:</b> Based on PERT analysis using historical data.<br>"
-                    f"<b>Most Likely:</b> {forecast_data['points'].get('most_likely_value', 0):.1f} points/week (historical average)<br>"
-                    f"<b>Optimistic:</b> {forecast_data['points'].get('optimistic_value', 0):.1f} points/week<br>"
-                    f"<b>Pessimistic:</b> {forecast_data['points'].get('pessimistic_value', 0):.1f} points/week<br>"
-                    f"<b>Weighted Average:</b> More weight given to recent data (40% for most recent week, 30%, 20%, 10% for earlier weeks)"
+                    "<b>Forecast Methodology:</b> "
+                    "Based on PERT analysis using historical data.<br>"
+                    "<b>Most Likely:</b> "
+                    f"{forecast_data['points'].get('most_likely_value', 0):.1f} "
+                    "points/week (historical average)<br>"
+                    "<b>Optimistic:</b> "
+                    f"{forecast_data['points'].get('optimistic_value', 0):.1f} "
+                    "points/week<br>"
+                    "<b>Pessimistic:</b> "
+                    f"{forecast_data['points'].get('pessimistic_value', 0):.1f} "
+                    "points/week<br>"
+                    "<b>Weighted Average:</b> "
+                    "More weight given to recent data "
+                    "(40% for most recent week, 30%, 20%, 10% for earlier weeks)"
                 ),
                 showarrow=False,
                 font=dict(size=12),
