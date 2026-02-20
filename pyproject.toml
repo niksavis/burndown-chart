@@ -1,0 +1,29 @@
+[tool.ruff]
+line-length = 88
+target-version = "py313"
+extend-exclude = [
+  ".beads",
+  ".continue",
+  ".venv",
+  "build",
+  "dist",
+  "cache",
+  "logs",
+  "profiles",
+]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+
+[tool.djlint]
+profile = "jinja"
+indent = 2
+max_line_length = 120
+format_css = true
+format_js = true
+ignore = "H006,H013,H021,H031"
+extension = "html,j2,jinja"

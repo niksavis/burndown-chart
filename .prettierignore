@@ -1,0 +1,17 @@
+.git
+.venv
+__pycache__
+.pytest_cache
+.beads
+.continue
+build
+dist
+cache
+logs
+profiles
+licenses
+report_assets/vendor
+assets/vendor
+changelog_draft.json
+vendor_dependencies.txt
+report_dependencies.txt
