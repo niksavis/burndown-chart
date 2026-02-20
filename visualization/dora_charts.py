@@ -297,17 +297,21 @@ def create_dora_summary_chart(metrics_data: dict[str, dict[str, Any]]) -> go.Fig
 def create_deployment_frequency_trend(
     trend_data: list[dict[str, Any]], metric_data: dict[str, Any]
 ) -> go.Figure:
-    """Create deployment frequency trend chart over time with separate deployment and release lines.
+    """Create deployment frequency trend chart over time.
+
+    Includes separate deployment and release lines.
 
     T054: Trend visualization for Deployment Frequency metric.
 
     Args:
-        trend_data: List of historical data points with date, value (deployments), and release_value (releases)
+        trend_data: List of historical data points with date,
+            value (deployments), and release_value (releases)
             [{"date": "2025-01-01", "value": 30.5, "release_value": 15.2}, ...]
         metric_data: Current metric metadata (tier, benchmarks)
 
     Returns:
-        Plotly figure with dual trend lines (deployments and releases) and benchmark zones
+        Plotly figure with dual trend lines
+        (deployments and releases) and benchmark zones
     """
     if not trend_data or len(trend_data) == 0:
         # Return empty figure with message

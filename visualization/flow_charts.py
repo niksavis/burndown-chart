@@ -70,7 +70,8 @@ def create_flow_distribution_chart(distribution_data: dict[str, Any]) -> go.Figu
                 marker=dict(
                     colors=colors,
                     line=dict(
-                        # Add thicker border to out-of-range segments for visual indicator
+                        # Add thicker border to out-of-range segments
+                        # for visual indicator
                         color=[
                             "#ffffff"
                             if breakdown.get(work_type.replace(" ", "_"), {}).get(
@@ -198,7 +199,8 @@ def create_flow_efficiency_trend_chart(
 
     Args:
         trend_data: List of efficiency measurements over time
-        line_color: Optional hex color for the line (default: uses config color or green)
+        line_color: Optional hex color for the line
+            (default: uses config color or green)
 
     Returns:
         Plotly Figure with line chart and threshold zones
@@ -429,7 +431,11 @@ def create_flow_load_trend_chart(
                 mode="lines",
                 name=f"Healthy Threshold ({wip_thresholds['healthy']:.1f})",
                 line=dict(color="#198754", width=2, dash="dot"),
-                hovertemplate=f"<b>Healthy Threshold</b><br>WIP &lt; {wip_thresholds['healthy']:.1f} items<br>%{{x}}<extra></extra>",
+                hovertemplate=(
+                    "<b>Healthy Threshold</b><br>WIP &lt; "
+                    f"{wip_thresholds['healthy']:.1f} items"
+                    "<br>%{x}<extra></extra>"
+                ),
                 showlegend=False,
             )
         )
@@ -442,7 +448,11 @@ def create_flow_load_trend_chart(
                 mode="lines",
                 name=f"Warning Threshold ({wip_thresholds['warning']:.1f})",
                 line=dict(color="#ffc107", width=2, dash="dot"),
-                hovertemplate=f"<b>Warning Threshold</b><br>WIP &lt; {wip_thresholds['warning']:.1f} items<br>%{{x}}<extra></extra>",
+                hovertemplate=(
+                    "<b>Warning Threshold</b><br>WIP &lt; "
+                    f"{wip_thresholds['warning']:.1f} items"
+                    "<br>%{x}<extra></extra>"
+                ),
                 showlegend=False,
             )
         )
@@ -455,7 +465,11 @@ def create_flow_load_trend_chart(
                 mode="lines",
                 name=f"High Threshold ({wip_thresholds['high']:.1f})",
                 line=dict(color="#fd7e14", width=2, dash="dot"),
-                hovertemplate=f"<b>High Threshold</b><br>WIP &lt; {wip_thresholds['high']:.1f} items<br>%{{x}}<extra></extra>",
+                hovertemplate=(
+                    "<b>High Threshold</b><br>WIP &lt; "
+                    f"{wip_thresholds['high']:.1f} items"
+                    "<br>%{x}<extra></extra>"
+                ),
                 showlegend=False,
             )
         )
@@ -468,7 +482,11 @@ def create_flow_load_trend_chart(
                 mode="lines",
                 name=f"Critical Threshold ({wip_thresholds['critical']:.1f})",
                 line=dict(color="#dc3545", width=2, dash="dash"),
-                hovertemplate=f"<b>Critical Threshold</b><br>WIP ≥ {wip_thresholds['critical']:.1f} items<br>%{{x}}<extra></extra>",
+                hovertemplate=(
+                    "<b>Critical Threshold</b><br>WIP ≥ "
+                    f"{wip_thresholds['critical']:.1f} items"
+                    "<br>%{x}<extra></extra>"
+                ),
                 showlegend=False,
             )
         )
