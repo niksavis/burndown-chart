@@ -154,7 +154,12 @@ def create_sprint_burnup_chart(
                     "Delta from Ideal": "%{customdata[0]:+d}",
                 },
             ),
-            customdata=[[int(ci - ii) for ci, ii in zip(completed_items, ideal_items, strict=False)]],
+            customdata=[
+                [
+                    int(ci - ii)
+                    for ci, ii in zip(completed_items, ideal_items, strict=False)
+                ]
+            ],
             hoverlabel=create_hoverlabel_config("primary"),
             showlegend=True,
         )
@@ -231,7 +236,10 @@ def create_sprint_burnup_chart(
                     },
                 ),
                 customdata=[
-                    [cp - ip for cp, ip in zip(completed_points, ideal_points, strict=False)]
+                    [
+                        cp - ip
+                        for cp, ip in zip(completed_points, ideal_points, strict=False)
+                    ]
                 ],
                 hoverlabel=create_hoverlabel_config("warning"),
                 showlegend=True,
@@ -259,7 +267,9 @@ def create_sprint_burnup_chart(
                         mode="lines",
                         name="Sprint Start",
                         line=dict(color="rgba(0, 0, 0, 0.2)", width=2, dash="dot"),
-                        hovertemplate=f"<b>Sprint Start</b><br>{start_str}<extra></extra>",
+                        hovertemplate=(
+                            f"<b>Sprint Start</b><br>{start_str}<extra></extra>"
+                        ),
                         showlegend=False,
                         yaxis="y",
                     )
