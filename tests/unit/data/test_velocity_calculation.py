@@ -6,9 +6,10 @@ instead of actual number of weeks with data, which deflated velocity when data
 was sparse.
 """
 
-import pytest
-import pandas as pd
 from datetime import datetime, timedelta
+
+import pandas as pd
+import pytest
 
 from data.processing import calculate_velocity_from_dataframe
 

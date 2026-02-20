@@ -117,9 +117,9 @@ def calculate_project_scope_from_jira(
     """
     try:
         from data.jira import (
+            fetch_jira_issues,
             get_jira_config,
             validate_jira_config,
-            fetch_jira_issues,
         )
         from data.jira.scope_calculator import calculate_jira_project_scope
 

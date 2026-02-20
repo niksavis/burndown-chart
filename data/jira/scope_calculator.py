@@ -5,18 +5,18 @@ This module calculates project scope based on JIRA issue statuses using
 status categories and configurable status name mapping.
 """
 
-from datetime import datetime
-from typing import Dict, List, Any, Optional
 import logging
+from datetime import datetime
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
 
 def calculate_jira_project_scope(
-    issues_data: List[Dict[str, Any]],
+    issues_data: list[dict[str, Any]],
     points_field: str = "votes",
-    status_config: Optional[Dict[str, Any]] = None,
-) -> Dict[str, Any]:
+    status_config: dict[str, Any] | None = None,
+) -> dict[str, Any]:
     """
     Calculate project scope based on JIRA issue statuses.
 
@@ -166,7 +166,7 @@ def calculate_jira_project_scope(
 
 
 def _classify_issue_status(
-    status_name: str, status_category: str, status_config: Optional[Dict[str, Any]]
+    status_name: str, status_category: str, status_config: dict[str, Any] | None
 ) -> str:
     """
     Classify issue status as COMPLETED, IN_PROGRESS, or TODO.
@@ -207,7 +207,7 @@ def _classify_issue_status(
         return "TODO"
 
 
-def _extract_story_points(fields: Dict[str, Any], points_field: str) -> int:
+def _extract_story_points(fields: dict[str, Any], points_field: str) -> int:
     """
     Extract story points from issue fields.
 
@@ -300,7 +300,7 @@ def _extract_story_points(fields: Dict[str, Any], points_field: str) -> int:
 # This eliminates false negatives from sampling in large queries.
 
 
-def _issue_has_real_points(fields: Dict[str, Any], points_field: str) -> bool:
+def _issue_has_real_points(fields: dict[str, Any], points_field: str) -> bool:
     """
     Check if a specific issue has real point values (non-null story points).
 
@@ -408,7 +408,7 @@ def _calculate_remaining_total_points(
     return remaining_total_points
 
 
-def get_status_breakdown_summary(status_breakdown: Dict[str, Any]) -> Dict[str, Any]:
+def get_status_breakdown_summary(status_breakdown: dict[str, Any]) -> dict[str, Any]:
     """
     Create a summary of status breakdown for display.
 
@@ -433,7 +433,7 @@ def get_status_breakdown_summary(status_breakdown: Dict[str, Any]) -> Dict[str, 
     return summary
 
 
-def validate_status_config(status_config: Dict[str, Any]) -> bool:
+def validate_status_config(status_config: dict[str, Any]) -> bool:
     """
     Validate status configuration structure.
 

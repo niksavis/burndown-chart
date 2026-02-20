@@ -5,16 +5,16 @@ project type (Development vs DevOps) for different metric calculations.
 """
 
 from data.project_filter import (
-    get_issue_project_key,
-    get_issue_type,
-    is_devops_issue,
-    is_development_issue,
+    filter_deployment_issues,
     filter_development_issues,
     filter_devops_issues,
-    filter_deployment_issues,
     filter_incident_issues,
     filter_work_items,
+    get_issue_project_key,
+    get_issue_type,
     get_project_summary,
+    is_development_issue,
+    is_devops_issue,
 )
 
 
@@ -116,7 +116,9 @@ class TestDevOpsProjectDetection:
         """Test development issue check with whitelist."""
         issue = {"fields": {"project": {"key": "DEV1"}}}
         # Should be True - DEV1 is in whitelist
-        assert is_development_issue(issue, development_projects=["DEV1", "DEV2"]) is True
+        assert (
+            is_development_issue(issue, development_projects=["DEV1", "DEV2"]) is True
+        )
         # Should be False - DEV1 not in whitelist
         assert is_development_issue(issue, development_projects=["DEV2"]) is False
 
@@ -148,7 +150,9 @@ class TestDevelopmentIssueFiltering:
         ]
 
         # ONLY include DEV1 and DEV2
-        filtered = filter_development_issues(issues, development_projects=["DEV1", "DEV2"])
+        filtered = filter_development_issues(
+            issues, development_projects=["DEV1", "DEV2"]
+        )
 
         assert len(filtered) == 2
         project_keys = {get_issue_project_key(i) for i in filtered}

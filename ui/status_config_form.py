@@ -4,8 +4,8 @@ Status Configuration Form Component
 Provides UI for configuring JIRA status lists with subset validation.
 """
 
-from dash import html, dcc
 import dash_bootstrap_components as dbc
+from dash import dcc, html
 
 
 def create_status_config_form(

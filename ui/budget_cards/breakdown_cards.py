@@ -12,7 +12,6 @@ Created: January 30, 2026 (extracted from budget_cards.py)
 """
 
 import logging
-from typing import Dict, List, Optional
 
 import dash_bootstrap_components as dbc
 import plotly.graph_objects as go
@@ -55,12 +54,12 @@ def _create_card_footer(text: str, icon: str = "fa-info-circle") -> dbc.CardFoot
 
 
 def create_cost_breakdown_card(
-    breakdown: Dict[str, Dict[str, float]],
-    weekly_breakdowns: Optional[List[Dict[str, Dict[str, float]]]] = None,
-    weekly_labels: Optional[List[str]] = None,
+    breakdown: dict[str, dict[str, float]],
+    weekly_breakdowns: list[dict[str, dict[str, float]]] | None = None,
+    weekly_labels: list[str] | None = None,
     currency_symbol: str = "€",
     data_points_count: int = 4,
-    card_id: Optional[str] = None,
+    card_id: str | None = None,
 ) -> dbc.Card:
     """
     Create Cost Breakdown by Work Type card.
@@ -191,7 +190,7 @@ def create_cost_breakdown_card(
     return card_content
 
 
-def _create_inline_sparkline(values: List[float], flow_type: str = ""):
+def _create_inline_sparkline(values: list[float], flow_type: str = ""):
     """
     Create inline scatter chart sparkline for cost breakdown table.
 

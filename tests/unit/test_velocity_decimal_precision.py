@@ -5,12 +5,12 @@ These tests ensure that velocity metrics maintain the correct decimal precision
 throughout the data processing pipeline and in the UI components.
 """
 
-import pytest
-import pandas as pd
 import re
 
+import pandas as pd
+import pytest
+
 from data.processing import calculate_weekly_averages
-from ui.dashboard_cards import create_metric_card
 
 # TODO: Update this import once the correct module for _prepare_metrics_data and _get_weekly_metrics is identified
 # from callbacks.dashboard_callbacks import _prepare_metrics_data, _get_weekly_metrics
@@ -18,6 +18,7 @@ from tests.utils.ui_test_helpers import (
     extract_formatted_value_from_component,
     validate_component_structure,
 )
+from ui.dashboard_cards import create_metric_card
 
 
 @pytest.fixture

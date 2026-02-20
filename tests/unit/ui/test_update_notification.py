@@ -10,10 +10,10 @@ from dash import html
 
 from data.update_manager import UpdateProgress, UpdateState
 from ui.update_notification import (
-    create_update_notification,
     create_update_downloading_alert,
-    create_update_ready_alert,
     create_update_error_alert,
+    create_update_notification,
+    create_update_ready_alert,
 )
 
 

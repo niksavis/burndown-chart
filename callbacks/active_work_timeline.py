@@ -8,8 +8,9 @@ Follows Sprint Tracker pattern for conditional tab display.
 
 import logging
 import re
-from dash import ClientsideFunction, Input, Output, State, ctx, html
+
 import dash_bootstrap_components as dbc
+from dash import ClientsideFunction, Input, Output, State, ctx, html
 
 logger = logging.getLogger(__name__)
 
@@ -57,7 +58,7 @@ def _remove_last_clause(query: str) -> str:
     keep_operators = operators[: len(keep_clauses) - 1]
 
     rebuilt = keep_clauses[0]
-    for op, clause in zip(keep_operators, keep_clauses[1:]):
+    for op, clause in zip(keep_operators, keep_clauses[1:], strict=False):
         rebuilt = f"{rebuilt} {op} {clause}"
 
     return rebuilt.strip()
@@ -80,8 +81,8 @@ def _render_active_work_timeline_content(
         Div containing nested epic timeline
     """
     try:
-        from data.persistence.factory import get_backend
         from data.active_work_manager import get_active_work_data
+        from data.persistence.factory import get_backend
         from ui.active_work_epic_timeline import create_nested_epic_timeline
         from ui.empty_states import create_no_active_work_state
 
@@ -451,10 +452,10 @@ def register(app):
     )
     def filter_timeline(search_input, timeline_data):
         """Filter timeline based on search input (server-side for now)."""
-        from ui.active_work_epic_timeline import _render_filtered_timeline
-        from ui.active_work_completed_components import create_completed_items_section
         from data.active_work_completed import get_completed_items_by_week
         from data.persistence import load_app_settings
+        from ui.active_work_completed_components import create_completed_items_section
+        from ui.active_work_epic_timeline import _render_filtered_timeline
 
         def _flatten_issues(epics):
             flattened = []

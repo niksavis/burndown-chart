@@ -7,15 +7,15 @@ to ensure comprehensive user guidance and consistent experience.
 
 import pytest
 
-from ui.tooltip_utils import create_info_tooltip
 from configuration.settings import (
+    CHART_HELP_TEXTS,
     FORECAST_HELP_TEXTS,
-    VELOCITY_HELP_TEXTS,
     PROJECT_HELP_TEXTS,
     SCOPE_HELP_TEXTS,
     STATISTICS_HELP_TEXTS,
-    CHART_HELP_TEXTS,
+    VELOCITY_HELP_TEXTS,
 )
+from ui.tooltip_utils import create_info_tooltip
 
 
 class TestTooltipUtilities:

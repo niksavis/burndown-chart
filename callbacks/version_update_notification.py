@@ -10,11 +10,12 @@ cleared by other page load callbacks.
 """
 
 import logging
-from dash import callback, Output, Input, html, no_update
 
-from ui.toast_notifications import create_toast
+from dash import Input, Output, callback, html, no_update
+
 from data.update_manager import UpdateState
 from data.version_tracker import check_and_update_version
+from ui.toast_notifications import create_toast
 
 logger = logging.getLogger(__name__)
 

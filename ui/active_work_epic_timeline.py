@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from typing import Dict, List
-
 import dash_bootstrap_components as dbc
 from dash import dcc, html
 
@@ -18,7 +16,7 @@ from ui.active_work_components import (
 
 
 def create_nested_epic_timeline(
-    timeline: List[Dict],
+    timeline: list[dict],
     show_points: bool = False,
     parent_field_configured: bool = True,
     summary_text: str | None = None,
@@ -155,7 +153,7 @@ def create_nested_epic_timeline(
 
     legend = create_active_work_legend(summary_text)
 
-    epic_cards: List = []
+    epic_cards: list = []
 
     for epic in timeline:
         epic_key = epic.get("epic_key", "Unknown")
@@ -372,7 +370,7 @@ def create_nested_epic_timeline(
         epic_cards,
         id="active-work-filtered-content",
     )
-    children: List = [
+    children: list = [
         timeline_store,
         metadata_store,
         builder_query_store,
@@ -395,7 +393,7 @@ def create_nested_epic_timeline(
     return html.Div(children)
 
 
-def _render_filtered_timeline(timeline: List[Dict], show_points: bool = False) -> List:
+def _render_filtered_timeline(timeline: list[dict], show_points: bool = False) -> list:
     """Render epic cards from timeline data (for server-side filtering).
 
     Args:
@@ -637,7 +635,7 @@ def _render_filtered_timeline(timeline: List[Dict], show_points: bool = False) -
 
 
 def _create_status_section(
-    title: str, issues: List[Dict], show_points: bool, color: str
+    title: str, issues: list[dict], show_points: bool, color: str
 ) -> html.Div:
     """Create a section for a group of issues by status.
 

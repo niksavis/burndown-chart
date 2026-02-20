@@ -4,14 +4,16 @@ Tests the functionality of creating clickable JIRA issue links.
 """
 
 from unittest.mock import patch
+
 from dash import html
+
 from ui.jira_link_helper import (
-    get_jira_base_url,
+    batch_create_jira_issue_links,
     construct_jira_issue_url,
-    is_jira_connection_verified,
     create_jira_issue_link,
     create_jira_issue_link_html,
-    batch_create_jira_issue_links,
+    get_jira_base_url,
+    is_jira_connection_verified,
 )
 
 

@@ -5,9 +5,9 @@ Provides a reusable modal for delete/confirmation actions following DRY principl
 Can be configured for different use cases (profile deletion, query deletion, etc.).
 """
 
-from typing import Optional
-from dash import html
+
 import dash_bootstrap_components as dbc
+from dash import html
 
 
 def create_confirmation_modal(
@@ -15,7 +15,7 @@ def create_confirmation_modal(
     title: str,
     warning_message: str,
     confirmation_type: str = "DELETE",
-    confirmation_placeholder: Optional[str] = None,
+    confirmation_placeholder: str | None = None,
     danger_alert: bool = True,
     cancel_button_id: str = "",
     confirm_button_id: str = "",

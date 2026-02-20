@@ -4,9 +4,10 @@ Unit tests for card components - specifically the create_info_card function.
 Tests the contract-compliant card builder added in Phase 2.
 """
 
+import dash_bootstrap_components as dbc
 import pytest
 from dash import html
-import dash_bootstrap_components as dbc
+
 from ui.cards import create_info_card
 
 

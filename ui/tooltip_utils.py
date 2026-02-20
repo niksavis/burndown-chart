@@ -9,15 +9,16 @@ for consistent tooltip appearance and behavior across the application.
 # IMPORTS
 #######################################################################
 # Standard library imports
-from functools import lru_cache
 import time
+from functools import lru_cache
+
+import dash_bootstrap_components as dbc
 
 # Third-party library imports
 from dash import html
-import dash_bootstrap_components as dbc
 
 # Application imports
-from ui.style_constants import TYPOGRAPHY, TOOLTIP_STYLES, HOVER_MODES
+from ui.style_constants import HOVER_MODES, TOOLTIP_STYLES, TYPOGRAPHY
 
 #######################################################################
 # TOOLTIP STYLING FUNCTIONS
@@ -363,7 +364,7 @@ def create_tooltip(
     id=None,
     position="top",
     variant="default",
-    delay={"show": 200, "hide": 100},
+    delay=None,
     trigger="click",
     autohide=True,
     max_width=None,
@@ -391,6 +392,8 @@ def create_tooltip(
         dbc.Tooltip: A styled tooltip component
     """
     # Set up base styling
+    if delay is None:
+        delay = {"show": 200, "hide": 100}
     tooltip_style = {}
     if max_width:
         tooltip_style["maxWidth"] = max_width
@@ -535,7 +538,7 @@ def create_enhanced_tooltip(
     placement="top",
     trigger_text=None,
     icon_class=None,
-    delay={"show": 200, "hide": 100},
+    delay=None,
     smart_positioning=True,
     dismissible=False,
     expandable=False,
@@ -560,6 +563,8 @@ def create_enhanced_tooltip(
         Dash component with enhanced tooltip
     """
     # Set up the tooltip target
+    if delay is None:
+        delay = {"show": 200, "hide": 100}
     tooltip_target = f"tooltip-{id_suffix}"
 
     # Apply smart positioning if enabled

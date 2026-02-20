@@ -18,10 +18,10 @@ from . import (
     core_settings,
     data_update,
     jira_scope,
-    metrics,
-    query_profiles,
     jql_test,
+    metrics,
     parameter_panel,
+    query_profiles,
 )
 
 

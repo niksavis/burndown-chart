@@ -6,12 +6,12 @@ Tests end-to-end export workflows including:
 - T023: CONFIG_ONLY exports have minimal file size
 """
 
-import pytest
 import json
 from pathlib import Path
 
-from data.import_export import export_profile_with_mode
+import pytest
 
+from data.import_export import export_profile_with_mode
 
 # ============================================================================
 # T022-T023: Integration Tests for CONFIG_ONLY Export
@@ -200,7 +200,7 @@ class TestExportSecurity:
         if not profile_path.exists():
             pytest.skip("Profile fixture not available")
 
-        with open(profile_path, "r") as f:
+        with open(profile_path) as f:
             profile_data = json.load(f)
 
         # Add token if not present (for test purposes)

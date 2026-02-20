@@ -6,18 +6,20 @@ with stacked bar chart showing historical trends. Matches the style of other DOR
 This card is 2x wider than regular metric cards (width=12 instead of 6).
 """
 
-from typing import Any, Dict, List, Optional, cast
+from typing import Any, cast
+
 import dash_bootstrap_components as dbc
-from dash import html, dcc
+from dash import dcc, html
+
 from ui.styles import create_metric_card_header
 from visualization.flow_distribution_chart import create_work_distribution_chart
 
 
 def create_work_distribution_card(
-    distribution_data: Dict[str, int],
+    distribution_data: dict[str, int],
     week_label: str,
-    distribution_history: List[Dict[str, Any]],
-    card_id: Optional[str] = None,
+    distribution_history: list[dict[str, Any]],
+    card_id: str | None = None,
 ) -> dbc.Card:
     """Create Work Distribution metric card matching DORA/Flow card style.
 
@@ -413,7 +415,7 @@ def create_work_distribution_card(
     return dbc.Card(card_children, **card_props)  # type: ignore[call-arg]
 
 
-def create_work_distribution_no_data_card(card_id: Optional[str] = None) -> dbc.Card:
+def create_work_distribution_no_data_card(card_id: str | None = None) -> dbc.Card:
     """Create Work Distribution card for 'No Data' state (2x width).
 
     Displayed when JIRA data is not loaded yet.
@@ -475,7 +477,7 @@ def create_work_distribution_no_data_card(card_id: Optional[str] = None) -> dbc.
 
 
 def create_work_distribution_no_metrics_card(
-    card_id: Optional[str] = None,
+    card_id: str | None = None,
 ) -> dbc.Card:
     """Create Work Distribution card for 'No Metrics' state (2x width).
 

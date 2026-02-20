@@ -4,7 +4,8 @@ Provides small, information-dense cards showing current metric values
 at the top of dashboards for quick overview without scrolling.
 """
 
-from typing import Dict, Any
+from typing import Any
+
 import dash_bootstrap_components as dbc
 from dash import html
 
@@ -119,7 +120,7 @@ def create_compact_overview_card(
     )
 
 
-def create_dora_metrics_overview(metrics_data: Dict[str, Any]) -> html.Div:
+def create_dora_metrics_overview(metrics_data: dict[str, Any]) -> html.Div:
     """Create compact overview cards for DORA metrics.
 
     Args:
@@ -256,7 +257,7 @@ def create_dora_metrics_overview(metrics_data: Dict[str, Any]) -> html.Div:
     )
 
 
-def create_flow_metrics_overview(metrics_data: Dict[str, Any]) -> html.Div:
+def create_flow_metrics_overview(metrics_data: dict[str, Any]) -> html.Div:
     """Create compact overview cards for Flow metrics.
 
     Args:

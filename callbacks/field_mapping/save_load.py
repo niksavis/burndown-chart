@@ -5,13 +5,15 @@ across all tabs with comprehensive validation.
 """
 
 import logging
-from dash import callback, Output, Input, State, no_update
-from ui.toast_notifications import create_success_toast, create_error_toast
+
+from dash import Input, Output, State, callback, no_update
+
 from callbacks.field_mapping.validation_helpers import (
-    _validate_all_tabs,
     _build_comprehensive_validation_alert,
     _build_validation_error_alert,
+    _validate_all_tabs,
 )
+from ui.toast_notifications import create_error_toast, create_success_toast
 
 logger = logging.getLogger(__name__)
 
@@ -55,7 +57,7 @@ def save_or_validate_mappings(namespace_values, state_data):
         - toast_notification: Toast notification HTML or no_update
         - metrics_refresh_trigger: Timestamp to trigger metrics refresh (on save success), no_update otherwise
     """
-    from data.persistence import save_app_settings, load_app_settings
+    from data.persistence import load_app_settings, save_app_settings
 
     # namespace_values has structure: {trigger: "save"|"validate"|"tab_switch", values: {...}, validationErrors: [...]}
     if not namespace_values or not isinstance(namespace_values, dict):
@@ -248,7 +250,7 @@ def save_or_validate_mappings(namespace_values, state_data):
 
         # Count flow type mappings
         flow_type_mappings = state_data.get("flow_type_mappings", {})
-        for flow_type, config in flow_type_mappings.items():
+        for _flow_type, config in flow_type_mappings.items():
             if config and isinstance(config, dict):
                 issue_types = config.get("issue_types", [])
                 effort_cats = config.get("effort_categories", [])
@@ -287,8 +289,8 @@ def save_or_validate_mappings(namespace_values, state_data):
     # Only invalidated if validation succeeds - avoids clearing cache for rejected changes
     # Affects ALL field mappings: status configs, project filters, issue types, environment values, etc.
     try:
-        from data.persistence.factory import get_backend
         from data.metrics_snapshots import clear_snapshots_cache
+        from data.persistence.factory import get_backend
 
         backend = get_backend()
         active_profile_id = backend.get_app_state("active_profile_id")

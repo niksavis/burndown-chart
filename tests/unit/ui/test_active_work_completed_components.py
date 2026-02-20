@@ -3,8 +3,9 @@
 Tests the create_completed_items_section and create_week_container functions.
 """
 
-from dash import html
 from collections import OrderedDict
+
+from dash import html
 
 
 class TestCreateCompletedItemsSection:

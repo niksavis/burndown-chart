@@ -13,9 +13,8 @@ Matching Strategy:
 #######################################################################
 # IMPORTS
 #######################################################################
-from datetime import datetime, date
-from typing import Dict, List, Optional, Tuple
 import logging
+from datetime import date, datetime
 
 #######################################################################
 # LOGGING
@@ -27,7 +26,7 @@ logger = logging.getLogger("burndown_chart")
 #######################################################################
 
 
-def get_fixversions(issue: Dict) -> List[Dict]:
+def get_fixversions(issue: dict) -> list[dict]:
     """
     Extract fixVersions from a JIRA issue.
 
@@ -61,7 +60,7 @@ def get_fixversions(issue: Dict) -> List[Dict]:
         return []
 
 
-def extract_fixversion_ids(issue: Dict) -> set:
+def extract_fixversion_ids(issue: dict) -> set:
     """
     Extract fixVersion IDs from a JIRA issue.
 
@@ -81,7 +80,7 @@ def extract_fixversion_ids(issue: Dict) -> set:
         return set()
 
 
-def extract_fixversion_names(issue: Dict) -> set:
+def extract_fixversion_names(issue: dict) -> set:
     """
     Extract fixVersion names from a JIRA issue (normalized for matching).
 
@@ -116,8 +115,8 @@ def extract_fixversion_names(issue: Dict) -> set:
 
 
 def get_earliest_release_date(
-    fixversions: List[Dict], today: Optional[date] = None
-) -> Optional[date]:
+    fixversions: list[dict], today: date | None = None
+) -> date | None:
     """
     Get the earliest releaseDate from a list of fixVersions that is NOT in the future.
 
@@ -160,7 +159,7 @@ def get_earliest_release_date(
         return None
 
 
-def get_fallback_release_date(issue: Dict) -> Optional[date]:
+def get_fallback_release_date(issue: dict) -> date | None:
     """
     Get fallback release date from issue's resolutiondate.
 
@@ -196,10 +195,10 @@ def get_fallback_release_date(issue: Dict) -> Optional[date]:
 
 
 def find_matching_operational_tasks(
-    dev_issue: Dict,
-    operational_tasks: List[Dict],
+    dev_issue: dict,
+    operational_tasks: list[dict],
     match_by: str = "auto",
-) -> List[Tuple[Dict, str]]:
+) -> list[tuple[dict, str]]:
     """
     Find operational tasks that match a development issue by fixVersion.
 
@@ -268,10 +267,10 @@ def find_matching_operational_tasks(
 
 
 def get_deployment_date_from_operational_task(
-    op_task: Dict,
-    matching_fixversion_ids: Optional[set] = None,
-    matching_fixversion_names: Optional[set] = None,
-) -> Optional[date]:
+    op_task: dict,
+    matching_fixversion_ids: set | None = None,
+    matching_fixversion_names: set | None = None,
+) -> date | None:
     """
     Get deployment date from operational task's fixVersion.releaseDate.
 
@@ -346,10 +345,10 @@ def get_deployment_date_from_operational_task(
 
 
 def get_relevant_deployment_date(
-    dev_issue: Dict,
-    operational_tasks: List[Dict],
-    deployment_ready_time: Optional[datetime] = None,
-) -> Optional[Tuple[date, Dict, str]]:
+    dev_issue: dict,
+    operational_tasks: list[dict],
+    deployment_ready_time: datetime | None = None,
+) -> tuple[date, dict, str] | None:
     """
     Get the MOST RELEVANT deployment date for Lead Time calculation.
 
@@ -426,7 +425,7 @@ def get_relevant_deployment_date(
                 f"[RELEVANT_DEPLOY] {dev_key}: Ready date = {ready_date}, checking {len(deployment_dates)} deployment dates"
             )
 
-            for dep_date, op_task, method in deployment_dates:
+            for dep_date, op_task, _method in deployment_dates:
                 logger.info(
                     f"[RELEVANT_DEPLOY] {dev_key}:   - {op_task.get('key')}: deployment={dep_date}, after_ready={dep_date >= ready_date}"
                 )
@@ -468,9 +467,9 @@ def get_relevant_deployment_date(
 
 
 def get_earliest_deployment_date(
-    dev_issue: Dict,
-    operational_tasks: List[Dict],
-) -> Optional[Tuple[date, Dict, str]]:
+    dev_issue: dict,
+    operational_tasks: list[dict],
+) -> tuple[date, dict, str] | None:
     """
     Get the EARLIEST deployment date for a development issue from matching operational tasks.
 
@@ -546,10 +545,10 @@ def get_earliest_deployment_date(
 
 
 def filter_operational_tasks_by_fixversion(
-    operational_tasks: List[Dict],
+    operational_tasks: list[dict],
     dev_fixversion_ids: set,
     dev_fixversion_names: set,
-) -> List[Dict]:
+) -> list[dict]:
     """
     Filter operational tasks to only those with fixVersions matching development issues.
 
@@ -594,10 +593,10 @@ def filter_operational_tasks_by_fixversion(
 
 
 def build_fixversion_release_map(
-    operational_tasks: List[Dict],
-    valid_fix_versions: Optional[set] = None,
-    flow_end_statuses: Optional[List[str]] = None,
-) -> Dict[str, datetime]:
+    operational_tasks: list[dict],
+    valid_fix_versions: set | None = None,
+    flow_end_statuses: list[str] | None = None,
+) -> dict[str, datetime]:
     """Build a map of fixVersion name → releaseDate from Operational Tasks.
 
     This provides a shared lookup for all DORA metrics that need to find
@@ -619,7 +618,7 @@ def build_fixversion_release_map(
         >>> build_fixversion_release_map(op_tasks)
         {"v1.0": datetime(2025, 1, 15, 0, 0)}
     """
-    release_map: Dict[str, datetime] = {}
+    release_map: dict[str, datetime] = {}
 
     for issue in operational_tasks:
         # Filter by completion status if provided
@@ -671,9 +670,9 @@ def build_fixversion_release_map(
 
 
 def get_deployment_date_for_issue(
-    issue: Dict,
-    fixversion_release_map: Dict[str, datetime],
-) -> Optional[datetime]:
+    issue: dict,
+    fixversion_release_map: dict[str, datetime],
+) -> datetime | None:
     """Get the deployment date for an issue from its fixVersions.
 
     Looks up the issue's fixVersions in the release map and returns
@@ -717,11 +716,11 @@ def get_deployment_date_for_issue(
 
 
 def filter_issues_deployed_in_week(
-    issues: List[Dict],
-    fixversion_release_map: Dict[str, datetime],
+    issues: list[dict],
+    fixversion_release_map: dict[str, datetime],
     week_start: datetime,
     week_end: datetime,
-) -> List[Dict]:
+) -> list[dict]:
     """Filter issues to only those deployed in the specified week.
 
     Uses the fixVersion → releaseDate map to determine deployment dates.

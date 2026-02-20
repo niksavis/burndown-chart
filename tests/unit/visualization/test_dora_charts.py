@@ -4,13 +4,13 @@ T052: Unit test for trend chart generation.
 Tests the DORA visualization functions including trend charts added in Phase 7.
 """
 
-import pytest
 from datetime import datetime, timedelta
+
 from visualization.dora_charts import (
-    create_deployment_frequency_trend,
-    create_lead_time_trend,
     create_deployment_frequency_chart,
+    create_deployment_frequency_trend,
     create_lead_time_chart,
+    create_lead_time_trend,
 )
 
 

@@ -11,19 +11,18 @@ Feature: 003-jira-config-separation
 #######################################################################
 # IMPORTS
 #######################################################################
-from dash import callback, Output, Input, State, no_update, html, ctx
-from dash.exceptions import PreventUpdate
 import dash_bootstrap_components as dbc
+from dash import Input, Output, State, callback, ctx, html, no_update
+from dash.exceptions import PreventUpdate
 
+from configuration import logger
+from data.jira import test_jira_connection
 from data.persistence import (
     load_jira_configuration,
     save_jira_configuration,
     validate_jira_config,
 )
-from data.jira import test_jira_connection
-from configuration import logger
-from ui.toast_notifications import create_success_toast, create_error_toast
-
+from ui.toast_notifications import create_error_toast, create_success_toast
 
 #######################################################################
 # CALLBACK: OPEN MODAL
@@ -400,8 +399,9 @@ def update_jira_config_status(modal_is_open, save_clicks, profile_id):
     Returns:
         Status indicator component showing configuration state
     """
-    from data.persistence import load_jira_configuration
     import time
+
+    from data.persistence import load_jira_configuration
 
     try:
         # If triggered by profile switch, wait briefly for switch to complete

@@ -4,6 +4,7 @@ This test validates the scope calculation formulas and field definitions.
 """
 
 import unittest
+
 from data.jira.scope_calculator import calculate_jira_project_scope
 
 

@@ -6,17 +6,18 @@ autocomplete suggestions from JIRA metadata.
 Reference: specs/namespace-syntax-analysis.md
 """
 
+from typing import Any
+
 import dash_bootstrap_components as dbc
 from dash import dcc, html
-from typing import List, Optional, Any, Union
 
 
 def create_namespace_input(
     field_id: str,
-    current_value: Optional[str] = None,
+    current_value: str | None = None,
     placeholder: str = "Type namespace path (e.g., *.created, DevOps.Status:Deployed.DateTime)",
-    label: Optional[str] = None,
-    help_text: Optional[str] = None,
+    label: str | None = None,
+    help_text: str | None = None,
 ) -> html.Div:
     """Create namespace input field with autocomplete.
 
@@ -72,12 +73,12 @@ def create_namespace_input(
 
 
 def create_namespace_input_with_toggle(
-    field_id: Union[str, Any],  # Accept string or dict for pattern-matching IDs
-    current_value: Optional[str] = None,
-    field_options: Optional[List[Any]] = None,
+    field_id: str | Any,  # Accept string or dict for pattern-matching IDs
+    current_value: str | None = None,
+    field_options: list[Any] | None = None,
     placeholder: str = "Type namespace path or select field",
-    label: Optional[str] = None,
-    help_text: Optional[str] = None,
+    label: str | None = None,
+    help_text: str | None = None,
     show_syntax_help: bool = True,
 ) -> dbc.Card:
     """Create namespace input with toggle between simple and advanced modes.

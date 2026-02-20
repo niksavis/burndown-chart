@@ -4,12 +4,11 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime
-from typing import Optional
 
 logger = logging.getLogger(__name__)
 
 
-def parse_iso_datetime(value: Optional[str]) -> Optional[datetime]:
+def parse_iso_datetime(value: str | None) -> datetime | None:
     """Parse ISO 8601 string to datetime.
 
     Args:

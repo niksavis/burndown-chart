@@ -4,14 +4,13 @@ JIRA Validation Functions
 Handles JQL query validation and connection testing.
 """
 
-from typing import Dict, Tuple
 
 import requests
 
 from configuration import logger
 
 
-def validate_jql_for_scriptrunner(jql_query: str) -> Tuple[bool, str]:
+def validate_jql_for_scriptrunner(jql_query: str) -> tuple[bool, str]:
     """
     Validate JQL query for potential ScriptRunner compatibility issues.
 
@@ -59,7 +58,7 @@ def validate_jql_for_scriptrunner(jql_query: str) -> Tuple[bool, str]:
     return True, ""
 
 
-def test_jql_query(config: Dict) -> Tuple[bool, str]:
+def test_jql_query(config: dict) -> tuple[bool, str]:
     """
     Test JQL query validity by trying to fetch just 1 result.
 

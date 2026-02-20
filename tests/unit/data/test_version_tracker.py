@@ -9,8 +9,8 @@ from pathlib import Path
 
 import pytest
 
-from data.version_tracker import check_and_update_version
 from data.persistence.sqlite_backend import SQLiteBackend
+from data.version_tracker import check_and_update_version
 
 
 @pytest.fixture

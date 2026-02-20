@@ -25,16 +25,15 @@ Usage:
     run_migration_if_needed()
 """
 
-import logging
 import json
-from pathlib import Path
-from typing import Dict
+import logging
 from datetime import datetime
+from pathlib import Path
 
 from data.migration.backup import create_backup, restore_backup
 from data.migration.schema_manager import initialize_schema, verify_schema
-from data.persistence.factory import get_backend
 from data.persistence import PersistenceBackend
+from data.persistence.factory import get_backend
 
 logger = logging.getLogger(__name__)
 
@@ -91,7 +90,7 @@ def is_migration_needed() -> bool:
 def migrate_profile(
     profile_id: str,
     sqlite_backend: PersistenceBackend,
-) -> Dict[str, int]:
+) -> dict[str, int]:
     """
     Migrate single profile from JSON to SQLite.
 
@@ -123,15 +122,15 @@ def migrate_profile(
 
     try:
         import json
-        from pathlib import Path
         from datetime import datetime, timedelta
+        from pathlib import Path
 
         json_base = Path("profiles") / profile_id
 
         # Step 1: Migrate profile configuration
         profile_json_path = json_base / "profile.json"
         if profile_json_path.exists():
-            with open(profile_json_path, "r", encoding="utf-8") as f:
+            with open(profile_json_path, encoding="utf-8") as f:
                 profile_data = json.load(f)
 
             # Extract JIRA config - handle both old and new formats
@@ -190,7 +189,7 @@ def migrate_profile(
 
                 # Read query metadata
                 if query_json_path.exists():
-                    with open(query_json_path, "r", encoding="utf-8") as f:
+                    with open(query_json_path, encoding="utf-8") as f:
                         query_data = json.load(f)
                 else:
                     query_data = {"name": query_id.replace("_", " ").title()}
@@ -215,7 +214,7 @@ def migrate_profile(
                 jira_cache_path = query_dir / "jira_cache.json"
                 if jira_cache_path.exists():
                     try:
-                        with open(jira_cache_path, "r", encoding="utf-8") as f:
+                        with open(jira_cache_path, encoding="utf-8") as f:
                             cache_data = json.load(f)
 
                         issues = cache_data.get("issues", [])
@@ -240,7 +239,7 @@ def migrate_profile(
                 project_data_path = query_dir / "project_data.json"
                 if project_data_path.exists():
                     try:
-                        with open(project_data_path, "r", encoding="utf-8") as f:
+                        with open(project_data_path, encoding="utf-8") as f:
                             project_data = json.load(f)
 
                         # Migrate statistics
@@ -276,7 +275,7 @@ def migrate_profile(
                 if metrics_path.exists():
                     try:
                         logger.info(f"Loading metrics from {metrics_path}")
-                        with open(metrics_path, "r", encoding="utf-8") as f:
+                        with open(metrics_path, encoding="utf-8") as f:
                             metrics_snapshots = json.load(f)
 
                         logger.info(
@@ -480,7 +479,7 @@ def run_migration_if_needed(
         # Step 4: Migrate app_state and ensure active profile/query are set
         app_state_path = profiles_path / "profiles.json"
         if app_state_path.exists():
-            with open(app_state_path, "r", encoding="utf-8") as f:
+            with open(app_state_path, encoding="utf-8") as f:
                 app_state_data = json.load(f)
 
             # Save app state to database
@@ -590,7 +589,7 @@ def rollback_migration(
 
     except Exception as e:
         logger.error(f"Rollback failed: {e}", extra={"error_type": type(e).__name__})
-        raise IOError(f"Migration rollback failed: {e}") from e
+        raise OSError(f"Migration rollback failed: {e}") from e
 
 
 def cleanup_json_files(profiles_path: Path = DEFAULT_PROFILES_PATH) -> None:

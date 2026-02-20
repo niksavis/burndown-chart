@@ -5,15 +5,14 @@ aggregating metrics, and forecasting bug resolution timelines.
 """
 
 from datetime import datetime
-from typing import Dict, List, Optional
 
 
 def filter_bug_issues(
-    issues: List[Dict],
-    bug_type_mappings: Dict[str, str],
-    date_from: Optional[datetime] = None,
-    date_to: Optional[datetime] = None,
-) -> List[Dict]:
+    issues: list[dict],
+    bug_type_mappings: dict[str, str],
+    date_from: datetime | None = None,
+    date_to: datetime | None = None,
+) -> list[dict]:
     """Filter issues to include only bugs based on type mappings.
 
     Args:
@@ -76,11 +75,11 @@ def filter_bug_issues(
 
 
 def calculate_bug_statistics(
-    bug_issues: List[Dict],
+    bug_issues: list[dict],
     date_from: datetime,
     date_to: datetime,
     story_points_field: str = "customfield_10016",
-) -> List[Dict]:
+) -> list[dict]:
     """Calculate weekly bug statistics from bug issues.
 
     Args:
@@ -200,13 +199,13 @@ def calculate_bug_statistics(
 
 
 def calculate_bug_metrics_summary(
-    all_bug_issues: List[Dict],
-    timeline_filtered_bugs: List[Dict],
-    weekly_stats: List[Dict],
+    all_bug_issues: list[dict],
+    timeline_filtered_bugs: list[dict],
+    weekly_stats: list[dict],
     date_from=None,
     date_to=None,
-    all_project_issues: Optional[List[Dict]] = None,
-) -> Dict:
+    all_project_issues: list[dict] | None = None,
+) -> dict:
     """Calculate overall bug metrics summary.
 
     Args:
@@ -405,8 +404,8 @@ def calculate_bug_metrics_summary(
 
 
 def forecast_bug_resolution(
-    open_bugs: int, weekly_stats: List[Dict], use_last_n_weeks: int = 8
-) -> Dict:
+    open_bugs: int, weekly_stats: list[dict], use_last_n_weeks: int = 8
+) -> dict:
     """Forecast when open bugs will be resolved based on historical closure rates.
 
     Calculates optimistic, most likely, and pessimistic forecasts using
@@ -584,7 +583,7 @@ def get_week_start_date(iso_week: str) -> str:
     return week_start.date().isoformat()
 
 
-def calculate_standard_deviation(values: List[float]) -> float:
+def calculate_standard_deviation(values: list[float]) -> float:
     """Calculate standard deviation of a list of values.
 
     Args:
@@ -602,7 +601,7 @@ def calculate_standard_deviation(values: List[float]) -> float:
 
 
 def calculate_future_date(
-    weeks_ahead: int, base_date: Optional[datetime] = None
+    weeks_ahead: int, base_date: datetime | None = None
 ) -> str:
     """Calculate a future date given weeks ahead.
 
@@ -623,8 +622,8 @@ def calculate_future_date(
 
 
 def generate_bug_weekly_forecast(
-    weekly_stats: List[Dict], use_last_n_weeks: int = 8
-) -> Dict:
+    weekly_stats: list[dict], use_last_n_weeks: int = 8
+) -> dict:
     """Generate next week forecast for bugs created and resolved.
 
     Uses PERT 3-point estimation (optimistic, most likely, pessimistic) based on

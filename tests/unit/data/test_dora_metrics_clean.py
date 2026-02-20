@@ -7,14 +7,14 @@ extraction from profile configuration.
 from unittest.mock import patch
 
 from data.dora_metrics import (
-    calculate_deployment_frequency,
-    calculate_lead_time_for_changes,
-    calculate_change_failure_rate,
-    calculate_mean_time_to_recovery,
-    _classify_performance_tier,
-    _determine_performance_tier,
     DEPLOYMENT_FREQUENCY_TIERS,
     LEAD_TIME_TIERS,
+    _classify_performance_tier,
+    _determine_performance_tier,
+    calculate_change_failure_rate,
+    calculate_deployment_frequency,
+    calculate_lead_time_for_changes,
+    calculate_mean_time_to_recovery,
 )
 
 

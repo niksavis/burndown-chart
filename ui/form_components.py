@@ -11,7 +11,7 @@ from typing import Any
 import dash_bootstrap_components as dbc
 from dash import html
 
-from ui.style_constants import get_spacing, get_color
+from ui.style_constants import get_color, get_spacing
 from ui.styles import create_form_feedback_style
 
 

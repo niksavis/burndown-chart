@@ -5,22 +5,23 @@ This module contains tests for handling malformed input data, large datasets,
 and other edge cases that might cause problems in production.
 """
 
-import unittest
-import pandas as pd
-import numpy as np
 import sys
-from pathlib import Path
+import unittest
 from datetime import datetime, timedelta
+from pathlib import Path
+
+import numpy as np
+import pandas as pd
 
 # Add the project root to the Python path so we can import the application modules
 sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent))
 
 # Import the functions to test
 from data.processing import (
+    calculate_performance_trend,
     calculate_rates,
     calculate_weekly_averages,
     generate_weekly_forecast,
-    calculate_performance_trend,
 )
 from data.scope_metrics import (
     calculate_total_project_scope,

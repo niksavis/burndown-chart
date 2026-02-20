@@ -9,6 +9,7 @@ report showed "48 days (6.9 weeks)" due to different reference points.
 """
 
 from datetime import datetime, timedelta
+
 import pytest
 
 

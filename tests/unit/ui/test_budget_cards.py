@@ -15,6 +15,7 @@ The same pattern is applied to:
 """
 
 import dash_bootstrap_components as dbc
+
 from ui.budget_cards import create_cost_per_point_card
 
 

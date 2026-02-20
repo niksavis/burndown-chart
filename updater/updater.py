@@ -41,14 +41,13 @@ Exit Codes:
     6: Unknown error
 """
 
+import shutil
+import sqlite3
+import subprocess
 import sys
 import tempfile
 import time
-import shutil
-import subprocess
-import sqlite3
 from pathlib import Path
-from typing import Optional
 
 from updater.file_ops import (
     backup_file,
@@ -60,8 +59,8 @@ from updater.file_ops import (
 from updater.process_utils import wait_for_process_exit
 from updater.support_files import SUPPORT_FILE_NAMES, replace_support_files
 from updater.zip_utils import (
-    find_executable_in_extract,
     extract_update,
+    find_executable_in_extract,
     verify_checksums,
 )
 
@@ -86,8 +85,10 @@ def set_post_update_flag(exe_path: Path) -> None:
     """Set post-update flags in database before launching app.
 
     Sets two flags with different lifecycles:
-    - post_update_no_browser: Signals app to skip browser auto-launch (cleared at startup)
-    - post_update_show_toast: Triggers success toast in JavaScript (cleared after display)
+        - post_update_no_browser: Signals app to skip browser auto-launch
+            (cleared at startup)
+        - post_update_show_toast: Triggers success toast in JavaScript
+            (cleared after display)
 
     This separation ensures browser tabs reconnect instead of opening new ones,
     while still displaying the success message after page loads.
@@ -186,7 +187,8 @@ def main() -> int:
     if len(sys.argv) < 4:
         print_status("ERROR: Invalid arguments")
         print_status(
-            "Usage: updater.exe <current_exe> <update_zip> <app_pid> [--updater-exe <updater_exe>]"
+            "Usage: updater.exe <current_exe> <update_zip> <app_pid> "
+            "[--updater-exe <updater_exe>]"
         )
         return 1
 
@@ -195,7 +197,7 @@ def main() -> int:
     app_pid = int(sys.argv[3])
 
     # Check for --updater-exe flag (self-update support)
-    updater_exe: Optional[Path] = None
+    updater_exe: Path | None = None
     if len(sys.argv) >= 6 and sys.argv[4] == "--updater-exe":
         updater_exe = Path(sys.argv[5])
         print_status(f"Self-update mode enabled: will replace updater at {updater_exe}")
@@ -230,7 +232,8 @@ def main() -> int:
         return 3
 
     # Step 3: Extract new version
-    # Use unique directory name to avoid conflicts with concurrent updates or stale files
+    # Use unique directory name to avoid conflicts with concurrent updates
+    # or stale files
     import uuid
 
     extract_dir = (
@@ -272,7 +275,8 @@ def main() -> int:
             expected_files.append(new_updater_for_checksum.name)
         else:
             print_status(
-                "WARNING: New updater not found for checksum verification; updater may remain at old version"
+                "WARNING: New updater not found for checksum verification; "
+                "updater may remain at old version"
             )
 
     if not verify_checksums(extract_dir, expected_files, print_status):

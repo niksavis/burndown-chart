@@ -3,6 +3,7 @@ Test cases for empty/invalid points field scenarios in JIRA scope calculation.
 """
 
 import unittest
+
 from data.jira.scope_calculator import calculate_jira_project_scope
 
 

@@ -5,18 +5,19 @@ This test verifies that the baseline (initial scope) is calculated and used
 consistently across different parts of the application.
 """
 
-import unittest
-import pandas as pd
 import sys
+import unittest
 from pathlib import Path
+
+import pandas as pd
 
 # Add the project root to the Python path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from data.scope_metrics import (
     calculate_scope_change_rate,
-    calculate_total_project_scope,
     calculate_scope_stability_index,
+    calculate_total_project_scope,
 )
 
 

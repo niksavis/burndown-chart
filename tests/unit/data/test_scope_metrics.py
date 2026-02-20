@@ -5,11 +5,12 @@ This module contains tests for the functions that calculate scope change metrics
 stability indexes, and project scope measurements.
 """
 
-import unittest
-import pandas as pd
-from datetime import datetime
 import sys
+import unittest
+from datetime import datetime
 from pathlib import Path
+
+import pandas as pd
 
 # Add the project root to the Python path so we can import the application modules
 sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent))
@@ -17,14 +18,14 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent))
 # Import the functions to test
 from data.scope_metrics import (
     calculate_scope_change_rate,
-    calculate_total_project_scope,
-    calculate_weekly_scope_growth,
-    calculate_scope_stability_index,
-    check_scope_change_threshold,
-    get_week_start_date,
     # Aliases for backward compatibility
     calculate_scope_creep_rate,
+    calculate_scope_stability_index,
+    calculate_total_project_scope,
+    calculate_weekly_scope_growth,
+    check_scope_change_threshold,
     check_scope_creep_threshold,
+    get_week_start_date,
 )
 
 

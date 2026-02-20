@@ -12,8 +12,8 @@ and providing contextual guidance for each setup step.
 """
 
 import logging
-from typing import Dict, Optional, Tuple, Any
 from datetime import datetime
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 # ============================================================================
 
 
-def get_smart_jira_defaults() -> Dict[str, Any]:
+def get_smart_jira_defaults() -> dict[str, Any]:
     """Generate smart defaults for JIRA configuration (T006).
 
     Returns:
@@ -64,7 +64,7 @@ def get_smart_jira_defaults() -> Dict[str, Any]:
     return defaults
 
 
-def get_smart_field_mapping_defaults() -> Dict[str, Any]:
+def get_smart_field_mapping_defaults() -> dict[str, Any]:
     """Generate smart defaults for JIRA field mappings (T006).
 
     Returns:
@@ -122,7 +122,7 @@ def get_smart_field_mapping_defaults() -> Dict[str, Any]:
     return defaults
 
 
-def get_smart_query_suggestions(profile_id: str) -> Dict[str, str]:
+def get_smart_query_suggestions(profile_id: str) -> dict[str, str]:
     """Generate smart JQL query suggestions based on profile context (T006).
 
     Args:
@@ -136,7 +136,7 @@ def get_smart_query_suggestions(profile_id: str) -> Dict[str, str]:
     return _get_generic_query_suggestions()
 
 
-def _get_generic_query_suggestions() -> Dict[str, str]:
+def _get_generic_query_suggestions() -> dict[str, str]:
     """Get generic query suggestions when profile context not available."""
     return {
         "basic": "project = YOUR_PROJECT ORDER BY created DESC",
@@ -151,7 +151,7 @@ def _get_generic_query_suggestions() -> Dict[str, str]:
 # ============================================================================
 
 
-def get_smart_profile_defaults() -> Dict[str, Any]:
+def get_smart_profile_defaults() -> dict[str, Any]:
     """Generate smart defaults for new profile creation (T006).
 
     Returns:
@@ -205,8 +205,8 @@ def get_smart_profile_defaults() -> Dict[str, Any]:
 
 
 def get_contextual_help_for_step(
-    step: str, setup_status: Dict[str, Any]
-) -> Dict[str, str]:
+    step: str, setup_status: dict[str, Any]
+) -> dict[str, str]:
     """Get contextual help content based on current setup step (T006).
 
     Args:
@@ -270,7 +270,7 @@ def get_contextual_help_for_step(
 # ============================================================================
 
 
-def validate_jira_url(url: str) -> Tuple[bool, str]:
+def validate_jira_url(url: str) -> tuple[bool, str]:
     """Validate JIRA URL format and provide helpful feedback (T006).
 
     Args:
@@ -302,7 +302,7 @@ def validate_jira_url(url: str) -> Tuple[bool, str]:
     return False, "URL format doesn't look like a typical JIRA instance"
 
 
-def validate_custom_field_id(field_id: str) -> Tuple[bool, str]:
+def validate_custom_field_id(field_id: str) -> tuple[bool, str]:
     """Validate JIRA custom field ID format (T006).
 
     Args:
@@ -344,8 +344,8 @@ def validate_custom_field_id(field_id: str) -> Tuple[bool, str]:
 
 
 def get_next_recommended_action(
-    setup_status: Dict[str, Any],
-) -> Optional[Dict[str, str]]:
+    setup_status: dict[str, Any],
+) -> dict[str, str] | None:
     """Get the next recommended action based on setup progress (T006).
 
     Args:
@@ -389,7 +389,7 @@ def get_next_recommended_action(
     return None  # Setup complete
 
 
-def get_setup_completion_percentage(setup_status: Dict[str, Any]) -> int:
+def get_setup_completion_percentage(setup_status: dict[str, Any]) -> int:
     """Calculate setup completion percentage (T006).
 
     Args:

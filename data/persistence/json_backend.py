@@ -24,9 +24,8 @@ Do not use for new features - use SQLiteBackend instead.
 """
 
 import logging
-from pathlib import Path
-from typing import Dict, List, Optional
 from datetime import datetime
+from pathlib import Path
 
 from data.persistence import PersistenceBackend
 
@@ -66,19 +65,19 @@ class JSONBackend(PersistenceBackend):
     # Profile Operations (STUB)
     # ========================================================================
 
-    def get_profile(self, profile_id: str) -> Optional[Dict]:
+    def get_profile(self, profile_id: str) -> dict | None:
         """STUB: Load profile from profile.json."""
         raise NotImplementedError(
             "JSONBackend.get_profile - Legacy only, use SQLiteBackend"
         )
 
-    def save_profile(self, profile: Dict) -> None:
+    def save_profile(self, profile: dict) -> None:
         """STUB: Save profile to profile.json."""
         raise NotImplementedError(
             "JSONBackend.save_profile - Legacy only, use SQLiteBackend"
         )
 
-    def list_profiles(self) -> List[Dict]:
+    def list_profiles(self) -> list[dict]:
         """STUB: List profiles from filesystem."""
         raise NotImplementedError(
             "JSONBackend.list_profiles - Legacy only, use SQLiteBackend"
@@ -94,19 +93,19 @@ class JSONBackend(PersistenceBackend):
     # Query Operations (STUB)
     # ========================================================================
 
-    def get_query(self, profile_id: str, query_id: str) -> Optional[Dict]:
+    def get_query(self, profile_id: str, query_id: str) -> dict | None:
         """STUB: Load query from profile.json queries array."""
         raise NotImplementedError(
             "JSONBackend.get_query - Legacy only, use SQLiteBackend"
         )
 
-    def save_query(self, profile_id: str, query: Dict) -> None:
+    def save_query(self, profile_id: str, query: dict) -> None:
         """STUB: Save query to profile.json queries array."""
         raise NotImplementedError(
             "JSONBackend.save_query - Legacy only, use SQLiteBackend"
         )
 
-    def list_queries(self, profile_id: str) -> List[Dict]:
+    def list_queries(self, profile_id: str) -> list[dict]:
         """STUB: List queries from profile.json."""
         raise NotImplementedError(
             "JSONBackend.list_queries - Legacy only, use SQLiteBackend"
@@ -122,7 +121,7 @@ class JSONBackend(PersistenceBackend):
     # App State Operations (STUB)
     # ========================================================================
 
-    def get_app_state(self, key: str) -> Optional[str]:
+    def get_app_state(self, key: str) -> str | None:
         """STUB: Get state from app_state.json."""
         raise NotImplementedError(
             "JSONBackend.get_app_state - Legacy only, use SQLiteBackend"
@@ -142,12 +141,12 @@ class JSONBackend(PersistenceBackend):
         self,
         profile_id: str,
         query_id: str,
-        status: Optional[str] = None,
-        assignee: Optional[str] = None,
-        issue_type: Optional[str] = None,
-        project_key: Optional[str] = None,
-        limit: Optional[int] = None,
-    ) -> List[Dict]:
+        status: str | None = None,
+        assignee: str | None = None,
+        issue_type: str | None = None,
+        project_key: str | None = None,
+        limit: int | None = None,
+    ) -> list[dict]:
         """NOT SUPPORTED: JSON backend cannot filter issues efficiently."""
         raise NotImplementedError(
             "JSONBackend.get_issues - Not supported, use SQLiteBackend for filtered queries"
@@ -158,7 +157,7 @@ class JSONBackend(PersistenceBackend):
         profile_id: str,
         query_id: str,
         cache_key: str,
-        issues: List[Dict],
+        issues: list[dict],
         expires_at: datetime,
     ) -> None:
         """NOT SUPPORTED: JSON backend uses jira_cache.json blob."""
@@ -174,7 +173,7 @@ class JSONBackend(PersistenceBackend):
 
     def get_jira_cache(
         self, profile_id: str, query_id: str, cache_key: str
-    ) -> Optional[Dict]:
+    ) -> dict | None:
         """STUB: Read jira_cache.json (migration source)."""
         raise NotImplementedError("JSONBackend.get_jira_cache - Phase 3 migration only")
 
@@ -183,7 +182,7 @@ class JSONBackend(PersistenceBackend):
         profile_id: str,
         query_id: str,
         cache_key: str,
-        response: Dict,
+        response: dict,
         expires_at: datetime,
     ) -> None:
         """STUB: Write jira_cache.json."""
@@ -203,11 +202,11 @@ class JSONBackend(PersistenceBackend):
         self,
         profile_id: str,
         query_id: str,
-        issue_key: Optional[str] = None,
-        field_name: Optional[str] = None,
-        start_date: Optional[str] = None,
-        end_date: Optional[str] = None,
-    ) -> List[Dict]:
+        issue_key: str | None = None,
+        field_name: str | None = None,
+        start_date: str | None = None,
+        end_date: str | None = None,
+    ) -> list[dict]:
         """NOT SUPPORTED: JSON backend cannot filter changelog efficiently."""
         raise NotImplementedError(
             "JSONBackend.get_changelog_entries - Not supported, use SQLiteBackend"
@@ -217,7 +216,7 @@ class JSONBackend(PersistenceBackend):
         self,
         profile_id: str,
         query_id: str,
-        entries: List[Dict],
+        entries: list[dict],
         expires_at: datetime,
     ) -> None:
         """NOT SUPPORTED: JSON backend uses jira_cache.json blob."""
@@ -227,7 +226,7 @@ class JSONBackend(PersistenceBackend):
 
     def get_jira_changelog(
         self, profile_id: str, query_id: str, issue_key: str
-    ) -> Optional[Dict]:
+    ) -> dict | None:
         """STUB: Read jira_cache.json changelog (migration source)."""
         raise NotImplementedError(
             "JSONBackend.get_jira_changelog - Phase 3 migration only"
@@ -238,7 +237,7 @@ class JSONBackend(PersistenceBackend):
         profile_id: str,
         query_id: str,
         issue_key: str,
-        changelog: Dict,
+        changelog: dict,
         expires_at: datetime,
     ) -> None:
         """STUB: Write jira_cache.json changelog."""
@@ -254,10 +253,10 @@ class JSONBackend(PersistenceBackend):
         self,
         profile_id: str,
         query_id: str,
-        start_date: Optional[str] = None,
-        end_date: Optional[str] = None,
-        limit: Optional[int] = None,
-    ) -> List[Dict]:
+        start_date: str | None = None,
+        end_date: str | None = None,
+        limit: int | None = None,
+    ) -> list[dict]:
         """NOT SUPPORTED: JSON backend stores statistics as array in project_data.json."""
         raise NotImplementedError(
             "JSONBackend.get_statistics - Not supported, use SQLiteBackend"
@@ -267,14 +266,14 @@ class JSONBackend(PersistenceBackend):
         self,
         profile_id: str,
         query_id: str,
-        stats: List[Dict],
+        stats: list[dict],
     ) -> None:
         """NOT SUPPORTED: JSON backend uses project_data.json blob."""
         raise NotImplementedError(
             "JSONBackend.save_statistics_batch - Not supported, use SQLiteBackend"
         )
 
-    def get_scope(self, profile_id: str, query_id: str) -> Optional[Dict]:
+    def get_scope(self, profile_id: str, query_id: str) -> dict | None:
         """STUB: Read scope from project_data.json (migration source)."""
         raise NotImplementedError("JSONBackend.get_scope - Phase 3 migration only")
 
@@ -282,20 +281,20 @@ class JSONBackend(PersistenceBackend):
         self,
         profile_id: str,
         query_id: str,
-        scope_data: Dict,
+        scope_data: dict,
     ) -> None:
         """STUB: Write scope to project_data.json."""
         raise NotImplementedError(
             "JSONBackend.save_scope - Legacy only, use SQLiteBackend"
         )
 
-    def get_project_data(self, profile_id: str, query_id: str) -> Optional[Dict]:
+    def get_project_data(self, profile_id: str, query_id: str) -> dict | None:
         """STUB: Read project_data.json (migration source)."""
         raise NotImplementedError(
             "JSONBackend.get_project_data - Phase 3 migration only"
         )
 
-    def save_project_data(self, profile_id: str, query_id: str, data: Dict) -> None:
+    def save_project_data(self, profile_id: str, query_id: str, data: dict) -> None:
         """STUB: Write project_data.json."""
         raise NotImplementedError(
             "JSONBackend.save_project_data - Legacy only, use SQLiteBackend"
@@ -309,12 +308,12 @@ class JSONBackend(PersistenceBackend):
         self,
         profile_id: str,
         query_id: str,
-        metric_name: Optional[str] = None,
-        metric_category: Optional[str] = None,
-        start_date: Optional[str] = None,
-        end_date: Optional[str] = None,
-        limit: Optional[int] = None,
-    ) -> List[Dict]:
+        metric_name: str | None = None,
+        metric_category: str | None = None,
+        start_date: str | None = None,
+        end_date: str | None = None,
+        limit: int | None = None,
+    ) -> list[dict]:
         """NOT SUPPORTED: JSON backend stores metrics as snapshots array."""
         raise NotImplementedError(
             "JSONBackend.get_metric_values - Not supported, use SQLiteBackend"
@@ -334,7 +333,7 @@ class JSONBackend(PersistenceBackend):
         self,
         profile_id: str,
         query_id: str,
-        metrics: List[Dict],
+        metrics: list[dict],
     ) -> None:
         """NOT SUPPORTED: JSON backend uses metrics_snapshots file."""
         raise NotImplementedError(
@@ -343,7 +342,7 @@ class JSONBackend(PersistenceBackend):
 
     def get_metrics_snapshots(
         self, profile_id: str, query_id: str, metric_type: str, limit: int = 52
-    ) -> List[Dict]:
+    ) -> list[dict]:
         """STUB: Read metrics_snapshots.json (migration source)."""
         raise NotImplementedError(
             "JSONBackend.get_metrics_snapshots - Phase 3 migration only"
@@ -355,8 +354,8 @@ class JSONBackend(PersistenceBackend):
         query_id: str,
         snapshot_date: str,
         metric_type: str,
-        metrics: Dict,
-        forecast: Optional[Dict] = None,
+        metrics: dict,
+        forecast: dict | None = None,
     ) -> None:
         """STUB: Write metrics_snapshots.json."""
         raise NotImplementedError(
@@ -367,7 +366,7 @@ class JSONBackend(PersistenceBackend):
     # Task Progress (STUB)
     # ========================================================================
 
-    def get_task_progress(self, task_name: str) -> Optional[Dict]:
+    def get_task_progress(self, task_name: str) -> dict | None:
         """NOT SUPPORTED: Task progress is runtime-only in SQLite."""
         raise NotImplementedError(
             "JSONBackend.get_task_progress - Not supported, use SQLiteBackend"
@@ -391,13 +390,13 @@ class JSONBackend(PersistenceBackend):
     # Task State Operations (STUB)
     # ========================================================================
 
-    def get_task_state(self) -> Optional[Dict]:
+    def get_task_state(self) -> dict | None:
         """NOT SUPPORTED: Task state is runtime-only in SQLite."""
         raise NotImplementedError(
             "JSONBackend.get_task_state - Not supported, use SQLiteBackend"
         )
 
-    def save_task_state(self, state: Dict) -> None:
+    def save_task_state(self, state: dict) -> None:
         """NOT SUPPORTED: Task state is runtime-only in SQLite."""
         raise NotImplementedError(
             "JSONBackend.save_task_state - Not supported, use SQLiteBackend"
@@ -413,20 +412,20 @@ class JSONBackend(PersistenceBackend):
     # Budget Operations (STUB)
     # ========================================================================
 
-    def get_budget_settings(self, profile_id: str, query_id: str) -> Optional[Dict]:
+    def get_budget_settings(self, profile_id: str, query_id: str) -> dict | None:
         """NOT SUPPORTED: Budget settings are SQLite-only."""
         raise NotImplementedError(
             "JSONBackend.get_budget_settings - Not supported, use SQLiteBackend"
         )
 
-    def get_budget_revisions(self, profile_id: str, query_id: str) -> List[Dict]:
+    def get_budget_revisions(self, profile_id: str, query_id: str) -> list[dict]:
         """NOT SUPPORTED: Budget revisions are SQLite-only."""
         raise NotImplementedError(
             "JSONBackend.get_budget_revisions - Not supported, use SQLiteBackend"
         )
 
     def save_budget_settings(
-        self, profile_id: str, query_id: str, budget_settings: Dict
+        self, profile_id: str, query_id: str, budget_settings: dict
     ) -> None:
         """NOT SUPPORTED: Budget settings are SQLite-only."""
         raise NotImplementedError(
@@ -434,7 +433,7 @@ class JSONBackend(PersistenceBackend):
         )
 
     def save_budget_revision(
-        self, profile_id: str, query_id: str, revision: Dict
+        self, profile_id: str, query_id: str, revision: dict
     ) -> None:
         """NOT SUPPORTED: Budget revisions are SQLite-only."""
         raise NotImplementedError(
@@ -442,7 +441,7 @@ class JSONBackend(PersistenceBackend):
         )
 
     def save_budget_revisions(
-        self, profile_id: str, query_id: str, revisions: List[Dict]
+        self, profile_id: str, query_id: str, revisions: list[dict]
     ) -> None:
         """NOT SUPPORTED: Budget revisions are SQLite-only."""
         raise NotImplementedError(

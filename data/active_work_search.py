@@ -3,16 +3,16 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Set
+from typing import Any
 
 
 @dataclass
 class SearchPredicate:
     """Single predicate in a search expression."""
 
-    field: Optional[str]
-    value_groups: List[List[str]]
-    text_value: Optional[str]
+    field: str | None
+    value_groups: list[list[str]]
+    text_value: str | None
 
 
 @dataclass
@@ -20,19 +20,19 @@ class SearchNode:
     """Expression node (predicate, and, or)."""
 
     kind: str
-    predicate: Optional[SearchPredicate] = None
-    left: Optional["SearchNode"] = None
-    right: Optional["SearchNode"] = None
+    predicate: SearchPredicate | None = None
+    left: SearchNode | None = None
+    right: SearchNode | None = None
 
 
 class _SearchParser:
     """Recursive-descent parser for Active Work search grammar."""
 
-    def __init__(self, tokens: List[str]) -> None:
+    def __init__(self, tokens: list[str]) -> None:
         self._tokens = tokens
         self._index = 0
 
-    def parse(self) -> Optional[SearchNode]:
+    def parse(self) -> SearchNode | None:
         """Parse full expression."""
         if not self._tokens:
             return None
@@ -46,7 +46,7 @@ class _SearchParser:
 
         return expression
 
-    def _parse_or_expression(self) -> Optional[SearchNode]:
+    def _parse_or_expression(self) -> SearchNode | None:
         left = self._parse_and_expression()
         if left is None:
             return None
@@ -60,7 +60,7 @@ class _SearchParser:
 
         return left
 
-    def _parse_and_expression(self) -> Optional[SearchNode]:
+    def _parse_and_expression(self) -> SearchNode | None:
         left = self._parse_factor()
         if left is None:
             return None
@@ -74,7 +74,7 @@ class _SearchParser:
 
         return left
 
-    def _parse_factor(self) -> Optional[SearchNode]:
+    def _parse_factor(self) -> SearchNode | None:
         current = self._peek()
         if current is None:
             return None
@@ -93,12 +93,12 @@ class _SearchParser:
             return None
         return SearchNode(kind="predicate", predicate=predicate)
 
-    def _peek(self) -> Optional[str]:
+    def _peek(self) -> str | None:
         if self._index >= len(self._tokens):
             return None
         return self._tokens[self._index]
 
-    def _consume(self, expected: Optional[str] = None) -> str:
+    def _consume(self, expected: str | None = None) -> str:
         token = self._tokens[self._index]
         if expected is not None and token != expected:
             raise ValueError(f"Expected token '{expected}' but got '{token}'")
@@ -106,10 +106,10 @@ class _SearchParser:
         return token
 
 
-def _tokenize_query(query: str) -> List[str]:
+def _tokenize_query(query: str) -> list[str]:
     """Tokenize query into operators, parentheses, and predicate chunks."""
-    tokens: List[str] = []
-    buffer: List[str] = []
+    tokens: list[str] = []
+    buffer: list[str] = []
 
     def flush_buffer() -> None:
         chunk = "".join(buffer).strip()
@@ -128,7 +128,7 @@ def _tokenize_query(query: str) -> List[str]:
     return tokens
 
 
-def _parse_predicate_token(token: str) -> Optional[SearchPredicate]:
+def _parse_predicate_token(token: str) -> SearchPredicate | None:
     """Parse a single predicate token into fielded or free-text predicate."""
     value = token.strip()
     if not value:
@@ -155,9 +155,9 @@ def _parse_predicate_token(token: str) -> Optional[SearchPredicate]:
     )
 
 
-def _parse_field_value_groups(raw_values: str) -> List[List[str]]:
+def _parse_field_value_groups(raw_values: str) -> list[list[str]]:
     """Parse value expression using ';' as OR and ',' as AND within a field."""
-    groups: List[List[str]] = []
+    groups: list[list[str]] = []
     for or_group in _split_unquoted(raw_values, ";"):
         and_values = [
             _normalize_value_token(part)
@@ -169,7 +169,7 @@ def _parse_field_value_groups(raw_values: str) -> List[List[str]]:
     return groups
 
 
-def parse_search_query(query: str) -> Dict[str, Any]:
+def parse_search_query(query: str) -> dict[str, Any]:
     """Parse search query into expression tree.
 
     Args:
@@ -191,7 +191,7 @@ def parse_search_query(query: str) -> Dict[str, Any]:
     return {"_expr": expression}  # type: ignore[return-value]
 
 
-def matches_all_filters(issue: Dict[str, Any], filters: Dict[str, Any]) -> bool:
+def matches_all_filters(issue: dict[str, Any], filters: dict[str, Any]) -> bool:
     """Check if issue matches all filters (AND logic across fields).
 
     Args:
@@ -207,7 +207,7 @@ def matches_all_filters(issue: Dict[str, Any], filters: Dict[str, Any]) -> bool:
     return _evaluate_expression(issue, expression)
 
 
-def _evaluate_expression(issue: Dict[str, Any], node: SearchNode) -> bool:
+def _evaluate_expression(issue: dict[str, Any], node: SearchNode) -> bool:
     """Evaluate parsed search expression against a single issue."""
     if node.kind == "predicate" and node.predicate is not None:
         return _evaluate_predicate(issue, node.predicate)
@@ -225,7 +225,7 @@ def _evaluate_expression(issue: Dict[str, Any], node: SearchNode) -> bool:
     return False
 
 
-def _evaluate_predicate(issue: Dict[str, Any], predicate: SearchPredicate) -> bool:
+def _evaluate_predicate(issue: dict[str, Any], predicate: SearchPredicate) -> bool:
     """Evaluate a single field/text predicate against issue values."""
     issue_value = get_issue_field_value(issue, predicate.field or "")
     if issue_value is None:
@@ -238,7 +238,7 @@ def _evaluate_predicate(issue: Dict[str, Any], predicate: SearchPredicate) -> bo
     return False
 
 
-def matches_filter(issue: Dict[str, Any], field: str, filter_values: List[str]) -> bool:
+def matches_filter(issue: dict[str, Any], field: str, filter_values: list[str]) -> bool:
     """Check if issue matches filter for a single field (OR logic within values).
 
     Args:
@@ -288,7 +288,7 @@ def matches_value(issue_value: Any, filter_value: str) -> bool:
         return filter_value in str(issue_value).lower()
 
 
-def get_issue_field_value(issue: Dict[str, Any], field: str):
+def get_issue_field_value(issue: dict[str, Any], field: str):
     """Get issue field value by field name.
 
     Args:
@@ -334,8 +334,8 @@ def get_issue_field_value(issue: Dict[str, Any], field: str):
 
 
 def filter_timeline_by_query(
-    timeline: List[Dict[str, Any]], query: str
-) -> List[Dict[str, Any]]:
+    timeline: list[dict[str, Any]], query: str
+) -> list[dict[str, Any]]:
     """Filter timeline based on search query.
 
     Args:
@@ -388,7 +388,7 @@ def filter_timeline_by_query(
     return filtered_timeline
 
 
-def is_strict_query_valid(timeline: List[Dict[str, Any]], query: str) -> bool:
+def is_strict_query_valid(timeline: list[dict[str, Any]], query: str) -> bool:
     """Validate strict mode query rules.
 
     Rules:
@@ -450,8 +450,8 @@ def is_strict_query_valid(timeline: List[Dict[str, Any]], query: str) -> bool:
     return True
 
 
-def _extract_field_value_sets(timeline: List[Dict[str, Any]]) -> Dict[str, Set[str]]:
-    field_values: Dict[str, Set[str]] = {
+def _extract_field_value_sets(timeline: list[dict[str, Any]]) -> dict[str, set[str]]:
+    field_values: dict[str, set[str]] = {
         "key": set(),
         "assignee": set(),
         "issuetype": set(),
@@ -498,7 +498,7 @@ def _extract_field_value_sets(timeline: List[Dict[str, Any]]) -> Dict[str, Set[s
     return field_values
 
 
-def _add_if_present(target: Set[str], value: Any) -> None:
+def _add_if_present(target: set[str], value: Any) -> None:
     if value is None:
         return
     normalized = str(value).strip().lower()
@@ -529,9 +529,9 @@ def _resolve_field_alias(field_name: str) -> str:
     return aliases.get(field_name, field_name)
 
 
-def _split_unquoted(raw_text: str, delimiter: str) -> List[str]:
-    values: List[str] = []
-    token: List[str] = []
+def _split_unquoted(raw_text: str, delimiter: str) -> list[str]:
+    values: list[str] = []
+    token: list[str] = []
     in_quote = False
 
     for char in raw_text:

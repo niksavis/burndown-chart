@@ -12,7 +12,6 @@ Design Pattern:
 - Equal height cards with h-100 class
 """
 
-from typing import List
 
 import dash_bootstrap_components as dbc
 from dash import html
@@ -140,7 +139,7 @@ def create_unified_metric_card(
     )
 
 
-def create_unified_metric_row(cards: List[dbc.Col]) -> dbc.Row:
+def create_unified_metric_row(cards: list[dbc.Col]) -> dbc.Row:
     """
     Create a responsive row of unified metric cards.
 

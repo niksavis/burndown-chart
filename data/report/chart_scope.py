@@ -1,12 +1,12 @@
 """Scope changes chart generator."""
 
 import json
-from typing import Dict, Any
+from typing import Any
 
 import pandas as pd
 
 
-def generate_scope_changes_chart(metrics: Dict[str, Any]) -> str:
+def generate_scope_changes_chart(metrics: dict[str, Any]) -> str:
     """Generate Chart.js script for scope changes over time chart."""
     statistics = metrics.get("statistics", [])
     if not statistics:

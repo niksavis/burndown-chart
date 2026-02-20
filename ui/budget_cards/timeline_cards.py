@@ -18,7 +18,7 @@ Created: January 30, 2026 (extracted from budget_cards.py)
 import logging
 import math
 from datetime import datetime, timedelta
-from typing import Any, Dict, Optional
+from typing import Any
 
 import dash_bootstrap_components as dbc
 from dash import html
@@ -61,11 +61,11 @@ def _create_card_footer(text: str, icon: str = "fa-info-circle") -> dbc.CardFoot
 
 def create_forecast_alignment_card(
     pert_time_items: float,
-    pert_time_points: Optional[float],
+    pert_time_points: float | None,
     runway_weeks: float,
     show_points: bool = True,
-    last_date: Optional[datetime] = None,
-    card_id: Optional[str] = None,
+    last_date: datetime | None = None,
+    card_id: str | None = None,
 ) -> dbc.Card:
     """
     Create Forecast vs Budget Alignment card showing timeline comparison.
@@ -584,10 +584,10 @@ def create_forecast_alignment_card(
 
 
 def create_budget_timeline_card(
-    baseline_data: Dict[str, Any],
-    pert_forecast_weeks: Optional[float] = None,
-    last_date: Optional[datetime] = None,
-    card_id: Optional[str] = None,
+    baseline_data: dict[str, Any],
+    pert_forecast_weeks: float | None = None,
+    last_date: datetime | None = None,
+    card_id: str | None = None,
 ) -> dbc.Card:
     """
     Create Budget Timeline card showing key project dates.
@@ -741,7 +741,7 @@ def create_budget_timeline_card(
             marker["position"] = 8 + spacing * (i + 1)
     else:
         # Apply right edge constraint
-        for i, marker in enumerate(timeline_markers):
+        for _i, marker in enumerate(timeline_markers):
             marker["position"] = min(marker["position"], 92)
 
     # Calculate positions (0-100%)

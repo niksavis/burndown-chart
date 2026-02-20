@@ -4,9 +4,9 @@ from __future__ import annotations
 
 import json
 import logging
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from data.database import get_db_connection
 from data.persistence.sqlite.helpers import extract_nested_field, retry_on_db_lock
@@ -20,18 +20,18 @@ class IssuesCRUDMixin:
     db_path: Path  # Set by composition class (SQLiteBackend)
 
     # Method stub for cross-mixin call (provided by ProfilesMixin)
-    def get_profile(self, profile_id: str) -> Optional[Dict]: ...  # type: ignore[empty-body]
+    def get_profile(self, profile_id: str) -> dict | None: ...  # type: ignore[empty-body]
 
     def get_issues(
         self,
         profile_id: str,
         query_id: str,
-        status: Optional[str] = None,
-        assignee: Optional[str] = None,
-        issue_type: Optional[str] = None,
-        project_key: Optional[str] = None,
-        limit: Optional[int] = None,
-    ) -> List[Dict]:
+        status: str | None = None,
+        assignee: str | None = None,
+        issue_type: str | None = None,
+        project_key: str | None = None,
+        limit: int | None = None,
+    ) -> list[dict]:
         """Query normalized JIRA issues with optional filters."""
         try:
             with get_db_connection(self.db_path) as conn:
@@ -41,7 +41,7 @@ class IssuesCRUDMixin:
                 query = (
                     "SELECT * FROM jira_issues WHERE profile_id = ? AND query_id = ?"
                 )
-                params: List[Any] = [profile_id, query_id]
+                params: list[Any] = [profile_id, query_id]
 
                 if status:
                     query += " AND status = ?"
@@ -104,7 +104,7 @@ class IssuesCRUDMixin:
         profile_id: str,
         query_id: str,
         cache_key: str,
-        issues: List[Dict],
+        issues: list[dict],
         expires_at: datetime,
     ) -> None:
         """Batch UPSERT normalized issues with two-layer storage."""
@@ -338,7 +338,7 @@ class IssuesCRUDMixin:
                             json.dumps(components_value),
                             custom_fields_json,
                             expires_at.isoformat(),
-                            datetime.now(timezone.utc).isoformat(),
+                            datetime.now(UTC).isoformat(),
                         ),
                     )
 
@@ -381,7 +381,7 @@ class IssuesCRUDMixin:
             raise
 
     def renormalize_points(
-        self, profile_id: str, query_id: Optional[str] = None
+        self, profile_id: str, query_id: str | None = None
     ) -> int:
         """Re-normalize points column from raw custom_fields data."""
         profile = self.get_profile(profile_id)

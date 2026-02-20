@@ -11,7 +11,8 @@ across the application.
 # Standard library imports
 import hashlib
 import logging
-from typing import Any, Callable, Literal
+from collections.abc import Callable
+from typing import Any, Literal
 
 # Third-party library imports
 import pandas as pd

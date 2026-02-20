@@ -9,9 +9,9 @@ import os
 
 from configuration import logger
 from data.jira.config import (
+    DEFAULT_CACHE_MAX_SIZE_MB,
     JIRA_CACHE_FILE,
     JIRA_CHANGELOG_CACHE_FILE,
-    DEFAULT_CACHE_MAX_SIZE_MB,
 )
 
 
@@ -41,7 +41,7 @@ def validate_cache_file(
             return False
 
         # Check file integrity
-        with open(cache_file, "r") as f:
+        with open(cache_file) as f:
             json.load(f)
 
         return True
@@ -67,7 +67,7 @@ def get_cache_status(cache_file: str = JIRA_CACHE_FILE) -> str:
 
         file_size_mb = os.path.getsize(cache_file) / (1024 * 1024)
 
-        with open(cache_file, "r") as f:
+        with open(cache_file) as f:
             cache_data = json.load(f)
 
         timestamp = cache_data.get("timestamp", "Unknown")

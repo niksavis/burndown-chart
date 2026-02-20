@@ -5,17 +5,19 @@ This module provides standardized error handling functions for consistent error
 management across the application.
 """
 
-import traceback
 import logging
-from dash import html
+import traceback
+from collections.abc import Callable
+from typing import Any
+
 import dash_bootstrap_components as dbc
-from typing import Optional, Dict, Any, Callable
+from dash import html
 
 # Configure logger
 logger = logging.getLogger(__name__)
 
 
-def log_error(error: Exception, context: Optional[Dict[str, Any]] = None) -> None:
+def log_error(error: Exception, context: dict[str, Any] | None = None) -> None:
     """
     Log an error with consistent formatting and context information.
 
@@ -35,9 +37,9 @@ def log_error(error: Exception, context: Optional[Dict[str, Any]] = None) -> Non
 
 def create_error_component(
     error_message: str = "An error occurred",
-    error_details: Optional[str] = None,
-    retry_callback: Optional[Callable] = None,
-    component_id: Optional[str] = None,
+    error_details: str | None = None,
+    retry_callback: Callable | None = None,
+    component_id: str | None = None,
     severity: str = "danger",
 ) -> html.Div:
     """

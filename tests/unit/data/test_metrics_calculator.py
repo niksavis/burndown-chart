@@ -11,12 +11,14 @@ Test organization follows TDD approach with test classes per function.
 """
 
 import time
+
 import pytest
+
 from data.metrics_calculator import (
-    calculate_forecast,
     calculate_ewma_forecast,
-    calculate_trend_vs_forecast,
     calculate_flow_load_range,
+    calculate_forecast,
+    calculate_trend_vs_forecast,
 )
 
 
@@ -199,7 +201,7 @@ class TestForecastPerformance:
 
         # Measure total overhead for all 9 metrics
         total_time = 0
-        for i in range(9):
+        for _i in range(9):
             start = time.perf_counter()
             forecast = calculate_forecast(historical)
             if forecast is not None:

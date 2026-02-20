@@ -4,8 +4,9 @@ Handles modal toggle and single-selection enforcement.
 """
 
 import logging
-from typing import List, Any
-from dash import callback, callback_context, Output, Input, State, no_update, ALL
+from typing import Any
+
+from dash import ALL, Input, Output, State, callback, callback_context, no_update
 
 logger = logging.getLogger(__name__)
 
@@ -92,8 +93,8 @@ def toggle_field_mapping_modal(
     prevent_initial_call=True,
 )
 def enforce_single_selection_in_multi_dropdown(
-    field_values: List[List[str]],
-) -> List[List[str]]:
+    field_values: list[list[str]],
+) -> list[list[str]]:
     """Enforce single selection in multi-select dropdowns for consistent styling.
 
     Multi-select dropdowns are used to get the blue pill styling automatically,

@@ -10,18 +10,20 @@ expensive operation. It includes optimizations:
 """
 
 import logging
-from typing import Dict, List, Tuple, Callable
+from collections.abc import Callable
+from datetime import UTC
+
 import requests
 
 logger = logging.getLogger(__name__)
 
 
 def fetch_jira_issues_with_changelog(
-    config: Dict,
-    issue_keys: List[str] | None = None,
+    config: dict,
+    issue_keys: list[str] | None = None,
     max_results: int | None = None,
     progress_callback: Callable[[str], None] | None = None,
-) -> Tuple[bool, List[Dict]]:
+) -> tuple[bool, list[dict]]:
     """
     Fetch JIRA issues WITH changelog expansion.
 
@@ -260,7 +262,7 @@ def fetch_jira_issues_with_changelog(
         return False, []
 
 
-def _build_changelog_jql(config: Dict) -> str:
+def _build_changelog_jql(config: dict) -> str:
     """
     Build JQL query for changelog fetch, filtering for completed issues only.
 
@@ -306,7 +308,7 @@ def _build_changelog_jql(config: Dict) -> str:
     return jql
 
 
-def _build_headers(config: Dict) -> Dict[str, str]:
+def _build_headers(config: dict) -> dict[str, str]:
     """
     Build HTTP headers for JIRA API request.
 
@@ -325,7 +327,7 @@ def _build_headers(config: Dict) -> Dict[str, str]:
     return headers
 
 
-def _build_fields_string(config: Dict) -> str:
+def _build_fields_string(config: dict) -> str:
     """
     Build fields string for JIRA API request.
 
@@ -361,9 +363,9 @@ def _build_fields_string(config: Dict) -> str:
     # field_mappings has structure: {"dora": {"field_name": "field_id"}, "flow": {...}}
     # CRITICAL: Strip =Value filter syntax (e.g., "customfield_11309=PROD" -> "customfield_11309")
     field_mappings = config.get("field_mappings", {})
-    for category, mappings in field_mappings.items():
+    for _category, mappings in field_mappings.items():
         if isinstance(mappings, dict):
-            for field_name, field_id in mappings.items():
+            for _field_name, field_id in mappings.items():
                 # Extract clean field ID (strips =Value filter, skips changelog syntax)
                 clean_field_id = _extract_jira_field_id(field_id)
                 if clean_field_id and clean_field_id not in base_fields:
@@ -381,11 +383,11 @@ def _build_fields_string(config: Dict) -> str:
 
 def _fetch_with_retry(
     api_endpoint: str,
-    headers: Dict[str, str],
-    body: Dict,
+    headers: dict[str, str],
+    body: dict,
     max_retries: int,
     start_at: int,
-    all_issues: List[Dict],
+    all_issues: list[dict],
     total_issues: int | None,
     progress_callback: Callable[[str], None] | None,
 ) -> requests.Response | None:
@@ -489,12 +491,12 @@ def _extract_error_details(response: requests.Response) -> str:
 
 
 def fetch_changelog_on_demand(
-    config: Dict,
+    config: dict,
     profile_id: str | None = None,
     query_id: str | None = None,
     progress_callback=None,
     issue_keys: list[str] | None = None,
-) -> Tuple[bool, str]:
+) -> tuple[bool, str]:
     """
     Fetch changelog data separately for Flow Time and DORA metrics with incremental saving.
 
@@ -784,10 +786,9 @@ def fetch_changelog_on_demand(
 
                 # Save all collected changelog entries to database in single batch
                 try:
-                    from datetime import timezone
 
                     backend = get_backend()
-                    utc_now = datetime.now(timezone.utc)
+                    utc_now = datetime.now(UTC)
                     expires_at = utc_now + timedelta(hours=24)
 
                     if changelog_entries_batch:

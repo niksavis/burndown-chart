@@ -6,8 +6,9 @@ Designed to be compact, show temporal relationships clearly,
 and provide actionable insights at a glance.
 """
 
-from typing import Any, Dict, Optional
 import logging
+from typing import Any
+
 import dash_bootstrap_components as dbc
 from dash import html
 
@@ -17,9 +18,9 @@ logger = logging.getLogger(__name__)
 
 
 def create_budget_timeline_card(
-    baseline_data: Dict[str, Any],
-    pert_forecast_weeks: Optional[float] = None,
-    card_id: Optional[str] = None,
+    baseline_data: dict[str, Any],
+    pert_forecast_weeks: float | None = None,
+    card_id: str | None = None,
 ) -> dbc.Card:
     """
     Create compact Budget Timeline card with horizontal timeline visualization.
@@ -42,6 +43,7 @@ def create_budget_timeline_card(
         >>> card = create_budget_timeline_card(baseline_data, 15.0)
     """
     from datetime import datetime
+
     from ui import budget_cards
 
     def _fallback_card_footer(text: str, icon: str) -> dbc.CardFooter:

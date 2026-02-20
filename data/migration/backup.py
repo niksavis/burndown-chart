@@ -16,8 +16,8 @@ Usage:
 
 import logging
 import shutil
-from pathlib import Path
 from datetime import datetime
+from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
@@ -101,7 +101,7 @@ def create_backup(
             f"Failed to create backup: {e}",
             extra={"error_type": type(e).__name__, "profiles_path": str(profiles_path)},
         )
-        raise IOError(f"Backup creation failed: {e}") from e
+        raise OSError(f"Backup creation failed: {e}") from e
 
 
 def restore_backup(
@@ -158,7 +158,7 @@ def restore_backup(
             f"Failed to restore backup: {e}",
             extra={"error_type": type(e).__name__, "backup_path": str(backup_path)},
         )
-        raise IOError(f"Backup restore failed: {e}") from e
+        raise OSError(f"Backup restore failed: {e}") from e
 
 
 def list_backups(backups_path: Path = DEFAULT_BACKUPS_PATH) -> list[Path]:

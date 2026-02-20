@@ -24,7 +24,6 @@ Related: Feature burndown-chart-a1vn
 
 import logging
 from datetime import datetime
-from typing import Dict, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -54,7 +53,7 @@ DAY_NAMES = [
 ]
 
 
-def get_weekday_weight(current_time: Optional[datetime] = None) -> float:
+def get_weekday_weight(current_time: datetime | None = None) -> float:
     """Get the actual weight for the current weekday.
 
     Args:
@@ -86,7 +85,7 @@ def get_weekday_weight(current_time: Optional[datetime] = None) -> float:
 
 
 def calculate_current_week_blend(
-    actual: float, forecast: float, current_time: Optional[datetime] = None
+    actual: float, forecast: float, current_time: datetime | None = None
 ) -> float:
     """Calculate blended value for current week using progressive weighting.
 
@@ -129,8 +128,8 @@ def calculate_current_week_blend(
 
 
 def get_blend_metadata(
-    actual: float, forecast: float, current_time: Optional[datetime] = None
-) -> Dict:
+    actual: float, forecast: float, current_time: datetime | None = None
+) -> dict:
     """Get detailed metadata about the current blending calculation.
 
     Provides all components needed for transparent UI display: f(x,y), x, y,
@@ -192,7 +191,7 @@ def get_blend_metadata(
     return metadata
 
 
-def format_blend_description(metadata: Dict) -> str:
+def format_blend_description(metadata: dict) -> str:
     """Format blend metadata as human-readable description.
 
     Args:

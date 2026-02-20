@@ -4,12 +4,13 @@ Provides unified "no data" and "no metrics" states for Flow and DORA dashboards.
 Ensures consistent messaging and visual design across the application.
 """
 
-from typing import List, Dict, Any
-from dash import html
+from typing import Any
+
 import dash_bootstrap_components as dbc
+from dash import html
 
 
-def _create_info_card_row(cards: List[Dict[str, Any]]) -> dbc.Row:
+def _create_info_card_row(cards: list[dict[str, Any]]) -> dbc.Row:
     """Create a centered row with info cards (DRY helper).
 
     Args:

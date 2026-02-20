@@ -9,6 +9,7 @@ Without proper mocks, tests will modify real user data in profiles/ directory!
 """
 
 from unittest.mock import patch
+
 from callbacks.field_mapping.tab_rendering import render_tab_content
 
 

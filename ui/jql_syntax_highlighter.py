@@ -27,7 +27,7 @@ Example Usage:
     )
 """
 
-from typing import Any, Dict, List
+from typing import Any
 
 from dash import html
 
@@ -88,7 +88,7 @@ def is_scriptrunner_function(word: str) -> bool:
     return word in SCRIPTRUNNER_FUNCTIONS
 
 
-def detect_syntax_errors(tokens: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+def detect_syntax_errors(tokens: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """
     Detect common JQL syntax errors (unclosed quotes, invalid operators).
 

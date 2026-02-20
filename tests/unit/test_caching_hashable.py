@@ -2,9 +2,10 @@
 Unit tests specifically for the hashable conversion functions in the caching module.
 """
 
-import pytest
-import pandas as pd
 from unittest.mock import patch
+
+import pandas as pd
+import pytest
 
 from utils.caching import _make_hashable
 

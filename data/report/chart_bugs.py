@@ -1,10 +1,9 @@
 """Bug trends chart generator."""
 
 import json
-from typing import Dict, List
 
 
-def generate_bug_trends_chart(weekly_stats: List[Dict]) -> str:
+def generate_bug_trends_chart(weekly_stats: list[dict]) -> str:
     """Generate Chart.js script for bug trends chart showing warning backgrounds."""
     # Use ISO week format (2026-W07) for consistency across all charts
     weeks_js = json.dumps([stat.get("week", "") for stat in weekly_stats])

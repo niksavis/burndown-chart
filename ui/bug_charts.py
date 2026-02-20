@@ -7,12 +7,12 @@ and mobile optimization.
 #######################################################################
 # IMPORTS
 #######################################################################
-from typing import Dict, List
+
 from dash import dcc, html
 
 
 def BugTrendChart(
-    weekly_stats: List[Dict],
+    weekly_stats: list[dict],
     viewport_size: str = "mobile",
     show_error_boundaries: bool = True,
 ) -> html.Div:
@@ -31,11 +31,11 @@ def BugTrendChart(
         Dash Bootstrap Components Card with bug trend chart
     """
     try:
+        from configuration.chart_config import get_bug_analysis_chart_config
         from visualization.bug_charts import (
             create_bug_trend_chart,
             get_mobile_chart_layout,
         )
-        from configuration.chart_config import get_bug_analysis_chart_config
 
         # Create the chart figure
         fig = create_bug_trend_chart(weekly_stats, viewport_size)
@@ -98,7 +98,7 @@ def BugTrendChart(
 
 
 def BugInvestmentChart(
-    weekly_stats: List[Dict],
+    weekly_stats: list[dict],
     viewport_size: str = "mobile",
     show_error_boundaries: bool = True,
 ) -> html.Div:
@@ -117,11 +117,11 @@ def BugInvestmentChart(
         Dash Bootstrap Components Div with bug investment chart
     """
     try:
+        from configuration.chart_config import get_bug_analysis_chart_config
         from visualization.bug_charts import (
             create_bug_investment_chart,
             get_mobile_chart_layout,
         )
-        from configuration.chart_config import get_bug_analysis_chart_config
 
         # Create the chart figure
         fig = create_bug_investment_chart(weekly_stats, viewport_size)
@@ -183,7 +183,7 @@ def BugInvestmentChart(
 
 
 def BugForecastChart(
-    forecast: Dict, viewport_size: str = "mobile", show_error_boundaries: bool = True
+    forecast: dict, viewport_size: str = "mobile", show_error_boundaries: bool = True
 ) -> html.Div:
     """
     Create bug forecast chart component wrapper.

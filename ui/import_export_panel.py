@@ -7,6 +7,7 @@ Separated from main JIRA integration for cleaner UI organization.
 
 import dash_bootstrap_components as dbc
 from dash import dcc, html
+
 from ui.button_utils import create_panel_collapse_button
 
 

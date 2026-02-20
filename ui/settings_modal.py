@@ -21,7 +21,6 @@ from ui.jql_components import (
 )
 from ui.jql_editor import create_jql_editor
 
-
 #######################################################################
 # HELPER FUNCTIONS
 #######################################################################

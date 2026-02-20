@@ -6,17 +6,17 @@ Centralizes filtering to:
 - exclude configured parent issue types (Epic, Initiative, etc.)
 """
 
-from typing import Any, Dict, List, Optional
 import logging
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
 
 def filter_issues_for_metrics(
-    issues: List[Dict[str, Any]],
-    settings: Optional[Dict[str, Any]] = None,
+    issues: list[dict[str, Any]],
+    settings: dict[str, Any] | None = None,
     log_prefix: str = "METRICS",
-) -> List[Dict[str, Any]]:
+) -> list[dict[str, Any]]:
     """Filter issues for metrics calculations.
 
     Args:

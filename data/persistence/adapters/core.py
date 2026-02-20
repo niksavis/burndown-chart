@@ -4,7 +4,7 @@
 import json
 import os
 import threading
-from typing import Dict, Any
+from typing import Any
 
 # Third-party library imports
 import pandas as pd
@@ -26,7 +26,7 @@ It provides functions for managing settings and statistics using JSON files.
 # configuration.settings -> logging_config -> data.installation_context -> data -> adapters
 # Logger is safe to import at module level (doesn't trigger the chain)
 # File locking to prevent race conditions during concurrent writes
-_file_locks: Dict[str, threading.Lock] = {}
+_file_locks: dict[str, threading.Lock] = {}
 _lock_manager = threading.Lock()
 
 

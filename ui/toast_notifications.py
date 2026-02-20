@@ -16,18 +16,18 @@ Usage:
     toast = create_toast("Failed to connect", "danger", duration=5000)
 """
 
-from dash import html
+
 import dash_bootstrap_components as dbc
-from typing import Optional, Union, List
+from dash import html
 
 
 def create_toast(
-    message: Union[str, List],
+    message: str | list,
     toast_type: str = "info",
-    header: Optional[str] = None,
+    header: str | None = None,
     duration: int = 3000,
     dismissable: bool = True,
-    icon: Optional[str] = None,
+    icon: str | None = None,
 ) -> dbc.Toast:
     """Create a standardized toast notification.
 
@@ -129,9 +129,9 @@ def create_toast(
 
 def create_success_toast(
     message: str,
-    header: Optional[str] = None,
+    header: str | None = None,
     duration: int = 3000,
-    icon: Optional[str] = None,
+    icon: str | None = None,
 ) -> dbc.Toast:
     """Create a success toast notification.
 
@@ -149,9 +149,9 @@ def create_success_toast(
 
 def create_error_toast(
     message: str,
-    header: Optional[str] = None,
+    header: str | None = None,
     duration: int = 5000,
-    icon: Optional[str] = None,
+    icon: str | None = None,
 ) -> dbc.Toast:
     """Create an error toast notification.
 
@@ -169,9 +169,9 @@ def create_error_toast(
 
 def create_warning_toast(
     message: str,
-    header: Optional[str] = None,
+    header: str | None = None,
     duration: int = 4000,
-    icon: Optional[str] = None,
+    icon: str | None = None,
 ) -> dbc.Toast:
     """Create a warning toast notification.
 
@@ -189,9 +189,9 @@ def create_warning_toast(
 
 def create_info_toast(
     message: str,
-    header: Optional[str] = None,
+    header: str | None = None,
     duration: int = 3000,
-    icon: Optional[str] = None,
+    icon: str | None = None,
 ) -> dbc.Toast:
     """Create an info toast notification.
 

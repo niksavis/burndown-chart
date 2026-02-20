@@ -5,8 +5,9 @@ Tests the critical path abstraction layer that enables profile-based data organi
 Uses SQLite database backend via temp_database fixture.
 """
 
-import pytest
 from pathlib import Path
+
+import pytest
 
 # Import constants that don't need patching
 from data.profile_manager import DEFAULT_PROFILE_ID, DEFAULT_QUERY_ID
@@ -58,8 +59,8 @@ class TestPathResolutionFunctions:
         self, temp_database
     ):
         """Verify get_active_profile_workspace returns active profile directory."""
-        from data.profile_manager import get_active_profile_workspace
         from data.persistence.factory import get_backend
+        from data.profile_manager import get_active_profile_workspace
 
         # Arrange
         backend = get_backend()
@@ -102,8 +103,8 @@ class TestPathResolutionFunctions:
         self, temp_database
     ):
         """Verify get_active_profile_workspace raises if active_profile_id invalid."""
-        from data.profile_manager import get_active_profile_workspace
         from data.persistence.factory import get_backend
+        from data.profile_manager import get_active_profile_workspace
 
         # Arrange - set active_profile_id but don't create profile
         backend = get_backend()
@@ -115,8 +116,8 @@ class TestPathResolutionFunctions:
 
     def test_get_active_query_workspace_returns_active_query_dir(self, temp_database):
         """Verify get_active_query_workspace returns active query directory."""
-        from data.profile_manager import get_active_query_workspace
         from data.persistence.factory import get_backend
+        from data.profile_manager import get_active_query_workspace
 
         # Arrange
         backend = get_backend()
@@ -164,8 +165,8 @@ class TestPathResolutionFunctions:
 
     def test_get_active_query_workspace_raises_if_invalid_query(self, temp_database):
         """Verify get_active_query_workspace raises if active_query_id invalid."""
-        from data.profile_manager import get_active_query_workspace
         from data.persistence.factory import get_backend
+        from data.profile_manager import get_active_query_workspace
 
         # Arrange
         backend = get_backend()
@@ -193,8 +194,8 @@ class TestPathResolutionFunctions:
         self, temp_database
     ):
         """Verify get_active_query_workspace works with default profile."""
-        from data.profile_manager import get_active_query_workspace
         from data.persistence.factory import get_backend
+        from data.profile_manager import get_active_query_workspace
 
         # Arrange
         backend = get_backend()

@@ -3,8 +3,8 @@
 Tests completed items bucketing and week formatting.
 """
 
-from datetime import date
 from collections import OrderedDict
+from datetime import date
 
 
 class TestGetCompletedItemsByWeek:
@@ -43,7 +43,7 @@ class TestGetCompletedItemsByWeek:
         assert len(result) == 2
 
         # Check structure
-        for week_label, week_data in result.items():
+        for _week_label, week_data in result.items():
             assert "display_label" in week_data
             assert "issues" in week_data
             assert "is_current" in week_data
@@ -55,8 +55,9 @@ class TestGetCompletedItemsByWeek:
 
     def test_filters_only_completed_status(self):
         """Test that only completed statuses are included."""
-        from data.active_work_completed import get_completed_items_by_week
         from datetime import datetime, timedelta
+
+        from data.active_work_completed import get_completed_items_by_week
 
         # Use dates from within the last 2 weeks
         now = datetime.now()
@@ -91,8 +92,9 @@ class TestGetCompletedItemsByWeek:
 
     def test_requires_resolutiondate(self):
         """Test that issues without resolutiondate are excluded."""
-        from data.active_work_completed import get_completed_items_by_week
         from datetime import datetime, timedelta
+
+        from data.active_work_completed import get_completed_items_by_week
 
         now = datetime.now()
         recent_date = (now - timedelta(days=3)).strftime("%Y-%m-%dT10:00:00.000+0000")
@@ -126,8 +128,9 @@ class TestGetCompletedItemsByWeek:
 
     def test_accepts_flat_resolved_field(self):
         """Test that flat resolved field is accepted for bucketing."""
-        from data.active_work_completed import get_completed_items_by_week
         from datetime import datetime, timedelta
+
+        from data.active_work_completed import get_completed_items_by_week
 
         now = datetime.now()
         recent_date = (now - timedelta(days=2)).strftime("%Y-%m-%dT10:00:00.000+0000")
@@ -148,8 +151,9 @@ class TestGetCompletedItemsByWeek:
 
     def test_counts_epics_and_filters_parent_issues(self):
         """Test epic counting and parent filtering when parent_field is provided."""
-        from data.active_work_completed import get_completed_items_by_week
         from datetime import datetime, timedelta
+
+        from data.active_work_completed import get_completed_items_by_week
 
         now = datetime.now()
         recent_date = (now - timedelta(days=2)).strftime("%Y-%m-%dT10:00:00.000+0000")
@@ -187,8 +191,9 @@ class TestGetCompletedItemsByWeek:
 
     def test_uses_epic_summary_from_all_issues(self):
         """Test epic summary lookup when parent field is a string key."""
-        from data.active_work_completed import get_completed_items_by_week
         from datetime import datetime, timedelta
+
+        from data.active_work_completed import get_completed_items_by_week
 
         now = datetime.now()
         recent_date = (now - timedelta(days=2)).strftime("%Y-%m-%dT10:00:00.000+0000")
@@ -251,8 +256,9 @@ class TestGetCompletedItemsByWeek:
 
     def test_current_week_comes_first(self):
         """Test that current week is first in the result."""
-        from data.active_work_completed import get_completed_items_by_week
         from datetime import datetime, timedelta
+
+        from data.active_work_completed import get_completed_items_by_week
 
         now = datetime.now()
         recent_date = (now - timedelta(days=1)).strftime("%Y-%m-%dT10:00:00.000+0000")
@@ -278,8 +284,9 @@ class TestGetCompletedItemsByWeek:
 
     def test_points_calculation(self):
         """Test that points are correctly summed."""
-        from data.active_work_completed import get_completed_items_by_week
         from datetime import datetime, timedelta
+
+        from data.active_work_completed import get_completed_items_by_week
 
         now = datetime.now()
         recent_date = (now - timedelta(days=2)).strftime("%Y-%m-%dT10:00:00.000+0000")
@@ -313,8 +320,9 @@ class TestGetCompletedItemsByWeek:
 
     def test_custom_flow_end_statuses(self):
         """Test using custom completion statuses."""
-        from data.active_work_completed import get_completed_items_by_week
         from datetime import datetime, timedelta
+
+        from data.active_work_completed import get_completed_items_by_week
 
         now = datetime.now()
         recent_date = (now - timedelta(days=1)).strftime("%Y-%m-%dT10:00:00.000+0000")

@@ -9,6 +9,7 @@ Separating these constants helps prevent circular imports between modules.
 # IMPORTS
 #######################################################################
 import re
+
 from configuration.settings import COLOR_PALETTE
 
 #######################################################################

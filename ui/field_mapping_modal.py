@@ -4,12 +4,13 @@ Provides a modal interface for administrators to configure how Jira custom field
 map to internal fields required for DORA and Flow metrics.
 """
 
+from typing import Any
+
 import dash_bootstrap_components as dbc
-from dash import html, dcc
-from typing import List, Dict, Any
+from dash import dcc, html
 
 
-def _reconstruct_namespace_from_source_rule(source_rule: Dict[str, Any]) -> str:
+def _reconstruct_namespace_from_source_rule(source_rule: dict[str, Any]) -> str:
     """Reconstruct namespace string from a parsed SourceRule dict.
 
     This handles the case where old data was parsed to SourceRule before saving.
@@ -295,8 +296,8 @@ def create_field_mapping_modal() -> dbc.Modal:
 
 
 def create_field_mapping_form(
-    available_fields: List[Dict[str, Any]],
-    current_mappings: Dict[str, Dict[str, str]],
+    available_fields: list[dict[str, Any]],
+    current_mappings: dict[str, dict[str, str]],
 ) -> html.Div:
     """Create the field mapping form with namespace inputs for all required fields.
 
@@ -546,9 +547,9 @@ def create_field_mapping_form(
 def create_metric_section(
     title: str,
     metric_type: str,
-    fields: List[tuple],
-    field_options: List[Dict],
-    current_mappings: Dict[str, str],
+    fields: list[tuple],
+    field_options: list[dict],
+    current_mappings: dict[str, str],
 ) -> dbc.Card:
     """Create a section for a specific metric type (DORA or Flow).
 
@@ -568,7 +569,7 @@ def create_metric_section(
     """
     field_rows = []
 
-    for field_id, label, required_type, help_text in fields:
+    for field_id, label, _required_type, help_text in fields:
         raw_value = current_mappings.get(field_id, "")
 
         # Handle case where value is a dict (parsed SourceRule) - extract original string

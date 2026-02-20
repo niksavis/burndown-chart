@@ -6,7 +6,7 @@ This test validates that the implementation meets performance targets without
 directly testing the callback (which requires complex Dash testing setup).
 """
 
-from ui.loading_utils import create_skeleton_loader, create_content_placeholder
+from ui.loading_utils import create_content_placeholder, create_skeleton_loader
 
 
 class TestLazyLoadingImplementation:
@@ -49,7 +49,7 @@ class TestLazyLoadingImplementation:
         project_root = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
         callback_file = os.path.join(project_root, "callbacks", "visualization.py")
 
-        with open(callback_file, "r") as f:
+        with open(callback_file) as f:
             content = f.read()
 
         # Check for key lazy loading implementation elements

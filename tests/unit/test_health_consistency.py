@@ -6,6 +6,7 @@ and report generation, preventing divergence across queries and data points.
 """
 
 import pytest
+
 from data.project_health_calculator import (
     calculate_comprehensive_project_health,
     prepare_dashboard_metrics_for_health,

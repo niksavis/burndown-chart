@@ -8,8 +8,8 @@ This module handles core settings management callbacks including:
 - Settings persistence
 """
 
-from datetime import datetime
 import time
+from datetime import datetime
 
 import dash
 from dash import Input, Output, State
@@ -22,6 +22,7 @@ from configuration import (
     logger,
 )
 from data import calculate_total_points
+
 from .helpers import normalize_show_points
 
 
@@ -186,7 +187,7 @@ def register(app):
             logger.error(
                 f"[Settings] Error reloading settings after import: {e}", exc_info=True
             )
-            raise PreventUpdate
+            raise PreventUpdate from e
 
     @app.callback(
         [
@@ -339,7 +340,7 @@ def register(app):
         }
 
         # Save app-level settings
-        from data.persistence import save_app_settings, load_app_settings
+        from data.persistence import load_app_settings, save_app_settings
 
         existing_settings = load_app_settings()
 

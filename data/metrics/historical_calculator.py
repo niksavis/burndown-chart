@@ -1,14 +1,13 @@
 """Historical metrics calculation for multiple weeks."""
 
 import logging
-from typing import Tuple
 
 logger = logging.getLogger(__name__)
 
 
 def calculate_metrics_for_last_n_weeks(
     n_weeks: int = 12, progress_callback=None, custom_weeks=None
-) -> Tuple[bool, str]:
+) -> tuple[bool, str]:
     """
     Calculate metrics for the last N weeks (including current week).
 
@@ -24,8 +23,8 @@ def calculate_metrics_for_last_n_weeks(
         Tuple of (success: bool, summary_message: str)
     """
     from data.iso_week_bucketing import get_last_n_weeks
-    from data.metrics_snapshots import batch_write_mode
     from data.metrics.weekly_calculator import calculate_and_save_weekly_metrics
+    from data.metrics_snapshots import batch_write_mode
 
     try:
         # Use custom weeks if provided, otherwise generate last N weeks from today

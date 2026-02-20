@@ -4,15 +4,16 @@ Tests the complete workflow of configuring, saving, and using Jira field mapping
 Ensures proper isolation using tempfile and mocking.
 """
 
-import tempfile
 import shutil
+import tempfile
 from pathlib import Path
 from unittest.mock import patch
+
 import pytest
 
 from data.field_mapper import (
-    save_field_mappings,
     load_field_mappings,
+    save_field_mappings,
 )
 from data.profile_manager import create_profile, switch_profile
 
@@ -23,9 +24,9 @@ class TestFieldMappingWorkflow:
     @pytest.fixture(autouse=True)
     def isolate_profiles(self):
         """Create isolated profile environment for field mapping tests."""
-        from data.persistence.factory import reset_backend
-        from data.migration.schema import create_schema
         from data.database import get_db_connection
+        from data.migration.schema import create_schema
+        from data.persistence.factory import reset_backend
         from data.persistence.sqlite_backend import SQLiteBackend
 
         temp_dir = tempfile.mkdtemp(prefix="field_mapping_test_")

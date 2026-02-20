@@ -1,18 +1,20 @@
 """Callbacks for profile import/export functionality."""
 
-from datetime import datetime, timedelta
 import json
 import logging
 import time
+from datetime import datetime, timedelta
+
 from dash import (
-    callback,
-    Output,
-    Input,
-    State,
-    no_update,
-    clientside_callback,
     ClientsideFunction,
+    Input,
+    Output,
+    State,
+    callback,
+    clientside_callback,
+    no_update,
 )
+
 from data.query_manager import get_active_profile_id, get_active_query_id
 
 logger = logging.getLogger(__name__)
@@ -205,8 +207,9 @@ def handle_conflict_resolution(
     import_data,
 ):
     """T052: Handle user's conflict resolution choice with optional custom name."""
-    from ui.toast_notifications import create_toast
     from dash import ctx
+
+    from ui.toast_notifications import create_toast
 
     if not ctx.triggered or not import_data:
         return no_update, no_update, no_update, no_update, no_update
@@ -244,10 +247,11 @@ def handle_conflict_resolution(
 
 def perform_import(import_data, conflict_strategy=None, custom_name=None):
     """Perform the actual import with optional conflict resolution and custom name."""
-    from ui.toast_notifications import create_toast
     from dash import html
+
     from data.import_export import resolve_profile_conflict
     from data.persistence.factory import get_backend
+    from ui.toast_notifications import create_toast
 
     try:
         backend = get_backend()

@@ -10,7 +10,7 @@ Tests update checking, version comparison, and state management.
 # Standard library imports
 from datetime import datetime
 from pathlib import Path
-from unittest.mock import Mock, patch, mock_open
+from unittest.mock import Mock, mock_open, patch
 
 # Third-party library imports
 import pytest
@@ -26,7 +26,6 @@ from data.update_manager import (
     get_current_version,
     launch_updater,
 )
-
 
 #######################################################################
 # TESTS: Version Comparison

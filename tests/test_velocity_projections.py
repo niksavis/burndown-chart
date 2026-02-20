@@ -6,11 +6,11 @@ import pytest
 
 import data.velocity_projections as velocity_projections
 from data.velocity_projections import (
+    assess_pace_health,
+    calculate_completion_projection,
     calculate_required_velocity,
     calculate_velocity_gap,
-    assess_pace_health,
     get_pace_health_indicator,
-    calculate_completion_projection,
 )
 
 

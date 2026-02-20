@@ -10,7 +10,6 @@ import json
 import os
 import time
 from datetime import datetime
-from typing import Dict, Tuple
 
 import requests
 
@@ -38,7 +37,7 @@ CACHE_EXPIRATION_HOURS = 24  # Cache expires after 24 hours
 #######################################################################
 
 
-def get_jira_config(settings_jql_query: str | None = None) -> Dict:
+def get_jira_config(settings_jql_query: str | None = None) -> dict:
     """
     Load JIRA configuration with priority hierarchy: jira_config → Environment → Default.
 
@@ -143,7 +142,7 @@ def get_jira_config(settings_jql_query: str | None = None) -> Dict:
     return config
 
 
-def validate_jira_config(config: Dict) -> Tuple[bool, str]:
+def validate_jira_config(config: dict) -> tuple[bool, str]:
     """
     Validate JIRA configuration and custom fields.
 
@@ -180,7 +179,7 @@ def validate_jira_config(config: Dict) -> Tuple[bool, str]:
     return True, "Configuration valid"
 
 
-def generate_config_hash(config: Dict, fields: str) -> str:
+def generate_config_hash(config: dict, fields: str) -> str:
     """
     Generate hash of configuration for cache validation.
 
@@ -237,7 +236,7 @@ def construct_jira_endpoint(base_url: str, api_version: str = "v2") -> str:
     return f"{clean_url}{api_path}"
 
 
-def test_jira_connection(base_url: str, token: str, api_version: str = "v2") -> Dict:
+def test_jira_connection(base_url: str, token: str, api_version: str = "v2") -> dict:
     """
     Test JIRA connection by calling serverInfo endpoint.
 

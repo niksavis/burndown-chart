@@ -5,7 +5,6 @@ based on bug patterns and trends.
 """
 
 from enum import Enum
-from typing import Dict, List, Optional
 
 
 class InsightType(Enum):
@@ -47,8 +46,8 @@ DEFAULT_THRESHOLDS = {
 
 
 def generate_quality_insights(
-    metrics: Dict, statistics: List[Dict], thresholds: Optional[Dict] = None
-) -> List[Dict]:
+    metrics: dict, statistics: list[dict], thresholds: dict | None = None
+) -> list[dict]:
     """Generate actionable quality insights from bug data.
 
     Analyzes bug patterns and generates actionable recommendations with severity
@@ -107,7 +106,7 @@ def generate_quality_insights(
     return insights[:10]
 
 
-def check_low_resolution_rate(metrics: Dict, thresholds: Dict) -> Optional[Dict]:
+def check_low_resolution_rate(metrics: dict, thresholds: dict) -> dict | None:
     """Check if bug resolution rate is below threshold.
 
     Implements T068 - low resolution rate check.
@@ -146,8 +145,8 @@ def check_low_resolution_rate(metrics: Dict, thresholds: Dict) -> Optional[Dict]
 
 
 def check_increasing_bug_trend(
-    statistics: List[Dict], thresholds: Dict
-) -> Optional[Dict]:
+    statistics: list[dict], thresholds: dict
+) -> dict | None:
     """Check if bug creation exceeds closure for consecutive weeks.
 
     Args:
@@ -186,7 +185,7 @@ def check_increasing_bug_trend(
     return None
 
 
-def check_positive_trend(statistics: List[Dict]) -> Optional[Dict]:
+def check_positive_trend(statistics: list[dict]) -> dict | None:
     """Check for positive quality trends.
 
     Args:
@@ -216,7 +215,7 @@ def check_positive_trend(statistics: List[Dict]) -> Optional[Dict]:
     return None
 
 
-def check_stable_quality(statistics: List[Dict], thresholds: Dict) -> Optional[Dict]:
+def check_stable_quality(statistics: list[dict], thresholds: dict) -> dict | None:
     """Check for stable quality (consistent closure rate).
 
     Args:
@@ -251,7 +250,7 @@ def check_stable_quality(statistics: List[Dict], thresholds: Dict) -> Optional[D
     return None
 
 
-def check_no_open_bugs(metrics: Dict) -> Optional[Dict]:
+def check_no_open_bugs(metrics: dict) -> dict | None:
     """Check if there are no open bugs.
 
     Args:
@@ -273,7 +272,7 @@ def check_no_open_bugs(metrics: Dict) -> Optional[Dict]:
     return None
 
 
-def check_high_bug_capacity(metrics: Dict, thresholds: Dict) -> Optional[Dict]:
+def check_high_bug_capacity(metrics: dict, thresholds: dict) -> dict | None:
     """Check if bugs are consuming high percentage of capacity.
 
     Implements T070 - high bug capacity warning.
@@ -309,7 +308,7 @@ def check_high_bug_capacity(metrics: Dict, thresholds: Dict) -> Optional[Dict]:
     return None
 
 
-def check_long_resolution_time(metrics: Dict, thresholds: Dict) -> Optional[Dict]:
+def check_long_resolution_time(metrics: dict, thresholds: dict) -> dict | None:
     """Check if average bug resolution time is too long.
 
     Implements T071 - long resolution time warning.

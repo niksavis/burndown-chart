@@ -3,12 +3,13 @@
 Creates stacked bar chart showing distribution of work across Flow item types over time.
 """
 
+from typing import Any
+
 import plotly.graph_objects as go
-from typing import List, Dict, Any
 
 
 def create_work_distribution_chart(
-    distribution_history: List[Dict[str, Any]],
+    distribution_history: list[dict[str, Any]],
 ) -> go.Figure:
     """Create stacked bar chart showing work distribution over time.
 

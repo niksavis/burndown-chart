@@ -4,7 +4,8 @@ This module provides dashboard-specific metric card creation using the
 standardized metric_cards.py component for visual consistency with DORA/Flow metrics.
 """
 
-from typing import Dict, Any
+from typing import Any
+
 import dash_bootstrap_components as dbc
 from dash import html
 
@@ -12,7 +13,7 @@ from ui.metric_cards import create_metric_card
 from ui.tooltip_utils import create_info_tooltip
 
 
-def create_dashboard_forecast_card(metrics: Dict[str, Any]) -> dbc.Card:
+def create_dashboard_forecast_card(metrics: dict[str, Any]) -> dbc.Card:
     """Create completion forecast metric card.
 
     Args:
@@ -60,7 +61,7 @@ def create_dashboard_forecast_card(metrics: Dict[str, Any]) -> dbc.Card:
     return create_metric_card(metric_data, card_id="dashboard-forecast-card")
 
 
-def create_dashboard_velocity_card(metrics: Dict[str, Any]) -> dbc.Card:
+def create_dashboard_velocity_card(metrics: dict[str, Any]) -> dbc.Card:
     """Create velocity metric card.
 
     Args:
@@ -108,7 +109,7 @@ def create_dashboard_velocity_card(metrics: Dict[str, Any]) -> dbc.Card:
     return create_metric_card(metric_data, card_id="dashboard-velocity-card")
 
 
-def create_dashboard_remaining_card(metrics: Dict[str, Any]) -> dbc.Card:
+def create_dashboard_remaining_card(metrics: dict[str, Any]) -> dbc.Card:
     """Create remaining work metric card.
 
     Args:
@@ -156,7 +157,7 @@ def create_dashboard_remaining_card(metrics: Dict[str, Any]) -> dbc.Card:
     return create_metric_card(metric_data, card_id="dashboard-remaining-card")
 
 
-def create_dashboard_pert_card(metrics: Dict[str, Any]) -> dbc.Card:
+def create_dashboard_pert_card(metrics: dict[str, Any]) -> dbc.Card:
     """Create PERT timeline metric card.
 
     Args:
@@ -210,7 +211,7 @@ def create_dashboard_pert_card(metrics: Dict[str, Any]) -> dbc.Card:
     return create_metric_card(metric_data, card_id="dashboard-pert-card")
 
 
-def create_dashboard_overview_content(metrics: Dict[str, Any]) -> html.Div:
+def create_dashboard_overview_content(metrics: dict[str, Any]) -> html.Div:
     """Create overview section content for dashboard (similar to DORA/Flow metrics).
 
     Args:
@@ -468,7 +469,7 @@ def create_dashboard_overview_content(metrics: Dict[str, Any]) -> html.Div:
     )
 
 
-def _calculate_health_score(metrics: Dict[str, Any]) -> int:
+def _calculate_health_score(metrics: dict[str, Any]) -> int:
     """Calculate overall project health score (0-100) using comprehensive health formula.
 
     This function uses the comprehensive health calculator (6 dimensions) to ensure
@@ -538,7 +539,7 @@ def _get_health_color_and_label(score: int) -> tuple[str, str]:
         return "#dc3545", "Critical"  # Red
 
 
-def _create_key_insights(metrics: Dict[str, Any]) -> html.Div:
+def _create_key_insights(metrics: dict[str, Any]) -> html.Div:
     """Create key insights section with actionable intelligence.
 
     Args:

@@ -16,16 +16,16 @@ use metric snapshots (requires changelog).
 from __future__ import annotations
 
 import logging
-from typing import Any, Optional, Dict
+from typing import Any
 
 import dash_bootstrap_components as dbc
 import pandas as pd
 from dash import html
 
-from .utils import safe_divide
 from ui.metric_cards import create_metric_card as create_professional_metric_card
 from ui.style_constants import COLOR_PALETTE
 
+from .utils import safe_divide
 
 logger = logging.getLogger(__name__)
 
@@ -34,8 +34,8 @@ def create_throughput_analytics_section(
     statistics_df: pd.DataFrame,
     forecast_data: dict[str, Any],
     settings: dict[str, Any],
-    data_points_count: Optional[int] = None,
-    additional_context: Optional[dict[str, Any]] = None,
+    data_points_count: int | None = None,
+    additional_context: dict[str, Any] | None = None,
 ) -> html.Div:
     """Create throughput analytics section.
 
@@ -182,7 +182,7 @@ def create_throughput_analytics_section(
                 # Calculate items forecast
                 if len(forecast_weeks) >= 2:
                     try:
-                        items_forecast_data: Optional[Dict[str, Any]] = (
+                        items_forecast_data: dict[str, Any] | None = (
                             calculate_forecast(forecast_weeks)
                         )
                         forecast_value = (

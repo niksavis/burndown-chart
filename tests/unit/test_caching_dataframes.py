@@ -2,12 +2,13 @@
 Unit tests for the caching module with focus on handling pandas DataFrames.
 """
 
-import pytest
-import pandas as pd
-from unittest.mock import patch
 import time
+from unittest.mock import patch
 
-from utils.caching import memoize, clear_cache
+import pandas as pd
+import pytest
+
+from utils.caching import clear_cache, memoize
 
 
 # Test data fixtures

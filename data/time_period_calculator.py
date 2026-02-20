@@ -15,13 +15,12 @@ Created: October 31, 2025
 """
 
 import logging
-from datetime import datetime, date, timedelta
-from typing import List, Dict, Tuple
+from datetime import date, datetime, timedelta
 
 logger = logging.getLogger(__name__)
 
 
-def get_iso_week(dt: datetime) -> Tuple[int, int]:
+def get_iso_week(dt: datetime) -> tuple[int, int]:
     """
     Get ISO calendar year and week number for a datetime.
 
@@ -100,7 +99,7 @@ def get_year_week_label(dt: datetime) -> str:
     return format_year_week(year, week)
 
 
-def parse_year_week_label(label: str) -> Tuple[int, int]:
+def parse_year_week_label(label: str) -> tuple[int, int]:
     """
     Parse year-week label back to year and week number.
 
@@ -220,7 +219,7 @@ def is_current_week(year: int, week: int) -> bool:
 
 def generate_week_range(
     start_date: date, end_date: date, include_partial_current: bool = True
-) -> List[str]:
+) -> list[str]:
     """
     Generate list of year-week labels between start and end dates.
 
@@ -278,7 +277,7 @@ def generate_week_range(
         return []
 
 
-def get_recent_weeks(num_weeks: int, include_partial_current: bool = True) -> List[str]:
+def get_recent_weeks(num_weeks: int, include_partial_current: bool = True) -> list[str]:
     """
     Get list of recent year-week labels, including current week.
 
@@ -312,8 +311,8 @@ def get_recent_weeks(num_weeks: int, include_partial_current: bool = True) -> Li
 
 
 def filter_by_week_range(
-    items: List[Dict], date_field: str, week_labels: List[str]
-) -> List[Dict]:
+    items: list[dict], date_field: str, week_labels: list[str]
+) -> list[dict]:
     """
     Filter list of items to only include those within specified weeks.
 
@@ -385,7 +384,7 @@ def filter_by_week_range(
         return items
 
 
-def group_by_week(items: List[Dict], date_field: str) -> Dict[str, List[Dict]]:
+def group_by_week(items: list[dict], date_field: str) -> dict[str, list[dict]]:
     """
     Group items by ISO week.
 

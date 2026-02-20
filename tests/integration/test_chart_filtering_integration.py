@@ -5,22 +5,23 @@ This module tests that all chart creation functions properly accept and use
 the data_points_count parameter for consistent filtering across visualizations.
 """
 
-import unittest
 import sys
+import unittest
 from pathlib import Path
+
 import pandas as pd
 
 # Add project root to Python path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 # Import the chart creation functions to test
+from visualization.helpers import get_weekly_metrics
 from visualization.weekly_charts import (
     create_weekly_items_chart,
-    create_weekly_points_chart,
     create_weekly_items_forecast_chart,
+    create_weekly_points_chart,
     create_weekly_points_forecast_chart,
 )
-from visualization.helpers import get_weekly_metrics
 
 
 class TestChartFilteringIntegration(unittest.TestCase):

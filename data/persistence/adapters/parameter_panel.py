@@ -4,7 +4,6 @@
 from datetime import datetime
 
 # Third-party library imports
-
 # Application imports
 from configuration.settings import logger
 from data.persistence.adapters.app_settings import load_app_settings

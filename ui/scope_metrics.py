@@ -2,7 +2,8 @@
 UI components for displaying scope change metrics.
 """
 
-from typing import Mapping, cast
+from collections.abc import Mapping
+from typing import cast
 
 import dash_bootstrap_components as dbc
 import pandas as pd
@@ -12,8 +13,8 @@ from dash import dcc, html
 from configuration import SCOPE_HELP_TEXTS
 from configuration.chart_config import get_scope_metrics_chart_config
 from data.schema import DEFAULT_SETTINGS  # Import the DEFAULT_SETTINGS
-from ui.trend_components import TREND_COLORS, TREND_ICONS
 from ui.tooltip_utils import create_info_tooltip
+from ui.trend_components import TREND_COLORS, TREND_ICONS
 
 
 def create_scope_change_indicator(

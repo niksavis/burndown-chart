@@ -6,10 +6,11 @@ actionable recommendations for quality improvement.
 """
 
 from datetime import datetime, timedelta
+
 from data.bug_insights import (
-    generate_quality_insights,
-    InsightType,
     InsightSeverity,
+    InsightType,
+    generate_quality_insights,
 )
 
 

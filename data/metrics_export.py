@@ -7,10 +7,10 @@ import csv
 import json
 from datetime import datetime
 from io import StringIO
-from typing import Dict, Any
+from typing import Any
 
 
-def export_dora_to_csv(metrics: Dict[str, Any], time_period: str) -> str:
+def export_dora_to_csv(metrics: dict[str, Any], time_period: str) -> str:
     """Export DORA metrics to CSV format.
 
     Args:
@@ -49,7 +49,7 @@ def export_dora_to_csv(metrics: Dict[str, Any], time_period: str) -> str:
     return output.getvalue()
 
 
-def export_dora_to_json(metrics: Dict[str, Any], time_period: str) -> str:
+def export_dora_to_json(metrics: dict[str, Any], time_period: str) -> str:
     """Export DORA metrics to JSON format.
 
     Args:
@@ -69,7 +69,7 @@ def export_dora_to_json(metrics: Dict[str, Any], time_period: str) -> str:
     return json.dumps(export_data, indent=2)
 
 
-def export_flow_to_csv(metrics: Dict[str, Any], time_period: str) -> str:
+def export_flow_to_csv(metrics: dict[str, Any], time_period: str) -> str:
     """Export Flow metrics to CSV format.
 
     Args:
@@ -114,7 +114,7 @@ def export_flow_to_csv(metrics: Dict[str, Any], time_period: str) -> str:
     return output.getvalue()
 
 
-def export_flow_to_json(metrics: Dict[str, Any], time_period: str) -> str:
+def export_flow_to_json(metrics: dict[str, Any], time_period: str) -> str:
     """Export Flow metrics to JSON format.
 
     Args:

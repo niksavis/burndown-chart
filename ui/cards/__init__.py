@@ -61,19 +61,15 @@ PUBLIC API:
 """
 
 # Atomic card components (reusable building blocks)
+# Analysis cards
+from ui.cards.analysis_cards import create_pert_analysis_card
 from ui.cards.atomic_cards import (
     create_dashboard_metrics_card,
     create_info_card,
 )
 
-# Metric cards (unified design pattern)
-from ui.cards.metric_cards import (
-    create_unified_metric_card,
-    create_unified_metric_row,
-)
-
-# Analysis cards
-from ui.cards.analysis_cards import create_pert_analysis_card
+# Data table cards
+from ui.cards.data_cards import create_statistics_data_card
 
 # Forecast cards
 from ui.cards.forecast_cards import (
@@ -86,12 +82,15 @@ from ui.cards.forecast_cards import (
 # Input/configuration cards
 from ui.cards.input_cards import create_input_parameters_card
 
-# Data table cards
-from ui.cards.data_cards import create_statistics_data_card
-
 # Legacy cards (deprecated - avoid for new features)
 from ui.cards.legacy_status_cards import create_project_status_card
 from ui.cards.legacy_summary_cards import create_project_summary_card
+
+# Metric cards (unified design pattern)
+from ui.cards.metric_cards import (
+    create_unified_metric_card,
+    create_unified_metric_row,
+)
 
 __all__ = [
     # Atomic cards

@@ -8,14 +8,14 @@ This module provides a wrapper around the main migrator module for use by callba
 
 import logging
 import shutil
-from pathlib import Path
-from typing import Tuple, Dict, Any
 from datetime import datetime as dt
+from pathlib import Path
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
 
-def check_migration_needed() -> Tuple[bool, Dict[str, int]]:
+def check_migration_needed() -> tuple[bool, dict[str, int]]:
     """Check if migration is needed by checking for ALL 7 JSON file types.
 
     Returns:
@@ -127,7 +127,7 @@ def check_migration_needed() -> Tuple[bool, Dict[str, int]]:
         return True, file_counts  # Assume migration needed if check fails
 
 
-def run_migration() -> Tuple[bool, Dict[str, int], str]:
+def run_migration() -> tuple[bool, dict[str, int], str]:
     """Run the COMPLETE migration process for ALL 7 JSON file types.
 
     Delegates to the actual migration orchestrator in data.migration.migrator.
@@ -205,7 +205,7 @@ def run_migration() -> Tuple[bool, Dict[str, int], str]:
         return False, {}, f"Migration failed: {str(e)}"
 
 
-def get_migration_status() -> Dict[str, Any]:
+def get_migration_status() -> dict[str, Any]:
     """Get current migration status for UI display.
 
     Returns:

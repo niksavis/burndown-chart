@@ -20,27 +20,25 @@ from dash import dcc, html
 from configuration import __version__
 from data import calculate_total_points
 from data.persistence import (
+    get_project_scope,
     load_app_settings,
     load_statistics,
-    get_project_scope,
 )
-from ui import (
-    create_parameter_panel,
-)
-from ui.grid_utils import create_full_width_layout
-from ui.tabs import create_desktop_tabs_only
-from ui.mobile_navigation import create_mobile_navigation_system
-from ui.jira_config_modal import create_jira_config_modal
-from ui.query_creation_modal import create_query_creation_modal
+from ui.about_dialog import create_about_dialog
+from ui.delete_query_modal import create_delete_query_modal
 from ui.field_mapping_modal import create_field_mapping_modal
+from ui.grid_utils import create_full_width_layout
+from ui.import_export_panel import create_import_export_flyout
+from ui.improved_settings_panel import create_improved_settings_panel
+from ui.jira_config_modal import create_jira_config_modal
+from ui.mobile_navigation import create_mobile_navigation_system
+from ui.parameter_panel import create_parameter_panel
+from ui.query_creation_modal import create_query_creation_modal
 
 # Integrated query management modals (Feature 011 - replaces legacy settings_modal query functions)
 from ui.save_query_modal import create_save_query_modal
+from ui.tabs import create_desktop_tabs_only
 from ui.unsaved_changes_modal import create_unsaved_changes_modal
-from ui.delete_query_modal import create_delete_query_modal
-from ui.improved_settings_panel import create_improved_settings_panel
-from ui.import_export_panel import create_import_export_flyout
-from ui.about_dialog import create_about_dialog
 
 # Initialize logger
 logger = logging.getLogger(__name__)
@@ -112,10 +110,9 @@ def create_app_layout(settings, statistics, is_sample_data):
     )
 
     # Import help system components
-    from ui.help_system import create_help_system_layout
-
     # Import app module for version check (late import to avoid circular dependency)
     import app
+    from ui.help_system import create_help_system_layout
 
     # Store version check result for callback access (not rendered in initial layout)
     # Toast will be shown via callback to avoid being cleared by page load callbacks

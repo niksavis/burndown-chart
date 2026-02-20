@@ -13,8 +13,8 @@ into a layered API that offers flexibility for different use cases.
 # (none currently needed)
 
 # Third-party library imports
-from dash import html
 import dash_bootstrap_components as dbc
+from dash import html
 
 # Application imports
 from ui.styles import (
@@ -421,7 +421,7 @@ def create_stacked_to_horizontal(
 def create_responsive_grid(
     items,
     cols_by_breakpoint=None,
-    breakpoints=["xs", "sm", "md", "lg", "xl", "xxl"],
+    breakpoints=None,
     item_class="",
     row_class="",
     container_class="",
@@ -441,6 +441,8 @@ def create_responsive_grid(
     Returns:
         A responsive grid with the items
     """
+    if breakpoints is None:
+        breakpoints = ["xs", "sm", "md", "lg", "xl", "xxl"]
     if not items:
         return html.Div()
 
@@ -633,7 +635,7 @@ def create_dashboard_layout(
 
 
 def create_card_grid(
-    cards, cols_by_breakpoint={"xs": 1, "md": 2, "lg": 3}, equal_height=True
+    cards, cols_by_breakpoint=None, equal_height=True
 ):
     """
     Create a responsive grid of cards.
@@ -646,6 +648,8 @@ def create_card_grid(
     Returns:
         A responsive grid layout of cards
     """
+    if cols_by_breakpoint is None:
+        cols_by_breakpoint = {"xs": 1, "md": 2, "lg": 3}
     if not cards:
         return html.Div()
 

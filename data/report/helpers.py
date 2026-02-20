@@ -5,14 +5,15 @@ but don't fit into specific semantic groups (domain metrics, chart generation, e
 """
 
 import logging
-from typing import Dict, List, Any
 from datetime import datetime
+from typing import Any
+
 import pandas as pd
 
 logger = logging.getLogger(__name__)
 
 
-def calculate_weekly_breakdown(statistics: List[Dict]) -> List[Dict]:
+def calculate_weekly_breakdown(statistics: list[dict]) -> list[dict]:
     """
     Calculate weekly breakdown of created/completed items and points.
 
@@ -65,7 +66,7 @@ def calculate_budget_metrics(
     weeks_count: int,
     velocity_items: float = 0.0,
     velocity_points: float = 0.0,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Calculate budget metrics for report using proper budget calculator functions.
 
@@ -79,14 +80,14 @@ def calculate_budget_metrics(
     Returns:
         Dictionary with budget metrics and weekly tracking data including cost breakdown
     """
-    from data.persistence.factory import get_backend
     from data.budget_calculator import (
         calculate_budget_consumed,
-        calculate_runway,
         calculate_cost_breakdown_by_type,
+        calculate_runway,
         get_budget_baseline_vs_actual,
     )
     from data.iso_week_bucketing import get_week_label
+    from data.persistence.factory import get_backend
 
     logger.info(f"Calculating budget metrics for {profile_id}/{query_id}")
 
@@ -182,8 +183,8 @@ def calculate_budget_metrics(
 
 
 def calculate_historical_burndown(
-    statistics: List[Dict], project_scope: Dict
-) -> Dict[str, List]:
+    statistics: list[dict], project_scope: dict
+) -> dict[str, list]:
     """Calculate historical remaining work for burndown chart."""
     if not statistics:
         return {"dates": [], "remaining_items": [], "remaining_points": []}

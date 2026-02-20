@@ -5,16 +5,16 @@ These tests ensure that velocity metrics are displayed with the correct decimal 
 throughout the entire application flow, from data processing to UI rendering.
 """
 
-import pytest
 import pandas as pd
+import pytest
 
 from data.processing import calculate_weekly_averages
-from ui.pert_components import create_pert_info_table, _create_velocity_metric_card
-from visualization.helpers import prepare_metrics_data as _prepare_metrics_data
 from tests.utils.ui_test_helpers import (
     extract_numeric_value_from_component,
     validate_component_structure,
 )
+from ui.pert_components import _create_velocity_metric_card, create_pert_info_table
+from visualization.helpers import prepare_metrics_data as _prepare_metrics_data
 
 
 @pytest.fixture

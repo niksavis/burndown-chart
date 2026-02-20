@@ -5,8 +5,8 @@ Tests CSV and JSON export for both DORA and Flow metrics.
 
 import csv
 import json
-from io import StringIO
 from datetime import datetime
+from io import StringIO
 
 
 class TestExportDORAMetricsToCSV:

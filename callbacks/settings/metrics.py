@@ -198,8 +198,8 @@ def _start_background_metrics_calculation(custom_weeks: list, total_weeks: int) 
         custom_weeks: List of ISO weeks to calculate metrics for
         total_weeks: Total number of weeks for progress tracking
     """
-    from data.task_progress import TaskProgress
     from data.metrics_calculator import calculate_metrics_for_last_n_weeks
+    from data.task_progress import TaskProgress
 
     def metrics_progress_callback(message: str):
         """Update TaskProgress during metrics calculation."""

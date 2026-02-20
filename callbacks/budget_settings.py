@@ -7,8 +7,9 @@ revision tracking and modal interactions.
 
 import logging
 import math
-from datetime import datetime, timezone
-from dash import callback, Output, Input, State, no_update, ctx, html
+from datetime import UTC, datetime
+
+from dash import Input, Output, State, callback, ctx, html, no_update
 
 from data.database import get_db_connection
 from data.iso_week_bucketing import get_week_label
@@ -276,9 +277,10 @@ def load_budget_settings(
     # but skip updating the UI inputs
     if active_tab != "budget-tab":
         try:
+            from datetime import datetime
+
             from data.budget_calculator import get_budget_at_week
             from data.iso_week_bucketing import get_week_label
-            from datetime import datetime
 
             # Get current week to apply revisions up to now
             current_week = get_week_label(datetime.now())
@@ -533,8 +535,9 @@ def update_baseline_velocity_display(profile_id, query_id):
         return "Will be captured from Recent Completions (Last 4 Weeks) when you save"
 
     try:
-        from data.persistence import load_unified_project_data
         import pandas as pd
+
+        from data.persistence import load_unified_project_data
 
         unified_data = load_unified_project_data()
         statistics_list = unified_data.get("statistics", [])
@@ -657,7 +660,7 @@ def save_budget_settings(
     budget_total = team_cost * time_allocated
 
     try:
-        now_iso = datetime.now(timezone.utc).isoformat()
+        now_iso = datetime.now(UTC).isoformat()
 
         # Use effective_date if provided, otherwise use current date
         if effective_date:
@@ -665,7 +668,7 @@ def save_budget_settings(
             effective_dt = datetime.fromisoformat(effective_date)
             current_week = get_week_label(effective_dt)
             # Use effective date as ISO timestamp for created_at
-            effective_dt_iso = effective_dt.replace(tzinfo=timezone.utc).isoformat()
+            effective_dt_iso = effective_dt.replace(tzinfo=UTC).isoformat()
             logger.info(
                 f"Using effective date {effective_date} for budget revision (week: {current_week})"
             )
@@ -690,8 +693,9 @@ def save_budget_settings(
         else:
             # Create mode: Calculate baseline velocity from Recent Completions (last 4 weeks)
             # Use the same method as Recent Completions cards for consistency
-            from data.persistence import load_unified_project_data
             import pandas as pd
+
+            from data.persistence import load_unified_project_data
 
             unified_data = load_unified_project_data()
             statistics_list = unified_data.get("statistics", [])

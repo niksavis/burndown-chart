@@ -12,13 +12,13 @@ This is the COMPLETE working version with:
 #######################################################################
 # IMPORTS
 #######################################################################
-import dash_bootstrap_components as dbc
-from dash import html
-import pandas as pd
 from datetime import datetime, timedelta
 
-from ui.style_constants import COLOR_PALETTE
+import dash_bootstrap_components as dbc
+import pandas as pd
+from dash import html
 
+from ui.style_constants import COLOR_PALETTE
 
 #######################################################################
 # HELPER FUNCTIONS

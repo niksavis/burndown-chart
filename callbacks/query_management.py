@@ -13,12 +13,11 @@ Workflow:
 """
 
 import logging
-from typing import Tuple
 
-from dash import callback, Input, Output, State, no_update, html
+from dash import Input, Output, State, callback, html, no_update
 from dash.exceptions import PreventUpdate
 
-from ui.toast_notifications import create_success_toast, create_error_toast
+from ui.toast_notifications import create_error_toast, create_success_toast
 
 logger = logging.getLogger(__name__)
 
@@ -50,7 +49,7 @@ def manage_button_states(
     current_jql: str,
     selected_query_id: str,
     dropdown_options: list,
-) -> Tuple[bool, bool, bool, bool]:
+) -> tuple[bool, bool, bool, bool]:
     """Manage Save/Save As/Discard button states based on changes.
 
     Button Logic:
@@ -280,7 +279,7 @@ def auto_generate_query_name(
 
     except Exception as e:
         logger.error(f"Failed to auto-generate query name: {e}")
-        raise PreventUpdate
+        raise PreventUpdate from e
 
 
 # ============================================================================
@@ -308,7 +307,7 @@ def save_query_overwrite(
     query_name: str,
     query_jql: str,
     selected_query_id: str,
-) -> Tuple:
+) -> tuple:
     """Save query by overwriting the selected query (destructive operation).
 
     Validation:
@@ -453,9 +452,9 @@ def save_query_overwrite(
 
         # Update query
         from data.query_manager import (
-            update_query,
             get_active_profile_id,
             list_queries_for_profile,
+            update_query,
         )
 
         profile_id = get_active_profile_id()
@@ -527,7 +526,7 @@ def save_query_as_new(
     n_clicks: int,
     query_name: str,
     query_jql: str,
-) -> Tuple:
+) -> tuple:
     """Save query as new (create new query with UUID).
 
     Safe operation - does not overwrite existing queries.
@@ -629,7 +628,7 @@ def save_query_as_new(
     State("query-selector", "value"),
     prevent_initial_call=True,
 )
-def discard_query_changes(n_clicks: int, selected_query_id: str) -> Tuple:
+def discard_query_changes(n_clicks: int, selected_query_id: str) -> tuple:
     """Discard changes and revert to last saved state.
 
     Behavior:
@@ -685,4 +684,4 @@ def discard_query_changes(n_clicks: int, selected_query_id: str) -> Tuple:
 
     except Exception as e:
         logger.error(f"Failed to discard changes: {e}")
-        raise PreventUpdate
+        raise PreventUpdate from e

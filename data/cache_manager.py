@@ -42,10 +42,10 @@ Usage:
 
 import hashlib
 import json
-import os
 import logging
-from datetime import datetime, timezone, timedelta
-from typing import Dict, Tuple, Optional, Any, List
+import os
+from datetime import UTC, datetime, timedelta
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -81,7 +81,7 @@ def _get_backend():
 
 
 def generate_cache_key(
-    jql_query: str, field_mappings: Dict[str, str], time_period_days: int
+    jql_query: str, field_mappings: dict[str, str], time_period_days: int
 ) -> str:
     """
     Generate deterministic cache key from configuration parameters.
@@ -172,7 +172,7 @@ def generate_jira_data_cache_key(jql_query: str, time_period_days: int) -> str:
     return hashlib.md5(config_str.encode("utf-8")).hexdigest()
 
 
-def generate_processing_config_hash(field_mappings: Dict[str, str]) -> str:
+def generate_processing_config_hash(field_mappings: dict[str, str]) -> str:
     """
     Generate hash for processing configuration (field mappings, WIP states, etc.).
 
@@ -210,9 +210,9 @@ def load_cache_with_validation(
     config_hash: str,
     max_age_hours: int = 24,
     cache_dir: str = "cache",
-    profile_id: Optional[str] = None,
-    query_id: Optional[str] = None,
-) -> Tuple[bool, Optional[List[Dict[str, Any]]]]:
+    profile_id: str | None = None,
+    query_id: str | None = None,
+) -> tuple[bool, list[dict[str, Any]] | None]:
     """
     Load cache data with validation checks.
 
@@ -286,10 +286,10 @@ def load_cache_with_validation(
                                 cache_timestamp = datetime.fromisoformat(timestamp_str)
                                 if cache_timestamp.tzinfo is None:
                                     cache_timestamp = cache_timestamp.replace(
-                                        tzinfo=timezone.utc
+                                        tzinfo=UTC
                                     )
 
-                                now_utc = datetime.now(timezone.utc)
+                                now_utc = datetime.now(UTC)
                                 age_hours = (
                                     now_utc - cache_timestamp
                                 ).total_seconds() / 3600
@@ -316,11 +316,11 @@ def load_cache_with_validation(
 
 def save_cache(
     cache_key: str,
-    data: List[Dict[str, Any]],
+    data: list[dict[str, Any]],
     config_hash: str,
     cache_dir: str = "cache",
-    profile_id: Optional[str] = None,
-    query_id: Optional[str] = None,
+    profile_id: str | None = None,
+    query_id: str | None = None,
 ) -> None:
     """
     Save data to cache with metadata.
@@ -369,12 +369,12 @@ def save_cache(
                 cache_response = {
                     "issues": data,
                     "metadata": {
-                        "timestamp": datetime.now(timezone.utc).isoformat(),
+                        "timestamp": datetime.now(UTC).isoformat(),
                         "cache_key": cache_key,
                         "config_hash": config_hash,
                     },
                 }
-                expires_at = datetime.now(timezone.utc) + timedelta(hours=24)
+                expires_at = datetime.now(UTC) + timedelta(hours=24)
                 backend.save_jira_cache(
                     profile_id, query_id, cache_key, cache_response, expires_at
                 )
@@ -502,7 +502,7 @@ class CacheInvalidationTrigger:
     """
 
     def should_invalidate(
-        self, old_config: Dict[str, Any], new_config: Dict[str, Any]
+        self, old_config: dict[str, Any], new_config: dict[str, Any]
     ) -> bool:
         """
         Check if configuration changes require cache invalidation.

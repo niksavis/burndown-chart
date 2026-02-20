@@ -7,16 +7,17 @@ Uses Data Points slider from settings panel to control historical data display.
 Metrics calculated per ISO week (Monday-Sunday), showing current week + N-1 historical weeks.
 """
 
-from typing import Dict, Any
+from typing import Any
+
 import dash_bootstrap_components as dbc
-from dash import html, dcc
+from dash import dcc, html
 
 from configuration.help_content import FLOW_METRICS_TOOLTIPS
-from ui.tooltip_utils import create_info_tooltip
 from ui.empty_states import (
     create_metrics_skeleton,
     create_no_data_state,
 )  # Visible skeleton with shimmer
+from ui.tooltip_utils import create_info_tooltip
 
 
 def create_flow_dashboard() -> dbc.Container:
@@ -122,7 +123,7 @@ def create_flow_dashboard() -> dbc.Container:
 
 
 def create_flow_metric_card(
-    metric_data: Dict[str, Any],
+    metric_data: dict[str, Any],
     metric_name: str,
 ) -> dbc.Card:
     """Create a metric card for a single Flow metric.
@@ -199,7 +200,7 @@ def create_flow_metric_card(
     return card
 
 
-def _create_flow_error_card(metric_data: Dict[str, Any], metric_name: str) -> dbc.Card:
+def _create_flow_error_card(metric_data: dict[str, Any], metric_name: str) -> dbc.Card:
     """Create an error card for Flow metric.
 
     Args:
@@ -236,7 +237,7 @@ def _create_flow_error_card(metric_data: Dict[str, Any], metric_name: str) -> db
     )
 
 
-def _create_type_breakdown(details: Dict[str, Any]) -> html.Div:
+def _create_type_breakdown(details: dict[str, Any]) -> html.Div:
     """Create work type breakdown display.
 
     Args:
@@ -281,7 +282,7 @@ def _create_type_breakdown(details: Dict[str, Any]) -> html.Div:
     )
 
 
-def _create_trend_indicator(details: Dict[str, Any]) -> html.Div:
+def _create_trend_indicator(details: dict[str, Any]) -> html.Div:
     """Create trend indicator display.
 
     Args:

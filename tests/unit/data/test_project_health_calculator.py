@@ -6,6 +6,7 @@ with various metric availability scenarios and validates dynamic weighting.
 """
 
 import pytest
+
 from data.project_health_calculator import calculate_comprehensive_project_health
 
 

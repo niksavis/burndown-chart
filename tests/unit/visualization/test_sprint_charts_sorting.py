@@ -1,6 +1,6 @@
 """Unit tests for sprint charts sorting logic."""
 
-from datetime import datetime, timezone, timedelta
+from datetime import UTC, datetime, timedelta
 
 from visualization.sprint_charts import (
     _calculate_issue_health_priority,
@@ -29,7 +29,7 @@ class TestCalculateIssueHealthPriority:
 
     def test_blocked_issue_returns_bucket_0_priority_1(self):
         """Blocked issues (5+ days) should be in bucket 0 with priority 1."""
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         seven_days_ago = now - timedelta(days=7)
 
         issue_state = {"status": "In Progress"}
@@ -52,7 +52,7 @@ class TestCalculateIssueHealthPriority:
 
     def test_aging_issue_returns_bucket_0_priority_2(self):
         """Aging issues (3-4 days) should be in bucket 0 with priority 2."""
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         four_days_ago = now - timedelta(days=4)
 
         issue_state = {"status": "In Progress"}
@@ -75,7 +75,7 @@ class TestCalculateIssueHealthPriority:
 
     def test_active_wip_returns_bucket_0_priority_3(self):
         """Active WIP (changed recently) should be in bucket 0 with priority 3."""
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         yesterday = now - timedelta(days=1)
 
         issue_state = {"status": "In Progress"}
@@ -112,7 +112,7 @@ class TestCalculateIssueHealthPriority:
 
     def test_no_changelog_uses_created_date(self):
         """When no changelog exists, should fall back to created date."""
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         six_days_ago = now - timedelta(days=6)
 
         issue_state = {
@@ -133,7 +133,7 @@ class TestCalculateIssueHealthPriority:
 
     def test_handles_z_suffix_in_timestamps(self):
         """Should handle timestamps with Z suffix."""
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         five_days_ago = now - timedelta(days=5)
 
         issue_state = {"status": "In Progress"}
@@ -176,7 +176,7 @@ class TestSortIssuesByHealthPriority:
 
     def test_blocked_sorts_before_aging(self):
         """Blocked issues should appear before aging issues."""
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
 
         issue_states = {
             "PROJ-1": {"status": "In Progress"},
@@ -205,7 +205,7 @@ class TestSortIssuesByHealthPriority:
 
     def test_aging_sorts_before_active_wip(self):
         """Aging issues should appear before active WIP."""
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
 
         issue_states = {
             "PROJ-1": {"status": "In Progress"},
@@ -234,7 +234,7 @@ class TestSortIssuesByHealthPriority:
 
     def test_completed_issues_sort_to_bottom(self):
         """Completed issues should appear at the bottom."""
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
 
         issue_states = {
             "PROJ-1": {"status": "Done"},
@@ -281,7 +281,7 @@ class TestSortIssuesByHealthPriority:
 
     def test_complete_sorting_scenario(self):
         """Test complete sorting with all priority levels."""
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
 
         issue_states = {
             "PROJ-101": {"status": "Done"},

@@ -1,7 +1,7 @@
 """Unit tests for Active Work Timeline UI components."""
 
-from dash import html
 import dash_bootstrap_components as dbc
+from dash import html
 
 from ui.active_work_timeline import (
     create_active_work_timeline_tab,

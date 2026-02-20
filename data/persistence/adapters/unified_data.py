@@ -1,7 +1,7 @@
 """Data persistence adapters - Unified project data operations."""
 
 # Standard library imports
-from typing import Dict, Any
+from typing import Any
 
 # Third-party library imports
 import pandas as pd
@@ -10,7 +10,7 @@ import pandas as pd
 from configuration.settings import logger
 
 
-def load_unified_project_data() -> Dict[str, Any]:
+def load_unified_project_data() -> dict[str, Any]:
     """
     Load unified project data via repository pattern (database).
 
@@ -72,7 +72,7 @@ def load_unified_project_data() -> Dict[str, Any]:
         return get_default_unified_data()
 
 
-def save_unified_project_data(data: Dict[str, Any]) -> None:
+def save_unified_project_data(data: dict[str, Any]) -> None:
     """
     Save unified project data via repository pattern (database).
 

@@ -9,15 +9,15 @@ help texts and logging configuration for the application.
 # IMPORTS
 #######################################################################
 import logging
-import pandas as pd
 from datetime import datetime, timedelta
-from typing import Dict
+
+import pandas as pd
 
 #######################################################################
 # LOGGING CONFIGURATION
 #######################################################################
 # Initialize comprehensive file-based logging with rotation and redaction
-from configuration.logging_config import setup_logging, cleanup_old_logs
+from configuration.logging_config import cleanup_old_logs, setup_logging
 
 # Setup logging on module import (runs once at application startup)
 setup_logging(
@@ -201,7 +201,7 @@ CHART_HELP_TEXTS = {
 #######################################################################
 # BUG ANALYSIS CONFIGURATION
 #######################################################################
-def get_bug_analysis_config() -> Dict:
+def get_bug_analysis_config() -> dict:
     """Get bug analysis configuration from app settings.
 
     Returns:

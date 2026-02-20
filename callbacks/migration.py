@@ -5,9 +5,11 @@ to inform users about the migration progress.
 """
 
 import logging
-from dash import callback, Output, Input, State, html, no_update
-from ui.toast_notifications import create_toast
+
+from dash import Input, Output, State, callback, html, no_update
+
 from data.migration.migration_manager import check_migration_needed, run_migration
+from ui.toast_notifications import create_toast
 
 logger = logging.getLogger(__name__)
 

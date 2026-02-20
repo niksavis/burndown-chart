@@ -6,24 +6,25 @@ with the data_points_count parameter to ensure they work together correctly
 and provide consistent filtering behavior across the application.
 """
 
-import unittest
-import pandas as pd
 import sys
+import unittest
 from pathlib import Path
+
+import pandas as pd
 
 # Add the project root to the Python path so we can import the application modules
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 # Import the functions to test
 from data.processing import (
+    calculate_performance_trend,
     calculate_weekly_averages,
     generate_weekly_forecast,
-    calculate_performance_trend,
 )
 from data.scope_metrics import (
     calculate_scope_creep_rate,
-    calculate_weekly_scope_growth,
     calculate_scope_stability_index,
+    calculate_weekly_scope_growth,
 )
 
 

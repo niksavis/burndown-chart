@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Optional, Protocol, cast
+from typing import Protocol, cast
 
 from data.database import get_db_connection
 from data.persistence.sqlite.helpers import retry_on_db_lock
@@ -18,7 +18,7 @@ class _ChangelogSaver(Protocol):
         self,
         profile_id: str,
         query_id: str,
-        entries: List[Dict],
+        entries: list[dict],
         expires_at: datetime,
     ) -> None:
         """Save changelog entries to persistence."""
@@ -34,25 +34,25 @@ class IssuesCacheMixin:
         self,
         profile_id: str,
         query_id: str,
-        status: Optional[str] = None,
-        assignee: Optional[str] = None,
-        issue_type: Optional[str] = None,
-        project_key: Optional[str] = None,
-        limit: Optional[int] = None,
-    ) -> List[Dict]: ...  # type: ignore[empty-body]
+        status: str | None = None,
+        assignee: str | None = None,
+        issue_type: str | None = None,
+        project_key: str | None = None,
+        limit: int | None = None,
+    ) -> list[dict]: ...  # type: ignore[empty-body]
     def save_issues_batch(
         self,
         profile_id: str,
         query_id: str,
         cache_key: str,
-        issues: List[Dict],
+        issues: list[dict],
         expires_at: datetime,
     ) -> None: ...  # type: ignore[empty-body]
     def delete_expired_issues(self, cutoff_time: datetime) -> int: ...  # type: ignore[empty-body]
 
     def get_jira_cache(
         self, profile_id: str, query_id: str, cache_key: str
-    ) -> Optional[Dict]:
+    ) -> dict | None:
         """Get JIRA cache - returns aggregated normalized data with metadata."""
         try:
             with get_db_connection(self.db_path) as conn:
@@ -96,7 +96,7 @@ class IssuesCacheMixin:
         profile_id: str,
         query_id: str,
         cache_key: str,
-        response: Dict,
+        response: dict,
         expires_at: datetime,
     ) -> None:
         """Save JIRA cache - saves issues and changelog."""
@@ -116,7 +116,7 @@ class IssuesCacheMixin:
         else:
             logger.debug(f"No changelog data found in {len(issues)} issues")
 
-    def _extract_changelog_from_issues(self, issues: List[Dict]) -> List[Dict]:
+    def _extract_changelog_from_issues(self, issues: list[dict]) -> list[dict]:
         """Extract changelog entries from issues with expanded changelog."""
         changelog_entries = []
 

@@ -4,13 +4,13 @@ Unit tests for tab navigation module.
 Tests the TAB_CONFIG registry and helper functions.
 """
 
+from ui.style_constants import get_color
 from ui.tabs import (
     TAB_CONFIG,
     get_tab_by_id,
     get_tabs_sorted,
     validate_tab_id,
 )
-from ui.style_constants import get_color
 
 
 class TestTabConfigRegistry:

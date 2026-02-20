@@ -47,7 +47,7 @@ def identify_significant_scope_growth(df, threshold_pct=10):
     df["points_pct_change"] = df["cum_scope_points"].pct_change() * 100
 
     # Find periods with significant growth
-    for i, row in df.iterrows():
+    for _i, row in df.iterrows():
         if (
             row["items_pct_change"] > threshold_pct
             or row["points_pct_change"] > threshold_pct
@@ -232,9 +232,9 @@ def prepare_visualization_data(
 
     # Import needed functions from data module
     from data.processing import (
-        daily_forecast_burnup,
-        compute_weekly_throughput,
         calculate_rates,
+        compute_weekly_throughput,
+        daily_forecast_burnup,
     )
     from utils.dataframe_utils import ensure_dataframe
 

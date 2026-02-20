@@ -16,12 +16,13 @@ Key tests:
 This test can be run via VS Code's Test Explorer or pytest directly.
 """
 
-import json
 import base64
-import pytest
+import json
 import sys
 from pathlib import Path
 from unittest.mock import patch
+
+import pytest
 
 # Add the project root to the Python path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
@@ -160,7 +161,7 @@ class TestConsecutiveUpload:
 
         # Test multiple consecutive processing of same content
         results = []
-        for i in range(5):  # Try 5 consecutive uploads
+        for _i in range(5):  # Try 5 consecutive uploads
             result = self._simulate_upload_processing(upload_contents)
             results.append(result)
 

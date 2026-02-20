@@ -14,15 +14,15 @@ Key Functions:
 """
 
 import logging
-from typing import Dict, List, Optional
 from collections import defaultdict
+from datetime import UTC
 
 logger = logging.getLogger(__name__)
 
 
 def get_active_sprint_from_issues(
-    issues: List[Dict], sprint_field: str = "customfield_10005"
-) -> Optional[Dict]:
+    issues: list[dict], sprint_field: str = "customfield_10005"
+) -> dict | None:
     """Determine the active sprint from current issue sprint field data.
 
     JIRA stores full sprint objects with state in issue fields.
@@ -106,8 +106,8 @@ def get_active_sprint_from_issues(
 
 
 def get_sprint_dates(
-    sprint_name: str, issues: List[Dict], sprint_field: str = "customfield_10005"
-) -> Optional[Dict]:
+    sprint_name: str, issues: list[dict], sprint_field: str = "customfield_10005"
+) -> dict | None:
     """Get start and end dates for a specific sprint from issue data.
 
     Args:
@@ -156,10 +156,10 @@ def get_sprint_dates(
 
 
 def get_sprint_snapshots(
-    issues: List[Dict],
-    changelog_entries: List[Dict],
+    issues: list[dict],
+    changelog_entries: list[dict],
     sprint_field: str = "customfield_10020",
-) -> Dict[str, Dict]:
+) -> dict[str, dict]:
     """Build sprint snapshots from changelog history.
 
     Reconstructs current and historical sprint composition by analyzing
@@ -196,10 +196,10 @@ def get_sprint_snapshots(
     sorted_entries = sorted(changelog_entries, key=lambda x: x.get("change_date", ""))
 
     # Track sprint events and current state
-    sprint_snapshots: Dict[str, Dict] = {}
+    sprint_snapshots: dict[str, dict] = {}
     issue_current_sprint = {}  # issue_key -> current sprint_id
 
-    def _get_or_create_snapshot(sprint_id: str) -> Dict:
+    def _get_or_create_snapshot(sprint_id: str) -> dict:
         """Helper to create sprint snapshot structure if not exists."""
         if sprint_id not in sprint_snapshots:
             sprint_snapshots[sprint_id] = {
@@ -357,7 +357,7 @@ def get_sprint_snapshots(
     return sprint_snapshots
 
 
-def _parse_sprint_name(sprint_value: Optional[str]) -> Optional[str]:
+def _parse_sprint_name(sprint_value: str | None) -> str | None:
     """Parse sprint name from JIRA sprint field value.
 
     JIRA returns sprint in different formats:
@@ -402,7 +402,7 @@ def _parse_sprint_name(sprint_value: Optional[str]) -> Optional[str]:
     return sprint_value.strip()
 
 
-def _parse_sprint_object(sprint_value: str) -> Optional[Dict]:
+def _parse_sprint_object(sprint_value: str) -> dict | None:
     """Parse JIRA sprint object string to extract name, state, and dates.
 
     JIRA returns serialized sprint objects like:
@@ -459,8 +459,8 @@ def _parse_sprint_object(sprint_value: str) -> Optional[Dict]:
 
 
 def detect_sprint_changes(
-    changelog_entries: List[Dict],
-) -> Dict[str, Dict[str, List[Dict]]]:
+    changelog_entries: list[dict],
+) -> dict[str, dict[str, list[dict]]]:
     """Detect sprint lifecycle events from changelog.
 
     Analyzes changelog to identify when issues were added, removed, or moved
@@ -527,8 +527,8 @@ def detect_sprint_changes(
 
 
 def calculate_sprint_scope_changes(
-    sprint_snapshot: Dict, sprint_start_date: Optional[str] = None
-) -> Dict[str, int]:
+    sprint_snapshot: dict, sprint_start_date: str | None = None
+) -> dict[str, int]:
     """Calculate sprint scope changes using snapshot data.
 
     Compares issues added/removed from sprint changelog to determine scope changes.
@@ -580,10 +580,10 @@ def calculate_sprint_scope_changes(
 
 
 def calculate_sprint_progress(
-    sprint_snapshot: Dict,
-    flow_end_statuses: Optional[List[str]] = None,
-    flow_wip_statuses: Optional[List[str]] = None,
-) -> Dict:
+    sprint_snapshot: dict,
+    flow_end_statuses: list[str] | None = None,
+    flow_wip_statuses: list[str] | None = None,
+) -> dict:
     """Calculate sprint progress metrics.
 
     Analyzes issue states to calculate completion percentage, story points
@@ -640,7 +640,7 @@ def calculate_sprint_progress(
     all_statuses_in_sprint = set()
     wip_status_set = set(flow_wip_statuses)
 
-    for issue_key, state in issue_states.items():
+    for _issue_key, state in issue_states.items():
         status = state.get("status", "Unknown")
         story_points = state.get("story_points", 0) or 0
         issue_type = state.get("issue_type", "Unknown")
@@ -708,9 +708,9 @@ def calculate_sprint_progress(
 
 
 def filter_sprint_issues(
-    issues: List[Dict],
-    tracked_issue_types: Optional[List[str]] = None,
-) -> List[Dict]:
+    issues: list[dict],
+    tracked_issue_types: list[str] | None = None,
+) -> list[dict]:
     """Filter issues to tracked issue types (exclude sub-tasks).
 
     Args:
@@ -744,7 +744,7 @@ def filter_sprint_issues(
     return filtered
 
 
-def get_sprint_field_from_config(config: Dict) -> Optional[str]:
+def get_sprint_field_from_config(config: dict) -> str | None:
     """Extract sprint field ID from configuration.
 
     Args:
@@ -760,9 +760,9 @@ def get_sprint_field_from_config(config: Dict) -> Optional[str]:
 
 def calculate_issue_status_timeline(
     issue_key: str,
-    changelog_entries: List[Dict],
+    changelog_entries: list[dict],
     include_current: bool = True,
-) -> List[Dict]:
+) -> list[dict]:
     """Calculate time spent in each status as percentages for timeline visualization.
 
     This function creates timeline segments showing how an issue moved through
@@ -788,7 +788,7 @@ def calculate_issue_status_timeline(
         ]
         Empty list if no status changes found
     """
-    from datetime import datetime, timezone
+    from datetime import datetime
 
     # Filter to this issue's status changes
     issue_changes = [
@@ -828,10 +828,10 @@ def calculate_issue_status_timeline(
                 logger.warning(
                     f"Invalid next date format for {issue_key}: {next_change_date_str}, using now"
                 )
-                end_time = datetime.now(timezone.utc)
+                end_time = datetime.now(UTC)
         else:
             # Last change - use current time if include_current
-            end_time = datetime.now(timezone.utc) if include_current else start_time
+            end_time = datetime.now(UTC) if include_current else start_time
 
         # Calculate duration
         duration = end_time - start_time

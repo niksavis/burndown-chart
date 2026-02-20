@@ -6,7 +6,7 @@ ranges, and utility functions for Flow metric calculations.
 Reference: DORA_Flow_Jira_Mapping.md
 """
 
-from typing import Dict, Literal
+from typing import Literal
 
 # Flow work item types
 FlowItemType = Literal["Feature", "Defect", "Risk", "Technical_Debt"]
@@ -94,7 +94,7 @@ FLOW_METRIC_UNITS = {
 }
 
 
-def validate_flow_distribution(distribution: Dict[str, float]) -> dict:
+def validate_flow_distribution(distribution: dict[str, float]) -> dict:
     """Validate Flow Distribution against recommended ranges.
 
     Args:

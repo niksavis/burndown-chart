@@ -15,7 +15,8 @@ All changelog entries MUST be flat single-line bullets with inline details:
 BUG FIX vs DEVELOPMENT ITERATION:
 When processing commits for a release, the script distinguishes between:
   - Bug Fixes: fix() commits for already-released features (scope has NO feat commits)
-  - Development Iterations: fix() commits for NEW features being developed in same release
+    - Development Iterations: fix() commits for NEW features being developed
+        in same release
     (scope HAS feat commits) - these are rolled into the feature description, not listed
     as separate bug fixes
 
@@ -103,7 +104,10 @@ def is_noise_scope(scope: str) -> bool:
 
 
 def extract_scope(commit_msg: str) -> str | None:
-    """Extract scope from conventional commit (e.g., 'budget' from 'feat(budget): ...')."""
+    """Extract scope from conventional commit.
+
+    Example: extracts 'budget' from 'feat(budget): ...'.
+    """
     match = re.match(r"^[a-z]+\(([^)]+)\):", commit_msg)
     if match:
         scope = match.group(1)
@@ -208,7 +212,8 @@ def group_commits_by_issue_and_scope(
         # development iterations (not bugs). Only categorize as "Bug Fixes"
         # if there are ONLY fix commits (meaning this is fixing released features).
         if feat_count > 0:
-            # Has new features - all work (including fixes) is part of feature development
+            # Has new features - all work (including fixes)
+            # is part of feature development
             category = "Features"
         elif fix_count > 0:
             # Only has fixes - these are real bug fixes for released features
@@ -237,10 +242,11 @@ def group_commits_by_issue_and_scope(
 
 
 def categorize_commit(commit_msg: str) -> tuple[str, str] | None:
-    """Categorize commit by type and return (category, clean_message) or None if excluded.
+    """Categorize commit by type.
 
     Returns:
-        tuple[str, str] | None: (display_category, clean_message) if included, None otherwise
+        tuple[str, str] | None: (display_category, clean_message)
+        if included, None otherwise
     """
     # Check for Conventional Commit format
     for commit_type, (display_name, include) in CHANGELOG_TYPES.items():
@@ -385,7 +391,7 @@ def main(export_json: bool = False, preview: bool = False):
             # Print to console
             for category, items in categorized.items():
                 print(f"### {category}\n")
-                for title, detail in items:
+                for title, _detail in items:
                     print(f"- {title}")
                 print()
         return
@@ -477,7 +483,7 @@ def main(export_json: bool = False, preview: bool = False):
                 items = categorized[category]
 
                 # Bold major features (5+ commits worth), plain text for others
-                for title, detail in items:
+                for title, _detail in items:
                     # Check if this is a major feature by looking at original scope
                     # For now, just use plain text to match manual style
                     new_entries += f"- {title}\n"
@@ -488,7 +494,7 @@ def main(export_json: bool = False, preview: bool = False):
         for category, items in categorized.items():
             if category not in preferred_order:
                 new_entries += f"### {category}\n\n"
-                for title, detail in items:
+                for title, _detail in items:
                     new_entries += f"- {title}\n"
                 new_entries += "\n"
                 has_content = True
@@ -516,7 +522,8 @@ def main(export_json: bool = False, preview: bool = False):
 
         changelog_path.write_text(full_changelog, encoding="utf-8")
         print(
-            f"✓ Added {len(new_tags)} new changelog entries (preserving existing content)"
+            f"✓ Added {len(new_tags)} new changelog entries "
+            "(preserving existing content)"
         )
         print(f"  New tags: {', '.join(new_tags)}")
         print("\n⚠️  MANUAL REFINEMENT RECOMMENDED:")

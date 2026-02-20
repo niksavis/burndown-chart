@@ -4,11 +4,12 @@ Handles query selection, creation, editing, and deletion within profiles.
 Integrates with data.query_manager for backend operations.
 """
 
-from dash import callback, Output, Input, State, no_update, ctx, html
-from dash.exceptions import PreventUpdate
 import logging
 
-from ui.toast_notifications import create_success_toast, create_error_toast
+from dash import Input, Output, State, callback, ctx, html, no_update
+from dash.exceptions import PreventUpdate
+
+from ui.toast_notifications import create_error_toast, create_success_toast
 
 logger = logging.getLogger(__name__)
 
@@ -326,7 +327,7 @@ def toggle_edit_query_modal(
 
         except Exception as e:
             logger.error(f"[Query] Load for editing failed: {type(e).__name__}: {e}")
-            raise PreventUpdate
+            raise PreventUpdate from e
 
     elif triggered in ("cancel-edit-query-button", "confirm-edit-query-button"):
         return False, "", "", ""
@@ -406,8 +407,8 @@ def create_new_query_callback(save_clicks, query_name, query_jql):
 
     try:
         from data.query_manager import (
-            get_active_profile_id,
             create_query,
+            get_active_profile_id,
             list_queries_for_profile,
         )
         from ui.query_selector import get_query_dropdown_options
@@ -557,7 +558,7 @@ def trigger_delete_query_modal_from_selector(delete_clicks, selected_query_id):
 
     except Exception as e:
         logger.error(f"[Query] Delete modal failed: {type(e).__name__}: {e}")
-        raise PreventUpdate
+        raise PreventUpdate from e
 
 
 # ============================================================================
@@ -613,11 +614,11 @@ def load_query_cached_data(n_clicks, selected_query_id):
         raise PreventUpdate
 
     try:
+        from data.persistence import load_app_settings, load_unified_project_data
         from data.query_manager import (
-            switch_query,
             get_active_profile_id,
+            switch_query,
         )
-        from data.persistence import load_unified_project_data, load_app_settings
 
         # Switch to the selected query
         switch_query(selected_query_id)
@@ -748,7 +749,6 @@ def load_query_cached_data(n_clicks, selected_query_id):
         # @callback(
         #     [
         #         Output("statistics-table", "data", allow_duplicate=True),
-        ()
 
 
 #         Output("current-statistics", "data", allow_duplicate=True),

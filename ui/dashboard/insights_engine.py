@@ -21,9 +21,9 @@ from __future__ import annotations
 
 from typing import Any
 
+import dash_bootstrap_components as dbc
 import pandas as pd
 from dash import html
-import dash_bootstrap_components as dbc
 
 from data.recommendations.budget_signals import (
     build_budget_forecast_signals_from_pert,
@@ -244,6 +244,7 @@ def create_insights_section(
     # === NEW INSIGHTS: Forecast vs Reality Alignment ===
     if pert_data and deadline:
         from datetime import datetime
+
         import pandas as pd
 
         try:

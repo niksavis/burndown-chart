@@ -6,7 +6,6 @@ in the database for displaying "Successfully updated" notifications.
 """
 
 import logging
-from typing import Optional, Tuple
 
 from configuration import __version__
 from data.persistence.factory import get_backend
@@ -14,7 +13,7 @@ from data.persistence.factory import get_backend
 logger = logging.getLogger(__name__)
 
 
-def check_and_update_version() -> Tuple[bool, Optional[str], str]:
+def check_and_update_version() -> tuple[bool, str | None, str]:
     """Check if app version has changed since last run and update stored version.
 
     This function:

@@ -8,16 +8,16 @@ Tests the enhanced import/export system including:
 - T014-T015: Export mode logic (CONFIG_ONLY)
 """
 
-import pytest
 import tempfile
+
+import pytest
 
 # Import functions to test
 from data.import_export import (
+    resolve_profile_conflict,
     strip_credentials,
     validate_import_data,
-    resolve_profile_conflict,
 )
-
 
 # ============================================================================
 # Test Fixtures
@@ -562,7 +562,7 @@ class TestExportFullDataMode:
         assert "q_sprint3" in exported_queries
 
         # Verify each query has metadata
-        for query_id, query_content in query_data.items():
+        for _query_id, query_content in query_data.items():
             assert "query_metadata" in query_content
 
 

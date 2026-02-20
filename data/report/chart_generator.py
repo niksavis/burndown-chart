@@ -1,20 +1,20 @@
 """Chart generation orchestration for HTML reports."""
 
 import logging
-from typing import Dict, List, Any
+from typing import Any
 
+from data.report.chart_bugs import generate_bug_trends_chart
 from data.report.chart_burndown import (
     generate_burndown_chart,
     generate_weekly_breakdown_chart,
 )
-from data.report.chart_scope import generate_scope_changes_chart
-from data.report.chart_bugs import generate_bug_trends_chart
 from data.report.chart_flow import generate_work_distribution_chart
+from data.report.chart_scope import generate_scope_changes_chart
 
 logger = logging.getLogger(__name__)
 
 
-def generate_chart_scripts(metrics: Dict[str, Any], sections: List[str]) -> List[str]:
+def generate_chart_scripts(metrics: dict[str, Any], sections: list[str]) -> list[str]:
     """
     Generate Chart.js initialization scripts for visualizations.
 
@@ -25,7 +25,7 @@ def generate_chart_scripts(metrics: Dict[str, Any], sections: List[str]) -> List
     Returns:
         List of JavaScript code strings
     """
-    scripts: List[str] = []
+    scripts: list[str] = []
 
     if "burndown" in sections and metrics.get("burndown", {}).get("has_data"):
         dashboard_metrics = metrics.get("dashboard", {})

@@ -4,14 +4,14 @@ Provides comprehensive validation and alert generation for all configuration tab
 """
 
 import logging
-from typing import Dict
-from dash import html
+
 import dash_bootstrap_components as dbc
+from dash import html
 
 logger = logging.getLogger(__name__)
 
 
-def _validate_all_tabs(state_data: Dict, field_validation_errors: list) -> Dict:
+def _validate_all_tabs(state_data: dict, field_validation_errors: list) -> dict:
     """Validate all configuration tabs comprehensively.
 
     Args:
@@ -272,7 +272,7 @@ def _validate_all_tabs(state_data: Dict, field_validation_errors: list) -> Dict:
     }
 
 
-def _build_comprehensive_validation_alert(validation_result: Dict):
+def _build_comprehensive_validation_alert(validation_result: dict):
     """Build comprehensive validation alert showing all tabs' results."""
     errors = validation_result.get("errors", [])
     warnings = validation_result.get("warnings", [])

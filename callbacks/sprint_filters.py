@@ -4,8 +4,9 @@ Handles filtering of sprint data by issue type.
 """
 
 import logging
-from dash import callback, Input, Output, State, no_update, html
+
 import dash_bootstrap_components as dbc
+from dash import Input, Output, State, callback, html, no_update
 
 logger = logging.getLogger(__name__)
 
@@ -36,18 +37,18 @@ def filter_sprint_by_issue_type(
     logger.info(f"Filtering sprint by issue type: {issue_type_filter}")
 
     try:
+        from data.persistence import load_app_settings
         from data.persistence.factory import get_backend
         from data.sprint_manager import (
-            filter_sprint_issues,
-            get_sprint_snapshots,
             calculate_sprint_progress,
             calculate_sprint_scope_changes,
+            filter_sprint_issues,
             get_active_sprint_from_issues,
+            get_sprint_snapshots,
         )
-        from data.persistence import load_app_settings
         from ui.sprint_tracker import (
-            create_sprint_summary_cards,
             create_no_sprints_state,
+            create_sprint_summary_cards,
         )
         from visualization.sprint_charts import (
             create_sprint_progress_bars,

@@ -14,17 +14,16 @@ import dash_bootstrap_components as dbc
 from dash import dcc, html
 
 from ui.button_utils import create_button
-from ui.jira_config_modal import create_jira_config_button
+from ui.delete_query_modal import create_delete_query_modal
 from ui.help_system import create_settings_tooltip
-from ui.profile_modals import (
-    create_profile_form_modal,
-    create_profile_deletion_modal,
-)
 from ui.integrated_query_management import create_integrated_query_management
+from ui.jira_config_modal import create_jira_config_button
+from ui.profile_modals import (
+    create_profile_deletion_modal,
+    create_profile_form_modal,
+)
 from ui.save_query_modal import create_save_query_modal
 from ui.unsaved_changes_modal import create_unsaved_changes_modal
-from ui.delete_query_modal import create_delete_query_modal
-
 
 #######################################################################
 # HELPER FUNCTIONS
@@ -54,8 +53,8 @@ def _get_default_jql_profile_id():
     matches a saved profile or is a custom query.
     """
     try:
-        from data.persistence import load_app_settings
         from data.jira.query_profiles import load_query_profiles
+        from data.persistence import load_app_settings
 
         app_settings = load_app_settings()
         jql_query = app_settings.get("jql_query", "")

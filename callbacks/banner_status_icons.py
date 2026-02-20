@@ -10,10 +10,11 @@ Visual States:
 - UI Operations: Purple spinner (query/slider changes trigger recalc)
 """
 
-import logging
 import json
+import logging
 from datetime import datetime
-from dash import callback, Output, Input, State, ctx
+
+from dash import Input, Output, State, callback, ctx
 
 logger = logging.getLogger(__name__)
 
@@ -129,7 +130,7 @@ def update_banner_status_icons(
         # DEFAULT: No operation - blue icons
         return "fas fa-folder me-1", "fas fa-search me-1"
 
-    except (json.JSONDecodeError, IOError) as e:
+    except (OSError, json.JSONDecodeError) as e:
         logger.debug(f"[BannerStatus] Could not read progress file: {e}")
         return "fas fa-folder me-1", "fas fa-search me-1"
     except Exception as e:

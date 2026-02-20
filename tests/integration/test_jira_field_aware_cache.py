@@ -11,22 +11,26 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 import json
 import os
-import tempfile
 import shutil
-import pytest
+import tempfile
+from datetime import UTC
 from unittest.mock import patch
+
+import pytest
+
 from data.jira import cache_jira_response, load_jira_cache
 
 
 @pytest.fixture(autouse=True)
 def isolated_jira_cache_test():
     """Isolate JIRA cache tests with temp database and profile/query."""
-    from data.persistence.factory import reset_backend
-    from data.migration.schema import create_schema
+    from datetime import datetime
+
     from data.database import get_db_connection as real_get_db_connection
+    from data.migration.schema import create_schema
+    from data.persistence.factory import reset_backend
     from data.persistence.sqlite_backend import SQLiteBackend
     from data.profile_manager import Profile
-    from datetime import datetime, timezone
 
     # Create temporary directory and database
     temp_dir = tempfile.mkdtemp(prefix="jira_cache_test_")
@@ -44,7 +48,7 @@ def isolated_jira_cache_test():
     reset_backend()
 
     # Create test profile and query
-    now = datetime.now(timezone.utc).isoformat()
+    now = datetime.now(UTC).isoformat()
     test_profile = Profile(
         id="p_test_cache",
         name="Test Cache Profile",
@@ -150,7 +154,7 @@ def test_field_aware_caching():
     print(f"   [OK] Cache created: {success}")
 
     # Verify cache file structure
-    with open(test_cache_file, "r") as f:
+    with open(test_cache_file) as f:
         cached_data = json.load(f)
 
     print(f"   [Stats] Cached JQL: '{cached_data.get('jql_query')}'")

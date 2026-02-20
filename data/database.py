@@ -17,11 +17,11 @@ Usage:
         results = cursor.fetchall()
 """
 
-import sqlite3
 import logging
+import sqlite3
+from collections.abc import Generator
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Generator
 
 from data.installation_context import get_installation_context
 
@@ -35,7 +35,7 @@ DB_PATH = _installation_context.database_path
 @contextmanager
 def get_db_connection(
     db_path: Path = DB_PATH,
-) -> Generator[sqlite3.Connection, None, None]:
+) -> Generator[sqlite3.Connection]:
     """
     Get SQLite database connection with WAL mode and automatic cleanup.
 

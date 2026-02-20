@@ -24,30 +24,31 @@ from dash import (
 )
 from dash.exceptions import PreventUpdate
 
+from callbacks.visualization_helpers import (
+    check_has_points_in_period,
+    create_burndown_tab_content,
+    prepare_trend_data,
+)
+
 # Application imports
 from data import (
     calculate_weekly_averages,
     compute_cumulative_values,
 )
-from data.schema import DEFAULT_SETTINGS
 from data.iso_week_bucketing import get_week_label
+from data.schema import DEFAULT_SETTINGS
 from ui.loading_utils import (
     create_content_placeholder,
 )
 from visualization import (
     create_forecast_plot,
 )
-from visualization.weekly_charts import (
-    create_weekly_items_chart,
-    create_weekly_points_chart,
-)
 from visualization.charts import (
     apply_mobile_optimization,
 )
-from callbacks.visualization_helpers import (
-    check_has_points_in_period,
-    prepare_trend_data,
-    create_burndown_tab_content,
+from visualization.weekly_charts import (
+    create_weekly_items_chart,
+    create_weekly_points_chart,
 )
 
 # Setup logging
@@ -615,8 +616,8 @@ def register(app):
 
                         # Generate the same week labels that DORA/Flow metrics use
                         from data.time_period_calculator import (
-                            get_iso_week,
                             format_year_week,
+                            get_iso_week,
                         )
 
                         weeks = []
@@ -631,7 +632,7 @@ def register(app):
                         else:
                             current_date = datetime.now()
 
-                        for i in range(data_points_count):
+                        for _i in range(data_points_count):
                             year, week = get_iso_week(current_date)
                             week_label = format_year_week(year, week)
                             weeks.append(week_label)
@@ -750,9 +751,9 @@ def register(app):
                         # Check if budget is configured
                         from data.budget_calculator import (
                             _get_current_budget,
-                            get_budget_baseline_vs_actual,
                             calculate_cost_breakdown_by_type,
                             calculate_weekly_cost_breakdowns,
+                            get_budget_baseline_vs_actual,
                         )
 
                         budget_config = _get_current_budget(profile_id, query_id)
@@ -942,19 +943,19 @@ def register(app):
                     # Flow Metrics - Load from snapshots (same as report)
                     try:
                         from data.metrics_snapshots import (
-                            get_metric_weekly_values,
-                            get_metric_snapshot,
                             get_available_weeks,
+                            get_metric_snapshot,
+                            get_metric_weekly_values,
                         )
                         from data.time_period_calculator import (
-                            get_iso_week,
                             format_year_week,
+                            get_iso_week,
                         )
 
                         # Generate week labels (same as report)
                         weeks = []
                         current_date = datetime.now()
-                        for i in range(data_points_count or 12):
+                        for _i in range(data_points_count or 12):
                             year, week = get_iso_week(current_date)
                             week_label = format_year_week(year, week)
                             weeks.append(week_label)
@@ -1084,10 +1085,10 @@ def register(app):
 
                             # Filter to only configured development project issues (exclude parents/parent types)
                             if issues:
-                                from data.persistence import load_app_settings
                                 from data.issue_filtering import (
                                     filter_issues_for_metrics,
                                 )
+                                from data.persistence import load_app_settings
 
                                 settings = load_app_settings()
                                 issues = filter_issues_for_metrics(
@@ -1250,8 +1251,8 @@ def register(app):
                 required_velocity_items = None
                 required_velocity_points = None
                 if deadline:
-                    from data.velocity_projections import calculate_required_velocity
                     from data.persistence import load_unified_project_data
+                    from data.velocity_projections import calculate_required_velocity
 
                     try:
                         # Parse deadline
@@ -1360,8 +1361,8 @@ def register(app):
 
                     # Generate the same week labels that Dashboard uses
                     from data.time_period_calculator import (
-                        get_iso_week,
                         format_year_week,
+                        get_iso_week,
                     )
 
                     weeks = []
@@ -1374,7 +1375,7 @@ def register(app):
                     else:
                         current_date = datetime.now()
 
-                    for i in range(data_points_count):
+                    for _i in range(data_points_count):
                         year, week = get_iso_week(current_date)
                         week_label = format_year_week(year, week)
                         weeks.append(week_label)
@@ -1597,8 +1598,8 @@ def register(app):
             raise PreventUpdate
 
         try:
-            from data.persistence import load_unified_project_data
             from data.metrics_snapshots import load_snapshots
+            from data.persistence import load_unified_project_data
 
             current_time = datetime.now().strftime("%Y%m%d_%H%M%S")
 

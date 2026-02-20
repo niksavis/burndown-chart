@@ -14,7 +14,7 @@ Created: January 30, 2026 (extracted from budget_cards.py)
 
 import logging
 import math
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import dash_bootstrap_components as dbc
 from dash import html
@@ -30,8 +30,8 @@ def create_budget_utilization_card(
     budget_total: float,
     currency_symbol: str = "€",
     data_points_count: int = 12,
-    card_id: Optional[str] = None,
-    baseline_data: Optional[Dict[str, Any]] = None,
+    card_id: str | None = None,
+    baseline_data: dict[str, Any] | None = None,
 ) -> dbc.Card:
     """Create Budget Utilization card showing consumption percentage.
 
@@ -251,13 +251,13 @@ def create_budget_utilization_card(
 
 def create_weekly_burn_rate_card(
     burn_rate: float,
-    weekly_values: List[float],
-    weekly_labels: List[str],
+    weekly_values: list[float],
+    weekly_labels: list[str],
     trend_pct: float,
     currency_symbol: str = "€",
     data_points_count: int = 4,
-    card_id: Optional[str] = None,
-    baseline_data: Optional[Dict[str, Any]] = None,
+    card_id: str | None = None,
+    baseline_data: dict[str, Any] | None = None,
 ) -> dbc.Card:
     """
     Create Weekly Burn Rate card with sparkline and 4-week weighted trend arrow.
@@ -484,11 +484,11 @@ def create_weekly_burn_rate_card(
 
 def create_budget_runway_card(
     runway_weeks: float,
-    pert_forecast_weeks: Optional[float] = None,
+    pert_forecast_weeks: float | None = None,
     currency_symbol: str = "€",
     data_points_count: int = 12,
-    card_id: Optional[str] = None,
-    baseline_data: Optional[Dict[str, Any]] = None,
+    card_id: str | None = None,
+    baseline_data: dict[str, Any] | None = None,
 ) -> dbc.Card:
     """
     Create Budget Runway card with critical <4 weeks warning.

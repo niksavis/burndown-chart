@@ -3,8 +3,9 @@
 Creates compact sparkline charts to show weekly trends inline with metric values.
 """
 
+from typing import Any
+
 import plotly.graph_objects as go
-from typing import List, Optional, Dict, Any
 from dash import dcc
 
 
@@ -12,7 +13,7 @@ def _add_performance_tier_zones(
     figure: go.Figure,
     metric_name: str,
     y_max: float,
-    x_range: List[str],
+    x_range: list[str],
 ) -> None:
     """Add colored background zones for performance tiers to chart.
 
@@ -161,10 +162,10 @@ def _add_performance_tier_zones(
 
 
 def create_metric_trend_sparkline(
-    week_labels: List[str],
-    values: List[float],
+    week_labels: list[str],
+    values: list[float],
     metric_name: str,
-    adjusted_values: Optional[List[float]] = None,
+    adjusted_values: list[float] | None = None,
     unit: str = "",
     height: int = 80,
     show_axes: bool = False,
@@ -317,12 +318,12 @@ def create_metric_trend_sparkline(
 
 
 def create_metric_trend_full(
-    week_labels: List[str],
-    values: List[float],
+    week_labels: list[str],
+    values: list[float],
     metric_name: str,
-    adjusted_values: Optional[List[float]] = None,
+    adjusted_values: list[float] | None = None,
     unit: str = "",
-    target_line: Optional[float] = None,
+    target_line: float | None = None,
     target_label: str = "Target",
     height: int = 200,
     show_performance_zones: bool = True,
@@ -504,10 +505,10 @@ def format_week_label(week_label: str) -> str:
 
 
 def get_trend_indicator(
-    current_value: Optional[float],
-    previous_value: Optional[float],
+    current_value: float | None,
+    previous_value: float | None,
     higher_is_better: bool = True,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Calculate trend direction and determine if it's good or bad.
 
@@ -578,10 +579,10 @@ def get_trend_indicator(
 
 
 def create_dual_line_trend(
-    week_labels: List[str],
-    deployment_values: List[float],
-    release_values: List[float],
-    adjusted_deployment_values: Optional[List[float]] = None,
+    week_labels: list[str],
+    deployment_values: list[float],
+    release_values: list[float],
+    adjusted_deployment_values: list[float] | None = None,
     height: int = 250,
     show_axes: bool = True,
     primary_color: str = "#0d6efd",

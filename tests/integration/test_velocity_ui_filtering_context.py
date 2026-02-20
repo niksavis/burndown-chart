@@ -17,9 +17,9 @@ pytest.skip(
     "Tests internal functions refactored in bd-rnol extraction", allow_module_level=True
 )
 
-from ui.pert_components import (
-    _create_weekly_velocity_section,
+from ui.pert_components import (  # noqa: E402
     _create_velocity_footer_content,
+    _create_weekly_velocity_section,
 )
 
 

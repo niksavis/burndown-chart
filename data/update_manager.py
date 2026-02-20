@@ -56,7 +56,6 @@ from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
 from pathlib import Path
-from typing import Optional
 
 # Third-party library imports
 import requests
@@ -151,14 +150,14 @@ class UpdateProgress:
 
     state: UpdateState
     current_version: str
-    available_version: Optional[str] = None
-    download_url: Optional[str] = None
-    download_path: Optional[Path] = None
+    available_version: str | None = None
+    download_url: str | None = None
+    download_path: Path | None = None
     progress_percent: int = 0
-    error_message: Optional[str] = None
-    last_checked: Optional[datetime] = None
-    release_notes: Optional[str] = None
-    file_size: Optional[int] = None
+    error_message: str | None = None
+    last_checked: datetime | None = None
+    release_notes: str | None = None
+    file_size: int | None = None
 
     def to_dict(self) -> dict:
         """Convert to dictionary for serialization.
@@ -219,7 +218,7 @@ def _persist_download_state(progress: UpdateProgress) -> None:
         logger.warning(f"Failed to persist download state: {e}")
 
 
-def _restore_download_state() -> Optional[UpdateProgress]:
+def _restore_download_state() -> UpdateProgress | None:
     """Restore pending update state from database.
 
     Called during app startup to restore download state if app was closed
@@ -362,7 +361,7 @@ def _is_legacy_install() -> bool:
         return False
 
 
-def _find_windows_asset(assets: list[dict], prefix: str) -> Optional[dict]:
+def _find_windows_asset(assets: list[dict], prefix: str) -> dict | None:
     """Find a Windows ZIP asset by name prefix."""
     for asset in assets:
         name = asset.get("name", "")
@@ -714,7 +713,7 @@ def download_update(progress: UpdateProgress) -> UpdateProgress:
 
     progress.state = UpdateState.DOWNLOADING
     progress.progress_percent = 0
-    download_path: Optional[Path] = None
+    download_path: Path | None = None
 
     try:
         # Create temporary file for download
@@ -864,7 +863,7 @@ def download_update(progress: UpdateProgress) -> UpdateProgress:
 def _find_executable_in_extract(
     extract_dir: Path,
     names: list[str],
-) -> Optional[Path]:
+) -> Path | None:
     """Find a matching executable in an extracted update directory.
 
     Args:

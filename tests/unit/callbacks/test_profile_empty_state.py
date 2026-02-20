@@ -7,8 +7,9 @@ Tests verify that:
 3. Data loading returns empty gracefully when no active profile
 """
 
-import pytest
 from unittest.mock import Mock, patch
+
+import pytest
 
 
 @pytest.mark.unit
@@ -144,8 +145,9 @@ class TestProfileEmptyState:
 
     def test_handle_profile_switch_with_empty_profile_id(self):
         """Verify handle_profile_switch handles None/empty profile ID gracefully."""
-        from callbacks.profile_management import handle_profile_switch
         from dash import no_update
+
+        from callbacks.profile_management import handle_profile_switch
 
         # Test with None
         result = handle_profile_switch(None)

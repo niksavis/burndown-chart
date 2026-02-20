@@ -16,7 +16,8 @@ Features:
 """
 
 import dash_bootstrap_components as dbc
-from dash import html, dcc
+from dash import dcc, html
+
 from ui.jql_editor import create_jql_editor
 
 

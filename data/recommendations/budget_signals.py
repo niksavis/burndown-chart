@@ -2,9 +2,8 @@
 
 from __future__ import annotations
 
-from typing import Any
-
 import math
+from typing import Any
 
 
 def build_budget_health_signals(

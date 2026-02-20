@@ -10,15 +10,16 @@ This module contains calculations for specific domains:
 
 import logging
 from datetime import datetime, timedelta
-from typing import Dict, List, Any, Optional
+from typing import Any
+
 import pandas as pd
 
 logger = logging.getLogger(__name__)
 
 
 def calculate_burndown_metrics(
-    statistics: List[Dict], project_scope: Dict, weeks_count: int
-) -> Dict[str, Any]:
+    statistics: list[dict], project_scope: dict, weeks_count: int
+) -> dict[str, Any]:
     """
     Calculate burndown chart metrics and projections.
 
@@ -32,8 +33,8 @@ def calculate_burndown_metrics(
     """
     from data.processing import calculate_velocity_from_dataframe
     from data.report.helpers import (
-        calculate_weekly_breakdown,
         calculate_historical_burndown,
+        calculate_weekly_breakdown,
     )
 
     if not statistics:
@@ -79,11 +80,11 @@ def calculate_burndown_metrics(
 
 
 def calculate_bug_metrics(
-    jira_issues: List[Dict],
-    statistics: List[Dict],
-    settings: Dict,
+    jira_issues: list[dict],
+    statistics: list[dict],
+    settings: dict,
     weeks_count: int,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Calculate bug analysis metrics using proper bug processing functions.
 
@@ -98,9 +99,9 @@ def calculate_bug_metrics(
     """
     from data.bug_processing import (
         calculate_bug_metrics_summary,
-        forecast_bug_resolution,
         calculate_bug_statistics,
         filter_bug_issues,
+        forecast_bug_resolution,
     )
 
     if not jira_issues:
@@ -229,8 +230,8 @@ def calculate_bug_metrics(
 
 
 def calculate_scope_metrics(
-    statistics: List[Dict], project_scope: Dict, weeks_count: int
-) -> Dict[str, Any]:
+    statistics: list[dict], project_scope: dict, weeks_count: int
+) -> dict[str, Any]:
     """
     Calculate scope change metrics comparing window start vs current.
 
@@ -311,10 +312,10 @@ def calculate_scope_metrics(
 
 
 def calculate_flow_metrics(
-    snapshots: Dict[str, Dict],
+    snapshots: dict[str, dict],
     weeks_count: int,
-    week_labels: Optional[List[str]] = None,
-) -> Dict[str, Any]:
+    week_labels: list[str] | None = None,
+) -> dict[str, Any]:
     """
     Load Flow metrics from snapshots (matches app implementation).
 
@@ -329,8 +330,8 @@ def calculate_flow_metrics(
     Returns:
         Dictionary with Flow metrics matching app display
     """
-    from data.time_period_calculator import get_iso_week, format_year_week
-    from data.metrics_snapshots import get_metric_snapshot, get_available_weeks
+    from data.metrics_snapshots import get_available_weeks, get_metric_snapshot
+    from data.time_period_calculator import format_year_week, get_iso_week
 
     logger.info(f"Loading Flow metrics from snapshots for {weeks_count} weeks")
 
@@ -342,7 +343,7 @@ def calculate_flow_metrics(
         # Fallback: Generate week labels (same as app)
         weeks = []
         current_date = datetime.now()
-        for i in range(weeks_count):
+        for _i in range(weeks_count):
             year, week = get_iso_week(current_date)
             week_label = format_year_week(year, week)
             weeks.append(week_label)
@@ -496,7 +497,7 @@ def calculate_flow_metrics(
     }
 
 
-def calculate_dora_metrics(profile_id: str, weeks_count: int) -> Dict[str, Any]:
+def calculate_dora_metrics(profile_id: str, weeks_count: int) -> dict[str, Any]:
     """
     Load DORA metrics from cache (matches app implementation).
 

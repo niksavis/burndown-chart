@@ -22,14 +22,15 @@ Created: January 4, 2026
 Last Updated: January 5, 2026 - Redesign per budget_analysis_and_proposal.md
 """
 
+from typing import Any
+
 import dash_bootstrap_components as dbc
 from dash import dcc, html
-from typing import Optional, Dict, Any
 
 
 def _create_current_budget_card_content(
-    budget_data: Optional[Dict[str, Any]] = None,
-    live_metrics: Optional[Dict[str, Any]] = None,
+    budget_data: dict[str, Any] | None = None,
+    live_metrics: dict[str, Any] | None = None,
     show_placeholder: bool = True,
 ) -> list:
     """
@@ -228,8 +229,8 @@ def _create_current_budget_card_content(
 
 
 def _create_current_budget_card(
-    budget_data: Optional[Dict[str, Any]] = None,
-    live_metrics: Optional[Dict[str, Any]] = None,
+    budget_data: dict[str, Any] | None = None,
+    live_metrics: dict[str, Any] | None = None,
     show_placeholder: bool = True,
 ) -> dbc.Card:
     """
@@ -301,8 +302,8 @@ def _create_current_budget_card(
 
 
 def _create_budget_total_display(
-    time_allocated: Optional[int] = None,
-    team_cost: Optional[float] = None,
+    time_allocated: int | None = None,
+    team_cost: float | None = None,
     currency_symbol: str = "€",
 ) -> html.Div:
     """

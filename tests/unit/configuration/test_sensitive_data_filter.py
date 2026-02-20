@@ -3,6 +3,7 @@ Tests for SensitiveDataFilter to ensure customer data and credentials are protec
 """
 
 import logging
+
 from configuration.logging_config import SensitiveDataFilter
 
 

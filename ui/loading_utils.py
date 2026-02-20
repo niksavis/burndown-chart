@@ -12,15 +12,16 @@ when content is loading, processing, or waiting for data.
 # Standard library imports
 import warnings
 
+import dash_bootstrap_components as dbc
+
 # Third-party library imports
 from dash import html
-import dash_bootstrap_components as dbc
 
 # Application imports
 from ui.style_constants import (
+    NEUTRAL_COLORS,
     PRIMARY_COLORS,
     SEMANTIC_COLORS,
-    NEUTRAL_COLORS,
 )
 
 #######################################################################

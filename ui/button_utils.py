@@ -10,16 +10,16 @@ for consistent button appearance and behavior across the application.
 #######################################################################
 # Standard library imports
 import re
-from typing import Optional, Literal
+from typing import Literal
 
 # Third-party library imports
 import dash_bootstrap_components as dbc
 from dash import html
 
-# Application imports
-from ui.styles import TYPOGRAPHY
 from ui.style_constants import get_button_style
 
+# Application imports
+from ui.styles import TYPOGRAPHY
 
 #######################################################################
 # ATOMIC COMPONENT BUILDERS (Following Component Contracts)
@@ -28,7 +28,7 @@ from ui.style_constants import get_button_style
 
 def create_action_button(
     text: str,
-    icon: Optional[str] = None,
+    icon: str | None = None,
     variant: str = "primary",
     size: str = "md",
     id_suffix: str = "",

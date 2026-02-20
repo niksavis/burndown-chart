@@ -5,10 +5,9 @@ from __future__ import annotations
 import json
 import logging
 from pathlib import Path
-from typing import Dict, List, Optional
 
-from data.persistence import ProfileNotFoundError, ValidationError
 from data.database import get_db_connection
+from data.persistence import ProfileNotFoundError, ValidationError
 from data.persistence.sqlite.helpers import retry_on_db_lock
 
 logger = logging.getLogger(__name__)
@@ -19,7 +18,7 @@ class ProfilesMixin:
 
     db_path: Path  # Set by composition class (SQLiteBackend)
 
-    def get_profile(self, profile_id: str) -> Optional[Dict]:
+    def get_profile(self, profile_id: str) -> dict | None:
         """Load profile configuration from profiles table."""
         try:
             with get_db_connection(self.db_path) as conn:
@@ -52,7 +51,7 @@ class ProfilesMixin:
             raise
 
     @retry_on_db_lock(max_retries=3, base_delay=0.1)
-    def save_profile(self, profile: Dict) -> None:
+    def save_profile(self, profile: dict) -> None:
         """Save profile configuration (insert or update) to profiles table."""
         required_fields = ["id", "name", "created_at", "last_used"]
         for field in required_fields:
@@ -123,7 +122,7 @@ class ProfilesMixin:
             )
             raise
 
-    def list_profiles(self) -> List[Dict]:
+    def list_profiles(self) -> list[dict]:
         """List all profiles, ordered by last_used descending."""
         try:
             with get_db_connection(self.db_path) as conn:

@@ -10,15 +10,15 @@ Parent types are:
 3. Available for parent field lookups and Active Work Timeline display
 """
 
-from typing import List, Dict, Any
 import logging
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
 
 def filter_out_parent_types(
-    issues: List[Dict[str, Any]], parent_types: List[str]
-) -> List[Dict[str, Any]]:
+    issues: list[dict[str, Any]], parent_types: list[str]
+) -> list[dict[str, Any]]:
     """
     Filter out parent issue types from a list of issues.
 
@@ -90,8 +90,8 @@ def filter_out_parent_types(
 
 
 def extract_parent_types_from_issues(
-    issues: List[Dict[str, Any]],
-) -> List[Dict[str, str]]:
+    issues: list[dict[str, Any]],
+) -> list[dict[str, str]]:
     """
     Extract unique parent issue types found in a dataset.
 

@@ -14,9 +14,8 @@ Key Functions:
 """
 
 import logging
-from typing import Dict, List, Optional
-from datetime import datetime, timezone
 from collections import defaultdict
+from datetime import UTC, datetime
 
 from data.active_work_sorting import get_epic_sort_key
 
@@ -24,11 +23,11 @@ logger = logging.getLogger(__name__)
 
 
 def filter_active_issues(
-    issues: List[Dict],
+    issues: list[dict],
     data_points_count: int = 30,
-    flow_end_statuses: Optional[List[str]] = None,
-    flow_wip_statuses: Optional[List[str]] = None,
-) -> List[Dict]:
+    flow_end_statuses: list[str] | None = None,
+    flow_wip_statuses: list[str] | None = None,
+) -> list[dict]:
     """Filter issues to data points date range.
 
     Returns:
@@ -44,14 +43,14 @@ def filter_active_issues(
     Returns:
         List of filtered issues
     """
-    from datetime import datetime, timedelta, timezone
+    from datetime import datetime, timedelta
 
     if not flow_end_statuses:
         flow_end_statuses = ["Done", "Closed", "Resolved"]
     if not flow_wip_statuses:
         flow_wip_statuses = ["In Progress", "In Review", "Testing", "To Do", "Backlog"]
 
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     cutoff_date = now - timedelta(weeks=data_points_count)
 
     logger.info(
@@ -73,7 +72,7 @@ def filter_active_issues(
                     created_str = created_str[:-1] + "+00:00"
                 created_dt = datetime.fromisoformat(created_str)
                 if created_dt.tzinfo is None:
-                    created_dt = created_dt.replace(tzinfo=timezone.utc)
+                    created_dt = created_dt.replace(tzinfo=UTC)
 
             # Parse updated date
             updated_dt = None
@@ -82,7 +81,7 @@ def filter_active_issues(
                     updated_str = updated_str[:-1] + "+00:00"
                 updated_dt = datetime.fromisoformat(updated_str)
                 if updated_dt.tzinfo is None:
-                    updated_dt = updated_dt.replace(tzinfo=timezone.utc)
+                    updated_dt = updated_dt.replace(tzinfo=UTC)
 
             # Include if created or updated within data points range
             if (created_dt and created_dt >= cutoff_date) or (
@@ -102,16 +101,16 @@ def filter_active_issues(
 
 
 def get_active_work_data(
-    issues: List[Dict],
+    issues: list[dict],
     backend=None,
-    profile_id: Optional[str] = None,
-    query_id: Optional[str] = None,
+    profile_id: str | None = None,
+    query_id: str | None = None,
     data_points_count: int = 30,
     parent_field: str = "parent",
-    flow_end_statuses: Optional[List[str]] = None,
-    flow_wip_statuses: Optional[List[str]] = None,
+    flow_end_statuses: list[str] | None = None,
+    flow_wip_statuses: list[str] | None = None,
     filter_parents: bool = True,
-) -> Dict:
+) -> dict:
     """Get active work data with nested epic timeline.
 
     Returns:
@@ -197,10 +196,10 @@ def get_active_work_data(
 
 
 def calculate_epic_progress(
-    child_issues: List[Dict],
-    flow_end_statuses: Optional[List[str]] = None,
-    flow_wip_statuses: Optional[List[str]] = None,
-) -> Dict:
+    child_issues: list[dict],
+    flow_end_statuses: list[str] | None = None,
+    flow_wip_statuses: list[str] | None = None,
+) -> dict:
     """Calculate progress metrics for an epic based on child issues.
 
     Args:
@@ -289,13 +288,13 @@ def calculate_epic_progress(
 
 
 def _add_health_indicators(
-    issue: Dict,
+    issue: dict,
     backend,
-    profile_id: Optional[str],
-    query_id: Optional[str],
-    flow_end_statuses: Optional[List[str]] = None,
-    flow_wip_statuses: Optional[List[str]] = None,
-) -> Dict:
+    profile_id: str | None,
+    query_id: str | None,
+    flow_end_statuses: list[str] | None = None,
+    flow_wip_statuses: list[str] | None = None,
+) -> dict:
     """Add health indicators based on status change velocity.
 
     Health indicators:
@@ -320,7 +319,7 @@ def _add_health_indicators(
     if flow_wip_statuses is None:
         flow_wip_statuses = []
 
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     status = issue.get("status", "Unknown")
     is_completed = status in flow_end_statuses
 
@@ -357,7 +356,7 @@ def _add_health_indicators(
                                 change_date_str = change_date_str[:-1] + "+00:00"
                             change_dt = datetime.fromisoformat(change_date_str)
                             if change_dt.tzinfo is None:
-                                change_dt = change_dt.replace(tzinfo=timezone.utc)
+                                change_dt = change_dt.replace(tzinfo=UTC)
 
                             days_since_status_change = (now - change_dt).days
 
@@ -382,7 +381,7 @@ def _add_health_indicators(
                                 created_str = created_str[:-1] + "+00:00"
                             created_dt = datetime.fromisoformat(created_str)
                             if created_dt.tzinfo is None:
-                                created_dt = created_dt.replace(tzinfo=timezone.utc)
+                                created_dt = created_dt.replace(tzinfo=UTC)
                             days_since_created = (now - created_dt).days
 
                             if is_in_wip_status and days_since_created >= 5:
@@ -409,7 +408,7 @@ def _add_health_indicators(
     return issue_with_health
 
 
-def _is_wip_status_check(status: str, flow_wip_statuses: List[str]) -> bool:
+def _is_wip_status_check(status: str, flow_wip_statuses: list[str]) -> bool:
     """Check if status is work-in-progress.
 
     Args:
@@ -437,15 +436,15 @@ def _is_wip_status_check(status: str, flow_wip_statuses: List[str]) -> bool:
 
 
 def _build_epic_timeline(
-    issues: List[Dict],
+    issues: list[dict],
     backend,
-    profile_id: Optional[str],
-    query_id: Optional[str],
+    profile_id: str | None,
+    query_id: str | None,
     parent_field: str,
-    flow_end_statuses: Optional[List[str]],
-    flow_wip_statuses: Optional[List[str]],
-    all_issues_unfiltered: Optional[List[Dict]] = None,
-) -> List[Dict]:
+    flow_end_statuses: list[str] | None,
+    flow_wip_statuses: list[str] | None,
+    all_issues_unfiltered: list[dict] | None = None,
+) -> list[dict]:
     """Build epic timeline aggregation from issues.
 
     Args:

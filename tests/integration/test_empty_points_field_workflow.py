@@ -18,22 +18,23 @@ This test verifies the fix works correctly.
 MIGRATED: Uses SQLite database backend via temp_database fixture (from conftest.py).
 """
 
-import pytest
 import sys
+from datetime import UTC, datetime
 from pathlib import Path
-from datetime import datetime, timezone
 from unittest.mock import patch
+
+import pytest
 
 # Add parent to path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-from data.persistence.adapters.unified_data import (
-    save_unified_project_data,
-    load_unified_project_data,
-)
 from data.persistence.adapters.scope import (
-    update_project_scope_from_jira,
     get_project_scope,
+    update_project_scope_from_jira,
+)
+from data.persistence.adapters.unified_data import (
+    load_unified_project_data,
+    save_unified_project_data,
 )
 from data.query_manager import create_query
 
@@ -54,9 +55,9 @@ class TestEmptyPointsFieldCachingWorkflow:
             "id": self.test_profile_id,
             "name": "Empty Points Test Profile",
             "created_at": datetime(
-                2026, 1, 1, 0, 0, 0, tzinfo=timezone.utc
+                2026, 1, 1, 0, 0, 0, tzinfo=UTC
             ).isoformat(),
-            "last_used": datetime(2026, 1, 1, 0, 0, 0, tzinfo=timezone.utc).isoformat(),
+            "last_used": datetime(2026, 1, 1, 0, 0, 0, tzinfo=UTC).isoformat(),
             "jira_config": {
                 "base_url": "https://test.jira.com",
                 "configured": True,

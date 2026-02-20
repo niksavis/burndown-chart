@@ -5,8 +5,6 @@ Provides shared components for badges, legend, and compact issue rows.
 
 from __future__ import annotations
 
-from typing import Dict, Optional
-
 import dash_bootstrap_components as dbc
 from dash import html
 
@@ -14,7 +12,7 @@ from ui.jira_link_helper import create_jira_issue_link
 
 
 def create_issue_key_badge(
-    issue_key: str, badge_id: Optional[str] = None
+    issue_key: str, badge_id: str | None = None
 ) -> html.A | html.Span:
     """Create a clickable issue key badge.
 
@@ -37,7 +35,7 @@ def create_issue_key_badge(
     return link
 
 
-def create_points_badge(points: float, show_points: bool) -> Optional[html.Span]:
+def create_points_badge(points: float, show_points: bool) -> html.Span | None:
     """Create points badge when points should be shown.
 
     Args:
@@ -72,7 +70,7 @@ def create_issue_count_badge(count: int) -> html.Span:
 
 
 def create_status_indicator_badge(
-    status_key: str, color: str, badge_id: Optional[str] = None
+    status_key: str, color: str, badge_id: str | None = None
 ) -> html.Span:
     """Create badge for epic status indicator.
 
@@ -119,7 +117,7 @@ def _get_status_icon_class(status_key: str) -> str:
 
 
 def create_active_work_legend(
-    summary_text: Optional[str] = None, include_toggle: bool = True
+    summary_text: str | None = None, include_toggle: bool = True
 ) -> html.Div:
     """Create legend for Active Work badges and status groups.
 
@@ -401,7 +399,7 @@ def create_active_work_legend(
     )
 
 
-def create_compact_issue_row(issue: Dict, show_points: bool = False) -> html.Div:
+def create_compact_issue_row(issue: dict, show_points: bool = False) -> html.Div:
     """Create single-line compact issue row.
 
     Args:

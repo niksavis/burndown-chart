@@ -50,8 +50,9 @@ def test_update_check_timeout_handling():
     Tests that when GitHub API times out, the check returns ERROR state
     without crashing or blocking indefinitely.
     """
-    from data.update_manager import check_for_updates, UpdateState
     import requests.exceptions
+
+    from data.update_manager import UpdateState, check_for_updates
 
     # Mock requests.get to raise Timeout
     with patch("data.update_manager.requests.get") as mock_get:
@@ -72,8 +73,9 @@ def test_update_check_error_handling():
     Tests that network errors are caught and returned as ERROR state
     without crashing the app.
     """
-    from data.update_manager import check_for_updates, UpdateState
     import requests.exceptions
+
+    from data.update_manager import UpdateState, check_for_updates
 
     # Mock requests.get to raise ConnectionError
     with patch("data.update_manager.requests.get") as mock_get:

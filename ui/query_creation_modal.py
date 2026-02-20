@@ -11,7 +11,6 @@ Part of Feature 011 - Profile & Workspace Switching (Phase 4 - Query Switching).
 import dash_bootstrap_components as dbc
 from dash import html
 
-
 #######################################################################
 # MODAL COMPONENT
 #######################################################################

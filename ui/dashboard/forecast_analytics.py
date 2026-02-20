@@ -14,7 +14,6 @@ visual indicators for tracking accuracy and trends over time.
 from __future__ import annotations
 
 from datetime import datetime, timedelta
-from typing import Optional
 
 import dash_bootstrap_components as dbc
 from dash import html
@@ -54,14 +53,14 @@ def get_forecast_history() -> tuple[list, list, list]:
 def create_forecast_analytics_section(
     pert_data: dict,
     confidence_data: dict,
-    budget_data: Optional[dict] = None,
+    budget_data: dict | None = None,
     show_points: bool = True,
-    remaining_items: Optional[float] = None,
-    remaining_points: Optional[float] = None,
-    avg_weekly_items: Optional[float] = None,
-    avg_weekly_points: Optional[float] = None,
-    days_to_deadline: Optional[int] = None,
-    deadline_str: Optional[str] = None,
+    remaining_items: float | None = None,
+    remaining_points: float | None = None,
+    avg_weekly_items: float | None = None,
+    avg_weekly_points: float | None = None,
+    days_to_deadline: int | None = None,
+    deadline_str: str | None = None,
 ) -> html.Div:
     """Create forecasting section with multiple prediction methods.
 
@@ -83,7 +82,7 @@ def create_forecast_analytics_section(
     """
 
     def calculate_schedule_status(
-        forecast_date_str: str, deadline_date_str: Optional[str], current_date: datetime
+        forecast_date_str: str, deadline_date_str: str | None, current_date: datetime
     ) -> dict:
         """Calculate schedule status for progress bar visualization.
 

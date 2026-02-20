@@ -5,8 +5,9 @@ Tests query management functions for profile-based workspaces.
 Uses SQLite database backend via temp_database fixture.
 """
 
+from datetime import UTC, datetime
+
 import pytest
-from datetime import datetime, timezone
 
 
 def create_test_profile(profile_id: str, name: str) -> dict:
@@ -15,7 +16,7 @@ def create_test_profile(profile_id: str, name: str) -> dict:
 
     Uses fixed timestamps for deterministic testing.
     """
-    fixed_timestamp = datetime(2026, 1, 1, 0, 0, 0, tzinfo=timezone.utc).isoformat()
+    fixed_timestamp = datetime(2026, 1, 1, 0, 0, 0, tzinfo=UTC).isoformat()
     return {
         "id": profile_id,
         "name": name,
@@ -40,7 +41,7 @@ def create_test_query(query_id: str, name: str, jql: str) -> dict:
 
     Uses fixed timestamps for deterministic testing.
     """
-    fixed_timestamp = datetime(2026, 1, 1, 0, 0, 0, tzinfo=timezone.utc).isoformat()
+    fixed_timestamp = datetime(2026, 1, 1, 0, 0, 0, tzinfo=UTC).isoformat()
     return {
         "id": query_id,
         "name": name,
@@ -130,7 +131,7 @@ class TestSwitchQuery:
     def test_switches_to_existing_query(self, temp_database):
         """Verify switches active_query_id in database."""
         from data.persistence.factory import get_backend
-        from data.query_manager import switch_query, get_active_query_id
+        from data.query_manager import get_active_query_id, switch_query
 
         # Arrange
         backend = get_backend()
@@ -190,6 +191,7 @@ class TestSwitchQuery:
     def test_performance_under_50ms(self, temp_database):
         """Verify switch_query() completes in <50ms."""
         import time
+
         from data.persistence.factory import get_backend
         from data.query_manager import switch_query
 

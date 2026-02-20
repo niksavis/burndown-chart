@@ -9,9 +9,9 @@ with an "Update Now" button to download and install the update.
 # IMPORTS
 #######################################################################
 # Third-party library imports
+
 import dash_bootstrap_components as dbc
 from dash import html
-from typing import Optional
 
 # Application imports
 from data.update_manager import UpdateProgress, UpdateState
@@ -22,8 +22,8 @@ from data.update_manager import UpdateProgress, UpdateState
 
 
 def create_update_notification(
-    update_progress: Optional[UpdateProgress],
-) -> Optional[dbc.Alert]:
+    update_progress: UpdateProgress | None,
+) -> dbc.Alert | None:
     """Create update notification alert when update is available.
 
     Args:

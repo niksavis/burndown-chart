@@ -23,7 +23,7 @@ Usage:
 """
 
 import time
-from typing import Any, Tuple
+from typing import Any
 
 from configuration import logger
 
@@ -250,7 +250,7 @@ def retry_with_backoff(
     initial_delay: float = INITIAL_RETRY_DELAY,
     max_delay: float = MAX_RETRY_DELAY,
     **kwargs,
-) -> Tuple[bool, Any]:
+) -> tuple[bool, Any]:
     """
     Retry a function with exponential backoff on transient failures.
 

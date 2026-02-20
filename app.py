@@ -9,6 +9,7 @@ and serves as the main entry point for running the server.
 # IMPORTS
 #######################################################################
 # Standard library imports
+import atexit
 import logging
 import os
 import signal
@@ -18,27 +19,25 @@ import threading
 import time
 import webbrowser
 from pathlib import Path
-from typing import Optional
 
 # Third-party library imports
 import dash
-from dash import DiskcacheManager
-import atexit
 import diskcache
+from dash import DiskcacheManager
 
 # Application imports (after third-party, before usage)
 from callbacks import register_all_callbacks
+from configuration.logging_config import cleanup_old_logs, setup_logging
 from configuration.server import get_server_config
-from configuration.logging_config import setup_logging, cleanup_old_logs
-from ui import serve_layout
+from data.installation_context import get_installation_context
 from data.profile_manager import (
     get_active_profile,
-    switch_profile,
     list_profiles,
+    switch_profile,
 )
-from data.query_manager import list_queries_for_profile, get_active_query_id
-from data.installation_context import get_installation_context
-from data.update_manager import check_for_updates, UpdateProgress, UpdateState
+from data.query_manager import get_active_query_id, list_queries_for_profile
+from data.update_manager import UpdateProgress, UpdateState, check_for_updates
+from ui import serve_layout
 from utils.license_extractor import extract_license_on_first_run
 
 # Global reference to server for clean shutdown
@@ -178,7 +177,7 @@ except Exception as e:
 
 # Global variable to store update check result
 # Accessed by UI components to show update notifications
-VERSION_CHECK_RESULT: Optional[UpdateProgress] = None
+VERSION_CHECK_RESULT: UpdateProgress | None = None
 
 
 def _restore_pending_update() -> None:
@@ -193,12 +192,12 @@ def _restore_pending_update() -> None:
     """
     global VERSION_CHECK_RESULT
     try:
+        from configuration import __version__
         from data.update_manager import (
             _restore_download_state,
-            compare_versions,
             clear_download_state,
+            compare_versions,
         )
-        from configuration import __version__
 
         restored_progress = _restore_download_state()
         if restored_progress:
@@ -215,7 +214,8 @@ def _restore_pending_update() -> None:
                 )
                 if comparison >= 0:
                     logger.info(
-                        "Invalidating stale update state - already at or past that version",
+                        "Invalidating stale update state - already at or past "
+                        "that version",
                         extra={
                             "operation": "restore_pending_update",
                             "current_version": __version__,
@@ -346,7 +346,8 @@ def ensure_valid_workspace() -> None:
             active_profile = get_active_profile()
 
         logger.info(
-            f"[Workspace] Active profile: {active_profile.name if active_profile else 'None'}"
+            "[Workspace] Active profile: "
+            f"{active_profile.name if active_profile else 'None'}"
         )
 
         # Step 3: Ensure profile has at least one query
@@ -389,22 +390,29 @@ background_callback_manager = DiskcacheManager(cache)
 # Initialize the Dash app with PWA support
 app = dash.Dash(
     __name__,
-    serve_locally=True,  # Serve all Dash/Plotly assets locally (no CDN) for offline operation
+    serve_locally=True,
+    # Serve all Dash/Plotly assets locally (no CDN) for offline operation
     title="Burndown",  # Custom browser tab title
     update_title="",  # Disable update title to prevent flicker
     assets_folder="assets",  # Explicitly set assets folder
-    assets_ignore=r"^vendor/.*",  # Prevent auto-loading vendor CSS/JS to preserve order
-    background_callback_manager=background_callback_manager,  # Enable background callbacks
+    assets_ignore=r"^vendor/.*",
+    # Prevent auto-loading vendor CSS/JS to preserve order
+    background_callback_manager=background_callback_manager,
+    # Enable background callbacks
     external_stylesheets=[
         # Bootswatch Flatly theme (local copy for offline use)
         "/assets/vendor/bootswatch/flatly/bootstrap.min.css",
-        # SECURITY: Font Awesome served locally (no tracking, no checkout popup injection)
+        # SECURITY: Font Awesome served locally
+        # (no tracking, no checkout popup injection)
         # Using free version CSS-only (no kit system) to prevent checkout code injection
-        "/assets/vendor/fontawesome/css/fontawesome.min.css",  # Font Awesome core (CSS only)
+        "/assets/vendor/fontawesome/css/fontawesome.min.css",
+        # Font Awesome core (CSS only)
         "/assets/vendor/fontawesome/css/solid.min.css",  # Solid icons
         "/assets/vendor/fontawesome/css/brands.min.css",  # Brand icons (GitHub, etc.)
         "/assets/vendor/codemirror/codemirror.min.css",  # CodeMirror base styles
-        "/assets/custom.css",  # Our custom CSS for standardized styling (includes CodeMirror theme overrides)
+        "/assets/custom.css",
+        # Our custom CSS for standardized styling
+        # (includes CodeMirror theme overrides)
         "/assets/help_system.css",  # Help system CSS for progressive disclosure
     ],
     external_scripts=[
@@ -416,17 +424,25 @@ app = dash.Dash(
         "/assets/vendor/codemirror/codemirror.min.js",
         "/assets/vendor/codemirror/mode/sql/sql.min.js",  # Base for query language
         "/assets/jql_language_mode.js",  # JQL tokenizer for syntax highlighting
-        "/assets/jql_editor_native.js",  # Native CodeMirror editors (no textarea transformation)
-        "/assets/mobile_navigation.js",  # Mobile navigation JavaScript for swipe gestures
-        "/assets/conflict_resolution_clientside.js",  # Conflict resolution clientside callbacks (import/export)
+        "/assets/jql_editor_native.js",
+        # Native CodeMirror editors (no textarea transformation)
+        "/assets/mobile_navigation.js",
+        # Mobile navigation JavaScript for swipe gestures
+        "/assets/conflict_resolution_clientside.js",
+        # Conflict resolution clientside callbacks (import/export)
         "/assets/active_work_toggle.js",  # Active Work expand/collapse all button
     ],
-    suppress_callback_exceptions=True,  # Suppress errors for components in dynamic layouts (Settings flyout, modals)
+    suppress_callback_exceptions=True,
+    # Suppress errors for components in dynamic layouts
+    # (Settings flyout, modals)
     meta_tags=[
         # PWA Meta Tags for Mobile-First Design
         {
             "name": "viewport",
-            "content": "width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes",
+            "content": (
+                "width=device-width, initial-scale=1.0, "
+                "maximum-scale=5.0, user-scalable=yes"
+            ),
         },
         {"name": "theme-color", "content": "#0d6efd"},
         {"name": "apple-mobile-web-app-capable", "content": "yes"},
@@ -436,7 +452,9 @@ app = dash.Dash(
         # Performance and SEO
         {
             "name": "description",
-            "content": "Modern mobile-first agile project forecasting with JIRA integration",
+            "content": (
+                "Modern mobile-first agile project forecasting with JIRA integration"
+            ),
         },
         {
             "name": "keywords",
@@ -446,7 +464,9 @@ app = dash.Dash(
         {"property": "og:type", "content": "website"},
         {
             "property": "og:description",
-            "content": "Modern mobile-first agile project forecasting with JIRA integration",
+            "content": (
+                "Modern mobile-first agile project forecasting with JIRA integration"
+            ),
         },
         # SECURITY: Content Security Policy to prevent unauthorized script injection
         # Prevents Font Awesome and other CDNs from injecting tracking/checkout scripts
@@ -454,9 +474,12 @@ app = dash.Dash(
             "http-equiv": "Content-Security-Policy",
             "content": (
                 "default-src 'self'; "
-                "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; "
-                "style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://fonts.googleapis.com; "
-                "font-src 'self' https://cdnjs.cloudflare.com https://fonts.gstatic.com data:; "
+                "script-src 'self' 'unsafe-inline' 'unsafe-eval' "
+                "https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; "
+                "style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com "
+                "https://cdn.jsdelivr.net https://fonts.googleapis.com; "
+                "font-src 'self' https://cdnjs.cloudflare.com "
+                "https://fonts.gstatic.com data:; "
                 "img-src 'self' data: https: blob:; "
                 "connect-src 'self' https://cdn.jsdelivr.net"
             ),
@@ -518,8 +541,9 @@ def get_version():
         GET /api/version
         Response: {"version": "2.7.2", "post_update": true}
     """
-    from configuration import __version__
     from flask import jsonify
+
+    from configuration import __version__
     from data.persistence.factory import get_backend
 
     # Check post_update_show_toast flag from database (for JavaScript toast display)
@@ -549,6 +573,7 @@ def clear_post_update():
         Response: {"success": true}
     """
     from flask import jsonify
+
     from data.persistence.factory import get_backend
 
     try:
@@ -589,7 +614,7 @@ def wait_for_server_ready(host: str, port: int, timeout: float = 3.0) -> bool:
         try:
             with socket.create_connection((host, port), timeout=0.5):
                 return True
-        except (socket.error, OSError):
+        except OSError:
             time.sleep(0.1)
     return False
 
@@ -621,15 +646,18 @@ if __name__ == "__main__":
     # Clean up stale task progress from previous crashed/killed processes
     # CRITICAL: This must run BEFORE Dash app starts accepting requests
     try:
-        from data.task_progress import TaskProgress
         import time
+
+        from data.task_progress import TaskProgress
 
         active_task = TaskProgress.get_active_task()
         if active_task and active_task.get("status") == "in_progress":
             task_id = active_task.get("task_id", "unknown")
             phase = active_task.get("phase", "unknown")
             logger.warning(
-                f"[Startup] Found stale in-progress task '{task_id}' (phase={phase}) from previous session - marking as failed"
+                "[Startup] Found stale in-progress task "
+                f"'{task_id}' (phase={phase}) from previous session "
+                "- marking as failed"
             )
 
             # Add app restart marker so recovery callback knows not to trigger actions
@@ -641,7 +669,9 @@ if __name__ == "__main__":
 
             TaskProgress.fail_task(
                 task_id,
-                f"Operation interrupted (app restarted during {phase} phase). Click Update Data to restart.",
+                "Operation interrupted "
+                f"(app restarted during {phase} phase). "
+                "Click Update Data to restart.",
             )
 
             # Keep marker for 5 seconds so page load callbacks can detect it
@@ -705,7 +735,8 @@ if __name__ == "__main__":
                 )
         except ImportError:
             logger.warning(
-                "pystray not available, skipping tray icon (install with: pip install pystray)"
+                "pystray not available, skipping tray icon "
+                "(install with: pip install pystray)"
             )
         except Exception as e:
             logger.error(f"Failed to initialize tray icon: {e}", exc_info=True)
@@ -713,7 +744,8 @@ if __name__ == "__main__":
     # Determine if browser should auto-launch
     # Only auto-launch when running as frozen executable (not in dev mode)
     # and when BURNDOWN_NO_BROWSER environment variable is not set
-    # Skip auto-launch if post_update_relaunch flag is set (updater will reload existing tabs)
+    # Skip auto-launch if post_update_relaunch flag is set
+    # (updater will reload existing tabs)
     should_launch_browser = (
         installation_context.is_frozen
         and not server_config["debug"]
@@ -730,10 +762,12 @@ if __name__ == "__main__":
 
             if no_browser_flag:
                 logger.info(
-                    "Skipping browser auto-launch after update (update_reconnect.js will reload existing tabs)"
+                    "Skipping browser auto-launch after update "
+                    "(update_reconnect.js will reload existing tabs)"
                 )
                 print(
-                    "Detected post-update restart - reconnecting existing browser tabs...",
+                    "Detected post-update restart - reconnecting "
+                    "existing browser tabs...",
                     flush=True,
                 )
                 should_launch_browser = False
@@ -742,38 +776,46 @@ if __name__ == "__main__":
                 backend.set_app_state("post_update_no_browser", "")
                 logger.debug("Cleared post_update_no_browser flag")
 
-                # Note: post_update_show_toast flag remains for JavaScript to read and clear
+                # Note: post_update_show_toast flag remains
+                # for JavaScript to read and clear
 
                 # Clear VERSION_CHECK_RESULT to prevent "Update Available" toast
-                # after update completes (update was just installed, no need to show again)
+                # after update completes (update was just installed,
+                # no need to show again)
                 VERSION_CHECK_RESULT = None
                 logger.debug("Cleared VERSION_CHECK_RESULT after update completion")
         except Exception as e:
             logger.warning(
-                f"Failed to check post_update_relaunch flag: {e} - proceeding with normal launch"
+                "Failed to check post_update_relaunch flag: "
+                f"{e} - proceeding with normal launch"
             )
 
     if server_config["debug"]:
         logger.info(
-            f"Starting development server in DEBUG mode on {server_config['host']}:{server_config['port']}"
+            "Starting development server in DEBUG mode on "
+            f"{server_config['host']}:{server_config['port']}"
         )
         print(
-            f"Starting development server in DEBUG mode on {server_config['host']}:{server_config['port']}..."
+            "Starting development server in DEBUG mode on "
+            f"{server_config['host']}:{server_config['port']}..."
         )
         app.run(debug=True, host=server_config["host"], port=server_config["port"])
     else:
         logger.info(
-            f"Starting Waitress production server on {server_config['host']}:{server_config['port']}"
+            "Starting Waitress production server on "
+            f"{server_config['host']}:{server_config['port']}"
         )
         url = f"http://{server_config['host']}:{server_config['port']}"
         print(
-            f"Starting Waitress production server on {server_config['host']}:{server_config['port']}..."
+            "Starting Waitress production server on "
+            f"{server_config['host']}:{server_config['port']}..."
         )
         print("\nOpen your browser at:", flush=True)
         print(f"  {url}", flush=True)
         print("", flush=True)  # Empty line for better visibility
 
-        # Launch browser in separate thread if running as executable (unless disabled by env var)
+        # Launch browser in separate thread if running as executable
+        # (unless disabled by env var)
         if should_launch_browser:
 
             def launch_browser():
@@ -785,18 +827,22 @@ if __name__ == "__main__":
                     logger.info(f"Server ready, launching browser at {url}")
                     print("Server ready! Launching browser...", flush=True)
                     try:
-                        # Try to reuse existing tab by opening with new=2 (new tab if possible)
-                        # This still may open a new tab but at least tries to reuse window
+                        # Try to reuse existing tab by opening with new=2
+                        # (new tab if possible)
+                        # This still may open a new tab but at least tries
+                        # to reuse window
                         webbrowser.open(url, new=2, autoraise=True)
                     except Exception as e:
                         logger.warning(f"Failed to auto-launch browser: {e}")
                         print(f"Could not auto-launch browser: {e}", flush=True)
                 else:
                     logger.warning(
-                        "Server readiness check timed out after 3s, browser not launched"
+                        "Server readiness check timed out after 3s, "
+                        "browser not launched"
                     )
                     print(
-                        "Server startup took longer than expected. Please open browser manually.",
+                        "Server startup took longer than expected. "
+                        "Please open browser manually.",
                         flush=True,
                     )
 

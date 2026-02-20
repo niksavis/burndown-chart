@@ -5,19 +5,20 @@ Tests the UI state TypedDict classes and validation functions.
 """
 
 from datetime import datetime
+
 from data.schema import (
+    LayoutPreferences,
+    MobileNavigationState,
     NavigationState,
     ParameterPanelState,
-    MobileNavigationState,
-    LayoutPreferences,
+    get_default_layout_preferences,
+    get_default_mobile_navigation_state,
     get_default_navigation_state,
     get_default_parameter_panel_state,
-    get_default_mobile_navigation_state,
-    get_default_layout_preferences,
+    validate_layout_preferences,
+    validate_mobile_navigation_state,
     validate_navigation_state,
     validate_parameter_panel_state,
-    validate_mobile_navigation_state,
-    validate_layout_preferences,
 )
 
 

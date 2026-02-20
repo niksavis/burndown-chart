@@ -9,7 +9,6 @@ Now uses SQLite database for persistence instead of task_progress.json file.
 
 import logging
 from datetime import datetime, timedelta
-from typing import Dict, Optional, Tuple
 
 logger = logging.getLogger(__name__)
 
@@ -28,7 +27,7 @@ class TaskProgress:
     """Track progress of long-running background tasks."""
 
     @staticmethod
-    def is_task_running() -> Tuple[bool, Optional[str]]:
+    def is_task_running() -> tuple[bool, str | None]:
         """Check if a task is currently running.
 
         Returns:
@@ -303,7 +302,7 @@ class TaskProgress:
             logger.error(f"Failed to mark task complete: {e}")
 
     @staticmethod
-    def get_active_task() -> Optional[Dict]:
+    def get_active_task() -> dict | None:
         """Get currently active task if any.
 
         Returns:
@@ -339,7 +338,7 @@ class TaskProgress:
             return None
 
     @staticmethod
-    def get_task_status_message(task_id: str) -> Optional[str]:
+    def get_task_status_message(task_id: str) -> str | None:
         """Get status message for a task if it's running.
 
         Args:

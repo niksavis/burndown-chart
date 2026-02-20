@@ -5,14 +5,14 @@ Provides validation functions for comprehensive JIRA mappings configuration.
 """
 
 import logging
-from typing import List, Dict, Any, Tuple
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
 
 def validate_subset(
-    subset: List[str], superset: List[str], subset_name: str, superset_name: str
-) -> Tuple[bool, str]:
+    subset: list[str], superset: list[str], subset_name: str, superset_name: str
+) -> tuple[bool, str]:
     """
     Validate that one list is a subset of another.
 
@@ -46,8 +46,8 @@ def validate_subset(
 
 
 def validate_project_overlap(
-    development_projects: List[str], devops_projects: List[str]
-) -> Tuple[bool, str]:
+    development_projects: list[str], devops_projects: list[str]
+) -> tuple[bool, str]:
     """
     Check if there's overlap between development and devops projects.
 
@@ -73,8 +73,8 @@ def validate_project_overlap(
 
 
 def validate_required_fields(
-    config: Dict[str, Any], required_keys: List[str]
-) -> Tuple[bool, List[str]]:
+    config: dict[str, Any], required_keys: list[str]
+) -> tuple[bool, list[str]]:
     """
     Validate that required configuration keys are present and non-empty.
 
@@ -100,8 +100,8 @@ def validate_required_fields(
 
 
 def validate_active_wip_subset(
-    active_statuses: List[str], wip_statuses: List[str]
-) -> Tuple[bool, str]:
+    active_statuses: list[str], wip_statuses: list[str]
+) -> tuple[bool, str]:
     """
     Validate that active statuses are a subset of WIP statuses.
 
@@ -120,8 +120,8 @@ def validate_active_wip_subset(
 
 
 def validate_wip_excludes_completion(
-    wip_statuses: List[str], flow_end_statuses: List[str]
-) -> Tuple[bool, str]:
+    wip_statuses: list[str], flow_end_statuses: list[str]
+) -> tuple[bool, str]:
     """
     Validate that WIP statuses don't include completion statuses.
 
@@ -152,7 +152,7 @@ def validate_wip_excludes_completion(
     return True, ""
 
 
-def validate_comprehensive_config(config: Dict[str, Any]) -> Dict[str, List[str]]:
+def validate_comprehensive_config(config: dict[str, Any]) -> dict[str, list[str]]:
     """
     Comprehensive validation of all configuration elements.
 
@@ -271,7 +271,7 @@ def validate_comprehensive_config(config: Dict[str, Any]) -> Dict[str, List[str]
     return {"errors": errors, "warnings": warnings}
 
 
-def format_validation_messages(validation_result: Dict[str, List[str]]) -> str:
+def format_validation_messages(validation_result: dict[str, list[str]]) -> str:
     """
     Format validation results into a human-readable message.
 

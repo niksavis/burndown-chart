@@ -2,18 +2,17 @@
 
 # Standard library imports
 from datetime import datetime
-from typing import Dict, Any, List
+from typing import Any
 
 # Third-party library imports
-
 # Application imports
 from configuration.settings import logger
+from data.persistence.adapters.project_data import load_project_data
+from data.persistence.adapters.statistics import load_statistics
 from data.persistence.adapters.unified_data import (
     load_unified_project_data,
     save_unified_project_data,
 )
-from data.persistence.adapters.statistics import load_statistics
-from data.persistence.adapters.project_data import load_project_data
 
 
 def _migrate_legacy_project_data(data):
@@ -164,9 +163,9 @@ def calculate_project_scope_from_jira(
     """
     try:
         from data.jira import (
+            fetch_jira_issues,
             get_jira_config,
             validate_jira_config,
-            fetch_jira_issues,
         )
         from data.jira.scope_calculator import calculate_jira_project_scope
 
@@ -278,9 +277,9 @@ def load_project_data_legacy():
 
 
 def save_jira_data_unified(
-    statistics_data: List[Dict[str, Any]],
-    project_scope_data: Dict[str, Any],
-    jira_config: Dict[str, Any] | None = None,
+    statistics_data: list[dict[str, Any]],
+    project_scope_data: dict[str, Any],
+    jira_config: dict[str, Any] | None = None,
 ) -> bool:
     """
     Save both JIRA statistics and project scope to unified data structure.

@@ -5,13 +5,12 @@ Transforms JIRA API responses into CSV statistics format for burndown chart visu
 """
 
 from datetime import datetime, timedelta
-from typing import Dict, List
 
 from configuration import logger
 from data.jira.field_utils import extract_story_points_value
 
 
-def jira_to_csv_format(issues: List[Dict], config: Dict) -> List[Dict]:
+def jira_to_csv_format(issues: list[dict], config: dict) -> list[dict]:
     """Transform JIRA issues to CSV statistics format.
 
     Converts JIRA API issue format to weekly burndown statistics with:

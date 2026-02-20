@@ -14,13 +14,13 @@ Usage:
 """
 
 import logging
-from typing import Optional, Union
+
 from dash import html
 
 logger = logging.getLogger(__name__)
 
 
-def get_jira_base_url() -> Optional[str]:
+def get_jira_base_url() -> str | None:
     """Get JIRA base URL from configuration if connection is verified.
 
     Returns:
@@ -72,10 +72,10 @@ def is_jira_connection_verified() -> bool:
 
 def create_jira_issue_link(
     issue_key: str,
-    text: Optional[str] = None,
-    className: Optional[str] = None,
-    style: Optional[dict] = None,
-) -> Union[html.A, html.Span]:
+    text: str | None = None,
+    className: str | None = None,
+    style: dict | None = None,
+) -> html.A | html.Span:
     """Create Dash html.A component linking to JIRA issue.
 
     If JIRA connection is not verified, returns plain text instead of link.
@@ -117,7 +117,7 @@ def create_jira_issue_link(
     )
 
 
-def create_jira_issue_link_html(issue_key: str, text: Optional[str] = None) -> str:
+def create_jira_issue_link_html(issue_key: str, text: str | None = None) -> str:
     """Create HTML string for JIRA issue link.
 
     If JIRA connection is not verified, returns plain text.
@@ -150,8 +150,8 @@ def create_jira_issue_link_html(issue_key: str, text: Optional[str] = None) -> s
 
 
 def batch_create_jira_issue_links(
-    issue_keys: list[str], className: Optional[str] = None, style: Optional[dict] = None
-) -> list[Union[html.A, html.Span]]:
+    issue_keys: list[str], className: str | None = None, style: dict | None = None
+) -> list[html.A | html.Span]:
     """Create multiple JIRA issue links at once.
 
     Useful for rendering lists of issues efficiently.

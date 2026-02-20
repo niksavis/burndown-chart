@@ -21,9 +21,9 @@ Architecture:
 Reference: docs/flow_metrics_spec.md
 """
 
-from datetime import datetime
-from typing import List, Dict, Any, Optional
 import logging
+from datetime import UTC, datetime
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -111,8 +111,8 @@ def _get_field_mappings():
 
 
 def _extract_datetime_from_field_mapping(
-    issue: Dict[str, Any], field_mapping: str, changelog: Optional[List] = None
-) -> Optional[str]:
+    issue: dict[str, Any], field_mapping: str, changelog: list | None = None
+) -> str | None:
     """Extract datetime value from issue based on field mapping configuration.
 
     Supports multiple field mapping formats:
@@ -172,8 +172,8 @@ def _extract_datetime_from_field_mapping(
 
 
 def _find_first_transition_to_statuses(
-    changelog: List[Dict], status_list: List[str]
-) -> Optional[str]:
+    changelog: list[dict], status_list: list[str]
+) -> str | None:
     """Find the first transition to any status in the given list.
 
     Searches through changelog history to find the earliest timestamp when
@@ -201,10 +201,10 @@ def _find_first_transition_to_statuses(
 
 
 def _is_issue_completed(
-    issue: Dict[str, Any],
+    issue: dict[str, Any],
     completed_date_field: str,
-    changelog: Optional[List] = None,
-    flow_end_statuses: Optional[List[str]] = None,
+    changelog: list | None = None,
+    flow_end_statuses: list[str] | None = None,
 ) -> bool:
     """Check if issue is completed by checking if completed_date field has a value OR if it transitioned to a flow_end_status.
 
@@ -235,7 +235,7 @@ def _is_issue_completed(
     return False
 
 
-def _is_issue_in_progress(issue: Dict[str, Any], wip_statuses: List[str]) -> bool:
+def _is_issue_in_progress(issue: dict[str, Any], wip_statuses: list[str]) -> bool:
     """Check if issue is currently in progress based on WIP statuses.
 
     Args:
@@ -262,7 +262,7 @@ def _is_issue_in_progress(issue: Dict[str, Any], wip_statuses: List[str]) -> boo
 
 
 def _get_work_type_for_issue(
-    issue: Dict[str, Any], flow_mappings: Dict, flow_type_mappings: Dict
+    issue: dict[str, Any], flow_mappings: dict, flow_type_mappings: dict
 ) -> str:
     """Classify issue into work type category using field mappings.
 
@@ -326,8 +326,8 @@ FLOW_DISTRIBUTION_RECOMMENDATIONS = {
 
 
 def _calculate_trend(
-    current_value: float, previous_value: Optional[float]
-) -> Dict[str, Any]:
+    current_value: float, previous_value: float | None
+) -> dict[str, Any]:
     """Calculate trend direction and percentage change.
 
     Args:
@@ -388,10 +388,10 @@ def _normalize_work_type(work_type: Any) -> str:
 
 
 def calculate_flow_velocity(
-    issues: List[Dict],
+    issues: list[dict],
     time_period_days: int = 7,
-    previous_period_value: Optional[float] = None,
-) -> Dict[str, Any]:
+    previous_period_value: float | None = None,
+) -> dict[str, Any]:
     """Calculate Flow Velocity - completed items per time period.
 
     Flow Velocity measures team throughput by counting completed work items.
@@ -507,10 +507,10 @@ def calculate_flow_velocity(
 
 
 def calculate_flow_time(
-    issues: List[Dict],
+    issues: list[dict],
     time_period_days: int = 7,
-    previous_period_value: Optional[float] = None,
-) -> Dict[str, Any]:
+    previous_period_value: float | None = None,
+) -> dict[str, Any]:
     """Calculate Flow Time - median cycle time from start to completion.
 
     Flow Time measures how long work items take to complete from when work started
@@ -704,7 +704,7 @@ def calculate_flow_time(
 
 
 def _calculate_time_in_statuses(
-    changelog: List[Dict], status_list: List[str], issue_key: str = ""
+    changelog: list[dict], status_list: list[str], issue_key: str = ""
 ) -> float:
     """Calculate total time spent in specific statuses from changelog.
 
@@ -763,9 +763,8 @@ def _calculate_time_in_statuses(
     # If we're still in a tracked status, calculate time up to now
     if current_status in status_list and current_start:
         try:
-            from datetime import timezone
 
-            now = datetime.now(timezone.utc)
+            now = datetime.now(UTC)
             start_time = datetime.fromisoformat(current_start.replace("Z", "+00:00"))
             duration_hours = (now - start_time).total_seconds() / 3600
             if duration_hours > 0:
@@ -785,10 +784,10 @@ def _calculate_time_in_statuses(
 
 
 def calculate_flow_efficiency(
-    issues: List[Dict],
+    issues: list[dict],
     time_period_days: int = 7,
-    previous_period_value: Optional[float] = None,
-) -> Dict[str, Any]:
+    previous_period_value: float | None = None,
+) -> dict[str, Any]:
     """Calculate Flow Efficiency - ratio of active time to total time.
 
     Flow Efficiency = (Active Time / Total Time) * 100
@@ -895,10 +894,10 @@ def calculate_flow_efficiency(
 
 
 def calculate_flow_load(
-    issues: List[Dict],
+    issues: list[dict],
     time_period_days: int = 7,
-    previous_period_value: Optional[float] = None,
-) -> Dict[str, Any]:
+    previous_period_value: float | None = None,
+) -> dict[str, Any]:
     """Calculate Flow Load - number of work items currently in progress (WIP).
 
     Flow Load measures the current workload on the team. Lower WIP generally
@@ -964,10 +963,10 @@ def calculate_flow_load(
 
 
 def calculate_flow_distribution(
-    issues: List[Dict],
+    issues: list[dict],
     time_period_days: int = 7,
-    previous_period_value: Optional[Dict[str, float]] = None,
-) -> Dict[str, Any]:
+    previous_period_value: dict[str, float] | None = None,
+) -> dict[str, Any]:
     """Calculate Flow Distribution - breakdown of work by type.
 
     Flow Distribution shows the percentage of work allocated to Features, Bugs,

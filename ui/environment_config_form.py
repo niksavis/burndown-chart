@@ -4,8 +4,8 @@ Environment Configuration Form Component
 Provides UI for configuring production environment identifiers (multi-value support).
 """
 
-from dash import html, dcc
 import dash_bootstrap_components as dbc
+from dash import dcc, html
 
 
 def create_environment_config_form(

@@ -14,8 +14,8 @@ Key Features:
 """
 
 import logging
-from typing import Dict, List, Optional, Any
 from dataclasses import dataclass
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -28,10 +28,10 @@ class HelpContent:
     summary: str
     content: str
     level: str  # "beginner", "intermediate", "advanced"
-    tags: List[str]
-    related_topics: List[str]
-    examples: Optional[List[Dict[str, str]]] = None
-    troubleshooting: Optional[List[Dict[str, str]]] = None
+    tags: list[str]
+    related_topics: list[str]
+    examples: list[dict[str, str]] | None = None
+    troubleshooting: list[dict[str, str]] | None = None
 
 
 # ============================================================================
@@ -40,8 +40,8 @@ class HelpContent:
 
 
 def get_contextual_documentation(
-    setup_step: str, setup_status: Dict[str, Any], user_level: str = "beginner"
-) -> Dict[str, Any]:
+    setup_step: str, setup_status: dict[str, Any], user_level: str = "beginner"
+) -> dict[str, Any]:
     """Get contextual documentation for current setup step (T008).
 
     Args:
@@ -67,7 +67,7 @@ def get_contextual_documentation(
     return current_docs
 
 
-def _get_profile_creation_docs(user_level: str) -> Dict[str, Any]:
+def _get_profile_creation_docs(user_level: str) -> dict[str, Any]:
     """Documentation for profile creation step."""
     if user_level == "beginner":
         return {
@@ -133,8 +133,8 @@ def _get_profile_creation_docs(user_level: str) -> Dict[str, Any]:
 
 
 def _get_jira_connection_docs(
-    user_level: str, setup_status: Dict[str, Any]
-) -> Dict[str, Any]:
+    user_level: str, setup_status: dict[str, Any]
+) -> dict[str, Any]:
     """Documentation for JIRA connection step."""
     base_docs = {
         "title": "Connecting to JIRA",
@@ -186,8 +186,8 @@ def _get_jira_connection_docs(
 
 
 def _get_field_mapping_docs(
-    user_level: str, setup_status: Dict[str, Any]
-) -> Dict[str, Any]:
+    user_level: str, setup_status: dict[str, Any]
+) -> dict[str, Any]:
     """Documentation for field mapping step."""
     return {
         "title": " Mapping JIRA Fields",
@@ -226,8 +226,8 @@ def _get_field_mapping_docs(
 
 
 def _get_query_creation_docs(
-    user_level: str, setup_status: Dict[str, Any]
-) -> Dict[str, Any]:
+    user_level: str, setup_status: dict[str, Any]
+) -> dict[str, Any]:
     """Documentation for query creation step."""
     jira_connected = setup_status.get("jira_connected", False)
 
@@ -281,7 +281,7 @@ def _get_query_creation_docs(
     return docs
 
 
-def _get_default_docs() -> Dict[str, Any]:
+def _get_default_docs() -> dict[str, Any]:
     """Default documentation when step is unknown."""
     return {
         "title": "Setup Guide",
@@ -297,8 +297,8 @@ def _get_default_docs() -> Dict[str, Any]:
 
 
 def _enhance_docs_with_context(
-    docs: Dict[str, Any], setup_status: Dict[str, Any], user_level: str
-) -> Dict[str, Any]:
+    docs: dict[str, Any], setup_status: dict[str, Any], user_level: str
+) -> dict[str, Any]:
     """Enhance documentation with contextual information."""
     # Add progress indicator
     completed_steps = sum(
@@ -325,8 +325,8 @@ def _enhance_docs_with_context(
 
 
 def _get_next_action_guidance(
-    current_step: str, setup_status: Dict[str, Any]
-) -> Dict[str, str]:
+    current_step: str, setup_status: dict[str, Any]
+) -> dict[str, str]:
     """Get guidance for next action based on current step."""
     actions = {
         "profile_creation": {
@@ -365,8 +365,8 @@ def _get_next_action_guidance(
 
 
 def get_tooltip_content(
-    element_id: str, context: Dict[str, Any]
-) -> Optional[Dict[str, str]]:
+    element_id: str, context: dict[str, Any]
+) -> dict[str, str] | None:
     """Get tooltip content for UI elements (T008).
 
     Args:
@@ -402,7 +402,7 @@ def get_tooltip_content(
     return tooltips.get(element_id)
 
 
-def get_guided_tour_steps(setup_status: Dict[str, Any]) -> List[Dict[str, Any]]:
+def get_guided_tour_steps(setup_status: dict[str, Any]) -> list[dict[str, Any]]:
     """Get guided tour steps based on current setup progress (T008).
 
     Args:
@@ -472,7 +472,7 @@ def get_guided_tour_steps(setup_status: Dict[str, Any]) -> List[Dict[str, Any]]:
 # ============================================================================
 
 
-def get_mobile_help_content(setup_step: str) -> Dict[str, Any]:
+def get_mobile_help_content(setup_step: str) -> dict[str, Any]:
     """Get mobile-optimized help content (T008).
 
     Args:
@@ -527,7 +527,7 @@ def get_mobile_help_content(setup_step: str) -> Dict[str, Any]:
     )
 
 
-def generate_help_search_index() -> Dict[str, List[str]]:
+def generate_help_search_index() -> dict[str, list[str]]:
     """Generate search index for help content (T008).
 
     Returns:

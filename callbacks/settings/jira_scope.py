@@ -78,8 +78,8 @@ def _load_and_validate_jira_config(jql_query: str) -> tuple:
     Returns:
         Tuple of (jira_config dict or None, ui_config dict)
     """
-    from data.persistence import load_jira_configuration
     from data.jira import construct_jira_endpoint
+    from data.persistence import load_jira_configuration
 
     jira_config = load_jira_configuration()
 

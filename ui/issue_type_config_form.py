@@ -4,9 +4,10 @@ Issue Type Configuration Form Component
 Provides UI for configuring JIRA issue type mappings for DORA and Flow metrics.
 """
 
-from dash import html, dcc
-import dash_bootstrap_components as dbc
 import logging
+
+import dash_bootstrap_components as dbc
+from dash import dcc, html
 
 logger = logging.getLogger(__name__)
 
@@ -65,7 +66,7 @@ def create_issue_type_config_form(
             issue_type_options.append({"label": issue_type, "value": issue_type})
 
     # Add flow type issue types to options
-    for flow_type, config in flow_type_mappings.items():
+    for _flow_type, config in flow_type_mappings.items():
         # Skip if config is None (can happen with incomplete mappings)
         if config is None:
             continue
@@ -91,7 +92,7 @@ def create_issue_type_config_form(
 
     # Add current effort categories to options if not present
     existing_categories = set(available_effort_categories)
-    for flow_type, config in flow_type_mappings.items():
+    for _flow_type, config in flow_type_mappings.items():
         # Skip if config is None (can happen with incomplete mappings)
         if config is None:
             continue

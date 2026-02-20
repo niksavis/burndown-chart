@@ -98,12 +98,12 @@ def create_parameter_bar_collapsed(
     query_icon_class = "fas fa-search me-1"
 
     try:
-        from pathlib import Path
         import json
+        from pathlib import Path
 
         progress_file = Path("task_progress.json")
         if progress_file.exists():
-            with open(progress_file, "r", encoding="utf-8") as f:
+            with open(progress_file, encoding="utf-8") as f:
                 progress_data = json.load(f)
 
             status = progress_data.get("status", "idle")

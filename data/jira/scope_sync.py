@@ -11,7 +11,7 @@ This module handles the main JIRA data synchronization and scope calculation:
 """
 
 import logging
-from typing import Dict, Tuple
+from datetime import UTC
 from pathlib import Path
 
 logger = logging.getLogger(__name__)
@@ -19,9 +19,9 @@ logger = logging.getLogger(__name__)
 
 def sync_jira_scope_and_data(
     jql_query: str | None = None,
-    ui_config: Dict | None = None,
+    ui_config: dict | None = None,
     force_refresh: bool = False,
-) -> Tuple[bool, str, Dict]:
+) -> tuple[bool, str, dict]:
     """
     Main sync function to get JIRA scope calculation and replace CSV data.
 
@@ -34,16 +34,18 @@ def sync_jira_scope_and_data(
         Tuple of (success, message, scope_data)
     """
     # Import TaskProgress at function level to avoid "possibly unbound" errors
-    from data.task_progress import TaskProgress
+    from data.jira.cache_validator import (
+        invalidate_changelog_cache,
+        validate_cache_file,
+    )
+    from data.jira.changelog_fetcher import fetch_changelog_on_demand
     from data.jira.config import get_jira_config, validate_jira_config
-    from data.jira.cache_validator import validate_cache_file
+    from data.jira.data_transformer import jira_to_csv_format
     from data.jira.field_utils import extract_jira_field_id
     from data.jira.main_fetch import fetch_jira_issues
-    from data.jira.changelog_fetcher import fetch_changelog_on_demand
     from data.jira.scope_calculator import calculate_jira_project_scope
-    from data.jira.data_transformer import jira_to_csv_format
-    from data.jira.cache_validator import invalidate_changelog_cache
     from data.persistence import save_jira_data_unified
+    from data.task_progress import TaskProgress
 
     try:
         # CRITICAL: Log function entry to verify code is being executed
@@ -121,9 +123,9 @@ def sync_jira_scope_and_data(
         # field_mappings has structure: {"dora": {"field_name": "field_id"}, "flow": {...}}
         # CRITICAL: Strip =Value filter syntax (e.g., "customfield_11309=PROD" -> "customfield_11309")
         field_mappings = config.get("field_mappings", {})
-        for category, mappings in field_mappings.items():
+        for _category, mappings in field_mappings.items():
             if isinstance(mappings, dict):
-                for field_name, field_id in mappings.items():
+                for _field_name, field_id in mappings.items():
                     # Extract clean field ID (strips =Value filter, skips changelog syntax)
                     clean_field_id = extract_jira_field_id(field_id)
                     if clean_field_id and clean_field_id not in base_fields:
@@ -148,8 +150,8 @@ def sync_jira_scope_and_data(
             # CRITICAL: Clear database cache for this query on force refresh
             # This ensures old issues that no longer match the JQL are removed
             try:
-                from data.persistence.factory import get_backend
                 from data.database import get_db_connection
+                from data.persistence.factory import get_backend
 
                 backend = get_backend()
                 active_profile_id = backend.get_app_state("active_profile_id")
@@ -301,9 +303,10 @@ def sync_jira_scope_and_data(
             if last_delta_count == "0":
                 # Check if field mappings have changed since last update
                 # If they have, we MUST recalculate metrics even with no new data
-                from data.persistence import load_app_settings
                 import hashlib
                 import json
+
+                from data.persistence import load_app_settings
 
                 current_settings = load_app_settings()
                 # Hash ALL settings that affect metrics calculation
@@ -399,9 +402,9 @@ def sync_jira_scope_and_data(
             if active_profile_id and active_query_id:
                 # Save ALL issues to database (including DevOps projects)
                 # DevOps filtering happens later for statistics calculation
-                from datetime import datetime, timedelta, timezone
+                from datetime import datetime, timedelta
 
-                utc_now = datetime.now(timezone.utc)
+                utc_now = datetime.now(UTC)
                 expires_at = utc_now + timedelta(hours=24)
                 cache_key = f"issues:{active_profile_id}:{active_query_id}"
 
@@ -603,8 +606,8 @@ def sync_jira_scope_and_data(
 
 
 def sync_jira_data(
-    jql_query: str | None = None, ui_config: Dict | None = None
-) -> Tuple[bool, str]:
+    jql_query: str | None = None, ui_config: dict | None = None
+) -> tuple[bool, str]:
     """Legacy sync function - calls new scope sync and returns just success/message."""
     try:
         success, message, scope_data = sync_jira_scope_and_data(jql_query, ui_config)

@@ -14,7 +14,6 @@ import json
 import logging
 import traceback
 import uuid
-from typing import Dict
 
 # Third-party library imports
 import dash_bootstrap_components as dbc
@@ -23,10 +22,10 @@ from dash import html
 # Application imports
 from ui.button_utils import create_button
 from ui.icon_utils import create_icon
-from ui.style_constants import SEMANTIC_COLORS, NEUTRAL_COLORS, rgb_to_rgba
+from ui.style_constants import NEUTRAL_COLORS, SEMANTIC_COLORS, rgb_to_rgba
 from ui.styles import (
-    get_color,
     create_heading_style,
+    get_color,
     get_font_size,
     get_font_weight,
 )
@@ -40,7 +39,7 @@ logger = logging.getLogger(__name__)
 
 def create_error_style(
     variant: str = "danger", background: bool = True
-) -> Dict[str, str]:
+) -> dict[str, str]:
     """
     Create a consistent error style dictionary.
 
@@ -51,7 +50,7 @@ def create_error_style(
     Returns:
         Dictionary with error styling properties
     """
-    base_style: Dict[str, str] = {
+    base_style: dict[str, str] = {
         "borderRadius": "0.375rem",
         "border": f"1px solid {get_color(variant)}",
     }

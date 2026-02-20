@@ -4,14 +4,13 @@ JIRA Issue Counter
 Fast issue counting without fetching full data (incremental fetch optimization).
 """
 
-from typing import Dict, Tuple
 
 import requests
 
 from configuration import logger
 
 
-def check_jira_issue_count(jql_query: str, config: Dict) -> Tuple[bool, int]:
+def check_jira_issue_count(jql_query: str, config: dict) -> tuple[bool, int]:
     """
     Fast check: Get issue count from JIRA without fetching full issue data.
 

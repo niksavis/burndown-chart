@@ -1,6 +1,5 @@
 """Test for show_points normalization function."""
 
-import pytest
 from callbacks.settings.helpers import normalize_show_points
 
 

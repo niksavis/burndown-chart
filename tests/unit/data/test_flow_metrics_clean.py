@@ -5,22 +5,24 @@ extraction from profile configuration.
 """
 
 import pytest
+
 from data.flow_metrics import (
-    calculate_flow_velocity,
-    calculate_flow_time,
+    _calculate_trend,
+    _normalize_work_type,
+    calculate_flow_distribution,
     calculate_flow_efficiency,
     calculate_flow_load,
-    calculate_flow_distribution,
-    _normalize_work_type,
-    _calculate_trend,
+    calculate_flow_time,
+    calculate_flow_velocity,
 )
 
 
 @pytest.fixture
 def test_profile(temp_database):
     """Create test profile in database with basic Flow metrics configuration."""
-    from data.persistence.factory import get_backend
     from datetime import datetime
+
+    from data.persistence.factory import get_backend
 
     backend = get_backend()
     profile_id = "test_flow_profile"

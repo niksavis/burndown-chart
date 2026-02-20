@@ -8,7 +8,7 @@ Designed for the comprehensive mappings configuration UI to enable generic JIRA 
 """
 
 import logging
-from typing import Dict, List, Optional
+
 import requests
 
 logger = logging.getLogger(__name__)
@@ -34,13 +34,13 @@ class JiraMetadataFetcher:
             self.headers["Authorization"] = f"Bearer {jira_token}"
 
         # Session-level cache
-        self._fields_cache: Optional[List[Dict]] = None
-        self._projects_cache: Optional[List[Dict]] = None
-        self._issue_types_cache: Optional[List[Dict]] = None
-        self._statuses_cache: Optional[List[Dict]] = None
-        self._field_options_cache: Dict[str, List[str]] = {}
+        self._fields_cache: list[dict] | None = None
+        self._projects_cache: list[dict] | None = None
+        self._issue_types_cache: list[dict] | None = None
+        self._statuses_cache: list[dict] | None = None
+        self._field_options_cache: dict[str, list[str]] = {}
 
-    def fetch_fields(self, force_refresh: bool = False) -> List[Dict]:
+    def fetch_fields(self, force_refresh: bool = False) -> list[dict]:
         """
         Fetch all available JIRA fields (standard and custom).
 
@@ -79,7 +79,7 @@ class JiraMetadataFetcher:
             logger.error(f"[JIRA] Failed to fetch fields: {e}")
             return []
 
-    def fetch_projects(self, force_refresh: bool = False) -> List[Dict]:
+    def fetch_projects(self, force_refresh: bool = False) -> list[dict]:
         """
         Fetch all accessible JIRA projects.
 
@@ -117,7 +117,7 @@ class JiraMetadataFetcher:
             logger.error(f"[JIRA] Failed to fetch projects: {e}")
             return []
 
-    def fetch_issue_types(self, force_refresh: bool = False) -> List[Dict]:
+    def fetch_issue_types(self, force_refresh: bool = False) -> list[dict]:
         """
         Fetch all available JIRA issue types.
 
@@ -156,7 +156,7 @@ class JiraMetadataFetcher:
             logger.error(f"[JIRA] Failed to fetch issue types: {e}")
             return []
 
-    def fetch_statuses(self, force_refresh: bool = False) -> List[Dict]:
+    def fetch_statuses(self, force_refresh: bool = False) -> list[dict]:
         """
         Fetch all available JIRA workflow statuses.
 
@@ -199,7 +199,7 @@ class JiraMetadataFetcher:
 
     def fetch_field_options(
         self, field_id: str, force_refresh: bool = False
-    ) -> List[str]:
+    ) -> list[str]:
         """
         Fetch possible values for a select list field.
 
@@ -365,12 +365,12 @@ class JiraMetadataFetcher:
         # Fallback 1: Try to extract from cached JIRA data (FAST - no API calls)
         logger.info(f"[JIRA] Trying to extract {field_id} values from jira_cache.json")
         try:
-            import os
             import json
+            import os
 
             cache_file = "jira_cache.json"
             if os.path.exists(cache_file):
-                with open(cache_file, "r", encoding="utf-8") as f:
+                with open(cache_file, encoding="utf-8") as f:
                     cache_data = json.load(f)
 
                 issues = cache_data.get("issues", [])
@@ -445,7 +445,7 @@ class JiraMetadataFetcher:
 
     def _fetch_field_values_from_issues(
         self, field_id: str, max_results: int = 1000, scoped: bool = True
-    ) -> List[str]:
+    ) -> list[str]:
         """
         Extract unique values for a field from actual JIRA issues.
 
@@ -612,8 +612,8 @@ class JiraMetadataFetcher:
             return []
 
     def auto_detect_devops_projects(
-        self, projects: List[Dict], issue_types: List[Dict]
-    ) -> List[str]:
+        self, projects: list[dict], issue_types: list[dict]
+    ) -> list[str]:
         """
         Auto-detect projects that likely contain DevOps tasks.
 
@@ -644,7 +644,7 @@ class JiraMetadataFetcher:
         logger.info(f"[JIRA] Found potential DevOps issue types: {devops_type_names}")
         return []
 
-    def auto_detect_issue_types(self, issue_types: List[Dict]) -> Dict[str, List[str]]:
+    def auto_detect_issue_types(self, issue_types: list[dict]) -> dict[str, list[str]]:
         """
         Auto-detect and categorize issue types based on common patterns.
 
@@ -683,7 +683,7 @@ class JiraMetadataFetcher:
         logger.info(f"[JIRA] Auto-detected issue type categories: {categories}")
         return categories
 
-    def auto_detect_statuses(self, statuses: List[Dict]) -> Dict[str, List[str]]:
+    def auto_detect_statuses(self, statuses: list[dict]) -> dict[str, list[str]]:
         """
         Auto-detect and categorize statuses based on status categories.
 
@@ -717,7 +717,7 @@ class JiraMetadataFetcher:
         logger.info(f"[JIRA] Auto-detected status categories: {categories}")
         return categories
 
-    def auto_detect_production_identifiers(self, field_options: List[str]) -> List[str]:
+    def auto_detect_production_identifiers(self, field_options: list[str]) -> list[str]:
         """
         Auto-detect production environment identifiers from field values.
 

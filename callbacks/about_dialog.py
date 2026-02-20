@@ -10,7 +10,6 @@ and clientside license search/filter functionality.
 #######################################################################
 from dash import Input, Output, State, callback, clientside_callback
 
-
 #######################################################################
 # CALLBACKS
 #######################################################################

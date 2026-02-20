@@ -13,12 +13,11 @@ to actual development work through fixVersions.
 """
 
 import time
-from typing import Dict, List, Tuple
 
 from configuration import logger
 
 
-def should_use_two_phase_fetch(config: Dict) -> Tuple[bool, str]:
+def should_use_two_phase_fetch(config: dict) -> tuple[bool, str]:
     """
     Determine if two-phase fetch should be used based on configuration.
 
@@ -58,7 +57,7 @@ def should_use_two_phase_fetch(config: Dict) -> Tuple[bool, str]:
     )
 
 
-def extract_fixversions_from_issues(issues: List[Dict]) -> List[str]:
+def extract_fixversions_from_issues(issues: list[dict]) -> list[str]:
     """
     Extract all unique fixVersion names from development issues.
 
@@ -86,9 +85,9 @@ def extract_fixversions_from_issues(issues: List[Dict]) -> List[str]:
 
 
 def build_devops_jql(
-    devops_projects: List[str],
-    devops_task_types: List[str],
-    fixversion_names: List[str],
+    devops_projects: list[str],
+    devops_task_types: list[str],
+    fixversion_names: list[str],
 ) -> str:
     """
     Build JQL query for fetching DevOps issues with fixVersion filter.
@@ -152,11 +151,11 @@ def build_devops_jql(
 
 
 def fetch_jira_issues_two_phase(
-    config: Dict,
+    config: dict,
     max_results: int | None = None,
     force_refresh: bool = False,
     fetch_paginated_func=None,
-) -> Tuple[bool, List[Dict]]:
+) -> tuple[bool, list[dict]]:
     """
     Execute two-phase JIRA fetch: Development first, then DevOps with fixVersion filter.
 

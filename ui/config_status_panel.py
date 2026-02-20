@@ -5,12 +5,13 @@ Shows dependency-first setup progress with progressive unlock indicators.
 Displays current status for Profile → JIRA → Fields → Queries chain.
 """
 
+from typing import Any
+
 import dash_bootstrap_components as dbc
-from dash import html, dcc
-from typing import Dict, Any, Optional
+from dash import dcc, html
 
 
-def get_action_button_config(action: str) -> Optional[Dict[str, str]]:
+def get_action_button_config(action: str) -> dict[str, str] | None:
     """Get configuration for action buttons.
 
     Args:
@@ -42,7 +43,7 @@ def get_action_button_config(action: str) -> Optional[Dict[str, str]]:
     return config_map.get(action, None)
 
 
-def create_setup_progress_display(config_status: Dict[str, Dict]) -> html.Div:
+def create_setup_progress_display(config_status: dict[str, dict]) -> html.Div:
     """Create progress display showing current configuration status.
 
     Args:
@@ -113,7 +114,7 @@ def create_setup_progress_display(config_status: Dict[str, Dict]) -> html.Div:
 
 
 def create_step_indicator(
-    step_id: str, step_name: str, step_status: Dict[str, Any]
+    step_id: str, step_name: str, step_status: dict[str, Any]
 ) -> html.Div:
     """Create individual step indicator.
 
@@ -252,7 +253,7 @@ def create_config_status_panel() -> html.Div:
     )
 
 
-def get_section_classes(config_status: Dict[str, Dict]) -> Dict[str, str]:
+def get_section_classes(config_status: dict[str, dict]) -> dict[str, str]:
     """Get CSS classes for each configuration section based on status.
 
     Args:

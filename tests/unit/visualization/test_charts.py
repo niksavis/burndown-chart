@@ -5,20 +5,21 @@ This module contains tests for functions that prepare data for
 visualization and generate burndown/burnup chart data.
 """
 
-import unittest
-import pandas as pd
-import numpy as np
-from datetime import datetime, timedelta
 import sys
+import unittest
+from datetime import datetime, timedelta
 from pathlib import Path
+
+import numpy as np
+import pandas as pd
 
 # Add the project root to the Python path so we can import the application modules
 sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent))
 
 # Import the functions to test
 from visualization.data_preparation import (
-    prepare_visualization_data,
     generate_burndown_forecast,
+    prepare_visualization_data,
 )
 
 
@@ -363,8 +364,9 @@ class TestGenerateBurndownForecast(unittest.TestCase):
 
     def test_burnup_burndown_consistency(self):
         """Test that burnup and burndown forecasts are consistent."""
-        from visualization.data_preparation import prepare_visualization_data
         import logging
+
+        from visualization.data_preparation import prepare_visualization_data
 
         # Set up a logger for diagnostics
         logger = logging.getLogger("test_burnup_burndown")

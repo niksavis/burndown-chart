@@ -7,8 +7,8 @@ This module provides functions to create metric display cards with support for:
 - Responsive design (mobile-first)
 """
 
-from typing import Any, Dict, List, Optional
 import logging
+from typing import Any
 
 import dash_bootstrap_components as dbc
 from dash import html
@@ -57,7 +57,7 @@ def _get_flow_performance_tier_color_hex(metric_name: str, value: float) -> str:
 
 
 def _create_mini_bar_sparkline(
-    data: List[float], color: str, height: int = 40
+    data: list[float], color: str, height: int = 40
 ) -> html.Div:
     """Create a mini CSS-based bar sparkline for inline trend display.
 
@@ -101,8 +101,8 @@ def _create_mini_bar_sparkline(
 
 
 def create_forecast_section(
-    forecast_data: Optional[Dict[str, Any]],
-    trend_vs_forecast: Optional[Dict[str, Any]],
+    forecast_data: dict[str, Any] | None,
+    trend_vs_forecast: dict[str, Any] | None,
     metric_name: str,
     unit: str,
 ) -> html.Div:
@@ -286,8 +286,8 @@ def _get_metric_explanation(metric_name: str) -> str:
 
 
 def _get_metric_relationship_hint(
-    metric_name: str, value: Optional[float], metric_data: Dict[str, Any]
-) -> Optional[str]:
+    metric_name: str, value: float | None, metric_data: dict[str, Any]
+) -> str | None:
     """Get relationship hint showing how this metric affects others.
 
     These hints explain universal relationships between metrics and are shown
@@ -350,8 +350,8 @@ def _get_metric_relationship_hint(
 
 
 def _get_action_prompt(
-    metric_name: str, value: Optional[float], metric_data: Dict[str, Any]
-) -> Optional[str]:
+    metric_name: str, value: float | None, metric_data: dict[str, Any]
+) -> str | None:
     """Get actionable guidance when metrics are concerning.
 
     Args:
@@ -413,10 +413,10 @@ def _get_action_prompt(
 def _create_detailed_chart(
     metric_name: str,
     display_name: str,
-    weekly_labels: List[str],
-    weekly_values: List[float],
-    weekly_values_adjusted: Optional[List[float]],
-    metric_data: Dict[str, Any],
+    weekly_labels: list[str],
+    weekly_values: list[float],
+    weekly_values_adjusted: list[float] | None,
+    metric_data: dict[str, Any],
     sparkline_color: str,
 ) -> Any:
     """Create detailed chart for metric card collapse section.
@@ -438,12 +438,12 @@ def _create_detailed_chart(
         Div containing chart and optional details table
     """
     # Import visualization functions needed for chart creation
+    from visualization.flow_charts import create_flow_efficiency_trend_chart
     from visualization.metric_trends import (
-        create_metric_trend_sparkline,
         create_dual_line_trend,
         create_metric_trend_full,
+        create_metric_trend_sparkline,
     )
-    from visualization.flow_charts import create_flow_efficiency_trend_chart
 
     # Special case 1: deployment_frequency with release tracking
     if metric_name == "deployment_frequency" and "weekly_release_values" in metric_data:
@@ -513,13 +513,14 @@ def _create_detailed_chart(
         )
     elif metric_name == "flow_efficiency":
         # Phase 2.2: Use specialized Flow Efficiency chart with health zones
-        from visualization.flow_charts import create_flow_efficiency_trend_chart
         from dash import dcc
+
+        from visualization.flow_charts import create_flow_efficiency_trend_chart
 
         # Convert data format for flow_charts function (expects {date, value})
         trend_data = [
             {"date": week, "value": value}
-            for week, value in zip(weekly_labels, weekly_values)
+            for week, value in zip(weekly_labels, weekly_values, strict=False)
         ]
 
         # Calculate performance tier color based on most recent value
@@ -543,13 +544,14 @@ def _create_detailed_chart(
         )
     elif metric_name == "flow_load":
         # Use specialized Flow Load chart with dynamic WIP thresholds and tier-based color
-        from visualization.flow_charts import create_flow_load_trend_chart
         from dash import dcc
+
+        from visualization.flow_charts import create_flow_load_trend_chart
 
         # Convert data format for flow_charts function (expects {date, value})
         trend_data = [
             {"date": week, "value": value}
-            for week, value in zip(weekly_labels, weekly_values)
+            for week, value in zip(weekly_labels, weekly_values, strict=False)
         ]
 
         # Extract WIP thresholds from metric_data (if calculated)
@@ -608,10 +610,10 @@ def _create_detailed_chart(
 
 
 def _create_deployment_details_table(
-    metric_data: Dict[str, Any],
-    weekly_labels: List[str],
-    weekly_deployments: List[float],
-    weekly_releases: List[float],
+    metric_data: dict[str, Any],
+    weekly_labels: list[str],
+    weekly_deployments: list[float],
+    weekly_releases: list[float],
 ) -> html.Div:
     """Create details table showing release names per week.
 
@@ -728,11 +730,11 @@ def _create_deployment_details_table(
 
 def create_metric_card(
     metric_data: dict,
-    card_id: Optional[str] = None,
-    forecast_data: Optional[Dict[str, Any]] = None,
-    trend_vs_forecast: Optional[Dict[str, Any]] = None,
+    card_id: str | None = None,
+    forecast_data: dict[str, Any] | None = None,
+    trend_vs_forecast: dict[str, Any] | None = None,
     show_details_button: bool = True,
-    text_details: Optional[List[Any]] = None,
+    text_details: list[Any] | None = None,
 ) -> dbc.Card:
     """Create a metric display card.
 
@@ -789,11 +791,11 @@ def create_metric_card(
 
 def _create_success_card(
     metric_data: dict,
-    card_id: Optional[str],
-    forecast_data: Optional[Dict[str, Any]] = None,
-    trend_vs_forecast: Optional[Dict[str, Any]] = None,
+    card_id: str | None,
+    forecast_data: dict[str, Any] | None = None,
+    trend_vs_forecast: dict[str, Any] | None = None,
     show_details_button: bool = True,
-    text_details: Optional[List[Any]] = None,
+    text_details: list[Any] | None = None,
 ) -> dbc.Card:
     """Create card for successful metric calculation.
 
@@ -1095,7 +1097,7 @@ def _create_success_card(
     else:
         badge_with_tooltip = badge_element
 
-    header_children: List[Any] = [
+    header_children: list[Any] = [
         html.Div(
             [
                 title_element,
@@ -1485,7 +1487,7 @@ def _create_success_card(
     return dbc.Card([card_header, card_body, card_footer], **card_props)  # type: ignore[call-arg]
 
 
-def _create_error_card(metric_data: dict, card_id: Optional[str]) -> dbc.Card:
+def _create_error_card(metric_data: dict, card_id: str | None) -> dbc.Card:
     """Create card for error state with actionable guidance.
 
     Updated to match h-100 layout of success cards for consistent card heights.
@@ -1690,7 +1692,7 @@ def create_loading_card(metric_name: str) -> dbc.Card:
 
 
 def create_metric_cards_grid(
-    metrics_data: Dict[str, dict], tooltips: Optional[Dict[str, str]] = None
+    metrics_data: dict[str, dict], tooltips: dict[str, str] | None = None
 ) -> dbc.Row:
     """Create a responsive grid of metric cards.
 

@@ -12,7 +12,7 @@ Design Philosophy:
 """
 
 from datetime import datetime
-from typing import Dict, Any, Optional
+from typing import Any
 
 
 def _build_image_filename(prefix: str) -> str:
@@ -26,12 +26,12 @@ def _build_image_filename(prefix: str) -> str:
 
 def get_chart_config(
     responsive: bool = True,
-    display_mode_bar: Optional[bool] = None,
+    display_mode_bar: bool | None = None,
     display_logo: bool = False,
     mobile_friendly: bool = True,
-    filename_prefix: Optional[str] = None,
+    filename_prefix: str | None = None,
     **kwargs,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Get standardized chart configuration for Plotly figures.
 
@@ -104,14 +104,14 @@ def get_chart_config(
 
 
 def get_chart_layout_config(
-    height: Optional[int] = None,
-    margin: Optional[Dict[str, int]] = None,
+    height: int | None = None,
+    margin: dict[str, int] | None = None,
     font_size: int = 12,
     show_legend: bool = True,
     legend_position: str = "top",
     mobile_optimized: bool = True,
     **kwargs,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Get standardized chart layout configuration.
 
@@ -221,7 +221,7 @@ def get_chart_layout_config(
 
 def get_burndown_chart_config(
     filename_prefix: str = "burndown_chart",
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Get preset config for burndown/burnup charts."""
     return get_chart_config(
         display_mode_bar=True,
@@ -236,7 +236,7 @@ def get_burndown_chart_config(
 
 def get_weekly_chart_config(
     filename_prefix: str = "weekly_chart",
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Get preset config for weekly items/points bar charts."""
     return get_chart_config(
         display_mode_bar=True,
@@ -251,7 +251,7 @@ def get_weekly_chart_config(
 
 def get_scope_metrics_chart_config(
     filename_prefix: str = "scope_metrics",
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Get preset config for scope metrics indicator charts."""
     return get_chart_config(
         display_mode_bar=True,
@@ -266,7 +266,7 @@ def get_scope_metrics_chart_config(
 
 def get_bug_analysis_chart_config(
     filename_prefix: str = "bug_analysis",
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Get preset config for bug analysis charts."""
     return get_chart_config(
         display_mode_bar=True,
@@ -284,7 +284,7 @@ def get_bug_analysis_chart_config(
 #######################################################################
 
 
-def is_mobile_viewport(width: Optional[int] = None) -> bool:
+def is_mobile_viewport(width: int | None = None) -> bool:
     """
     Determine if viewport is mobile-sized.
 

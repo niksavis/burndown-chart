@@ -7,8 +7,9 @@ Tests verify that:
 3. Database handles cascade deletion via foreign keys
 """
 
+from datetime import UTC, datetime
+
 import pytest
-from datetime import datetime, timezone
 
 
 class TestProfileCascadeDeletion:
@@ -24,7 +25,7 @@ class TestProfileCascadeDeletion:
         from data.profile_manager import _generate_unique_profile_id
 
         backend = get_backend()
-        fixed_timestamp = datetime(2026, 1, 1, 0, 0, 0, tzinfo=timezone.utc).isoformat()
+        fixed_timestamp = datetime(2026, 1, 1, 0, 0, 0, tzinfo=UTC).isoformat()
 
         # Generate hash-based profile IDs
         kafka_id = _generate_unique_profile_id()
@@ -110,8 +111,8 @@ class TestProfileCascadeDeletion:
         Verify delete_profile removes profile and all queries.
         Uses SQLite database backend via temp_database fixture.
         """
-        from data.profile_manager import delete_profile
         from data.persistence.factory import get_backend
+        from data.profile_manager import delete_profile
 
         backend = get_backend()
         spark_id = temp_profiles_with_data["spark_id"]
@@ -139,8 +140,8 @@ class TestProfileCascadeDeletion:
         Verify deleting active profile auto-switches to another profile first.
         Uses SQLite database backend via temp_database fixture.
         """
-        from data.profile_manager import delete_profile
         from data.persistence.factory import get_backend
+        from data.profile_manager import delete_profile
 
         backend = get_backend()
         kafka_id = temp_profiles_with_data["kafka_id"]
@@ -169,8 +170,8 @@ class TestProfileCascadeDeletion:
         Verify can delete last remaining profile (clears active_profile_id).
         Uses SQLite database backend via temp_database fixture.
         """
-        from data.profile_manager import delete_profile
         from data.persistence.factory import get_backend
+        from data.profile_manager import delete_profile
 
         backend = get_backend()
         spark_id = temp_profiles_with_data["spark_id"]
@@ -228,8 +229,8 @@ class TestProfileCascadeDeletion:
         Verify database update is atomic.
         Uses SQLite database backend via temp_database fixture.
         """
-        from data.profile_manager import delete_profile
         from data.persistence.factory import get_backend
+        from data.profile_manager import delete_profile
 
         backend = get_backend()
         spark_id = temp_profiles_with_data["spark_id"]
@@ -260,7 +261,7 @@ class TestCascadeDeletionEdgeCases:
         from data.profile_manager import _generate_unique_profile_id
 
         backend = get_backend()
-        fixed_timestamp = datetime(2026, 1, 1, 0, 0, 0, tzinfo=timezone.utc).isoformat()
+        fixed_timestamp = datetime(2026, 1, 1, 0, 0, 0, tzinfo=UTC).isoformat()
 
         # Generate profile IDs
         default_id = _generate_unique_profile_id()
@@ -314,8 +315,8 @@ class TestCascadeDeletionEdgeCases:
         Verify cascade deletion handles profiles with many queries efficiently.
         Uses SQLite database backend via temp_database fixture.
         """
-        from data.profile_manager import delete_profile
         from data.persistence.factory import get_backend
+        from data.profile_manager import delete_profile
 
         backend = get_backend()
         bulk_test_id = temp_profile_with_many_queries["bulk_test_id"]

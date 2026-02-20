@@ -14,9 +14,9 @@ Workflow:
 
 import logging
 from datetime import datetime
-from typing import Dict, Any, Optional, Tuple
+from typing import Any
 
-from dash import callback, Output, Input, State, ctx, no_update
+from dash import Input, Output, State, callback, ctx, no_update
 from dash.exceptions import PreventUpdate
 
 logger = logging.getLogger(__name__)
@@ -42,8 +42,8 @@ logger = logging.getLogger(__name__)
 )
 def detect_jql_changes(
     current_jql: str,
-    state: Dict[str, Any],
-) -> Tuple:
+    state: dict[str, Any],
+) -> tuple:
     """
     Detect JQL editor changes and update UI state.
 
@@ -127,10 +127,10 @@ def detect_jql_changes(
     prevent_initial_call=True,
 )
 def handle_query_dropdown_change(
-    selected_query_id: Optional[str],
-    state: Dict[str, Any],
+    selected_query_id: str | None,
+    state: dict[str, Any],
     modal_is_open: bool,
-) -> Tuple:
+) -> tuple:
     """
     Handle query selection with unsaved changes check.
 
@@ -189,9 +189,9 @@ def handle_query_dropdown_change(
     prevent_initial_call=True,
 )
 def load_query_jql(
-    query_id: Optional[str],
-    state: Dict[str, Any],
-) -> Tuple:
+    query_id: str | None,
+    state: dict[str, Any],
+) -> tuple:
     """
     Load selected query's JQL into editor.
 
@@ -209,7 +209,7 @@ def load_query_jql(
         raise PreventUpdate
 
     try:
-        from data.query_manager import list_queries_for_profile, get_active_profile_id
+        from data.query_manager import get_active_profile_id, list_queries_for_profile
 
         # Load query data
         profile_id = get_active_profile_id()
@@ -246,7 +246,7 @@ def load_query_jql(
 
     except Exception as e:
         logger.error(f"Error loading query {query_id}: {e}")
-        raise PreventUpdate
+        raise PreventUpdate from e
 
 
 # ============================================================================
@@ -272,8 +272,8 @@ def handle_unsaved_changes_modal(
     save_clicks: int,
     discard_clicks: int,
     cancel_clicks: int,
-    pending_query_id: Optional[str],
-) -> Tuple:
+    pending_query_id: str | None,
+) -> tuple:
     """
     Handle unsaved changes modal button clicks.
 
@@ -326,8 +326,8 @@ def handle_unsaved_changes_modal(
 )
 def open_save_query_modal(
     n_clicks: int,
-    state: Dict[str, Any],
-) -> Tuple:
+    state: dict[str, Any],
+) -> tuple:
     """
     Open save query modal with current JQL and suggested name.
 
@@ -393,8 +393,8 @@ def save_query_confirm(
     n_clicks: int,
     query_name: str,
     save_mode: str,
-    state: Dict[str, Any],
-) -> Tuple:
+    state: dict[str, Any],
+) -> tuple:
     """
     Save query (update existing or create new).
 
@@ -416,9 +416,9 @@ def save_query_confirm(
     try:
         from data.query_manager import (
             create_query,
-            update_query,
-            list_queries_for_profile,
             get_active_profile_id,
+            list_queries_for_profile,
+            update_query,
         )
         from data.query_name_generator import validate_query_name
 
@@ -535,8 +535,8 @@ def cancel_save_query_modal(n_clicks: int) -> bool:
 )
 def revert_query_changes(
     n_clicks: int,
-    state: Dict[str, Any],
-) -> Tuple:
+    state: dict[str, Any],
+) -> tuple:
     """
     Revert JQL editor to last saved version.
 
@@ -578,8 +578,8 @@ def revert_query_changes(
 )
 def open_delete_query_modal(
     n_clicks: int,
-    state: Dict[str, Any],
-) -> Tuple:
+    state: dict[str, Any],
+) -> tuple:
     """
     Open delete query confirmation modal.
 
@@ -620,8 +620,8 @@ def open_delete_query_modal(
 )
 def confirm_delete_query(
     n_clicks: int,
-    state: Dict[str, Any],
-) -> Tuple:
+    state: dict[str, Any],
+) -> tuple:
     """
     Delete query and switch to first remaining query.
 
@@ -641,8 +641,8 @@ def confirm_delete_query(
     try:
         from data.query_manager import (
             delete_query,
-            list_queries_for_profile,
             get_active_profile_id,
+            list_queries_for_profile,
         )
 
         query_id = state.get("activeQueryId")
@@ -707,7 +707,7 @@ def confirm_delete_query(
 
     except Exception as e:
         logger.error(f"Error deleting query: {e}")
-        raise PreventUpdate
+        raise PreventUpdate from e
 
 
 # ============================================================================
@@ -740,7 +740,7 @@ def cancel_delete_query_modal(n_clicks: int) -> bool:
     Input("query-state-store", "data"),
     prevent_initial_call="initial_duplicate",  # Allow running on initial load with allow_duplicate
 )
-def initialize_query_dropdown(state: Dict[str, Any]) -> Tuple:
+def initialize_query_dropdown(state: dict[str, Any]) -> tuple:
     """
     Initialize query dropdown with queries from active profile.
 
@@ -753,7 +753,7 @@ def initialize_query_dropdown(state: Dict[str, Any]) -> Tuple:
         Tuple of (dropdown_options, selected_value)
     """
     try:
-        from data.query_manager import list_queries_for_profile, get_active_profile_id
+        from data.query_manager import get_active_profile_id, list_queries_for_profile
 
         profile_id = get_active_profile_id()
         if not profile_id:

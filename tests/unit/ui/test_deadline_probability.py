@@ -5,9 +5,10 @@ This module verifies that deadline probability calculations use
 correct normal distribution CDF and produce statistically valid results.
 """
 
-import pytest
 import sys
 from pathlib import Path
+
+import pytest
 from scipy import stats
 
 # Add project root to path

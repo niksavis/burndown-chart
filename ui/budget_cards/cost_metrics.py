@@ -13,7 +13,7 @@ Created: January 30, 2026 (extracted from budget_cards.py)
 """
 
 import logging
-from typing import Any, Dict, Optional
+from typing import Any
 
 import dash_bootstrap_components as dbc
 from dash import html
@@ -25,11 +25,11 @@ logger = logging.getLogger(__name__)
 
 def create_cost_per_item_card(
     cost_per_item: float,
-    pert_weighted_avg: Optional[float] = None,
+    pert_weighted_avg: float | None = None,
     currency_symbol: str = "€",
     data_points_count: int = 12,
-    card_id: Optional[str] = None,
-    baseline_data: Optional[Dict[str, Any]] = None,
+    card_id: str | None = None,
+    baseline_data: dict[str, Any] | None = None,
 ) -> dbc.Card:
     """
     Create Cost per Item card (auto-calculated from Team Cost ÷ Velocity).
@@ -219,12 +219,12 @@ def create_cost_per_item_card(
 
 def create_cost_per_point_card(
     cost_per_point: float,
-    pert_weighted_avg: Optional[float] = None,
+    pert_weighted_avg: float | None = None,
     points_available: bool = True,
     currency_symbol: str = "€",
     data_points_count: int = 12,
-    card_id: Optional[str] = None,
-    baseline_data: Optional[Dict[str, Any]] = None,
+    card_id: str | None = None,
+    baseline_data: dict[str, Any] | None = None,
 ) -> dbc.Card:
     """
     Create Cost per Point card (conditional on points_field_available).
@@ -466,7 +466,7 @@ def create_budget_forecast_card(
     budget_total: float,
     confidence_level: str = "established",
     currency_symbol: str = "€",
-    card_id: Optional[str] = None,
+    card_id: str | None = None,
     data_points_count: int = 12,
 ) -> dbc.Card:
     """

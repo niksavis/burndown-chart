@@ -4,14 +4,15 @@ This module provides UI components for selecting and managing queries within pro
 Integrates with data.query_manager for query operations.
 """
 
+from typing import Any
+
 import dash_bootstrap_components as dbc
 from dash import dcc, html
-from typing import List, Dict, Any, Optional
 
 
 def create_query_dropdown(
     active_query_id: str = "",
-    queries: Optional[List[Dict[str, Any]]] = None,
+    queries: list[dict[str, Any]] | None = None,
     id_suffix: str = "",
 ) -> dbc.Col:
     """Create query selection dropdown.
@@ -170,7 +171,7 @@ def create_query_loading_indicator(id_suffix: str = "") -> dbc.Spinner:
     )
 
 
-def create_query_info_tooltip(query: Dict[str, Any]) -> str:
+def create_query_info_tooltip(query: dict[str, Any]) -> str:
     """Generate tooltip text for query with metadata.
 
     Args:
@@ -195,7 +196,7 @@ def create_query_info_tooltip(query: Dict[str, Any]) -> str:
     """
 
 
-def get_query_dropdown_options(queries: List[Dict[str, Any]]) -> List[Dict[str, str]]:
+def get_query_dropdown_options(queries: list[dict[str, Any]]) -> list[dict[str, str]]:
     """Convert query list to dropdown options format.
 
     Args:

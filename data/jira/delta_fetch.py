@@ -8,14 +8,16 @@ updated since the last fetch, reducing API calls and data transfer.
 import logging
 import time
 from datetime import datetime, timedelta
-from typing import Any, Dict, List, Tuple
+from typing import Any
+
 import requests
+
 from utils.datetime_utils import parse_iso_datetime
 
 logger = logging.getLogger(__name__)
 
 
-def get_affected_weeks_from_changed_issues(changed_keys: List[str]) -> set[str]:
+def get_affected_weeks_from_changed_issues(changed_keys: list[str]) -> set[str]:
     """
     Determine which ISO weeks are affected by the changed issues.
 
@@ -103,7 +105,7 @@ def get_affected_weeks_from_changed_issues(changed_keys: List[str]) -> set[str]:
         return affected_weeks
 
 
-def _normalize_issue_for_cache(issue: Dict[str, Any], config: Dict) -> Dict[str, Any]:
+def _normalize_issue_for_cache(issue: dict[str, Any], config: dict) -> dict[str, Any]:
     """Normalize JIRA issue to flat database-like structure for calculations."""
     from data.jira.field_utils import extract_story_points_value
 
@@ -158,11 +160,11 @@ def _normalize_issue_for_cache(issue: Dict[str, Any], config: Dict) -> Dict[str,
 
 def try_delta_fetch(
     jql: str,
-    config: Dict,
-    cached_data: List[Dict],
+    config: dict,
+    cached_data: list[dict],
     api_endpoint: str,
     start_time: float,
-) -> Tuple[bool, List[Dict], List[str], List[Dict]]:
+) -> tuple[bool, list[dict], list[str], list[dict]]:
     """
     Try to fetch only issues updated since last cache timestamp.
 

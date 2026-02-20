@@ -3,19 +3,18 @@
 # Standard library imports
 import os
 from datetime import datetime
-from typing import Dict, Any
+from typing import Any
 
 # Third-party library imports
-
 # Application imports
 from configuration.settings import logger
-from data.persistence.adapters.statistics import load_statistics
-from data.persistence.adapters.project_data import load_project_data
-from data.persistence.adapters.unified_data import save_unified_project_data
 from data.persistence.adapters.app_settings import load_app_settings
+from data.persistence.adapters.project_data import load_project_data
+from data.persistence.adapters.statistics import load_statistics
+from data.persistence.adapters.unified_data import save_unified_project_data
 
 
-def migrate_csv_to_json() -> Dict[str, Any]:
+def migrate_csv_to_json() -> dict[str, Any]:
     """
     Migrate existing CSV data to unified JSON format.
 
@@ -97,7 +96,7 @@ def _backup_legacy_files() -> None:
 #######################################################################
 
 
-def get_default_jira_config() -> Dict[str, Any]:
+def get_default_jira_config() -> dict[str, Any]:
     """
     Get default JIRA configuration structure.
 
@@ -117,7 +116,7 @@ def get_default_jira_config() -> Dict[str, Any]:
     }
 
 
-def migrate_jira_config(app_settings: Dict[str, Any]) -> Dict[str, Any]:
+def migrate_jira_config(app_settings: dict[str, Any]) -> dict[str, Any]:
     """
     Migrate legacy JIRA settings to new jira_config structure.
 
@@ -190,7 +189,7 @@ def migrate_jira_config(app_settings: Dict[str, Any]) -> Dict[str, Any]:
     return app_settings
 
 
-def cleanup_legacy_jira_fields(app_settings: Dict[str, Any]) -> Dict[str, Any]:
+def cleanup_legacy_jira_fields(app_settings: dict[str, Any]) -> dict[str, Any]:
     """
     Remove legacy JIRA fields from app_settings after migration to jira_config.
 
@@ -227,7 +226,7 @@ def cleanup_legacy_jira_fields(app_settings: Dict[str, Any]) -> Dict[str, Any]:
     return app_settings
 
 
-def load_jira_configuration() -> Dict[str, Any]:
+def load_jira_configuration() -> dict[str, Any]:
     """
     Load JIRA configuration from profile.json.
     Automatically migrates legacy configuration if needed.
@@ -295,7 +294,7 @@ def load_jira_configuration() -> Dict[str, Any]:
     return app_settings.get("jira_config", get_default_jira_config())
 
 
-def validate_jira_config(config: Dict[str, Any]) -> tuple[bool, str]:
+def validate_jira_config(config: dict[str, Any]) -> tuple[bool, str]:
     """
     Validate JIRA configuration fields.
 
@@ -376,7 +375,7 @@ def validate_jira_config(config: Dict[str, Any]) -> tuple[bool, str]:
     return (True, "")
 
 
-def save_jira_configuration(config: Dict[str, Any]) -> bool:
+def save_jira_configuration(config: dict[str, Any]) -> bool:
     """
     Save JIRA configuration to profile.json (shared across all queries in profile).
 

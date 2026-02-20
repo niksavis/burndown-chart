@@ -1,7 +1,8 @@
 """Progress bar callback for tracking Update Data operations."""
 
 import logging
-from dash import callback, Output, Input, no_update
+
+from dash import Input, Output, callback, no_update
 from dash.exceptions import PreventUpdate
 
 logger = logging.getLogger(__name__)
@@ -153,6 +154,7 @@ def update_progress_bars(n_intervals):
         postprocess_trigger = None
         if status == "in_progress" and phase == "postprocess":
             from datetime import datetime
+
             from data.task_progress import TaskProgress
 
             postprocess_time = progress_data.get("postprocess_time")
@@ -577,9 +579,10 @@ def reload_data_after_update(refresh_trigger):
 
     try:
         # Load statistics from disk
+        from dash import html
+
         from data.persistence import load_statistics
         from data.persistence.factory import get_backend
-        from dash import html
         from data.query_manager import get_query_dropdown_options
         from data.task_progress import TaskProgress
 
@@ -652,6 +655,7 @@ def reload_data_after_update(refresh_trigger):
     except Exception as e:
         logger.error(f"[Progress] Error reloading statistics: {e}", exc_info=True)
         from dash import html
+
         from data.task_progress import TaskProgress
 
         TaskProgress.fail_task("update_data", "Error refreshing UI after data update")
@@ -694,6 +698,7 @@ def cleanup_stale_tasks_on_load(pathname):
         bool: False to enable polling if stale task exists, True to keep disabled
     """
     from datetime import datetime
+
     from data.persistence.factory import get_backend
     from utils.datetime_utils import parse_iso_datetime
 

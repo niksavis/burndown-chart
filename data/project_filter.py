@@ -1,7 +1,8 @@
 """Project filtering utilities for multi-project Jira setups.
 
-This module provides functions to filter issues based on project type (Development vs DevOps)
-to ensure metrics are calculated correctly across multiple projects.
+This module provides functions to filter issues based on project type
+(Development vs DevOps) to ensure metrics are calculated correctly
+across multiple projects.
 
 Architecture:
 - Single JQL query fetches issues from multiple projects (e.g., DEV1, DEV2, OPS)
@@ -13,13 +14,13 @@ Architecture:
   * Flow Metrics: Development projects only (Stories, Tasks)
 """
 
-from typing import List, Dict, Any, Optional
 import logging
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
 
-def get_issue_project_key(issue: Dict[str, Any]) -> str:
+def get_issue_project_key(issue: dict[str, Any]) -> str:
     """Extract project key from Jira issue.
 
     Handles both JIRA API format and normalized database format.
@@ -52,7 +53,7 @@ def get_issue_project_key(issue: Dict[str, Any]) -> str:
         return ""
 
 
-def get_issue_type(issue: Dict[str, Any]) -> str:
+def get_issue_type(issue: dict[str, Any]) -> str:
     """Extract issue type name from Jira issue.
 
     Handles both JIRA API format and normalized database format.
@@ -76,7 +77,7 @@ def get_issue_type(issue: Dict[str, Any]) -> str:
         return ""
 
 
-def is_devops_issue(issue: Dict[str, Any], devops_projects: List[str]) -> bool:
+def is_devops_issue(issue: dict[str, Any], devops_projects: list[str]) -> bool:
     """Check if issue belongs to a DevOps project.
 
     Args:
@@ -94,56 +95,60 @@ def is_devops_issue(issue: Dict[str, Any], devops_projects: List[str]) -> bool:
 
 
 def is_development_issue(
-    issue: Dict[str, Any],
-    development_projects: Optional[List[str]] = None,
-    devops_projects: Optional[List[str]] = None,
+    issue: dict[str, Any],
+    development_projects: list[str] | None = None,
+    devops_projects: list[str] | None = None,
 ) -> bool:
     """Check if issue belongs to a Development project.
 
     Args:
         issue: Jira issue dictionary
-        development_projects: List of development project keys to include (if provided, ONLY these projects)
-        devops_projects: List of DevOps project keys to exclude (fallback if no development_projects)
+        development_projects: List of development project keys to include
+            (if provided, ONLY these projects)
+        devops_projects: List of DevOps project keys to exclude
+            (fallback if no development_projects)
 
     Returns:
         True if issue is from a development project
-    
+
     Logic:
         - If development_projects provided: ONLY include those projects (whitelist)
         - Else if devops_projects provided: Exclude DevOps projects (blacklist)
         - Else: Include all projects
     """
     project_key = get_issue_project_key(issue)
-    
+
     # Whitelist approach: ONLY include configured development projects
     if development_projects:
         return project_key in development_projects
-    
+
     # Fallback blacklist approach: Exclude DevOps projects
     if devops_projects:
         return not is_devops_issue(issue, devops_projects)
-    
+
     # No filtering configured
     return True
 
 
 def filter_development_issues(
-    issues: List[Dict[str, Any]],
-    development_projects: Optional[List[str]] = None,
-    devops_projects: Optional[List[str]] = None,
-) -> List[Dict[str, Any]]:
+    issues: list[dict[str, Any]],
+    development_projects: list[str] | None = None,
+    devops_projects: list[str] | None = None,
+) -> list[dict[str, Any]]:
     """Filter to only development project issues.
 
     Use this for: Burndown charts, velocity metrics, scope metrics.
 
     Args:
         issues: List of Jira issues
-        development_projects: List of development project keys to include (ONLY these if provided)
-        devops_projects: List of DevOps project keys to exclude (fallback if no development_projects)
+        development_projects: List of development project keys to include
+            (ONLY these if provided)
+        devops_projects: List of DevOps project keys to exclude
+            (fallback if no development_projects)
 
     Returns:
         Filtered list containing only development project issues
-    
+
     Logic:
         - If development_projects configured: ONLY include those projects (whitelist)
         - Else if devops_projects configured: Exclude DevOps projects (blacklist)
@@ -163,7 +168,8 @@ def filter_development_issues(
         if development_projects:
             logger.info(
                 f"Filtered to {len(filtered)} development project issues "
-                f"(projects: {', '.join(development_projects)}) - excluded {excluded_count} other issues"
+                f"(projects: {', '.join(development_projects)}) - "
+                f"excluded {excluded_count} other issues"
             )
         else:
             logger.info(
@@ -175,8 +181,8 @@ def filter_development_issues(
 
 
 def filter_devops_issues(
-    issues: List[Dict[str, Any]], devops_projects: List[str]
-) -> List[Dict[str, Any]]:
+    issues: list[dict[str, Any]], devops_projects: list[str]
+) -> list[dict[str, Any]]:
     """Filter to only DevOps project issues.
 
     Use this for: Deployment tracking in DORA metrics.
@@ -202,10 +208,10 @@ def filter_devops_issues(
 
 
 def filter_deployment_issues(
-    issues: List[Dict[str, Any]],
-    devops_projects: List[str],
-    devops_task_types: Optional[List[str]] = None,
-) -> List[Dict[str, Any]]:
+    issues: list[dict[str, Any]],
+    devops_projects: list[str],
+    devops_task_types: list[str] | None = None,
+) -> list[dict[str, Any]]:
     """Filter to deployment tracking issues (DevOps task types in DevOps projects).
 
     Use this for: DORA Deployment Frequency, Change Failure Rate.
@@ -213,8 +219,9 @@ def filter_deployment_issues(
     Args:
         issues: List of Jira issues
         devops_projects: List of DevOps project keys
-        devops_task_types: List of issue type names for DevOps tasks (e.g., ["Operational Task", "Deployment"])
-                          Defaults to ["Operational Task"] for backward compatibility
+        devops_task_types: List of issue type names for DevOps tasks
+            (e.g., ["Operational Task", "Deployment"])
+            Defaults to ["Operational Task"] for backward compatibility
 
     Returns:
         Filtered list containing only deployment tracking issues from DevOps projects
@@ -239,27 +246,33 @@ def filter_deployment_issues(
 
 
 def filter_incident_issues(
-    issues: List[Dict[str, Any]],
-    devops_projects: List[str],
-    production_environment_field: Optional[str] = None,
-    production_environment_values: Optional[List[str]] = None,
-    bug_types: Optional[List[str]] = None,
-) -> List[Dict[str, Any]]:
-    """Filter to production incident issues (incident types like Bug, Incident, Production Issue, etc. in Development projects).
+    issues: list[dict[str, Any]],
+    devops_projects: list[str],
+    production_environment_field: str | None = None,
+    production_environment_values: list[str] | None = None,
+    bug_types: list[str] | None = None,
+) -> list[dict[str, Any]]:
+    """Filter to production incident issues in Development projects.
+
+    Incident types include Bug, Incident, and Production Issue.
 
     Use this for: DORA Mean Time to Recovery, Change Failure Rate.
 
     Args:
         issues: List of Jira issues
         devops_projects: List of DevOps project keys to exclude
-        production_environment_field: Field ID for environment (e.g., from field_mappings["affected_environment"])
-        production_environment_values: List of values indicating production (e.g., ["PROD", "Production"])
-                                      Defaults to ["PROD"] for backward compatibility
-        bug_types: List of issue type names for bugs (e.g., ["Bug", "Defect", "Production Bug"])
-                  Defaults to ["Bug"] for backward compatibility
+        production_environment_field: Field ID for environment
+            (e.g., from field_mappings["affected_environment"])
+        production_environment_values: List of values indicating production
+            (e.g., ["PROD", "Production"])
+            Defaults to ["PROD"] for backward compatibility
+        bug_types: List of issue type names for bugs
+            (e.g., ["Bug", "Defect", "Production Bug"])
+            Defaults to ["Bug"] for backward compatibility
 
     Returns:
-        Filtered list containing only production incident issues from development projects
+        Filtered list containing only production incident issues
+        from development projects
     """
     # Backward compatibility: default to "PROD" and "Bug" if not specified
     if production_environment_values is None:
@@ -277,7 +290,8 @@ def filter_incident_issues(
         ]
         logger.info(
             f"Found {len(incidents)} incidents "
-            f"(all {', '.join(bug_types)} in dev projects - no environment filter configured)"
+            f"(all {', '.join(bug_types)} in dev projects - "
+            "no environment filter configured)"
         )
     else:
         incidents = [
@@ -291,21 +305,24 @@ def filter_incident_issues(
         ]
         logger.info(
             f"Found {len(incidents)} production incidents "
-            f"({', '.join(bug_types)} with {production_environment_field} in {production_environment_values} in dev projects)"
+            f"({', '.join(bug_types)} with "
+            f"{production_environment_field} in "
+            f"{production_environment_values} in dev projects)"
         )
 
     return incidents
 
 
 def _is_production_incident(
-    issue: Dict[str, Any], environment_field: str, production_values: List[str]
+    issue: dict[str, Any], environment_field: str, production_values: list[str]
 ) -> bool:
     """Check if bug is a production incident.
 
     Args:
         issue: Jira issue dictionary
         environment_field: Field ID for affected environment
-        production_values: List of values indicating production environment (e.g., ["PROD", "Production"])
+        production_values: List of values indicating production environment
+            (e.g., ["PROD", "Production"])
 
     Returns:
         True if bug affected production
@@ -317,7 +334,8 @@ def _is_production_incident(
         if isinstance(affected_env, dict):
             affected_env = affected_env.get("value", "")
 
-        # Handle string value - check if it matches any production value (case-insensitive)
+        # Handle string value - check if it matches
+        # any production value (case-insensitive)
         if isinstance(affected_env, str):
             affected_env_upper = affected_env.upper()
             return any(
@@ -331,10 +349,10 @@ def _is_production_incident(
 
 
 def filter_work_items(
-    issues: List[Dict[str, Any]],
-    devops_projects: List[str],
-    work_item_types: Optional[List[str]] = None,
-) -> List[Dict[str, Any]]:
+    issues: list[dict[str, Any]],
+    devops_projects: list[str],
+    work_item_types: list[str] | None = None,
+) -> list[dict[str, Any]]:
     """Filter to work items (Stories, Tasks) in Development projects.
 
     Use this for: Flow metrics, cycle time, throughput.
@@ -366,8 +384,8 @@ def filter_work_items(
 
 
 def get_project_summary(
-    issues: List[Dict[str, Any]], devops_projects: List[str]
-) -> Dict[str, Any]:
+    issues: list[dict[str, Any]], devops_projects: list[str]
+) -> dict[str, Any]:
     """Get summary statistics of issues by project type.
 
     Args:
@@ -411,14 +429,15 @@ def get_project_summary(
 
 
 def filter_operational_tasks(
-    issues: List[Dict[str, Any]],
-    operational_projects: List[str],
-    development_fixversions: Optional[List[str]] = None,
-    devops_task_types: Optional[List[str]] = None,
-) -> List[Dict[str, Any]]:
+    issues: list[dict[str, Any]],
+    operational_projects: list[str],
+    development_fixversions: list[str] | None = None,
+    devops_task_types: list[str] | None = None,
+) -> list[dict[str, Any]]:
     """Filter operational tasks with fixVersion matching and validation.
 
-    This function implements aggressive filtering to reduce the operational task dataset:
+    This function implements aggressive filtering to reduce
+    the operational task dataset:
     1. Filter by operational projects AND DevOps task types
     2. Remove operational tasks with NO fixVersion
     3. If development_fixversions provided, filter by matching fixVersion
@@ -426,10 +445,13 @@ def filter_operational_tasks(
     Args:
         issues: List of Jira issues
         operational_projects: List of operational project keys (e.g., ["RI"])
-        development_fixversions: Optional list of fixVersion IDs/names from development issues.
-                                If provided, only operational tasks with matching fixVersions are kept.
-        devops_task_types: List of issue type names for DevOps tasks (e.g., ["Operational Task", "Deployment"])
-                          Defaults to ["Operational Task"] for backward compatibility
+        development_fixversions: Optional list of fixVersion IDs/names
+            from development issues.
+            If provided, only operational tasks with matching fixVersions
+            are kept.
+        devops_task_types: List of issue type names for DevOps tasks
+            (e.g., ["Operational Task", "Deployment"])
+            Defaults to ["Operational Task"] for backward compatibility
 
     Returns:
         Filtered list of operational tasks with valid fixVersions
@@ -463,7 +485,8 @@ def filter_operational_tasks(
                 type_mismatch_count += 1
                 if type_mismatch_count <= 3:  # Log first 3 examples
                     logger.debug(
-                        f"Issue {issue.get('key')} in operational project but wrong type: "
+                        f"Issue {issue.get('key')} in operational project, "
+                        "but wrong type: "
                         f"'{issue_type}' not in {devops_task_types}"
                     )
         else:
@@ -538,21 +561,23 @@ def filter_operational_tasks(
             )
 
         logger.info(
-            f"Final count: {len(matched_tasks)} operational tasks with matching fixVersions"
+            f"Final count: {len(matched_tasks)} operational tasks "
+            "with matching fixVersions"
         )
 
         return matched_tasks
 
     # No development fixVersions filter - return all tasks with fixVersion
     logger.info(
-        f"No development fixVersion filter applied, returning {len(tasks_with_fixversion)} "
+        "No development fixVersion filter applied, "
+        f"returning {len(tasks_with_fixversion)} "
         f"operational tasks with fixVersions"
     )
 
     return tasks_with_fixversion
 
 
-def extract_all_fixversions(issues: List[Dict[str, Any]]) -> List[str]:
+def extract_all_fixversions(issues: list[dict[str, Any]]) -> list[str]:
     """Extract all unique fixVersion IDs and names from a list of issues.
 
     This helper function collects all fixVersion identifiers (both IDs and names)
@@ -589,7 +614,8 @@ def extract_all_fixversions(issues: List[Dict[str, Any]]) -> List[str]:
 
     if result:
         logger.info(
-            f"Extracted {len(result)} unique fixVersion identifiers from {len(issues)} issues"
+            f"Extracted {len(result)} unique fixVersion identifiers "
+            f"from {len(issues)} issues"
         )
     else:
         logger.warning(f"No fixVersions found in {len(issues)} issues")

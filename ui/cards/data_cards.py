@@ -15,24 +15,24 @@ Functions:
 
 from __future__ import annotations
 
-from typing import Any, Dict, List, cast
+from typing import Any, cast
 
 import dash_bootstrap_components as dbc
 import pandas as pd
 from dash import dash_table, html
 
 from configuration.settings import STATISTICS_HELP_TEXTS
+from ui.button_utils import create_button
 from ui.styles import (
+    NEUTRAL_COLORS,
     create_card_header_with_tooltip,
     create_standardized_card,
-    NEUTRAL_COLORS,
     get_vertical_rhythm,
 )
 from ui.tooltip_utils import create_info_tooltip
-from ui.button_utils import create_button
 
 # Type aliases for complex nested structures
-StyleCellConditional = Dict[str, Any]
+StyleCellConditional = dict[str, Any]
 
 
 def create_statistics_data_card(current_statistics) -> dbc.Card:
@@ -223,7 +223,7 @@ def create_statistics_data_card(current_statistics) -> dbc.Card:
         table_style = create_standardized_table_style(
             mobile_optimized=mobile_responsive
         )  # Apply column-specific alignments if provided
-        style_cell_conditional: List[StyleCellConditional] = []
+        style_cell_conditional: list[StyleCellConditional] = []
         if column_alignments:
             style_cell_conditional = [
                 cast(

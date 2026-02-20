@@ -4,8 +4,9 @@ Validates relationships between status configurations (Active/WIP, Flow Start/WI
 """
 
 import logging
-from dash import callback, Output, Input, State, no_update, html
+
 import dash_bootstrap_components as dbc
+from dash import Input, Output, State, callback, html, no_update
 
 logger = logging.getLogger(__name__)
 

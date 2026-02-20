@@ -23,13 +23,13 @@ from plotly.subplots import make_subplots
 # Application imports
 from configuration import COLOR_PALETTE
 from ui.tooltip_utils import create_hoverlabel_config, format_hover_template
+from visualization.elements import create_empty_figure
 from visualization.helpers import (
-    safe_numeric_convert,
-    parse_deadline_milestone,
     get_weekly_metrics,
     handle_forecast_error,
+    parse_deadline_milestone,
+    safe_numeric_convert,
 )
-from visualization.elements import create_empty_figure
 
 #######################################################################
 # FORECAST CHART FUNCTIONS
@@ -808,11 +808,11 @@ def create_forecast_plot(
         Tuple of (figure, pert_data_dict) where pert_data_dict contains all PERT forecast information
     """
     # Import helper functions (to avoid circular dependency)
-    from visualization.data_preparation import prepare_visualization_data
     from visualization.charts import (
         _calculate_forecast_completion_dates,
         _prepare_metrics_data,
     )
+    from visualization.data_preparation import prepare_visualization_data
 
     try:
         if df is None:

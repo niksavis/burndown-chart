@@ -4,13 +4,12 @@ Sample JIRA cache data fixtures for testing.
 Provides mock JIRA API response data for testing without real API calls.
 """
 
-from typing import Dict
 
 import pytest
 
 
 @pytest.fixture
-def sample_jira_issue() -> Dict:
+def sample_jira_issue() -> dict:
     """
     Generate a single realistic JIRA issue.
 
@@ -52,7 +51,7 @@ def sample_jira_issue() -> Dict:
 
 
 @pytest.fixture
-def sample_jira_cache_data(sample_jira_issue) -> Dict:
+def sample_jira_cache_data(sample_jira_issue) -> dict:
     """
     Generate realistic JIRA cache file content.
 
@@ -75,7 +74,7 @@ def sample_jira_cache_data(sample_jira_issue) -> Dict:
 
 
 @pytest.fixture
-def sample_jira_response_page_1() -> Dict:
+def sample_jira_response_page_1() -> dict:
     """
     Generate first page of paginated JIRA API response.
 
@@ -115,7 +114,7 @@ def sample_jira_response_page_1() -> Dict:
 
 
 @pytest.fixture
-def sample_jira_response_page_2() -> Dict:
+def sample_jira_response_page_2() -> dict:
     """
     Generate second page of paginated JIRA API response.
 

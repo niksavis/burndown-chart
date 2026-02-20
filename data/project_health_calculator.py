@@ -19,10 +19,10 @@ is missing. The formula is context-aware (early vs late stage projects) and uses
 appropriate normalization (sigmoid, logarithmic, linear).
 """
 
-import math
 import logging
-from typing import Dict, Any, Optional, Tuple
+import math
 from datetime import datetime
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -35,7 +35,7 @@ def prepare_dashboard_metrics_for_health(
     recent_velocity_change: float = 0,
     schedule_variance_days: float = 0,
     completion_confidence: float = 50,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Prepare dashboard metrics dictionary for comprehensive health calculation.
 
     This function ensures consistent metric formatting between the app dashboard
@@ -65,14 +65,14 @@ def prepare_dashboard_metrics_for_health(
 
 
 def calculate_comprehensive_project_health(
-    dashboard_metrics: Optional[Dict[str, Any]] = None,
-    dora_metrics: Optional[Dict[str, Any]] = None,
-    flow_metrics: Optional[Dict[str, Any]] = None,
-    bug_metrics: Optional[Dict[str, Any]] = None,
-    budget_metrics: Optional[Dict[str, Any]] = None,
-    scope_metrics: Optional[Dict[str, Any]] = None,
-    statistics_df: Optional[Any] = None,
-) -> Dict[str, Any]:
+    dashboard_metrics: dict[str, Any] | None = None,
+    dora_metrics: dict[str, Any] | None = None,
+    flow_metrics: dict[str, Any] | None = None,
+    bug_metrics: dict[str, Any] | None = None,
+    budget_metrics: dict[str, Any] | None = None,
+    scope_metrics: dict[str, Any] | None = None,
+    statistics_df: Any | None = None,
+) -> dict[str, Any]:
     """Calculate comprehensive multi-dimensional project health score.
 
     Args:
@@ -88,7 +88,7 @@ def calculate_comprehensive_project_health(
         Dictionary with overall health score (0-100), dimension scores, and metadata
     """
     # Initialize dimension scores and weights
-    dimensions: Dict[str, Dict[str, float]] = {
+    dimensions: dict[str, dict[str, float]] = {
         "delivery": {"score": 0.0, "weight": 0.0, "max_weight": 25.0},
         "predictability": {"score": 0.0, "weight": 0.0, "max_weight": 20.0},
         "quality": {"score": 0.0, "weight": 0.0, "max_weight": 20.0},
@@ -174,7 +174,7 @@ def calculate_comprehensive_project_health(
         capped_dims = []
         max_iterations = 10
 
-        for iteration in range(max_iterations):
+        for _iteration in range(max_iterations):
             current_total = sum(d["weight"] for d in dimensions.values())
 
             if abs(current_total - 100.0) < 0.01:
@@ -255,10 +255,10 @@ def _determine_project_stage(completion_pct: float) -> str:
 
 
 def _calculate_delivery_dimension(
-    dashboard_metrics: Optional[Dict],
-    flow_metrics: Optional[Dict],
-    statistics_df: Optional[Any],
-) -> Tuple[float, float]:
+    dashboard_metrics: dict | None,
+    flow_metrics: dict | None,
+    statistics_df: Any | None,
+) -> tuple[float, float]:
     """Calculate Delivery Performance dimension (0-100 score, weight percentage).
 
     Signals:
@@ -334,10 +334,10 @@ def _calculate_delivery_dimension(
 
 
 def _calculate_predictability_dimension(
-    dashboard_metrics: Optional[Dict],
-    flow_metrics: Optional[Dict],
-    statistics_df: Optional[Any],
-) -> Tuple[float, float]:
+    dashboard_metrics: dict | None,
+    flow_metrics: dict | None,
+    statistics_df: Any | None,
+) -> tuple[float, float]:
     """Calculate Predictability dimension (0-100 score, weight percentage).
 
     Signals:
@@ -392,10 +392,10 @@ def _calculate_predictability_dimension(
 
 
 def _calculate_quality_dimension(
-    bug_metrics: Optional[Dict],
-    dora_metrics: Optional[Dict],
+    bug_metrics: dict | None,
+    dora_metrics: dict | None,
     project_stage: str,
-) -> Tuple[float, float]:
+) -> tuple[float, float]:
     """Calculate Quality dimension (0-100 score, weight percentage).
 
     Signals:
@@ -500,9 +500,9 @@ def _calculate_quality_dimension(
 
 
 def _calculate_efficiency_dimension(
-    flow_metrics: Optional[Dict],
-    dashboard_metrics: Optional[Dict],
-) -> Tuple[float, float]:
+    flow_metrics: dict | None,
+    dashboard_metrics: dict | None,
+) -> tuple[float, float]:
     """Calculate Efficiency dimension (0-100 score, weight percentage).
 
     Signals:
@@ -548,10 +548,10 @@ def _calculate_efficiency_dimension(
 
 
 def _calculate_sustainability_dimension(
-    scope_metrics: Optional[Dict],
-    flow_metrics: Optional[Dict],
+    scope_metrics: dict | None,
+    flow_metrics: dict | None,
     project_stage: str,
-) -> Tuple[float, float]:
+) -> tuple[float, float]:
     """Calculate Sustainability dimension (0-100 score, weight percentage).
 
     Signals:
@@ -650,8 +650,8 @@ def _calculate_sustainability_dimension(
 
 
 def _calculate_financial_dimension(
-    budget_metrics: Optional[Dict],
-) -> Tuple[float, float]:
+    budget_metrics: dict | None,
+) -> tuple[float, float]:
     """Calculate Financial Health dimension (0-100 score, weight percentage).
 
     Signals:

@@ -19,10 +19,10 @@ import json
 import logging
 import tempfile
 import zipfile
-from datetime import datetime, timezone
-from dataclasses import dataclass, asdict
+from dataclasses import asdict, dataclass
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple, Any
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -40,7 +40,7 @@ class ExportManifest:
     created_at: str
     created_by: str
     export_type: str  # "backup", "sharing", "migration"
-    profiles: List[str]
+    profiles: list[str]
     includes_cache: bool
     includes_queries: bool
     includes_setup_status: bool
@@ -54,7 +54,7 @@ class SetupStatusMigrator:
     """Handles migration of setup status between profile versions."""
 
     @staticmethod
-    def migrate_status_v2_to_v3(old_status: Dict[str, Any]) -> Dict[str, Any]:
+    def migrate_status_v2_to_v3(old_status: dict[str, Any]) -> dict[str, Any]:
         """Migrate setup status from v2 to v3 format."""
         # V3 adds dependency tracking and validation history
         migrated = old_status.copy()
@@ -69,7 +69,7 @@ class SetupStatusMigrator:
                 },
                 "migration_metadata": {
                     "migrated_from_version": "2.0",
-                    "migrated_at": datetime.now(timezone.utc).isoformat(),
+                    "migrated_at": datetime.now(UTC).isoformat(),
                     "migration_notes": "Auto-migrated from v2 setup status",
                 },
             }
@@ -79,8 +79,8 @@ class SetupStatusMigrator:
 
     @staticmethod
     def preserve_user_progress(
-        imported_status: Dict[str, Any], validate_on_import: bool = True
-    ) -> Dict[str, Any]:
+        imported_status: dict[str, Any], validate_on_import: bool = True
+    ) -> dict[str, Any]:
         """Preserve user setup progress while ensuring data integrity."""
         preserved = imported_status.copy()
 
@@ -108,7 +108,7 @@ class SetupStatusMigrator:
 # ============================================================================
 
 
-def strip_credentials(profile: Dict[str, Any]) -> Dict[str, Any]:
+def strip_credentials(profile: dict[str, Any]) -> dict[str, Any]:
     """Remove sensitive fields from profile configuration.
 
     Creates a deep copy of the profile and removes all credential fields.
@@ -165,7 +165,7 @@ def strip_credentials(profile: Dict[str, Any]) -> Dict[str, Any]:
     return safe_profile
 
 
-def validate_import_data(data: Dict[str, Any]) -> Tuple[bool, List[str]]:
+def validate_import_data(data: dict[str, Any]) -> tuple[bool, list[str]]:
     """Validate imported data for compatibility.
 
     Performs multi-stage validation:
@@ -257,9 +257,9 @@ def validate_import_data(data: Dict[str, Any]) -> Tuple[bool, List[str]]:
 def resolve_profile_conflict(
     profile_id: str,
     strategy: str,
-    imported_data: Dict[str, Any],
-    existing_data: Dict[str, Any],
-) -> Tuple[str, Dict[str, Any]]:
+    imported_data: dict[str, Any],
+    existing_data: dict[str, Any],
+) -> tuple[str, dict[str, Any]]:
     """Resolve profile name conflict with user-selected strategy.
 
     Args:
@@ -373,7 +373,7 @@ def export_profile_enhanced(
     include_cache: bool = False,
     include_queries: bool = True,
     export_type: str = "backup",
-) -> Tuple[bool, str]:
+) -> tuple[bool, str]:
     """Export profile with T009 setup status migration capabilities.
 
     Args:
@@ -408,7 +408,7 @@ def export_profile_enhanced(
             # Create export manifest
             manifest = ExportManifest(
                 version="1.0",
-                created_at=datetime.now(timezone.utc).isoformat(),
+                created_at=datetime.now(UTC).isoformat(),
                 created_by=f"burndown-chart-{export_type}",
                 export_type=export_type,
                 profiles=[profile_id],
@@ -459,8 +459,8 @@ def export_profile_enhanced(
 
 
 def _prepare_profile_for_export(
-    profile_data: Dict[str, Any], export_type: str
-) -> Dict[str, Any]:
+    profile_data: dict[str, Any], export_type: str
+) -> dict[str, Any]:
     """Prepare profile data for export with setup status handling."""
     # Deep copy to avoid modifying original
     profile_data = json.loads(json.dumps(profile_data))
@@ -472,7 +472,7 @@ def _prepare_profile_for_export(
             "setup_complete": False,
             "current_step": "jira_connection",
             "export_metadata": {
-                "exported_at": datetime.now(timezone.utc).isoformat(),
+                "exported_at": datetime.now(UTC).isoformat(),
                 "source_version": "3.0",
                 "was_legacy_profile": True,
             },
@@ -480,7 +480,7 @@ def _prepare_profile_for_export(
     else:
         # Add export metadata to existing setup status
         profile_data["setup_status"]["export_metadata"] = {
-            "exported_at": datetime.now(timezone.utc).isoformat(),
+            "exported_at": datetime.now(UTC).isoformat(),
             "source_version": "3.0",
             "original_setup_complete": profile_data["setup_status"].get(
                 "setup_complete", False
@@ -568,7 +568,7 @@ def export_profile_with_mode(
     include_token: bool = False,
     include_budget: bool = False,
     include_changelog: bool = False,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Export FULL profile with ALL queries and their data.
 
     Args:
@@ -627,7 +627,7 @@ def export_profile_with_mode(
     # Create manifest
     manifest = ExportManifest(
         version="2.0",
-        created_at=datetime.now(timezone.utc).isoformat(),
+        created_at=datetime.now(UTC).isoformat(),
         created_by="burndown-chart-enhanced",
         export_type="sharing",
         profiles=[profile_id],
@@ -640,7 +640,7 @@ def export_profile_with_mode(
     )
 
     # Build export package
-    export_package: Dict[str, Any] = {
+    export_package: dict[str, Any] = {
         "manifest": asdict(manifest),
         "profile_data": profile_data,
     }
@@ -757,10 +757,10 @@ def export_profile_with_mode(
 
 def import_profile_enhanced(
     import_path: str,
-    target_profile_id: Optional[str] = None,
+    target_profile_id: str | None = None,
     preserve_setup_status: bool = True,
     validate_dependencies: bool = True,
-) -> Tuple[bool, str, Optional[str]]:
+) -> tuple[bool, str, str | None]:
     """Import profile with T009 setup status migration and validation.
 
     Args:
@@ -857,15 +857,15 @@ def _generate_unique_profile_id(base_name: str) -> str:
 
 
 def _migrate_imported_setup_status(
-    setup_status: Dict[str, Any], validate_dependencies: bool
-) -> Dict[str, Any]:
+    setup_status: dict[str, Any], validate_dependencies: bool
+) -> dict[str, Any]:
     """Migrate imported setup status to current system."""
     # Start with imported status
     migrated_status = setup_status.copy()
 
     # Add import metadata
     migrated_status["import_metadata"] = {
-        "imported_at": datetime.now(timezone.utc).isoformat(),
+        "imported_at": datetime.now(UTC).isoformat(),
         "original_exported_at": setup_status.get("export_metadata", {}).get(
             "exported_at"
         ),
@@ -882,7 +882,7 @@ def _migrate_imported_setup_status(
                 "fields_mapped": False,  # Must re-verify field mappings
                 "setup_complete": False,
                 "current_step": "jira_connection",
-                "last_validation": datetime.now(timezone.utc).isoformat(),
+                "last_validation": datetime.now(UTC).isoformat(),
             }
         )
 
@@ -890,16 +890,16 @@ def _migrate_imported_setup_status(
 
 
 def _create_profile_from_import(
-    profile_data: Dict[str, Any],
+    profile_data: dict[str, Any],
     profile_id: str,
     import_path: Path,
-    budget_data: Optional[Dict[str, Any]] = None,
-) -> Tuple[bool, str]:
+    budget_data: dict[str, Any] | None = None,
+) -> tuple[bool, str]:
     """Create profile from imported data."""
     try:
         from data.profile_manager import (
-            get_profile_file_path,
             PROFILES_DIR,
+            get_profile_file_path,
             load_profiles_metadata,
             save_profiles_metadata,
         )
@@ -916,7 +916,7 @@ def _create_profile_from_import(
         # Update profile data with new ID and timestamp
         profile_data["id"] = profile_id
         profile_data["name"] = profile_name
-        profile_data["created_at"] = datetime.now(timezone.utc).isoformat()
+        profile_data["created_at"] = datetime.now(UTC).isoformat()
 
         # Remove sensitive data that needs re-entry
         if "jira_config" in profile_data:
@@ -1013,7 +1013,7 @@ def export_for_team_sharing(
     profile_id: str,
     export_path: str,
     share_level: str = "configuration",  # "configuration", "with_queries", "full"
-) -> Tuple[bool, str]:
+) -> tuple[bool, str]:
     """Export profile for team sharing with appropriate data filtering.
 
     Args:
@@ -1038,7 +1038,7 @@ def export_for_team_sharing(
 
 def import_shared_profile(
     import_path: str, team_member_name: str
-) -> Tuple[bool, str, Optional[str]]:
+) -> tuple[bool, str, str | None]:
     """Import shared profile with team-specific adaptations.
 
     Args:
@@ -1066,7 +1066,7 @@ def import_shared_profile(
 # ============================================================================
 
 
-def create_full_system_backup(backup_path: str) -> Tuple[bool, str]:
+def create_full_system_backup(backup_path: str) -> tuple[bool, str]:
     """Create complete system backup including all profiles and setup state.
 
     Args:
@@ -1091,7 +1091,7 @@ def create_full_system_backup(backup_path: str) -> Tuple[bool, str]:
             # Create system manifest
             manifest = ExportManifest(
                 version="1.0",
-                created_at=datetime.now(timezone.utc).isoformat(),
+                created_at=datetime.now(UTC).isoformat(),
                 created_by="burndown-chart-backup",
                 export_type="full_system",
                 profiles=[p["id"] for p in profiles],
@@ -1142,7 +1142,7 @@ def create_full_system_backup(backup_path: str) -> Tuple[bool, str]:
 def restore_from_system_backup(
     backup_path: str,
     restore_mode: str = "merge",  # "merge", "replace", "selective"
-) -> Tuple[bool, str]:
+) -> tuple[bool, str]:
     """Restore system from full backup with setup status preservation.
 
     Args:

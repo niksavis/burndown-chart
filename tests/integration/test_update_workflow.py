@@ -11,13 +11,13 @@ User Story: US4 - Standalone Packaging
 Phase: 6 - Updates & Distribution
 """
 
+import sqlite3
 import tempfile
 from pathlib import Path
-import sqlite3
 
-from data.persistence.sqlite_backend import SQLiteBackend
-from data.migration.schema import create_schema
 from data.database import get_db_connection
+from data.migration.schema import create_schema
+from data.persistence.sqlite_backend import SQLiteBackend
 
 
 def _create_test_database() -> str:

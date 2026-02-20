@@ -11,9 +11,10 @@ CRITICAL: Health scores depend on deadline/milestone settings!
 - This test ensures settings are identical for both paths
 """
 
-import pytest
 from datetime import datetime, timedelta
+
 import pandas as pd
+import pytest
 
 
 class TestAppReportHealthParity:
@@ -131,7 +132,7 @@ class TestAppReportHealthParity:
         print("=" * 80)
 
         # App filters statistics by data_points_count
-        from data.time_period_calculator import get_iso_week, format_year_week
+        from data.time_period_calculator import format_year_week, get_iso_week
 
         df = pd.DataFrame(mock_statistics)
         df["date"] = pd.to_datetime(df["date"])
@@ -139,7 +140,7 @@ class TestAppReportHealthParity:
 
         # Generate week labels (same as app does)
         weeks = []
-        for i in range(data_points_count):
+        for _i in range(data_points_count):
             year, week = get_iso_week(current_date)
             week_label = format_year_week(year, week)
             weeks.append(week_label)

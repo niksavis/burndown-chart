@@ -8,9 +8,10 @@ These tests verify that metric calculations meet strict performance targets:
 - Field lookup index: 95% speedup
 """
 
-import pytest
 import time
 from datetime import datetime, timedelta
+
+import pytest
 
 
 class TestDORAMetricsPerformance:
@@ -107,9 +108,9 @@ class TestDORAMetricsPerformance:
     def test_benchmark_dora_metrics_small_dataset(self, small_dataset, field_mappings):
         """Benchmark DORA metrics with 500 issues - must complete in < 2s."""
         from data.dora_metrics import (
+            calculate_change_failure_rate,
             calculate_deployment_frequency,
             calculate_lead_time_for_changes,
-            calculate_change_failure_rate,
             calculate_mean_time_to_recovery,
         )
 
@@ -143,9 +144,9 @@ class TestDORAMetricsPerformance:
     ):
         """Benchmark DORA metrics with 1500 issues - must complete in < 5s."""
         from data.dora_metrics import (
+            calculate_change_failure_rate,
             calculate_deployment_frequency,
             calculate_lead_time_for_changes,
-            calculate_change_failure_rate,
             calculate_mean_time_to_recovery,
         )
 
@@ -244,11 +245,11 @@ class TestFlowMetricsPerformance:
     def test_benchmark_flow_metrics_small_dataset(self, small_dataset, field_mappings):
         """Benchmark Flow metrics with 500 issues - must complete in < 2s."""
         from data.flow_metrics import (
-            calculate_flow_velocity,
-            calculate_flow_time,
+            calculate_flow_distribution,
             calculate_flow_efficiency,
             calculate_flow_load,
-            calculate_flow_distribution,
+            calculate_flow_time,
+            calculate_flow_velocity,
         )
 
         start = time.perf_counter()
@@ -279,11 +280,11 @@ class TestFlowMetricsPerformance:
     ):
         """Benchmark Flow metrics with 1500 issues - must complete in < 5s."""
         from data.flow_metrics import (
-            calculate_flow_velocity,
-            calculate_flow_time,
+            calculate_flow_distribution,
             calculate_flow_efficiency,
             calculate_flow_load,
-            calculate_flow_distribution,
+            calculate_flow_time,
+            calculate_flow_velocity,
         )
 
         start = time.perf_counter()
@@ -315,8 +316,9 @@ class TestDateParsingPerformance:
 
     def test_benchmark_date_parsing_cache_speedup(self):
         """Verify parse_jira_date with LRU cache provides 80% speedup."""
-        from data.performance_utils import parse_jira_date
         from dateutil import parser as dateutil_parser
+
+        from data.performance_utils import parse_jira_date
 
         # Test data: 1000 date strings (many duplicates to test cache)
         date_strings = [

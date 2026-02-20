@@ -14,14 +14,14 @@ Architecture:
 
 import hashlib
 import logging
-from typing import Dict, Any, Tuple, Optional
+from typing import Any
 
-from dash import callback, Output, Input, State, no_update, ctx
+from dash import Input, Output, State, callback, ctx, no_update
 
 logger = logging.getLogger(__name__)
 
 
-def _compute_config_hash(jira_config: Dict[str, Any]) -> str:
+def _compute_config_hash(jira_config: dict[str, Any]) -> str:
     """Compute hash of JIRA config to detect changes.
 
     Args:
@@ -37,8 +37,8 @@ def _compute_config_hash(jira_config: Dict[str, Any]) -> str:
 
 
 def _fetch_jira_metadata(
-    jira_config: Dict[str, Any],
-) -> Tuple[Dict[str, Any], Optional[str]]:
+    jira_config: dict[str, Any],
+) -> tuple[dict[str, Any], str | None]:
     """Fetch all JIRA metadata for field mapping.
 
     Args:
@@ -49,9 +49,10 @@ def _fetch_jira_metadata(
         - metadata_dict contains fields, projects, issue_types, statuses, auto_detected
         - error_message is None on success, error string on failure
     """
+    import time
+
     from data.jira.metadata_fetcher import create_metadata_fetcher
     from data.persistence import load_app_settings
-    import time
 
     try:
         # Check if JIRA is configured
@@ -170,7 +171,7 @@ def fetch_metadata_on_startup_or_config_change(
     config_save_trigger: Any,
     profile_switch_trigger: int,
     metrics_refresh_trigger: int,
-    current_hash: Optional[str],
+    current_hash: str | None,
 ):
     """Fetch JIRA metadata on app startup or when JIRA config changes.
 

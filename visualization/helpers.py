@@ -553,7 +553,7 @@ def identify_significant_scope_growth(df, threshold_pct=10):
     df["points_pct_change"] = df["cum_scope_points"].pct_change() * 100
 
     # Find periods with significant growth
-    for i, row in df.iterrows():
+    for _i, row in df.iterrows():
         if (
             row["items_pct_change"] > threshold_pct
             or row["points_pct_change"] > threshold_pct

@@ -4,7 +4,8 @@ Handles profile switching and state isolation between profiles.
 """
 
 import logging
-from dash import callback, Output, Input, State, no_update
+
+from dash import Input, Output, State, callback, no_update
 
 logger = logging.getLogger(__name__)
 

@@ -13,14 +13,15 @@ This is achieved through:
 The `isolate_test_data` fixture (autouse=True) ensures this for every test.
 """
 
+import shutil
 import sys
-import time
-import threading
 import tempfile
+import threading
+import time
 from pathlib import Path
 from unittest.mock import patch
+
 import pytest
-import shutil
 
 # Add the project root to the Python path
 project_root = Path(__file__).parent.parent
@@ -135,7 +136,9 @@ def isolate_test_data(temp_database):
 
     # Try to patch metrics_snapshots module - use function patch
     try:
-        from data import metrics_snapshots  # noqa: F401 - import needed for hasattr check
+        from data import (
+            metrics_snapshots,  # noqa: F401 - import needed for hasattr check
+        )
 
         # metrics_snapshots uses _get_snapshots_file_path() function, not a constant
         # So we patch the function to return our temp file
@@ -212,7 +215,7 @@ def live_server(isolate_test_data):
 
     # Wait for server to be ready
     max_retries = 30
-    for i in range(max_retries):
+    for _i in range(max_retries):
         try:
             import socket
 
