@@ -75,7 +75,10 @@ def export_full_profile(
         token_suffix = "_with_token" if bool(include_token) else ""
 
         # Format: YYYYMMDD_HHMMSS_Profile_Query_export_MODE[_with_token].json
-        filename = f"{timestamp}_{profile_name}_{query_name}_export_{mode_suffix}{token_suffix}.json"
+        filename = (
+            f"{timestamp}_{profile_name}_{query_name}_export_"
+            f"{mode_suffix}{token_suffix}.json"
+        )
 
         # Convert to JSON string
         json_content = json.dumps(export_package, indent=2, ensure_ascii=False)
@@ -87,14 +90,17 @@ def export_full_profile(
         )
 
         logger.info(
-            f"Exported profile/query data: {file_size_kb:.1f} KB, mode={export_mode}, token={include_token}"
+            "Exported profile/query data: "
+            f"{file_size_kb:.1f} KB, mode={export_mode}, "
+            f"token={include_token}"
         )
 
         # Return download trigger and success toast
         return (
             {"content": json_content, "filename": filename},
             create_toast(
-                f"Profile exported successfully ({file_size_kb:.1f} KB). Mode: {mode_display}",
+                "Profile exported successfully "
+                f"({file_size_kb:.1f} KB). Mode: {mode_display}",
                 toast_type="success",
                 header="Export Successful",
                 duration=4000,
@@ -157,7 +163,8 @@ def detect_import_conflict(contents, filename):
         else:
             # No conflict - proceed with import directly
             logger.info(
-                f"No conflict detected for profile '{profile_id}' - proceeding with import"
+                f"No conflict detected for profile '{profile_id}' - "
+                "proceeding with import"
             )
             return False, "", import_data, no_update
 
@@ -289,10 +296,12 @@ def perform_import(import_data, conflict_strategy=None, custom_name=None):
                                 create_toast(
                                     [
                                         html.Div(
-                                            f"Import failed: Profile with name '{final_profile_id}' already exists."
+                                            "Import failed: Profile with name "
+                                            f"'{final_profile_id}' already exists."
                                         ),
                                         html.Div(
-                                            "Please choose a different name or use the Overwrite option.",
+                                            "Please choose a different name "
+                                            "or use the Overwrite option.",
                                             className="mt-2 text-muted",
                                         ),
                                     ],
@@ -301,10 +310,11 @@ def perform_import(import_data, conflict_strategy=None, custom_name=None):
                                     duration=8000,
                                 ),
                                 no_update,  # No refresh on validation error
-                                no_update,  # No profile selector refresh on validation error
+                                no_update,
                             )
 
-                    # Update profile data with new ID and name (deep copy to avoid mutations)
+                    # Update profile data with new ID and name
+                    # (deep copy to avoid mutations)
                     resolved_data = copy.deepcopy(profile_data)
                     resolved_data["id"] = final_profile_id
                     resolved_data["name"] = final_profile_id
@@ -325,7 +335,9 @@ def perform_import(import_data, conflict_strategy=None, custom_name=None):
 
         # DEBUG: Log show_points value before save
         logger.info(
-            f"[Import] Saving profile with show_points={profile_data.get('show_points')} (type: {type(profile_data.get('show_points'))})"
+            "[Import] Saving profile with "
+            f"show_points={profile_data.get('show_points')} "
+            f"(type: {type(profile_data.get('show_points'))})"
         )
 
         # Save profile to database
@@ -379,12 +391,14 @@ def perform_import(import_data, conflict_strategy=None, custom_name=None):
                             valid_issues = []
                             invalid_count = 0
                             for issue in issues:
-                                # Check for required fields - handle both JIRA API format ('key') and SQLite format ('issue_key')
+                                # Check required fields for both formats:
+                                # JIRA API ('key') and SQLite ('issue_key')
                                 issue_key = issue.get("key") or issue.get("issue_key")
                                 if not issue_key:
                                     invalid_count += 1
                                     logger.warning(
-                                        f"Skipping issue without 'key' or 'issue_key' field in query '{query_name}'"
+                                        "Skipping issue without 'key' or "
+                                        f"'issue_key' in query '{query_name}'"
                                     )
                                     continue
 
@@ -392,8 +406,9 @@ def perform_import(import_data, conflict_strategy=None, custom_name=None):
                                 if "key" not in issue and "issue_key" in issue:
                                     issue["key"] = issue["issue_key"]
 
-                                # Convert flat SQLite format to JIRA API format if needed
-                                # (Export uses flat format from database, but save_issues_batch expects JIRA API format)
+                                # Convert flat SQLite format
+                                # to JIRA API format if needed
+                                # (save_issues_batch expects JIRA API format)
                                 if "fields" not in issue:
                                     # Build JIRA API format from flat fields
                                     issue["fields"] = {
@@ -448,7 +463,8 @@ def perform_import(import_data, conflict_strategy=None, custom_name=None):
                                         "points" in issue
                                         and issue["points"] is not None
                                     ):
-                                        # Note: We don't know which customfield is points, so we'll let save_issues_batch handle it
+                                        # Custom points field ID is unknown here;
+                                        # save_issues_batch handles it.
                                         pass
 
                                 # Add required metadata fields
@@ -460,7 +476,8 @@ def perform_import(import_data, conflict_strategy=None, custom_name=None):
 
                             # Only import if we have valid issues
                             if valid_issues:
-                                # Use cache key from query ID and current timestamp for expiration
+                                # Use cache key from query ID
+                                # with timestamp-based expiration
                                 cache_key = f"import_{created_query_id}"
                                 expires_at = datetime.now() + timedelta(days=1)
                                 backend.save_issues_batch(
@@ -471,7 +488,9 @@ def perform_import(import_data, conflict_strategy=None, custom_name=None):
                                     expires_at,
                                 )
                                 logger.info(
-                                    f"Imported {len(valid_issues)} valid issues for query '{query_name}'"
+                                    "Imported "
+                                    f"{len(valid_issues)} valid issues "
+                                    f"for query '{query_name}'"
                                     + (
                                         f" ({invalid_count} invalid issues skipped)"
                                         if invalid_count > 0
@@ -487,7 +506,8 @@ def perform_import(import_data, conflict_strategy=None, custom_name=None):
                                 profile_id, created_query_id, statistics
                             )
                             logger.info(
-                                f"Imported {len(statistics)} statistics for query '{query_name}'"
+                                f"Imported {len(statistics)} statistics "
+                                f"for query '{query_name}'"
                             )
 
                     # Import project scope (Settings Panel parameters)
@@ -500,12 +520,15 @@ def perform_import(import_data, conflict_strategy=None, custom_name=None):
                             logger.info(
                                 f"Imported project scope for query '{query_name}': "
                                 f"total_items={project_scope.get('total_items')}, "
-                                f"estimated_items={project_scope.get('estimated_items')}, "
-                                f"total_points={project_scope.get('remaining_total_points')}, "
+                                "estimated_items="
+                                f"{project_scope.get('estimated_items')}, "
+                                "total_points="
+                                f"{project_scope.get('remaining_total_points')}, "
                                 f"estimated_points={project_scope.get('estimated_points')}"
                             )
 
-                    # Import metrics data points (DORA, Flow, Bug metrics) - CRITICAL for health score consistency
+                    # Import metrics data points (DORA, Flow, Bug)
+                    # to keep health score consistent
                     if "metrics" in query_data:
                         metrics = query_data["metrics"]
                         if metrics:
@@ -513,7 +536,9 @@ def perform_import(import_data, conflict_strategy=None, custom_name=None):
                                 profile_id, created_query_id, metrics
                             )
                             logger.info(
-                                f"Imported {len(metrics)} metrics data points for query '{query_name}'"
+                                "Imported "
+                                f"{len(metrics)} metrics data points "
+                                f"for query '{query_name}'"
                             )
 
                     if "changelog_entries" in query_data:
@@ -535,7 +560,9 @@ def perform_import(import_data, conflict_strategy=None, custom_name=None):
                                     expires_at,
                                 )
                                 logger.info(
-                                    f"Imported {len(normalized_entries)} changelog entries for query '{query_name}'"
+                                    "Imported "
+                                    f"{len(normalized_entries)} changelog entries "
+                                    f"for query '{query_name}'"
                                 )
 
                 # Import budget data if present in query (query-level budget)
@@ -557,14 +584,17 @@ def perform_import(import_data, conflict_strategy=None, custom_name=None):
                             profile_id, created_query_id, budget_revisions
                         )
                         logger.info(
-                            f"Imported {len(budget_revisions)} budget revisions for query '{query_name}'"
+                            "Imported "
+                            f"{len(budget_revisions)} budget revisions "
+                            f"for query '{query_name}'"
                         )
 
                 imported_query_count += 1
                 logger.info(f"Imported query '{query_name}' as {created_query_id}")
 
             logger.info(
-                f"Successfully imported {imported_query_count} queries for profile '{profile_id}'"
+                f"Successfully imported {imported_query_count} queries "
+                f"for profile '{profile_id}'"
             )
 
         # Set the imported profile as active, and first query as active query
@@ -584,7 +614,8 @@ def perform_import(import_data, conflict_strategy=None, custom_name=None):
         # Log result with strategy info
         strategy_msg = f" ({conflict_strategy} strategy)" if conflict_strategy else ""
         logger.info(
-            f"Imported profile {profile_id} with {imported_query_count} queries, active={active_query_id}, mode={export_mode}{strategy_msg}"
+            f"Imported profile {profile_id} with {imported_query_count} queries, "
+            f"active={active_query_id}, mode={export_mode}{strategy_msg}"
         )
 
         # Check if JIRA token is missing (important for field mappings)
@@ -600,10 +631,11 @@ def perform_import(import_data, conflict_strategy=None, custom_name=None):
             )
             warning_parts = [
                 html.Div(
-                    f"Successfully imported profile '{profile_id}' with {query_count_msg}"
+                    f"Successfully imported profile '{profile_id}' "
+                    f"with {query_count_msg}"
                 ),
                 html.Div(
-                    "⚠️ This is a configuration-only import. "
+                    "Warning: This is a configuration-only import. "
                     "Connect to JIRA and click 'Update Data' to fetch issue data.",
                     className="mt-2 text-warning",
                 ),
@@ -612,7 +644,7 @@ def perform_import(import_data, conflict_strategy=None, custom_name=None):
             if not has_token:
                 warning_parts.append(
                     html.Div(
-                        "🔑 JIRA token not included in import. "
+                        "JIRA token not included in import. "
                         "Go to Settings → Configure JIRA Connection to add your token. "
                         "Field mappings will be empty until token is configured.",
                         className="mt-2 text-info fw-bold",
@@ -623,14 +655,14 @@ def perform_import(import_data, conflict_strategy=None, custom_name=None):
             if budget_imported:
                 warning_parts.append(
                     html.Div(
-                        "💰 Budget data included in import and has been configured.",
+                        "Budget data included in import and has been configured.",
                         className="mt-2 text-success",
                     )
                 )
             else:
                 warning_parts.append(
                     html.Div(
-                        "💰 Budget data not included. Configure in Budget tab if needed.",
+                        "Budget data not included. Configure in Budget tab if needed.",
                         className="mt-2 text-muted",
                     )
                 )
@@ -656,7 +688,8 @@ def perform_import(import_data, conflict_strategy=None, custom_name=None):
             )
             success_parts = [
                 html.Div(
-                    f"Successfully imported profile '{profile_id}' with {query_count_msg}"
+                    f"Successfully imported profile '{profile_id}' "
+                    f"with {query_count_msg}"
                 ),
                 html.Div(
                     "Data loaded successfully. Select a query from the dropdown.",
@@ -667,7 +700,8 @@ def perform_import(import_data, conflict_strategy=None, custom_name=None):
             if not has_token:
                 success_parts.append(
                     html.Div(
-                        "🔑 JIRA token not included. Field mappings will be empty until you add your token "
+                        "JIRA token not included. Field mappings will be empty "
+                        "until you add your token "
                         "in Settings → Configure JIRA Connection.",
                         className="mt-2 text-warning fw-bold",
                     )
@@ -677,14 +711,14 @@ def perform_import(import_data, conflict_strategy=None, custom_name=None):
             if budget_imported:
                 success_parts.append(
                     html.Div(
-                        "💰 Budget data included in import and has been configured.",
+                        "Budget data included in import and has been configured.",
                         className="mt-2 text-success",
                     )
                 )
             else:
                 success_parts.append(
                     html.Div(
-                        "💰 Budget data not included. Configure in Budget tab if needed.",
+                        "Budget data not included. Configure in Budget tab if needed.",
                         className="mt-2 text-muted",
                     )
                 )

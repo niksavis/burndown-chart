@@ -110,7 +110,8 @@ def update_progress_bars(n_intervals):
 
                 if elapsed > 5:  # 5 second grace period for backend to respond
                     logger.warning(
-                        f"[Progress] Detected stuck cancelled task ({elapsed:.0f}s since cancellation). "
+                        "[Progress] Detected stuck cancelled task "
+                        f"({elapsed:.0f}s since cancellation). "
                         "Forcing to error status."
                     )
                     from data.task_progress import TaskProgress
@@ -120,14 +121,17 @@ def update_progress_bars(n_intervals):
                     raise PreventUpdate
             else:
                 logger.warning(
-                    "[Progress] Invalid cancel_time value, skipping cancellation grace check"
+                    "[Progress] Invalid cancel_time value, "
+                    "skipping cancellation grace check"
                 )
 
         # RECOVERY: Detect calculate phase and trigger metrics calculation
-        # When background thread completes fetch, it sets phase="calculate" but can't trigger
-        # the metrics callback directly (running in different thread). So we detect the phase
+        # When background thread completes fetch, it sets phase="calculate"
+        # but can't trigger the metrics callback directly
+        # (running in different thread). So we detect the phase
         # change here and trigger the metrics calculation.
-        # CRITICAL: Only trigger ONCE - check if calc has started (percent > 0 or message changed)
+        # CRITICAL: Only trigger ONCE - check if calc has started
+        # (percent > 0 or message changed)
         stuck_metrics_trigger = None
         calc_message = calc_progress.get("message", "")
         initial_messages = ["", "Fetch complete, starting metrics calculation..."]
@@ -138,10 +142,12 @@ def update_progress_bars(n_intervals):
             and calc_message in initial_messages
             and not cancelled
         ):
-            # Only trigger if the message is still the initial one set by background fetch
+            # Only trigger if the message is still the initial one
+            # set by background fetch
             # Once auto_calculate_metrics_after_fetch runs, it changes the message
             logger.info(
-                "[Progress] Detected calculate phase transition - triggering metrics calculation"
+                "[Progress] Detected calculate phase transition - "
+                "triggering metrics calculation"
             )
             import time
 
@@ -173,7 +179,8 @@ def update_progress_bars(n_intervals):
             if postprocess_time and postprocess_time != last_postprocess_time_seen:
                 # First time seeing this postprocess phase - trigger UI refresh
                 logger.info(
-                    "[Progress] Detected postprocess phase - triggering UI refresh to complete task"
+                    "[Progress] Detected postprocess phase - triggering "
+                    "UI refresh to complete task"
                 )
                 postprocess_trigger = int(time.time() * 1000)
                 # Remember this postprocess_time so we don't trigger again
@@ -195,7 +202,8 @@ def update_progress_bars(n_intervals):
                     elapsed = (datetime.now() - start_timestamp).total_seconds()
                     if elapsed >= 90:
                         logger.warning(
-                            "[Progress] Stale postprocess state detected, completing task"
+                            "[Progress] Stale postprocess state detected, "
+                            "completing task"
                         )
                         TaskProgress.complete_task("update_data", postprocess_message)
                         raise PreventUpdate
@@ -207,7 +215,8 @@ def update_progress_bars(n_intervals):
             complete_time = progress_data.get("complete_time")
             if complete_time:
                 # CRITICAL: Check if this is a stale completion from an old task
-                # If complete_time is > 10 seconds old, treat as stale and hide immediately
+                # If complete_time is > 10 seconds old,
+                # treat as stale and hide immediately
                 completed_at = parse_iso_datetime(complete_time)
                 if not completed_at:
                     logger.warning(
@@ -220,7 +229,8 @@ def update_progress_bars(n_intervals):
                 if elapsed > 10:
                     # Very old completion - hide immediately without showing message
                     logger.info(
-                        f"[Progress] Stale completion detected ({elapsed:.0f}s old), hiding immediately"
+                        f"[Progress] Stale completion detected "
+                        f"({elapsed:.0f}s old), hiding immediately"
                     )
                     import time
 
@@ -240,7 +250,8 @@ def update_progress_bars(n_intervals):
                     )
                 elif elapsed >= 3:
                     # 3 seconds elapsed - hide progress bar but DON'T delete file
-                    # Let the next task's start_task() handle cleanup to avoid race condition
+                    # Let the next task's start_task() handle cleanup
+                    # to avoid race condition
                     logger.info("[Progress] Auto-hiding progress bar after 3s")
                     import time
 
@@ -262,7 +273,8 @@ def update_progress_bars(n_intervals):
                     # Show success message
                     message = progress_data.get("message", "✓ Complete")
                     logger.info(
-                        f"[Progress] Task complete: {message}, hiding in {3 - elapsed:.1f}s"
+                        f"[Progress] Task complete: {message}, "
+                        f"hiding in {3 - elapsed:.1f}s"
                     )
                     import time
 
@@ -335,7 +347,8 @@ def update_progress_bars(n_intervals):
                     # Show error message
                     message = progress_data.get("message", "Operation failed")
                     logger.info(
-                        f"[Progress] Showing error: {message}, hiding in {3 - elapsed:.1f}s"
+                        f"[Progress] Showing error: {message}, "
+                        f"hiding in {3 - elapsed:.1f}s"
                     )
                     return (
                         {"display": "block", "minHeight": "60px"},
@@ -552,15 +565,20 @@ def cancel_operation(n_clicks):
 )
 def reload_data_after_update(refresh_trigger):
     """
-    Reload statistics and update JIRA cache status after Update Data or import completes.
+    Reload statistics and update JIRA cache status
+    after Update Data or import completes.
 
-    This callback is triggered when the task completes (metrics-refresh-trigger is set by
-    the progress polling callback or import callback). It clears browser stores and reloads
-    statistics for the currently active profile/query, which triggers downstream callbacks
+    This callback is triggered when the task completes
+    (metrics-refresh-trigger is set by
+    the progress polling callback or import callback).
+    It clears browser stores and reloads statistics
+    for the currently active profile/query,
+    which triggers downstream callbacks
     to refresh the UI.
 
     This ensures correct behavior for all scenarios:
-    - CONFIG_ONLY import: Clears stores, loads data for active query (shows empty if no data)
+    - CONFIG_ONLY import: Clears stores,
+      loads data for active query (shows empty if no data)
     - FULL_DATA import: Clears stores, loads imported data for active query
     - Update Data: Clears stores, loads fresh data from JIRA
 
@@ -610,7 +628,8 @@ def reload_data_after_update(refresh_trigger):
                 )
             else:
                 logger.info(
-                    "[Progress] Task already complete, skipping redundant complete_task call"
+                    "[Progress] Task already complete, "
+                    "skipping redundant complete_task call"
                 )
             return (
                 html.Div(
@@ -634,7 +653,8 @@ def reload_data_after_update(refresh_trigger):
             )
         else:
             logger.info(
-                "[Progress] Task already complete, skipping redundant complete_task call"
+                "[Progress] Task already complete, "
+                "skipping redundant complete_task call"
             )
 
         # Update cache status to trigger jira-issues-store refresh
@@ -731,14 +751,16 @@ def cleanup_stale_tasks_on_load(pathname):
                 if elapsed > 10:
                     # Very stale task - clear state immediately
                     logger.info(
-                        f"[Progress] Clearing stale {status} task state ({elapsed:.0f}s old)"
+                        f"[Progress] Clearing stale {status} task state "
+                        f"({elapsed:.0f}s old)"
                     )
                     backend.clear_task_state()
                     return True  # Keep polling disabled
                 else:
                     # Recent error/complete - enable polling to show and auto-hide
                     logger.info(
-                        f"[Progress] Enabling polling for recent {status} task ({elapsed:.0f}s old)"
+                        f"[Progress] Enabling polling for recent {status} task "
+                        f"({elapsed:.0f}s old)"
                     )
                     return False  # Enable polling
             else:
