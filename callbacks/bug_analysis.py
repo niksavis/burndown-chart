@@ -70,7 +70,8 @@ def _render_bug_analysis_content(
         jira_config = load_jira_configuration()
         points_field = jira_config.get("points_field", "")
 
-        # Get JIRA issues from cache with ALL fields (don't specify fields to avoid validation mismatch)
+        # Get JIRA issues from cache with all fields
+        # (don't specify fields to avoid validation mismatch)
         # By passing empty string for fields, load_jira_cache won't validate fields
         all_issues = []
 
@@ -88,20 +89,25 @@ def _render_bug_analysis_content(
 
                 if all_issues:
                     logger.debug(
-                        f"Loaded {len(all_issues)} issues from database for {active_profile_id}/{active_query_id}"
+                        f"Loaded {len(all_issues)} issues from database for "
+                        f"{active_profile_id}/{active_query_id}"
                     )
                 else:
                     logger.warning(
-                        f"No issues found in database for {active_profile_id}/{active_query_id}"
+                        "No issues found in database for "
+                        f"{active_profile_id}/{active_query_id}"
                     )
             else:
                 logger.warning(
-                    f"No active profile/query configured: profile_id={active_profile_id}, query_id={active_query_id}"
+                    "No active profile/query configured: "
+                    f"profile_id={active_profile_id}, "
+                    f"query_id={active_query_id}"
                 )
         except Exception as e:
             logger.warning(f"Could not load from JIRA cache: {e}")
 
-        # Filter to only configured development project issues (exclude parents/parent types)
+        # Filter to configured development project issues
+        # (exclude parents/parent types)
         if all_issues:
             from data.issue_filtering import filter_issues_for_metrics
             from data.persistence import load_app_settings
@@ -115,7 +121,9 @@ def _render_bug_analysis_content(
             filtered_count = original_count - len(all_issues)
             if filtered_count > 0:
                 logger.info(
-                    f"Bug Analysis: Filtered to {len(all_issues)} development project issues from {original_count} total"
+                    "Bug Analysis: Filtered to "
+                    f"{len(all_issues)} development project issues "
+                    f"from {original_count} total"
                 )
 
         # Determine date range based on data_points_count (timeline filter)
@@ -143,7 +151,9 @@ def _render_bug_analysis_content(
         logger.info(
             f"Total bug issues: {len(all_bug_issues)} (all time), "
             f"{len(timeline_filtered_bugs)} in selected timeline "
-            f"(date range: {date_from.date()} to {date_to.date()}, {data_points_count} weeks)"
+            "(date range: "
+            f"{date_from.date()} to {date_to.date()}, "
+            f"{data_points_count} weeks)"
         )
 
         # Check if there are no bugs at all - show helpful placeholder
@@ -172,7 +182,13 @@ def _render_bug_analysis_content(
             return html.Div(
                 create_content_placeholder(
                     type="chart",
-                    text=f"No bug data in selected timeframe. Found {len(all_bug_issues)} total bugs, but none in the last {data_points_count} weeks. Use the Data Points slider in Settings to expand the timeline.",
+                    text=(
+                        "No bug data in selected timeframe. "
+                        f"Found {len(all_bug_issues)} total bugs, "
+                        f"but none in the last {data_points_count} weeks. "
+                        "Use the Data Points slider in Settings "
+                        "to expand the timeline."
+                    ),
                     icon="fa-calendar-times",
                     height="400px",
                 ),
@@ -182,7 +198,9 @@ def _render_bug_analysis_content(
         # Calculate weekly bug statistics using timeline-filtered bugs
         try:
             logger.info(
-                f"Attempting to calculate statistics with {len(timeline_filtered_bugs)} bugs from {date_from} to {date_to}"
+                "Attempting to calculate statistics with "
+                f"{len(timeline_filtered_bugs)} bugs "
+                f"from {date_from} to {date_to}"
             )
             from data.bug_processing import calculate_bug_statistics
 
@@ -199,7 +217,8 @@ def _render_bug_analysis_content(
 
             # Calculate bug metrics summary
             # Use all_bug_issues for current state (open bugs count)
-            # Use timeline_filtered_bugs for historical metrics (resolution rate, trends)
+            # Use timeline_filtered_bugs for historical metrics
+            # (resolution rate, trends)
             # Pass all_issues for total project capacity calculation
             bug_metrics = calculate_bug_metrics_summary(
                 all_bug_issues,
@@ -223,7 +242,8 @@ def _render_bug_analysis_content(
                 use_last_n_weeks=8,
             )
 
-            # Create combined metrics cards (Resolution Rate + Open Bugs + Expected Resolution)
+            # Create combined metrics cards
+            # (Resolution Rate + Open Bugs + Expected Resolution)
             metrics_cards = create_bug_metrics_cards(bug_metrics, forecast)
 
             # Create bug trends chart
@@ -254,13 +274,15 @@ def _render_bug_analysis_content(
 
             logger.info(
                 f"[BUG ANALYSIS] has_story_points={has_story_points} "
-                f"(stats={has_story_points_in_stats}, bugs={has_story_points_in_bugs}), "
+                "(stats="
+                f"{has_story_points_in_stats}, bugs={has_story_points_in_bugs}), "
                 f"weekly_stats count={len(weekly_stats)}"
             )
             if weekly_stats:
                 logger.debug(f"[BUG ANALYSIS] Sample stat: {weekly_stats[0]}")
 
-            # Bug Investment Chart - only show when points tracking is enabled AND has data
+            # Bug Investment Chart: show only when points tracking is enabled
+            # and data is available
             if show_points and has_points_data and has_story_points:
                 investment_chart = BugInvestmentChart(
                     weekly_stats, viewport_size="mobile"
@@ -277,7 +299,9 @@ def _render_bug_analysis_content(
                             html.Div(
                                 [
                                     html.I(
-                                        className="fas fa-toggle-off fa-lg text-secondary"
+                                        className=(
+                                            "fas fa-toggle-off fa-lg text-secondary"
+                                        )
                                     ),
                                     html.Div(
                                         "Points Tracking Disabled",
@@ -288,12 +312,16 @@ def _render_bug_analysis_content(
                                         },
                                     ),
                                     html.Small(
-                                        "Enable points tracking in Settings to view bug investment by story points.",
+                                        "Enable points tracking in Settings "
+                                        "to view bug investment by story points.",
                                         className="text-muted",
                                         style={"fontSize": "0.85rem"},
                                     ),
                                 ],
-                                className="d-flex align-items-center justify-content-center flex-column",
+                                className=(
+                                    "d-flex align-items-center "
+                                    "justify-content-center flex-column"
+                                ),
                                 style={"gap": "0.25rem"},
                             ),
                         ],
@@ -328,12 +356,18 @@ def _render_bug_analysis_content(
                                         },
                                     ),
                                     html.Small(
-                                        "No story points data available in the selected time period. Configure story points field in Settings or complete bug items with point estimates.",
+                                        "No story points data available in the "
+                                        "selected time period. Configure story "
+                                        "points field in Settings or complete bug "
+                                        "items with point estimates.",
                                         className="text-muted",
                                         style={"fontSize": "0.85rem"},
                                     ),
                                 ],
-                                className="d-flex align-items-center justify-content-center flex-column",
+                                className=(
+                                    "d-flex align-items-center "
+                                    "justify-content-center flex-column"
+                                ),
                                 style={"gap": "0.25rem"},
                             ),
                         ],
@@ -349,7 +383,8 @@ def _render_bug_analysis_content(
             # Handle edge case: not enough bugs for statistics
             logger.error(f"Could not calculate bug statistics: {ve}")
             logger.error(
-                f"Bug count: {len(timeline_filtered_bugs)}, date_from: {date_from}, date_to: {date_to}"
+                f"Bug count: {len(timeline_filtered_bugs)}, "
+                f"date_from: {date_from}, date_to: {date_to}"
             )
             # Set empty weekly_stats for insights
             weekly_stats = []
@@ -391,7 +426,8 @@ def _render_bug_analysis_content(
         return html.Div(
             dbc.Container(
                 [
-                    # Combined bug metrics cards (Resolution Rate + Open Bugs + Expected Resolution)
+                    # Combined bug metrics cards
+                    # (Resolution Rate + Open Bugs + Expected Resolution)
                     dbc.Row([dbc.Col([metrics_cards], width=12)], className="mb-4"),
                     # Bug trends chart
                     dbc.Row([dbc.Col([trends_chart], width=12)], className="mb-4"),
@@ -402,7 +438,8 @@ def _render_bug_analysis_content(
                         [
                             dbc.Col(
                                 [
-                                    # Generate quality insights from metrics and statistics
+                                    # Generate quality insights
+                                    # from metrics and statistics
                                     create_quality_insights_panel(
                                         generate_quality_insights(
                                             bug_metrics, weekly_stats
@@ -435,7 +472,9 @@ def _render_bug_analysis_content(
                                     dbc.CardBody(
                                         [
                                             html.I(
-                                                className="fas fa-exclamation-triangle me-2"
+                                                className=(
+                                                    "fas fa-exclamation-triangle me-2"
+                                                )
                                             ),
                                             f"Error loading bug analysis: {str(e)}",
                                         ]
