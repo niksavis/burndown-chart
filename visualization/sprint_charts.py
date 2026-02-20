@@ -250,7 +250,8 @@ def _calculate_issue_health_priority(
         Tuple of (completion_bucket, health_priority, days_in_completed):
         - completion_bucket: 0=active, 1=completed
         - health_priority: 1=blocked, 2=aging, 3=wip, 4=todo, 5=completed
-        - days_in_completed: For completed items, days since completion (used for sorting)
+                - days_in_completed: For completed items,
+                    days since completion (used for sorting)
     """
     now = datetime.now(UTC)
     status = issue_state.get("status", "Unknown")
@@ -416,7 +417,8 @@ def _sort_issues_by_health_priority(
     sprint_start_date: str | None = None,
     sprint_end_date: str | None = None,
 ) -> list[str]:
-    """Sort issues by completion bucket, health priority, completion percentage, and issue key.
+    """Sort issues by completion bucket, health priority,
+    completion percentage, and issue key.
 
     Sorting order:
     1. Completion bucket (0=active first, 1=completed last)
@@ -483,7 +485,8 @@ def _sort_issues_by_health_priority(
             (completion_bucket, health_priority, days_in_completed, issue_key)
         )
 
-    # Sort by completion bucket, health priority, days_in_completed (for completed), then issue key
+    # Sort by completion bucket, health priority,
+    # days_in_completed (for completed), then issue key
     def sort_key(item):
         completion_bucket, health_priority, days_in_completed, issue_key = item
         # Try to extract numeric part from issue key (e.g., "PROJ-123" -> 123)
@@ -495,7 +498,8 @@ def _sort_issues_by_health_priority(
                 return (
                     completion_bucket,
                     health_priority,
-                    days_in_completed,  # Ascending: fewer days (recently completed) first
+                    # Ascending: fewer days (recently completed) first
+                    days_in_completed,
                     -numeric_part,  # Negative for descending
                 )
         except (ValueError, AttributeError):
@@ -630,7 +634,8 @@ def create_sprint_progress_bars(
         if sprint_start and sprint_end:
             sprint_duration_seconds = (sprint_end - sprint_start).total_seconds()
             logger.info(
-                f"[SPRINT PROGRESS] Sprint duration: {sprint_duration_seconds / 86400:.1f} days"
+                "[SPRINT PROGRESS] Sprint duration: "
+                f"{sprint_duration_seconds / 86400:.1f} days"
             )
         else:
             logger.warning("Sprint dates not provided - using default 14 days")
@@ -674,7 +679,8 @@ def create_sprint_progress_bars(
         ]
 
         logger.info(
-            f"[SPRINT PROGRESS] Issue {issue_key}: Found {len(issue_changes)} status changes"
+            f"[SPRINT PROGRESS] Issue {issue_key}: "
+            f"Found {len(issue_changes)} status changes"
         )
 
         if not issue_changes:
@@ -748,7 +754,8 @@ def create_sprint_progress_bars(
         # Include ALL statuses (even To Do) from sprint start
         first_time = datetime.fromisoformat(first_timestamp)
 
-        # If sprint has a start date, use that as the beginning; otherwise use first change
+        # If sprint has a start date, use that as the beginning;
+        # otherwise use first change
         if sprint_start and sprint_start < first_time:
             timeline_start = sprint_start
             current_seg_status = initial_status or "To Do"
@@ -794,7 +801,8 @@ def create_sprint_progress_bars(
                 }
             )
         logger.info(
-            f"[SPRINT PROGRESS] Issue {issue_key}: Built {len(time_segments)} time segments"
+            f"[SPRINT PROGRESS] Issue {issue_key}: "
+            f"Built {len(time_segments)} time segments"
         )
 
         # Calculate total time from sprint start (or first change) to now
@@ -975,7 +983,8 @@ def create_sprint_progress_bars(
                 badges.extend(
                     [
                         dbc.Tooltip(
-                            f"Issues added to this sprint after it started ({added_count} issues)",
+                            "Issues added to this sprint after it started "
+                            f"({added_count} issues)",
                             target="badge-added-inline",
                             placement="top",
                             trigger="click",
@@ -998,7 +1007,8 @@ def create_sprint_progress_bars(
                 badges.extend(
                     [
                         dbc.Tooltip(
-                            f"Issues removed from this sprint after it started ({removed_count} issues)",
+                            "Issues removed from this sprint after it started "
+                            f"({removed_count} issues)",
                             target="badge-removed-inline",
                             placement="top",
                             trigger="click",
@@ -1025,7 +1035,10 @@ def create_sprint_progress_bars(
                 badges.extend(
                     [
                         dbc.Tooltip(
-                            f"Net scope change after sprint start: {net_sign}{net_change} issues (Added - Removed). Note: Initial issues present at sprint start are not included in this count.",
+                            "Net scope change after sprint start: "
+                            f"{net_sign}{net_change} issues (Added - Removed). "
+                            "Note: Initial issues present at sprint start "
+                            "are not included in this count.",
                             target="badge-net-change-inline",
                             placement="top",
                             trigger="click",
@@ -1048,7 +1061,10 @@ def create_sprint_progress_bars(
                 badges.extend(
                     [
                         dbc.Tooltip(
-                            f"{initial_issues} issues were already in the sprint when it started. Total issues = {initial_issues} initial + {net_change} net change = {total_issues}",
+                            f"{initial_issues} issues were already in the sprint "
+                            "when it started. "
+                            f"Total issues = {initial_issues} initial + "
+                            f"{net_change} net change = {total_issues}",
                             target="badge-initial-inline",
                             placement="top",
                             trigger="click",
@@ -1247,7 +1263,9 @@ def _create_single_status_bar(
         segments.append(
             html.Div(
                 percentage_text,
-                title=f"{status}: {duration_str} ({elapsed_pct:.0f}% of sprint duration)",
+                title=(
+                    f"{status}: {duration_str} ({elapsed_pct:.0f}% of sprint duration)"
+                ),
                 style={
                     "width": f"{elapsed_pct:.6f}%",
                     "backgroundColor": color,
@@ -1451,7 +1469,8 @@ def _create_multi_segment_bar(
         status = segment["status"]
         # Calculate percentage of TOTAL ELAPSED TIME (not sprint duration)
         duration_pct_of_elapsed = (segment["duration_seconds"] / total_duration) * 100
-        # Scale to sprint timeline: elapsed time fills X% of sprint, this segment is Y% of elapsed
+        # Scale to sprint timeline: elapsed time fills X% of sprint,
+        # this segment is Y% of elapsed
         duration_pct_of_sprint = (
             duration_pct_of_elapsed / 100
         ) * time_progress_percentage
@@ -1482,7 +1501,10 @@ def _create_multi_segment_bar(
         segments.append(
             html.Div(
                 percentage_text,
-                title=f"{status}: {duration_str} ({duration_pct_of_sprint:.0f}% of sprint duration)",
+                title=(
+                    f"{status}: {duration_str} "
+                    f"({duration_pct_of_sprint:.0f}% of sprint duration)"
+                ),
                 style={
                     "width": f"{duration_pct_of_sprint}%",
                     "backgroundColor": color,
@@ -1697,7 +1719,10 @@ def create_status_distribution_pie(progress_data: dict) -> go.Figure:
                 values=values,
                 marker=dict(colors=colors),
                 textinfo="label+percent",
-                hovertemplate="<b>%{label}</b><br>Count: %{value}<br>Percent: %{percent}<extra></extra>",
+                hovertemplate=(
+                    "<b>%{label}</b><br>Count: %{value}<br>"
+                    "Percent: %{percent}<extra></extra>"
+                ),
             )
         ]
     )
