@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """
-Calculate codebase metrics and update agents.md.
+Calculate codebase context metrics and write dedicated artifacts.
 
-Called automatically by release.py to keep metrics fresh.
-Can also be run manually: python update_codebase_metrics.py
+Run manually when context metrics need refreshing:
+python update_codebase_metrics.py
 
 Calculates:
 - Total tokens (all tracked files)
@@ -13,12 +13,14 @@ Calculates:
 - Configuration (YAML, JSON, TOML files)
 """
 
+import json
 import re
 from datetime import datetime
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).parent
-AGENTS_MD = PROJECT_ROOT / "agents.md"
+CONTEXT_METRICS_MD = PROJECT_ROOT / "docs" / "codebase_context_metrics.md"
+CONTEXT_METRICS_JSON = PROJECT_ROOT / ".github" / "codebase_context_metrics.json"
 
 # File patterns to exclude
 EXCLUDE_PATTERNS = [
@@ -284,79 +286,105 @@ def format_number(num: int) -> str:
         return str(num)
 
 
-def generate_metrics_section(metrics: dict[str, dict[str, int]]) -> str:
-    """Generate the metrics markdown section."""
-    today = datetime.now().strftime("%Y-%m-%d")
+def get_context_strategy(total_tokens: int) -> str:
+    """Return recommended context strategy based on estimated token volume."""
+    if total_tokens <= 120_000:
+        return "single-pass"
+    if total_tokens <= 500_000:
+        return "targeted-chunking"
+    return "strict-chunking"
 
-    section = f"""## Codebase Metrics
+
+def generate_metrics_markdown(metrics: dict[str, dict[str, int]]) -> str:
+    """Generate markdown report for codebase context metrics."""
+    today = datetime.now().strftime("%Y-%m-%d")
+    context_strategy = get_context_strategy(metrics["total"]["tokens"])
+    total_files = metrics["total"]["files"]
+    total_lines = format_number(metrics["total"]["lines"])
+    total_tokens = format_number(metrics["total"]["tokens"])
+    code_files = metrics["code"]["files"]
+    code_lines = format_number(metrics["code"]["lines"])
+    code_tokens = format_number(metrics["code"]["tokens"])
+    python_files = metrics["python"]["files"]
+    python_lines = format_number(metrics["python"]["lines"])
+    python_tokens = format_number(metrics["python"]["tokens"])
+    frontend_files = metrics["frontend"]["files"]
+    frontend_lines = format_number(metrics["frontend"]["lines"])
+    frontend_tokens = format_number(metrics["frontend"]["tokens"])
+    test_files = metrics["tests"]["files"]
+    test_lines = format_number(metrics["tests"]["lines"])
+    test_tokens = format_number(metrics["tests"]["tokens"])
+    docs_files = metrics["docs"]["files"]
+    docs_lines = format_number(metrics["docs"]["lines"])
+    docs_tokens = format_number(metrics["docs"]["tokens"])
+    tests_pct = metrics["tests"]["tokens"] / metrics["total"]["tokens"] * 100
+
+    section = f"""# Codebase Context Metrics
 
 **Last Updated**: {today}
 
+Purpose: provide lightweight context-sizing guidance for human and AI contributors.
+
 | Category | Files | Lines | Tokens |
 |----------|-------|-------|--------|
-| **Total** | {metrics["total"]["files"]} | {format_number(metrics["total"]["lines"])} | **~{format_number(metrics["total"]["tokens"])}** |
-| Code (Python + JS/CSS) | {metrics["code"]["files"]} | {format_number(metrics["code"]["lines"])} | ~{format_number(metrics["code"]["tokens"])} |
-| Python (no tests) | {metrics["python"]["files"]} | {format_number(metrics["python"]["lines"])} | ~{format_number(metrics["python"]["tokens"])} |
-| Frontend (JS/CSS) | {metrics["frontend"]["files"]} | {format_number(metrics["frontend"]["lines"])} | ~{format_number(metrics["frontend"]["tokens"])} |
-| Tests | {metrics["tests"]["files"]} | {format_number(metrics["tests"]["lines"])} | ~{format_number(metrics["tests"]["tokens"])} |
-| Documentation (MD) | {metrics["docs"]["files"]} | {format_number(metrics["docs"]["lines"])} | ~{format_number(metrics["docs"]["tokens"])} |
+| **Total** | {total_files} | {total_lines} | **~{total_tokens}** |
+| Code (Python + JS/CSS) | {code_files} | {code_lines} | ~{code_tokens} |
+| Python (no tests) | {python_files} | {python_lines} | ~{python_tokens} |
+| Frontend (JS/CSS) | {frontend_files} | {frontend_lines} | ~{frontend_tokens} |
+| Tests | {test_files} | {test_lines} | ~{test_tokens} |
+| Documentation (MD) | {docs_files} | {docs_lines} | ~{docs_tokens} |
 
-**Agent Guidance**:
+## Agent Guidance
+
+- **Recommended strategy**: `{context_strategy}`
 - **Too large for context**: Use targeted `semantic_search`, avoid broad reads
 - **File size check**: Prefer reading <500 lines per file
 - **Module focus**: Target specific folders (data/, ui/, callbacks/, etc.)
-- **Test coverage**: {metrics["tests"]["files"]} test files ({metrics["tests"]["tokens"] / metrics["total"]["tokens"] * 100:.0f}% of codebase)
+- **Test coverage**: {test_files} test files ({tests_pct:.0f}% of codebase)
 
 """
     return section
 
 
-def update_agents_md(metrics_section: str) -> None:
-    """Update or insert metrics section in agents.md."""
+def write_metrics_files(metrics: dict[str, dict[str, int]], markdown_text: str) -> None:
+    """Write dedicated markdown and JSON metrics artifacts."""
+    CONTEXT_METRICS_MD.parent.mkdir(parents=True, exist_ok=True)
+    CONTEXT_METRICS_JSON.parent.mkdir(parents=True, exist_ok=True)
 
-    if not AGENTS_MD.exists():
-        print(f"ERROR: {AGENTS_MD} not found")
-        return
+    CONTEXT_METRICS_MD.write_text(markdown_text, encoding="utf-8")
 
-    content = AGENTS_MD.read_text(encoding="utf-8")
+    payload = {
+        "last_updated": datetime.now().strftime("%Y-%m-%d"),
+        "recommended_strategy": get_context_strategy(metrics["total"]["tokens"]),
+        "metrics": metrics,
+        "guidance": {
+            "max_lines_per_read": 500,
+            "use_semantic_search": True,
+            "focus_folders": ["data", "ui", "callbacks", "visualization"],
+        },
+    }
+    CONTEXT_METRICS_JSON.write_text(
+        json.dumps(payload, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
+    )
 
-    # Check if metrics section exists
-    metrics_pattern = r"## Codebase Metrics\n\n.*?(?=\n## |\Z)"
-
-    if re.search(metrics_pattern, content, re.DOTALL):
-        # Replace existing section
-        updated = re.sub(
-            metrics_pattern, metrics_section.rstrip() + "\n\n", content, flags=re.DOTALL
-        )
-    else:
-        # Insert after title and before first section
-        lines = content.split("\n")
-        insert_pos = 0
-
-        # Find position after title and blank lines
-        for i, line in enumerate(lines):
-            if line.startswith("# "):
-                # Insert after title and its following blank lines
-                insert_pos = i + 1
-                while insert_pos < len(lines) and not lines[insert_pos].strip():
-                    insert_pos += 1
-                break
-
-        lines.insert(insert_pos, metrics_section)
-        updated = "\n".join(lines)
-
-    AGENTS_MD.write_text(updated, encoding="utf-8")
-    print(f"[OK] Updated {AGENTS_MD.relative_to(PROJECT_ROOT)}")
+    print(f"[OK] Updated {CONTEXT_METRICS_MD.relative_to(PROJECT_ROOT)}")
+    print(f"[OK] Updated {CONTEXT_METRICS_JSON.relative_to(PROJECT_ROOT)}")
 
 
 def commit_changes() -> bool:
-    """Commit agents.md changes to git if modified."""
+    """Commit context metrics artifact changes to git if modified."""
     import subprocess
 
     try:
-        # Check if agents.md was modified
+        # Check if metrics artifacts were modified
         result = subprocess.run(
-            ["git", "status", "--porcelain", "agents.md"],
+            [
+                "git",
+                "status",
+                "--porcelain",
+                "docs/codebase_context_metrics.md",
+                ".github/codebase_context_metrics.json",
+            ],
             capture_output=True,
             text=True,
             cwd=PROJECT_ROOT,
@@ -366,16 +394,26 @@ def commit_changes() -> bool:
             print("[OK] No changes to commit (metrics already up to date)")
             return True
 
-        # Stage agents.md
+        # Stage metrics artifacts
         subprocess.run(
-            ["git", "add", "agents.md"],
+            [
+                "git",
+                "add",
+                "docs/codebase_context_metrics.md",
+                ".github/codebase_context_metrics.json",
+            ],
             check=True,
             cwd=PROJECT_ROOT,
         )
 
         # Commit the changes
         subprocess.run(
-            ["git", "commit", "-m", "docs(metrics): update codebase metrics"],
+            [
+                "git",
+                "commit",
+                "-m",
+                "docs(metrics): update codebase context metrics",
+            ],
             check=True,
             cwd=PROJECT_ROOT,
         )
@@ -385,7 +423,7 @@ def commit_changes() -> bool:
 
     except subprocess.CalledProcessError as e:
         print(f"[WARNING] Could not commit changes: {e}")
-        print("  (agents.md was updated but not committed)")
+        print("  (context metrics artifacts were updated but not committed)")
         return False
     except Exception as e:
         print(f"[WARNING] Git operation failed: {e}")
@@ -393,7 +431,7 @@ def commit_changes() -> bool:
 
 
 def main() -> None:
-    """Calculate metrics and update agents.md."""
+    """Calculate metrics and update dedicated context metrics artifacts."""
     print("Calculating codebase metrics...")
 
     metrics = calculate_metrics()
@@ -403,27 +441,35 @@ def main() -> None:
     print("CODEBASE METRICS")
     print(f"{'=' * 60}")
     print(
-        f"Total:      {metrics['total']['files']:3} files | {format_number(metrics['total']['tokens']):>6} tokens"
+        "Total:      "
+        f"{metrics['total']['files']:3} files | "
+        f"{format_number(metrics['total']['tokens']):>6} tokens"
     )
     print(
-        f"Code:       {metrics['code']['files']:3} files | {format_number(metrics['code']['tokens']):>6} tokens"
+        "Code:       "
+        f"{metrics['code']['files']:3} files | "
+        f"{format_number(metrics['code']['tokens']):>6} tokens"
     )
     print(
-        f"Tests:      {metrics['tests']['files']:3} files | {format_number(metrics['tests']['tokens']):>6} tokens"
+        "Tests:      "
+        f"{metrics['tests']['files']:3} files | "
+        f"{format_number(metrics['tests']['tokens']):>6} tokens"
     )
     print(
-        f"Docs:       {metrics['docs']['files']:3} files | {format_number(metrics['docs']['tokens']):>6} tokens"
+        "Docs:       "
+        f"{metrics['docs']['files']:3} files | "
+        f"{format_number(metrics['docs']['tokens']):>6} tokens"
     )
     print(f"{'=' * 60}\n")
 
-    # Update agents.md
-    metrics_section = generate_metrics_section(metrics)
-    update_agents_md(metrics_section)
+    # Update dedicated metrics artifacts
+    metrics_markdown = generate_metrics_markdown(metrics)
+    write_metrics_files(metrics, metrics_markdown)
 
     # Commit changes to git
     commit_changes()
 
-    print("[SUCCESS] Metrics updated in agents.md")
+    print("[SUCCESS] Context metrics artifacts updated")
 
 
 if __name__ == "__main__":

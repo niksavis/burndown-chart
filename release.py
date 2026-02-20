@@ -22,7 +22,7 @@ Flow:
     5. Regenerate changelog from git history (amend if changed)
     6. Regenerate version_info.txt with new version
     7. Commit version_info.txt
-    8. Update codebase metrics in agents.md
+    8. Update codebase context metrics artifacts
     9. Create final release commit "Release vX.Y.Z" (tag points here)
     10. Create git tag
     11. Push everything to origin (main + tag)
@@ -245,7 +245,7 @@ def regenerate_version_info() -> bool:
 
 
 def update_codebase_metrics() -> bool:
-    """Update codebase metrics in agents.md."""
+    """Update codebase context metrics artifacts."""
     print("\n" + "=" * 60)
     print("Updating Codebase Metrics")
     print("=" * 60)
@@ -257,7 +257,7 @@ def update_codebase_metrics() -> bool:
 
     success, _ = run_command(
         [sys.executable, str(METRICS_SCRIPT)],
-        "Calculate and update metrics in agents.md",
+        "Calculate and update context metrics artifacts",
     )
 
     if not success:
@@ -463,7 +463,7 @@ def main():
         print("\n[FAILED] version_info.txt regeneration", file=sys.stderr)
         sys.exit(1)
 
-    # Step 3: Update codebase metrics in agents.md
+    # Step 3: Update codebase context metrics artifacts
     if not update_codebase_metrics():
         print("\n[FAILED] Codebase metrics update", file=sys.stderr)
         sys.exit(1)

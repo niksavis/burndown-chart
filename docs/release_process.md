@@ -15,10 +15,10 @@
                               # → dist/BurndownChart-Windows-{version}.zip (legacy)
 
 # Automated release (venv must be active)
-python release.py [patch|minor|major]  # Version bump → changelog → metrics → push → triggers CI
+python release.py [patch|minor|major]  # Version bump → changelog → metrics artifacts → push → triggers CI
 
-# Update codebase metrics (venv must be active)
-python update_codebase_metrics.py  # → agents.md (auto-commits)
+# Update codebase context metrics (venv must be active)
+python update_codebase_metrics.py  # → docs/codebase_context_metrics.md + .github/codebase_context_metrics.json (auto-commits)
 ```
 
 ---
@@ -28,6 +28,7 @@ python update_codebase_metrics.py  # → agents.md (auto-commits)
 **Prerequisites**: Windows 10/11, Python 3.13+, activated .venv
 
 **Build commands**:
+
 ```powershell
 .\build\collect_licenses.ps1   # Scan pip packages → licenses/THIRD_PARTY_LICENSES.txt
 .\build\build.ps1 [-VerboseBuild]  # PyInstaller → dist/*.exe (bundles: runtime, deps, assets, licenses, changelog.md)
@@ -35,10 +36,12 @@ python update_codebase_metrics.py  # → agents.md (auto-commits)
 ```
 
 **Output**:
+
 - `dist/Burndown-Windows-{version}.zip` (~109 MB)
 - `dist/BurndownChart-Windows-{version}.zip` (legacy, ~109 MB)
 
 **Test**:
+
 ```powershell
 Expand-Archive dist\Burndown-Windows-*.zip -DestinationPath C:\Temp\Test
 C:\Temp\Test\Burndown.exe  # Verify: starts, correct version in About, LICENSE.txt extracted
@@ -58,6 +61,7 @@ C:\Temp\TestLegacy\BurndownChart.exe  # Verify legacy update path
 **Process**: Checkout → Python 3.13 setup → deps install → collect licenses → build → package → create release with ZIP
 
 **Test without release**: Use test tag `v{version}-test` → workflow runs → manual cleanup:
+
 ```powershell
 git tag v2.6.0-test && git push origin v2.6.0-test  # Trigger workflow
 git tag -d v2.6.0-test && git push origin :refs/tags/v2.6.0-test  # Delete after verification
@@ -86,6 +90,7 @@ git tag -d v2.6.0-test && git push origin :refs/tags/v2.6.0-test  # Delete after
 ## Release Checklist
 
 **Pre-Release**:
+
 - [ ] **Activate venv**: `.venv\Scripts\activate` (MANDATORY - do this FIRST)
 - [ ] Dev dependencies installed (`pip install -r requirements-dev.txt` - needed for PyYAML)
 - [ ] Tests pass (`pytest tests/ -v`)
@@ -105,7 +110,7 @@ python regenerate_changelog.py --preview --json
 # - Categorized (Features, Bug Fixes, etc.)
 
 # Step 2: Use LLM to write polished changelog
-# Prompt: "Read changelog_draft.json and write a user-friendly changelog 
+# Prompt: "Read changelog_draft.json and write a user-friendly changelog
 #          section for v2.7.11. Focus on what users can DO, bold major
 #          features (**Feature**), flat bullets only (no sub-bullets)."
 
@@ -113,11 +118,11 @@ python regenerate_changelog.py --preview --json
 # Format:
 #   ## v2.7.11
 #   *Released: 2026-01-26*
-#   
+#
 #   ### Features
 #   - **Major Feature**: Description inline with details
 #   - Enhancement: Description
-#   
+#
 #   ### Bug Fixes
 #   - Fixed issue preventing X from Y
 
@@ -134,6 +139,7 @@ python release.py [patch|minor|major]
 ```
 
 **What release.py does**:
+
 1. Preflight checks (clean working dir, on main branch)
 2. Bump version in configuration/**init**.py and readme.md
 3. Commit version changes: "chore: bump version to X.Y.Z"
@@ -141,12 +147,13 @@ python release.py [patch|minor|major]
 5. Check if changelog.md changed - **NO AMEND** if changelog already committed
 6. Regenerate version_info.txt and version_info_updater.txt (bundled in executables)
 7. Commit version_info files: "chore(build): update version_info files for release"
-8. Update codebase metrics in agents.md (auto-commits: "docs(metrics): update codebase metrics")
+8. Update codebase context metrics artifacts (auto-commits: "docs(metrics): update codebase context metrics")
 9. **Create final release commit**: "Release vX.Y.Z" (empty commit, tag points here)
 10. **Create git tag** (points to release commit - GitHub Actions shows clean message)
 11. Push main branch and tag to origin → **triggers GitHub Actions**
 
 **Post-Release**:
+
 - [ ] GitHub Actions workflow completes successfully
 - [ ] GitHub release created with ZIP attached
 - [ ] Release notes extracted from changelog.md (matching version section)
@@ -155,16 +162,17 @@ python release.py [patch|minor|major]
 
 ---
 
-## Codebase Metrics
+## Codebase Context Metrics
 
 **Script**: `update_codebase_metrics.py`
 
-**Purpose**: Calculates token counts and updates agents.md with codebase statistics for AI agents
+**Purpose**: Calculates token counts and writes dedicated context metrics artifacts for AI agents
 
 **Features**:
+
 - **Dynamic calibration**: Tests 46 representative files to calculate chars-per-token ratio
 - **Comprehensive breakdown**: Total, code, tests, docs, Python, frontend
-- **Self-contained**: Updates agents.md and auto-commits changes
+- **Dedicated artifacts**: Updates docs markdown + machine-readable JSON and auto-commits changes
 
 **Usage**:
 
@@ -176,7 +184,10 @@ python update_codebase_metrics.py
 python release.py [patch|minor|major]  # Calls script internally
 ```
 
-**Output**: Updates "Codebase Metrics" section in agents.md with current counts
+**Output**:
+
+- `docs/codebase_context_metrics.md`
+- `.github/codebase_context_metrics.json`
 
 ---
 
@@ -189,23 +200,28 @@ python release.py [patch|minor|major]  # Calls script internally
 **Modes**:
 
 1. **Preview Mode (RECOMMENDED for releases)**:
+
    ```powershell
    python regenerate_changelog.py --preview --json
    ```
+
    - Shows unreleased commits since last tag (v2.7.10..HEAD)
    - Creates `changelog_draft.json` for LLM processing
    - Use BEFORE running release.py
    - Enables manual polish before committing
 
 2. **Post-Tag Mode (fallback)**:
+
    ```powershell
    python regenerate_changelog.py --json
    ```
+
    - Generates entries for NEW tags not in changelog.md
    - Use if you forgot to create changelog before release
    - Requires force-moving tag after editing
 
-**Format rules**: 
+**Format rules**:
+
 - Flat bullets only (no sub-bullets - About dialog limitation)
 - Bold major features: `**Feature Name**`
 - Focus on user benefits, not technical details
@@ -232,10 +248,10 @@ python regenerate_changelog.py --preview --json
 # Format:
 #   ## v2.7.11
 #   *Released: 2026-01-26*
-#   
+#
 #   ### Features
 #   - **Major Feature**: Complete description inline
-#   
+#
 #   ### Bug Fixes
 #   - Fixed specific issue
 
@@ -292,6 +308,7 @@ git push origin main v2.7.11 --force
 **Version mismatch**: Tag ≠ executable version → release.py ensures correct order (bump → regenerate version_info.txt)
 
 **Orphaned tag** (tag points to wrong commit):
+
 ```powershell
 # Symptoms: GitHub Actions builds wrong code, executable has old bugs
 
@@ -303,6 +320,7 @@ git push origin v2.7.11                      # Push corrected tag
 ```
 
 **Forgot to write changelog before release**:
+
 ```powershell
 # Tag already exists but changelog missing/incomplete
 
@@ -320,6 +338,7 @@ git push origin main v2.7.11 --force         # Force push
 ```
 
 **Success toast not appearing after update**:
+
 ```powershell
 # Check app.log for errors in /api/version endpoint
 # Check JavaScript console for fetch errors
@@ -330,4 +349,4 @@ sqlite3 "D:\Utilities\Burndown\profiles\burndown.db" "SELECT * FROM app_state WH
 
 ---
 
-**Resources**: build/ (scripts), build/*.spec (PyInstaller), .github/workflows/release.yml, release.py
+**Resources**: build/ (scripts), build/\*.spec (PyInstaller), .github/workflows/release.yml, release.py

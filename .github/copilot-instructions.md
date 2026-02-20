@@ -2,6 +2,34 @@
 
 **Stack**: Python 3.13, Dash, Plotly, Waitress | **DB**: SQLite | **Platform**: Windows
 
+## Copilot Customization Precedence (Canonical)
+
+Apply Copilot customization artifacts in this order:
+
+1. Always-on instructions (`.github/copilot-instructions.md`)
+2. Conditional instructions (`.github/instructions/*.instructions.md`)
+3. Skills (`.github/skills/**/SKILL.md`)
+4. Prompts (`.github/prompts/*.prompt.md`)
+
+When guidance conflicts, higher-precedence artifacts win.
+
+## Canonical Source Policy
+
+- This file is the canonical source for always-on Copilot behavior in this repository.
+- `agents.md` is a lightweight cross-tool compatibility shim for environments that do not auto-load this file.
+- To avoid context overload, keep policy details here and keep `agents.md` concise with links and operational bootstrap only.
+- If behavior changes here, update `agents.md` only when compatibility bootstrap behavior must change.
+
+## Customization Inventory
+
+- Index and usage map: [copilot_customization.md](./copilot_customization.md)
+
+## Context Metrics Source
+
+- Machine-readable: `.github/codebase_context_metrics.json`
+- Human-readable: `docs/codebase_context_metrics.md`
+- Use these artifacts to choose context strategy (`single-pass`, `targeted-chunking`, `strict-chunking`) before broad file reads.
+
 ## Core Axioms (Non-Negotiable)
 
 1. **VENV**: Before any Python command, activate the virtual environment in the same shell.
@@ -26,7 +54,7 @@ Applies to: python scripts, pytest, pip install, release.py, regenerate_changelo
 
 ## Architecture Guides (Required)
 
-**Check before any code change**: docs/architecture/<language>\_guidelines.md
+**Check before any code change**: `docs/architecture/*_guidelines.md`
 
 | Language   | Max File       | Max Function | Key Document                                                              |
 | ---------- | -------------- | ------------ | ------------------------------------------------------------------------- |
@@ -60,6 +88,21 @@ Applies to: python scripts, pytest, pip install, release.py, regenerate_changelo
 - **Windows**: PowerShell only; no bash utilities.
 - **Simplicity**: Keep implementations simple (KISS). Avoid over-engineering.
 - **Reusability**: Extract shared logic to reusable functions (DRY). No duplication.
+- **Boy Scout Rule**: Leave touched code and customization artifacts clearer than you found them.
+
+## File Naming (Required)
+
+- Do not use uppercase letters in repository filenames.
+- For customization docs under `.github/`, use lowercase names.
+
+## Customization Self-Healing (Required)
+
+When important, reusable guidance is discovered during implementation or review:
+
+1. Update the most specific artifact first (`instructions`/`skills`/`prompts`/`agents`/`hooks`).
+2. If guidance affects global behavior, also update this file.
+3. Reflect additions/changes in `.github/copilot_customization.md` and `.github/copilot_capability_map.md`.
+4. Keep changes minimal and avoid duplicating policy text across files.
 
 ## Security and Data Safety
 
@@ -90,7 +133,7 @@ Ask: "Create feature branch or work on main?" before implementing.
 4. Commit changelog before release.py.
 5. Run release.py patch|minor|major (preferred).
 
-release.py updates version files, regenerates version info, updates agents.md metrics, commits, tags, and pushes.
+release.py updates version files, regenerates version info, updates codebase context metrics artifacts, commits, tags, and pushes.
 
 ## Beads Workflow (Required)
 

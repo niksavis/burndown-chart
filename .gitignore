@@ -235,15 +235,7 @@ backups/
 /test_*.png
 /debug_*.md
 
-# GitHub Copilot agent files (may contain credentials/tokens)
-# Ignore everything in .github/ except specific public files
-.github/*
-!.github/copilot-instructions.md
-!.github/workflows/
-!.github/changelog-scopes.yml
-!.github/agents/
-!.github/prompts/
-!.github/instructions/
+# Track repository .github configuration by default.
 
 # Debug and test artifacts (root directory only - not tests/ folder)
 /test_*.py
@@ -280,16 +272,15 @@ models/*
 # Additional JSON data files that may be generated during development
 *.json
 !package.json
+!tsconfig.json
+!*.example.json
+!.prettierrc.json
+!data/ai_assistant/knowledge_base.json
+!.vscode/*.json
+!.github/codebase_context_metrics.json
+
 .playwright-mcp/
 playwright-screenshots/
 *.png
 !assets/*.png
 !docs/**/*.png
-
-# Additional JSON data files that may be generated during development
-*.json
-!package.json
-!tsconfig.json
-!*.example.json
-!data/ai_assistant/knowledge_base.json
-!.vscode/*.json
