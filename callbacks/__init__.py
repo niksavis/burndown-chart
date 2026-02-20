@@ -98,8 +98,6 @@ Example - Correct callback pattern:
 """
 
 # Import feature flag to determine which UI is active
-from ui.layout import USE_ACCORDION_SETTINGS
-
 from callbacks import (
     about_dialog,  # About dialog modal callbacks (Feature 016, auto-registers via @callback)  # noqa: F401
     active_work_timeline,
@@ -109,34 +107,38 @@ from callbacks import (
     budget_settings,  # Budget configuration callbacks (auto-registers via @callback)  # noqa: F401
     bug_analysis,  # Bug analysis metrics callbacks (Feature 004)
     # dashboard,  # REMOVED - Dead code: callbacks reference non-existent UI components (ui/dashboard.py never imported)
+    dora_flow_metric_details,  # DORA/Flow detail and progress callbacks (auto-registers via @callback)  # noqa: F401
     dora_flow_metrics,  # DORA/Flow metrics callbacks (Feature 007, auto-registers via @callback)  # noqa: F401
     field_mapping,  # Field mapping callbacks (Feature 007, auto-registers via @callback)  # noqa: F401
     field_value_fetch,  # Auto-fetch field values for dropdowns (Feature 012, auto-registers via @callback)  # noqa: F401
+    flow_metrics_callbacks,  # Flow metrics and refresh callbacks (auto-registers via @callback)  # noqa: F401
     import_export,  # Import/export full profile callbacks (Feature 012, auto-registers via @callback)  # noqa: F401
     integrated_query_management,  # Integrated query management callbacks (Feature 011, auto-registers via @callback)  # noqa: F401
-    migration,  # Automatic JSON to database migration (Feature 015, auto-registers via @callback)  # noqa: F401
-    report_generation,  # HTML report generation with progress tracking (Feature 012, auto-registers via @callback)  # noqa: F401
     jira_config,  # JIRA config modal callbacks (auto-registers via @callback)  # noqa: F401
     jira_data_store,  # JIRA issues store population (Feature 007, auto-registers via @callback)  # noqa: F401
     jira_metadata,  # App-level JIRA metadata fetching (Feature 012, auto-registers via @callback)  # noqa: F401
     jql_editor,  # JQL editor textarea-to-store sync
+    metrics_refresh_callbacks,  # Metrics refresh callbacks (auto-registers via @callback)  # noqa: F401
+    migration,  # Automatic JSON to database migration (Feature 015, auto-registers via @callback)  # noqa: F401
     mobile_navigation,  # Add mobile navigation callbacks
     namespace_autocomplete,  # Namespace syntax autocomplete callbacks (Feature 012, auto-registers via @callback)  # noqa: F401
     profile_management,  # Profile management callbacks (Feature 011, auto-registers via @callback)  # noqa: F401
     progress_bar,  # Progress bar callbacks for Update Data operation (auto-registers via @callback)  # noqa: F401
     query_management,  # Query management callbacks (Feature 011 Phase 3, auto-registers via @callback)  # noqa: F401
     query_switching,  # Query switching callbacks (Feature 011, auto-registers via @callback)  # noqa: F401
-    sprint_filters,  # Sprint Tracker issue type filter callbacks (auto-registers via @callback)  # noqa: F401
-    sprint_selector,  # Sprint Tracker sprint selection callbacks (auto-registers via @callback)  # noqa: F401
-    sprint_tracker,  # Sprint Tracker main callbacks including charts toggle (auto-registers via @callback)  # noqa: F401
-    version_update_notification,  # Version update toast notification (auto-registers via @callback)  # noqa: F401
+    report_generation,  # HTML report generation with progress tracking (Feature 012, auto-registers via @callback)  # noqa: F401
     # The 'export' module doesn't seem to exist and is causing an error
     # export,
     # scope_metrics,  # REMOVED: Orphaned callback with non-existent forecast-data-store
     settings,
+    sprint_filters,  # Sprint Tracker issue type filter callbacks (auto-registers via @callback)  # noqa: F401
+    sprint_selector,  # Sprint Tracker sprint selection callbacks (auto-registers via @callback)  # noqa: F401
+    sprint_tracker,  # Sprint Tracker main callbacks including charts toggle (auto-registers via @callback)  # noqa: F401
     statistics,
+    version_update_notification,  # Version update toast notification (auto-registers via @callback)  # noqa: F401
     visualization,
 )
+from ui.layout import USE_ACCORDION_SETTINGS
 
 # Conditionally import settings UI callbacks based on feature flag
 if USE_ACCORDION_SETTINGS:
