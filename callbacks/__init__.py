@@ -63,7 +63,8 @@ When creating new callback modules:
 Layer Boundaries
 ================
 
-Callbacks must follow architecture guidelines (see specs/006-ux-ui-redesign/docs/architecture.md):
+Callbacks follow architecture guidelines
+(see specs/006-ux-ui-redesign/docs/architecture.md):
 
 [OK] ALLOWED in callbacks:
 - Event handling and coordination
@@ -99,43 +100,43 @@ Example - Correct callback pattern:
 
 # Import feature flag to determine which UI is active
 from callbacks import (
-    about_dialog,  # About dialog modal callbacks (Feature 016, auto-registers via @callback)  # noqa: F401
+    about_dialog,  # noqa: F401
     active_work_timeline,
-    ai_prompt_generation,  # AI prompt generation callbacks (Feature 017, auto-registers via @callback)  # noqa: F401
-    app_update,  # Application auto-update callbacks (auto-registers via @callback)  # noqa: F401
-    banner_status_icons,  # Banner icon animations during operations (auto-registers via @callback)  # noqa: F401
-    budget_settings,  # Budget configuration callbacks (auto-registers via @callback)  # noqa: F401
-    bug_analysis,  # Bug analysis metrics callbacks (Feature 004)
-    # dashboard,  # REMOVED - Dead code: callbacks reference non-existent UI components (ui/dashboard.py never imported)
-    dora_flow_metric_details,  # DORA/Flow detail and progress callbacks (auto-registers via @callback)  # noqa: F401
-    dora_flow_metrics,  # DORA/Flow metrics callbacks (Feature 007, auto-registers via @callback)  # noqa: F401
-    field_mapping,  # Field mapping callbacks (Feature 007, auto-registers via @callback)  # noqa: F401
-    field_value_fetch,  # Auto-fetch field values for dropdowns (Feature 012, auto-registers via @callback)  # noqa: F401
-    flow_metrics_callbacks,  # Flow metrics and refresh callbacks (auto-registers via @callback)  # noqa: F401
-    import_export,  # Import/export full profile callbacks (Feature 012, auto-registers via @callback)  # noqa: F401
-    integrated_query_management,  # Integrated query management callbacks (Feature 011, auto-registers via @callback)  # noqa: F401
-    jira_config,  # JIRA config modal callbacks (auto-registers via @callback)  # noqa: F401
-    jira_data_store,  # JIRA issues store population (Feature 007, auto-registers via @callback)  # noqa: F401
-    jira_metadata,  # App-level JIRA metadata fetching (Feature 012, auto-registers via @callback)  # noqa: F401
-    jql_editor,  # JQL editor textarea-to-store sync
-    metrics_refresh_callbacks,  # Metrics refresh callbacks (auto-registers via @callback)  # noqa: F401
-    migration,  # Automatic JSON to database migration (Feature 015, auto-registers via @callback)  # noqa: F401
-    mobile_navigation,  # Add mobile navigation callbacks
-    namespace_autocomplete,  # Namespace syntax autocomplete callbacks (Feature 012, auto-registers via @callback)  # noqa: F401
-    profile_management,  # Profile management callbacks (Feature 011, auto-registers via @callback)  # noqa: F401
-    progress_bar,  # Progress bar callbacks for Update Data operation (auto-registers via @callback)  # noqa: F401
-    query_management,  # Query management callbacks (Feature 011 Phase 3, auto-registers via @callback)  # noqa: F401
-    query_switching,  # Query switching callbacks (Feature 011, auto-registers via @callback)  # noqa: F401
-    report_generation,  # HTML report generation with progress tracking (Feature 012, auto-registers via @callback)  # noqa: F401
-    # The 'export' module doesn't seem to exist and is causing an error
+    ai_prompt_generation,  # noqa: F401
+    app_update,  # noqa: F401
+    banner_status_icons,  # noqa: F401
+    budget_settings,  # noqa: F401
+    bug_analysis,
+    # dashboard,  # Removed dead code (ui/dashboard.py not imported)
+    dora_flow_metric_details,  # noqa: F401
+    dora_flow_metrics,  # noqa: F401
+    field_mapping,  # noqa: F401
+    field_value_fetch,  # noqa: F401
+    flow_metrics_callbacks,  # noqa: F401
+    import_export,  # noqa: F401
+    integrated_query_management,  # noqa: F401
+    jira_config,  # noqa: F401
+    jira_data_store,  # noqa: F401
+    jira_metadata,  # noqa: F401
+    jql_editor,
+    metrics_refresh_callbacks,  # noqa: F401
+    migration,  # noqa: F401
+    mobile_navigation,
+    namespace_autocomplete,  # noqa: F401
+    profile_management,  # noqa: F401
+    progress_bar,  # noqa: F401
+    query_management,  # noqa: F401
+    query_switching,  # noqa: F401
+    report_generation,  # noqa: F401
+    # export module does not exist
     # export,
-    # scope_metrics,  # REMOVED: Orphaned callback with non-existent forecast-data-store
+    # scope_metrics,  # Removed orphan callback (no forecast-data-store)
     settings,
-    sprint_filters,  # Sprint Tracker issue type filter callbacks (auto-registers via @callback)  # noqa: F401
-    sprint_selector,  # Sprint Tracker sprint selection callbacks (auto-registers via @callback)  # noqa: F401
-    sprint_tracker,  # Sprint Tracker main callbacks including charts toggle (auto-registers via @callback)  # noqa: F401
+    sprint_filters,  # noqa: F401
+    sprint_selector,  # noqa: F401
+    sprint_tracker,  # noqa: F401
     statistics,
-    version_update_notification,  # Version update toast notification (auto-registers via @callback)  # noqa: F401
+    version_update_notification,  # noqa: F401
     visualization,
 )
 from ui.layout import USE_ACCORDION_SETTINGS
@@ -165,12 +166,10 @@ def register_all_callbacks(app):
 
     # Remove this line since 'export' module doesn't exist
     # export.register(app)
-    # REMOVED: scope_metrics.register(app) - orphaned callback causing scope tab bug
-    # Scope metrics are now properly handled in visualization.py via _create_scope_tracking_tab_content
+    # scope_metrics.register(app) removed (orphan callback)
+    # Scope metrics now handled in visualization.py
     mobile_navigation.register(app)  # Register mobile navigation callbacks
     jql_editor.register_jql_editor_callbacks(app)  # Register JQL editor sync
     bug_analysis.register(app)  # Register bug analysis callbacks (Feature 004)
-    # dashboard.register(app)  # REMOVED - Dead code: ui/dashboard.py never imported, callbacks reference non-existent components
-    # Note: jira_config, settings_panel, jira_data_store, dora_flow_metrics, field_mapping,
-    # integrated_query_management, query_management, profile_management, query_switching,
-    # jira_metadata, and namespace_autocomplete callbacks auto-register via @callback decorator when imported
+    # dashboard.register(app) removed (dead code)
+    # Some callbacks auto-register via @callback on import.
