@@ -129,7 +129,8 @@ def test_jira_connection_callback(n_clicks, base_url, api_version, token):
     if not n_clicks:
         raise PreventUpdate
 
-    # Validate required fields (only base_url is required, token is optional for public servers)
+    # Validate required fields (base_url required;
+    # token optional for public servers).
     if not base_url:
         from ui.toast_notifications import create_warning_toast
 
@@ -152,7 +153,9 @@ def test_jira_connection_callback(n_clicks, base_url, api_version, token):
         config["last_test_success"] = result["success"]
         save_jira_configuration(config)
         logger.debug(
-            f"Saved test result: success={result['success']}, timestamp={result.get('timestamp')}"
+            "Saved test result: "
+            f"success={result['success']}, "
+            f"timestamp={result.get('timestamp')}"
         )
     except Exception as e:
         logger.warning(f"Could not save test result: {e}")
@@ -166,7 +169,8 @@ def test_jira_connection_callback(n_clicks, base_url, api_version, token):
 
         # Toast notification with key details
         toast = create_success_toast(
-            f"Server: {server_title} | Version: {version} | Response: {response_time}ms. "
+            f"Server: {server_title} | Version: {version} | "
+            f"Response: {response_time}ms. "
             "Click 'Save Configuration' to persist.",
             header=message,
             duration=6000,
@@ -332,7 +336,8 @@ def save_jira_configuration_callback(
                 "",
                 no_update,  # Don't trigger metadata refresh on save failure
                 create_error_toast(
-                    "An error occurred while saving the configuration. Please try again.",
+                    "An error occurred while saving the configuration. "
+                    "Please try again.",
                     header="Save Failed",
                 ),
             )
@@ -410,7 +415,8 @@ def update_jira_config_status(modal_is_open, save_clicks, profile_id):
 
         jira_config = load_jira_configuration()
 
-        # Check if JIRA is configured (has base_url, token is optional for public servers)
+        # Check if JIRA is configured (base_url required;
+        # token optional for public servers).
         is_configured = (
             jira_config.get("configured", False)
             and jira_config.get("base_url", "").strip() != ""
@@ -425,11 +431,14 @@ def update_jira_config_status(modal_is_open, save_clicks, profile_id):
             from data.jira import test_jira_connection
 
             logger.info(
-                f"Status indicator: Testing connection to {base_url} with API {api_version}"
+                "Status indicator: Testing connection to "
+                f"{base_url} with API {api_version}"
             )
             test_result = test_jira_connection(base_url, token, api_version)
             logger.info(
-                f"Status indicator: Test result - success={test_result['success']}, error_code={test_result.get('error_code', 'none')}"
+                "Status indicator: Test result - "
+                f"success={test_result['success']}, "
+                f"error_code={test_result.get('error_code', 'none')}"
             )
 
             # If connection test failed due to API version mismatch, show warning
@@ -444,7 +453,8 @@ def update_jira_config_status(modal_is_open, save_clicks, profile_id):
                             className="fas fa-exclamation-triangle text-warning me-2"
                         ),
                         html.Span(
-                            f"[WARN] API {api_version} not supported - Switch to {opposite_version} in Configure JIRA",
+                            f"[WARN] API {api_version} not supported - "
+                            f"Switch to {opposite_version} in Configure JIRA",
                             className="text-warning small fw-bold",
                         ),
                     ],
@@ -457,7 +467,8 @@ def update_jira_config_status(modal_is_open, save_clicks, profile_id):
                     [
                         html.I(className="fas fa-exclamation-circle text-danger me-2"),
                         html.Span(
-                            f"JIRA Connection Error - {test_result.get('message', 'Unknown error')}",
+                            "JIRA Connection Error - "
+                            f"{test_result.get('message', 'Unknown error')}",
                             className="text-danger small",
                         ),
                     ],
@@ -625,9 +636,11 @@ def show_api_version_warning(selected_version, is_open):
                                 html.Strong("API Version Change"),
                                 html.Br(),
                                 html.Small(
-                                    f"Switching from {opposite_version} to {selected_version}. "
+                                    f"Switching from {opposite_version} "
+                                    f"to {selected_version}. "
                                     "The API endpoint will be updated automatically. "
-                                    "Test the connection after saving to verify compatibility.",
+                                    "Test the connection after saving "
+                                    "to verify compatibility.",
                                     style={"opacity": "0.85"},
                                 ),
                             ]

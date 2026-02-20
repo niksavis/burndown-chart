@@ -251,7 +251,8 @@ def _prepare_jira_sync(jql_query, selected_query_id, force_refresh, button_norma
     from data.task_progress import TaskProgress
 
     logger.info(
-        f"[Settings] Received jql_query from Store: '{jql_query}' (type: {type(jql_query)})"
+        "[Settings] Received jql_query from Store: "
+        f"'{jql_query}' (type: {type(jql_query)})"
     )
 
     # Load JIRA configuration
@@ -286,7 +287,9 @@ def _prepare_jira_sync(jql_query, selected_query_id, force_refresh, button_norma
                             className="fw-bold d-block mb-1",
                         ),
                         html.Span(
-                            "Please click the 'Configure JIRA' button above to set up your JIRA connection before fetching data.",
+                            "Please click the 'Configure JIRA' button above "
+                            "to set up your JIRA connection before fetching "
+                            "data.",
                             className="small",
                         ),
                     ]
@@ -384,7 +387,8 @@ def _resolve_jql_query(jql_query, app_settings):
                 if query_data:
                     settings_jql = query_data.get("jql", "")
                     logger.info(
-                        f"[Settings] Using JQL from active query '{active_query_id}': '{settings_jql}'"
+                        f"[Settings] Using JQL from active query "
+                        f"'{active_query_id}': '{settings_jql}'"
                     )
                     return settings_jql
 
@@ -444,7 +448,8 @@ def _start_background_sync(jql_query, selected_query_id, force_refresh, button_n
         logger.info("[Settings] Force refresh: Changelog will be re-fetched from JIRA")
     else:
         logger.info(
-            "[Settings] Normal refresh: Keeping changelog cache for reuse (saves 1-2 minutes)"
+            "[Settings] Normal refresh: Keeping changelog cache "
+            "for reuse (saves 1-2 minutes)"
         )
 
     # Start background thread
@@ -466,7 +471,8 @@ def _start_background_sync(jql_query, selected_query_id, force_refresh, button_n
                 force_refresh=force_refresh_bool,
             )
             logger.info(
-                f"[BACKGROUND SYNC] sync_jira_scope_and_data returned: success={success}, message={message}"
+                "[BACKGROUND SYNC] sync_jira_scope_and_data returned: "
+                f"success={success}, message={message}"
             )
 
             if not success:
@@ -475,7 +481,8 @@ def _start_background_sync(jql_query, selected_query_id, force_refresh, button_n
             else:
                 if scope_data.get("skip_metrics"):
                     logger.info(
-                        "[BACKGROUND SYNC] No changes detected, skipping metrics calculation"
+                        "[BACKGROUND SYNC] No changes detected, "
+                        "skipping metrics calculation"
                     )
                     TaskProgress.start_postprocess(
                         "update_data",
@@ -502,7 +509,8 @@ def _start_background_sync(jql_query, selected_query_id, force_refresh, button_n
     thread = threading.Thread(target=background_sync, daemon=True)
     thread.start()
     logger.info(
-        f"[Settings] Background thread started: {thread.name} (alive={thread.is_alive()})"
+        f"[Settings] Background thread started: {thread.name} "
+        f"(alive={thread.is_alive()})"
     )
 
     # Return immediately to show progress bar
@@ -585,7 +593,8 @@ def _perform_data_wipe():
 
     try:
         logger.info(
-            f"[Settings] Wiping ALL data for query: {active_profile_id}/{active_query_id}"
+            "[Settings] Wiping ALL data for query: "
+            f"{active_profile_id}/{active_query_id}"
         )
 
         # Delete JIRA issues (CASCADE deletes changelog too)
@@ -641,7 +650,8 @@ def _perform_data_wipe():
         logger.info("=" * 60)
         logger.info("[Settings] COMPLETE DATA WIPE SUCCESSFUL")
         logger.info(
-            f"[Settings] Deleted: {issues_deleted} issues, {stats_deleted} stats from database"
+            f"[Settings] Deleted: {issues_deleted} issues, "
+            f"{stats_deleted} stats from database"
         )
         logger.info("[Settings] All data will be re-fetched fresh from JIRA")
         logger.info("=" * 60)
@@ -659,7 +669,8 @@ def _jira_import_error(button_normal):
                 [
                     html.Span("Integration Error", className="fw-bold d-block mb-1"),
                     html.Span(
-                        "JIRA integration module not available. Please check your installation.",
+                        "JIRA integration module not available. "
+                        "Please check your installation.",
                         className="small",
                     ),
                 ]

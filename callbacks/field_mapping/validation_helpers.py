@@ -24,7 +24,12 @@ def _validate_all_tabs(state_data: dict, field_validation_errors: list) -> dict:
             "is_valid": bool,
             "errors": [{"tab": str, "field": str, "error": str}, ...],
             "warnings": [{"tab": str, "field": str, "warning": str}, ...],
-            "summary": {"fields": int, "statuses": int, "projects": int, "issue_types": int}
+            "summary": {
+                "fields": int,
+                "statuses": int,
+                "projects": int,
+                "issue_types": int,
+            },
         }
     """
     errors = []
@@ -41,7 +46,10 @@ def _validate_all_tabs(state_data: dict, field_validation_errors: list) -> dict:
             errors.append(
                 {
                     "tab": "Fields",
-                    "field": f"{err.get('metric', '').upper()} > {err.get('field', '').replace('_', ' ').title()}",
+                    "field": (
+                        f"{err.get('metric', '').upper()} > "
+                        f"{err.get('field', '').replace('_', ' ').title()}"
+                    ),
                     "error": err.get("error", "Invalid value"),
                 }
             )
@@ -56,8 +64,12 @@ def _validate_all_tabs(state_data: dict, field_validation_errors: list) -> dict:
     # These fields are marked as REQUIRED in the UI (field_mapping_modal.py)
     required_fields = {
         "general": {
-            "completed_date": "Completion Date (required for Velocity, Budget, Flow Velocity)",
-            "created_date": "Creation Date (required for Scope Tracking, Created Items)",
+            "completed_date": (
+                "Completion Date (required for Velocity, Budget, Flow Velocity)"
+            ),
+            "created_date": (
+                "Creation Date (required for Scope Tracking, Created Items)"
+            ),
         },
         "dora": {
             "deployment_date": "Deployment Date (required for Deployment Frequency)",
@@ -126,7 +138,9 @@ def _validate_all_tabs(state_data: dict, field_validation_errors: list) -> dict:
             {
                 "tab": "Status",
                 "field": "Completion Statuses",
-                "warning": "No completion statuses selected. Required for metrics calculation.",
+                "warning": (
+                    "No completion statuses selected. Required for metrics calculation."
+                ),
             }
         )
 
@@ -149,7 +163,11 @@ def _validate_all_tabs(state_data: dict, field_validation_errors: list) -> dict:
                 {
                     "tab": "Status",
                     "field": "Active Statuses",
-                    "warning": f"Active statuses not in WIP: {', '.join(active_not_in_wip[:3])}{'...' if len(active_not_in_wip) > 3 else ''}",
+                    "warning": (
+                        "Active statuses not in WIP: "
+                        f"{', '.join(active_not_in_wip[:3])}"
+                        f"{'...' if len(active_not_in_wip) > 3 else ''}"
+                    ),
                 }
             )
 
@@ -162,7 +180,11 @@ def _validate_all_tabs(state_data: dict, field_validation_errors: list) -> dict:
                 {
                     "tab": "Status",
                     "field": "Flow Start Statuses",
-                    "warning": f"Flow Start statuses not in WIP: {', '.join(flow_start_not_in_wip[:3])}{'...' if len(flow_start_not_in_wip) > 3 else ''}",
+                    "warning": (
+                        "Flow Start statuses not in WIP: "
+                        f"{', '.join(flow_start_not_in_wip[:3])}"
+                        f"{'...' if len(flow_start_not_in_wip) > 3 else ''}"
+                    ),
                 }
             )
 
@@ -176,8 +198,12 @@ def _validate_all_tabs(state_data: dict, field_validation_errors: list) -> dict:
                 {
                     "tab": "Status",
                     "field": "WIP Statuses",
-                    "error": f"WIP statuses MUST NOT include completion statuses. Found: {', '.join(completion_in_wip)}. "
-                    "This causes Flow Load to incorrectly count completed items as WIP.",
+                    "error": (
+                        "WIP statuses MUST NOT include completion statuses. "
+                        f"Found: {', '.join(completion_in_wip)}. "
+                        "This causes Flow Load to incorrectly count completed "
+                        "items as WIP."
+                    ),
                 }
             )
 
@@ -204,7 +230,9 @@ def _validate_all_tabs(state_data: dict, field_validation_errors: list) -> dict:
             {
                 "tab": "Projects",
                 "field": "Project Selection",
-                "warning": "No projects selected. Select Development or DevOps projects.",
+                "warning": (
+                    "No projects selected. Select Development or DevOps projects."
+                ),
             }
         )
 
@@ -260,7 +288,9 @@ def _validate_all_tabs(state_data: dict, field_validation_errors: list) -> dict:
             {
                 "tab": "Issue Types",
                 "field": "Flow Type Mappings",
-                "warning": "No Feature or Defect types mapped. Required for Flow Distribution.",
+                "warning": (
+                    "No Feature or Defect types mapped. Required for Flow Distribution."
+                ),
             }
         )
 
@@ -332,7 +362,8 @@ def _build_comprehensive_validation_alert(validation_result: dict):
         icon = "fas fa-check-circle"
         title = "Validation Passed"
 
-    # Build alert content with improved layout - wrap in single div to prevent column layout
+    # Build alert content with improved layout.
+    # Wrap in a single div to prevent column layout.
     content_parts = [
         # Header with icon and title
         html.Div(
@@ -424,7 +455,8 @@ def _build_validation_error_alert(validation_errors):
                     [
                         html.I(className="fas fa-times-circle me-2"),
                         html.Strong(
-                            f"Validation Failed - {len(validation_errors)} error(s) found"
+                            "Validation Failed - "
+                            f"{len(validation_errors)} error(s) found"
                         ),
                     ],
                     className="d-flex align-items-center mb-2",
@@ -433,7 +465,8 @@ def _build_validation_error_alert(validation_errors):
                 html.Small(
                     [
                         html.I(className="fas fa-info-circle me-1"),
-                        "Fix the errors above before saving. Use autocomplete to select valid values.",
+                        "Fix the errors above before saving. "
+                        "Use autocomplete to select valid values.",
                     ],
                     className="text-muted",
                 ),
