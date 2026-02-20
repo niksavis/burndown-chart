@@ -10,9 +10,10 @@ Phase: 11 - Testing & Validation
 
 import os
 import subprocess
-import time
 import sys
+import time
 from pathlib import Path
+
 import pytest
 
 
@@ -159,8 +160,7 @@ def test_updater_executable_shows_usage():
     # Run updater without arguments (should show usage)
     result = subprocess.run(
         [str(updater_path)],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        capture_output=True,
         text=True,
         timeout=10,
     )

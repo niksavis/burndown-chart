@@ -18,8 +18,8 @@ class TestMobileNavigation:
     def test_mobile_navigation_components_creation(self):
         """Test that mobile navigation components are created correctly."""
         from ui.mobile_navigation import (
-            create_mobile_drawer_navigation,
             create_mobile_bottom_navigation,
+            create_mobile_drawer_navigation,
             create_mobile_tab_controls,
             get_mobile_tabs_config,
         )
@@ -188,8 +188,8 @@ class TestMobileNavigation:
 
     def test_mobile_navigation_system_integration(self, temp_database):
         """Test complete mobile navigation system integration."""
-        from ui.mobile_navigation import create_mobile_navigation_system
         from ui.layout import serve_layout
+        from ui.mobile_navigation import create_mobile_navigation_system
 
         # Check that navigation store exists in layout
         layout = serve_layout()
@@ -206,8 +206,8 @@ class TestMobileNavigation:
     def test_mobile_navigation_css_classes(self):
         """Test that mobile navigation uses correct CSS classes."""
         from ui.mobile_navigation import (
-            create_mobile_drawer_navigation,
             create_mobile_bottom_navigation,
+            create_mobile_drawer_navigation,
             get_mobile_tabs_config,
         )
 
@@ -313,7 +313,7 @@ class TestMobileNavigationIntegration:
         )
 
         # Read and check JavaScript content
-        with open(js_file_path, "r", encoding="utf-8") as f:
+        with open(js_file_path, encoding="utf-8") as f:
             js_content = f.read()
 
         # Check for essential JavaScript functions
@@ -338,7 +338,7 @@ class TestMobileNavigationIntegration:
         assert os.path.exists(css_file_path), "Custom CSS file not found"
 
         # Read and check CSS content
-        with open(css_file_path, "r", encoding="utf-8") as f:
+        with open(css_file_path, encoding="utf-8") as f:
             css_content = f.read()
 
         # Check for mobile navigation CSS imports
@@ -366,7 +366,7 @@ class TestMobileNavigationIntegration:
 
         for file_path, marker in zip(component_files, section_markers, strict=True):
             assert os.path.exists(file_path), f"Missing CSS file: {file_path}"
-            with open(file_path, "r", encoding="utf-8") as f:
+            with open(file_path, encoding="utf-8") as f:
                 component_content = f.read()
             assert marker in component_content, f"Missing CSS section: {marker}"
 
@@ -377,6 +377,7 @@ class TestMobileNavigationPerformance:
     def test_mobile_component_creation_performance(self):
         """Test that mobile navigation components can be created quickly."""
         import time
+
         from ui.mobile_navigation import create_mobile_navigation_system
 
         start_time = time.time()
@@ -391,8 +392,9 @@ class TestMobileNavigationPerformance:
 
     def test_mobile_navigation_memory_efficiency(self):
         """Test that mobile navigation doesn't create excessive components."""
-        from ui.mobile_navigation import create_mobile_navigation_system
         import sys
+
+        from ui.mobile_navigation import create_mobile_navigation_system
 
         # Get initial memory usage
         initial_size = sys.getsizeof(str(create_mobile_navigation_system()))

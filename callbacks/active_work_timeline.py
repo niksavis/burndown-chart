@@ -58,7 +58,7 @@ def _remove_last_clause(query: str) -> str:
     keep_operators = operators[: len(keep_clauses) - 1]
 
     rebuilt = keep_clauses[0]
-    for op, clause in zip(keep_operators, keep_clauses[1:], strict=True):
+    for op, clause in zip(keep_operators, keep_clauses[1:], strict=False):
         rebuilt = f"{rebuilt} {op} {clause}"
 
     return rebuilt.strip()

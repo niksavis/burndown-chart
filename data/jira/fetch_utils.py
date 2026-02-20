@@ -13,15 +13,12 @@ This module contains only the paginated fetch helper used by two-phase fetch.
 #######################################################################
 # IMPORTS
 #######################################################################
-from typing import Dict, List, Tuple
 
 import requests
 
 from configuration import logger
-from data.jira import (
-    generate_config_hash,
-    extract_jira_field_id,
-)
+from data.jira.config import generate_config_hash
+from data.jira.field_utils import extract_jira_field_id
 
 # Main fetch with caching and optimization
 
@@ -42,8 +39,8 @@ _generate_config_hash = generate_config_hash
 
 
 def fetch_jira_paginated(
-    config: Dict, max_results: int | None = None
-) -> Tuple[bool, List[Dict]]:
+    config: dict, max_results: int | None = None
+) -> tuple[bool, list[dict]]:
     """
     Public version of _fetch_jira_paginated for use by two-phase fetch.
 
@@ -63,8 +60,8 @@ def fetch_jira_paginated(
 
 
 def _fetch_jira_paginated(
-    config: Dict, max_results: int | None = None
-) -> Tuple[bool, List[Dict]]:
+    config: dict, max_results: int | None = None
+) -> tuple[bool, list[dict]]:
     """
     Internal helper: Execute paginated JIRA fetch without caching or count checks.
 
@@ -115,9 +112,9 @@ def _fetch_jira_paginated(
                 additional_fields.append(config["story_points_field"])
 
             field_mappings = config.get("field_mappings", {})
-            for category, mappings in field_mappings.items():
+            for _category, mappings in field_mappings.items():
                 if isinstance(mappings, dict):
-                    for field_name, field_id in mappings.items():
+                    for _field_name, field_id in mappings.items():
                         clean_field_id = _extract_jira_field_id(field_id)
                         if clean_field_id and clean_field_id not in base_fields:
                             additional_fields.append(clean_field_id)

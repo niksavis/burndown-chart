@@ -33,8 +33,8 @@ def test_settings_reload_workflow(mock_load_settings):
     }
 
     # Act - simulate what the callback does
-    from data.persistence import load_app_settings
     from callbacks.settings.helpers import normalize_show_points
+    from data.persistence import load_app_settings
 
     settings = load_app_settings()
     settings["show_points"] = normalize_show_points(settings.get("show_points", True))

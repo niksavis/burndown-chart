@@ -13,9 +13,8 @@ Used for:
 #######################################################################
 # IMPORTS
 #######################################################################
-from datetime import datetime
-from typing import Dict, List, Optional, Tuple
 import logging
+from datetime import UTC, datetime
 
 #######################################################################
 # LOGGING
@@ -28,8 +27,8 @@ logger = logging.getLogger("burndown_chart")
 
 
 def get_first_status_transition_timestamp(
-    issue: Dict, target_status: str, case_sensitive: bool = False
-) -> Optional[datetime]:
+    issue: dict, target_status: str, case_sensitive: bool = False
+) -> datetime | None:
     """
     Extract the FIRST timestamp when an issue entered a specific status.
 
@@ -112,8 +111,8 @@ def get_first_status_transition_timestamp(
 
 
 def get_first_status_transition_from_list(
-    issue: Dict, target_statuses: List[str], case_sensitive: bool = False
-) -> Optional[Tuple[str, datetime]]:
+    issue: dict, target_statuses: list[str], case_sensitive: bool = False
+) -> tuple[str, datetime] | None:
     """
     Extract the FIRST timestamp when an issue entered ANY of the target statuses.
 
@@ -186,7 +185,7 @@ def get_first_status_transition_from_list(
 
 
 def calculate_time_in_status(
-    issue: Dict, target_statuses: List[str], case_sensitive: bool = False
+    issue: dict, target_statuses: list[str], case_sensitive: bool = False
 ) -> float:
     """
     Calculate total time (in hours) spent in specific statuses.
@@ -288,12 +287,12 @@ def calculate_time_in_status(
 
 
 def calculate_flow_time(
-    issue: Dict,
-    start_statuses: List[str],
-    flow_end_statuses: List[str],
-    active_statuses: Optional[List[str]] = None,
+    issue: dict,
+    start_statuses: list[str],
+    flow_end_statuses: list[str],
+    active_statuses: list[str] | None = None,
     case_sensitive: bool = False,
-) -> Dict:
+) -> dict:
     """
     Calculate Flow Time metrics for an issue using changelog data.
 
@@ -423,7 +422,7 @@ def calculate_flow_time(
         }
 
 
-def get_current_status(issue: Dict) -> str:
+def get_current_status(issue: dict) -> str:
     """
     Get the current status of an issue.
 
@@ -442,7 +441,7 @@ def get_current_status(issue: Dict) -> str:
         return ""
 
 
-def has_changelog_data(issue: Dict) -> bool:
+def has_changelog_data(issue: dict) -> bool:
     """
     Check if an issue has changelog data available.
 
@@ -465,8 +464,8 @@ def has_changelog_data(issue: Dict) -> bool:
 
 
 def get_status_at_point_in_time(
-    issue: Dict, target_time: datetime, case_sensitive: bool = False
-) -> Optional[str]:
+    issue: dict, target_time: datetime, case_sensitive: bool = False
+) -> str | None:
     """
     Determine what status an issue was in at a specific point in time.
 
@@ -505,9 +504,8 @@ def get_status_at_point_in_time(
 
         created_date = parser.parse(created_str)
         # Convert to UTC and strip timezone for comparison
-        from datetime import timezone
 
-        created_date = created_date.astimezone(timezone.utc).replace(tzinfo=None)
+        created_date = created_date.astimezone(UTC).replace(tzinfo=None)
 
         # Issue didn't exist yet
         if created_date > target_time:
@@ -554,7 +552,7 @@ def get_status_at_point_in_time(
             # Parse changelog timestamp
             change_time = parser.parse(created_timestamp)
             # Convert to UTC and strip timezone
-            change_time = change_time.astimezone(timezone.utc).replace(tzinfo=None)
+            change_time = change_time.astimezone(UTC).replace(tzinfo=None)
 
             # Skip changes AFTER target time
             if change_time >= target_time:

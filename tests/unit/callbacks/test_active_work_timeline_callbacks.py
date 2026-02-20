@@ -1,6 +1,6 @@
 """Unit tests for Active Work Timeline callbacks."""
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import dash_bootstrap_components as dbc
 from dash import html
@@ -61,7 +61,7 @@ def test_render_returns_no_issues_when_issue_list_empty(monkeypatch):
 
 def test_render_builds_timeline_when_data_available(monkeypatch):
     """Test rendering timeline when issues and settings are valid."""
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     issues = [
         {
             "issue_key": "PROJ-1",

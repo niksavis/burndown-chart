@@ -5,16 +5,17 @@ Tests the @log_performance decorator, CalculationContext, FieldMappingIndex,
 parse_jira_date with LRU cache, and PerformanceTimer context manager.
 """
 
-import pytest
-import time
 import logging
+import time
+
+import pytest
 
 from data.performance_utils import (
-    log_performance,
-    PerformanceTimer,
-    parse_jira_date,
-    FieldMappingIndex,
     CalculationContext,
+    FieldMappingIndex,
+    PerformanceTimer,
+    log_performance,
+    parse_jira_date,
 )
 
 

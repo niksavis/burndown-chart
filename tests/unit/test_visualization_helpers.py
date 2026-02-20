@@ -2,10 +2,11 @@
 Unit tests for the visualization helpers module.
 """
 
-import pytest
-import pandas as pd
 from datetime import datetime
 from unittest.mock import patch
+
+import pandas as pd
+import pytest
 
 from visualization.data_preparation import prepare_visualization_data
 

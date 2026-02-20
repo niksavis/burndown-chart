@@ -21,23 +21,24 @@ def create_settings_tab_content(
     Returns:
         html.Div: Settings tab content with data source config and import/export
     """
-    from ui.jql_editor import create_jql_editor
-    from ui.jira_config_modal import create_jira_config_button
+    import os
+
+    # Import helper functions from cards module
+    import sys
+
     from ui.button_utils import create_button
+    from ui.jira_config_modal import create_jira_config_button
     from ui.jql_components import (
         create_character_count_display,
         should_show_character_warning,
     )
-
-    # Import helper functions from cards module
-    import sys
-    import os
+    from ui.jql_editor import create_jql_editor
 
     sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
     from ui.cards.settings_helpers import (
         _get_default_data_source,
-        _get_default_jql_query,
         _get_default_jql_profile_id,
+        _get_default_jql_query,
         _get_query_profile_options,
     )
 

@@ -6,6 +6,7 @@ Extracted from ui/components.py during refactoring (bd-rnol).
 """
 
 import time
+
 from dash import html
 
 # Character count configuration (from data-model.md)

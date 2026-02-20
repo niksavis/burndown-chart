@@ -4,8 +4,8 @@ Profile creation and management modals.
 Contains unified modal for create/duplicate/rename and deletion confirmation modal.
 """
 
-from dash import html, dcc
 import dash_bootstrap_components as dbc
+from dash import dcc, html
 
 
 def create_profile_form_modal() -> dbc.Modal:

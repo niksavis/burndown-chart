@@ -20,6 +20,7 @@ to respect user's explicit empty input choices.
 """
 
 import unittest
+
 from data.processing import calculate_total_points
 
 
@@ -55,7 +56,7 @@ class TestEmptyInputFieldsRemainingTotalPointsEdgeCase(unittest.TestCase):
             use_fallback=False,
         )
 
-        print(f"\n=== USER REPORTED BUG REPRODUCTION ===")
+        print("\n=== USER REPORTED BUG REPRODUCTION ===")
         print(
             f"Scenario: total_items={total_items}, estimated_items={estimated_items}, estimated_points={estimated_points}"
         )
@@ -103,7 +104,7 @@ class TestEmptyInputFieldsRemainingTotalPointsEdgeCase(unittest.TestCase):
             calculate_total_points(total_items, 0, 0, None, use_fallback=False)
         )
 
-        print(f"\n=== EMPTY VS ZERO CONSISTENCY ===")
+        print("\n=== EMPTY VS ZERO CONSISTENCY ===")
         print(
             f"Explicit zero: total_points={explicit_zero_points}, avg={explicit_zero_avg}"
         )
@@ -142,7 +143,7 @@ class TestEmptyInputFieldsRemainingTotalPointsEdgeCase(unittest.TestCase):
             {"total_items": 100, "estimated_items": 20, "estimated_points": 100},
         ]
 
-        print(f"\n=== UI CALLBACK SIMULATION ===")
+        print("\n=== UI CALLBACK SIMULATION ===")
 
         for i, inputs in enumerate(user_inputs, 1):
             # UI callback would convert None to 0
@@ -211,7 +212,7 @@ class TestEmptyInputFieldsRemainingTotalPointsEdgeCase(unittest.TestCase):
             old_behavior_avg, 10.0, "Backward compatibility: should use default avg"
         )
 
-        print(f"\n=== BACKWARD COMPATIBILITY ===")
+        print("\n=== BACKWARD COMPATIBILITY ===")
         print(
             f"Old behavior preserved: total_points={old_behavior_points}, avg={old_behavior_avg}"
         )
@@ -219,7 +220,7 @@ class TestEmptyInputFieldsRemainingTotalPointsEdgeCase(unittest.TestCase):
     def test_edge_cases_after_fix(self):
         """Test various edge cases to ensure the fix is robust."""
 
-        print(f"\n=== EDGE CASES TESTING ===")
+        print("\n=== EDGE CASES TESTING ===")
 
         # Edge case 1: estimated_items > 0 but estimated_points = 0
         case1_points, case1_avg = calculate_total_points(

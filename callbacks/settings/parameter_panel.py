@@ -22,11 +22,11 @@ from typing import Any
 from dash import Input, Output, State, html, no_update
 from dash.exceptions import PreventUpdate
 
-from configuration import DEFAULT_PERT_FACTOR, logger as config_logger
-from ui.parameter_panel import create_parameter_bar_collapsed
-
 # Import helper functions
 from callbacks.settings.helpers import calculate_remaining_work_for_data_window
+from configuration import DEFAULT_PERT_FACTOR
+from configuration import logger as config_logger
+from ui.parameter_panel import create_parameter_bar_collapsed
 
 # Get logger
 logger = logging.getLogger(__name__)
@@ -410,9 +410,10 @@ def register(app: Any) -> None:
             Tuple of (status_message, polling_enabled, progress_bar_style,
                       update_button_style, cancel_button_style, metrics_trigger)
         """
-        from data.task_progress import TaskProgress
-        from pathlib import Path
         import time
+        from pathlib import Path
+
+        from data.task_progress import TaskProgress
 
         # Check if app was just restarted (stale task cleanup ran)
         restart_marker = Path("task_progress.json.restart")

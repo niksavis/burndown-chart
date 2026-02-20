@@ -4,13 +4,13 @@ from __future__ import annotations
 
 import shutil
 import time
+from collections.abc import Callable
 from pathlib import Path
-from typing import Callable, Optional
 
 StatusFn = Callable[[str], None]
 
 
-def backup_file(file_path: Path, status: StatusFn) -> Optional[Path]:
+def backup_file(file_path: Path, status: StatusFn) -> Path | None:
     """Create backup of a file.
 
     Args:
@@ -56,7 +56,9 @@ def restore_from_backup(
             if attempt > 0:
                 elapsed = time.time() - start_time
                 status(
-                    f"Restore retry attempt {attempt + 1}/{max_retries} (elapsed: {elapsed:.1f}s)..."
+                    "Restore retry attempt "
+                    f"{attempt + 1}/{max_retries} "
+                    f"(elapsed: {elapsed:.1f}s)..."
                 )
                 time.sleep(retry_delay)
                 retry_delay = min(retry_delay * 1.5, 5.0)
@@ -74,12 +76,15 @@ def restore_from_backup(
             if attempt < max_retries - 1:
                 elapsed = time.time() - start_time
                 status(
-                    f"File locked during restore (attempt {attempt + 1}/{max_retries}, elapsed: {elapsed:.1f}s), retrying..."
+                    "File locked during restore "
+                    f"(attempt {attempt + 1}/{max_retries}, "
+                    f"elapsed: {elapsed:.1f}s), retrying..."
                 )
                 continue
             elapsed = time.time() - start_time
             status(
-                f"ERROR: Failed to restore from backup after {max_retries} attempts ({elapsed:.1f}s): {e}"
+                "ERROR: Failed to restore from backup after "
+                f"{max_retries} attempts ({elapsed:.1f}s): {e}"
             )
             return False
 
@@ -114,7 +119,9 @@ def replace_executable(
             if attempt > 0:
                 elapsed = time.time() - start_time
                 status(
-                    f"Retry attempt {attempt + 1}/{max_retries} (elapsed: {elapsed:.1f}s)..."
+                    "Retry attempt "
+                    f"{attempt + 1}/{max_retries} "
+                    f"(elapsed: {elapsed:.1f}s)..."
                 )
                 time.sleep(retry_delay)
                 retry_delay = min(retry_delay * 1.5, 5.0)
@@ -136,7 +143,9 @@ def replace_executable(
             if attempt < max_retries - 1:
                 elapsed = time.time() - start_time
                 status(
-                    f"File locked (attempt {attempt + 1}/{max_retries}, elapsed: {elapsed:.1f}s), retrying..."
+                    "File locked "
+                    f"(attempt {attempt + 1}/{max_retries}, "
+                    f"elapsed: {elapsed:.1f}s), retrying..."
                 )
                 if attempt == 5:
                     status(
@@ -146,7 +155,8 @@ def replace_executable(
                 continue
             elapsed = time.time() - start_time
             status(
-                f"ERROR: Failed to replace executable after {max_retries} attempts ({elapsed:.1f}s): {e}"
+                "ERROR: Failed to replace executable after "
+                f"{max_retries} attempts ({elapsed:.1f}s): {e}"
             )
             status("File may be locked by anti-virus or another process")
             status("TROUBLESHOOTING:")

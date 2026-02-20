@@ -8,19 +8,18 @@ It implements a design system with consistent colors, typography, and spacing.
 #######################################################################
 # IMPORTS
 #######################################################################
-from typing import Optional
 
-from dash import html
 import dash_bootstrap_components as dbc
+from dash import html
 
 # Import from configuration
 from configuration import COLOR_PALETTE
 
 # Import constants from style_constants.py
 from ui.style_constants import (
-    TYPOGRAPHY,
-    SEMANTIC_COLORS,
     NEUTRAL_COLORS,
+    SEMANTIC_COLORS,
+    TYPOGRAPHY,
     rgb_to_rgba,
 )
 
@@ -921,8 +920,8 @@ def create_card_header_with_tooltip(
     Returns:
         list or html.H4: Components for card header with tooltip and optional help button
     """
-    from dash import html
     import dash_bootstrap_components as dbc
+    from dash import html
 
     # Import the tooltip function and help system
     from ui.tooltip_utils import create_info_tooltip
@@ -973,9 +972,9 @@ def create_card_header_with_tooltip(
 
 def create_metric_card_header(
     title: str,
-    tooltip_text: Optional[str] = None,
-    tooltip_id: Optional[str] = None,
-    badge: Optional[dbc.Badge] = None,
+    tooltip_text: str | None = None,
+    tooltip_id: str | None = None,
+    badge: dbc.Badge | None = None,
 ) -> dbc.CardHeader:
     """
     Create a standardized metric card header with optional tooltip and badge.

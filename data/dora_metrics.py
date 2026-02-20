@@ -22,9 +22,9 @@ Architecture:
 Reference: docs/dora_metrics_spec.md
 """
 
-from datetime import datetime, timezone
-from typing import List, Dict, Any, Optional
 import logging
+from datetime import UTC, datetime
+from typing import Any
 
 from data.performance_utils import log_performance
 
@@ -67,7 +67,7 @@ def _get_field_mappings():
     return dora_mappings, project_classification
 
 
-def _is_issue_completed(issue: Dict[str, Any], flow_end_statuses: List[str]) -> bool:
+def _is_issue_completed(issue: dict[str, Any], flow_end_statuses: list[str]) -> bool:
     """Check if issue is in a completed status.
 
     Args:
@@ -86,19 +86,21 @@ def _is_issue_completed(issue: Dict[str, Any], flow_end_statuses: List[str]) -> 
 
 
 def _extract_datetime_from_field_mapping(
-    issue: Dict[str, Any], field_mapping: str, changelog: Optional[List] = None
-) -> Optional[str]:
+    issue: dict[str, Any], field_mapping: str, changelog: list | None = None
+) -> str | None:
     """Extract datetime value from issue based on field mapping configuration.
 
     Supports multiple field mapping formats:
     - Simple field: "created", "resolutiondate"
     - Nested field: "status.name"
-    - Changelog transition: "status:In Progress.DateTime" (extracts timestamp when status changed to "In Progress")
+        - Changelog transition: "status:In Progress.DateTime" (extracts timestamp
+            when status changed to "In Progress")
     - fixVersions: "fixVersions" (extracts releaseDate from first fixVersion)
 
     Args:
         issue: JIRA issue dictionary
-        field_mapping: Field mapping string from profile.json (e.g., "status:Done.DateTime")
+        field_mapping: Field mapping string from profile.json
+            (e.g., "status:Done.DateTime")
         changelog: Optional changelog history for transition timestamp extraction
 
     Returns:
@@ -189,7 +191,8 @@ def parse_field_value_filter(field_mapping: str) -> tuple:
     Supports:
     - Simple field: "customfield_11309" → ("customfield_11309", None)
     - Single value: "customfield_11309=PROD" → ("customfield_11309", ["PROD"])
-    - Multiple values: "customfield_11309=PROD|Production" → ("customfield_11309", ["PROD", "Production"])
+        - Multiple values: "customfield_11309=PROD|Production" →
+            ("customfield_11309", ["PROD", "Production"])
 
     Args:
         field_mapping: Field mapping string, optionally with =Value filter
@@ -214,7 +217,7 @@ def parse_field_value_filter(field_mapping: str) -> tuple:
 
 
 def check_field_value_match(
-    issue: Dict[str, Any], field_id: str, filter_values: List[str]
+    issue: dict[str, Any], field_id: str, filter_values: list[str]
 ) -> bool:
     """Check if issue field value matches any of the filter values.
 
@@ -280,9 +283,9 @@ def check_field_value_match(
 
 
 def is_production_environment(
-    issue: Dict[str, Any],
+    issue: dict[str, Any],
     affected_environment_mapping: str,
-    fallback_values: Optional[List[str]] = None,
+    fallback_values: list[str] | None = None,
 ) -> bool:
     """Check if issue is from production environment.
 
@@ -292,7 +295,8 @@ def is_production_environment(
     Args:
         issue: JIRA issue dictionary
         affected_environment_mapping: Field mapping (e.g., "customfield_11309=PROD")
-        fallback_values: Fallback list of production values (from project_classification)
+        fallback_values: Fallback list of production values
+            (from project_classification)
 
     Returns:
         True if issue is from production environment
@@ -348,14 +352,15 @@ MTTR_TIERS = {
 
 
 def _classify_performance_tier(
-    value: float, tiers: Dict, higher_is_better: bool = True
+    value: float, tiers: dict, higher_is_better: bool = True
 ) -> str:
     """Classify metric value into DORA performance tier.
 
     Args:
         value: Metric value to classify
         tiers: Tier definitions with thresholds
-        higher_is_better: True if higher values = better performance (e.g., deployment frequency)
+        higher_is_better: True if higher values = better performance
+            (e.g., deployment frequency)
                          False if lower values = better (e.g., lead time, MTTR)
 
     Returns:
@@ -383,7 +388,7 @@ def _classify_performance_tier(
             return "low"
 
 
-def _determine_performance_tier(value: Optional[float], tiers: Dict) -> Dict[str, str]:
+def _determine_performance_tier(value: float | None, tiers: dict) -> dict[str, str]:
     """Determine performance tier with color for UI display (legacy compatibility).
 
     This function maintains backward compatibility with existing callback code.
@@ -414,13 +419,14 @@ def _determine_performance_tier(value: Optional[float], tiers: Dict) -> Dict[str
 
     # Map tier to semantic color names (matches Flow metrics pattern)
     # These are mapped to Bootstrap classes in ui/metric_cards.py:
-    #   green -> success, blue -> tier-high, yellow -> tier-medium, 
+    #   green -> success, blue -> tier-high, yellow -> tier-medium,
     #   orange -> tier-orange, red -> danger
     tier_colors = {
-        "elite": "green",    # Elite performance -> green badge
-        "high": "blue",      # High performance -> cyan/blue badge
+        "elite": "green",  # Elite performance -> green badge
+        "high": "blue",  # High performance -> cyan/blue badge
         "medium": "yellow",  # Medium performance -> yellow badge
-        "low": "orange",     # Low performance -> orange badge (not red to distinguish from errors)
+        "low": "orange",  # Low performance -> orange badge
+        # (not red to distinguish from errors)
     }
 
     return {
@@ -430,8 +436,8 @@ def _determine_performance_tier(value: Optional[float], tiers: Dict) -> Dict[str
 
 
 def _calculate_trend(
-    current_value: float, previous_value: Optional[float]
-) -> Dict[str, Any]:
+    current_value: float, previous_value: float | None
+) -> dict[str, Any]:
     """Calculate trend direction and percentage change.
 
     Args:
@@ -462,10 +468,10 @@ def _calculate_trend(
 
 @log_performance
 def calculate_deployment_frequency(
-    issues: List[Dict[str, Any]],
+    issues: list[dict[str, Any]],
     time_period_days: int = 30,
-    previous_period_value: Optional[float] = None,
-) -> Dict[str, Any]:
+    previous_period_value: float | None = None,
+) -> dict[str, Any]:
     """Calculate deployment frequency metric.
 
     Measures how often code is deployed to production:
@@ -564,7 +570,8 @@ def calculate_deployment_frequency(
                     "issue_type", ""
                 )  # Note: database uses issue_type not issuetype
                 status = issue.get("status", "")
-                # fixVersions is JSON string in flat format (mapped from fix_versions by sqlite_backend)
+                # fixVersions is JSON string in flat format
+                # (mapped from fix_versions by sqlite_backend)
                 import json
 
                 fix_versions_raw = issue.get("fixVersions", "[]")
@@ -588,7 +595,8 @@ def calculate_deployment_frequency(
             # CRITICAL: Filter for operational tasks from DevOps projects
             # Only count issues that are:
             # 1. From a DevOps project (if devops_projects configured)
-            # 2. Of type "Operational Task" or other DevOps task types (if devops_task_types configured)
+            # 2. Of type "Operational Task" or other DevOps task types
+            #    (if devops_task_types configured)
 
             # Skip if DevOps projects configured and issue is not from DevOps project
             if devops_projects and project_key not in devops_projects:
@@ -617,10 +625,15 @@ def calculate_deployment_frequency(
 
             if has_release_date:
                 deployment_count += 1
+                release_names = [
+                    version.get("name")
+                    for version in fix_versions
+                    if version.get("releaseDate")
+                ]
                 logger.info(
                     f"[DORA DF] ✓ Issue {issue_key} counted as deployment: "
                     f"project={project_key}, type={issue_type}, "
-                    f"fixVersions={[v.get('name') for v in fix_versions if v.get('releaseDate')]}"
+                    f"fixVersions={release_names}"
                 )
             else:
                 filtered_by_no_fixversion += 1
@@ -639,7 +652,10 @@ def calculate_deployment_frequency(
         if deployment_count == 0:
             return {
                 "error_state": "no_data",
-                "error_message": f"No completed deployments with fixVersion.releaseDate found in {len(issues)} issues",
+                "error_message": (
+                    "No completed deployments with fixVersion.releaseDate found "
+                    f"in {len(issues)} issues"
+                ),
                 "trend_direction": "stable",
                 "trend_percentage": 0.0,
             }
@@ -673,7 +689,9 @@ def calculate_deployment_frequency(
 
         logger.info(
             f"[DORA] Deployment Frequency: {display_value:.1f} {unit} "
-            f"({deployment_count} deployments, {release_count} releases / {time_period_days} days) - {performance_tier}"
+            f"({deployment_count} deployments, "
+            f"{release_count} releases / {time_period_days} days) "
+            f"- {performance_tier}"
         )
         logger.debug(f"[DORA] Releases: {sorted(all_releases)}")
 
@@ -704,11 +722,11 @@ def calculate_deployment_frequency(
 
 @log_performance
 def calculate_lead_time_for_changes(
-    issues: List[Dict[str, Any]],
+    issues: list[dict[str, Any]],
     time_period_days: int = 30,
-    previous_period_value: Optional[float] = None,
-    fixversion_release_map: Optional[Dict[str, datetime]] = None,
-) -> Dict[str, Any]:
+    previous_period_value: float | None = None,
+    fixversion_release_map: dict[str, datetime] | None = None,
+) -> dict[str, Any]:
     """Calculate lead time for changes metric.
 
     Measures time from code commit (status:In Progress) to production deployment
@@ -779,7 +797,8 @@ def calculate_lead_time_for_changes(
             # Extract changelog if present
             changelog = issue.get("changelog", {}).get("histories", [])
 
-            # Extract work start timestamp using field mapping (e.g., status:In Progress.DateTime)
+            # Extract work start timestamp using field mapping
+            # (e.g., status:In Progress.DateTime)
             work_start_value = _extract_datetime_from_field_mapping(
                 issue, code_commit_field, changelog
             )
@@ -787,7 +806,8 @@ def calculate_lead_time_for_changes(
                 missing_start_count += 1
                 continue
 
-            # Get deployment date from fixVersion release map (shared with Deployment Frequency)
+            # Get deployment date from fixVersion release map
+            # (shared with Deployment Frequency)
             if fixversion_release_map:
                 deployment_datetime = get_deployment_date_for_issue(
                     issue, fixversion_release_map
@@ -795,11 +815,13 @@ def calculate_lead_time_for_changes(
                 if not deployment_datetime:
                     no_fixversion_match_count += 1
                     logger.debug(
-                        f"[Lead Time] {issue_key}: No matching fixVersion in release map"
+                        f"[Lead Time] {issue_key}: "
+                        "No matching fixVersion in release map"
                     )
                     continue
             else:
-                # Fallback: Try to extract from issue's own fixVersions (legacy behavior)
+                # Fallback: Try to extract from issue's own fixVersions
+                # (legacy behavior)
                 deployment_value = _extract_datetime_from_field_mapping(
                     issue, "fixVersions", changelog
                 )
@@ -820,11 +842,9 @@ def calculate_lead_time_for_changes(
                 )
 
                 if start_time.tzinfo is None:
-                    start_time = start_time.replace(tzinfo=timezone.utc)
+                    start_time = start_time.replace(tzinfo=UTC)
                 if deployment_datetime.tzinfo is None:
-                    deployment_datetime = deployment_datetime.replace(
-                        tzinfo=timezone.utc
-                    )
+                    deployment_datetime = deployment_datetime.replace(tzinfo=UTC)
 
                 # Calculate lead time in days
                 lead_time_delta = deployment_datetime - start_time
@@ -937,12 +957,12 @@ def calculate_lead_time_for_changes(
 
 @log_performance
 def calculate_change_failure_rate(
-    deployment_issues: List[Dict[str, Any]],
-    incident_issues: List[Dict[str, Any]],
+    deployment_issues: list[dict[str, Any]],
+    incident_issues: list[dict[str, Any]],
     time_period_days: int = 30,
-    previous_period_value: Optional[float] = None,
-    valid_fix_versions: Optional[set] = None,
-) -> Dict[str, Any]:
+    previous_period_value: float | None = None,
+    valid_fix_versions: set | None = None,
+) -> dict[str, Any]:
     """Calculate change failure rate metric.
 
     Measures percentage of deployments that cause incidents requiring remediation.
@@ -950,7 +970,8 @@ def calculate_change_failure_rate(
 
     Args:
         deployment_issues: List of deployment/operational task issues
-        incident_issues: List of incident/bug issues (kept for backward compatibility, not used)
+        incident_issues: List of incident/bug issues
+            (kept for backward compatibility, not used)
         time_period_days: Number of days in measurement period (default: 30)
         previous_period_value: Optional previous period value for trend calculation
         valid_fix_versions: Set of fixVersion names from development projects.
@@ -994,23 +1015,29 @@ def calculate_change_failure_rate(
         # Get field mappings from profile
         dora_mappings, project_classification = _get_field_mappings()
 
-        # Get change_failure field from profile (e.g., "customfield_12708" or "customfield_12708=Yes")
+        # Get change_failure field from profile
+        # (e.g., "customfield_12708" or "customfield_12708=Yes")
         change_failure_mapping = dora_mappings.get("change_failure")
         if not change_failure_mapping:
             return {
                 "error_state": "missing_mapping",
-                "error_message": "change_failure field not configured in profile.json field_mappings.dora",
+                "error_message": (
+                    "change_failure field not configured in profile.json "
+                    "field_mappings.dora"
+                ),
                 "trend_direction": "stable",
                 "trend_percentage": 0.0,
             }
 
-        # Parse field mapping - support "field=value" syntax for configurable failure values
+        # Parse field mapping.
+        # Support "field=value" syntax for configurable failure values.
         # Default positive values if no specific value is configured
         change_failure_field = change_failure_mapping
         configured_failure_values = {"yes", "true", "1"}  # Default positive values
 
         if "=" in change_failure_mapping:
-            # Configurable value syntax: "customfield_12708=Yes" or "customfield_12708=Yes|Ja|Oui"
+            # Configurable value syntax:
+            # "customfield_12708=Yes" or "customfield_12708=Yes|Ja|Oui"
             field_part, value_part = change_failure_mapping.split("=", 1)
             change_failure_field = field_part.strip()
             # Support multiple values separated by pipe: "Yes|Ja|Oui"
@@ -1018,7 +1045,8 @@ def calculate_change_failure_rate(
                 v.strip().lower() for v in value_part.split("|") if v.strip()
             }
             logger.info(
-                f"[DORA CFR] Using configured failure values: {configured_failure_values}"
+                "[DORA CFR] Using configured failure values: "
+                f"{configured_failure_values}"
             )
 
         flow_end_statuses = project_classification.get(
@@ -1040,7 +1068,8 @@ def calculate_change_failure_rate(
             else:
                 # Flat format: fields at root level
                 fields = issue
-                # fixVersions is JSON string in flat format (mapped from fix_versions by sqlite_backend)
+                # fixVersions is JSON string in flat format
+                # (mapped from fix_versions by sqlite_backend)
                 import json
 
                 fix_versions_raw = issue.get("fixVersions", "[]")
@@ -1065,7 +1094,8 @@ def calculate_change_failure_rate(
                 if fv.get("releaseDate"):
                     release_name = fv.get("name", "")
                     if release_name:
-                        # Filter: Only count if fixVersion exists in development projects
+                        # Filter: Only count if fixVersion exists
+                        # in development projects
                         if (
                             valid_fix_versions
                             and release_name not in valid_fix_versions
@@ -1099,7 +1129,8 @@ def calculate_change_failure_rate(
                     # Boolean fields: true means failure
                     is_failure = change_failure_value
                 elif isinstance(change_failure_value, dict):
-                    # Handle JIRA custom field objects like {"value": "Yes", "id": "123"}
+                    # Handle JIRA custom field objects like
+                    # {"value": "Yes", "id": "123"}
                     val = change_failure_value.get("value", "")
                     is_failure = str(val).lower() in configured_failure_values
                 elif isinstance(change_failure_value, str):
@@ -1107,7 +1138,8 @@ def calculate_change_failure_rate(
                         change_failure_value.lower() in configured_failure_values
                     )
                 elif isinstance(change_failure_value, (int, float)):
-                    # Numeric fields: non-zero means failure, or check if matches configured value
+                    # Numeric fields: non-zero means failure,
+                    # or check if matches configured value
                     is_failure = str(
                         int(change_failure_value)
                     ) in configured_failure_values or bool(change_failure_value)
@@ -1119,14 +1151,17 @@ def calculate_change_failure_rate(
                     failed_releases.add(release_name)
 
                 logger.debug(
-                    f"[DORA] Issue {issue.get('key')} marked as causing production issue "
+                    f"[DORA] Issue {issue.get('key')} "
+                    "marked as causing production issue "
                     f"(change_failure={change_failure_value})"
                 )
 
         if total_deployments == 0:
             return {
                 "error_state": "no_data",
-                "error_message": "No completed deployments with fixVersion.releaseDate found",
+                "error_message": (
+                    "No completed deployments with fixVersion.releaseDate found"
+                ),
                 "trend_direction": "stable",
                 "trend_percentage": 0.0,
             }
@@ -1155,7 +1190,8 @@ def calculate_change_failure_rate(
         logger.info(
             f"[DORA] Change Failure Rate: {change_failure_rate:.1f}% "
             f"({failed_deployments}/{total_deployments} deployments, "
-            f"{failed_releases_count}/{total_releases_count} releases) - {performance_tier}"
+            f"{failed_releases_count}/{total_releases_count} releases) "
+            f"- {performance_tier}"
         )
 
         return {
@@ -1188,11 +1224,11 @@ def calculate_change_failure_rate(
 
 @log_performance
 def calculate_mean_time_to_recovery(
-    incident_issues: List[Dict[str, Any]],
+    incident_issues: list[dict[str, Any]],
     time_period_days: int = 30,
-    previous_period_value: Optional[float] = None,
-    fixversion_release_map: Optional[Dict[str, datetime]] = None,
-) -> Dict[str, Any]:
+    previous_period_value: float | None = None,
+    fixversion_release_map: dict[str, datetime] | None = None,
+) -> dict[str, Any]:
     """Calculate mean time to recovery metric.
 
     Measures average time to restore service after an incident. Elite teams
@@ -1314,9 +1350,9 @@ def calculate_mean_time_to_recovery(
                 )
 
                 if start_time.tzinfo is None:
-                    start_time = start_time.replace(tzinfo=timezone.utc)
+                    start_time = start_time.replace(tzinfo=UTC)
                 if end_datetime.tzinfo is None:
-                    end_datetime = end_datetime.replace(tzinfo=timezone.utc)
+                    end_datetime = end_datetime.replace(tzinfo=UTC)
 
                 # Calculate recovery time in hours
                 recovery_delta = end_datetime - start_time
@@ -1354,8 +1390,10 @@ def calculate_mean_time_to_recovery(
 
             return {
                 "error_state": "no_data",
-                "error_message": f"No valid recovery times from {len(incident_issues)} incidents "
-                f"({', '.join(error_details)})",
+                "error_message": (
+                    f"No valid recovery times from {len(incident_issues)} incidents "
+                    f"({', '.join(error_details)})"
+                ),
                 "trend_direction": "stable",
                 "trend_percentage": 0.0,
             }

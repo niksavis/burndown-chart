@@ -12,7 +12,6 @@ fallback if no internet connection is available.
 import logging
 import subprocess
 from pathlib import Path
-from typing import Optional
 
 import requests
 
@@ -36,7 +35,7 @@ REQUEST_TIMEOUT = 3
 #######################################################################
 
 
-def get_current_commit() -> Optional[str]:
+def get_current_commit() -> str | None:
     """
     Get the current git commit hash of the local repository.
 
@@ -59,7 +58,7 @@ def get_current_commit() -> Optional[str]:
     return None
 
 
-def get_tag_for_commit(commit_sha: str) -> Optional[str]:
+def get_tag_for_commit(commit_sha: str) -> str | None:
     """
     Get the git tag associated with a commit (if any).
 
@@ -173,7 +172,8 @@ def check_for_updates() -> dict:
                         if tag.get("commit", {}).get("sha", "")[:7] == latest_commit:
                             result["latest_tag"] = tag.get("name")
                             logger.debug(
-                                f"Latest commit {latest_commit} is tagged as {result['latest_tag']}"
+                                f"Latest commit {latest_commit} is tagged as "
+                                f"{result['latest_tag']}"
                             )
                             break
             except Exception as e:
@@ -191,7 +191,8 @@ def check_for_updates() -> dict:
 
         else:
             logger.debug(
-                f"GitHub API returned status {response.status_code} - skipping version check"
+                "GitHub API returned status "
+                f"{response.status_code} - skipping version check"
             )
             result["error"] = f"api_error_{response.status_code}"
 

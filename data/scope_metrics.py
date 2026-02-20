@@ -63,9 +63,10 @@ IMPLICATIONS FOR DECISION-MAKING
 
 """
 
-import pandas as pd
 from datetime import datetime, timedelta
-from typing import Dict, Any, Optional
+from typing import Any
+
+import pandas as pd
 
 
 def calculate_scope_change_rate(
@@ -187,7 +188,7 @@ def calculate_scope_creep_rate(
 
 def calculate_total_project_scope(
     df: pd.DataFrame, remaining_items: int, remaining_points: int
-) -> Dict[str, int]:
+) -> dict[str, int]:
     """
     Calculate the initial project scope (baseline) at a specific point in time.
 
@@ -231,7 +232,7 @@ def calculate_total_project_scope(
 
 
 def calculate_weekly_scope_growth(
-    df: pd.DataFrame, data_points_count: Optional[int] = None
+    df: pd.DataFrame, data_points_count: int | None = None
 ) -> pd.DataFrame:
     """
     Calculate weekly scope growth (created - completed).
@@ -401,8 +402,8 @@ def calculate_scope_stability_index(
 
 
 def check_scope_change_threshold(
-    scope_change_rate: Dict[str, Any], threshold: float
-) -> Dict[str, str]:
+    scope_change_rate: dict[str, Any], threshold: float
+) -> dict[str, str]:
     """
     Check if scope change rate exceeds threshold.
 

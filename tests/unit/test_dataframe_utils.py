@@ -2,9 +2,10 @@
 Unit tests for DataFrame utilities module.
 """
 
-import pytest
-import pandas as pd
 from unittest.mock import patch
+
+import pandas as pd
+import pytest
 
 from utils.dataframe_utils import (
     df_to_dict,

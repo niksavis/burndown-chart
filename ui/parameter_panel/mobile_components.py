@@ -1,6 +1,5 @@
 """Mobile parameter components (FAB and bottom sheet)."""
 
-from typing import Optional
 import math
 
 import dash_bootstrap_components as dbc
@@ -45,7 +44,7 @@ def create_mobile_parameter_fab() -> html.Div:
 
 
 def create_mobile_parameter_bottom_sheet(
-    settings: dict, statistics: Optional[list] = None
+    settings: dict, statistics: list | None = None
 ) -> dbc.Offcanvas:
     """
     Create mobile-optimized parameter bottom sheet using dbc.Offcanvas.

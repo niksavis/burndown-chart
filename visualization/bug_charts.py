@@ -11,13 +11,13 @@ for mobile-optimized chart configurations.
 #######################################################################
 # Standard library imports
 from datetime import datetime
-from typing import Dict, Any
+from typing import Any
 
 # Third-party library imports
 import plotly.graph_objects as go
 
 
-def get_mobile_chart_config(viewport_size: str = "mobile") -> Dict[str, Any]:
+def get_mobile_chart_config(viewport_size: str = "mobile") -> dict[str, Any]:
     """
     Get mobile-optimized chart configuration.
 
@@ -76,7 +76,7 @@ def get_mobile_chart_config(viewport_size: str = "mobile") -> Dict[str, Any]:
         return base_config
 
 
-def get_mobile_chart_layout(viewport_size: str = "mobile") -> Dict[str, Any]:
+def get_mobile_chart_layout(viewport_size: str = "mobile") -> dict[str, Any]:
     """
     Get mobile-optimized chart layout configuration.
 
@@ -213,7 +213,7 @@ def apply_mobile_chart_optimizations(
 
 
 def create_mobile_optimized_chart(
-    figure_data: Dict, viewport_size: str = "mobile", chart_type: str = "burndown"
+    figure_data: dict, viewport_size: str = "mobile", chart_type: str = "burndown"
 ):
     """
     Create a mobile-optimized chart component.
@@ -239,7 +239,7 @@ def create_mobile_optimized_chart(
 
 
 def create_bug_trend_chart(
-    weekly_stats: list[Dict],
+    weekly_stats: list[dict],
     viewport_size: str = "mobile",
     include_forecast: bool = True,
 ) -> go.Figure:
@@ -508,7 +508,7 @@ def create_bug_trend_chart(
 
 
 def create_bug_investment_chart(
-    weekly_stats: list[Dict],
+    weekly_stats: list[dict],
     viewport_size: str = "mobile",
     include_forecast: bool = True,
 ) -> go.Figure:
@@ -825,7 +825,7 @@ def create_bug_investment_chart(
 
 
 def create_bug_forecast_chart(
-    forecast: Dict[str, Any], viewport_size: str = "mobile"
+    forecast: dict[str, Any], viewport_size: str = "mobile"
 ) -> go.Figure:
     """
     Create bug resolution forecast chart with confidence intervals.

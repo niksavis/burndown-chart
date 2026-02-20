@@ -9,21 +9,20 @@ Key Functions:
 """
 
 import logging
-from typing import Dict, List, Optional
 from collections import OrderedDict
 
-from data.iso_week_bucketing import get_last_n_weeks, bucket_issues_by_week
+from data.iso_week_bucketing import bucket_issues_by_week, get_last_n_weeks
 from data.parent_filter import extract_parent_keys, filter_parent_issues
 
 logger = logging.getLogger(__name__)
 
 
 def get_completed_items_by_week(
-    issues: List[Dict],
+    issues: list[dict],
     n_weeks: int = 2,
-    flow_end_statuses: Optional[List[str]] = None,
-    parent_field: Optional[str] = None,
-) -> Dict[str, Dict]:
+    flow_end_statuses: list[str] | None = None,
+    parent_field: str | None = None,
+) -> dict[str, dict]:
     """Bucket completed issues into current week and last week.
 
     Filters issues by completion status and resolutiondate, then groups them
@@ -212,7 +211,7 @@ def _format_week_label(
     return f"{prefix} ({date_range})"
 
 
-def _create_empty_week_structure(n_weeks: int = 2) -> Dict[str, Dict]:
+def _create_empty_week_structure(n_weeks: int = 2) -> dict[str, dict]:
     """Create empty week structure when no completed items exist.
 
     Args:
@@ -248,7 +247,7 @@ def _create_empty_week_structure(n_weeks: int = 2) -> Dict[str, Dict]:
     return result
 
 
-def _get_closed_epic_keys(issues: List[Dict], parent_keys: set[str]) -> set[str]:
+def _get_closed_epic_keys(issues: list[dict], parent_keys: set[str]) -> set[str]:
     """Get parent keys that are also completed issues.
 
     Args:
@@ -267,8 +266,8 @@ def _get_closed_epic_keys(issues: List[Dict], parent_keys: set[str]) -> set[str]
 
 
 def _group_issues_by_epic(
-    issues: List[Dict], parent_field: str, all_issues: List[Dict]
-) -> List[Dict]:
+    issues: list[dict], parent_field: str, all_issues: list[dict]
+) -> list[dict]:
     """Group issues by parent epic for display.
 
     Args:
@@ -315,7 +314,7 @@ def _group_issues_by_epic(
 
 
 def _get_parent_info(
-    issue: Dict, parent_field: str, all_issues: List[Dict]
+    issue: dict, parent_field: str, all_issues: list[dict]
 ) -> tuple[str | None, str | None]:
     """Extract parent epic key and summary from an issue.
 

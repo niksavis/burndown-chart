@@ -4,8 +4,8 @@ Project Configuration Form Component
 Provides UI for configuring JIRA project classification (development vs devops projects).
 """
 
-from dash import html, dcc
 import dash_bootstrap_components as dbc
+from dash import dcc, html
 
 
 def create_project_config_form(

@@ -26,8 +26,7 @@ Data Isolation:
 """
 
 import logging
-from typing import Dict, List, Optional
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from data.persistence.factory import get_backend
 
@@ -58,7 +57,7 @@ def _generate_unique_query_id() -> str:
     return f"q_{uuid.uuid4().hex[:12]}"
 
 
-def get_active_query_id() -> Optional[str]:
+def get_active_query_id() -> str | None:
     """
     Get the currently active query ID.
 
@@ -144,7 +143,7 @@ def switch_query(query_id: str) -> None:
     logger.info(f"Switched to query '{query_id}' in profile '{active_profile_id}'")
 
 
-def list_queries_for_profile(profile_id: Optional[str] = None) -> List[Dict]:
+def list_queries_for_profile(profile_id: str | None = None) -> list[dict]:
     """
     List all queries in a profile.
 
@@ -192,7 +191,7 @@ def list_queries_for_profile(profile_id: Optional[str] = None) -> List[Dict]:
     return queries
 
 
-def get_query_dropdown_options(profile_id: Optional[str] = None) -> List[Dict]:
+def get_query_dropdown_options(profile_id: str | None = None) -> list[dict]:
     """
     Build dropdown options with timestamps for query selector.
 
@@ -215,10 +214,11 @@ def get_query_dropdown_options(profile_id: Optional[str] = None) -> List[Dict]:
             {"label": "Bug Queries (Jan 28)", "value": "q_456"}
         ]
     """
+    import logging
+
+    from data.database import get_db_connection
     from data.persistence.factory import get_backend
     from data.time_formatting import get_relative_time_string
-    from data.database import get_db_connection
-    import logging
 
     logger = logging.getLogger(__name__)
 
@@ -349,8 +349,8 @@ def create_query(profile_id: str, name: str, jql: str, description: str = "") ->
         "name": name,
         "jql": jql,
         "description": description,
-        "created_at": datetime.now(timezone.utc).isoformat(),
-        "last_used": datetime.now(timezone.utc).isoformat(),
+        "created_at": datetime.now(UTC).isoformat(),
+        "last_used": datetime.now(UTC).isoformat(),
     }
 
     # Save query using backend
@@ -364,9 +364,9 @@ def create_query(profile_id: str, name: str, jql: str, description: str = "") ->
 def update_query(
     profile_id: str,
     query_id: str,
-    name: Optional[str] = None,
-    jql: Optional[str] = None,
-    description: Optional[str] = None,
+    name: str | None = None,
+    jql: str | None = None,
+    description: str | None = None,
 ) -> bool:
     """
     Update an existing query's metadata.
@@ -508,7 +508,7 @@ def validate_query_exists_for_data_operation(query_id: str) -> None:
     try:
         active_profile_id = get_active_profile_id()
     except ValueError as e:
-        raise ValueError(f"Cannot validate query: {e}")
+        raise ValueError(f"Cannot validate query: {e}") from e
 
     # Check if query exists in database
     query = backend.get_query(active_profile_id, query_id)

@@ -7,21 +7,22 @@ analysis, PERT forecasting, and schedule variance tracking.
 
 import logging
 from datetime import datetime, timedelta
-from typing import Dict, List, Any, Optional
+from typing import Any
+
 import pandas as pd
 
 logger = logging.getLogger(__name__)
 
 
 def calculate_dashboard_metrics(
-    all_statistics: List[Dict],
-    windowed_statistics: List[Dict],
-    project_scope: Dict,
-    settings: Dict,
+    all_statistics: list[dict],
+    windowed_statistics: list[dict],
+    project_scope: dict,
+    settings: dict,
     weeks_count: int,
     show_points: bool = False,
-    extended_metrics: Optional[Dict[str, Any]] = None,
-) -> Dict[str, Any]:
+    extended_metrics: dict[str, Any] | None = None,
+) -> dict[str, Any]:
     """
     Calculate dashboard summary metrics using LIFETIME-based calculations (same as app).
 
@@ -131,11 +132,11 @@ def calculate_dashboard_metrics(
         )
 
         # Generate the same week labels that the dashboard uses
-        from data.time_period_calculator import get_iso_week, format_year_week
+        from data.time_period_calculator import format_year_week, get_iso_week
 
         weeks = []
         current_date = df_windowed_temp["date"].max()
-        for i in range(data_points_count):
+        for _i in range(data_points_count):
             year, week = get_iso_week(current_date)
             week_label = format_year_week(year, week)
             weeks.append(week_label)
@@ -336,7 +337,7 @@ def calculate_dashboard_metrics(
     # Calculate PERT forecast using EXACT SAME method as app comprehensive dashboard
     # App uses calculate_rates() which returns empirical PERT days (not simplified formula)
     # This is in ui/dashboard.py and data/processing.py calculate_rates()
-    from data.processing import compute_weekly_throughput, calculate_rates
+    from data.processing import calculate_rates, compute_weekly_throughput
 
     forecast_date = None
     forecast_months = None

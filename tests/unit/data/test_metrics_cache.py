@@ -6,18 +6,20 @@ with proper test isolation using temporary files.
 
 import json
 import os
-import pytest
 import tempfile
 import time
 from datetime import datetime
 from unittest.mock import patch
+
+import pytest
+
 from data.metrics_cache import (
+    CACHE_VERSION,
     generate_cache_key,
+    get_cache_stats,
+    invalidate_cache,
     load_cached_metrics,
     save_cached_metrics,
-    invalidate_cache,
-    get_cache_stats,
-    CACHE_VERSION,
 )
 
 
@@ -125,7 +127,7 @@ class TestSaveAndLoadCachedMetrics:
             save_cached_metrics(cache_key, sample_metrics)
 
             # Modify cache version
-            with open(temp_cache_file, "r") as f:
+            with open(temp_cache_file) as f:
                 cache = json.load(f)
             cache["cache_version"] = "0.9"
             with open(temp_cache_file, "w") as f:
@@ -302,7 +304,7 @@ class TestCacheFileStructure:
             save_cached_metrics(cache_key, sample_metrics)
 
             # Read and verify structure
-            with open(temp_cache_file, "r") as f:
+            with open(temp_cache_file) as f:
                 cache = json.load(f)
 
             assert "cache_version" in cache
@@ -327,7 +329,7 @@ class TestCacheFileStructure:
         with patch("data.metrics_cache.CACHE_FILE", temp_cache_file):
             save_cached_metrics(cache_key, sample_metrics)
 
-            with open(temp_cache_file, "r") as f:
+            with open(temp_cache_file) as f:
                 cache = json.load(f)
 
             entry = cache["entries"][cache_key]

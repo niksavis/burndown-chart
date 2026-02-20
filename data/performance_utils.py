@@ -17,9 +17,11 @@ Success Criteria:
 
 import logging
 import time
-from functools import wraps, lru_cache
-from typing import Dict, List, Any, Optional, Callable
+from collections.abc import Callable
 from datetime import datetime
+from functools import lru_cache, wraps
+from typing import Any
+
 from dateutil import parser as dateutil_parser
 
 logger = logging.getLogger(__name__)
@@ -96,7 +98,7 @@ class PerformanceTimer:
         elapsed: Elapsed time in seconds (available after context exit)
     """
 
-    def __init__(self, operation_name: Optional[str] = None):
+    def __init__(self, operation_name: str | None = None):
         """
         Initialize timer with optional operation name for logging.
 
@@ -104,7 +106,7 @@ class PerformanceTimer:
             operation_name: Name to use in log messages (optional)
         """
         self.operation_name = operation_name
-        self.start_time: Optional[float] = None
+        self.start_time: float | None = None
         self.elapsed: float = 0.0
 
     def __enter__(self):
@@ -136,7 +138,7 @@ class PerformanceTimer:
 
 
 @lru_cache(maxsize=1000)
-def parse_jira_date(date_string: Optional[str]) -> Optional[datetime]:
+def parse_jira_date(date_string: str | None) -> datetime | None:
     """
     Parse JIRA date strings with LRU caching for 80%+ speedup on repeated dates.
 
@@ -213,7 +215,7 @@ class FieldMappingIndex:
         "deployment_date"
     """
 
-    def __init__(self, field_mappings: Dict[str, str]):
+    def __init__(self, field_mappings: dict[str, str]):
         """
         Build bidirectional index from field mappings.
 
@@ -221,15 +223,15 @@ class FieldMappingIndex:
             field_mappings: Logical name -> JIRA field mappings
         """
         # Forward index: logical_name -> jira_field (O(1) lookup)
-        self._forward_index: Dict[str, str] = dict(field_mappings)
+        self._forward_index: dict[str, str] = dict(field_mappings)
 
         # Reverse index: jira_field -> logical_name (O(1) lookup)
-        self._reverse_index: Dict[str, str] = {
+        self._reverse_index: dict[str, str] = {
             jira_field: logical_name
             for logical_name, jira_field in field_mappings.items()
         }
 
-    def get_jira_field(self, logical_name: str) -> Optional[str]:
+    def get_jira_field(self, logical_name: str) -> str | None:
         """
         Get JIRA custom field ID from logical name (O(1) lookup).
 
@@ -241,7 +243,7 @@ class FieldMappingIndex:
         """
         return self._forward_index.get(logical_name)
 
-    def get_logical_name(self, jira_field: str) -> Optional[str]:
+    def get_logical_name(self, jira_field: str) -> str | None:
         """
         Get logical field name from JIRA custom field ID (O(1) lookup).
 
@@ -289,7 +291,7 @@ class CalculationContext:
         >>> deployed is deployed_again  # True - same object
     """
 
-    def __init__(self, issues: List[Dict[str, Any]]):
+    def __init__(self, issues: list[dict[str, Any]]):
         """
         Initialize context with full issue dataset.
 
@@ -298,11 +300,11 @@ class CalculationContext:
         """
         self._issues = issues
         # Cache: filter_key -> filtered_results
-        self._filter_cache: Dict[int, List[Dict[str, Any]]] = {}
+        self._filter_cache: dict[int, list[dict[str, Any]]] = {}
 
     def get_filtered_issues(
-        self, filter_func: Callable[[Dict[str, Any]], bool]
-    ) -> List[Dict[str, Any]]:
+        self, filter_func: Callable[[dict[str, Any]], bool]
+    ) -> list[dict[str, Any]]:
         """
         Get filtered issues with automatic caching.
 

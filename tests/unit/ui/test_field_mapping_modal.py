@@ -8,16 +8,17 @@ Tests the field mapping modal creation and form generation to ensure:
 - Alert generation for success/error states
 """
 
-import pytest
 import dash_bootstrap_components as dbc
+import pytest
 from dash import html
+
 from ui.field_mapping_modal import (
-    create_field_mapping_modal,
+    create_field_mapping_error_alert,
     create_field_mapping_form,
+    create_field_mapping_modal,
+    create_field_mapping_success_alert,
     create_metric_section,
     create_validation_message,
-    create_field_mapping_success_alert,
-    create_field_mapping_error_alert,
 )
 
 
@@ -499,7 +500,7 @@ class TestFieldTypeRequirements:
 
         # Check that expected type appears for each field
         # (may appear in help text or labels)
-        for field in dora_fields:
+        for _field in dora_fields:
             # Just verify the form contains type information
             pass  # Type info verified in parametrized test above
 

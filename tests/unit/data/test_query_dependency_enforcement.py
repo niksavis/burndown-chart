@@ -8,8 +8,9 @@ Tests verify that:
 4. Warning logged when field mappings not configured
 """
 
+from datetime import UTC, datetime
+
 import pytest
-from datetime import datetime, timezone
 
 from data.query_manager import (
     DependencyError,
@@ -38,9 +39,9 @@ class TestQueryDependencyEnforcement:
             "id": "default",
             "name": "Default",
             "created_at": datetime(
-                2026, 1, 1, 0, 0, 0, tzinfo=timezone.utc
+                2026, 1, 1, 0, 0, 0, tzinfo=UTC
             ).isoformat(),
-            "last_used": datetime(2026, 1, 1, 0, 0, 0, tzinfo=timezone.utc).isoformat(),
+            "last_used": datetime(2026, 1, 1, 0, 0, 0, tzinfo=UTC).isoformat(),
             "jira_config": {
                 "base_url": "",
                 "configured": False,  # NOT configured
@@ -69,9 +70,9 @@ class TestQueryDependencyEnforcement:
             "id": "default",
             "name": "Default",
             "created_at": datetime(
-                2026, 1, 1, 0, 0, 0, tzinfo=timezone.utc
+                2026, 1, 1, 0, 0, 0, tzinfo=UTC
             ).isoformat(),
-            "last_used": datetime(2026, 1, 1, 0, 0, 0, tzinfo=timezone.utc).isoformat(),
+            "last_used": datetime(2026, 1, 1, 0, 0, 0, tzinfo=UTC).isoformat(),
             "jira_config": {
                 "base_url": "https://test.jira.com",
                 "configured": True,  # CONFIGURED
@@ -106,8 +107,9 @@ class TestQueryDependencyEnforcement:
         Verify warning logged when field_mappings empty.
         Uses SQLite database backend via temp_database fixture.
         """
-        from data.persistence.factory import get_backend
         import logging
+
+        from data.persistence.factory import get_backend
 
         backend = get_backend()
 
@@ -116,9 +118,9 @@ class TestQueryDependencyEnforcement:
             "id": "default",
             "name": "Default",
             "created_at": datetime(
-                2026, 1, 1, 0, 0, 0, tzinfo=timezone.utc
+                2026, 1, 1, 0, 0, 0, tzinfo=UTC
             ).isoformat(),
-            "last_used": datetime(2026, 1, 1, 0, 0, 0, tzinfo=timezone.utc).isoformat(),
+            "last_used": datetime(2026, 1, 1, 0, 0, 0, tzinfo=UTC).isoformat(),
             "jira_config": {
                 "base_url": "https://test.jira.com",
                 "configured": True,
@@ -155,9 +157,9 @@ class TestQueryValidationForDataOperations:
             "id": "default",
             "name": "Default",
             "created_at": datetime(
-                2026, 1, 1, 0, 0, 0, tzinfo=timezone.utc
+                2026, 1, 1, 0, 0, 0, tzinfo=UTC
             ).isoformat(),
-            "last_used": datetime(2026, 1, 1, 0, 0, 0, tzinfo=timezone.utc).isoformat(),
+            "last_used": datetime(2026, 1, 1, 0, 0, 0, tzinfo=UTC).isoformat(),
             "jira_config": {},
             "field_mappings": {},
         }
@@ -169,9 +171,9 @@ class TestQueryValidationForDataOperations:
             "name": "Main Query",
             "jql": "project = TEST",
             "created_at": datetime(
-                2026, 1, 1, 0, 0, 0, tzinfo=timezone.utc
+                2026, 1, 1, 0, 0, 0, tzinfo=UTC
             ).isoformat(),
-            "last_used": datetime(2026, 1, 1, 0, 0, 0, tzinfo=timezone.utc).isoformat(),
+            "last_used": datetime(2026, 1, 1, 0, 0, 0, tzinfo=UTC).isoformat(),
         }
         backend.save_query("default", query_data)
         backend.set_app_state("active_profile_id", "default")
@@ -194,9 +196,9 @@ class TestQueryValidationForDataOperations:
             "id": "default",
             "name": "Default",
             "created_at": datetime(
-                2026, 1, 1, 0, 0, 0, tzinfo=timezone.utc
+                2026, 1, 1, 0, 0, 0, tzinfo=UTC
             ).isoformat(),
-            "last_used": datetime(2026, 1, 1, 0, 0, 0, tzinfo=timezone.utc).isoformat(),
+            "last_used": datetime(2026, 1, 1, 0, 0, 0, tzinfo=UTC).isoformat(),
             "jira_config": {},
             "field_mappings": {},
         }
@@ -239,9 +241,9 @@ class TestQueryDeletionWithCascade:
             "id": "default",
             "name": "Default",
             "created_at": datetime(
-                2026, 1, 1, 0, 0, 0, tzinfo=timezone.utc
+                2026, 1, 1, 0, 0, 0, tzinfo=UTC
             ).isoformat(),
-            "last_used": datetime(2026, 1, 1, 0, 0, 0, tzinfo=timezone.utc).isoformat(),
+            "last_used": datetime(2026, 1, 1, 0, 0, 0, tzinfo=UTC).isoformat(),
             "jira_config": {},
             "field_mappings": {},
         }
@@ -253,9 +255,9 @@ class TestQueryDeletionWithCascade:
             "name": "Main",
             "jql": "project = TEST",
             "created_at": datetime(
-                2026, 1, 1, 0, 0, 0, tzinfo=timezone.utc
+                2026, 1, 1, 0, 0, 0, tzinfo=UTC
             ).isoformat(),
-            "last_used": datetime(2026, 1, 1, 0, 0, 0, tzinfo=timezone.utc).isoformat(),
+            "last_used": datetime(2026, 1, 1, 0, 0, 0, tzinfo=UTC).isoformat(),
         }
         backend.save_query("default", main_query)
 
@@ -265,9 +267,9 @@ class TestQueryDeletionWithCascade:
             "name": "Bugs",
             "jql": "type = Bug",
             "created_at": datetime(
-                2026, 1, 1, 0, 0, 0, tzinfo=timezone.utc
+                2026, 1, 1, 0, 0, 0, tzinfo=UTC
             ).isoformat(),
-            "last_used": datetime(2026, 1, 1, 0, 0, 0, tzinfo=timezone.utc).isoformat(),
+            "last_used": datetime(2026, 1, 1, 0, 0, 0, tzinfo=UTC).isoformat(),
         }
         backend.save_query("default", bugs_query)
 
@@ -297,9 +299,9 @@ class TestQueryDeletionWithCascade:
             "id": "default",
             "name": "Default",
             "created_at": datetime(
-                2026, 1, 1, 0, 0, 0, tzinfo=timezone.utc
+                2026, 1, 1, 0, 0, 0, tzinfo=UTC
             ).isoformat(),
-            "last_used": datetime(2026, 1, 1, 0, 0, 0, tzinfo=timezone.utc).isoformat(),
+            "last_used": datetime(2026, 1, 1, 0, 0, 0, tzinfo=UTC).isoformat(),
             "jira_config": {},
             "field_mappings": {},
         }
@@ -311,9 +313,9 @@ class TestQueryDeletionWithCascade:
             "name": "Main",
             "jql": "project = TEST",
             "created_at": datetime(
-                2026, 1, 1, 0, 0, 0, tzinfo=timezone.utc
+                2026, 1, 1, 0, 0, 0, tzinfo=UTC
             ).isoformat(),
-            "last_used": datetime(2026, 1, 1, 0, 0, 0, tzinfo=timezone.utc).isoformat(),
+            "last_used": datetime(2026, 1, 1, 0, 0, 0, tzinfo=UTC).isoformat(),
         }
         backend.save_query("default", main_query)
 
@@ -323,9 +325,9 @@ class TestQueryDeletionWithCascade:
             "name": "Bugs",
             "jql": "type = Bug",
             "created_at": datetime(
-                2026, 1, 1, 0, 0, 0, tzinfo=timezone.utc
+                2026, 1, 1, 0, 0, 0, tzinfo=UTC
             ).isoformat(),
-            "last_used": datetime(2026, 1, 1, 0, 0, 0, tzinfo=timezone.utc).isoformat(),
+            "last_used": datetime(2026, 1, 1, 0, 0, 0, tzinfo=UTC).isoformat(),
         }
         backend.save_query("default", bugs_query)
 
@@ -356,9 +358,9 @@ class TestQueryDeletionWithCascade:
             "id": "default",
             "name": "Default",
             "created_at": datetime(
-                2026, 1, 1, 0, 0, 0, tzinfo=timezone.utc
+                2026, 1, 1, 0, 0, 0, tzinfo=UTC
             ).isoformat(),
-            "last_used": datetime(2026, 1, 1, 0, 0, 0, tzinfo=timezone.utc).isoformat(),
+            "last_used": datetime(2026, 1, 1, 0, 0, 0, tzinfo=UTC).isoformat(),
             "jira_config": {},
             "field_mappings": {},
         }
@@ -370,9 +372,9 @@ class TestQueryDeletionWithCascade:
             "name": "Main",
             "jql": "project = TEST",
             "created_at": datetime(
-                2026, 1, 1, 0, 0, 0, tzinfo=timezone.utc
+                2026, 1, 1, 0, 0, 0, tzinfo=UTC
             ).isoformat(),
-            "last_used": datetime(2026, 1, 1, 0, 0, 0, tzinfo=timezone.utc).isoformat(),
+            "last_used": datetime(2026, 1, 1, 0, 0, 0, tzinfo=UTC).isoformat(),
         }
         backend.save_query("default", main_query)
 
@@ -382,9 +384,9 @@ class TestQueryDeletionWithCascade:
             "name": "Bugs",
             "jql": "type = Bug",
             "created_at": datetime(
-                2026, 1, 1, 0, 0, 0, tzinfo=timezone.utc
+                2026, 1, 1, 0, 0, 0, tzinfo=UTC
             ).isoformat(),
-            "last_used": datetime(2026, 1, 1, 0, 0, 0, tzinfo=timezone.utc).isoformat(),
+            "last_used": datetime(2026, 1, 1, 0, 0, 0, tzinfo=UTC).isoformat(),
         }
         backend.save_query("default", bugs_query)
 
@@ -418,9 +420,9 @@ class TestQueryDeletionWithCascade:
             "id": "default",
             "name": "Default",
             "created_at": datetime(
-                2026, 1, 1, 0, 0, 0, tzinfo=timezone.utc
+                2026, 1, 1, 0, 0, 0, tzinfo=UTC
             ).isoformat(),
-            "last_used": datetime(2026, 1, 1, 0, 0, 0, tzinfo=timezone.utc).isoformat(),
+            "last_used": datetime(2026, 1, 1, 0, 0, 0, tzinfo=UTC).isoformat(),
             "jira_config": {},
             "field_mappings": {},
         }
@@ -432,9 +434,9 @@ class TestQueryDeletionWithCascade:
             "name": "Main",
             "jql": "project = TEST",
             "created_at": datetime(
-                2026, 1, 1, 0, 0, 0, tzinfo=timezone.utc
+                2026, 1, 1, 0, 0, 0, tzinfo=UTC
             ).isoformat(),
-            "last_used": datetime(2026, 1, 1, 0, 0, 0, tzinfo=timezone.utc).isoformat(),
+            "last_used": datetime(2026, 1, 1, 0, 0, 0, tzinfo=UTC).isoformat(),
         }
         backend.save_query("default", main_query)
 
@@ -444,9 +446,9 @@ class TestQueryDeletionWithCascade:
             "name": "Bugs",
             "jql": "type = Bug",
             "created_at": datetime(
-                2026, 1, 1, 0, 0, 0, tzinfo=timezone.utc
+                2026, 1, 1, 0, 0, 0, tzinfo=UTC
             ).isoformat(),
-            "last_used": datetime(2026, 1, 1, 0, 0, 0, tzinfo=timezone.utc).isoformat(),
+            "last_used": datetime(2026, 1, 1, 0, 0, 0, tzinfo=UTC).isoformat(),
         }
         backend.save_query("default", bugs_query)
 
@@ -477,9 +479,9 @@ class TestQueryDeletionWithCascade:
             "id": "default",
             "name": "Default",
             "created_at": datetime(
-                2026, 1, 1, 0, 0, 0, tzinfo=timezone.utc
+                2026, 1, 1, 0, 0, 0, tzinfo=UTC
             ).isoformat(),
-            "last_used": datetime(2026, 1, 1, 0, 0, 0, tzinfo=timezone.utc).isoformat(),
+            "last_used": datetime(2026, 1, 1, 0, 0, 0, tzinfo=UTC).isoformat(),
             "jira_config": {},
             "field_mappings": {},
         }
@@ -491,9 +493,9 @@ class TestQueryDeletionWithCascade:
             "name": "Main",
             "jql": "project = TEST",
             "created_at": datetime(
-                2026, 1, 1, 0, 0, 0, tzinfo=timezone.utc
+                2026, 1, 1, 0, 0, 0, tzinfo=UTC
             ).isoformat(),
-            "last_used": datetime(2026, 1, 1, 0, 0, 0, tzinfo=timezone.utc).isoformat(),
+            "last_used": datetime(2026, 1, 1, 0, 0, 0, tzinfo=UTC).isoformat(),
         }
         backend.save_query("default", main_query)
 
@@ -503,9 +505,9 @@ class TestQueryDeletionWithCascade:
             "name": "Bugs",
             "jql": "type = Bug",
             "created_at": datetime(
-                2026, 1, 1, 0, 0, 0, tzinfo=timezone.utc
+                2026, 1, 1, 0, 0, 0, tzinfo=UTC
             ).isoformat(),
-            "last_used": datetime(2026, 1, 1, 0, 0, 0, tzinfo=timezone.utc).isoformat(),
+            "last_used": datetime(2026, 1, 1, 0, 0, 0, tzinfo=UTC).isoformat(),
         }
         backend.save_query("default", bugs_query)
 

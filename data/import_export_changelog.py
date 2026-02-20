@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -12,16 +12,16 @@ def collect_changelog_entries(
     backend: Any,
     profile_id: str,
     query_id: str,
-    sprint_field: Optional[str],
-) -> List[Dict]:
+    sprint_field: str | None,
+) -> list[dict]:
     """Collect changelog entries for export, filtered to tracked fields."""
     tracked_fields = ["status", "Sprint"]
     if sprint_field:
         tracked_fields.append(sprint_field)
 
-    entries: List[Dict] = []
+    entries: list[dict] = []
     seen: set[
-        Tuple[Optional[str], Optional[str], Optional[str], Optional[str], Optional[str]]
+        tuple[str | None, str | None, str | None, str | None, str | None]
     ] = set()
 
     for field_name in dict.fromkeys(tracked_fields):
@@ -46,12 +46,12 @@ def collect_changelog_entries(
     return entries
 
 
-def normalize_imported_changelog_entries(entries: List[Dict]) -> List[Dict]:
+def normalize_imported_changelog_entries(entries: list[dict]) -> list[dict]:
     """Normalize changelog entries for import.
 
     Maps sprint field changes to the display name to avoid instance-specific IDs.
     """
-    normalized: List[Dict] = []
+    normalized: list[dict] = []
 
     for entry in entries:
         if not isinstance(entry, dict):

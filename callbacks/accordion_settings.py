@@ -12,9 +12,9 @@ Callbacks:
 """
 
 import logging
-from dash import Input, Output, State, callback, no_update
+
 import dash_bootstrap_components as dbc
-from dash import html
+from dash import Input, Output, State, callback, html, no_update
 
 logger = logging.getLogger(__name__)
 
@@ -362,8 +362,9 @@ def load_profile_settings_after_import(metrics_trigger, profile_trigger):
     This ensures that when a profile is imported or switched, the Profile Settings
     Card in the accordion shows the correct values.
     """
-    from data.persistence import load_app_settings
     from dash.exceptions import PreventUpdate
+
+    from data.persistence import load_app_settings
 
     try:
         settings = load_app_settings()
@@ -400,7 +401,7 @@ def load_profile_settings_after_import(metrics_trigger, profile_trigger):
         raise
     except Exception as e:
         logger.error(f"[Profile Settings] Error loading settings: {e}", exc_info=True)
-        raise PreventUpdate
+        raise PreventUpdate from e
 
 
 logger.info("[Callbacks] Accordion settings panel callbacks registered")
@@ -428,8 +429,8 @@ def load_query_jql(query_id):
         return ""
 
     try:
-        from data.query_manager import get_active_profile_id
         from data.persistence.factory import get_backend
+        from data.query_manager import get_active_profile_id
 
         profile_id = get_active_profile_id()
         backend = get_backend()
@@ -561,8 +562,8 @@ def cancel_query_edit(n_clicks, query_id):
         return no_update
 
     try:
-        from data.query_manager import get_active_profile_id
         from data.persistence.factory import get_backend
+        from data.query_manager import get_active_profile_id
 
         profile_id = get_active_profile_id()
         backend = get_backend()

@@ -1,17 +1,16 @@
 """Burndown and weekly breakdown chart generators."""
 
 import json
-from typing import Dict, List, Optional
 from datetime import datetime
 
 
 def generate_burndown_chart(
-    burndown_metrics: Dict,
+    burndown_metrics: dict,
     milestone: str,
     forecast_date: str,
     deadline: str,
     show_points: bool = False,
-    statistics: Optional[List[Dict]] = None,
+    statistics: list[dict] | None = None,
     pert_factor: int = 3,
 ) -> str:
     """Generate Chart.js script for burndown chart with forecasts and milestone/forecast/deadline lines.
@@ -30,6 +29,7 @@ def generate_burndown_chart(
 
     # Convert dates from YYYY-MM-DD to ISO week format (2026-W07)
     from datetime import datetime
+
     import pandas as pd
 
     iso_week_dates = []
@@ -231,13 +231,13 @@ def generate_burndown_chart(
 
 
 def generate_weekly_breakdown_chart(
-    weekly_data: List[Dict],
+    weekly_data: list[dict],
     show_points: bool = False,
-    statistics: Optional[List[Dict]] = None,
+    statistics: list[dict] | None = None,
     pert_factor: int = 3,
-    deadline: Optional[str] = None,
-    remaining_items: Optional[float] = None,
-    remaining_points: Optional[float] = None,
+    deadline: str | None = None,
+    remaining_items: float | None = None,
+    remaining_points: float | None = None,
 ) -> str:
     """
     Generate Chart.js script for weekly breakdown showing completed items/points with forecasts and targets.
@@ -274,8 +274,8 @@ def generate_weekly_breakdown_chart(
 
     if statistics and len(statistics) > 0:
         try:
-            from data.processing import generate_weekly_forecast
             from data.metrics.forecast_calculator import calculate_ewma_forecast
+            from data.processing import generate_weekly_forecast
 
             # Check if statistics has required columns for forecast
             has_required_data = all(
@@ -583,11 +583,11 @@ def generate_weekly_breakdown_chart(
 
 
 def generate_weekly_items_chart(
-    weekly_data: List[Dict],
-    statistics: Optional[List[Dict]] = None,
+    weekly_data: list[dict],
+    statistics: list[dict] | None = None,
     pert_factor: int = 3,
-    deadline: Optional[str] = None,
-    remaining_items: Optional[float] = None,
+    deadline: str | None = None,
+    remaining_items: float | None = None,
 ) -> str:
     """
     Generate Chart.js script for weekly items breakdown with forecasts.
@@ -609,7 +609,7 @@ def generate_weekly_items_chart(
         else:
             window = items_completed[i - 3 : i + 1]
             weights = [0.1, 0.2, 0.3, 0.4]
-            w_avg = sum(w * v for w, v in zip(weights, window))
+            w_avg = sum(w * v for w, v in zip(weights, window, strict=False))
             items_avg.append(round(w_avg, 1))
 
     # Generate forecasts
@@ -622,8 +622,8 @@ def generate_weekly_items_chart(
         )
         if has_required_data:
             try:
-                from data.processing import generate_weekly_forecast
                 from data.metrics.forecast_calculator import calculate_ewma_forecast
+                from data.processing import generate_weekly_forecast
 
                 forecast_data = generate_weekly_forecast(
                     statistics, pert_factor=pert_factor
@@ -795,11 +795,11 @@ def generate_weekly_items_chart(
 
 
 def generate_weekly_points_chart(
-    weekly_data: List[Dict],
-    statistics: Optional[List[Dict]] = None,
+    weekly_data: list[dict],
+    statistics: list[dict] | None = None,
     pert_factor: int = 3,
-    deadline: Optional[str] = None,
-    remaining_points: Optional[float] = None,
+    deadline: str | None = None,
+    remaining_points: float | None = None,
 ) -> str:
     """
     Generate Chart.js script for weekly points breakdown with forecasts.
@@ -821,7 +821,7 @@ def generate_weekly_points_chart(
         else:
             window = points_completed[i - 3 : i + 1]
             weights = [0.1, 0.2, 0.3, 0.4]
-            w_avg = sum(w * v for w, v in zip(weights, window))
+            w_avg = sum(w * v for w, v in zip(weights, window, strict=False))
             points_avg.append(round(w_avg, 1))
 
     # Generate forecasts
@@ -832,8 +832,8 @@ def generate_weekly_points_chart(
         has_points_data = "completed_points" in statistics[0] if statistics else False
         if has_points_data:
             try:
-                from data.processing import generate_weekly_forecast
                 from data.metrics.forecast_calculator import calculate_ewma_forecast
+                from data.processing import generate_weekly_forecast
 
                 forecast_data = generate_weekly_forecast(
                     statistics, pert_factor=pert_factor

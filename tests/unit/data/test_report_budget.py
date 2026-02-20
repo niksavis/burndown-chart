@@ -1,9 +1,10 @@
 """Tests for budget metrics in report generation."""
 
-import pytest
 import tempfile
 from datetime import datetime
 from pathlib import Path
+
+import pytest
 
 
 @pytest.fixture
@@ -26,11 +27,12 @@ def temp_db():
 
 def test_budget_metrics_calculation_with_data(temp_db):
     """Test budget metrics calculation when budget is configured."""
+    from unittest.mock import patch
+
+    from data.persistence.sqlite_backend import SQLiteBackend
     from data.report.helpers import (
         calculate_budget_metrics as _calculate_budget_metrics,
     )
-    from data.persistence.sqlite_backend import SQLiteBackend
-    from unittest.mock import patch
 
     backend = SQLiteBackend(str(temp_db))
 
@@ -92,10 +94,10 @@ def test_budget_metrics_calculation_with_data(temp_db):
 
 def test_budget_metrics_calculation_no_budget(temp_db):
     """Test budget metrics calculation when no budget is configured."""
+    from data.persistence.sqlite_backend import SQLiteBackend
     from data.report.helpers import (
         calculate_budget_metrics as _calculate_budget_metrics,
     )
-    from data.persistence.sqlite_backend import SQLiteBackend
 
     backend = SQLiteBackend(str(temp_db))
 

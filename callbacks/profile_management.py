@@ -6,21 +6,21 @@ Handles profile create/rename/duplicate/delete via single unified modal.
 
 import logging
 import time
-from typing import Optional
-from dash import callback, Output, Input, State, no_update, ctx, html
+
+from dash import Input, Output, State, callback, ctx, html, no_update
 
 from data.profile_manager import (
     create_profile,
-    switch_profile,
     delete_profile,
     duplicate_profile,
-    rename_profile,
-    list_profiles,
     get_active_profile,
+    list_profiles,
+    rename_profile,
+    switch_profile,
 )
 from ui.toast_notifications import (
-    create_success_toast,
     create_error_toast,
+    create_success_toast,
 )
 
 logger = logging.getLogger(__name__)
@@ -32,7 +32,7 @@ logger = logging.getLogger(__name__)
 
 
 def _validate_profile_name(
-    name: str, exclude_profile_id: Optional[str] = None
+    name: str, exclude_profile_id: str | None = None
 ) -> tuple:
     """Validate profile name with optional exclusion for rename.
 

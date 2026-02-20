@@ -4,9 +4,9 @@ Tests sprint_snapshot_calculator, sprint_burnup_chart, and sprint_cfd_chart
 for data accuracy, edge case handling, and chart rendering.
 """
 
+from datetime import UTC, datetime
+
 import pytest
-from datetime import datetime, timezone
-from typing import Dict, List
 
 from data.sprint_snapshot_calculator import (
     calculate_daily_sprint_snapshots,
@@ -17,7 +17,7 @@ from visualization.sprint_cfd_chart import create_sprint_cfd_chart
 
 
 @pytest.fixture
-def mock_sprint_data() -> Dict:
+def mock_sprint_data() -> dict:
     """Fixture for basic sprint snapshot data."""
     return {
         "name": "Sprint 23",
@@ -51,7 +51,7 @@ def mock_sprint_data() -> Dict:
 
 
 @pytest.fixture
-def mock_issues() -> List[Dict]:
+def mock_issues() -> list[dict]:
     """Fixture for issues with normalized points column."""
     return [
         {
@@ -88,7 +88,7 @@ def mock_issues() -> List[Dict]:
 
 
 @pytest.fixture
-def mock_status_changelog() -> List[Dict]:
+def mock_status_changelog() -> list[dict]:
     """Fixture for status transition changelog entries."""
     return [
         {
@@ -323,7 +323,7 @@ class TestGetStatusAtTimestamp:
 
         status = get_status_at_timestamp(
             issue,
-            datetime(2026, 2, 1, 9, 0, tzinfo=timezone.utc),
+            datetime(2026, 2, 1, 9, 0, tzinfo=UTC),
             proj1_changelog,
         )
         assert status == "To Do"
@@ -337,7 +337,7 @@ class TestGetStatusAtTimestamp:
 
         status = get_status_at_timestamp(
             issue,
-            datetime(2026, 2, 2, 15, 0, tzinfo=timezone.utc),
+            datetime(2026, 2, 2, 15, 0, tzinfo=UTC),
             proj1_changelog,
         )
         assert status == "Done"
@@ -351,7 +351,7 @@ class TestGetStatusAtTimestamp:
 
         status = get_status_at_timestamp(
             issue,
-            datetime(2026, 2, 2, 12, 0, tzinfo=timezone.utc),
+            datetime(2026, 2, 2, 12, 0, tzinfo=UTC),
             proj1_changelog,
         )
         # At Feb 2 12:00, PROJ-1 was "In Progress" (transitioned at 10:00, not done until 14:00)

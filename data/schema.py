@@ -4,7 +4,7 @@ Data schema for the Burndown application.
 Defines the structure of data used across the application.
 """
 
-from typing import Dict, Any, TypedDict, List, Literal
+from typing import Any, Literal, TypedDict
 
 #######################################################################
 # CSV SCHEMA
@@ -122,7 +122,7 @@ DEFAULT_JQL_PROFILES = [
 ]
 
 
-def validate_project_data_structure(data: Dict[str, Any]) -> bool:
+def validate_project_data_structure(data: dict[str, Any]) -> bool:
     """
     Validate project data structure against the schema.
 
@@ -166,7 +166,7 @@ def validate_project_data_structure(data: Dict[str, Any]) -> bool:
     return True
 
 
-def get_default_unified_data() -> Dict[str, Any]:
+def get_default_unified_data() -> dict[str, Any]:
     """
     Return default unified data structure.
 
@@ -194,7 +194,7 @@ def get_default_unified_data() -> Dict[str, Any]:
     }
 
 
-def validate_query_profile(profile: Dict[str, Any]) -> bool:
+def validate_query_profile(profile: dict[str, Any]) -> bool:
     """
     Validate JQL query profile structure.
 
@@ -243,7 +243,7 @@ class NavigationState(TypedDict):
     """
 
     active_tab: str  # Currently active tab ID (e.g., "tab-dashboard")
-    tab_history: List[str]  # Last N visited tabs for back navigation (max 10)
+    tab_history: list[str]  # Last N visited tabs for back navigation (max 10)
     previous_tab: str  # Tab user was on before current
     session_start_tab: str  # First tab loaded in current session
 
@@ -354,7 +354,7 @@ def get_default_layout_preferences() -> LayoutPreferences:
     }
 
 
-def validate_navigation_state(state: Dict[str, Any]) -> bool:
+def validate_navigation_state(state: dict[str, Any]) -> bool:
     """
     Validate navigation state structure.
 
@@ -387,7 +387,7 @@ def validate_navigation_state(state: Dict[str, Any]) -> bool:
     return True
 
 
-def validate_parameter_panel_state(state: Dict[str, Any]) -> bool:
+def validate_parameter_panel_state(state: dict[str, Any]) -> bool:
     """
     Validate parameter panel state structure.
 
@@ -406,7 +406,7 @@ def validate_parameter_panel_state(state: Dict[str, Any]) -> bool:
     return True
 
 
-def validate_mobile_navigation_state(state: Dict[str, Any]) -> bool:
+def validate_mobile_navigation_state(state: dict[str, Any]) -> bool:
     """
     Validate mobile navigation state structure.
 
@@ -429,7 +429,7 @@ def validate_mobile_navigation_state(state: Dict[str, Any]) -> bool:
     return True
 
 
-def validate_layout_preferences(prefs: Dict[str, Any]) -> bool:
+def validate_layout_preferences(prefs: dict[str, Any]) -> bool:
     """
     Validate layout preferences structure.
 
@@ -507,7 +507,7 @@ QUALITY_INSIGHT_SCHEMA = {
     "severity": str,  # Severity: "critical", "high", "medium", "low"
     "title": str,  # Short title (max 60 chars)
     "message": str,  # Detailed message (max 200 chars)
-    "metrics": Dict[str, float],  # Supporting metrics
+    "metrics": dict[str, float],  # Supporting metrics
     "actionable": bool,  # Whether insight has recommended action
     "action_text": str,  # Recommended action (if actionable)
     "created_at": str,  # When insight was generated (ISO format)
@@ -532,14 +532,14 @@ BUG_ANALYSIS_DATA_SCHEMA = {
     "enabled": bool,  # Feature toggle
     "bug_issues": list,  # List[BugIssue]
     "weekly_bug_statistics": list,  # List[WeeklyBugStatistics]
-    "bug_metrics_summary": Dict[str, Any],  # BugMetricsSummary
+    "bug_metrics_summary": dict[str, Any],  # BugMetricsSummary
     "quality_insights": list,  # List[QualityInsight]
-    "bug_forecast": Dict[str, Any],  # BugForecast
+    "bug_forecast": dict[str, Any],  # BugForecast
     "last_updated": str,  # ISO timestamp
 }
 
 
-def validate_bug_issue(issue: Dict[str, Any]) -> bool:
+def validate_bug_issue(issue: dict[str, Any]) -> bool:
     """Validate a bug issue matches schema.
 
     Args:
@@ -560,7 +560,7 @@ def validate_bug_issue(issue: Dict[str, Any]) -> bool:
     return True
 
 
-def validate_weekly_bug_statistics(stats: Dict[str, Any]) -> bool:
+def validate_weekly_bug_statistics(stats: dict[str, Any]) -> bool:
     """Validate weekly bug statistics matches schema.
 
     Args:
@@ -600,7 +600,7 @@ def validate_weekly_bug_statistics(stats: Dict[str, Any]) -> bool:
     return True
 
 
-def validate_bug_analysis_data(data: Dict[str, Any]) -> bool:
+def validate_bug_analysis_data(data: dict[str, Any]) -> bool:
     """Validate bug analysis data structure.
 
     Args:
@@ -635,7 +635,7 @@ def validate_bug_analysis_data(data: Dict[str, Any]) -> bool:
     return True
 
 
-def get_default_bug_analysis_data() -> Dict[str, Any]:
+def get_default_bug_analysis_data() -> dict[str, Any]:
     """Return default bug analysis data structure.
 
     Returns:

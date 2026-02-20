@@ -5,11 +5,11 @@ Provides dropdown for profile selection and management buttons.
 Follows the same pattern as query_selector.py for consistency.
 """
 
-from typing import Dict
-from dash import html, dcc
-import dash_bootstrap_components as dbc
 
-from data.profile_manager import list_profiles, get_active_profile
+import dash_bootstrap_components as dbc
+from dash import dcc, html
+
+from data.profile_manager import get_active_profile, list_profiles
 
 
 def create_profile_dropdown(id_suffix: str = "") -> dbc.Col:
@@ -143,7 +143,7 @@ def create_profile_selector_panel(id_suffix: str = "") -> html.Div:
     )
 
 
-def create_profile_tooltip_content(profile: Dict) -> str:
+def create_profile_tooltip_content(profile: dict) -> str:
     """Create tooltip content for profile hover.
 
     Args:

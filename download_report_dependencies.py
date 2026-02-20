@@ -12,12 +12,11 @@ Usage:
 import re
 import sys
 from pathlib import Path
-from typing import Dict, List
 
 import requests
 
 
-def parse_dependencies(deps_file: Path) -> Dict[str, str]:
+def parse_dependencies(deps_file: Path) -> dict[str, str]:
     """Parse report_dependencies.txt to extract library versions."""
     versions = {}
     if not deps_file.exists():
@@ -89,7 +88,7 @@ def main() -> int:
     fonts_dir = assets_dir / "webfonts"
     fonts_dir.mkdir(parents=True, exist_ok=True)
 
-    font_files: List[str] = [
+    font_files: list[str] = [
         "fa-solid-900.woff2",
         "fa-solid-900.ttf",
         "fa-regular-400.woff2",
@@ -118,18 +117,19 @@ def main() -> int:
 
     # Download Chart.js Annotation Plugin
     annotation_ver = versions.get("chartjs-plugin-annotation", "3.0.1")
-    print(f"📦 Downloading Chart.js Annotation Plugin {annotation_ver}...")
+    print(f"Downloading Chart.js Annotation Plugin {annotation_ver}...")
     annotation_url = f"https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@{annotation_ver}/dist/chartjs-plugin-annotation.min.js"
     annotation_path = assets_dir / "chartjs-plugin-annotation.min.js"
     if download_file(annotation_url, annotation_path):
-        print(f"  ✓ Downloaded: {annotation_path}")
+        print(f"  Downloaded: {annotation_path}")
     print()
 
-    print("✓ All dependencies downloaded successfully!")
-    print(f"📁 Files saved to: {assets_dir}")
+    print("All dependencies downloaded successfully!")
+    print(f"Files saved to: {assets_dir}")
     print()
     print(
-        "ℹ️  Font Awesome fonts are automatically embedded in CSS by report_assets_embedder.py"
+        "Note: Font Awesome fonts are automatically embedded in CSS by "
+        "report_assets_embedder.py"
     )
     return 0
 

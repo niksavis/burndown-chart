@@ -11,17 +11,16 @@ predictability for effective project management and forecasting.
 from __future__ import annotations
 
 import logging
-from typing import Any, Optional
+from typing import Any
 
+import dash_bootstrap_components as dbc
 import pandas as pd
 from dash import html
-import dash_bootstrap_components as dbc
 
 from ui.metric_cards import create_metric_card as create_professional_metric_card
+from ui.style_constants import COLOR_PALETTE
 from ui.styles import create_metric_card_header
 from ui.tooltip_utils import create_info_tooltip
-from ui.style_constants import COLOR_PALETTE
-
 
 logger = logging.getLogger(__name__)
 
@@ -37,7 +36,7 @@ def safe_divide(numerator, denominator, default=0):
 def create_recent_activity_section(
     statistics_df: pd.DataFrame,
     show_points: bool = True,
-    additional_context: Optional[dict[str, Any]] = None,
+    additional_context: dict[str, Any] | None = None,
 ) -> html.Div:
     """Create compact recent performance section showing completed items clearly.
 

@@ -3,12 +3,13 @@
 Provides display helpers and mock data for field mapping modal.
 """
 
-from typing import Dict, List, Any
-from dash import html
+from typing import Any
+
 import dash_bootstrap_components as dbc
+from dash import html
 
 
-def create_dora_flow_mappings_display(field_mappings: Dict) -> html.Div:
+def create_dora_flow_mappings_display(field_mappings: dict) -> html.Div:
     """Create a read-only display of DORA/Flow field mappings.
 
     Args:
@@ -103,7 +104,7 @@ def create_dora_flow_mappings_display(field_mappings: Dict) -> html.Div:
     )
 
 
-def get_mock_jira_fields() -> List[Dict[str, Any]]:
+def get_mock_jira_fields() -> list[dict[str, Any]]:
     """Get mock Jira fields for testing or when API fails.
 
     Includes standard Jira fields that work with Apache Kafka JIRA.
@@ -177,7 +178,7 @@ def get_mock_jira_fields() -> List[Dict[str, Any]]:
     ]
 
 
-def get_mock_mappings() -> Dict[str, Dict[str, str]]:
+def get_mock_mappings() -> dict[str, dict[str, str]]:
     """Get mock field mappings for Phase 4 stub.
 
     Phase 5+ will extract actual values from form.

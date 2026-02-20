@@ -10,7 +10,6 @@ display components for project forecasting and velocity tracking.
 #######################################################################
 # Standard library imports
 from datetime import datetime, timedelta
-from typing import Optional
 
 import dash_bootstrap_components as dbc
 
@@ -30,8 +29,7 @@ from ui.tooltip_utils import (
     create_info_tooltip,
     create_statistical_context_tooltip,
 )
-from ui.trend_components import TREND_ICONS, TREND_COLORS
-
+from ui.trend_components import TREND_COLORS, TREND_ICONS
 
 #######################################################################
 # PERT HELPER FUNCTIONS
@@ -42,10 +40,10 @@ def _create_header_with_icon(
     icon_class: str,
     title: str,
     color: str = "#20c997",
-    tooltip_id: Optional[str] = None,
-    tooltip_text: Optional[str] = None,
-    help_key: Optional[str] = None,
-    help_category: Optional[str] = None,
+    tooltip_id: str | None = None,
+    tooltip_text: str | None = None,
+    help_key: str | None = None,
+    help_category: str | None = None,
 ) -> html.H5:
     """Create a header with an icon for PERT info sections.
 

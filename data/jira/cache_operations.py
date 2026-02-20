@@ -5,8 +5,7 @@ This module handles loading and saving JIRA response data to database cache.
 """
 
 import logging
-from datetime import datetime, timedelta, timezone
-from typing import Dict, List, Tuple
+from datetime import UTC, datetime, timedelta
 
 from data.cache_manager import (
     generate_cache_key,
@@ -18,11 +17,11 @@ logger = logging.getLogger(__name__)
 
 
 def cache_jira_response(
-    data: List[Dict],
+    data: list[dict],
     jql_query: str = "",
     fields_requested: str = "",
     cache_file: str = "",
-    config: Dict | None = None,
+    config: dict | None = None,
     generate_config_hash_func=None,
 ) -> bool:
     """
@@ -63,7 +62,7 @@ def cache_jira_response(
                 )
 
                 # Set expiration (24 hours)
-                utc_now = datetime.now(timezone.utc)
+                utc_now = datetime.now(UTC)
                 expires_at = utc_now + timedelta(hours=24)
 
                 # Save issues to database using backend
@@ -134,11 +133,11 @@ def load_jira_cache(
     current_jql_query: str = "",
     current_fields: str = "",
     cache_file: str = "",
-    config: Dict | None = None,
+    config: dict | None = None,
     generate_config_hash_func=None,
     cache_version: str = "1.0",
     cache_expiration_hours: int = 24,
-) -> Tuple[bool, List[Dict]]:
+) -> tuple[bool, list[dict]]:
     """
     Load cached JIRA JSON response using new cache_manager.
 
@@ -203,7 +202,7 @@ def load_changelog_cache(
     cache_file: str = "",
     changelog_cache_version: str = "1.0",
     cache_expiration_hours: int = 24,
-) -> Tuple[bool, List[Dict]]:
+) -> tuple[bool, list[dict]]:
     """
     Load cached JIRA issues with changelog from DATABASE.
 
@@ -245,7 +244,7 @@ def load_changelog_cache(
         first_issue = issues[0]
         if "fetched_at" in first_issue:
             cache_timestamp = datetime.fromisoformat(first_issue["fetched_at"])
-            cache_age = datetime.now(timezone.utc) - cache_timestamp
+            cache_age = datetime.now(UTC) - cache_timestamp
 
             if cache_age > timedelta(hours=cache_expiration_hours):
                 logger.debug(

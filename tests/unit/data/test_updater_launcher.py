@@ -7,7 +7,7 @@ Verifies ZIP extraction and updater launch logic.
 import tempfile
 import zipfile
 from pathlib import Path
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -97,8 +97,9 @@ def test_launch_updater_extracts_zip():
 
 def test_launch_updater_passes_correct_arguments():
     """Test that launch_updater passes correct arguments to updater."""
-    from data.update_manager import launch_updater
     import os
+
+    from data.update_manager import launch_updater
 
     # Create a valid ZIP with a mock updater executable
     with tempfile.NamedTemporaryFile(delete=False, suffix=".zip") as f:

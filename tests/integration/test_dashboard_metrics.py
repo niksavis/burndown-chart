@@ -5,11 +5,12 @@ This module tests that metrics are consistent across different parts
 of the application's dashboard components.
 """
 
-import unittest
-import pandas as pd
 import sys
-from pathlib import Path
+import unittest
 from datetime import datetime, timedelta
+from pathlib import Path
+
+import pandas as pd
 
 # Add the project root to the Python path so we can import the application modules
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))

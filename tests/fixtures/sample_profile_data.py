@@ -4,13 +4,12 @@ Sample profile and query data fixtures for testing.
 Provides realistic test data that matches the profile/query data model.
 """
 
-from typing import Dict, List
 
 import pytest
 
 
 @pytest.fixture
-def sample_profile_data() -> Dict:
+def sample_profile_data() -> dict:
     """
     Generate realistic profile configuration data.
 
@@ -60,7 +59,7 @@ def sample_profile_data() -> Dict:
 
 
 @pytest.fixture
-def sample_query_data() -> Dict:
+def sample_query_data() -> dict:
     """
     Generate realistic query configuration data.
 
@@ -83,7 +82,7 @@ def sample_query_data() -> Dict:
 
 
 @pytest.fixture
-def sample_profiles_registry() -> Dict:
+def sample_profiles_registry() -> dict:
     """
     Generate realistic profiles registry data.
 
@@ -117,7 +116,7 @@ def sample_profiles_registry() -> Dict:
 
 
 @pytest.fixture
-def multiple_profile_configs() -> List[Dict]:
+def multiple_profile_configs() -> list[dict]:
     """
     Generate multiple profile configurations for testing multi-profile scenarios.
 
@@ -179,7 +178,7 @@ def multiple_profile_configs() -> List[Dict]:
 
 
 @pytest.fixture
-def multiple_query_configs() -> List[Dict]:
+def multiple_query_configs() -> list[dict]:
     """
     Generate multiple query configurations for testing multi-query scenarios.
 

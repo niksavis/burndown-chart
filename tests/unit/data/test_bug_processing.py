@@ -3,11 +3,13 @@
 Tests bug filtering, statistics calculation, metrics aggregation, and forecasting.
 """
 
-import pytest
 from datetime import datetime
+
+import pytest
+
 from data.bug_processing import (
-    filter_bug_issues,
     calculate_bug_metrics_summary,
+    filter_bug_issues,
     get_max_iso_week_for_year,
 )
 from tests.utils.mock_bug_data import generate_mock_bug_data

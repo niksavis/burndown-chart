@@ -15,7 +15,7 @@ This is a large callback (~980 lines) that coordinates:
 
 import threading
 
-from dash import Input, Output, State, ClientsideFunction, html, no_update
+from dash import ClientsideFunction, Input, Output, State, html, no_update
 from dash.exceptions import PreventUpdate
 
 from configuration import logger
@@ -92,6 +92,7 @@ def register(app):
             Tuple of 16 outputs for UI state management
         """
         from dash import ctx
+
         from data.task_progress import TaskProgress
 
         triggered_id = ctx.triggered_id if ctx.triggered else None
@@ -564,9 +565,9 @@ def _should_force_refresh(force_refresh):
 
 def _perform_data_wipe():
     """Perform complete data wipe for active query."""
-    from data.persistence.factory import get_backend
-    from data.database import get_db_connection
     from data.cache_manager import invalidate_all_cache
+    from data.database import get_db_connection
+    from data.persistence.factory import get_backend
     from data.profile_manager import get_active_query_workspace
 
     logger.info("=" * 60)

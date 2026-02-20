@@ -158,6 +158,8 @@ def register(app: Any) -> None:
         try:
             from data.jira.query_profiles import (
                 save_query_profile as save_profile_func,
+            )
+            from data.jira.query_profiles import (
                 set_default_query,
             )
 
@@ -440,7 +442,7 @@ def register(app: Any) -> None:
 
         except Exception as e:
             logger.error(f"[Settings] Error deleting query profile: {e}")
-            raise PreventUpdate
+            raise PreventUpdate from e
 
     @app.callback(
         [
@@ -525,7 +527,7 @@ def register(app: Any) -> None:
 
         except Exception as e:
             logger.error(f"[Settings] Error deleting query from selector: {e}")
-            raise PreventUpdate
+            raise PreventUpdate from e
 
     @app.callback(
         Output("jira-jql-query", "value"),
@@ -556,7 +558,7 @@ def register(app: Any) -> None:
 
         except Exception as e:
             logger.error(f"[Settings] Error loading profile JQL: {e}")
-            raise PreventUpdate
+            raise PreventUpdate from e
 
     @app.callback(
         Output("query-profile-status", "children"),
@@ -734,7 +736,7 @@ def register(app: Any) -> None:
 
         except Exception as e:
             logger.error(f"Error loading default query: {e}")
-            raise PreventUpdate
+            raise PreventUpdate from e
 
     # JQL Character Count Callback (Clientside for performance)
     app.clientside_callback(

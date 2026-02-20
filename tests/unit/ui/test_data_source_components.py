@@ -5,8 +5,9 @@ Tests the UI components for data source radio button order and persistence funct
 Covers the recently implemented UI changes for JIRA API prioritization.
 """
 
-import pytest
 from unittest.mock import patch
+
+import pytest
 
 from ui.cards.settings_helpers import (
     _get_default_data_source,

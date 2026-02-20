@@ -1,6 +1,5 @@
 """Main parameter panel controller component."""
 
-from typing import Optional
 
 import dash_bootstrap_components as dbc
 from dash import html
@@ -13,7 +12,7 @@ def create_parameter_panel(
     settings: dict,
     is_open: bool = False,
     id_suffix: str = "",
-    statistics: Optional[list] = None,
+    statistics: list | None = None,
 ) -> html.Div:
     """
     Create complete collapsible parameter panel combining collapsed bar and expanded section.

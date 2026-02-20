@@ -10,12 +10,12 @@ import json
 import os
 import tempfile
 from contextlib import contextmanager
-from typing import Any, Dict, Optional
+from typing import Any
 from unittest.mock import patch
 
 
 @contextmanager
-def isolated_app_settings(initial_settings: Optional[Dict[str, Any]] = None):
+def isolated_app_settings(initial_settings: dict[str, Any] | None = None):
     """
     Context manager that creates isolated app settings for testing.
 
@@ -67,7 +67,7 @@ def isolated_app_settings(initial_settings: Optional[Dict[str, Any]] = None):
 
 
 @contextmanager
-def isolated_project_data(initial_data: Optional[Dict[str, Any]] = None):
+def isolated_project_data(initial_data: dict[str, Any] | None = None):
     """
     Context manager that creates isolated project data for testing.
 
@@ -116,7 +116,7 @@ def isolated_project_data(initial_data: Optional[Dict[str, Any]] = None):
 
 
 @contextmanager
-def isolated_jira_cache(initial_cache: Optional[Dict[str, Any]] = None):
+def isolated_jira_cache(initial_cache: dict[str, Any] | None = None):
     """
     Context manager that creates isolated JIRA cache for testing.
 

@@ -8,9 +8,10 @@ by SQLite database migration. Tests are skipped as the functionality no longer e
 """
 
 import unittest
-import pytest
-from unittest.mock import patch
 from datetime import datetime
+from unittest.mock import patch
+
+import pytest
 
 
 @pytest.mark.skip(reason="CSV-to-JSON migration replaced by SQLite migration")
@@ -173,7 +174,10 @@ class TestDataMigration(unittest.TestCase):
 
     def test_migration_functions_available(self):
         """Test that migration functions are available in persistence module."""
-        from data.persistence import migrate_csv_to_json, _backup_legacy_files  # type: ignore[attr-defined]
+        from data.persistence import (  # type: ignore[attr-defined]
+            _backup_legacy_files,
+            migrate_csv_to_json,
+        )
 
         # These should be callable
         self.assertTrue(callable(migrate_csv_to_json))

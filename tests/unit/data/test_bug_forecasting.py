@@ -6,6 +6,7 @@ based on historical closure rates.
 """
 
 from datetime import datetime
+
 from data.bug_processing import forecast_bug_resolution
 
 

@@ -5,10 +5,11 @@ for all configuration sections.
 """
 
 import logging
-from typing import Dict
-from dash import callback, Output, Input, State, html, no_update
+
 import dash_bootstrap_components as dbc
-from ui.toast_notifications import create_success_toast, create_error_toast
+from dash import Input, Output, State, callback, html, no_update
+
+from ui.toast_notifications import create_error_toast, create_success_toast
 
 logger = logging.getLogger(__name__)
 
@@ -42,7 +43,7 @@ logger = logging.getLogger(__name__)
     ],
 )
 def auto_configure_from_metadata(
-    n_clicks: int, metadata: Dict, current_state: Dict, current_trigger: int
+    n_clicks: int, metadata: dict, current_state: dict, current_trigger: int
 ):
     """Auto-configure profile settings from JIRA metadata.
 
@@ -59,9 +60,10 @@ def auto_configure_from_metadata(
     Returns:
         Tuple of (updated_state, status_alert, banner_closed)
     """
+    import json
+
     from data.auto_configure import generate_smart_defaults
     from data.profile_manager import get_active_profile, get_profile_file_path
-    import json
 
     if not n_clicks:
         return (
@@ -112,7 +114,7 @@ def auto_configure_from_metadata(
         # Load current profile to get active query JQL
         jql_query = None
         try:
-            with open(profile_path, "r", encoding="utf-8") as f:
+            with open(profile_path, encoding="utf-8") as f:
                 profile_data = json.load(f)
 
                 # Get active query ID from profile
@@ -188,7 +190,7 @@ def auto_configure_from_metadata(
                 sample_jql = f"{jql_query} ORDER BY created DESC"
 
                 # Get JIRA config from profile
-                with open(profile_path, "r", encoding="utf-8") as f:
+                with open(profile_path, encoding="utf-8") as f:
                     profile_data = json.load(f)
                     jira_config = profile_data.get("jira_config", {})
 

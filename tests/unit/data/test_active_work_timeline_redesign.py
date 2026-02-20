@@ -3,10 +3,11 @@
 Tests Active Work timeline with health indicators.
 """
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
+
 from data.active_work_manager import (
-    get_active_work_data,
     calculate_epic_progress,
+    get_active_work_data,
 )
 
 
@@ -15,7 +16,7 @@ class TestGetActiveWorkData:
 
     def test_returns_correct_structure(self):
         """Test that function returns timeline and issue lists."""
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
 
         issues = [
             {

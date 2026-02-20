@@ -2,10 +2,9 @@
 
 # Standard library imports
 from datetime import datetime, timedelta
-from typing import Dict, Any, List
+from typing import Any
 
 # Third-party library imports
-
 # Application imports
 from configuration.settings import logger
 from data.persistence.adapters.unified_data import (
@@ -14,7 +13,7 @@ from data.persistence.adapters.unified_data import (
 )
 
 
-def load_metrics_history() -> Dict[str, List[Dict[str, Any]]]:
+def load_metrics_history() -> dict[str, list[dict[str, Any]]]:
     """
     Load historical DORA and Flow metrics data from unified project data.
 
@@ -57,7 +56,7 @@ def load_metrics_history() -> Dict[str, List[Dict[str, Any]]]:
 
 
 def save_metrics_snapshot(
-    metric_type: str, metrics_data: Dict[str, Any], time_period_days: int
+    metric_type: str, metrics_data: dict[str, Any], time_period_days: int
 ) -> bool:
     """
     Save a snapshot of current DORA or Flow metrics to historical data.
@@ -150,7 +149,7 @@ def save_metrics_snapshot(
 
 def get_metric_trend_data(
     metric_type: str, metric_name: str, time_period_days: int = 30
-) -> List[Dict[str, Any]]:
+) -> list[dict[str, Any]]:
     """
     Get historical trend data for a specific metric.
 

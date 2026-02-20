@@ -5,10 +5,11 @@ This test verifies that the baseline calculation correctly handles filtered
 time windows with scope creep, and ensures the cumulative chart cannot go negative.
 """
 
-import unittest
-import pandas as pd
 import sys
+import unittest
 from pathlib import Path
+
+import pandas as pd
 
 # Add the project root to the Python path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))

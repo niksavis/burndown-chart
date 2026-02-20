@@ -11,7 +11,6 @@ All functions follow a consistent pattern:
 3. Never raise exceptions to caller
 """
 
-from typing import Dict, List
 
 
 def _get_default_data_source() -> str:
@@ -113,7 +112,7 @@ def _get_default_jira_max_results() -> int:
         return 1000
 
 
-def _get_query_profile_options() -> List[Dict[str, str]]:
+def _get_query_profile_options() -> list[dict[str, str]]:
     """
     Get options for the query profile dropdown.
 

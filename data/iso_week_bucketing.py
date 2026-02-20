@@ -4,14 +4,14 @@ Provides utilities for grouping JIRA issues into ISO calendar weeks (Monday-Sund
 and calculating metrics per week. Used by DORA and Flow metrics dashboards.
 """
 
-from datetime import datetime, date, timedelta
-from typing import List, Dict, Any, Optional, Tuple
 import logging
+from datetime import date, datetime, timedelta
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
 
-def get_iso_week_bounds(dt: datetime) -> Tuple[date, date]:
+def get_iso_week_bounds(dt: datetime) -> tuple[date, date]:
     """Get Monday and Sunday dates for the ISO week containing the given date.
 
     Args:
@@ -45,8 +45,8 @@ def get_week_label(dt: datetime) -> str:
 
 
 def get_last_n_weeks(
-    n: int, end_date: Optional[datetime] = None
-) -> List[Tuple[str, date, date]]:
+    n: int, end_date: datetime | None = None
+) -> list[tuple[str, date, date]]:
     """Get list of last N ISO weeks (including current week).
 
     Args:
@@ -63,7 +63,7 @@ def get_last_n_weeks(
     weeks = []
     current_date = end_date
 
-    for i in range(n):
+    for _i in range(n):
         monday, sunday = get_iso_week_bounds(current_date)
         week_label = get_week_label(current_date)
 
@@ -78,7 +78,7 @@ def get_last_n_weeks(
 
 def get_weeks_from_date_range(
     start_date: datetime, end_date: datetime
-) -> List[Tuple[str, date, date]]:
+) -> list[tuple[str, date, date]]:
     """Get list of ISO weeks covering the date range from start to end.
 
     Args:
@@ -109,8 +109,8 @@ def get_weeks_from_date_range(
 
 
 def bucket_issues_by_week(
-    issues: List[Dict[str, Any]], date_field: str, n_weeks: int = 12
-) -> Dict[str, List[Dict[str, Any]]]:
+    issues: list[dict[str, Any]], date_field: str, n_weeks: int = 12
+) -> dict[str, list[dict[str, Any]]]:
     """Bucket JIRA issues into ISO weeks based on a date field.
 
     Args:
@@ -127,7 +127,7 @@ def bucket_issues_by_week(
     week_ranges = {label: (monday, sunday) for label, monday, sunday in weeks}
 
     # Initialize buckets
-    buckets: Dict[str, List[Dict[str, Any]]] = {
+    buckets: dict[str, list[dict[str, Any]]] = {
         label: [] for label in week_ranges.keys()
     }
 

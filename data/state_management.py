@@ -99,8 +99,8 @@ Architecture Guidelines:
 # IMPORTS
 #######################################################################
 import logging
-from typing import Dict, Any, List, Optional, Tuple
 from datetime import datetime
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -110,7 +110,7 @@ logger = logging.getLogger(__name__)
 #######################################################################
 
 
-def initialize_navigation_state(default_tab: str = "tab-dashboard") -> Dict[str, Any]:
+def initialize_navigation_state(default_tab: str = "tab-dashboard") -> dict[str, Any]:
     """
     Initialize navigation state with default values.
 
@@ -133,10 +133,10 @@ def initialize_navigation_state(default_tab: str = "tab-dashboard") -> Dict[str,
 
 
 def update_navigation_state(
-    current_state: Dict[str, Any],
+    current_state: dict[str, Any],
     new_tab: str,
     add_to_history: bool = True,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Update navigation state with new active tab.
 
@@ -179,7 +179,7 @@ def update_navigation_state(
     return new_state
 
 
-def validate_navigation_state(state: Dict[str, Any]) -> Tuple[bool, List[str]]:
+def validate_navigation_state(state: dict[str, Any]) -> tuple[bool, list[str]]:
     """
     Validate navigation state structure and values.
 
@@ -223,7 +223,7 @@ def validate_navigation_state(state: Dict[str, Any]) -> Tuple[bool, List[str]]:
 #######################################################################
 
 
-def initialize_ui_state() -> Dict[str, Any]:
+def initialize_ui_state() -> dict[str, Any]:
     """
     Initialize UI state with default values.
 
@@ -244,11 +244,11 @@ def initialize_ui_state() -> Dict[str, Any]:
 
 
 def update_ui_state(
-    current_state: Dict[str, Any],
-    loading: Optional[bool] = None,
-    error: Optional[str] = None,
-    last_action: Optional[str] = None,
-) -> Dict[str, Any]:
+    current_state: dict[str, Any],
+    loading: bool | None = None,
+    error: str | None = None,
+    last_action: str | None = None,
+) -> dict[str, Any]:
     """
     Update UI state with new values.
 
@@ -289,7 +289,7 @@ def update_ui_state(
 #######################################################################
 
 
-def initialize_mobile_nav_state() -> Dict[str, Any]:
+def initialize_mobile_nav_state() -> dict[str, Any]:
     """
     Initialize mobile navigation state with default values.
 
@@ -310,11 +310,11 @@ def initialize_mobile_nav_state() -> Dict[str, Any]:
 
 
 def update_mobile_nav_state(
-    current_state: Dict[str, Any],
-    drawer_open: Optional[bool] = None,
-    active_tab: Optional[str] = None,
-    swipe_enabled: Optional[bool] = None,
-) -> Dict[str, Any]:
+    current_state: dict[str, Any],
+    drawer_open: bool | None = None,
+    active_tab: str | None = None,
+    swipe_enabled: bool | None = None,
+) -> dict[str, Any]:
     """
     Update mobile navigation state.
 
@@ -355,7 +355,7 @@ def update_mobile_nav_state(
 #######################################################################
 
 
-def initialize_parameter_panel_state() -> Dict[str, Any]:
+def initialize_parameter_panel_state() -> dict[str, Any]:
     """
     Initialize parameter panel state with default values.
 
@@ -375,10 +375,10 @@ def initialize_parameter_panel_state() -> Dict[str, Any]:
 
 
 def update_parameter_panel_state(
-    current_state: Dict[str, Any],
-    is_open: Optional[bool] = None,
-    user_preference: Optional[bool] = None,
-) -> Dict[str, Any]:
+    current_state: dict[str, Any],
+    is_open: bool | None = None,
+    user_preference: bool | None = None,
+) -> dict[str, Any]:
     """
     Update parameter panel state.
 

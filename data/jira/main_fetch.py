@@ -11,8 +11,8 @@ This module handles the primary JIRA API fetch operation with:
 
 import logging
 import time
-from typing import Dict, List, Tuple
-from datetime import datetime, timezone
+from datetime import UTC, datetime
+
 import requests
 
 from data.jira.config import CACHE_EXPIRATION_HOURS
@@ -21,8 +21,8 @@ logger = logging.getLogger(__name__)
 
 
 def fetch_jira_issues(
-    config: Dict, max_results: int | None = None, force_refresh: bool = False
-) -> Tuple[bool, List[Dict]]:
+    config: dict, max_results: int | None = None, force_refresh: bool = False
+) -> tuple[bool, list[dict]]:
     """
     Execute JQL query and return ALL issues using pagination with incremental fetch optimization.
 
@@ -58,16 +58,16 @@ def fetch_jira_issues(
     Returns:
         Tuple of (success: bool, issues: List[Dict])
     """
-    from data.jira.rate_limiter import get_rate_limiter, retry_with_backoff
-    from utils.datetime_utils import parse_iso_datetime
+    from data.jira.cache_operations import cache_jira_response
+    from data.jira.delta_fetch import try_delta_fetch
     from data.jira.field_utils import extract_jira_field_id
     from data.jira.issue_counter import check_jira_issue_count
+    from data.jira.rate_limiter import get_rate_limiter, retry_with_backoff
     from data.jira.two_phase_fetch import (
-        should_use_two_phase_fetch,
         fetch_jira_issues_two_phase,
+        should_use_two_phase_fetch,
     )
-    from data.jira.delta_fetch import try_delta_fetch
-    from data.jira.cache_operations import cache_jira_response
+    from utils.datetime_utils import parse_iso_datetime
 
     start_time = time.time()
 
@@ -112,9 +112,9 @@ def fetch_jira_issues(
             # CRITICAL: Strip =Value filter syntax (e.g., "customfield_11309=PROD" -> "customfield_11309")
             # The =Value part is our internal filter syntax, JIRA API doesn't understand it
             field_mappings = config.get("field_mappings", {})
-            for category, mappings in field_mappings.items():
+            for _category, mappings in field_mappings.items():
                 if isinstance(mappings, dict):
-                    for field_name, field_id in mappings.items():
+                    for _field_name, field_id in mappings.items():
                         # Extract clean field ID (strips =Value filter, skips changelog syntax)
                         clean_field_id = extract_jira_field_id(field_id)
                         if clean_field_id and clean_field_id not in base_fields:
@@ -191,11 +191,11 @@ def fetch_jira_issues(
                             )
                             if cache_timestamp and cache_timestamp.tzinfo is None:
                                 cache_timestamp = cache_timestamp.replace(
-                                    tzinfo=timezone.utc
+                                    tzinfo=UTC
                                 )
 
                         if cache_timestamp:
-                            now_utc = datetime.now(timezone.utc)
+                            now_utc = datetime.now(UTC)
                             age_hours = (
                                 now_utc - cache_timestamp
                             ).total_seconds() / 3600
@@ -251,7 +251,7 @@ def fetch_jira_issues(
                     if last_fetch_key and last_delta_key:
                         backend.set_app_state(
                             last_fetch_key,
-                            datetime.now(timezone.utc).isoformat(),
+                            datetime.now(UTC).isoformat(),
                         )
                         backend.set_app_state(
                             last_delta_key,
@@ -298,7 +298,7 @@ def fetch_jira_issues(
                             if last_fetch_key and last_delta_key:
                                 backend.set_app_state(
                                     last_fetch_key,
-                                    datetime.now(timezone.utc).isoformat(),
+                                    datetime.now(UTC).isoformat(),
                                 )
                                 backend.set_app_state(
                                     last_delta_key,
@@ -362,7 +362,7 @@ def fetch_jira_issues(
                         if last_fetch_key and last_delta_key:
                             backend.set_app_state(
                                 last_fetch_key,
-                                datetime.now(timezone.utc).isoformat(),
+                                datetime.now(UTC).isoformat(),
                             )
                             backend.set_app_state(
                                 last_delta_key,
@@ -424,7 +424,7 @@ def fetch_jira_issues(
             if active_profile_id and active_query_id:
                 backend.set_app_state(
                     f"last_fetch_time:{active_profile_id}:{active_query_id}",
-                    datetime.now(timezone.utc).isoformat(),
+                    datetime.now(UTC).isoformat(),
                 )
                 backend.set_app_state(
                     f"last_delta_changed_count:{active_profile_id}:{active_query_id}",
@@ -623,7 +623,7 @@ def fetch_jira_issues(
             if active_profile_id and active_query_id:
                 backend.set_app_state(
                     f"last_fetch_time:{active_profile_id}:{active_query_id}",
-                    datetime.now(timezone.utc).isoformat(),
+                    datetime.now(UTC).isoformat(),
                 )
                 backend.set_app_state(
                     f"last_delta_changed_count:{active_profile_id}:{active_query_id}",

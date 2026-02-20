@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import shutil
 import time
+from collections.abc import Callable
 from pathlib import Path
-from typing import Callable, Optional
 
 StatusFn = Callable[[str], None]
 
@@ -16,7 +16,7 @@ SUPPORT_FILE_NAMES = [
 ]
 
 
-def find_file_in_extract(extract_dir: Path, filename: str) -> Optional[Path]:
+def find_file_in_extract(extract_dir: Path, filename: str) -> Path | None:
     """Find a file in an extracted update directory (case-insensitive).
 
     Args:

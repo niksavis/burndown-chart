@@ -5,13 +5,14 @@ Tests the comprehensive design token system added in Phase 2.
 """
 
 import pytest
+
 from ui.style_constants import (
     DESIGN_TOKENS,
-    get_color,
-    get_spacing,
-    get_card_style,
     get_button_style,
+    get_card_style,
+    get_color,
     get_responsive_cols,
+    get_spacing,
 )
 
 
@@ -172,7 +173,7 @@ class TestBackwardCompatibility:
 
     def test_existing_color_constants(self):
         """Verify existing color constants still work."""
-        from ui.style_constants import PRIMARY_COLORS, SEMANTIC_COLORS, NEUTRAL_COLORS
+        from ui.style_constants import NEUTRAL_COLORS, PRIMARY_COLORS, SEMANTIC_COLORS
 
         assert "primary" in PRIMARY_COLORS
         assert "success" in SEMANTIC_COLORS
@@ -189,10 +190,10 @@ class TestBackwardCompatibility:
     def test_existing_helper_functions(self):
         """Verify existing helper functions still work."""
         from ui.style_constants import (
-            hex_to_rgb,
-            rgb_to_rgba,
-            lighten_color,
             darken_color,
+            hex_to_rgb,
+            lighten_color,
+            rgb_to_rgba,
         )
 
         # Test hex_to_rgb

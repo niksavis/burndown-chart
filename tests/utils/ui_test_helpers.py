@@ -51,12 +51,12 @@ assert formatted_value == "8.7"
 """
 
 import re
-from typing import Any, Optional, List
+from typing import Any
 
 
 def extract_numeric_value_from_component(
-    component: Any, property_path: Optional[List[str]] = None
-) -> Optional[float]:
+    component: Any, property_path: list[str] | None = None
+) -> float | None:
     """
     Extract a numeric value from a UI component.
 
@@ -115,8 +115,8 @@ def extract_numeric_value_from_component(
 
 
 def extract_formatted_value_from_component(
-    component: Any, property_path: Optional[List[str]] = None
-) -> Optional[str]:
+    component: Any, property_path: list[str] | None = None
+) -> str | None:
     """
     Extract a formatted string value from a UI component.
 
@@ -170,7 +170,7 @@ def extract_formatted_value_from_component(
 
 
 def validate_component_structure(
-    component: Any, expected_attrs: List[str], min_children: Optional[int] = None
+    component: Any, expected_attrs: list[str], min_children: int | None = None
 ) -> bool:
     """
     Validate that a component has the expected attributes and minimum number of children.
@@ -194,7 +194,7 @@ def validate_component_structure(
     # If min_children is specified and the component has a children attribute,
     # check that it has at least min_children
     if min_children is not None and hasattr(component, "children"):
-        children = getattr(component, "children")
+        children = component.children
         if children is None:
             return False
         if not hasattr(children, "__len__"):

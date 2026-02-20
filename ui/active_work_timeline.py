@@ -10,9 +10,10 @@ Focuses on items being actively worked on (WIP + recent completions).
 Follows Sprint Tracker pattern for consistent layout and behavior.
 """
 
-from dash import html
+
 import dash_bootstrap_components as dbc
-from typing import Dict, List
+from dash import html
+
 from ui.jira_link_helper import create_jira_issue_link
 
 
@@ -29,7 +30,7 @@ def create_active_work_timeline_tab() -> html.Div:
 
 
 def create_timeline_visualization(
-    timeline: List[Dict], show_points: bool = False
+    timeline: list[dict], show_points: bool = False
 ) -> html.Div:
     """Create timeline visualization showing epic progress bars.
 
@@ -130,7 +131,7 @@ def create_timeline_visualization(
 
 
 def create_issue_list_section(
-    title: str, issues: List[Dict], show_points: bool = False
+    title: str, issues: list[dict], show_points: bool = False
 ) -> html.Div:
     """Create issue list section with health indicators.
 
@@ -172,7 +173,7 @@ def create_issue_list_section(
     )
 
 
-def create_issue_card(issue: Dict, show_points: bool = False) -> html.Div | dbc.Card:
+def create_issue_card(issue: dict, show_points: bool = False) -> html.Div | dbc.Card:
     """Create card for single issue with health indicators.
 
     Health badges:

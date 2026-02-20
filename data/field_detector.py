@@ -8,9 +8,9 @@ Analyzes actual issue data to detect which custom fields are used for:
 """
 
 import logging
-from typing import Dict, List, Any, Optional
-from collections import Counter
 import re
+from collections import Counter
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -67,8 +67,8 @@ def _is_java_class_value(field_value: Any) -> bool:
 
 
 def _detect_code_commit_date_field(
-    issues: List[Dict], field_defs: Dict[str, Dict]
-) -> Optional[str]:
+    issues: list[dict], field_defs: dict[str, dict]
+) -> str | None:
     """Detect code commit date field for DORA Lead Time.
 
     Heuristics:
@@ -133,8 +133,8 @@ def _detect_code_commit_date_field(
 
 
 def _detect_completed_date_field(
-    issues: List[Dict], field_defs: Dict[str, Dict]
-) -> Optional[str]:
+    issues: list[dict], field_defs: dict[str, dict]
+) -> str | None:
     """Detect completed date field for Flow metrics (alternative to resolutiondate).
 
     Heuristics:
@@ -199,8 +199,8 @@ def _detect_completed_date_field(
 
 
 def detect_fields_from_issues(
-    issues: List[Dict[str, Any]], metadata: Dict[str, Any]
-) -> Dict[str, str]:
+    issues: list[dict[str, Any]], metadata: dict[str, Any]
+) -> dict[str, str]:
     """Detect custom field mappings by analyzing actual issue data.
 
     Strategy:
@@ -242,9 +242,10 @@ def detect_fields_from_issues(
 
     # Sample issues from common types (Story, Task, Bug, Epic, Feature, etc.)
     common_types = _get_common_issue_types(issues)
-    logger.info(
-        f"[FieldDetector] Common issue types: {', '.join(f'{k}={v}' for k, v in common_types.most_common(5))}"
+    common_type_summary = ", ".join(
+        f"{issue_type}={count}" for issue_type, count in common_types.most_common(5)
     )
+    logger.info(f"[FieldDetector] Common issue types: {common_type_summary}")
 
     # Focus on top issue types for analysis
     target_types = set(
@@ -261,7 +262,8 @@ def detect_fields_from_issues(
     ]
 
     logger.info(
-        f"[FieldDetector] Analyzing {len(sampled_issues)} issues from common types: {target_types}"
+        f"[FieldDetector] Analyzing {len(sampled_issues)} issues "
+        f"from common types: {target_types}"
     )
 
     # Detect different field types with smart fallbacks
@@ -332,13 +334,15 @@ def detect_fields_from_issues(
     incident_fields = _detect_incident_related_fields(sampled_issues, field_defs)
     if incident_fields["incident_detected_at"]:
         detections["incident_detected_at"] = incident_fields["incident_detected_at"]
+        detected_at_field = incident_fields["incident_detected_at"]
         logger.info(
-            f"[FieldDetector] [OK] Incident detection field: {incident_fields['incident_detected_at']}"
+            f"[FieldDetector] [OK] Incident detection field: {detected_at_field}"
         )
     if incident_fields["incident_resolved_at"]:
         detections["incident_resolved_at"] = incident_fields["incident_resolved_at"]
+        resolved_at_field = incident_fields["incident_resolved_at"]
         logger.info(
-            f"[FieldDetector] [OK] Incident resolution field: {incident_fields['incident_resolved_at']}"
+            f"[FieldDetector] [OK] Incident resolution field: {resolved_at_field}"
         )
 
     # 7. Detect priority/severity field
@@ -390,7 +394,7 @@ def detect_fields_from_issues(
     return detections
 
 
-def _get_common_issue_types(issues: List[Dict]) -> Counter:
+def _get_common_issue_types(issues: list[dict]) -> Counter:
     """Count issue types in the sample to identify most common."""
     type_counter = Counter()
     for issue in issues:
@@ -400,9 +404,7 @@ def _get_common_issue_types(issues: List[Dict]) -> Counter:
     return type_counter
 
 
-def _detect_points_field(
-    issues: List[Dict], field_defs: Dict[str, Dict]
-) -> Optional[str]:
+def _detect_points_field(issues: list[dict], field_defs: dict[str, dict]) -> str | None:
     """Detect story points field using fuzzy matching and data analysis.
 
     Heuristics:
@@ -478,7 +480,8 @@ def _detect_points_field(
 
     # DEBUG: Log what custom fields were found
     logger.info(
-        f"[FieldDetector] DEBUG: Found {len(custom_fields_seen)} unique custom fields in {len(issues)} issues"
+        f"[FieldDetector] DEBUG: Found {len(custom_fields_seen)} "
+        f"unique custom fields in {len(issues)} issues"
     )
     if custom_fields_seen:
         sample_fields = list(custom_fields_seen)[:10]
@@ -487,7 +490,8 @@ def _detect_points_field(
     # Find best candidate
     if not candidates:
         logger.warning(
-            f"[FieldDetector] No story points candidates found. Total custom fields scanned: {len(custom_fields_seen)}"
+            "[FieldDetector] No story points candidates found. "
+            f"Total custom fields scanned: {len(custom_fields_seen)}"
         )
         return None
 
@@ -501,7 +505,14 @@ def _detect_points_field(
     best_candidate = max(candidates.items(), key=lambda x: x[1]["score"])
 
     logger.info(
-        f"[FieldDetector] Points field candidates: {[(k, v['score'], v['name']) for k, v in sorted(candidates.items(), key=lambda x: x[1]['score'], reverse=True)[:3]]}"
+        f"[FieldDetector] Points field candidates: {
+            [
+                (k, v['score'], v['name'])
+                for k, v in sorted(
+                    candidates.items(), key=lambda x: x[1]['score'], reverse=True
+                )[:3]
+            ]
+        }"
     )
 
     # Return if score is confident enough
@@ -511,9 +522,7 @@ def _detect_points_field(
     return None
 
 
-def _detect_sprint_field(
-    issues: List[Dict], field_defs: Dict[str, Dict]
-) -> Optional[str]:
+def _detect_sprint_field(issues: list[dict], field_defs: dict[str, dict]) -> str | None:
     """Detect sprint field.
 
     Heuristics:
@@ -549,15 +558,17 @@ def _detect_sprint_field(
                     candidates[field_id]["score"] += 10
                     candidates[field_id]["populated_count"] += 1
 
-    # Return sprint field even with low population (important for test instances)
-    # Many JIRA instances (especially test/demo instances) have sprint field but few sprints
+    # Return sprint field even with low population.
+    # Many JIRA instances (especially test/demo instances) have sprint field
+    # but few sprints.
     if candidates:
         for field_id, stats in candidates.items():
             if stats["total_count"] > 0:
                 population_rate = stats["populated_count"] / stats["total_count"]
                 if population_rate < 0.10:  # Less than 10% populated
                     logger.info(
-                        f"[FieldDetector] Rejecting sprint field {field_id} - only {population_rate:.1%} populated"
+                        f"[FieldDetector] Rejecting sprint field {field_id} - "
+                        f"only {population_rate:.1%} populated"
                     )
                     candidates[field_id]["score"] = 0  # Reject
 
@@ -567,7 +578,8 @@ def _detect_sprint_field(
             best = max(valid_candidates.items(), key=lambda x: x[1]["score"])
             logger.info(
                 f"[FieldDetector] [OK] Sprint field detected: {best[0]} "
-                f"({best[1]['populated_count']}/{best[1]['total_count']} issues have sprint data)"
+                f"({best[1]['populated_count']}/{best[1]['total_count']} "
+                "issues have sprint data)"
             )
             return best[0]
 
@@ -578,9 +590,7 @@ def _detect_sprint_field(
     return None
 
 
-def _detect_parent_field(
-    issues: List[Dict], field_defs: Dict[str, Dict]
-) -> Optional[str]:
+def _detect_parent_field(issues: list[dict], field_defs: dict[str, dict]) -> str | None:
     """Detect parent/Epic Link field for epic hierarchy.
 
     Heuristics:
@@ -611,7 +621,8 @@ def _detect_parent_field(
         if population_rate >= 0.05:  # At least 5% populated
             logger.info(
                 f"[FieldDetector] [OK] Standard parent field detected "
-                f"({parent_populated_count}/{parent_total_count} issues have parent data)"
+                f"({parent_populated_count}/{parent_total_count} "
+                "issues have parent data)"
             )
             return "parent"
 
@@ -661,7 +672,8 @@ def _detect_parent_field(
                 population_rate = stats["populated_count"] / stats["total_count"]
                 if population_rate < 0.05:  # Less than 5% populated
                     logger.info(
-                        f"[FieldDetector] Rejecting parent field {field_id} - only {population_rate:.1%} populated"
+                        f"[FieldDetector] Rejecting parent field {field_id} - "
+                        f"only {population_rate:.1%} populated"
                     )
                     candidates[field_id]["score"] = 0  # Reject
 
@@ -671,7 +683,8 @@ def _detect_parent_field(
             best = max(valid_candidates.items(), key=lambda x: x[1]["score"])
             logger.info(
                 f"[FieldDetector] [OK] Parent/Epic Link field detected: {best[0]} "
-                f"({best[1]['populated_count']}/{best[1]['total_count']} issues have parent data)"
+                f"({best[1]['populated_count']}/{best[1]['total_count']} "
+                "issues have parent data)"
             )
             return best[0]
 
@@ -683,8 +696,8 @@ def _detect_parent_field(
 
 
 def _detect_deployment_date_field(
-    issues: List[Dict], field_defs: Dict[str, Dict]
-) -> Optional[str]:
+    issues: list[dict], field_defs: dict[str, dict]
+) -> str | None:
     """Detect deployment date field for DORA metrics.
 
     Heuristics:
@@ -754,8 +767,8 @@ def _detect_deployment_date_field(
 
 
 def _detect_environment_field(
-    issues: List[Dict], field_defs: Dict[str, Dict]
-) -> Optional[str]:
+    issues: list[dict], field_defs: dict[str, dict]
+) -> str | None:
     """Detect environment field for DORA metrics.
 
     Heuristics:
@@ -840,8 +853,8 @@ def _detect_environment_field(
 
 
 def _detect_incident_related_fields(
-    issues: List[Dict], field_defs: Dict[str, Dict]
-) -> Dict[str, Optional[str]]:
+    issues: list[dict], field_defs: dict[str, dict]
+) -> dict[str, str | None]:
     """Detect incident-related fields for DORA MTTR metric.
 
     Returns:
@@ -862,7 +875,7 @@ def _detect_incident_related_fields(
 
     for issue in issues:
         fields_data = issue.get("fields", {})
-        for field_id, field_value in fields_data.items():
+        for field_id, _field_value in fields_data.items():
             if not field_id.startswith("customfield_"):
                 continue
 
@@ -893,8 +906,8 @@ def _detect_incident_related_fields(
 
 
 def _detect_priority_severity_field(
-    issues: List[Dict], field_defs: Dict[str, Dict]
-) -> Optional[str]:
+    issues: list[dict], field_defs: dict[str, dict]
+) -> str | None:
     """Detect priority/severity field for incident classification.
 
     Heuristics:
@@ -963,8 +976,8 @@ def _detect_priority_severity_field(
 
 
 def _detect_change_failure_field(
-    issues: List[Dict], field_defs: Dict[str, Dict]
-) -> Optional[str]:
+    issues: list[dict], field_defs: dict[str, dict]
+) -> str | None:
     """Detect change failure field (deployment success/failure indicator).
 
     Heuristics:
@@ -1036,8 +1049,8 @@ def _detect_change_failure_field(
 
 
 def _detect_deployment_successful_field(
-    issues: List[Dict], field_defs: Dict[str, Dict]
-) -> Optional[str]:
+    issues: list[dict], field_defs: dict[str, dict]
+) -> str | None:
     """Detect deployment successful checkbox field for DORA Change Failure Rate.
 
     This is a checkbox (boolean) field variant of change_failure. Typical usage:
@@ -1092,7 +1105,8 @@ def _detect_deployment_successful_field(
 
             # Exclude "failure" fields (those belong to change_failure field)
             if any(kw in field_name for kw in ["fail", "failure", "rollback"]):
-                score -= 100  # Disqualify - this is change_failure, not deployment_successful
+                score -= 100
+                # Disqualify: this is change_failure, not deployment_successful.
 
             # Type should be string (checkbox) or option
             # CRITICAL: JIRA checkboxes appear as type="string" in schema, not "boolean"
@@ -1127,7 +1141,8 @@ def _detect_deployment_successful_field(
         if best[1]["score"] >= DETECTION_THRESHOLDS["deployment_successful"]:
             logger.info(
                 f"[FieldDetector] Deployment successful field candidate: {best[0]} "
-                f"('{best[1]['name']}', type={best[1]['type']}, score={best[1]['score']})"
+                f"('{best[1]['name']}', type={best[1]['type']}, "
+                f"score={best[1]['score']})"
             )
             return best[0]
 
@@ -1135,8 +1150,8 @@ def _detect_deployment_successful_field(
 
 
 def _detect_effort_category_field(
-    issues: List[Dict], field_defs: Dict[str, Dict]
-) -> Optional[str]:
+    issues: list[dict], field_defs: dict[str, dict]
+) -> str | None:
     """Detect effort category field for Flow Distribution.
 
     Heuristics:

@@ -5,11 +5,12 @@ Tests JQL query modification to include parent issue types.
 """
 
 import pytest
+
 from data.jira.query_builder import (
+    _build_issuetype_clause,
+    _parse_issue_types,
     build_jql_with_parent_types,
     extract_parent_types_from_config,
-    _parse_issue_types,
-    _build_issuetype_clause,
 )
 
 

@@ -14,7 +14,6 @@ import os
 
 # Third-party library imports
 # None
-
 # Application imports
 from configuration.settings import logger
 

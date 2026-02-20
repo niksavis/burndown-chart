@@ -6,10 +6,9 @@ import json
 import logging
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, Optional
 
-from data.persistence import ValidationError
 from data.database import get_db_connection
+from data.persistence import ValidationError
 
 logger = logging.getLogger(__name__)
 
@@ -19,7 +18,7 @@ class TasksMixin:
 
     db_path: Path  # Set by composition class (SQLiteBackend)
 
-    def get_task_progress(self, task_name: str) -> Optional[Dict]:
+    def get_task_progress(self, task_name: str) -> dict | None:
         """Get task progress state."""
         try:
             with get_db_connection(self.db_path) as conn:
@@ -96,7 +95,7 @@ class TasksMixin:
             )
             raise
 
-    def get_task_state(self) -> Optional[Dict]:
+    def get_task_state(self) -> dict | None:
         """
         Get full task state (supports complex nested structures).
         Retrieves the first (and only) task progress row and returns full state.
@@ -120,7 +119,7 @@ class TasksMixin:
             )
             return None
 
-    def save_task_state(self, state: Dict) -> None:
+    def save_task_state(self, state: dict) -> None:
         """
         Save full task state (supports complex nested structures).
         Stores state as JSON in message field.

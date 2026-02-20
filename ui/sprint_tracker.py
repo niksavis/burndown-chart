@@ -9,9 +9,9 @@ This module provides UI components for the Sprint Tracker tab including:
 Follows Bug Analysis pattern for conditional tab display.
 """
 
-from dash import html, dcc
+
 import dash_bootstrap_components as dbc
-from typing import Dict, List, Optional
+from dash import dcc, html
 
 
 def create_sprint_tracker_tab() -> html.Div:
@@ -27,7 +27,7 @@ def create_sprint_tracker_tab() -> html.Div:
 
 
 def create_sprint_summary_cards(
-    sprint_name: str, summary_data: Dict, show_points: bool = False
+    sprint_name: str, summary_data: dict, show_points: bool = False
 ) -> html.Div:
     """Create sprint summary metric cards.
 
@@ -284,9 +284,9 @@ def create_sprint_summary_cards(
 
 
 def create_sprint_selector(
-    available_sprints: List[str],
-    selected_sprint: Optional[str] = None,
-    sprint_metadata: Optional[Dict[str, Dict]] = None,
+    available_sprints: list[str],
+    selected_sprint: str | None = None,
+    sprint_metadata: dict[str, dict] | None = None,
 ) -> html.Div:
     """Create sprint selection dropdown with status indicators.
 
@@ -360,9 +360,9 @@ def create_sprint_filters() -> html.Div:
 
 
 def create_combined_sprint_controls(
-    available_sprints: List[str],
-    selected_sprint: Optional[str] = None,
-    sprint_metadata: Optional[Dict[str, Dict]] = None,
+    available_sprints: list[str],
+    selected_sprint: str | None = None,
+    sprint_metadata: dict[str, dict] | None = None,
 ) -> html.Div:
     """Create combined sprint selector and issue type filter in one styled container.
 

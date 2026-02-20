@@ -4,7 +4,8 @@ Tests epic aggregation, activity filtering, and progress calculation
 for Active Work Timeline feature (burndown-chart-s530).
 """
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
+
 from data.active_work_manager import (
     _add_health_indicators,
     _build_epic_timeline,
@@ -19,7 +20,7 @@ class TestGetActiveWorkData:
 
     def test_returns_timeline_and_issue_lists(self):
         """Test that function returns correct structure."""
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
 
         issues = [
             {
@@ -63,7 +64,7 @@ class TestFilterActiveIssues:
 
     def test_filter_issues_within_data_points_window(self):
         """Test filtering by data points window."""
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         recent = now - timedelta(days=7)
         old = now - timedelta(days=60)
 
@@ -93,7 +94,7 @@ class TestFilterActiveIssues:
 
     def test_filter_completed_within_2_weeks(self):
         """Test that completed issues from last 2 weeks are included."""
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         recent_complete = now - timedelta(days=7)
         old_complete = now - timedelta(days=30)
 
@@ -213,7 +214,7 @@ class TestHealthIndicators:
 
     def test_add_health_indicators_blocked_aging_wip(self):
         """Test blocked, aging, and WIP indicators from changelog data."""
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
 
         changelog_entries = {
             "PROJ-1": [{"change_date": (now - timedelta(days=6)).isoformat()}],
@@ -276,7 +277,7 @@ class TestHealthIndicators:
 
     def test_add_health_indicators_pre_start_not_idle_or_aging(self):
         """Test pre-start statuses do not count as idle or aging."""
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
 
         changelog_entries = {
             "PROJ-5": [{"change_date": (now - timedelta(days=6)).isoformat()}]

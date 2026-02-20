@@ -24,7 +24,7 @@ import json
 import os
 import uuid
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from configuration import logger
 from data.schema import validate_query_profile
@@ -39,7 +39,7 @@ QUERY_PROFILES_FILE = "jira_query_profiles.json"
 #######################################################################
 
 
-def _load_profiles_from_disk() -> List[Dict[str, Any]]:
+def _load_profiles_from_disk() -> list[dict[str, Any]]:
     """
     Load query profiles from disk.
 
@@ -50,15 +50,15 @@ def _load_profiles_from_disk() -> List[Dict[str, Any]]:
         return []
 
     try:
-        with open(QUERY_PROFILES_FILE, "r", encoding="utf-8") as f:
+        with open(QUERY_PROFILES_FILE, encoding="utf-8") as f:
             profiles = json.load(f)
             return profiles if isinstance(profiles, list) else []
-    except (json.JSONDecodeError, IOError) as e:
+    except (OSError, json.JSONDecodeError) as e:
         logger.error(f"Error loading query profiles: {e}")
         return []
 
 
-def _save_profiles_to_disk(profiles: List[Dict[str, Any]]) -> bool:
+def _save_profiles_to_disk(profiles: list[dict[str, Any]]) -> bool:
     """
     Save query profiles to disk.
 
@@ -72,12 +72,12 @@ def _save_profiles_to_disk(profiles: List[Dict[str, Any]]) -> bool:
         with open(QUERY_PROFILES_FILE, "w", encoding="utf-8") as f:
             json.dump(profiles, f, indent=2, ensure_ascii=False)
         return True
-    except IOError as e:
+    except OSError as e:
         logger.error(f"Error saving query profiles: {e}")
         return False
 
 
-def load_query_profiles() -> List[Dict[str, Any]]:
+def load_query_profiles() -> list[dict[str, Any]]:
     """
     Load all query profiles from disk.
 
@@ -88,7 +88,7 @@ def load_query_profiles() -> List[Dict[str, Any]]:
     return _load_profiles_from_disk()
 
 
-def get_query_profile_by_id(profile_id: str) -> Optional[Dict[str, Any]]:
+def get_query_profile_by_id(profile_id: str) -> dict[str, Any] | None:
     """
     Get a specific query profile by ID.
 
@@ -108,8 +108,8 @@ def get_query_profile_by_id(profile_id: str) -> Optional[Dict[str, Any]]:
 
 
 def save_query_profile(
-    name: str, jql: str, description: str = "", profile_id: Optional[str] = None
-) -> Optional[Dict[str, Any]]:
+    name: str, jql: str, description: str = "", profile_id: str | None = None
+) -> dict[str, Any] | None:
     """
     Save a new query profile or update existing one.
 
@@ -221,7 +221,7 @@ def delete_query_profile(profile_id: str) -> bool:
 
 def update_query_profile(
     profile_id: str, name: str, jql: str, description: str = ""
-) -> Optional[Dict[str, Any]]:
+) -> dict[str, Any] | None:
     """
     Update an existing query profile.
 
@@ -261,7 +261,7 @@ def update_profile_last_used(profile_id: str) -> bool:
     return False
 
 
-def get_profile_names() -> List[str]:
+def get_profile_names() -> list[str]:
     """
     Get a list of all query profile names.
 
@@ -272,7 +272,7 @@ def get_profile_names() -> List[str]:
     return [p.get("name", "") for p in profiles if p.get("name")]
 
 
-def validate_profile_name_unique(name: str, exclude_id: Optional[str] = None) -> bool:
+def validate_profile_name_unique(name: str, exclude_id: str | None = None) -> bool:
     """
     Check if a profile name is unique.
 
@@ -325,7 +325,7 @@ def set_default_query(profile_id: str) -> bool:
     return False
 
 
-def get_default_query() -> Optional[Dict[str, Any]]:
+def get_default_query() -> dict[str, Any] | None:
     """
     Get the current default query profile.
 

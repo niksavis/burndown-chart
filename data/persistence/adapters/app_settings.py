@@ -2,10 +2,9 @@
 
 # Standard library imports
 from datetime import datetime
-from typing import Dict, Any
+from typing import Any
 
 # Third-party library imports
-
 # Application imports
 from configuration.settings import logger
 
@@ -308,7 +307,7 @@ def save_app_settings(
         logger.error(f"[Config] Error saving app settings: {e}")
 
 
-def load_app_settings() -> Dict[str, Any]:
+def load_app_settings() -> dict[str, Any]:
     """
     Load app-level settings via repository pattern (database-first).
 
@@ -317,9 +316,9 @@ def load_app_settings() -> Dict[str, Any]:
     """
     # Lazy import to avoid circular dependency
     from configuration.settings import (
-        DEFAULT_PERT_FACTOR,
-        DEFAULT_DEADLINE,
         DEFAULT_DATA_POINTS_COUNT,
+        DEFAULT_DEADLINE,
+        DEFAULT_PERT_FACTOR,
     )
 
     default_settings = {

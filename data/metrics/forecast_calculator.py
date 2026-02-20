@@ -1,17 +1,17 @@
 """Forecast calculation functions for metrics trending and predictions."""
 
 import logging
-from typing import List, Optional, Dict, Any
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
 
 def calculate_forecast(
-    historical_values: List[float],
-    weights: Optional[List[float]] = None,
+    historical_values: list[float],
+    weights: list[float] | None = None,
     min_weeks: int = 2,
     decimal_precision: int = 1,
-) -> Optional[Dict[str, Any]]:
+) -> dict[str, Any] | None:
     """
     Calculate weighted forecast from historical metric values.
 
@@ -98,7 +98,7 @@ def calculate_forecast(
             weights_to_use = [equal_weight] * len(historical_values)
 
     # Calculate weighted average
-    forecast_value = sum(v * w for v, w in zip(historical_values, weights_to_use))
+    forecast_value = sum(v * w for v, w in zip(historical_values, weights_to_use, strict=False))
 
     # Round to specified precision
     forecast_value = round(forecast_value, decimal_precision)
@@ -119,11 +119,11 @@ def calculate_forecast(
 
 
 def calculate_ewma_forecast(
-    historical_values: List[float],
+    historical_values: list[float],
     alpha: float = 0.3,
     min_weeks: int = 2,
     decimal_precision: int = 1,
-) -> Optional[Dict[str, Any]]:
+) -> dict[str, Any] | None:
     """
     Calculate an EWMA forecast using exponential smoothing.
 
@@ -181,8 +181,8 @@ def calculate_trend_vs_forecast(
     forecast_value: float,
     metric_type: str,
     threshold: float = 0.10,
-    previous_period_value: Optional[float] = None,
-) -> Dict[str, Any]:
+    previous_period_value: float | None = None,
+) -> dict[str, Any]:
     """
     Calculate trend direction and deviation percentage vs forecast.
 
@@ -322,7 +322,7 @@ def calculate_trend_vs_forecast(
 
 def calculate_flow_load_range(
     forecast_value: float, range_percent: float = 0.20, decimal_precision: int = 0
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Calculate acceptable WIP range for Flow Load forecast.
 

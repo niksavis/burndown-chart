@@ -18,13 +18,13 @@ Usage:
 import logging
 from pathlib import Path
 
-from data.database import get_db_connection, check_database_integrity, database_exists
+from data.database import check_database_integrity, database_exists, get_db_connection
 from data.migration.schema import (
     create_schema,
+    drop_jira_cache_table,
+    ensure_budget_velocity_columns,
     get_schema_version,
     set_schema_version,
-    ensure_budget_velocity_columns,
-    drop_jira_cache_table,
 )
 
 logger = logging.getLogger(__name__)

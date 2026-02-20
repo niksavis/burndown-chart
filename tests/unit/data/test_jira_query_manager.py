@@ -260,7 +260,7 @@ class TestQueryProfileFileOperations:
             # Verify file was created and contains data
             assert os.path.exists(temp_query_profiles_file)
 
-            with open(temp_query_profiles_file, "r") as f:
+            with open(temp_query_profiles_file) as f:
                 saved_data = json.load(f)
 
             assert len(saved_data) == 1

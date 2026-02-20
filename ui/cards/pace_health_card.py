@@ -13,7 +13,6 @@ Automatically handles scope changes by using current remaining work.
 from __future__ import annotations
 
 import logging
-from typing import Optional
 
 import dash_bootstrap_components as dbc
 from dash import html
@@ -27,8 +26,8 @@ logger = logging.getLogger(__name__)
 def create_pace_health_card(
     required_items: float,
     current_items: float,
-    required_points: Optional[float],
-    current_points: Optional[float],
+    required_points: float | None,
+    current_points: float | None,
     deadline_days: int,
     show_points: bool = True,
 ) -> dbc.Card:

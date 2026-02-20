@@ -8,19 +8,19 @@ Tests the AI prompt generator including:
 - Error handling: Missing data, invalid inputs
 """
 
-import pytest
 from datetime import datetime, timedelta
 from unittest.mock import patch
 
+import pytest
+
 from data.ai_prompt_generator import (
-    generate_ai_analysis_prompt,
-    _sanitize_for_ai,
-    _create_summary_statistics,
     _aggregate_statistics,
     _calculate_trend,
+    _create_summary_statistics,
     _format_ai_prompt,
+    _sanitize_for_ai,
+    generate_ai_analysis_prompt,
 )
-
 
 # ============================================================================
 # Test Fixtures
@@ -525,6 +525,7 @@ def test_create_summary_no_query_data():
 def test_no_dead_code():
     """Verify no unused imports or commented code blocks."""
     import inspect
+
     from data import ai_prompt_generator
 
     # Get module source
@@ -553,6 +554,7 @@ def test_all_functions_have_docstrings():
 def test_no_sensitive_data_in_logs():
     """Verify logging calls don't expose customer data."""
     import inspect
+
     from data import ai_prompt_generator
 
     source = inspect.getsource(ai_prompt_generator)

@@ -1,16 +1,16 @@
-from dash import html
 import dash_bootstrap_components as dbc
+from dash import html
 
 # Import functions under test
 from ui.dashboard_cards import (
     _calculate_health_score,
-    _get_health_color_and_label,
     _create_key_insights,
+    _get_health_color_and_label,
     create_dashboard_forecast_card,
-    create_dashboard_velocity_card,
-    create_dashboard_remaining_card,
-    create_dashboard_pert_card,
     create_dashboard_overview_content,
+    create_dashboard_pert_card,
+    create_dashboard_remaining_card,
+    create_dashboard_velocity_card,
 )
 
 # Fixtures are imported automatically by pytest from conftest.py and dashboard_test_fixtures.py

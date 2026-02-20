@@ -21,66 +21,66 @@ All imports from 'data.persistence.adapters' are preserved for backwards compati
 """
 
 # Re-export all public functions from submodules
+from data.persistence.adapters.app_settings import (
+    load_app_settings,
+    save_app_settings,
+)
 from data.persistence.adapters.core import (
     DateTimeEncoder,
     convert_timestamps_to_strings,
     should_sync_jira,
 )
-from data.persistence.adapters.app_settings import (
-    save_app_settings,
-    load_app_settings,
+from data.persistence.adapters.jira_config import (
+    cleanup_legacy_jira_fields,
+    get_default_jira_config,
+    load_jira_configuration,
+    migrate_jira_config,
+    save_jira_configuration,
+    validate_jira_config,
+)
+from data.persistence.adapters.legacy_data import (
+    load_project_data_legacy,
+    load_statistics_legacy,
+    migrate_csv_to_json,
+)
+from data.persistence.adapters.metrics_history import (
+    get_metric_trend_data,
+    load_metrics_history,
+    save_metrics_snapshot,
+)
+from data.persistence.adapters.parameter_panel import (
+    load_parameter_panel_state,
+    save_parameter_panel_state,
 )
 from data.persistence.adapters.project_data import (
-    save_project_data,
     load_project_data,
-)
-from data.persistence.adapters.settings import (
-    save_settings,
-    load_settings,
-)
-from data.persistence.adapters.statistics import (
-    save_statistics,
-    save_statistics_from_csv_import,
-    load_statistics,
+    save_project_data,
 )
 from data.persistence.adapters.sample_data import (
     generate_realistic_sample_data,
     read_and_clean_data,
 )
-from data.persistence.adapters.unified_data import (
-    load_unified_project_data,
-    save_unified_project_data,
-    save_jira_data_unified,
-)
-from data.persistence.adapters.legacy_data import (
-    migrate_csv_to_json,
-    load_statistics_legacy,
-    load_project_data_legacy,
-)
 from data.persistence.adapters.scope import (
-    get_project_statistics,
+    add_project_statistic,
+    calculate_project_scope_from_jira,
     get_project_scope,
+    get_project_statistics,
     update_project_scope,
     update_project_scope_from_jira,
-    calculate_project_scope_from_jira,
-    add_project_statistic,
 )
-from data.persistence.adapters.jira_config import (
-    get_default_jira_config,
-    load_jira_configuration,
-    save_jira_configuration,
-    validate_jira_config,
-    migrate_jira_config,
-    cleanup_legacy_jira_fields,
+from data.persistence.adapters.settings import (
+    load_settings,
+    save_settings,
 )
-from data.persistence.adapters.metrics_history import (
-    load_metrics_history,
-    save_metrics_snapshot,
-    get_metric_trend_data,
+from data.persistence.adapters.statistics import (
+    load_statistics,
+    save_statistics,
+    save_statistics_from_csv_import,
 )
-from data.persistence.adapters.parameter_panel import (
-    load_parameter_panel_state,
-    save_parameter_panel_state,
+from data.persistence.adapters.unified_data import (
+    load_unified_project_data,
+    save_jira_data_unified,
+    save_unified_project_data,
 )
 
 __all__ = [

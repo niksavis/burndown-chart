@@ -6,7 +6,7 @@ definitions, performance tier benchmarks, and utility functions for tier determi
 Reference: DORA_Flow_Jira_Mapping.md
 """
 
-from typing import Dict, Literal
+from typing import Literal
 
 # Performance tier type definition
 PerformanceTier = Literal["Elite", "High", "Medium", "Low"]
@@ -200,7 +200,7 @@ def determine_performance_tier(metric_name: str, value: float) -> dict:
 
 
 def _calculate_tier(
-    metric_name: str, value: float, benchmarks: Dict
+    metric_name: str, value: float, benchmarks: dict
 ) -> PerformanceTier:
     """Calculate performance tier based on metric-specific logic.
 

@@ -5,7 +5,8 @@ Handles opening/closing of the settings collapsible panel and loading default/la
 """
 
 import logging
-from dash import Input, Output, State, callback, ctx, no_update, ClientsideFunction
+
+from dash import ClientsideFunction, Input, Output, State, callback, ctx, no_update
 
 logger = logging.getLogger(__name__)
 

@@ -16,10 +16,9 @@ import dash_bootstrap_components as dbc
 from dash import html
 
 from ui.profile_modals import (
-    create_profile_form_modal,
     create_profile_deletion_modal,
+    create_profile_form_modal,
 )
-
 
 #######################################################################
 # HELPER FUNCTIONS

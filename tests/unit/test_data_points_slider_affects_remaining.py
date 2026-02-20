@@ -8,8 +8,10 @@ The Data Points slider only affects historical metrics (completed, averages, for
 not the current remaining work scope.
 """
 
-import pytest
 from unittest.mock import patch
+
+import pytest
+
 from callbacks.settings.helpers import calculate_remaining_work_for_data_window
 
 

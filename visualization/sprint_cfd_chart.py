@@ -7,9 +7,9 @@ Stack order (bottom to top): Done → Testing → In Progress → To Do
 """
 
 import logging
-from typing import Dict, List, Optional
 
 import plotly.graph_objects as go
+
 from configuration import COLOR_PALETTE
 from ui.tooltip_utils import create_hoverlabel_config, format_hover_template
 
@@ -30,9 +30,9 @@ STATUS_COLORS = {
 
 
 def create_sprint_cfd_chart(
-    daily_snapshots: List[Dict],
+    daily_snapshots: list[dict],
     sprint_name: str = "Sprint",
-    status_order: Optional[List[str]] = None,
+    status_order: list[str] | None = None,
     height: int = 400,
     use_points: bool = False,
 ) -> go.Figure:
@@ -117,7 +117,7 @@ def create_sprint_cfd_chart(
 
         # Calculate cumulative sums for hover info
         cumulative = []
-        for i, val in enumerate(values):
+        for i, _val in enumerate(values):
             cum_sum = sum(
                 status_data[s][i]
                 for s in ordered_statuses[: ordered_statuses.index(status) + 1]

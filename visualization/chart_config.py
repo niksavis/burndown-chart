@@ -5,10 +5,10 @@ from the Copilot instructions for immediate value delivery.
 """
 
 from datetime import datetime
-from typing import Dict, Any, List
+from typing import Any
 
 
-def get_mobile_first_config() -> Dict[str, Any]:
+def get_mobile_first_config() -> dict[str, Any]:
     """Get mobile-first chart configuration for trend charts.
 
     Removes plotly tools and provides clean, immediate-value presentation.
@@ -70,7 +70,7 @@ def get_mobile_first_config() -> Dict[str, Any]:
 
 def get_mobile_first_layout(
     title: str, height: int = 300, show_performance_zones: bool = False
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Get mobile-first layout configuration for trend charts.
 
     Provides consistent layout that works well on mobile and desktop.
@@ -112,7 +112,7 @@ def get_mobile_first_layout(
     }
 
 
-def get_performance_zones(metric_name: str) -> List[Dict[str, Any]]:
+def get_performance_zones(metric_name: str) -> list[dict[str, Any]]:
     """Get DORA performance zones for specific metrics.
 
     Returns zone definitions for Elite/High/Medium/Low performance tiers.
@@ -233,7 +233,7 @@ def get_performance_zones(metric_name: str) -> List[Dict[str, Any]]:
     return zones.get(metric_name, [])
 
 
-def get_consistent_colors() -> Dict[str, str]:
+def get_consistent_colors() -> dict[str, str]:
     """Get consistent color scheme across all charts.
 
     Returns:

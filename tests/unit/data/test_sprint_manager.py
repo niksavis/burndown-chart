@@ -5,12 +5,12 @@ and issue filtering for Sprint Tracker feature.
 """
 
 from data.sprint_manager import (
-    get_sprint_snapshots,
-    detect_sprint_changes,
-    calculate_sprint_progress,
-    filter_sprint_issues,
     _parse_sprint_name,
+    calculate_sprint_progress,
+    detect_sprint_changes,
+    filter_sprint_issues,
     get_sprint_field_from_config,
+    get_sprint_snapshots,
 )
 
 

@@ -8,13 +8,13 @@ Tests the refactored chart generation modules that were split from chart_generat
 
 import pytest
 
-from data.report.chart_generator import generate_chart_scripts
+from data.report.chart_bugs import generate_bug_trends_chart
 from data.report.chart_burndown import (
     generate_burndown_chart,
     generate_weekly_breakdown_chart,
 )
-from data.report.chart_bugs import generate_bug_trends_chart
 from data.report.chart_flow import generate_work_distribution_chart
+from data.report.chart_generator import generate_chart_scripts
 
 
 class TestChartGeneratorOrchestration:

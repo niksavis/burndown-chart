@@ -22,7 +22,6 @@ Usage Example:
 """
 
 from abc import ABC, abstractmethod
-from typing import Dict, List, Optional
 from datetime import datetime
 
 # Module-level backend instance (lazy-loaded to avoid circular import)
@@ -52,18 +51,29 @@ backend = _BackendProxy()
 
 # Explicit imports for commonly used adapter functions (provides type hints)
 # These are imported eagerly to provide proper type information to IDEs
-from data.persistence.adapters.app_settings import (
+from data.persistence.adapters.app_settings import (  # noqa: E402
     load_app_settings,
     save_app_settings,
 )
-from data.persistence.adapters.jira_config import (
+from data.persistence.adapters.jira_config import (  # noqa: E402
     load_jira_configuration,
     save_jira_configuration,
 )
-from data.persistence.adapters.legacy_data import (
-    save_jira_data_unified,
+from data.persistence.adapters.legacy_data import (  # noqa: E402
     load_unified_project_data,
+    save_jira_data_unified,
 )
+
+__all__ = [
+    "PersistenceBackend",
+    "backend",
+    "load_app_settings",
+    "save_app_settings",
+    "load_jira_configuration",
+    "save_jira_configuration",
+    "load_unified_project_data",
+    "save_jira_data_unified",
+]
 
 
 class PersistenceBackend(ABC):
@@ -79,7 +89,7 @@ class PersistenceBackend(ABC):
     # ========================================================================
 
     @abstractmethod
-    def get_profile(self, profile_id: str) -> Optional[Dict]:
+    def get_profile(self, profile_id: str) -> dict | None:
         """
         Load profile configuration.
 
@@ -97,7 +107,7 @@ class PersistenceBackend(ABC):
         pass
 
     @abstractmethod
-    def save_profile(self, profile: Dict) -> None:
+    def save_profile(self, profile: dict) -> None:
         """
         Save profile configuration (insert or update).
 
@@ -120,7 +130,7 @@ class PersistenceBackend(ABC):
         pass
 
     @abstractmethod
-    def list_profiles(self) -> List[Dict]:
+    def list_profiles(self) -> list[dict]:
         """
         List all profiles, ordered by last_used descending.
 
@@ -161,7 +171,7 @@ class PersistenceBackend(ABC):
     # ========================================================================
 
     @abstractmethod
-    def get_query(self, profile_id: str, query_id: str) -> Optional[Dict]:
+    def get_query(self, profile_id: str, query_id: str) -> dict | None:
         """
         Load query configuration.
 
@@ -180,7 +190,7 @@ class PersistenceBackend(ABC):
         pass
 
     @abstractmethod
-    def save_query(self, profile_id: str, query: Dict) -> None:
+    def save_query(self, profile_id: str, query: dict) -> None:
         """
         Save query configuration (insert or update).
 
@@ -195,7 +205,7 @@ class PersistenceBackend(ABC):
         pass
 
     @abstractmethod
-    def list_queries(self, profile_id: str) -> List[Dict]:
+    def list_queries(self, profile_id: str) -> list[dict]:
         """
         List all queries for a profile, ordered by last_used descending.
 
@@ -239,7 +249,7 @@ class PersistenceBackend(ABC):
     # ========================================================================
 
     @abstractmethod
-    def get_app_state(self, key: str) -> Optional[str]:
+    def get_app_state(self, key: str) -> str | None:
         """
         Get application state value.
 
@@ -283,12 +293,12 @@ class PersistenceBackend(ABC):
         self,
         profile_id: str,
         query_id: str,
-        status: Optional[str] = None,
-        assignee: Optional[str] = None,
-        issue_type: Optional[str] = None,
-        project_key: Optional[str] = None,
-        limit: Optional[int] = None,
-    ) -> List[Dict]:
+        status: str | None = None,
+        assignee: str | None = None,
+        issue_type: str | None = None,
+        project_key: str | None = None,
+        limit: int | None = None,
+    ) -> list[dict]:
         """
         Query normalized JIRA issues with optional filters.
 
@@ -317,7 +327,7 @@ class PersistenceBackend(ABC):
         profile_id: str,
         query_id: str,
         cache_key: str,
-        issues: List[Dict],
+        issues: list[dict],
         expires_at: datetime,
     ) -> None:
         """
@@ -363,7 +373,7 @@ class PersistenceBackend(ABC):
     @abstractmethod
     def get_jira_cache(
         self, profile_id: str, query_id: str, cache_key: str
-    ) -> Optional[Dict]:
+    ) -> dict | None:
         """
         LEGACY: Get cached JIRA response as JSON blob (pre-normalization).
 
@@ -391,7 +401,7 @@ class PersistenceBackend(ABC):
         profile_id: str,
         query_id: str,
         cache_key: str,
-        response: Dict,
+        response: dict,
         expires_at: datetime,
     ) -> None:
         """
@@ -441,11 +451,11 @@ class PersistenceBackend(ABC):
         self,
         profile_id: str,
         query_id: str,
-        issue_key: Optional[str] = None,
-        field_name: Optional[str] = None,
-        start_date: Optional[str] = None,
-        end_date: Optional[str] = None,
-    ) -> List[Dict]:
+        issue_key: str | None = None,
+        field_name: str | None = None,
+        start_date: str | None = None,
+        end_date: str | None = None,
+    ) -> list[dict]:
         """
         Query normalized changelog entries with filters.
 
@@ -474,7 +484,7 @@ class PersistenceBackend(ABC):
         self,
         profile_id: str,
         query_id: str,
-        entries: List[Dict],
+        entries: list[dict],
         expires_at: datetime,
     ) -> None:
         """
@@ -495,7 +505,7 @@ class PersistenceBackend(ABC):
     @abstractmethod
     def get_jira_changelog(
         self, profile_id: str, query_id: str, issue_key: str
-    ) -> Optional[Dict]:
+    ) -> dict | None:
         """
         LEGACY: Get cached JIRA changelog for issue as JSON blob.
 
@@ -517,7 +527,7 @@ class PersistenceBackend(ABC):
         profile_id: str,
         query_id: str,
         issue_key: str,
-        changelog: Dict,
+        changelog: dict,
         expires_at: datetime,
     ) -> None:
         """
@@ -547,10 +557,10 @@ class PersistenceBackend(ABC):
         self,
         profile_id: str,
         query_id: str,
-        start_date: Optional[str] = None,
-        end_date: Optional[str] = None,
-        limit: Optional[int] = None,
-    ) -> List[Dict]:
+        start_date: str | None = None,
+        end_date: str | None = None,
+        limit: int | None = None,
+    ) -> list[dict]:
         """
         Query normalized weekly project statistics.
 
@@ -577,7 +587,7 @@ class PersistenceBackend(ABC):
         self,
         profile_id: str,
         query_id: str,
-        stats: List[Dict],
+        stats: list[dict],
     ) -> None:
         """
         Batch UPSERT weekly statistics.
@@ -594,7 +604,7 @@ class PersistenceBackend(ABC):
         pass
 
     @abstractmethod
-    def get_scope(self, profile_id: str, query_id: str) -> Optional[Dict]:
+    def get_scope(self, profile_id: str, query_id: str) -> dict | None:
         """
         Get project scope data (small aggregated JSON).
 
@@ -616,7 +626,7 @@ class PersistenceBackend(ABC):
         self,
         profile_id: str,
         query_id: str,
-        scope_data: Dict,
+        scope_data: dict,
     ) -> None:
         """
         Save project scope data.
@@ -633,7 +643,7 @@ class PersistenceBackend(ABC):
         pass
 
     @abstractmethod
-    def get_project_data(self, profile_id: str, query_id: str) -> Optional[Dict]:
+    def get_project_data(self, profile_id: str, query_id: str) -> dict | None:
         """
         LEGACY: Get project data (statistics, scope) as JSON blob.
 
@@ -654,7 +664,7 @@ class PersistenceBackend(ABC):
         pass
 
     @abstractmethod
-    def save_project_data(self, profile_id: str, query_id: str, data: Dict) -> None:
+    def save_project_data(self, profile_id: str, query_id: str, data: dict) -> None:
         """
         Save project data for query.
 
@@ -678,12 +688,12 @@ class PersistenceBackend(ABC):
         self,
         profile_id: str,
         query_id: str,
-        metric_name: Optional[str] = None,
-        metric_category: Optional[str] = None,
-        start_date: Optional[str] = None,
-        end_date: Optional[str] = None,
-        limit: Optional[int] = None,
-    ) -> List[Dict]:
+        metric_name: str | None = None,
+        metric_category: str | None = None,
+        start_date: str | None = None,
+        end_date: str | None = None,
+        limit: int | None = None,
+    ) -> list[dict]:
         """
         Query normalized metric data points.
 
@@ -739,7 +749,7 @@ class PersistenceBackend(ABC):
         self,
         profile_id: str,
         query_id: str,
-        metrics: List[Dict],
+        metrics: list[dict],
     ) -> None:
         """
         Batch UPSERT metric data points.
@@ -766,7 +776,7 @@ class PersistenceBackend(ABC):
     @abstractmethod
     def get_metrics_snapshots(
         self, profile_id: str, query_id: str, metric_type: str, limit: int = 52
-    ) -> List[Dict]:
+    ) -> list[dict]:
         """
         LEGACY: Get historical metrics snapshots as JSON blobs.
 
@@ -795,8 +805,8 @@ class PersistenceBackend(ABC):
         query_id: str,
         snapshot_date: str,
         metric_type: str,
-        metrics: Dict,
-        forecast: Optional[Dict] = None,
+        metrics: dict,
+        forecast: dict | None = None,
     ) -> None:
         """
         Save metrics snapshot for a specific date.
@@ -824,7 +834,7 @@ class PersistenceBackend(ABC):
     # ========================================================================
 
     @abstractmethod
-    def get_task_progress(self, task_name: str) -> Optional[Dict]:
+    def get_task_progress(self, task_name: str) -> dict | None:
         """
         Get task progress state.
 
@@ -881,7 +891,7 @@ class PersistenceBackend(ABC):
     # ========================================================================
 
     @abstractmethod
-    def get_task_state(self) -> Optional[Dict]:
+    def get_task_state(self) -> dict | None:
         """Get the current task state.
 
         Returns:
@@ -895,7 +905,7 @@ class PersistenceBackend(ABC):
         pass
 
     @abstractmethod
-    def save_task_state(self, state: Dict) -> None:
+    def save_task_state(self, state: dict) -> None:
         """Save task state.
 
         Args:
@@ -968,7 +978,7 @@ class PersistenceBackend(ABC):
     # ========================================================================
 
     @abstractmethod
-    def get_budget_settings(self, profile_id: str, query_id: str) -> Optional[Dict]:
+    def get_budget_settings(self, profile_id: str, query_id: str) -> dict | None:
         """
         Get budget settings for a query.
 
@@ -982,7 +992,7 @@ class PersistenceBackend(ABC):
         pass
 
     @abstractmethod
-    def get_budget_revisions(self, profile_id: str, query_id: str) -> List[Dict]:
+    def get_budget_revisions(self, profile_id: str, query_id: str) -> list[dict]:
         """
         Get all budget revisions for a query.
 
@@ -997,7 +1007,7 @@ class PersistenceBackend(ABC):
 
     @abstractmethod
     def save_budget_settings(
-        self, profile_id: str, query_id: str, budget_settings: Dict
+        self, profile_id: str, query_id: str, budget_settings: dict
     ) -> None:
         """
         Save budget settings for a query.
@@ -1015,7 +1025,7 @@ class PersistenceBackend(ABC):
 
     @abstractmethod
     def save_budget_revisions(
-        self, profile_id: str, query_id: str, revisions: List[Dict]
+        self, profile_id: str, query_id: str, revisions: list[dict]
     ) -> None:
         """
         Save budget revisions for a query.

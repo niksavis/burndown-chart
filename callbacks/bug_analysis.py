@@ -11,22 +11,24 @@ handling bug metrics updates and interactivity with timeline filters.
 # Standard library imports
 import logging
 
+import dash_bootstrap_components as dbc
+
 # Third-party library imports
 from dash import html
-import dash_bootstrap_components as dbc
+
+from configuration.settings import get_bug_analysis_config
+from data.bug_insights import generate_quality_insights
 
 # Application imports
 from data.bug_processing import (
-    filter_bug_issues,
     calculate_bug_metrics_summary,
+    filter_bug_issues,
     forecast_bug_resolution,
 )
 from ui.bug_analysis import (
     create_bug_metrics_cards,
     create_quality_insights_panel,
 )
-from data.bug_insights import generate_quality_insights
-from configuration.settings import get_bug_analysis_config
 
 #######################################################################
 # LOGGING CONFIGURATION
@@ -101,8 +103,8 @@ def _render_bug_analysis_content(
 
         # Filter to only configured development project issues (exclude parents/parent types)
         if all_issues:
-            from data.persistence import load_app_settings
             from data.issue_filtering import filter_issues_for_metrics
+            from data.persistence import load_app_settings
 
             settings = load_app_settings()
 
@@ -225,7 +227,7 @@ def _render_bug_analysis_content(
             metrics_cards = create_bug_metrics_cards(bug_metrics, forecast)
 
             # Create bug trends chart
-            from ui.bug_charts import BugTrendChart, BugInvestmentChart
+            from ui.bug_charts import BugInvestmentChart, BugTrendChart
 
             trends_chart = BugTrendChart(weekly_stats, viewport_size="mobile")
 

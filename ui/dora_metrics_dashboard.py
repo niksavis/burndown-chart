@@ -7,15 +7,16 @@ Uses Data Points slider from settings panel to control historical data display.
 Metrics calculated per ISO week (Monday-Sunday), showing current week + N-1 historical weeks.
 """
 
-from typing import Dict, Any
-import dash_bootstrap_components as dbc
-from dash import html, dcc
+from typing import Any
 
-from ui.metric_cards import create_loading_card
+import dash_bootstrap_components as dbc
+from dash import dcc, html
+
 from ui.empty_states import (
     create_metrics_skeleton,
     create_no_data_state,
 )  # Visible skeleton with shimmer
+from ui.metric_cards import create_loading_card
 
 
 def create_dora_dashboard() -> dbc.Container:
@@ -25,9 +26,8 @@ def create_dora_dashboard() -> dbc.Container:
         dbc.Container with DORA metrics dashboard components
     """
     # Check if JIRA data exists AND if metrics are calculated
-    from data.profile_manager import get_data_file_path
-    from data.dora_metrics_calculator import load_dora_metrics_from_cache
     from data.cache_manager import has_jira_data_for_query
+    from data.dora_metrics_calculator import load_dora_metrics_from_cache
     from data.query_manager import get_active_profile_id, get_active_query_id
 
     has_jira_data = False
@@ -300,8 +300,8 @@ def create_dora_loading_cards_grid() -> dbc.Row:
 
 
 def format_dora_metrics_for_display(
-    raw_metrics: Dict[str, Dict[str, Any]],
-) -> Dict[str, Dict[str, Any]]:
+    raw_metrics: dict[str, dict[str, Any]],
+) -> dict[str, dict[str, Any]]:
     """Format raw DORA metrics data for display in metric cards.
 
     Args:

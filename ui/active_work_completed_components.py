@@ -6,21 +6,19 @@ Extracted from active_work_components to maintain file size limits.
 
 from __future__ import annotations
 
-from typing import Dict, List
-
 from dash import html
 
 from ui.active_work_components import (
+    create_compact_issue_row,
     create_issue_count_badge,
     create_points_badge,
-    create_compact_issue_row,
     create_status_indicator_badge,
 )
 from ui.jira_link_helper import create_jira_issue_link
 
 
 def create_completed_items_section(
-    completed_by_week: Dict[str, Dict], show_points: bool = False
+    completed_by_week: dict[str, dict], show_points: bool = False
 ) -> html.Div:
     """Create completed items section with week containers.
 
@@ -67,13 +65,13 @@ def create_completed_items_section(
 def create_week_container(
     week_label: str,
     display_label: str,
-    issues: List[Dict],
+    issues: list[dict],
     total_issues: int,
     total_epics_closed: int,
     total_epics_linked: int,
     total_points: float,
     is_current: bool,
-    epic_groups: List[Dict],
+    epic_groups: list[dict],
     show_points: bool = False,
 ) -> html.Details:
     """Create collapsible week container for completed items.
@@ -206,7 +204,7 @@ def create_week_container(
     )
 
 
-def _create_epic_group_section(group: Dict, show_points: bool) -> html.Div:
+def _create_epic_group_section(group: dict, show_points: bool) -> html.Div:
     """Create a mini epic header with child issues.
 
     Args:

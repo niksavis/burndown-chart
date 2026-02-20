@@ -8,14 +8,16 @@ Implements Option 5 (Hybrid Auto-Fetch with Visual Indicator) for field mapping 
 """
 
 import logging
-from dash import callback, Output, Input, State, no_update, ctx
-from typing import Dict, Any, List, Optional
+from typing import Any
+
+from dash import Input, Output, State, callback, ctx, no_update
+
 from ui.toast_notifications import create_success_toast, create_warning_toast
 
 logger = logging.getLogger(__name__)
 
 
-def _extract_field_id(namespace_value: str) -> Optional[str]:
+def _extract_field_id(namespace_value: str) -> str | None:
     """Extract clean field ID from namespace syntax.
 
     Examples:
@@ -63,7 +65,7 @@ def _extract_field_id(namespace_value: str) -> Optional[str]:
     return value if value else None
 
 
-def _fetch_field_values(field_id: str, jira_config: Dict[str, Any]) -> List[str]:
+def _fetch_field_values(field_id: str, jira_config: dict[str, Any]) -> list[str]:
     """Fetch available values for a field from JIRA.
 
     Args:
@@ -143,7 +145,7 @@ def fetch_field_values_on_blur(
     affected_environment_blur: int,
     effort_category_value: str,
     affected_environment_value: str,
-    current_store: Dict[str, Any],
+    current_store: dict[str, Any],
 ):
     """Fetch field values when effort_category or affected_environment field loses focus.
 

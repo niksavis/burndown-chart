@@ -14,14 +14,14 @@ Designed for any project management methodology (Scrum, Kanban, Waterfall, etc.)
 #######################################################################
 # IMPORTS
 #######################################################################
-import dash_bootstrap_components as dbc
-from dash import html
-import pandas as pd
 from datetime import datetime, timedelta
+
+import dash_bootstrap_components as dbc
+import pandas as pd
+from dash import html
 from scipy import stats
 
 from ui.style_constants import COLOR_PALETTE
-
 
 #######################################################################
 # STATISTICAL HELPER FUNCTIONS

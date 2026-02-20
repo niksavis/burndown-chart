@@ -7,7 +7,8 @@ Follows Constitution Principle V (Data Privacy) - strips all customer PII.
 import json
 import logging
 from datetime import datetime, timedelta
-from typing import Dict, List, Any, Optional
+from typing import Any
+
 import pandas as pd
 
 logger = logging.getLogger(__name__)
@@ -15,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 def generate_ai_analysis_prompt(
     time_period_weeks: int = 12,
-    profile_id: Optional[str] = None,
+    profile_id: str | None = None,
 ) -> str:
     """
     Generate sanitized AI prompt with project metrics.
@@ -75,7 +76,7 @@ def generate_ai_analysis_prompt(
     return prompt
 
 
-def _sanitize_for_ai(export_data: Dict[str, Any]) -> Dict[str, Any]:
+def _sanitize_for_ai(export_data: dict[str, Any]) -> dict[str, Any]:
     """
     Remove customer-identifying information from export.
 
@@ -98,6 +99,7 @@ def _sanitize_for_ai(export_data: Dict[str, Any]) -> Dict[str, Any]:
         Deep copy with all PII stripped
     """
     import copy
+
     from data.import_export import strip_credentials
 
     sanitized = copy.deepcopy(export_data)
@@ -117,7 +119,7 @@ def _sanitize_for_ai(export_data: Dict[str, Any]) -> Dict[str, Any]:
 
     # Sanitize query metadata
     if "query_data" in sanitized:
-        for query_id, query_data in sanitized["query_data"].items():
+        for _query_id, query_data in sanitized["query_data"].items():
             if "query_metadata" in query_data:
                 query_data["query_metadata"]["name"] = "Sprint Analysis"
                 query_data["query_metadata"]["jql"] = (
@@ -128,8 +130,8 @@ def _sanitize_for_ai(export_data: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def _create_summary_statistics(
-    sanitized_data: Dict[str, Any], time_period_weeks: int
-) -> Dict[str, Any]:
+    sanitized_data: dict[str, Any], time_period_weeks: int
+) -> dict[str, Any]:
     """
     Condense full export to summary statistics.
 
@@ -244,7 +246,7 @@ def _create_summary_statistics(
     return summary
 
 
-def _aggregate_statistics(statistics: List[Dict], weeks: int) -> Dict[str, Any]:
+def _aggregate_statistics(statistics: list[dict], weeks: int) -> dict[str, Any]:
     """
     Aggregate statistics into summary metrics.
 
@@ -352,7 +354,7 @@ def _calculate_trend(series: pd.Series) -> str:
         return "stable"
 
 
-def _format_ai_prompt(summary: Dict[str, Any], time_period_weeks: int) -> str:
+def _format_ai_prompt(summary: dict[str, Any], time_period_weeks: int) -> str:
     """
     Format summary into AI-ready prompt with flexible structure.
 

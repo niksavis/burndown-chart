@@ -13,7 +13,7 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime, timedelta
-from typing import Dict, Optional, Any
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 def calculate_required_velocity(
     remaining_work: float,
     deadline: datetime,
-    current_date: Optional[datetime] = None,
+    current_date: datetime | None = None,
     time_unit: str = "week",
 ) -> float:
     """Calculate required velocity to meet deadline.
@@ -88,7 +88,7 @@ def calculate_required_velocity(
 
 def calculate_velocity_gap(
     current_velocity: float, required_velocity: float
-) -> Dict[str, float]:
+) -> dict[str, float]:
     """Calculate gap between current and required velocity.
 
     Args:
@@ -131,7 +131,7 @@ def calculate_velocity_gap(
 
 def assess_pace_health(
     current_velocity: float, required_velocity: float
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Assess pace health status based on velocity comparison.
 
     Health thresholds:
@@ -235,9 +235,9 @@ def get_pace_health_indicator(ratio: float) -> str:
 def calculate_completion_projection(
     remaining_work: float,
     current_velocity: float,
-    current_date: Optional[datetime] = None,
+    current_date: datetime | None = None,
     time_unit: str = "week",
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Project completion date based on current velocity.
 
     Args:

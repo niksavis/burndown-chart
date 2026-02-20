@@ -15,7 +15,7 @@ Created: October 31, 2025
 """
 
 import logging
-from typing import Dict, Any
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -213,7 +213,7 @@ def _map_effort_category_to_flow_type(effort_category: str) -> str:
 
 def classify_issues_by_flow_type(
     issues: list, effort_category_field: str
-) -> Dict[str, list]:
+) -> dict[str, list]:
     """
     Classify a list of issues by Flow type.
 
@@ -260,7 +260,7 @@ def classify_issues_by_flow_type(
     return classified
 
 
-def count_by_flow_type(issues: list, effort_category_field: str) -> Dict[str, int]:
+def count_by_flow_type(issues: list, effort_category_field: str) -> dict[str, int]:
     """
     Count issues by Flow type.
 
@@ -290,7 +290,7 @@ def count_by_flow_type(issues: list, effort_category_field: str) -> Dict[str, in
     }
 
 
-def get_flow_distribution(issues: list, effort_category_field: str) -> Dict[str, float]:
+def get_flow_distribution(issues: list, effort_category_field: str) -> dict[str, float]:
     """
     Calculate Flow distribution as percentages.
 

@@ -1,7 +1,8 @@
 """Tests for budget settings callback validation."""
 
+from unittest.mock import MagicMock, patch
+
 import pytest
-from unittest.mock import patch, MagicMock
 
 from callbacks.budget_settings import save_budget_settings
 

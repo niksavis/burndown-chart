@@ -7,13 +7,14 @@ This module provides utility functions used across multiple SQLite backend opera
 import logging
 import sqlite3
 import time
+from collections.abc import Callable
 from functools import wraps
-from typing import Dict, Any, Callable
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
 
-def extract_nested_field(fields_dict: Dict, field_path: str) -> Any:
+def extract_nested_field(fields_dict: dict, field_path: str) -> Any:
     """Extract value from nested field path (e.g., 'resolved.resolutiondate').
 
     Args:

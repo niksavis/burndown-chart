@@ -13,12 +13,11 @@ Architecture:
 
 import logging
 import re
-from typing import List
 
 logger = logging.getLogger(__name__)
 
 
-def build_jql_with_parent_types(user_jql: str, parent_types: List[str]) -> str:
+def build_jql_with_parent_types(user_jql: str, parent_types: list[str]) -> str:
     """
     Ensure parent types are included in JQL query.
 
@@ -120,7 +119,7 @@ def build_jql_with_parent_types(user_jql: str, parent_types: List[str]) -> str:
     return modified_jql
 
 
-def _parse_issue_types(types_str: str) -> List[str]:
+def _parse_issue_types(types_str: str) -> list[str]:
     """
     Parse issue types from JQL issuetype clause.
 
@@ -168,7 +167,7 @@ def _parse_issue_types(types_str: str) -> List[str]:
     return types
 
 
-def _build_issuetype_clause(types: List[str]) -> str:
+def _build_issuetype_clause(types: list[str]) -> str:
     """
     Build issuetype clause with proper quoting.
 
@@ -207,7 +206,7 @@ def _build_issuetype_clause(types: List[str]) -> str:
     return f"issuetype in ({types_list})"
 
 
-def extract_parent_types_from_config(config: dict) -> List[str]:
+def extract_parent_types_from_config(config: dict) -> list[str]:
     """
     Extract parent issue types from configuration.
 

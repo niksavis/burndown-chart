@@ -8,8 +8,8 @@ Tests verify that:
 4. All required components are present
 """
 
-from dash import html
 import dash_bootstrap_components as dbc
+from dash import html
 
 
 class TestAccordionSettingsPanel:

@@ -4,9 +4,10 @@ Unit tests for UI components - specifically input field builders.
 Tests the contract-compliant input field builders added in Phase 2.
 """
 
+import dash_bootstrap_components as dbc
 import pytest
 from dash import html
-import dash_bootstrap_components as dbc
+
 from ui.form_components import create_input_field, create_labeled_input
 
 

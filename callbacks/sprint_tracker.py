@@ -7,16 +7,16 @@ Follows Bug Analysis pattern for conditional tab display.
 """
 
 import logging
-from typing import Dict
-from dash import html, Input, Output, State, callback
+
 import dash_bootstrap_components as dbc
+from dash import Input, Output, State, callback, html
 
 logger = logging.getLogger(__name__)
 
 
 def _apply_sprint_filters(
-    sprint_data: Dict, issue_type_filter: str = "all", status_filter: str = "all"
-) -> Dict:
+    sprint_data: dict, issue_type_filter: str = "all", status_filter: str = "all"
+) -> dict:
     """Apply filters to sprint data.
 
     Args:
@@ -104,8 +104,8 @@ def _render_sprint_tracker_content(
         logger.info(f"Loaded {len(all_issues)} issues from database")
 
         # Filter to only configured development project issues (exclude parents/parent types)
-        from data.persistence import load_app_settings
         from data.issue_filtering import filter_issues_for_metrics
+        from data.persistence import load_app_settings
 
         settings = load_app_settings()
         all_issues = filter_issues_for_metrics(
@@ -208,8 +208,8 @@ def _render_sprint_tracker_content(
         logger.info(f"Selected sprint: {selected_sprint_id}")
 
         # Calculate sprint progress
-        from data.sprint_manager import calculate_sprint_progress
         from data.persistence import load_app_settings
+        from data.sprint_manager import calculate_sprint_progress
 
         settings = load_app_settings()
         flow_end_statuses = settings.get("flow_end_statuses", ["Done", "Closed"])
@@ -268,9 +268,9 @@ def _render_sprint_tracker_content(
 
         # Create UI components
         from ui.sprint_tracker import (
-            create_sprint_summary_cards,
             create_combined_sprint_controls,
             create_sprint_charts_section,
+            create_sprint_summary_cards,
         )
         from visualization.sprint_charts import (
             create_sprint_progress_bars,
@@ -443,12 +443,13 @@ def update_sprint_charts(selected_sprint, charts_visible, points_toggle_list):
     Returns:
         Plotly figure for burnup chart
     """
-    from dash import no_update, callback_context
+    from dash import callback_context, no_update
+
+    from data.persistence import load_app_settings
     from data.persistence.factory import get_backend
-    from data.sprint_manager import get_sprint_snapshots, get_sprint_dates
+    from data.sprint_manager import get_sprint_dates, get_sprint_snapshots
     from data.sprint_snapshot_calculator import calculate_daily_sprint_snapshots
     from visualization.sprint_burnup_chart import create_sprint_burnup_chart
-    from data.persistence import load_app_settings
 
     # Log which input triggered this callback
     triggered = callback_context.triggered[0] if callback_context.triggered else None

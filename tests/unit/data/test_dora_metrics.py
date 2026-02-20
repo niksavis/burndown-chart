@@ -14,11 +14,11 @@ DORA Metrics Tested:
 4. Mean Time to Recovery - time from incident to resolution/deployment
 """
 
-import pytest
-from datetime import datetime, timezone
+from datetime import UTC, datetime
+from typing import Any
 from unittest.mock import patch
-from typing import Dict, Any, Optional
 
+import pytest
 
 #######################################################################
 # TEST FIXTURES - Mock Profile Configuration
@@ -26,7 +26,7 @@ from typing import Dict, Any, Optional
 
 
 @pytest.fixture
-def mock_profile_config() -> Dict[str, Any]:
+def mock_profile_config() -> dict[str, Any]:
     """Mock profile configuration matching Drei Jira Production.
 
     Based on profile.json:
@@ -90,8 +90,8 @@ def create_operational_task(
     status: str = "Done",
     fix_version_name: str = "Release_2025_01",
     release_date: str = "2025-01-15",
-    change_failure: Optional[str] = None,
-) -> Dict[str, Any]:
+    change_failure: str | None = None,
+) -> dict[str, Any]:
     """Create mock Operational Task issue.
 
     Operational Tasks are from DevOps projects (RI) and represent deployments.
@@ -136,8 +136,8 @@ def create_development_issue(
     status: str = "Done",
     fix_version_name: str = "Release_2025_01",
     in_progress_timestamp: str = "2025-01-01T10:00:00.000+0000",
-    resolution_date: Optional[str] = None,
-) -> Dict[str, Any]:
+    resolution_date: str | None = None,
+) -> dict[str, Any]:
     """Create mock development issue (Task/Story).
 
     Development issues are from development projects (A935) and represent work items.
@@ -192,11 +192,11 @@ def create_development_issue(
 def create_bug_issue(
     key: str,
     status: str = "Done",
-    fix_version_name: Optional[str] = None,
+    fix_version_name: str | None = None,
     created: str = "2025-01-10T08:00:00.000+0000",
-    resolution_date: Optional[str] = None,
+    resolution_date: str | None = None,
     affected_environment: str = "PROD",
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Create mock Bug issue.
 
     Bugs are from development projects with bug_types: ["Bug"].
@@ -405,11 +405,11 @@ class TestLeadTimeForChanges:
     """
 
     @pytest.fixture
-    def fixversion_release_map(self) -> Dict[str, datetime]:
+    def fixversion_release_map(self) -> dict[str, datetime]:
         """Create fixVersion → releaseDate map from Operational Tasks."""
         return {
-            "Release_2025_01": datetime(2025, 1, 15, 0, 0, tzinfo=timezone.utc),
-            "Release_2025_02": datetime(2025, 2, 1, 0, 0, tzinfo=timezone.utc),
+            "Release_2025_01": datetime(2025, 1, 15, 0, 0, tzinfo=UTC),
+            "Release_2025_02": datetime(2025, 2, 1, 0, 0, tzinfo=UTC),
         }
 
     def test_lead_time_basic_calculation(
@@ -508,7 +508,7 @@ class TestLeadTimeForChanges:
 
         # Same day deployment (12 hours lead time)
         release_map = {
-            "Release_Quick": datetime(2025, 1, 1, 22, 0, tzinfo=timezone.utc),
+            "Release_Quick": datetime(2025, 1, 1, 22, 0, tzinfo=UTC),
         }
         issues = [
             create_development_issue(
@@ -686,10 +686,10 @@ class TestMeanTimeToRecovery:
     """
 
     @pytest.fixture
-    def fixversion_release_map(self) -> Dict[str, datetime]:
+    def fixversion_release_map(self) -> dict[str, datetime]:
         """Create fixVersion → releaseDate map for deployment-based MTTR."""
         return {
-            "Hotfix_2025_01": datetime(2025, 1, 12, 10, 0, tzinfo=timezone.utc),
+            "Hotfix_2025_01": datetime(2025, 1, 12, 10, 0, tzinfo=UTC),
         }
 
     def test_mttr_resolution_mode(self, mock_load_app_settings):
@@ -868,14 +868,14 @@ class TestFixVersionMatcher:
         from data.fixversion_matcher import get_deployment_date_for_issue
 
         release_map = {
-            "Release_1": datetime(2025, 1, 15, tzinfo=timezone.utc),
-            "Release_2": datetime(2025, 2, 1, tzinfo=timezone.utc),
+            "Release_1": datetime(2025, 1, 15, tzinfo=UTC),
+            "Release_2": datetime(2025, 2, 1, tzinfo=UTC),
         }
 
         # Issue with one fixVersion
         issue = create_development_issue("A935-1", fix_version_name="Release_1")
         result = get_deployment_date_for_issue(issue, release_map)
-        assert result == datetime(2025, 1, 15, tzinfo=timezone.utc)
+        assert result == datetime(2025, 1, 15, tzinfo=UTC)
 
         # Issue with multiple fixVersions - should return earliest
         issue["fields"]["fixVersions"] = [
@@ -883,7 +883,7 @@ class TestFixVersionMatcher:
             {"name": "Release_1"},
         ]
         result = get_deployment_date_for_issue(issue, release_map)
-        assert result == datetime(2025, 1, 15, tzinfo=timezone.utc)  # Earliest
+        assert result == datetime(2025, 1, 15, tzinfo=UTC)  # Earliest
 
         # Issue with no matching fixVersion
         issue["fields"]["fixVersions"] = [{"name": "Unknown_Release"}]
@@ -895,9 +895,9 @@ class TestFixVersionMatcher:
         from data.fixversion_matcher import filter_issues_deployed_in_week
 
         release_map = {
-            "Week1": datetime(2025, 1, 8, tzinfo=timezone.utc),  # In week
-            "Week2": datetime(2025, 1, 15, tzinfo=timezone.utc),  # After week
-            "Week0": datetime(2025, 1, 1, tzinfo=timezone.utc),  # Before week
+            "Week1": datetime(2025, 1, 8, tzinfo=UTC),  # In week
+            "Week2": datetime(2025, 1, 15, tzinfo=UTC),  # After week
+            "Week0": datetime(2025, 1, 1, tzinfo=UTC),  # Before week
         }
 
         issues = [
@@ -906,8 +906,8 @@ class TestFixVersionMatcher:
             create_development_issue("A-3", fix_version_name="Week0"),
         ]
 
-        week_start = datetime(2025, 1, 6, tzinfo=timezone.utc)
-        week_end = datetime(2025, 1, 13, tzinfo=timezone.utc)
+        week_start = datetime(2025, 1, 6, tzinfo=UTC)
+        week_end = datetime(2025, 1, 13, tzinfo=UTC)
 
         result = filter_issues_deployed_in_week(
             issues, release_map, week_start, week_end

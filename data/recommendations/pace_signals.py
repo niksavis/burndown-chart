@@ -2,13 +2,12 @@
 
 from __future__ import annotations
 
-from typing import Any
-
 from datetime import datetime
+from typing import Any
 
 import pandas as pd
 
-from data.velocity_projections import calculate_required_velocity, assess_pace_health
+from data.velocity_projections import assess_pace_health, calculate_required_velocity
 
 
 def build_required_pace_signals(

@@ -6,8 +6,9 @@ This store is the source of truth for DORA and Flow metrics calculations.
 Auto-registers via @callback decorator.
 """
 
-from dash import callback, Output, Input
 import logging
+
+from dash import Input, Output, callback
 
 logger = logging.getLogger(__name__)
 

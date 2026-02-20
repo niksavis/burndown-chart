@@ -18,18 +18,18 @@ Usage:
 """
 
 import logging
-from typing import Literal, Optional
 from pathlib import Path
+from typing import Literal
 
-from data.persistence import PersistenceBackend
-from data.persistence.sqlite_backend import SQLiteBackend
-from data.persistence.json_backend import JSONBackend
 from data.installation_context import get_installation_context
+from data.persistence import PersistenceBackend
+from data.persistence.json_backend import JSONBackend
+from data.persistence.sqlite_backend import SQLiteBackend
 
 logger = logging.getLogger(__name__)
 
 # Global backend instance (singleton per backend type)
-_backend_instance: Optional[PersistenceBackend] = None
+_backend_instance: PersistenceBackend | None = None
 _backend_type: Literal["sqlite", "json"] = "sqlite"
 
 # Default paths - use installation context for database path
@@ -39,8 +39,8 @@ DEFAULT_JSON_PATH = str(_installation_context.database_path.parent)
 
 
 def get_backend(
-    backend_type: Optional[Literal["sqlite", "json"]] = None,
-    db_path: Optional[str] = None,
+    backend_type: Literal["sqlite", "json"] | None = None,
+    db_path: str | None = None,
 ) -> PersistenceBackend:
     """
     Get persistence backend instance (singleton pattern).

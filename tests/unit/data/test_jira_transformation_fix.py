@@ -133,7 +133,7 @@ def test_different_field_types():
         ("priority", {"name": "High", "id": "1"}, 0.0, "Non-numeric complex field"),
     ]
 
-    for field_name, field_value, expected, description in field_scenarios:
+    for field_name, field_value, _expected, description in field_scenarios:
         test_issue = {
             "key": "TEST-X",
             "fields": {

@@ -10,8 +10,9 @@ Tests the create_dora_dashboard() function and helper functions to ensure:
 NOTE: Phase 3 tests focus on UI structure. Phase 4+ will add integration tests.
 """
 
-import pytest
 import dash_bootstrap_components as dbc
+import pytest
+
 from ui.dora_metrics_dashboard import (
     create_dora_dashboard,
     create_dora_loading_cards_grid,

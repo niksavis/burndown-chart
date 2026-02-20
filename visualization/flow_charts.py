@@ -4,12 +4,14 @@ Provides chart generation functions for Flow metrics including
 distribution pie chart and efficiency trend charts.
 """
 
+from typing import Any
+
 import plotly.graph_objects as go
-from typing import Dict, Any, List, Optional
-from .chart_config import get_mobile_first_layout, get_consistent_colors
+
+from .chart_config import get_consistent_colors, get_mobile_first_layout
 
 
-def create_flow_distribution_chart(distribution_data: Dict[str, Any]) -> go.Figure:
+def create_flow_distribution_chart(distribution_data: dict[str, Any]) -> go.Figure:
     """Create pie chart for Flow Distribution metric.
 
     Args:
@@ -142,7 +144,7 @@ def create_flow_distribution_chart(distribution_data: Dict[str, Any]) -> go.Figu
     return fig
 
 
-def create_flow_velocity_trend_chart(trend_data: List[Dict[str, Any]]) -> go.Figure:
+def create_flow_velocity_trend_chart(trend_data: list[dict[str, Any]]) -> go.Figure:
     """Create line chart for Flow Velocity trend over time.
 
     Args:
@@ -188,7 +190,7 @@ def create_flow_velocity_trend_chart(trend_data: List[Dict[str, Any]]) -> go.Fig
 
 
 def create_flow_efficiency_trend_chart(
-    trend_data: List[Dict[str, Any]], line_color: Optional[str] = None
+    trend_data: list[dict[str, Any]], line_color: str | None = None
 ) -> go.Figure:
     """Create line chart for Flow Efficiency trend over time.
 
@@ -326,7 +328,7 @@ def create_flow_efficiency_trend_chart(
     return fig
 
 
-def create_flow_time_trend_chart(trend_data: List[Dict[str, Any]]) -> go.Figure:
+def create_flow_time_trend_chart(trend_data: list[dict[str, Any]]) -> go.Figure:
     """Create line chart for Flow Time trend over time.
 
     Mobile-first design with clean presentation and consistent colors.
@@ -372,8 +374,8 @@ def create_flow_time_trend_chart(trend_data: List[Dict[str, Any]]) -> go.Figure:
 
 
 def create_flow_load_trend_chart(
-    trend_data: List[Dict[str, Any]],
-    wip_thresholds: Optional[Dict[str, Any]] = None,
+    trend_data: list[dict[str, Any]],
+    wip_thresholds: dict[str, Any] | None = None,
     line_color: str = "#6f42c1",  # Default purple, but accept dynamic color
 ) -> go.Figure:
     """Create line chart for Flow Load (WIP) trend over time with threshold lines.

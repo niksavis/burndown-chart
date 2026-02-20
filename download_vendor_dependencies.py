@@ -12,12 +12,11 @@ Usage:
 import re
 import sys
 from pathlib import Path
-from typing import Dict, List
 
 import requests
 
 
-def parse_dependencies(deps_file: Path) -> Dict[str, str]:
+def parse_dependencies(deps_file: Path) -> dict[str, str]:
     """Parse vendor_dependencies.txt to extract library versions."""
     versions = {}
     if not deps_file.exists():
@@ -123,7 +122,7 @@ def download_fontawesome(version: str, vendor_dir: Path) -> None:
 
     # Download webfonts (including v4compatibility for backward compatibility)
     webfonts_dir = fa_dir / "webfonts"
-    font_files: List[str] = [
+    font_files: list[str] = [
         "fa-solid-900.woff2",
         "fa-solid-900.ttf",
         "fa-regular-400.woff2",

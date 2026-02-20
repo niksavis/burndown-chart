@@ -6,7 +6,7 @@ import json
 import logging
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from data.database import get_db_connection
 
@@ -22,19 +22,19 @@ class MetricsMixin:
         self,
         profile_id: str,
         query_id: str,
-        metric_name: Optional[str] = None,
-        metric_category: Optional[str] = None,
-        start_date: Optional[str] = None,
-        end_date: Optional[str] = None,
-        limit: Optional[int] = None,
-    ) -> List[Dict]:
+        metric_name: str | None = None,
+        metric_category: str | None = None,
+        start_date: str | None = None,
+        end_date: str | None = None,
+        limit: int | None = None,
+    ) -> list[dict]:
         """Query normalized metric data points."""
         try:
             with get_db_connection(self.db_path) as conn:
                 cursor = conn.cursor()
 
                 query = "SELECT * FROM metrics_data_points WHERE profile_id = ? AND query_id = ?"
-                params: List[Any] = [profile_id, query_id]
+                params: list[Any] = [profile_id, query_id]
 
                 if metric_name:
                     query += " AND metric_name = ?"
@@ -115,7 +115,7 @@ class MetricsMixin:
         self,
         profile_id: str,
         query_id: str,
-        metrics: List[Dict],
+        metrics: list[dict],
     ) -> None:
         """Batch UPSERT metric data points."""
         if not metrics:
@@ -178,7 +178,7 @@ class MetricsMixin:
 
     def get_metrics_snapshots(
         self, profile_id: str, query_id: str, metric_type: str, limit: int = 52
-    ) -> List[Dict]:
+    ) -> list[dict]:
         """LEGACY: Get metrics snapshots - returns normalized metrics."""
         return self.get_metric_values(
             profile_id, query_id, metric_category=metric_type, limit=limit
@@ -190,8 +190,8 @@ class MetricsMixin:
         query_id: str,
         snapshot_date: str,
         metric_type: str,
-        metrics: Dict,
-        forecast: Optional[Dict] = None,
+        metrics: dict,
+        forecast: dict | None = None,
     ) -> None:
         """LEGACY: Save metrics snapshot - converts to normalized metrics."""
         metric_list = []

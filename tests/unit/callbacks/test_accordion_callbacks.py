@@ -9,9 +9,11 @@ Tests verify that:
 5. Profile settings save correctly
 """
 
+from datetime import UTC
 from unittest.mock import patch
-from dash import html, no_update
+
 import dash_bootstrap_components as dbc
+from dash import html, no_update
 
 
 class TestConfigurationStatusTracking:
@@ -442,8 +444,8 @@ class TestCallbackIntegration:
     def test_full_workflow_profile_to_data_ops(self):
         """Test complete workflow from profile selection to data operations."""
         from callbacks.accordion_settings import (
-            update_configuration_status,
             enforce_query_save_before_data_ops,
+            update_configuration_status,
         )
 
         # Step 1: No profile selected
@@ -476,9 +478,10 @@ class TestLoadQueryJQL:
         Verify loads JQL when query selected.
         Uses SQLite database backend via temp_database fixture.
         """
-        from data.persistence.factory import get_backend
+        from datetime import datetime
+
         from callbacks.accordion_settings import load_query_jql
-        from datetime import datetime, timezone
+        from data.persistence.factory import get_backend
 
         # Arrange - Create profile and query in database
         backend = get_backend()
@@ -488,9 +491,9 @@ class TestLoadQueryJQL:
             "id": "kafka",
             "name": "Kafka Profile",
             "created_at": datetime(
-                2026, 1, 1, 0, 0, 0, tzinfo=timezone.utc
+                2026, 1, 1, 0, 0, 0, tzinfo=UTC
             ).isoformat(),
-            "last_used": datetime(2026, 1, 1, 0, 0, 0, tzinfo=timezone.utc).isoformat(),
+            "last_used": datetime(2026, 1, 1, 0, 0, 0, tzinfo=UTC).isoformat(),
             "jira_config": {},
             "field_mappings": {},
         }
@@ -504,9 +507,9 @@ class TestLoadQueryJQL:
             "jql": "project = KAFKA AND priority > Medium",
             "description": "High priority items",
             "created_at": datetime(
-                2026, 1, 1, 0, 0, 0, tzinfo=timezone.utc
+                2026, 1, 1, 0, 0, 0, tzinfo=UTC
             ).isoformat(),
-            "last_used": datetime(2026, 1, 1, 0, 0, 0, tzinfo=timezone.utc).isoformat(),
+            "last_used": datetime(2026, 1, 1, 0, 0, 0, tzinfo=UTC).isoformat(),
         }
         backend.save_query("kafka", query_data)
 
@@ -529,9 +532,10 @@ class TestLoadQueryJQL:
         Verify returns empty string if query file doesn't exist.
         Uses SQLite database backend via temp_database fixture.
         """
-        from data.persistence.factory import get_backend
+        from datetime import datetime
+
         from callbacks.accordion_settings import load_query_jql
-        from datetime import datetime, timezone
+        from data.persistence.factory import get_backend
 
         # Arrange - Create profile but NOT the query
         backend = get_backend()
@@ -539,9 +543,9 @@ class TestLoadQueryJQL:
             "id": "default",
             "name": "Default Profile",
             "created_at": datetime(
-                2026, 1, 1, 0, 0, 0, tzinfo=timezone.utc
+                2026, 1, 1, 0, 0, 0, tzinfo=UTC
             ).isoformat(),
-            "last_used": datetime(2026, 1, 1, 0, 0, 0, tzinfo=timezone.utc).isoformat(),
+            "last_used": datetime(2026, 1, 1, 0, 0, 0, tzinfo=UTC).isoformat(),
             "jira_config": {},
             "field_mappings": {},
         }
@@ -564,9 +568,10 @@ class TestSaveQueryChanges:
         Verify saves updated JQL to query file.
         Uses SQLite database backend via temp_database fixture.
         """
-        from data.persistence.factory import get_backend
+        from datetime import datetime
+
         from callbacks.accordion_settings import save_query_changes
-        from datetime import datetime, timezone
+        from data.persistence.factory import get_backend
 
         # Arrange - Create profile and query in database
         backend = get_backend()
@@ -575,9 +580,9 @@ class TestSaveQueryChanges:
             "id": "kafka",
             "name": "Kafka Profile",
             "created_at": datetime(
-                2026, 1, 1, 0, 0, 0, tzinfo=timezone.utc
+                2026, 1, 1, 0, 0, 0, tzinfo=UTC
             ).isoformat(),
-            "last_used": datetime(2026, 1, 1, 0, 0, 0, tzinfo=timezone.utc).isoformat(),
+            "last_used": datetime(2026, 1, 1, 0, 0, 0, tzinfo=UTC).isoformat(),
             "jira_config": {},
             "field_mappings": {},
         }
@@ -590,9 +595,9 @@ class TestSaveQueryChanges:
             "jql": "project = KAFKA",
             "description": "Original query",
             "created_at": datetime(
-                2026, 1, 1, 0, 0, 0, tzinfo=timezone.utc
+                2026, 1, 1, 0, 0, 0, tzinfo=UTC
             ).isoformat(),
-            "last_used": datetime(2026, 1, 1, 0, 0, 0, tzinfo=timezone.utc).isoformat(),
+            "last_used": datetime(2026, 1, 1, 0, 0, 0, tzinfo=UTC).isoformat(),
         }
         backend.save_query("kafka", query_data)
 
@@ -643,9 +648,10 @@ class TestCancelQueryEdit:
         Verify reloads original JQL on cancel.
         Uses SQLite database backend via temp_database fixture.
         """
-        from data.persistence.factory import get_backend
+        from datetime import datetime
+
         from callbacks.accordion_settings import cancel_query_edit
-        from datetime import datetime, timezone
+        from data.persistence.factory import get_backend
 
         # Arrange - Create profile and query in database
         backend = get_backend()
@@ -654,9 +660,9 @@ class TestCancelQueryEdit:
             "id": "kafka",
             "name": "Kafka Profile",
             "created_at": datetime(
-                2026, 1, 1, 0, 0, 0, tzinfo=timezone.utc
+                2026, 1, 1, 0, 0, 0, tzinfo=UTC
             ).isoformat(),
-            "last_used": datetime(2026, 1, 1, 0, 0, 0, tzinfo=timezone.utc).isoformat(),
+            "last_used": datetime(2026, 1, 1, 0, 0, 0, tzinfo=UTC).isoformat(),
             "jira_config": {},
             "field_mappings": {},
         }
@@ -670,9 +676,9 @@ class TestCancelQueryEdit:
             "jql": original_jql,
             "description": "",
             "created_at": datetime(
-                2026, 1, 1, 0, 0, 0, tzinfo=timezone.utc
+                2026, 1, 1, 0, 0, 0, tzinfo=UTC
             ).isoformat(),
-            "last_used": datetime(2026, 1, 1, 0, 0, 0, tzinfo=timezone.utc).isoformat(),
+            "last_used": datetime(2026, 1, 1, 0, 0, 0, tzinfo=UTC).isoformat(),
         }
         backend.save_query("kafka", query_data)
 

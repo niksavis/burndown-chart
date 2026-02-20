@@ -3,16 +3,17 @@
 Provides UI components for bug metrics display, charts, and analysis tab layout.
 """
 
-from dash import html
+
 import dash_bootstrap_components as dbc
 import pandas as pd
-from typing import Dict, List, Optional
+from dash import html
+
+from configuration.help_content import BUG_ANALYSIS_TOOLTIPS
 from data.bug_insights import InsightSeverity
 from ui.tooltip_utils import create_help_icon
-from configuration.help_content import BUG_ANALYSIS_TOOLTIPS
 
 
-def create_bug_metrics_cards(bug_metrics: Dict, forecast: Dict) -> html.Div:
+def create_bug_metrics_cards(bug_metrics: dict, forecast: dict) -> html.Div:
     """Create compact bug metrics summary display with three cards in responsive layout.
 
     Args:
@@ -475,7 +476,7 @@ def create_bug_metrics_cards(bug_metrics: Dict, forecast: Dict) -> html.Div:
 
 
 def create_quality_insights_panel(
-    insights: List[Dict], weekly_stats: Optional[List[Dict]] = None
+    insights: list[dict], weekly_stats: list[dict] | None = None
 ) -> html.Div:
     """Create quality insights panel with severity icons and expandable details.
 
@@ -543,7 +544,7 @@ def create_quality_insights_panel(
             ]
         )
 
-    def get_severity_config(severity: InsightSeverity) -> Dict:
+    def get_severity_config(severity: InsightSeverity) -> dict:
         """Get icon and color configuration for severity level."""
         severity_configs = {
             InsightSeverity.CRITICAL: {
@@ -653,7 +654,7 @@ def create_quality_insights_panel(
     )
 
 
-def create_bug_forecast_card(forecast: Dict, open_bugs: int) -> html.Div:
+def create_bug_forecast_card(forecast: dict, open_bugs: int) -> html.Div:
     """Create compact bug resolution forecast display (indicator-style).
 
     Args:

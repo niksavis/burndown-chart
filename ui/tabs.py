@@ -9,7 +9,7 @@ with enhanced mobile-first responsive design and navigation patterns.
 # IMPORTS
 #######################################################################
 # Standard library imports
-from typing import TypedDict, List
+from typing import TypedDict
 
 # Third-party library imports
 import dash_bootstrap_components as dbc
@@ -18,12 +18,11 @@ from dash import html
 # Application imports
 from configuration.settings import CHART_HELP_TEXTS
 from ui.grid_utils import create_tab_content as grid_create_tab_content
-from ui.tooltip_utils import create_info_tooltip
 from ui.mobile_navigation import (
     get_mobile_tabs_config,
 )
 from ui.style_constants import get_color
-
+from ui.tooltip_utils import create_info_tooltip
 
 #######################################################################
 # TAB CONFIGURATION REGISTRY
@@ -45,7 +44,7 @@ class TabConfig(TypedDict):
 
 # Central tab registry defining all application tabs
 # Order determines display sequence (0 = first tab)
-TAB_CONFIG: List[TabConfig] = [
+TAB_CONFIG: list[TabConfig] = [
     {
         "id": "tab-dashboard",
         "label": "Dashboard",
@@ -155,7 +154,7 @@ def get_tab_by_id(tab_id: str) -> TabConfig | None:
     return None
 
 
-def get_tabs_sorted() -> List[TabConfig]:
+def get_tabs_sorted() -> list[TabConfig]:
     """
     Get all tabs sorted by order.
 

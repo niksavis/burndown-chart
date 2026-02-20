@@ -21,7 +21,7 @@ The heavy work is done client-side - Dash only provides the data.
 
 import logging
 
-from dash import Input, Output, clientside_callback, ClientsideFunction
+from dash import ClientsideFunction, Input, Output, clientside_callback
 
 logger = logging.getLogger(__name__)
 

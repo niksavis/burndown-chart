@@ -5,11 +5,12 @@ Tests metric card rendering for success states, error states, and loading states
 
 from typing import Any
 
-import pytest
 import dash_bootstrap_components as dbc
+import pytest
+
 from ui.metric_cards import (
-    create_metric_card,
     create_loading_card,
+    create_metric_card,
     create_metric_cards_grid,
 )
 

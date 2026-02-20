@@ -10,15 +10,17 @@ Created: 2026-02-10
 Related: Feature burndown-chart-a1vn
 """
 
-import pytest
 from datetime import datetime
+
+import pytest
+
 from data.metrics.blending import (
-    get_weekday_weight,
-    calculate_current_week_blend,
-    get_blend_metadata,
-    format_blend_description,
-    WEEKDAY_WEIGHTS,
     DAY_NAMES,
+    WEEKDAY_WEIGHTS,
+    calculate_current_week_blend,
+    format_blend_description,
+    get_blend_metadata,
+    get_weekday_weight,
 )
 
 
@@ -327,7 +329,7 @@ class TestProgressionThroughWeek:
         ]
 
         for i, (date, actual, expected_blend) in enumerate(
-            zip(dates, actuals, expected)
+            zip(dates, actuals, expected, strict=False)
         ):
             blended = calculate_current_week_blend(actual, forecast, date)
             assert blended == pytest.approx(expected_blend, rel=0.01), (

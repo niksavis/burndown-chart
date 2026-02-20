@@ -7,20 +7,20 @@ Uses background threading for downloads to provide progress feedback.
 
 import logging
 import threading
-from dash import callback, Input, Output, State, no_update
-from typing import Optional
+
 import dash_bootstrap_components as dbc
+from dash import Input, Output, State, callback, no_update
 
 from data.update_manager import (
+    UpdateState,
     download_update,
     launch_updater,
-    UpdateState,
 )
 
 logger = logging.getLogger(__name__)
 
 # Global variable to track download thread
-_download_thread: Optional[threading.Thread] = None
+_download_thread: threading.Thread | None = None
 _download_in_progress = False
 
 
@@ -43,9 +43,10 @@ def handle_footer_update_click(footer_clicks: int):
     Returns:
         Toast notification
     """
-    from ui.toast_notifications import create_toast
     from dash import callback_context, html
+
     import app
+    from ui.toast_notifications import create_toast
 
     # Check if actually clicked
     if not callback_context.triggered:
@@ -152,12 +153,13 @@ def handle_footer_update_click(footer_clicks: int):
     State("update-status-store", "data"),
     prevent_initial_call=True,
 )
-def handle_toast_download_click(download_clicks: int, status_data: Optional[dict]):
+def handle_toast_download_click(download_clicks: int, status_data: dict | None):
     """Handle download when user clicks Download button in toast notification."""
     global _download_thread, _download_in_progress
-    from ui.toast_notifications import create_toast
-    from dash import html, callback_context
+    from dash import callback_context, html
+
     import app
+    from ui.toast_notifications import create_toast
 
     # Check if button was actually clicked
     if not callback_context.triggered:
@@ -281,9 +283,10 @@ def poll_download_progress(n_intervals):
     Returns:
         Tuple of (toast notification, poll interval disabled, progress value, progress text)
     """
-    from ui.toast_notifications import create_toast
     from dash import html
+
     import app
+    from ui.toast_notifications import create_toast
 
     progress = app.VERSION_CHECK_RESULT
 
@@ -347,7 +350,7 @@ def poll_download_progress(n_intervals):
     State("update-status-store", "data"),
     prevent_initial_call=True,
 )
-def handle_update_install(install_clicks: int, status_data: Optional[dict]):
+def handle_update_install(install_clicks: int, status_data: dict | None):
     """Handle update installation when user clicks Update button.
 
     This will launch the updater executable which will:
@@ -362,8 +365,8 @@ def handle_update_install(install_clicks: int, status_data: Optional[dict]):
     Returns:
         Toast notification about the update process
     """
-    from ui.toast_notifications import create_toast
     import app
+    from ui.toast_notifications import create_toast
 
     if not install_clicks:
         return no_update

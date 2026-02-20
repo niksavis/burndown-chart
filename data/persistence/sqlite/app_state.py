@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import logging
 from pathlib import Path
-from typing import Optional
 
 from data.database import get_db_connection
 from data.persistence.sqlite.helpers import retry_on_db_lock
@@ -17,7 +16,7 @@ class AppStateMixin:
 
     db_path: Path  # Set by composition class (SQLiteBackend)
 
-    def get_app_state(self, key: str) -> Optional[str]:
+    def get_app_state(self, key: str) -> str | None:
         """Get application state value from app_state table."""
         try:
             with get_db_connection(self.db_path) as conn:

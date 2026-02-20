@@ -145,8 +145,9 @@ class TestHealthScoreConsistency:
         self, profile_with_artificial_points, query_with_statistics
     ):
         """Integration test: Verify show_points preserved through export/import cycle."""
-        from data.import_export import export_profile_with_mode
         from unittest.mock import MagicMock, patch
+
+        from data.import_export import export_profile_with_mode
 
         # Setup: Mock database backend
         with patch("data.persistence.factory.get_backend") as mock_get_backend:

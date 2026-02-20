@@ -5,8 +5,9 @@ Follows Constitution Principle I (Layered Architecture) - delegates to data laye
 """
 
 import logging
-from dash import callback, Output, Input, State, no_update
+
 import pyperclip  # Cross-platform clipboard support
+from dash import Input, Output, State, callback, no_update
 
 logger = logging.getLogger(__name__)
 

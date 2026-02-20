@@ -8,9 +8,9 @@ This module handles callbacks related to statistics data management.
 # IMPORTS
 #######################################################################
 # Third-party library imports
+import dash_bootstrap_components as dbc
 from dash import Input, Output, State, html
 from dash.exceptions import PreventUpdate
-import dash_bootstrap_components as dbc
 
 #######################################################################
 # HELPER FUNCTIONS
@@ -187,10 +187,11 @@ def register(app):
         Returns:
             List of statistics dictionaries loaded from database
         """
+        from dash.exceptions import PreventUpdate
+
         from configuration import logger
         from data.persistence import load_unified_project_data
         from data.profile_manager import get_active_profile
-        from dash.exceptions import PreventUpdate
 
         logger.info(
             f"[Statistics] reload_statistics_from_database triggered by timestamp={timestamp}"
@@ -222,7 +223,7 @@ def register(app):
             logger.error(
                 f"[Statistics] Failed to reload from database: {e}", exc_info=True
             )
-            raise PreventUpdate
+            raise PreventUpdate from e
 
     @app.callback(
         [
@@ -255,8 +256,9 @@ def register(app):
         this is a re-render, not a user edit.
         """
         from datetime import datetime
-        from data.persistence import save_statistics
+
         from configuration import logger
+        from data.persistence import save_statistics
 
         logger.info(
             f"[Statistics] save_statistics_on_edit triggered: "
@@ -345,8 +347,9 @@ def register(app):
         and inserts a new row at the beginning of the table.
         """
         from datetime import datetime, timedelta
-        from data.iso_week_bucketing import get_week_label
+
         from configuration import logger
+        from data.iso_week_bucketing import get_week_label
 
         if not n_clicks or not current_data:
             raise PreventUpdate

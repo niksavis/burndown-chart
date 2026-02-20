@@ -10,8 +10,8 @@ Tests the cache management system for JIRA data including:
 
 # Import all cache manager functions
 from data.cache_manager import (
-    generate_cache_key,
     CacheInvalidationTrigger,
+    generate_cache_key,
 )
 
 

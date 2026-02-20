@@ -5,13 +5,14 @@ Tests the rename_profile function with various validation scenarios.
 Uses SQLite database backend via temp_database fixture.
 """
 
+from datetime import UTC, datetime
+
 import pytest
-from datetime import datetime, timezone
 
 
 def create_test_profile_data(profile_id: str, name: str) -> dict:
     """Helper to create test profile with all required fields."""
-    fixed_timestamp = datetime(2026, 1, 1, 0, 0, 0, tzinfo=timezone.utc).isoformat()
+    fixed_timestamp = datetime(2026, 1, 1, 0, 0, 0, tzinfo=UTC).isoformat()
     return {
         "id": profile_id,
         "name": name,
@@ -35,8 +36,8 @@ class TestRenameProfile:
 
     def test_rename_profile_success(self, temp_database):
         """Test successful profile rename."""
-        from data.profile_manager import rename_profile
         from data.persistence.factory import get_backend
+        from data.profile_manager import rename_profile
 
         # Create initial profile
         backend = get_backend()
@@ -53,8 +54,8 @@ class TestRenameProfile:
 
     def test_rename_profile_empty_name(self, temp_database):
         """Test rename with empty name raises ValueError."""
-        from data.profile_manager import rename_profile
         from data.persistence.factory import get_backend
+        from data.profile_manager import rename_profile
 
         backend = get_backend()
         profile = create_test_profile_data("p_test123", "Test Profile")
@@ -68,8 +69,8 @@ class TestRenameProfile:
 
     def test_rename_profile_name_too_long(self, temp_database):
         """Test rename with name exceeding 100 characters."""
-        from data.profile_manager import rename_profile
         from data.persistence.factory import get_backend
+        from data.profile_manager import rename_profile
 
         backend = get_backend()
         profile = create_test_profile_data("p_test123", "Test Profile")
@@ -83,8 +84,8 @@ class TestRenameProfile:
 
     def test_rename_profile_duplicate_name(self, temp_database):
         """Test rename to existing profile name raises ValueError."""
-        from data.profile_manager import rename_profile
         from data.persistence.factory import get_backend
+        from data.profile_manager import rename_profile
 
         backend = get_backend()
         profile1 = create_test_profile_data("p_test1", "Profile One")
@@ -100,8 +101,8 @@ class TestRenameProfile:
 
     def test_rename_profile_duplicate_name_case_insensitive(self, temp_database):
         """Test rename duplicate check is case-insensitive."""
-        from data.profile_manager import rename_profile
         from data.persistence.factory import get_backend
+        from data.profile_manager import rename_profile
 
         backend = get_backend()
         profile1 = create_test_profile_data("p_test1", "Profile One")
@@ -121,8 +122,8 @@ class TestRenameProfile:
 
     def test_rename_profile_same_name(self, temp_database):
         """Test rename to same name (should skip operation)."""
-        from data.profile_manager import rename_profile
         from data.persistence.factory import get_backend
+        from data.profile_manager import rename_profile
 
         backend = get_backend()
         profile = create_test_profile_data("p_test123", "Test Profile")
@@ -146,8 +147,8 @@ class TestRenameProfile:
 
     def test_rename_preserves_other_metadata(self, temp_database):
         """Test rename doesn't change other profile metadata."""
-        from data.profile_manager import rename_profile
         from data.persistence.factory import get_backend
+        from data.profile_manager import rename_profile
 
         backend = get_backend()
         profile = create_test_profile_data("p_test123", "Original Name")
@@ -175,8 +176,8 @@ class TestRenameProfile:
 
     def test_rename_profile_id_unchanged(self, temp_database):
         """Test rename doesn't change profile ID."""
-        from data.profile_manager import rename_profile
         from data.persistence.factory import get_backend
+        from data.profile_manager import rename_profile
 
         backend = get_backend()
         profile = create_test_profile_data("p_test123", "Original Name")
@@ -193,8 +194,8 @@ class TestRenameProfile:
 
     def test_rename_whitespace_stripped(self, temp_database):
         """Test rename strips leading/trailing whitespace."""
-        from data.profile_manager import rename_profile
         from data.persistence.factory import get_backend
+        from data.profile_manager import rename_profile
 
         backend = get_backend()
         profile = create_test_profile_data("p_test123", "Test Profile")

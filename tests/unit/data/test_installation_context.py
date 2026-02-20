@@ -7,6 +7,7 @@ Tests path resolution for frozen vs source modes.
 import sys
 from pathlib import Path
 from unittest.mock import patch
+
 import pytest
 
 from data.installation_context import InstallationContext, get_installation_context
@@ -35,7 +36,7 @@ class TestInstallationContextDetection:
         finally:
             # Restore original state
             if original_has_meipass and original_meipass is not None:
-                setattr(sys, "_MEIPASS", original_meipass)
+                sys._MEIPASS = original_meipass
         """Test detection when running as PyInstaller executable."""
         fake_exe_path = Path("C:/Program Files/Burndown/Burndown.exe")
 
@@ -77,7 +78,7 @@ class TestInstallationContextPaths:
         finally:
             # Restore original state
             if original_has_meipass and original_meipass is not None:
-                setattr(sys, "_MEIPASS", original_meipass)
+                sys._MEIPASS = original_meipass
         """Test that frozen mode uses executable directory paths."""
         fake_exe_dir = Path("C:/Program Files/Burndown")
 
@@ -213,7 +214,7 @@ class TestInstallationContextPortableMode:
         finally:
             # Restore original state
             if original_has_meipass and original_meipass is not None:
-                setattr(sys, "_MEIPASS", original_meipass)
+                sys._MEIPASS = original_meipass
         """Test portable mode detection in frozen mode."""
         fake_exe_dir = Path("C:/Users/Test/Burndown")
 

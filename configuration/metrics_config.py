@@ -11,7 +11,7 @@ Reference: docs/metrics/IMPLEMENTATION_GUIDE.md
 """
 
 import logging
-from typing import Dict, List, Optional, Any
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -29,7 +29,7 @@ class MetricsConfig:
         >>> ['In Progress', 'Patch Available', 'Reopened']
     """
 
-    def __init__(self, profile_id: Optional[str] = None):
+    def __init__(self, profile_id: str | None = None):
         """Initialize configuration loader.
 
         Args:
@@ -63,9 +63,9 @@ class MetricsConfig:
             return active_profile_id
         except Exception as e:
             logger.error(f"Failed to load active profile ID: {e}")
-            raise RuntimeError(f"Cannot load profile configuration: {e}")
+            raise RuntimeError(f"Cannot load profile configuration: {e}") from e
 
-    def _load_profile_config(self) -> Dict[str, Any]:
+    def _load_profile_config(self) -> dict[str, Any]:
         """Load configuration from database backend.
 
         Returns:
@@ -95,7 +95,7 @@ class MetricsConfig:
             logger.error(f"Failed to load profile configuration: {e}")
             return self._get_default_profile_config()
 
-    def _get_default_profile_config(self) -> Dict[str, Any]:
+    def _get_default_profile_config(self) -> dict[str, Any]:
         """Get default empty profile configuration when profile doesn't exist.
 
         Returns:
@@ -120,7 +120,7 @@ class MetricsConfig:
     # Field Mappings
     # ========================================================================
 
-    def get_dora_field_mappings(self) -> Dict[str, str]:
+    def get_dora_field_mappings(self) -> dict[str, str]:
         """Get DORA metric field mappings from profile.
 
         Returns:
@@ -129,7 +129,7 @@ class MetricsConfig:
         """
         return self.profile_config.get("field_mappings", {}).get("dora", {})
 
-    def get_flow_field_mappings(self) -> Dict[str, str]:
+    def get_flow_field_mappings(self) -> dict[str, str]:
         """Get Flow metric field mappings from profile.
 
         Returns:
@@ -138,7 +138,7 @@ class MetricsConfig:
         """
         return self.profile_config.get("field_mappings", {}).get("flow", {})
 
-    def get_all_field_mappings(self) -> Dict[str, Dict[str, str]]:
+    def get_all_field_mappings(self) -> dict[str, dict[str, str]]:
         """Get all field mappings (DORA + Flow) from profile.
 
         Returns:
@@ -148,7 +148,7 @@ class MetricsConfig:
 
     def get_custom_field_id(
         self, field_name: str, metric_type: str = "dora"
-    ) -> Optional[str]:
+    ) -> str | None:
         """Get custom field ID for a specific field.
 
         Args:
@@ -169,7 +169,7 @@ class MetricsConfig:
     # Workflow Status Mappings (from Profile project_classification)
     # ========================================================================
 
-    def get_wip_statuses(self) -> List[str]:
+    def get_wip_statuses(self) -> list[str]:
         """Get list of statuses that indicate work-in-progress (WIP) from profile.
 
         Returns:
@@ -180,7 +180,7 @@ class MetricsConfig:
             "wip_statuses", []
         )
 
-    def get_active_statuses(self) -> List[str]:
+    def get_active_statuses(self) -> list[str]:
         """Get list of statuses where work is actively being done from profile.
 
         Used for Flow Efficiency calculation (active time vs waiting time).
@@ -193,7 +193,7 @@ class MetricsConfig:
             "active_statuses", []
         )
 
-    def get_flow_end_statuses(self) -> List[str]:
+    def get_flow_end_statuses(self) -> list[str]:
         """Get list of statuses that indicate work is completed (Flow End) from profile.
 
         Returns:
@@ -204,7 +204,7 @@ class MetricsConfig:
             "flow_end_statuses", []
         )
 
-    def get_flow_start_statuses(self) -> List[str]:
+    def get_flow_start_statuses(self) -> list[str]:
         """Get list of statuses that indicate work has started from profile.
 
         Returns:
@@ -216,7 +216,7 @@ class MetricsConfig:
         )
 
     def is_status_in_list(
-        self, status_name: str, status_list: List[str], case_sensitive: bool = False
+        self, status_name: str, status_list: list[str], case_sensitive: bool = False
     ) -> bool:
         """Check if status is in a given list with optional case-insensitive matching.
 
@@ -238,7 +238,7 @@ class MetricsConfig:
     # Project Configuration
     # ========================================================================
 
-    def get_devops_projects(self) -> List[str]:
+    def get_devops_projects(self) -> list[str]:
         """Get list of DevOps/operational project keys from profile.
 
         DevOps projects contain deployment tracking (Operational Tasks).
@@ -251,7 +251,7 @@ class MetricsConfig:
             "devops_projects", []
         )
 
-    def get_development_projects(self) -> List[str]:
+    def get_development_projects(self) -> list[str]:
         """Get list of development project keys from profile.
 
         Returns:
@@ -277,7 +277,7 @@ class MetricsConfig:
     # Flow Type Mappings
     # ========================================================================
 
-    def get_flow_type_mappings(self) -> Dict[str, Any]:
+    def get_flow_type_mappings(self) -> dict[str, Any]:
         """Get flow type mappings from profile.
 
         Returns:
@@ -287,8 +287,8 @@ class MetricsConfig:
         return self.profile_config.get("flow_type_mappings", {})
 
     def get_flow_type_for_issue(
-        self, issue_type: str, effort_category: Optional[str] = None
-    ) -> Optional[str]:
+        self, issue_type: str, effort_category: str | None = None
+    ) -> str | None:
         """Determine flow type (Feature/Defect/Technical_Debt/Risk) for an issue.
 
         Classification algorithm:
@@ -376,7 +376,7 @@ class MetricsConfig:
     # Validation
     # ========================================================================
 
-    def validate_configuration(self) -> Dict[str, Any]:
+    def validate_configuration(self) -> dict[str, Any]:
         """Validate profile configuration completeness and return status.
 
         Returns:
@@ -479,10 +479,10 @@ class MetricsConfig:
 
 
 # Singleton instance for convenient access
-_config_instance: Optional[MetricsConfig] = None
+_config_instance: MetricsConfig | None = None
 
 
-def get_metrics_config(profile_id: Optional[str] = None) -> MetricsConfig:
+def get_metrics_config(profile_id: str | None = None) -> MetricsConfig:
     """Get singleton instance of MetricsConfig.
 
     Args:
@@ -497,7 +497,7 @@ def get_metrics_config(profile_id: Optional[str] = None) -> MetricsConfig:
     return _config_instance
 
 
-def reload_metrics_config(profile_id: Optional[str] = None) -> MetricsConfig:
+def reload_metrics_config(profile_id: str | None = None) -> MetricsConfig:
     """Reload configuration from disk (e.g., after user updates settings).
 
     Args:

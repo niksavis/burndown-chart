@@ -4,7 +4,8 @@ Tracks form changes across all tabs in real-time.
 """
 
 import logging
-from dash import callback, Output, Input, State, no_update, ALL
+
+from dash import ALL, Input, Output, State, callback, no_update
 
 logger = logging.getLogger(__name__)
 

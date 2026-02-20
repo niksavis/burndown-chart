@@ -6,17 +6,18 @@ Maps JIRA status categories, issue types, and field values to application requir
 
 import logging
 import re
-from typing import Dict, List, Any, Optional
+from typing import Any
+
 from data.field_detector import detect_fields_from_issues
 
 logger = logging.getLogger(__name__)
 
 
 def generate_smart_defaults(
-    metadata: Dict[str, Any],
-    jql_query: Optional[str] = None,
-    issues: Optional[List[Dict]] = None,
-) -> Dict[str, Any]:
+    metadata: dict[str, Any],
+    jql_query: str | None = None,
+    issues: list[dict] | None = None,
+) -> dict[str, Any]:
     """Generate smart default configuration from JIRA metadata.
 
     Automatically maps JIRA statuses, issue types, and projects to profile configuration
@@ -103,7 +104,7 @@ def generate_smart_defaults(
 
     # Initialize defaults structure
     # Type: Dict can contain nested dicts (field_mappings), lists (project_classification), or strings (points_field)
-    defaults: Dict[str, Any] = {
+    defaults: dict[str, Any] = {
         "project_classification": {
             "flow_end_statuses": [],
             "active_statuses": [],
@@ -177,7 +178,7 @@ def generate_smart_defaults(
 
     # 4. Map fields using namespace syntax for changelog-based extraction
     # Custom field detection is OPTIONAL - only override if we find something better
-    field_mappings: Dict[str, Any] = {}
+    field_mappings: dict[str, Any] = {}
 
     # Get flow start and completion statuses for namespace syntax
     # Flow start = typically "In Progress" or first WIP status
@@ -316,8 +317,8 @@ def generate_smart_defaults(
 
 
 def _map_statuses_by_category(
-    statuses: List[Dict], auto_detected: Dict
-) -> tuple[List[str], List[str], List[str]]:
+    statuses: list[dict], auto_detected: dict
+) -> tuple[list[str], list[str], list[str]]:
     """Map JIRA statuses to completion, active, and WIP categories.
 
     Uses JIRA status categories as primary source:
@@ -370,7 +371,7 @@ def _map_statuses_by_category(
     return flow_end_statuses, active_statuses, wip_statuses
 
 
-def _select_flow_start_statuses(wip_statuses: List[str]) -> List[str]:
+def _select_flow_start_statuses(wip_statuses: list[str]) -> list[str]:
     """Select flow start statuses from WIP list.
 
     Flow start = when work actually begins (not just "selected" or "ready").
@@ -597,8 +598,8 @@ def _semantic_categorize_issue_type(type_name_lower: str) -> str:
 
 
 def _map_issue_types(
-    issue_types: List[Dict], auto_detected: Dict
-) -> tuple[Dict[str, List[str]], List[str]]:
+    issue_types: list[dict], auto_detected: dict
+) -> tuple[dict[str, list[str]], list[str]]:
     """Map JIRA issue types to Flow categories and identify DevOps task types.
 
     Issue types are mutually exclusive - each type belongs to exactly ONE category.
@@ -739,8 +740,8 @@ def _map_issue_types(
 
 
 def _extract_field_values(
-    issues: List[Dict], field_detections: Dict[str, str]
-) -> Dict[str, List[str]]:
+    issues: list[dict], field_detections: dict[str, str]
+) -> dict[str, list[str]]:
     """Extract unique values for detected fields (for dropdown population).
 
     Extracts values for:
@@ -820,7 +821,7 @@ def _extract_field_values(
     return field_values
 
 
-def _extract_projects_from_jql(jql_query: str, projects: List[Dict]) -> List[str]:
+def _extract_projects_from_jql(jql_query: str, projects: list[dict]) -> list[str]:
     """Extract project keys from JQL query.
 
     Parses JQL for:

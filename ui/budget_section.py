@@ -12,19 +12,19 @@ Created: January 4, 2026
 """
 
 import logging
-from typing import Optional, Dict, Any
+from typing import Any
 
 import dash_bootstrap_components as dbc
 from dash import html
 
 from ui.budget_cards import (
-    create_budget_utilization_card,
-    create_weekly_burn_rate_card,
+    create_budget_forecast_card,
     create_budget_runway_card,
+    create_budget_utilization_card,
+    create_cost_breakdown_card,
     create_cost_per_item_card,
     create_cost_per_point_card,
-    create_budget_forecast_card,
-    create_cost_breakdown_card,
+    create_weekly_burn_rate_card,
 )
 
 logger = logging.getLogger(__name__)
@@ -34,7 +34,7 @@ def _create_budget_section(
     profile_id: str,
     query_id: str,
     week_label: str,
-    budget_data: Optional[Dict[str, Any]] = None,
+    budget_data: dict[str, Any] | None = None,
     points_available: bool = False,
     data_points_count: int = 12,
 ) -> html.Div:

@@ -10,7 +10,6 @@ for both items and story points.
 #######################################################################
 # Standard library imports
 from datetime import timedelta
-from typing import Optional
 
 # Third-party library imports
 import pandas as pd
@@ -22,7 +21,6 @@ from data import generate_weekly_forecast
 from ui.tooltip_utils import create_hoverlabel_config, format_hover_template
 from visualization.helpers import fill_missing_weeks
 
-
 #######################################################################
 # WEEKLY COMPLETION CHARTS
 #######################################################################
@@ -32,7 +30,7 @@ def _add_required_velocity_line(
     fig: go.Figure,
     required_velocity: float,
     chart_type: str = "items",
-    current_velocity: Optional[float] = None,
+    current_velocity: float | None = None,
 ) -> None:
     """Add required velocity reference line to weekly chart.
 
@@ -230,7 +228,7 @@ def create_weekly_items_chart(
                 window = values[i - 3 : i + 1]
                 # Apply exponential weights (more weight to recent weeks)
                 weights = [0.1, 0.2, 0.3, 0.4]  # Weights sum to 1.0
-                w_avg = sum(w * v for w, v in zip(weights, window))
+                w_avg = sum(w * v for w, v in zip(weights, window, strict=False))
                 weighted_avg.append(w_avg)
 
         weekly_df["weighted_avg"] = weighted_avg
@@ -350,10 +348,10 @@ def create_weekly_items_chart(
 
             # Calculate confidence interval bounds (25% of difference)
             upper_bound = [
-                ml + 0.25 * (opt - ml) for ml, opt in zip(most_likely, optimistic)
+                ml + 0.25 * (opt - ml) for ml, opt in zip(most_likely, optimistic, strict=False)
             ]
             lower_bound = [
-                ml - 0.25 * (ml - pes) for ml, pes in zip(most_likely, pessimistic)
+                ml - 0.25 * (ml - pes) for ml, pes in zip(most_likely, pessimistic, strict=False)
             ]
 
             # Single next week forecast with confidence interval
@@ -370,9 +368,9 @@ def create_weekly_items_chart(
                     error_y=dict(
                         type="data",
                         symmetric=False,
-                        array=[u - ml for u, ml in zip(upper_bound, most_likely)],
+                        array=[u - ml for u, ml in zip(upper_bound, most_likely, strict=False)],
                         arrayminus=[
-                            ml - lb for ml, lb in zip(most_likely, lower_bound)
+                            ml - lb for ml, lb in zip(most_likely, lower_bound, strict=False)
                         ],
                         color="rgba(0, 0, 0, 0.3)",
                     ),
@@ -608,7 +606,7 @@ def create_weekly_points_chart(
                 window = values[i - 3 : i + 1]
                 # Apply exponential weights (more weight to recent weeks)
                 weights = [0.1, 0.2, 0.3, 0.4]  # Weights sum to 1.0
-                w_avg = sum(w * v for w, v in zip(weights, window))
+                w_avg = sum(w * v for w, v in zip(weights, window, strict=False))
                 weighted_avg.append(w_avg)
 
         weekly_df["weighted_avg"] = weighted_avg
@@ -728,10 +726,10 @@ def create_weekly_points_chart(
 
             # Calculate confidence interval bounds (25% of difference)
             upper_bound = [
-                ml + 0.25 * (opt - ml) for ml, opt in zip(most_likely, optimistic)
+                ml + 0.25 * (opt - ml) for ml, opt in zip(most_likely, optimistic, strict=False)
             ]
             lower_bound = [
-                ml - 0.25 * (ml - pes) for ml, pes in zip(most_likely, pessimistic)
+                ml - 0.25 * (ml - pes) for ml, pes in zip(most_likely, pessimistic, strict=False)
             ]
 
             # Single next week forecast with confidence interval
@@ -748,9 +746,9 @@ def create_weekly_points_chart(
                     error_y=dict(
                         type="data",
                         symmetric=False,
-                        array=[u - ml for u, ml in zip(upper_bound, most_likely)],
+                        array=[u - ml for u, ml in zip(upper_bound, most_likely, strict=False)],
                         arrayminus=[
-                            ml - lb for ml, lb in zip(most_likely, lower_bound)
+                            ml - lb for ml, lb in zip(most_likely, lower_bound, strict=False)
                         ],
                         color="rgba(0, 0, 0, 0.3)",
                     ),
@@ -1251,7 +1249,7 @@ def create_weekly_points_forecast_chart(
                 window = values[i - 3 : i + 1]
                 # Apply exponential weights (more weight to recent weeks)
                 weights = [0.1, 0.2, 0.3, 0.4]  # Weights sum to 1.0
-                w_avg = sum(w * v for w, v in zip(weights, window))
+                w_avg = sum(w * v for w, v in zip(weights, window, strict=False))
                 weighted_avg.append(w_avg)
 
         weekly_df["weighted_avg"] = weighted_avg
@@ -1326,10 +1324,10 @@ def create_weekly_points_forecast_chart(
 
         # Calculate upper and lower bounds for confidence interval (25% of difference)
         upper_bound = [
-            ml + 0.25 * (opt - ml) for ml, opt in zip(most_likely, optimistic)
+            ml + 0.25 * (opt - ml) for ml, opt in zip(most_likely, optimistic, strict=False)
         ]
         lower_bound = [
-            ml - 0.25 * (ml - pes) for ml, pes in zip(most_likely, pessimistic)
+            ml - 0.25 * (ml - pes) for ml, pes in zip(most_likely, pessimistic, strict=False)
         ]
 
         # Most likely forecast with confidence interval
@@ -1346,8 +1344,8 @@ def create_weekly_points_forecast_chart(
                 error_y=dict(
                     type="data",
                     symmetric=False,
-                    array=[u - ml for u, ml in zip(upper_bound, most_likely)],
-                    arrayminus=[ml - lb for ml, lb in zip(most_likely, lower_bound)],
+                    array=[u - ml for u, ml in zip(upper_bound, most_likely, strict=False)],
+                    arrayminus=[ml - lb for ml, lb in zip(most_likely, lower_bound, strict=False)],
                     color="rgba(0, 0, 0, 0.3)",
                 ),
                 hovertemplate=format_hover_template(

@@ -5,13 +5,14 @@ This module contains functions for building tab content layouts
 in the visualization callbacks.
 """
 
-from dash import html, dcc
+from dash import dcc, html
+
+from callbacks.visualization_helpers.ui_builders import (
+    create_trend_header_with_forecasts,
+)
 from configuration.chart_config import (
     get_burndown_chart_config,
     get_weekly_chart_config,
-)
-from callbacks.visualization_helpers.ui_builders import (
-    create_trend_header_with_forecasts,
 )
 
 

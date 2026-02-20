@@ -5,8 +5,8 @@ from __future__ import annotations
 import hashlib
 import shutil
 import zipfile
+from collections.abc import Callable
 from pathlib import Path
-from typing import Callable, Optional
 
 StatusFn = Callable[[str], None]
 
@@ -29,7 +29,8 @@ def extract_update(zip_path: Path, extract_dir: Path, status: StatusFn) -> bool:
 
         if extract_dir.exists():
             status(
-                f"WARNING: Extraction directory already exists (UUID collision?): {extract_dir}"
+                "WARNING: Extraction directory already exists "
+                f"(UUID collision?): {extract_dir}"
             )
             try:
                 shutil.rmtree(extract_dir)
@@ -82,7 +83,7 @@ def extract_update(zip_path: Path, extract_dir: Path, status: StatusFn) -> bool:
 def find_executable_in_extract(
     extract_dir: Path,
     names: list[str],
-) -> Optional[Path]:
+) -> Path | None:
     """Find a matching executable in an extracted update directory.
 
     Args:

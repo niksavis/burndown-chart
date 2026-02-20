@@ -826,14 +826,15 @@ def calculate_weekly_averages(
     # This ensures Dashboard and DORA tab show the same values
     try:
         if data_points_count is not None and data_points_count > 0:
-            from data.metrics_snapshots import get_metric_weekly_values
-            from data.time_period_calculator import get_iso_week, format_year_week
             from datetime import datetime, timedelta
+
+            from data.metrics_snapshots import get_metric_weekly_values
+            from data.time_period_calculator import format_year_week, get_iso_week
 
             # Generate week labels exactly like DORA/Flow metrics do
             weeks = []
             current_date = datetime.now()
-            for i in range(data_points_count):
+            for _i in range(data_points_count):
                 year, week = get_iso_week(current_date)
                 week_label = format_year_week(year, week)
                 weeks.append(week_label)

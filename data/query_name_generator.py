@@ -17,7 +17,6 @@ For complex queries, falls back to timestamped generic name.
 
 import re
 from datetime import datetime
-from typing import Optional
 
 
 def generate_query_name(jql: str, max_length: int = 50) -> str:
@@ -108,7 +107,7 @@ def generate_query_name(jql: str, max_length: int = 50) -> str:
     return name
 
 
-def _extract_project(jql: str) -> Optional[str]:
+def _extract_project(jql: str) -> str | None:
     """Extract project name from JQL."""
     # Match: project = KAFKA, project in (KAFKA, TEST), project = "KAFKA"
     patterns = [
@@ -124,7 +123,7 @@ def _extract_project(jql: str) -> Optional[str]:
     return None
 
 
-def _extract_issue_type(jql: str) -> Optional[str]:
+def _extract_issue_type(jql: str) -> str | None:
     """Extract issue type from JQL."""
     # Match: type = Bug, issuetype = Story, type in (Bug, Epic)
     patterns = [
@@ -142,7 +141,7 @@ def _extract_issue_type(jql: str) -> Optional[str]:
     return None
 
 
-def _extract_status(jql: str) -> Optional[str]:
+def _extract_status(jql: str) -> str | None:
     """Extract status from JQL."""
     # Match: status = Done, status in (Done, Closed)
     patterns = [
@@ -159,7 +158,7 @@ def _extract_status(jql: str) -> Optional[str]:
     return None
 
 
-def _extract_priority(jql: str) -> Optional[str]:
+def _extract_priority(jql: str) -> str | None:
     """Extract priority from JQL."""
     # Match: priority = High, priority in (High, Critical)
     patterns = [
@@ -175,7 +174,7 @@ def _extract_priority(jql: str) -> Optional[str]:
     return None
 
 
-def _extract_sprint(jql: str) -> Optional[str]:
+def _extract_sprint(jql: str) -> str | None:
     """Extract sprint information from JQL."""
     jql_lower = jql.lower()
 
@@ -197,7 +196,7 @@ def _extract_sprint(jql: str) -> Optional[str]:
     return None
 
 
-def _extract_time_range(jql: str) -> Optional[str]:
+def _extract_time_range(jql: str) -> str | None:
     """Extract time range from JQL."""
     # Match patterns like: created >= -12w, updated >= -30d
     patterns = [
@@ -222,7 +221,7 @@ def _extract_time_range(jql: str) -> Optional[str]:
 
 def validate_query_name(
     name: str, existing_names: list[str]
-) -> tuple[bool, Optional[str]]:
+) -> tuple[bool, str | None]:
     """
     Validate query name for uniqueness and format.
 

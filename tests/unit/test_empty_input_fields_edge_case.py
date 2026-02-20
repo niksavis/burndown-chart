@@ -14,10 +14,8 @@ is requested, the calculation respects that intent and returns 0.
 
 import unittest
 from unittest.mock import patch
+
 from data.processing import calculate_total_points
-from data.persistence import save_unified_project_data, get_project_scope
-import tempfile
-import os
 
 
 class TestEmptyInputFieldsRemainingTotalPoints(unittest.TestCase):

@@ -13,10 +13,10 @@ Flow Metrics Tested:
 5. Work Distribution - breakdown by flow_type_mappings
 """
 
-import pytest
+from typing import Any
 from unittest.mock import patch
-from typing import Dict, Any, Optional, List
 
+import pytest
 
 #######################################################################
 # TEST FIXTURES - Mock Profile Configuration
@@ -24,7 +24,7 @@ from typing import Dict, Any, Optional, List
 
 
 @pytest.fixture
-def mock_profile_config() -> Dict[str, Any]:
+def mock_profile_config() -> dict[str, Any]:
     """Mock profile configuration matching Drei Jira Production.
 
     Based on profile.json field_mappings and project_classification.
@@ -110,8 +110,8 @@ def create_completed_issue(
     in_progress_timestamp: str = "2025-01-05T10:00:00.000+0000",
     done_timestamp: str = "2025-01-10T10:00:00.000+0000",
     resolution_date: str = "2025-01-10T10:00:00.000+0000",
-    effort_category: Optional[str] = None,
-) -> Dict[str, Any]:
+    effort_category: str | None = None,
+) -> dict[str, Any]:
     """Create mock completed issue with changelog.
 
     Args:
@@ -171,7 +171,7 @@ def create_wip_issue(
     issue_type: str = "Task",
     status: str = "In Progress",
     in_progress_timestamp: str = "2025-01-05T10:00:00.000+0000",
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Create mock in-progress issue.
 
     Args:
@@ -209,10 +209,10 @@ def create_wip_issue(
 
 def create_issue_with_active_statuses(
     key: str,
-    status_transitions: List[Dict[str, str]],
+    status_transitions: list[dict[str, str]],
     final_status: str = "Done",
     resolution_date: str = "2025-01-15T10:00:00.000+0000",
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Create issue with specific status transitions for efficiency testing.
 
     Args:

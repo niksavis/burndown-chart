@@ -6,7 +6,7 @@ import json
 import logging
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from data.database import get_db_connection
 
@@ -22,17 +22,17 @@ class StatisticsMixin:
         self,
         profile_id: str,
         query_id: str,
-        start_date: Optional[str] = None,
-        end_date: Optional[str] = None,
-        limit: Optional[int] = None,
-    ) -> List[Dict]:
+        start_date: str | None = None,
+        end_date: str | None = None,
+        limit: int | None = None,
+    ) -> list[dict]:
         """Query normalized weekly statistics."""
         try:
             with get_db_connection(self.db_path) as conn:
                 cursor = conn.cursor()
 
                 query = "SELECT * FROM project_statistics WHERE profile_id = ? AND query_id = ?"
-                params: List[Any] = [profile_id, query_id]
+                params: list[Any] = [profile_id, query_id]
 
                 if start_date:
                     query += " AND stat_date >= ?"
@@ -62,7 +62,7 @@ class StatisticsMixin:
         self,
         profile_id: str,
         query_id: str,
-        stats: List[Dict],
+        stats: list[dict],
     ) -> None:
         """Batch save weekly statistics (replaces all existing data for query)."""
         try:
@@ -132,7 +132,7 @@ class StatisticsMixin:
             )
             raise
 
-    def get_scope(self, profile_id: str, query_id: str) -> Optional[Dict]:
+    def get_scope(self, profile_id: str, query_id: str) -> dict | None:
         """Get project scope data."""
         try:
             with get_db_connection(self.db_path) as conn:
@@ -158,7 +158,7 @@ class StatisticsMixin:
         self,
         profile_id: str,
         query_id: str,
-        scope_data: Dict,
+        scope_data: dict,
     ) -> None:
         """Save project scope data."""
         try:
@@ -188,7 +188,7 @@ class StatisticsMixin:
             )
             raise
 
-    def get_project_data(self, profile_id: str, query_id: str) -> Optional[Dict]:
+    def get_project_data(self, profile_id: str, query_id: str) -> dict | None:
         """LEGACY: Get project data - aggregates normalized statistics and scope."""
         stats = self.get_statistics(profile_id, query_id)
         scope = self.get_scope(profile_id, query_id)
@@ -196,7 +196,7 @@ class StatisticsMixin:
             return None
         return {"statistics": stats, "scope": scope}
 
-    def save_project_data(self, profile_id: str, query_id: str, data: Dict) -> None:
+    def save_project_data(self, profile_id: str, query_id: str, data: dict) -> None:
         """LEGACY: Save project data - splits to statistics and scope."""
         if "statistics" in data:
             self.save_statistics_batch(profile_id, query_id, data["statistics"])

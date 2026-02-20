@@ -16,10 +16,10 @@ Sections:
 import dash_bootstrap_components as dbc
 from dash import dcc, html
 
-from ui.profile_settings_card import create_profile_settings_card
+from ui.button_utils import create_panel_collapse_button
 from ui.jira_config_modal import create_jira_config_button
 from ui.jql_editor import create_jql_editor
-from ui.button_utils import create_panel_collapse_button
+from ui.profile_settings_card import create_profile_settings_card
 
 
 def create_connect_tab_content() -> html.Div:

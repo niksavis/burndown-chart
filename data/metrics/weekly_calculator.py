@@ -1,8 +1,7 @@
 """Main weekly metrics calculation and saving."""
 
 import logging
-from datetime import datetime, timezone, timedelta
-from typing import Tuple, Optional
+from datetime import UTC, datetime, timedelta
 
 from data.metrics.helpers import get_current_iso_week
 
@@ -12,8 +11,8 @@ logger = logging.getLogger(__name__)
 def calculate_and_save_weekly_metrics(
     week_label: str = "",
     progress_callback=None,
-    profile_id: Optional[str] = None,
-) -> Tuple[bool, str]:
+    profile_id: str | None = None,
+) -> tuple[bool, str]:
     """
     Calculate all Flow/DORA metrics for current week and save to snapshots.
 
@@ -317,7 +316,7 @@ def calculate_and_save_weekly_metrics(
         week_label_clean = week_label.replace("W", "").replace("-W", "-")
         try:
             year, week_num = map(int, week_label_clean.split("-"))
-            jan_4 = datetime(year, 1, 4, tzinfo=timezone.utc)  # Make timezone-aware UTC
+            jan_4 = datetime(year, 1, 4, tzinfo=UTC)  # Make timezone-aware UTC
             week_1_monday = jan_4 - timedelta(days=jan_4.weekday())
             target_week_monday = week_1_monday + timedelta(weeks=week_num - 1)
             week_start = target_week_monday.replace(
@@ -330,7 +329,7 @@ def calculate_and_save_weekly_metrics(
 
         # For current week, use running metrics (completions up to NOW)
         # For historical weeks, use full week period
-        now = datetime.now(timezone.utc).replace(tzinfo=None)
+        now = datetime.now(UTC).replace(tzinfo=None)
         is_current_week = now < week_end
         completion_cutoff = min(week_end, now) if is_current_week else week_end
 
@@ -412,9 +411,9 @@ def calculate_and_save_weekly_metrics(
 
                 # Normalize to naive UTC for comparison
                 if completion_timestamp.tzinfo is not None:
-                    completion_timestamp = completion_timestamp.astimezone(
-                        timezone.utc
-                    ).replace(tzinfo=None)
+                    completion_timestamp = completion_timestamp.astimezone(UTC).replace(
+                        tzinfo=None
+                    )
             except (ValueError, AttributeError, TypeError) as e:
                 extraction_stats["parse_errors"] += 1
                 logger.warning(
@@ -547,9 +546,7 @@ def calculate_and_save_weekly_metrics(
                     timestamp = get_first_status_transition_timestamp(issue, wip_status)
                     if timestamp:
                         # Convert to UTC before stripping timezone
-                        timestamp = timestamp.astimezone(timezone.utc).replace(
-                            tzinfo=None
-                        )
+                        timestamp = timestamp.astimezone(UTC).replace(tzinfo=None)
                         if timestamp < week_end_check_time:
                             if latest_wip_time is None or timestamp > latest_wip_time:
                                 latest_wip_time = timestamp
@@ -1396,7 +1393,7 @@ def calculate_and_save_weekly_metrics(
         trends = {
             "flow_time_trend": "stable",
             "flow_efficiency_trend": "stable",
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
         }
         save_metric_snapshot(week_label, "trends", trends)
 

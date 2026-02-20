@@ -4,8 +4,9 @@ Handles sprint selection changes in the Sprint Tracker tab.
 """
 
 import logging
-from dash import callback, Input, Output, html, no_update
+
 import dash_bootstrap_components as dbc
+from dash import Input, Output, callback, html, no_update
 
 logger = logging.getLogger(__name__)
 
@@ -52,9 +53,9 @@ def update_sprint_selection(selected_sprint: str, show_points_list: list):
     # Re-render the entire sprint tracker with the selected sprint
     # We need to reload data and filter to the selected sprint
     try:
+        from data.persistence import load_app_settings
         from data.persistence.factory import get_backend
         from data.sprint_manager import filter_sprint_issues, get_sprint_snapshots
-        from data.persistence import load_app_settings
 
         backend = get_backend()
         active_profile_id = backend.get_app_state("active_profile_id")

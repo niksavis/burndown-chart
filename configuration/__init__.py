@@ -14,6 +14,7 @@ This module contains configuration settings for the Burndown application.
 # None
 
 # Application imports
+from configuration import dora_config, flow_config
 from configuration.server import (
     DEFAULT_HOST,
     DEFAULT_PORT,
@@ -21,6 +22,9 @@ from configuration.server import (
     get_server_config,
 )
 from configuration.settings import (
+    # File paths
+    APP_SETTINGS_FILE,
+    CHART_HELP_TEXTS,
     # Constants
     COLOR_PALETTE,
     DEFAULT_DATA_POINTS_COUNT,
@@ -30,17 +34,13 @@ from configuration.settings import (
     DEFAULT_PERT_FACTOR,
     DEFAULT_TOTAL_ITEMS,
     DEFAULT_TOTAL_POINTS,
-    # File paths
-    APP_SETTINGS_FILE,
-    CHART_HELP_TEXTS,
-    SCOPE_HELP_TEXTS,
     PROJECT_DATA_FILE,
     SAMPLE_DATA,
+    SCOPE_HELP_TEXTS,
     SETTINGS_FILE,
     # Logging
     logger,
 )
-from configuration import dora_config, flow_config
 
 # Application version - used in the UI and for tracking
 # Follow semantic versioning (MAJOR.MINOR.PATCH)

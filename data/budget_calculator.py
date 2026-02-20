@@ -17,15 +17,16 @@ Created: January 4, 2026
 """
 
 import logging
+from datetime import UTC
 from pathlib import Path
-from typing import Dict, Optional, Tuple, Any, List
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
 
 def _get_current_budget(
-    profile_id: str, query_id: str, db_path: Optional[Path] = None
-) -> Optional[Dict[str, Any]]:
+    profile_id: str, query_id: str, db_path: Path | None = None
+) -> dict[str, Any] | None:
     """
     Get current budget from budget_settings (already includes revisions).
 
@@ -78,8 +79,8 @@ def _get_current_budget(
 
 
 def get_budget_at_week(
-    profile_id: str, query_id: str, week_label: str, db_path: Optional[Path] = None
-) -> Optional[Dict[str, Any]]:
+    profile_id: str, query_id: str, week_label: str, db_path: Path | None = None
+) -> dict[str, Any] | None:
     """
     Get budget configuration at specific week by replaying revisions.
 
@@ -175,8 +176,8 @@ def get_budget_at_week(
 
 
 def calculate_budget_consumed(
-    profile_id: str, query_id: str, week_label: str, db_path: Optional[Path] = None
-) -> Tuple[float, float, float]:
+    profile_id: str, query_id: str, week_label: str, db_path: Path | None = None
+) -> tuple[float, float, float]:
     """
     Calculate budget consumption percentage using current budget from budget_settings.
 
@@ -263,8 +264,8 @@ def calculate_budget_consumed(
 
 
 def calculate_cost_breakdown_by_type(
-    profile_id: str, query_id: str, week_label: str, db_path: Optional[Path] = None
-) -> Dict[str, Dict[str, float]]:
+    profile_id: str, query_id: str, week_label: str, db_path: Path | None = None
+) -> dict[str, dict[str, float]]:
     """
     Calculate cost breakdown by Flow Distribution work types.
 
@@ -317,7 +318,7 @@ def calculate_cost_breakdown_by_type(
         # Aggregate distribution counts across all weeks
         flow_counts = {"Feature": 0, "Defect": 0, "Technical Debt": 0, "Risk": 0}
 
-        for week, metrics in snapshots.items():
+        for _week, metrics in snapshots.items():
             velocity_data = metrics.get("flow_velocity", {})
             distribution = velocity_data.get("distribution", {})
 
@@ -365,8 +366,8 @@ def calculate_runway(
     query_id: str,
     week_label: str,
     data_points_count: int = 4,
-    db_path: Optional[Path] = None,
-) -> Tuple[float, float]:
+    db_path: Path | None = None,
+) -> tuple[float, float]:
     """
     Calculate budget runway weeks using weighted burn rate.
 
@@ -448,7 +449,7 @@ def calculate_runway(
         if not weekly_costs or all(c == 0 for c in weekly_costs):
             return 0.0, 0.0
 
-        weighted_burn_rate = sum(w * c for w, c in zip(weights, weekly_costs)) / sum(
+        weighted_burn_rate = sum(w * c for w, c in zip(weights, weekly_costs, strict=False)) / sum(
             weights
         )
 
@@ -469,7 +470,7 @@ def _get_velocity(
     query_id: str,
     week_label: str,
     data_points_count: int = 4,
-    db_path: Optional[Path] = None,
+    db_path: Path | None = None,
 ) -> float:
     """
     Get velocity from metrics_data_points or calculate from statistics.
@@ -540,7 +541,7 @@ def _get_velocity_points(
     query_id: str,
     week_label: str,
     data_points_count: int = 4,
-    db_path: Optional[Path] = None,
+    db_path: Path | None = None,
 ) -> float:
     """
     Get velocity for story points from metrics_data_points or calculate from statistics.
@@ -611,8 +612,8 @@ def calculate_weekly_cost_breakdowns(
     query_id: str,
     week_label: str,
     data_points_count: int = 12,
-    db_path: Optional[Path] = None,
-) -> Tuple[List[Dict[str, Dict[str, float]]], List[str]]:
+    db_path: Path | None = None,
+) -> tuple[list[dict[str, dict[str, float]]], list[str]]:
     """
     Calculate cost breakdown by work type for each week in data_points_count window.
 
@@ -638,8 +639,8 @@ def calculate_weekly_cost_breakdowns(
         >>> print(breakdowns[0]['Feature'])
         {'cost': 3125.50, 'count': 8}
     """
-    from data.metrics_snapshots import get_metric_snapshot
     from data.iso_week_bucketing import get_last_n_weeks
+    from data.metrics_snapshots import get_metric_snapshot
 
     try:
         budget = _get_current_budget(profile_id, query_id, db_path)
@@ -714,7 +715,7 @@ def calculate_weekly_cost_breakdowns(
         return [], []
 
 
-def _empty_breakdown() -> Dict[str, Dict[str, float]]:
+def _empty_breakdown() -> dict[str, dict[str, float]]:
     """Return empty cost breakdown structure."""
     return {
         "Feature": {"cost": 0.0, "count": 0, "percentage": 0.0},
@@ -729,9 +730,9 @@ def get_budget_baseline_vs_actual(
     query_id: str,
     week_label: str,
     data_points_count: int = 12,
-    pert_forecast_weeks: Optional[float] = None,
-    db_path: Optional[Path] = None,
-) -> Dict[str, Any]:
+    pert_forecast_weeks: float | None = None,
+    db_path: Path | None = None,
+) -> dict[str, Any]:
     """
     Calculate comprehensive baseline vs actual budget comparison.
 
@@ -798,7 +799,8 @@ def get_budget_baseline_vs_actual(
         >>> print(data["insights"][0])
         "Spending 43.4% below budgeted rate"
     """
-    from datetime import datetime, timedelta, timezone
+    from datetime import datetime, timedelta
+
     from data.database import get_db_connection
 
     try:
@@ -828,15 +830,15 @@ def get_budget_baseline_vs_actual(
                 )
                 # Ensure timezone-aware for consistent comparison
                 if start_date.tzinfo is None:
-                    start_date = start_date.replace(tzinfo=timezone.utc)
+                    start_date = start_date.replace(tzinfo=UTC)
             except Exception:
-                start_date = datetime.now(timezone.utc)
+                start_date = datetime.now(UTC)
 
         # Calculate baseline dates
         allocated_end_date = start_date + timedelta(
             weeks=budget["time_allocated_weeks"]
         )
-        current_date = datetime.now(timezone.utc)
+        current_date = datetime.now(UTC)
         elapsed_days = (current_date - start_date).days
         elapsed_weeks = elapsed_days / 7.0
         elapsed_pct = (
@@ -1095,7 +1097,7 @@ def _calculate_health_tier(variance_pct: float, inverse: bool = False) -> str:
         return "red"
 
 
-def _empty_baseline_comparison() -> Dict[str, Any]:
+def _empty_baseline_comparison() -> dict[str, Any]:
     """Return empty baseline comparison structure."""
     return {
         "baseline": {

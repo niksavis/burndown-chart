@@ -5,8 +5,10 @@ Tests calculate_dashboard_metrics() and calculate_pert_timeline() from data/proc
 with comprehensive edge case coverage per test-coverage-contract.md.
 """
 
-import pytest
 from datetime import datetime
+
+import pytest
+
 from data.processing import calculate_dashboard_metrics, calculate_pert_timeline
 
 

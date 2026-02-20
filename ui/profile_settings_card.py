@@ -12,7 +12,6 @@ as they work with any data source (imported CSV, manual entry, or JIRA).
 Part of Feature 011: Profile-First Dependency Architecture
 """
 
-import dash_bootstrap_components as dbc
 from dash import html
 
 from ui.profile_selector import create_profile_selector_panel

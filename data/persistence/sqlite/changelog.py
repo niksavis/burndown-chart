@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from data.database import get_db_connection
 
@@ -21,18 +21,18 @@ class ChangelogMixin:
         self,
         profile_id: str,
         query_id: str,
-        issue_key: Optional[str] = None,
-        field_name: Optional[str] = None,
-        start_date: Optional[str] = None,
-        end_date: Optional[str] = None,
-    ) -> List[Dict]:
+        issue_key: str | None = None,
+        field_name: str | None = None,
+        start_date: str | None = None,
+        end_date: str | None = None,
+    ) -> list[dict]:
         """Query normalized changelog entries with filters."""
         try:
             with get_db_connection(self.db_path) as conn:
                 cursor = conn.cursor()
 
                 query = "SELECT * FROM jira_changelog_entries WHERE profile_id = ? AND query_id = ?"
-                params: List[Any] = [profile_id, query_id]
+                params: list[Any] = [profile_id, query_id]
 
                 if issue_key:
                     query += " AND issue_key = ?"
@@ -64,7 +64,7 @@ class ChangelogMixin:
         self,
         profile_id: str,
         query_id: str,
-        entries: List[Dict],
+        entries: list[dict],
         expires_at: datetime,
     ) -> None:
         """Batch insert normalized changelog entries."""
@@ -143,7 +143,7 @@ class ChangelogMixin:
 
     def get_jira_changelog(
         self, profile_id: str, query_id: str, issue_key: str
-    ) -> Optional[Dict]:
+    ) -> dict | None:
         """LEGACY: Get changelog - returns aggregated normalized data."""
         entries = self.get_changelog_entries(profile_id, query_id, issue_key=issue_key)
         if not entries:
@@ -155,7 +155,7 @@ class ChangelogMixin:
         profile_id: str,
         query_id: str,
         issue_key: str,
-        changelog: Dict,
+        changelog: dict,
         expires_at: datetime,
     ) -> None:
         """LEGACY: Save changelog - redirects to save_changelog_batch."""

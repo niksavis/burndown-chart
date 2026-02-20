@@ -7,7 +7,6 @@ Reference: specs/namespace-syntax-analysis.md - Intellisense/Autocomplete Suppor
 """
 
 import logging
-from typing import Dict, List, Optional
 
 from data.jira.metadata_fetcher import JiraMetadataFetcher
 
@@ -26,8 +25,8 @@ class NamespaceAutocompleteProvider:
         self.metadata = metadata_fetcher
 
     def get_suggestions(
-        self, partial_path: str, cursor_position: Optional[int] = None
-    ) -> List[Dict[str, str]]:
+        self, partial_path: str, cursor_position: int | None = None
+    ) -> list[dict[str, str]]:
         """Get autocomplete suggestions for partial namespace path.
 
         Args:
@@ -74,7 +73,7 @@ class NamespaceAutocompleteProvider:
             # Suggesting property path
             return self._suggest_properties(working_path)
 
-    def _suggest_projects(self, prefix: str) -> List[Dict[str, str]]:
+    def _suggest_projects(self, prefix: str) -> list[dict[str, str]]:
         """Suggest project keys matching prefix.
 
         Args:
@@ -123,7 +122,7 @@ class NamespaceAutocompleteProvider:
 
     def _suggest_fields(
         self, project_filter: str, field_prefix: str
-    ) -> List[Dict[str, str]]:
+    ) -> list[dict[str, str]]:
         """Suggest field names matching prefix.
 
         Args:
@@ -166,7 +165,7 @@ class NamespaceAutocompleteProvider:
             logger.error(f"Failed to fetch fields for autocomplete: {e}")
             return []
 
-    def _suggest_changelog_values(self, partial_path: str) -> List[Dict[str, str]]:
+    def _suggest_changelog_values(self, partial_path: str) -> list[dict[str, str]]:
         """Suggest changelog transition values.
 
         Args:
@@ -230,7 +229,7 @@ class NamespaceAutocompleteProvider:
             logger.error(f"Failed to fetch changelog values for autocomplete: {e}")
             return []
 
-    def _suggest_properties(self, partial_path: str) -> List[Dict[str, str]]:
+    def _suggest_properties(self, partial_path: str) -> list[dict[str, str]]:
         """Suggest property paths for complex objects.
 
         Args:

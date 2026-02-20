@@ -7,11 +7,11 @@ This allows calculators to work with cached data without requiring
 the JIRA SDK to be connected.
 """
 
-from typing import Dict, Any, List
 from types import SimpleNamespace
+from typing import Any
 
 
-def adapt_jira_issue(issue_dict: Dict[str, Any]) -> Any:
+def adapt_jira_issue(issue_dict: dict[str, Any]) -> Any:
     """Convert a dict JIRA issue to an object with .fields attribute.
 
     Args:
@@ -76,7 +76,7 @@ def adapt_jira_issue(issue_dict: Dict[str, Any]) -> Any:
     return issue
 
 
-def adapt_jira_issues(issues: List[Dict[str, Any]]) -> List[Any]:
+def adapt_jira_issues(issues: list[dict[str, Any]]) -> list[Any]:
     """Convert a list of dict JIRA issues to objects.
 
     Args:

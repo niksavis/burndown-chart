@@ -6,16 +6,15 @@ requiring external JIRA API access.
 
 import random
 from datetime import datetime, timedelta
-from typing import Dict, List, Optional, Tuple
 
 
 def generate_mock_bug_data(
     num_weeks: int = 12,
-    bugs_per_week_range: Tuple[int, int] = (5, 15),
-    issue_types: Optional[List[str]] = None,
+    bugs_per_week_range: tuple[int, int] = (5, 15),
+    issue_types: list[str] | None = None,
     resolution_rate: float = 0.70,
-    seed: Optional[int] = None,
-) -> List[Dict]:
+    seed: int | None = None,
+) -> list[dict]:
     """Generate realistic mock bug data for testing.
 
     Args:
@@ -83,7 +82,7 @@ def generate_mock_bug_data(
     return mock_issues
 
 
-def generate_edge_case_bugs() -> List[Dict]:
+def generate_edge_case_bugs() -> list[dict]:
     """Generate edge case bug scenarios for boundary testing.
 
     Returns:
@@ -161,10 +160,10 @@ def generate_edge_case_bugs() -> List[Dict]:
 def create_mock_bug(
     key: str,
     issue_type: str = "Bug",
-    created_date: Optional[datetime] = None,
-    resolved_date: Optional[datetime] = None,
-    points: Optional[int] = None,
-) -> Dict:
+    created_date: datetime | None = None,
+    resolved_date: datetime | None = None,
+    points: int | None = None,
+) -> dict:
     """Create a single mock bug issue.
 
     Args:

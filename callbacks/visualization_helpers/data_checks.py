@@ -5,13 +5,12 @@ Helper functions for validating and checking data conditions in visualizations.
 """
 
 from datetime import timedelta
-from typing import Optional, Union
 
 import pandas as pd
 
 
 def check_has_points_in_period(
-    statistics: Union[list, pd.DataFrame], data_points_count: Optional[int] = None
+    statistics: list | pd.DataFrame, data_points_count: int | None = None
 ) -> bool:
     """
     Check if there's any points data in the filtered time period.

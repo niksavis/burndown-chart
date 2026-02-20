@@ -3,8 +3,9 @@
 Tests relative time string generation and datetime formatting.
 """
 
-from datetime import datetime, timedelta, timezone
-from data.time_formatting import get_relative_time_string, format_datetime_for_display
+from datetime import UTC, datetime, timedelta
+
+from data.time_formatting import format_datetime_for_display, get_relative_time_string
 
 
 class TestGetRelativeTimeString:
@@ -24,14 +25,14 @@ class TestGetRelativeTimeString:
 
     def test_just_now_less_than_one_minute(self):
         """Test 'Just now' for timestamps < 1 minute ago."""
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         thirty_seconds_ago = now - timedelta(seconds=30)
         result = get_relative_time_string(thirty_seconds_ago.isoformat())
         assert result == "Just now"
 
     def test_minutes_ago(self):
         """Test 'Xm ago' format for 1-59 minutes."""
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
 
         # 5 minutes ago
         five_min_ago = now - timedelta(minutes=5)
@@ -47,7 +48,7 @@ class TestGetRelativeTimeString:
 
     def test_hours_ago(self):
         """Test 'Xh ago' format for 1-23 hours."""
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
 
         # 2 hours ago
         two_hours_ago = now - timedelta(hours=2)
@@ -63,7 +64,7 @@ class TestGetRelativeTimeString:
 
     def test_days_ago(self):
         """Test 'Xd ago' format for 1-6 days."""
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
 
         # 1 day ago
         one_day_ago = now - timedelta(days=1)
@@ -79,7 +80,7 @@ class TestGetRelativeTimeString:
 
     def test_weeks_ago(self):
         """Test 'Xw ago' format for 7-28 days."""
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
 
         # 1 week ago
         one_week_ago = now - timedelta(days=7)
@@ -99,7 +100,7 @@ class TestGetRelativeTimeString:
         # Use current date and go back 40 days
         from datetime import datetime
 
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         forty_days_ago = now - timedelta(days=40)
 
         # Check if we crossed into previous year
@@ -122,7 +123,7 @@ class TestGetRelativeTimeString:
     def test_month_year_previous_year(self):
         """Test 'Mon \\'YY' format for previous years."""
         # Fixed date in previous year
-        past_date = datetime(2025, 12, 20, tzinfo=timezone.utc)
+        past_date = datetime(2025, 12, 20, tzinfo=UTC)
         result = get_relative_time_string(past_date.isoformat())
 
         # Should be "Mon 'YY" format
@@ -143,7 +144,7 @@ class TestGetRelativeTimeString:
 
     def test_future_timestamp_returns_just_now(self):
         """Test that future timestamps return 'Just now' (clock skew tolerance)."""
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         future = now + timedelta(minutes=5)
         result = get_relative_time_string(future.isoformat())
         assert result == "Just now"

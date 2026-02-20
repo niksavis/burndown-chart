@@ -6,10 +6,11 @@ used in visualization callbacks, such as headers with trend indicators.
 """
 
 from dash import html
+
+from callbacks.visualization_helpers.pill_components import create_forecast_pill
+from configuration import CHART_HELP_TEXTS
 from ui import create_compact_trend_indicator
 from ui.tooltip_utils import create_info_tooltip
-from configuration import CHART_HELP_TEXTS
-from callbacks.visualization_helpers.pill_components import create_forecast_pill
 
 
 def create_trend_header_with_forecasts(

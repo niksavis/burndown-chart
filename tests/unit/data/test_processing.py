@@ -5,24 +5,25 @@ This module contains tests for the critical calculation functions
 in the data processing module.
 """
 
-import unittest
-import pandas as pd
-from datetime import datetime
 import sys
+import unittest
+from datetime import datetime
 from pathlib import Path
 from unittest.mock import patch
+
+import pandas as pd
 
 # Add the project root to the Python path so we can import the application modules
 sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent))
 
 # Import the functions to test
 from data.processing import (
+    calculate_performance_trend,
     calculate_rates,
     calculate_weekly_averages,
-    generate_weekly_forecast,
     daily_forecast,
     daily_forecast_burnup,
-    calculate_performance_trend,
+    generate_weekly_forecast,
 )
 
 

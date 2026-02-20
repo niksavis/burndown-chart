@@ -9,18 +9,12 @@ Reference: DORA_Flow_Jira_Mapping.md
 import hashlib
 import json
 import logging
-from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 import requests
 
-from configuration.settings import APP_SETTINGS_FILE
-from data.persistence import load_app_settings, load_jira_configuration
 from data.performance_utils import FieldMappingIndex
-from data.profile_manager import (
-    get_active_profile_workspace,
-    get_active_query_workspace,
-)
+from data.persistence import load_app_settings, load_jira_configuration
 
 logger = logging.getLogger(__name__)
 
@@ -70,7 +64,7 @@ INTERNAL_FIELD_TYPES = {
 }
 
 
-def fetch_available_jira_fields() -> List[Dict]:
+def fetch_available_jira_fields() -> list[dict]:
     """Fetch all fields from Jira instance.
 
     Tries authenticated request first, then falls back to unauthenticated
@@ -151,8 +145,8 @@ def fetch_available_jira_fields() -> List[Dict]:
 
 
 def validate_field_mapping(
-    internal_field: str, jira_field_id: str, field_metadata: Dict
-) -> Tuple[bool, Optional[str]]:
+    internal_field: str, jira_field_id: str, field_metadata: dict
+) -> tuple[bool, str | None]:
     """Validate that Jira field type matches required internal field type.
 
     Uses flexible validation rules to accommodate real-world JIRA field usage:
@@ -255,7 +249,7 @@ def validate_field_mapping(
     return True, None
 
 
-def save_field_mappings(mappings: Dict) -> bool:
+def save_field_mappings(mappings: dict) -> bool:
     """Save field mappings to profile.json (flat structure).
 
     Args:
@@ -317,7 +311,7 @@ def save_field_mappings(mappings: Dict) -> bool:
         return False
 
 
-def load_field_mappings() -> Dict:
+def load_field_mappings() -> dict:
     """Load field mappings from profile.json.
 
     Converts flat field_mappings structure to nested dora/flow structure
@@ -403,7 +397,7 @@ def get_field_mappings_hash() -> str:
         return "00000000"
 
 
-def get_mapped_field_id(metric_type: str, internal_field: str) -> Optional[str]:
+def get_mapped_field_id(metric_type: str, internal_field: str) -> str | None:
     """Get Jira field ID for an internal field name.
 
     Args:
@@ -421,7 +415,7 @@ def get_mapped_field_id(metric_type: str, internal_field: str) -> Optional[str]:
     return mappings.get("field_mappings", {}).get(metric_type, {}).get(internal_field)
 
 
-def create_field_mapping_index(field_mappings: Dict[str, str]) -> FieldMappingIndex:
+def create_field_mapping_index(field_mappings: dict[str, str]) -> FieldMappingIndex:
     """Create FieldMappingIndex for O(1) field lookups.
 
     This function creates an optimized index for fast bidirectional field mapping
@@ -457,7 +451,7 @@ def create_field_mapping_index(field_mappings: Dict[str, str]) -> FieldMappingIn
     return FieldMappingIndex(field_mappings)
 
 
-def check_required_mappings(metric_name: str) -> Tuple[bool, List[str]]:
+def check_required_mappings(metric_name: str) -> tuple[bool, list[str]]:
     """Check if all required field mappings exist for a metric.
 
     Args:
@@ -499,7 +493,7 @@ def check_required_mappings(metric_name: str) -> Tuple[bool, List[str]]:
 # ============================================================================
 
 
-def validate_dora_jira_compatibility(field_mappings: Dict[str, str]) -> Dict[str, Any]:
+def validate_dora_jira_compatibility(field_mappings: dict[str, str]) -> dict[str, Any]:
     """Validate if JIRA configuration is suitable for DORA/Flow metrics.
 
     Detects inappropriate proxy field mappings that produce misleading metrics.

@@ -5,8 +5,8 @@ This module provides utilities for adding ARIA attributes to components
 to improve accessibility.
 """
 
-from dash import html
 import dash_bootstrap_components as dbc
+from dash import html
 
 
 def add_aria_label_to_icon_button(component, label, options=None):
@@ -145,7 +145,7 @@ def enhance_data_table(table_component, options=None):
             else [table_component.children]
         )
 
-        for i, child in enumerate(children):
+        for _i, child in enumerate(children):
             if isinstance(child, html.Caption):
                 caption = child
                 caption.children = options["caption"]

@@ -5,9 +5,11 @@ with state persistence and metadata integration.
 """
 
 import logging
-from dash import callback, Output, Input, State, html, no_update, callback_context
-from ui.field_mapping_modal import create_field_mapping_form
+
+from dash import Input, Output, State, callback, callback_context, html, no_update
+
 from data.field_mapper import fetch_available_jira_fields
+from ui.field_mapping_modal import create_field_mapping_form
 
 logger = logging.getLogger(__name__)
 
@@ -58,11 +60,12 @@ def render_tab_content(
         Tuple of (form component, updated state)
     """
     from dash import ctx
+
     from data.persistence import load_app_settings
-    from ui.project_config_form import create_project_config_form
-    from ui.issue_type_config_form import create_issue_type_config_form
-    from ui.status_config_form import create_status_config_form
     from ui.environment_config_form import create_environment_config_form
+    from ui.issue_type_config_form import create_issue_type_config_form
+    from ui.project_config_form import create_project_config_form
+    from ui.status_config_form import create_status_config_form
 
     # Check what triggered this callback
     triggered_id = ctx.triggered_id if ctx.triggered else None

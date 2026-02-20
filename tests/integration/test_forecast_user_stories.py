@@ -8,20 +8,22 @@ Tests:
 Run: .\\.venv\\Scripts\\activate; pytest tests/integration/test_forecast_user_stories.py -v
 """
 
-import pytest
-import tempfile
 import shutil
+import tempfile
+from datetime import UTC
 from pathlib import Path
 
-from data.metrics_snapshots import (
-    save_metric_snapshot,
-    get_metric_snapshot,
-    add_forecasts_to_week,
-)
+import pytest
+
 from data.metrics_calculator import (
+    calculate_flow_load_range,
     calculate_forecast,
     calculate_trend_vs_forecast,
-    calculate_flow_load_range,
+)
+from data.metrics_snapshots import (
+    add_forecasts_to_week,
+    get_metric_snapshot,
+    save_metric_snapshot,
 )
 from ui.metric_cards import create_forecast_section
 
@@ -29,11 +31,12 @@ from ui.metric_cards import create_forecast_section
 @pytest.fixture(autouse=True)
 def isolated_metrics_snapshots():
     """Isolate metrics snapshots tests from real data using temp database."""
-    from data.persistence.factory import reset_backend
-    from data.migration.schema_manager import initialize_schema
-    from data.database import get_db_connection as real_get_db_connection
-    from data.persistence.sqlite.backend import SQLiteBackend
     from unittest.mock import patch
+
+    from data.database import get_db_connection as real_get_db_connection
+    from data.migration.schema_manager import initialize_schema
+    from data.persistence.factory import reset_backend
+    from data.persistence.sqlite.backend import SQLiteBackend
 
     # Create temporary directory and database
     temp_dir = tempfile.mkdtemp(prefix="forecast_test_")
@@ -65,9 +68,9 @@ def isolated_metrics_snapshots():
     test_backend.save_profile(test_profile.to_dict())
 
     # Create test query with all required fields
-    from datetime import datetime, timezone
+    from datetime import datetime
 
-    now = datetime.now(timezone.utc).isoformat()
+    now = datetime.now(UTC).isoformat()
     test_query = {
         "id": "q_test_forecast",
         "name": "Test Query",

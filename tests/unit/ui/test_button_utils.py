@@ -4,9 +4,10 @@ Unit tests for button utilities - specifically the create_action_button function
 Tests the contract-compliant button builder added in Phase 2.
 """
 
+import dash_bootstrap_components as dbc
 import pytest
 from dash import html
-import dash_bootstrap_components as dbc
+
 from ui.button_utils import create_action_button
 
 # Type checking note: Dash components have dynamic attributes that aren't recognized

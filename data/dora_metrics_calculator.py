@@ -9,17 +9,17 @@ Uses the same caching architecture as Flow metrics for consistent UX.
 """
 
 import logging
-from datetime import datetime, timezone
-from typing import Tuple, Optional, List, Dict, Any
+from datetime import UTC, datetime
+from typing import Any
 
 from data.dora_metrics import (
+    calculate_change_failure_rate,
     calculate_deployment_frequency,
     calculate_lead_time_for_changes,
-    calculate_change_failure_rate,
     calculate_mean_time_to_recovery,
 )
-from data.metrics_snapshots import save_metric_snapshot, get_metric_snapshot
 from data.iso_week_bucketing import get_last_n_weeks
+from data.metrics_snapshots import get_metric_snapshot, save_metric_snapshot
 
 logger = logging.getLogger(__name__)
 
@@ -28,11 +28,11 @@ def calculate_and_save_dora_weekly_metrics(
     week_label: str,
     monday,  # date object from get_last_n_weeks
     sunday,  # date object from get_last_n_weeks
-    operational_tasks: List[Dict],
-    development_issues: List[Dict],
-    production_bugs: List[Dict],
+    operational_tasks: list[dict],
+    development_issues: list[dict],
+    production_bugs: list[dict],
     production_value: str,
-) -> Tuple[bool, str]:
+) -> tuple[bool, str]:
     """Calculate DORA metrics for a single week and save to cache.
 
     Args:
@@ -94,7 +94,7 @@ def calculate_and_save_dora_weekly_metrics(
             {
                 "deployment_count": deployment_freq.get("deployment_count", 0),
                 "week_label": week_label,
-                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
             },
         )
 
@@ -111,7 +111,7 @@ def calculate_and_save_dora_weekly_metrics(
                 "p95_hours": lead_time_hours,  # Using same value for now
                 "issues_with_lead_time": lead_time.get("sample_count", 0),
                 "week_label": week_label,
-                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
             },
         )
 
@@ -123,7 +123,7 @@ def calculate_and_save_dora_weekly_metrics(
                 "total_deployments": cfr.get("deployment_count", 0),
                 "failed_deployments": cfr.get("incident_count", 0),
                 "week_label": week_label,
-                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
             },
         )
 
@@ -136,7 +136,7 @@ def calculate_and_save_dora_weekly_metrics(
                 "p95_hours": mttr.get("value"),  # Using same value for now
                 "bugs_with_mttr": mttr.get("incident_count", 0),
                 "week_label": week_label,
-                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
             },
         )
 
@@ -148,7 +148,7 @@ def calculate_and_save_dora_weekly_metrics(
         return False, error_msg
 
 
-def load_dora_metrics_from_cache(n_weeks: int = 12) -> Optional[Dict[str, Any]]:
+def load_dora_metrics_from_cache(n_weeks: int = 12) -> dict[str, Any] | None:
     """Load DORA metrics from cache for the last N weeks.
 
     Args:
@@ -397,8 +397,8 @@ def calculate_and_save_dora_metrics_for_all_issues(
     week_label: str,
     monday,  # date object from get_last_n_weeks
     sunday,  # date object from get_last_n_weeks
-    all_issues: List[Dict],
-) -> Tuple[bool, str]:
+    all_issues: list[dict],
+) -> tuple[bool, str]:
     """Calculate DORA metrics from all issues.
 
     This function takes ALL issues and calculates DORA metrics using
@@ -416,10 +416,10 @@ def calculate_and_save_dora_metrics_for_all_issues(
     try:
         # Convert date to datetime for time_period_days calculation
         start_date = datetime.combine(monday, datetime.min.time()).replace(
-            tzinfo=timezone.utc
+            tzinfo=UTC
         )
         end_date = datetime.combine(sunday, datetime.max.time()).replace(
-            tzinfo=timezone.utc
+            tzinfo=UTC
         )
         time_period_days = (end_date - start_date).days
 
@@ -462,7 +462,7 @@ def calculate_and_save_dora_metrics_for_all_issues(
                     "deployment_count": deployment_freq.get("deployment_count", 0),
                     "release_count": deployment_freq.get("release_count", 0),
                     "week_label": week_label,
-                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                    "timestamp": datetime.now(UTC).isoformat(),
                 },
             )
         else:
@@ -494,7 +494,7 @@ def calculate_and_save_dora_metrics_for_all_issues(
                     "mean_hours": lead_time_mean_hours,
                     "issues_with_lead_time": lead_time.get("sample_count", 0),
                     "week_label": week_label,
-                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                    "timestamp": datetime.now(UTC).isoformat(),
                 },
             )
         else:
@@ -514,7 +514,7 @@ def calculate_and_save_dora_metrics_for_all_issues(
                     "total_releases": cfr.get("release_count", 0),
                     "failed_releases": cfr.get("failed_release_count", 0),
                     "week_label": week_label,
-                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                    "timestamp": datetime.now(UTC).isoformat(),
                 },
             )
         else:
@@ -536,7 +536,7 @@ def calculate_and_save_dora_metrics_for_all_issues(
                     "mean_hours": mttr_mean_value,
                     "bugs_with_mttr": mttr.get("incident_count", 0),
                     "week_label": week_label,
-                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                    "timestamp": datetime.now(UTC).isoformat(),
                 },
             )
         else:

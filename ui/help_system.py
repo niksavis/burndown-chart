@@ -12,11 +12,13 @@ Features:
 - Integration with dark tooltip theme for consistent UX
 """
 
-import dash
-from dash import html, dcc, callback, Input, Output, State
-import dash_bootstrap_components as dbc
-from configuration.help_content import COMPREHENSIVE_HELP_CONTENT
 from functools import lru_cache
+
+import dash
+import dash_bootstrap_components as dbc
+from dash import Input, Output, State, callback, dcc, html
+
+from configuration.help_content import COMPREHENSIVE_HELP_CONTENT
 from ui.help_layouts.weekly_progress_help import create_weekly_progress_help_layout
 
 

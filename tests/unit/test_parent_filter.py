@@ -5,9 +5,10 @@ Tests filtering logic that excludes parent types from metrics calculations.
 """
 
 import pytest
+
 from data.jira.parent_filter import (
-    filter_out_parent_types,
     extract_parent_types_from_issues,
+    filter_out_parent_types,
 )
 
 

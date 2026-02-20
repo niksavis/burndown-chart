@@ -17,7 +17,7 @@ Usage:
 
 import logging
 from pathlib import Path
-from typing import Dict, Tuple, Any
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -26,7 +26,7 @@ def validate_migration(
     profile_id: str,
     profiles_path: Path = Path("profiles"),
     db_path: Path = Path("profiles/burndown.db"),
-) -> Tuple[bool, Dict[str, Any]]:
+) -> tuple[bool, dict[str, Any]]:
     """
     Validate migration for a single profile.
 
@@ -147,7 +147,7 @@ def validate_migration(
 def validate_all_profiles(
     profiles_path: Path = Path("profiles"),
     db_path: Path = Path("profiles/burndown.db"),
-) -> Tuple[bool, Dict[str, Any]]:
+) -> tuple[bool, dict[str, Any]]:
     """
     Validate migration for all profiles.
 

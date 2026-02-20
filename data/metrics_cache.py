@@ -13,8 +13,7 @@ Cache invalidation triggers:
 import json
 import logging
 import os
-from datetime import datetime, timedelta, timezone
-from typing import Dict, Optional
+from datetime import UTC, datetime, timedelta
 
 logger = logging.getLogger(__name__)
 
@@ -49,7 +48,7 @@ def generate_cache_key(
     return f"{metric_type}_{start_date}_{end_date}_{field_hash}"
 
 
-def load_cached_metrics(cache_key: str) -> Optional[Dict]:
+def load_cached_metrics(cache_key: str) -> dict | None:
     """Load metrics from cache if valid.
 
     Args:
@@ -69,7 +68,7 @@ def load_cached_metrics(cache_key: str) -> Optional[Dict]:
         return None
 
     try:
-        with open(CACHE_FILE, "r") as f:
+        with open(CACHE_FILE) as f:
             content = f.read().strip()
             if not content:  # Empty file
                 logger.debug(f"Cache miss: {cache_key} (empty cache file)")
@@ -93,12 +92,12 @@ def load_cached_metrics(cache_key: str) -> Optional[Dict]:
 
         # Check expiration
         expires_at = datetime.fromisoformat(entry["expires_at"])
-        if datetime.now(timezone.utc) > expires_at:
+        if datetime.now(UTC) > expires_at:
             logger.debug(f"Cache miss: {cache_key} (expired)")
             return None
 
         # Update access time for LRU eviction
-        entry["last_accessed"] = datetime.now(timezone.utc).isoformat()
+        entry["last_accessed"] = datetime.now(UTC).isoformat()
         with open(CACHE_FILE, "w") as f:
             json.dump(cache, f, indent=2)
 
@@ -111,7 +110,7 @@ def load_cached_metrics(cache_key: str) -> Optional[Dict]:
 
 
 def save_cached_metrics(
-    cache_key: str, metrics: Dict, ttl_seconds: int = DEFAULT_TTL_SECONDS
+    cache_key: str, metrics: dict, ttl_seconds: int = DEFAULT_TTL_SECONDS
 ) -> bool:
     """Save calculated metrics to cache.
 
@@ -128,7 +127,7 @@ def save_cached_metrics(
         cache = None
         if os.path.exists(CACHE_FILE):
             try:
-                with open(CACHE_FILE, "r") as f:
+                with open(CACHE_FILE) as f:
                     content = f.read().strip()
                     if content:  # Check if file has content
                         cache = json.loads(content)
@@ -145,7 +144,7 @@ def save_cached_metrics(
             }
 
         # Calculate timestamps
-        calculated_at = datetime.now(timezone.utc)
+        calculated_at = datetime.now(UTC)
         expires_at = calculated_at + timedelta(seconds=ttl_seconds)
 
         # Create cache entry
@@ -177,7 +176,7 @@ def save_cached_metrics(
         return False
 
 
-def _evict_lru_entries(cache: Dict) -> None:
+def _evict_lru_entries(cache: dict) -> None:
     """Evict least recently used entries to stay under MAX_ENTRIES.
 
     Args:
@@ -197,7 +196,7 @@ def _evict_lru_entries(cache: Dict) -> None:
         logger.debug(f"Evicted cache entry: {oldest_key} (LRU policy)")
 
 
-def invalidate_cache(cache_key: Optional[str] = None) -> bool:
+def invalidate_cache(cache_key: str | None = None) -> bool:
     """Invalidate cache entries.
 
     Args:
@@ -218,7 +217,7 @@ def invalidate_cache(cache_key: Optional[str] = None) -> bool:
         if not os.path.exists(CACHE_FILE):
             return True  # Nothing to invalidate
 
-        with open(CACHE_FILE, "r") as f:
+        with open(CACHE_FILE) as f:
             content = f.read().strip()
             if not content:  # Empty file
                 return True
@@ -239,7 +238,7 @@ def invalidate_cache(cache_key: Optional[str] = None) -> bool:
         return False
 
 
-def get_cache_stats() -> Dict:
+def get_cache_stats() -> dict:
     """Get cache statistics for monitoring.
 
     Returns:
@@ -264,7 +263,7 @@ def get_cache_stats() -> Dict:
         }
 
     try:
-        with open(CACHE_FILE, "r") as f:
+        with open(CACHE_FILE) as f:
             content = f.read().strip()
             if not content:  # Empty file
                 return {
@@ -278,7 +277,7 @@ def get_cache_stats() -> Dict:
             cache = json.loads(content)
 
         entries = cache.get("entries", {})
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
 
         # Count valid vs expired
         valid_count = 0

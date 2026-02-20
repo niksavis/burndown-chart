@@ -5,8 +5,9 @@ This module provides reusable test data for dashboard calculation and rendering 
 All fixtures follow test isolation principles - they return fresh data on each call.
 """
 
-import pytest
 from datetime import datetime, timedelta
+
+import pytest
 
 
 @pytest.fixture

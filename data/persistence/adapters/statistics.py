@@ -2,7 +2,7 @@
 
 # Standard library imports
 from datetime import datetime
-from typing import Dict, Any, List
+from typing import Any
 
 # Third-party library imports
 import pandas as pd
@@ -18,15 +18,16 @@ from data.persistence.adapters.unified_data import (
 )
 
 
-def save_statistics(data: List[Dict[str, Any]]) -> None:
+def save_statistics(data: list[dict[str, Any]]) -> None:
     """
     Save statistics data to unified JSON file.
 
     Args:
         data: List of dictionaries containing statistics data
     """
-    from data.iso_week_bucketing import get_week_label
     from datetime import datetime
+
+    from data.iso_week_bucketing import get_week_label
 
     logger.info(
         f"[Persistence] save_statistics called with {len(data) if data else 0} rows"
@@ -90,7 +91,7 @@ def save_statistics(data: List[Dict[str, Any]]) -> None:
         raise  # Re-raise so the callback knows it failed
 
 
-def save_statistics_from_csv_import(data: List[Dict[str, Any]]) -> None:
+def save_statistics_from_csv_import(data: list[dict[str, Any]]) -> None:
     """
     Save statistics data from CSV import to unified JSON file.
     This function specifically handles CSV imports and sets appropriate metadata.
@@ -98,8 +99,9 @@ def save_statistics_from_csv_import(data: List[Dict[str, Any]]) -> None:
     Args:
         data: List of dictionaries containing statistics data
     """
-    from data.iso_week_bucketing import get_week_label
     from datetime import datetime as dt_module
+
+    from data.iso_week_bucketing import get_week_label
 
     try:
         df = pd.DataFrame(data)

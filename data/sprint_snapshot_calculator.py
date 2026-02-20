@@ -12,21 +12,20 @@ Reuses existing changelog_processor functions for state transitions.
 """
 
 import logging
-from datetime import datetime, timedelta, timezone
-from typing import Dict, List, Optional
 from collections import defaultdict
+from datetime import UTC, datetime, timedelta
 
 logger = logging.getLogger(__name__)
 
 
 def calculate_daily_sprint_snapshots(
-    sprint_data: Dict,
-    issues: List[Dict],
-    changelog_entries: List[Dict],
+    sprint_data: dict,
+    issues: list[dict],
+    changelog_entries: list[dict],
     sprint_start_date: str,
     sprint_end_date: str,
-    flow_end_statuses: Optional[List[str]] = None,
-) -> List[Dict]:
+    flow_end_statuses: list[str] | None = None,
+) -> list[dict]:
     """Generate daily snapshots of sprint progress.
 
     Args:
@@ -65,9 +64,9 @@ def calculate_daily_sprint_snapshots(
 
         # Ensure timezone aware
         if start_dt.tzinfo is None:
-            start_dt = start_dt.replace(tzinfo=timezone.utc)
+            start_dt = start_dt.replace(tzinfo=UTC)
         if end_dt.tzinfo is None:
-            end_dt = end_dt.replace(tzinfo=timezone.utc)
+            end_dt = end_dt.replace(tzinfo=UTC)
     except (ValueError, AttributeError) as e:
         logger.error(f"Failed to parse sprint dates: {e}")
         return []
@@ -102,7 +101,7 @@ def calculate_daily_sprint_snapshots(
         try:
             ts = datetime.fromisoformat(item["timestamp"].replace("Z", "+00:00"))
             if ts.tzinfo is None:
-                ts = ts.replace(tzinfo=timezone.utc)
+                ts = ts.replace(tzinfo=UTC)
             scope_timeline.append(
                 {"timestamp": ts, "issue_key": item["issue_key"], "action": "add"}
             )
@@ -113,7 +112,7 @@ def calculate_daily_sprint_snapshots(
         try:
             ts = datetime.fromisoformat(item["timestamp"].replace("Z", "+00:00"))
             if ts.tzinfo is None:
-                ts = ts.replace(tzinfo=timezone.utc)
+                ts = ts.replace(tzinfo=UTC)
             scope_timeline.append(
                 {"timestamp": ts, "issue_key": item["issue_key"], "action": "remove"}
             )
@@ -225,8 +224,8 @@ def calculate_daily_sprint_snapshots(
 
 
 def get_status_at_timestamp(
-    issue: Dict, timestamp: datetime, changelog: List[Dict]
-) -> Optional[str]:
+    issue: dict, timestamp: datetime, changelog: list[dict]
+) -> str | None:
     """Get issue status at a specific timestamp.
 
     Args:
@@ -258,7 +257,7 @@ def get_status_at_timestamp(
                 entry.get("change_date", "").replace("Z", "+00:00")
             )
             if entry_time.tzinfo is None:
-                entry_time = entry_time.replace(tzinfo=timezone.utc)
+                entry_time = entry_time.replace(tzinfo=UTC)
 
             if entry_time > timestamp:
                 # This change happened after our target time

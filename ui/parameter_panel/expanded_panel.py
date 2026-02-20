@@ -1,21 +1,21 @@
 """Expanded parameter panel component with all input fields."""
 
-from typing import Optional, cast
-from datetime import datetime
 import math
+from datetime import datetime
+from typing import cast
 
 import dash_bootstrap_components as dbc
 from dash import dcc, html
 
 from ui.budget_settings_card import create_budget_settings_card
-from ui.help_system import create_parameter_tooltip
 from ui.button_utils import create_panel_collapse_button
+from ui.help_system import create_parameter_tooltip
 
 
 def create_parameter_panel_expanded(
     settings: dict,
     id_suffix: str = "",
-    statistics: Optional[list] = None,
+    statistics: list | None = None,
 ) -> html.Div:
     """
     Create expanded parameter panel section with all input fields.

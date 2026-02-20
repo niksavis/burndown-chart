@@ -25,9 +25,9 @@ Created: October 31, 2025
 
 import logging
 import threading
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Dict, Any, List, Optional
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -35,8 +35,8 @@ logger = logging.getLogger(__name__)
 _snapshots_lock = threading.Lock()
 
 # Cache for loaded snapshots to avoid repeated database queries
-_snapshots_cache: Optional[Dict[str, Dict[str, Any]]] = None
-_cache_query_id: Optional[str] = None  # Track which query the cache is for
+_snapshots_cache: dict[str, dict[str, Any]] | None = None
+_cache_query_id: str | None = None  # Track which query the cache is for
 
 # Batch mode context - prevents writes until flush
 _batch_mode_active = False
@@ -50,7 +50,7 @@ def _get_snapshots_file_path() -> Path:
     return get_data_file_path("metrics_snapshots.json")
 
 
-def load_snapshots() -> Dict[str, Dict[str, Any]]:
+def load_snapshots() -> dict[str, dict[str, Any]]:
     """
     Load all metric snapshots from database via repository pattern.
 
@@ -64,9 +64,10 @@ def load_snapshots() -> Dict[str, Dict[str, Any]]:
     global _snapshots_cache, _cache_query_id
 
     try:
-        from data.persistence.factory import get_backend
-        from data.iso_week_bucketing import get_week_label
         from datetime import datetime
+
+        from data.iso_week_bucketing import get_week_label
+        from data.persistence.factory import get_backend
 
         backend = get_backend()
 
@@ -162,7 +163,7 @@ def clear_snapshots_cache() -> None:
     logger.info("Cleared snapshots cache")
 
 
-def save_snapshots(snapshots: Dict[str, Dict[str, Any]]) -> bool:
+def save_snapshots(snapshots: dict[str, dict[str, Any]]) -> bool:
     """
     Save all metric snapshots to database via repository pattern.
 
@@ -175,8 +176,8 @@ def save_snapshots(snapshots: Dict[str, Dict[str, Any]]) -> bool:
     try:
         from data.persistence.factory import get_backend
         from data.time_period_calculator import (
-            parse_year_week_label,
             get_week_start_date,
+            parse_year_week_label,
         )
 
         backend = get_backend()
@@ -247,7 +248,7 @@ def save_snapshots(snapshots: Dict[str, Dict[str, Any]]) -> bool:
 
 
 def save_metric_snapshot(
-    week_label: str, metric_name: str, metric_data: Dict[str, Any]
+    week_label: str, metric_name: str, metric_data: dict[str, Any]
 ) -> bool:
     """
     Save a snapshot of a specific metric for a specific week.
@@ -286,7 +287,7 @@ def save_metric_snapshot(
             # Add timestamp to metric data
             metric_data_with_timestamp = {
                 **metric_data,
-                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
             }
 
             # Store metric snapshot in memory
@@ -306,7 +307,7 @@ def save_metric_snapshot(
         # Add timestamp to metric data
         metric_data_with_timestamp = {
             **metric_data,
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
         }
 
         # Store metric snapshot
@@ -376,7 +377,7 @@ class batch_write_mode:
         return False  # Don't suppress exceptions
 
 
-def get_metric_snapshot(week_label: str, metric_name: str) -> Optional[Dict[str, Any]]:
+def get_metric_snapshot(week_label: str, metric_name: str) -> dict[str, Any] | None:
     """
     Get a specific metric snapshot for a specific week.
 
@@ -392,8 +393,8 @@ def get_metric_snapshot(week_label: str, metric_name: str) -> Optional[Dict[str,
 
 
 def get_metric_weekly_values(
-    week_labels: List[str], metric_name: str, value_key: str
-) -> List[float]:
+    week_labels: list[str], metric_name: str, value_key: str
+) -> list[float]:
     """
     Extract weekly values for a specific metric across multiple weeks.
 
@@ -426,8 +427,8 @@ def get_last_n_weeks_values(
     metric_key: str,
     value_key: str,
     n_weeks: int = 4,
-    current_week: Optional[str] = None,
-) -> List[float]:
+    current_week: str | None = None,
+) -> list[float]:
     """
     Get last N weeks of values for a specific metric (for forecast calculation).
 
@@ -519,7 +520,7 @@ def cleanup_old_snapshots(weeks_to_keep: int = 52) -> int:
     return removed_count
 
 
-def get_snapshot_stats() -> Dict[str, Any]:
+def get_snapshot_stats() -> dict[str, Any]:
     """
     Get statistics about stored snapshots.
 
@@ -556,7 +557,7 @@ def get_snapshot_stats() -> Dict[str, Any]:
     return stats
 
 
-def get_weekly_metrics(week_label: str) -> Dict[str, Any]:
+def get_weekly_metrics(week_label: str) -> dict[str, Any]:
     """
     Get all metrics for a specific week.
 
@@ -583,7 +584,7 @@ def get_weekly_metrics(week_label: str) -> Dict[str, Any]:
     return snapshots.get(week_label, {})
 
 
-def save_flow_time_snapshot(week_label: str, data: Dict[str, Any]) -> bool:
+def save_flow_time_snapshot(week_label: str, data: dict[str, Any]) -> bool:
     """
     Save Flow Time metric snapshot.
 
@@ -597,7 +598,7 @@ def save_flow_time_snapshot(week_label: str, data: Dict[str, Any]) -> bool:
     return save_metric_snapshot(week_label, "flow_time", data)
 
 
-def save_flow_efficiency_snapshot(week_label: str, data: Dict[str, Any]) -> bool:
+def save_flow_efficiency_snapshot(week_label: str, data: dict[str, Any]) -> bool:
     """
     Save Flow Efficiency metric snapshot.
 
@@ -612,7 +613,7 @@ def save_flow_efficiency_snapshot(week_label: str, data: Dict[str, Any]) -> bool
 
 
 def save_dora_metrics_snapshot(
-    week_label: str, deployment_data: Dict[str, Any], lead_time_data: Dict[str, Any]
+    week_label: str, deployment_data: dict[str, Any], lead_time_data: dict[str, Any]
 ) -> bool:
     """
     Save DORA metrics snapshots (both deployment frequency and lead time).
@@ -653,7 +654,7 @@ def has_metric_snapshot(week_label: str, metric_name: str) -> bool:
     return get_metric_snapshot(week_label, metric_name) is not None
 
 
-def get_available_weeks() -> List[str]:
+def get_available_weeks() -> list[str]:
     """
     Get list of all weeks that have snapshots.
 
@@ -676,8 +677,8 @@ def get_available_weeks() -> List[str]:
 def save_metric_snapshot_with_forecast(
     week_label: str,
     metric_name: str,
-    metric_data: Dict[str, Any],
-    metric_type: Optional[str] = None,
+    metric_data: dict[str, Any],
+    metric_type: str | None = None,
 ) -> bool:
     """
     Save metric snapshot WITH forecast calculation (Feature 009).
@@ -706,15 +707,15 @@ def save_metric_snapshot_with_forecast(
         ...     metric_type="higher_better"
         ... )
     """
-    from data.metrics_calculator import (
-        calculate_forecast,
-        calculate_trend_vs_forecast,
-        calculate_flow_load_range,
-    )
     from configuration.metrics_config import (
+        FLOW_LOAD_RANGE_PERCENT,
         HIGHER_BETTER_METRICS,
         LOWER_BETTER_METRICS,
-        FLOW_LOAD_RANGE_PERCENT,
+    )
+    from data.metrics_calculator import (
+        calculate_flow_load_range,
+        calculate_forecast,
+        calculate_trend_vs_forecast,
     )
 
     # First, save the base metric data (without forecast)
@@ -819,12 +820,12 @@ def add_forecasts_to_week(week_label: str) -> bool:
         >>> add_forecasts_to_week("2025-44")
         True
     """
+    from configuration.metrics_config import FLOW_LOAD_RANGE_PERCENT
     from data.metrics_calculator import (
+        calculate_flow_load_range,
         calculate_forecast,
         calculate_trend_vs_forecast,
-        calculate_flow_load_range,
     )
-    from configuration.metrics_config import FLOW_LOAD_RANGE_PERCENT
 
     logger.info(f"Adding forecast data to all metrics for week {week_label}")
 

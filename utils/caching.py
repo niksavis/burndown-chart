@@ -10,20 +10,16 @@ to improve performance of the application.
 #######################################################################
 # Standard library imports
 import functools
-import time
 import hashlib
 import json
 import logging
+import time
+from collections.abc import Callable
 from typing import (
     Any,
-    Callable,
-    Dict,
-    Tuple,
+    TypedDict,
     TypeVar,
     cast,
-    Optional,
-    Union,
-    TypedDict,
 )
 
 # Application imports
@@ -43,9 +39,9 @@ class CacheValue(TypedDict):
     timestamp: float
 
 
-CacheKey = Tuple[Any, ...]
-CacheNamespace = Dict[CacheKey, Tuple[Any, float]]
-CacheStore = Dict[str, CacheNamespace]
+CacheKey = tuple[Any, ...]
+CacheNamespace = dict[CacheKey, tuple[Any, float]]
+CacheStore = dict[str, CacheNamespace]
 
 #######################################################################
 # CACHE DEFINITIONS
@@ -81,7 +77,10 @@ def _make_hashable(obj: Any) -> Any:
     if isinstance(obj, (dict, list)):
         try:
             # Convert to a stable JSON string and hash it
-            return f"{type(obj).__name__}:{hashlib.md5(json.dumps(obj, sort_keys=True).encode()).hexdigest()}"
+            hash_value = hashlib.md5(
+                json.dumps(obj, sort_keys=True).encode()
+            ).hexdigest()
+            return f"{type(obj).__name__}:{hash_value}"
         except (TypeError, ValueError):
             # Fallback for objects that can't be JSON serialized
             return str(obj)
@@ -121,7 +120,8 @@ def memoize(max_age_seconds: int = 300) -> Callable[[F], F]:
                 hashable_key = tuple(_make_hashable(arg) for arg in key_parts)
             except Exception as e:
                 logger.warning(
-                    f"Failed to create hashable key: {str(e)}. Calling function without caching."
+                    "Failed to create hashable key: "
+                    f"{str(e)}. Calling function without caching."
                 )
                 return func(*args, **kwargs)
 
@@ -144,7 +144,7 @@ def memoize(max_age_seconds: int = 300) -> Callable[[F], F]:
     return decorator
 
 
-def clear_cache(namespace: Optional[str] = None) -> None:
+def clear_cache(namespace: str | None = None) -> None:
     """
     Clear the cache, optionally for a specific namespace only.
 
@@ -161,7 +161,7 @@ def clear_cache(namespace: Optional[str] = None) -> None:
         logger.debug(f"Cleared cache for namespace: {namespace}")
 
 
-def get_cache_stats() -> Dict[str, Union[int, Dict[str, int]]]:
+def get_cache_stats() -> dict[str, int | dict[str, int]]:
     """
     Get statistics about the cache usage.
 

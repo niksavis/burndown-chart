@@ -1,7 +1,7 @@
 """Integration tests for Active Work Timeline flow."""
 
 import unittest
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from dash import html
 
@@ -14,7 +14,7 @@ class TestActiveWorkTimelineFlow(unittest.TestCase):
 
     def test_active_work_data_renders_timeline_component(self):
         """Test end-to-end flow from data aggregation to UI component."""
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         issues = [
             {
                 "issue_key": "PROJ-1",

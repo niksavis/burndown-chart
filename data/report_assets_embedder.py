@@ -1,9 +1,9 @@
 """Utility to embed external CSS/JS dependencies into HTML reports for offline use."""
 
 import base64
+import re
 import sys
 from pathlib import Path
-import re
 
 
 def embed_report_dependencies() -> dict:

@@ -9,11 +9,12 @@ Uses HTML/CSS progress bars for better rendering and control.
 """
 
 import logging
-from typing import Dict, List, Optional
-from datetime import datetime, timezone
-from dash import html
-from configuration import COLOR_PALETTE
+from datetime import UTC, datetime
+
 import plotly.graph_objects as go
+from dash import html
+
+from configuration import COLOR_PALETTE
 from ui.jira_link_helper import create_jira_issue_link
 
 logger = logging.getLogger(__name__)
@@ -62,9 +63,9 @@ def _get_issue_type_icon(issue_type: str) -> tuple:
 
 def _get_status_color(
     status: str,
-    flow_start_statuses: List[str],
-    flow_wip_statuses: List[str],
-    flow_end_statuses: List[str],
+    flow_start_statuses: list[str],
+    flow_wip_statuses: list[str],
+    flow_end_statuses: list[str],
 ) -> str:
     """Get color for a status based on flow configuration.
 
@@ -104,11 +105,11 @@ def _get_status_color(
 
 
 def _create_status_legend(
-    time_segments: List[Dict],
-    flow_start_statuses: List[str],
-    flow_wip_statuses: List[str],
-    flow_end_statuses: List[str],
-    changelog_entries: Optional[List[Dict]] = None,
+    time_segments: list[dict],
+    flow_start_statuses: list[str],
+    flow_wip_statuses: list[str],
+    flow_end_statuses: list[str],
+    changelog_entries: list[dict] | None = None,
 ) -> html.Div:
     """Create a legend showing all statuses ordered by their position in workflow.
 
@@ -226,10 +227,10 @@ def _create_status_legend(
 
 def _calculate_issue_health_priority(
     issue_key: str,
-    issue_state: Dict,
-    changelog_entries: List[Dict],
-    flow_end_statuses: List[str],
-    flow_wip_statuses: List[str],
+    issue_state: dict,
+    changelog_entries: list[dict],
+    flow_end_statuses: list[str],
+    flow_wip_statuses: list[str],
 ) -> tuple[int, int, float]:
     """Calculate completion bucket and health priority for issue sorting.
 
@@ -251,7 +252,7 @@ def _calculate_issue_health_priority(
         - health_priority: 1=blocked, 2=aging, 3=wip, 4=todo, 5=completed
         - days_in_completed: For completed items, days since completion (used for sorting)
     """
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     status = issue_state.get("status", "Unknown")
 
     # Check if completed
@@ -277,7 +278,7 @@ def _calculate_issue_health_priority(
                             change_date_str = change_date_str[:-1] + "+00:00"
                         change_dt = datetime.fromisoformat(change_date_str)
                         if change_dt.tzinfo is None:
-                            change_dt = change_dt.replace(tzinfo=timezone.utc)
+                            change_dt = change_dt.replace(tzinfo=UTC)
 
                         days_in_completed = (now - change_dt).total_seconds() / 86400
                         break  # Found most recent transition, stop
@@ -308,7 +309,7 @@ def _calculate_issue_health_priority(
                     change_date_str = change_date_str[:-1] + "+00:00"
                 change_dt = datetime.fromisoformat(change_date_str)
                 if change_dt.tzinfo is None:
-                    change_dt = change_dt.replace(tzinfo=timezone.utc)
+                    change_dt = change_dt.replace(tzinfo=UTC)
 
                 days_since_status_change = (now - change_dt).days
             except (ValueError, AttributeError) as e:
@@ -323,7 +324,7 @@ def _calculate_issue_health_priority(
                     created_str = created_str[:-1] + "+00:00"
                 created_dt = datetime.fromisoformat(created_str)
                 if created_dt.tzinfo is None:
-                    created_dt = created_dt.replace(tzinfo=timezone.utc)
+                    created_dt = created_dt.replace(tzinfo=UTC)
                 days_since_status_change = (now - created_dt).days
             except (ValueError, AttributeError):
                 pass
@@ -346,10 +347,10 @@ def _calculate_issue_health_priority(
 
 def _calculate_completion_percentage(
     issue_key: str,
-    changelog_entries: List[Dict],
-    flow_end_statuses: List[str],
-    sprint_start: Optional[datetime],
-    sprint_end: Optional[datetime],
+    changelog_entries: list[dict],
+    flow_end_statuses: list[str],
+    sprint_start: datetime | None,
+    sprint_end: datetime | None,
     now: datetime,
 ) -> float:
     """Calculate what percentage of sprint time the issue spent in completed status.
@@ -390,7 +391,7 @@ def _calculate_completion_percentage(
                         change_date_str = change_date_str[:-1] + "+00:00"
                     change_dt = datetime.fromisoformat(change_date_str)
                     if change_dt.tzinfo is None:
-                        change_dt = change_dt.replace(tzinfo=timezone.utc)
+                        change_dt = change_dt.replace(tzinfo=UTC)
                     completion_time = change_dt
                     break  # Use first transition to completed status
                 except (ValueError, AttributeError):
@@ -408,13 +409,13 @@ def _calculate_completion_percentage(
 
 
 def _sort_issues_by_health_priority(
-    issue_states: Dict[str, Dict],
-    changelog_entries: List[Dict],
-    flow_end_statuses: Optional[List[str]],
-    flow_wip_statuses: Optional[List[str]],
-    sprint_start_date: Optional[str] = None,
-    sprint_end_date: Optional[str] = None,
-) -> List[str]:
+    issue_states: dict[str, dict],
+    changelog_entries: list[dict],
+    flow_end_statuses: list[str] | None,
+    flow_wip_statuses: list[str] | None,
+    sprint_start_date: str | None = None,
+    sprint_end_date: str | None = None,
+) -> list[str]:
     """Sort issues by completion bucket, health priority, completion percentage, and issue key.
 
     Sorting order:
@@ -451,7 +452,7 @@ def _sort_issues_by_health_priority(
         try:
             sprint_start = datetime.fromisoformat(sprint_start_date)
             if sprint_start.tzinfo is None:
-                sprint_start = sprint_start.replace(tzinfo=timezone.utc)
+                sprint_start = sprint_start.replace(tzinfo=UTC)
         except (ValueError, AttributeError):
             pass
 
@@ -459,7 +460,7 @@ def _sort_issues_by_health_priority(
         try:
             sprint_end = datetime.fromisoformat(sprint_end_date)
             if sprint_end.tzinfo is None:
-                sprint_end = sprint_end.replace(tzinfo=timezone.utc)
+                sprint_end = sprint_end.replace(tzinfo=UTC)
         except (ValueError, AttributeError):
             pass
 
@@ -509,17 +510,17 @@ def _sort_issues_by_health_priority(
 
 
 def create_sprint_progress_bars(
-    sprint_data: Dict,
-    changelog_entries: Optional[List[Dict]] = None,
+    sprint_data: dict,
+    changelog_entries: list[dict] | None = None,
     show_points: bool = False,
-    sprint_start_date: Optional[str] = None,
-    sprint_end_date: Optional[str] = None,
-    flow_start_statuses: Optional[List[str]] = None,
-    flow_wip_statuses: Optional[List[str]] = None,
-    flow_end_statuses: Optional[List[str]] = None,
-    sprint_changes: Optional[Dict] = None,
-    sprint_state: Optional[str] = None,
-    scope_changes: Optional[Dict] = None,
+    sprint_start_date: str | None = None,
+    sprint_end_date: str | None = None,
+    flow_start_statuses: list[str] | None = None,
+    flow_wip_statuses: list[str] | None = None,
+    flow_end_statuses: list[str] | None = None,
+    sprint_changes: dict | None = None,
+    sprint_state: str | None = None,
+    scope_changes: dict | None = None,
 ):
     """Create HTML progress bars showing time proportion spent in each status.
 
@@ -582,18 +583,18 @@ def create_sprint_progress_bars(
         # Parse sprint dates even for simple bars
         sprint_start = None
         sprint_end = None
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
 
         try:
             if sprint_start_date:
                 sprint_start = datetime.fromisoformat(sprint_start_date)
                 if sprint_start.tzinfo is None:
-                    sprint_start = sprint_start.replace(tzinfo=timezone.utc)
+                    sprint_start = sprint_start.replace(tzinfo=UTC)
 
             if sprint_end_date:
                 sprint_end = datetime.fromisoformat(sprint_end_date)
                 if sprint_end.tzinfo is None:
-                    sprint_end = sprint_end.replace(tzinfo=timezone.utc)
+                    sprint_end = sprint_end.replace(tzinfo=UTC)
         except (ValueError, AttributeError) as e:
             logger.error(f"Failed to parse sprint dates: {e}")
 
@@ -612,18 +613,18 @@ def create_sprint_progress_bars(
     sprint_duration_seconds = None
     sprint_start = None
     sprint_end = None
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
 
     try:
         if sprint_start_date:
             sprint_start = datetime.fromisoformat(sprint_start_date)
             if sprint_start.tzinfo is None:
-                sprint_start = sprint_start.replace(tzinfo=timezone.utc)
+                sprint_start = sprint_start.replace(tzinfo=UTC)
 
         if sprint_end_date:
             sprint_end = datetime.fromisoformat(sprint_end_date)
             if sprint_end.tzinfo is None:
-                sprint_end = sprint_end.replace(tzinfo=timezone.utc)
+                sprint_end = sprint_end.replace(tzinfo=UTC)
 
         # Calculate sprint duration
         if sprint_start and sprint_end:
@@ -1113,15 +1114,15 @@ def _create_single_status_bar(
     issue_key: str,
     summary: str,
     status: str,
-    points: Optional[float],
+    points: float | None,
     show_points: bool,
-    flow_start_statuses: List[str],
-    flow_wip_statuses: List[str],
-    flow_end_statuses: List[str],
+    flow_start_statuses: list[str],
+    flow_wip_statuses: list[str],
+    flow_end_statuses: list[str],
     issue_type: str = "Unknown",
-    sprint_start: Optional[datetime] = None,
-    sprint_end: Optional[datetime] = None,
-    now: Optional[datetime] = None,
+    sprint_start: datetime | None = None,
+    sprint_end: datetime | None = None,
+    now: datetime | None = None,
     is_added: bool = False,
     is_removed: bool = False,
     is_initial: bool = False,
@@ -1326,16 +1327,16 @@ def _create_single_status_bar(
 def _create_multi_segment_bar(
     issue_key: str,
     summary: str,
-    time_segments: List[Dict],
+    time_segments: list[dict],
     total_duration: float,
     time_progress_percentage: float,
     remaining_percentage: float,
     sprint_duration_seconds: float,
-    points: Optional[float],
+    points: float | None,
     show_points: bool,
-    flow_start_statuses: List[str],
-    flow_wip_statuses: List[str],
-    flow_end_statuses: List[str],
+    flow_start_statuses: list[str],
+    flow_wip_statuses: list[str],
+    flow_end_statuses: list[str],
     issue_type: str = "Unknown",
     is_added: bool = False,
     is_removed: bool = False,
@@ -1581,14 +1582,14 @@ def _create_multi_segment_bar(
 
 
 def _create_simple_html_bars(
-    issue_states: Dict,
+    issue_states: dict,
     show_points: bool = False,
-    flow_start_statuses: Optional[List[str]] = None,
-    flow_wip_statuses: Optional[List[str]] = None,
-    flow_end_statuses: Optional[List[str]] = None,
-    sprint_start: Optional[datetime] = None,
-    sprint_end: Optional[datetime] = None,
-    now: Optional[datetime] = None,
+    flow_start_statuses: list[str] | None = None,
+    flow_wip_statuses: list[str] | None = None,
+    flow_end_statuses: list[str] | None = None,
+    sprint_start: datetime | None = None,
+    sprint_end: datetime | None = None,
+    now: datetime | None = None,
 ):
     """Fallback HTML bars when no changelog available."""
     # Default flow states if not provided
@@ -1654,7 +1655,7 @@ def _create_simple_html_bars(
 
 
 # Keep timeline chart as Plotly (it works well for this use case)
-def create_sprint_timeline_chart(sprint_changes: Dict) -> go.Figure:
+def create_sprint_timeline_chart(sprint_changes: dict) -> go.Figure:
     """Create timeline visualization showing sprint composition changes.
 
     Args:
@@ -1667,7 +1668,7 @@ def create_sprint_timeline_chart(sprint_changes: Dict) -> go.Figure:
     return _create_empty_sprint_chart("Sprint timeline chart (coming soon)")
 
 
-def create_status_distribution_pie(progress_data: Dict) -> go.Figure:
+def create_status_distribution_pie(progress_data: dict) -> go.Figure:
     """Create pie chart showing status distribution.
 
     Args:
@@ -1714,8 +1715,8 @@ def create_status_distribution_pie(progress_data: Dict) -> go.Figure:
 
 
 def create_sprint_summary_card(
-    progress_data: Dict, show_points: bool, flow_wip_statuses: List[str]
-) -> Dict:
+    progress_data: dict, show_points: bool, flow_wip_statuses: list[str]
+) -> dict:
     """Create summary card data for sprint.
 
     Args:

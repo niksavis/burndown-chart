@@ -1,17 +1,12 @@
 """Data persistence adapters - Project data save/load operations."""
 
 # Standard library imports
-import json
-import os
-import threading
-from datetime import datetime, timedelta
-from typing import Dict, Any, List
+from typing import Any
 
 # Third-party library imports
-import pandas as pd
-
 # Application imports
 from configuration.settings import logger
+
 
 def save_project_data(
     total_items,
@@ -32,17 +27,17 @@ def save_project_data(
         metadata: Additional project metadata (e.g., JIRA sync info)
     """
     logger.warning(
-        "[Deprecated] save_project_data() called - use save_unified_project_data() instead"
+        "[Deprecated] save_project_data() called - "
+        "use save_unified_project_data() instead"
     )
 
     try:
-        from data.persistence.factory import get_backend
-
         # Lazy import to avoid circular dependency
         from configuration.settings import (
             DEFAULT_ESTIMATED_ITEMS,
             DEFAULT_ESTIMATED_POINTS,
         )
+        from data.persistence.factory import get_backend
 
         backend = get_backend()
 
@@ -71,7 +66,7 @@ def save_project_data(
         logger.error(f"[Cache] Error saving project data: {e}")
 
 
-def load_project_data() -> Dict[str, Any]:
+def load_project_data() -> dict[str, Any]:
     """
     Load project-specific data via repository pattern (database).
 
@@ -80,10 +75,10 @@ def load_project_data() -> Dict[str, Any]:
     """
     # Lazy import to avoid circular dependency
     from configuration.settings import (
-        DEFAULT_TOTAL_ITEMS,
-        DEFAULT_TOTAL_POINTS,
         DEFAULT_ESTIMATED_ITEMS,
         DEFAULT_ESTIMATED_POINTS,
+        DEFAULT_TOTAL_ITEMS,
+        DEFAULT_TOTAL_POINTS,
     )
 
     default_data = {
@@ -118,5 +113,3 @@ def load_project_data() -> Dict[str, Any]:
     except Exception as e:
         logger.error(f"[Cache] Error loading project data: {e}")
         return default_data
-
-

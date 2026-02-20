@@ -58,10 +58,9 @@ Test Support:
     PROFILES_DIR is a module-level constant that can be patched in tests
 """
 
-from datetime import datetime, timezone
-from pathlib import Path
-from typing import Dict, List, Optional
 import logging
+from datetime import UTC, datetime
+from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
@@ -108,20 +107,20 @@ class Profile:
         description: str = "",
         created_at: str = "",
         last_used: str = "",
-        jira_config: Optional[Dict] = None,
-        field_mappings: Optional[Dict] = None,
-        forecast_settings: Optional[Dict] = None,
-        project_classification: Optional[Dict] = None,
-        flow_type_mappings: Optional[Dict] = None,
-        queries: Optional[list] = None,
+        jira_config: dict | None = None,
+        field_mappings: dict | None = None,
+        forecast_settings: dict | None = None,
+        project_classification: dict | None = None,
+        flow_type_mappings: dict | None = None,
+        queries: list | None = None,
         show_milestone: bool = False,
         show_points: bool = False,
     ):
         self.id = id
         self.name = name
         self.description = description
-        self.created_at = created_at or datetime.now(timezone.utc).isoformat()
-        self.last_used = last_used or datetime.now(timezone.utc).isoformat()
+        self.created_at = created_at or datetime.now(UTC).isoformat()
+        self.last_used = last_used or datetime.now(UTC).isoformat()
         self.jira_config = jira_config or {}
         self.field_mappings = field_mappings or {}
         self.forecast_settings = forecast_settings or {
@@ -135,7 +134,7 @@ class Profile:
         self.show_milestone = show_milestone
         self.show_points = show_points
 
-    def to_dict(self) -> Dict:
+    def to_dict(self) -> dict:
         """Convert profile to dictionary for JSON serialization."""
         return {
             "id": self.id,
@@ -154,7 +153,7 @@ class Profile:
         }
 
     @classmethod
-    def from_dict(cls, data: Dict) -> "Profile":
+    def from_dict(cls, data: dict) -> "Profile":
         """Create profile from dictionary loaded from JSON."""
         return cls(
             id=data["id"],
@@ -330,7 +329,7 @@ def get_jira_cache_path(profile_id: str, query_id: str) -> Path:
 # ============================================================================
 
 
-def load_profiles_metadata() -> Dict:
+def load_profiles_metadata() -> dict:
     """
     Load profiles registry from database with schema validation.
 
@@ -379,7 +378,7 @@ def load_profiles_metadata() -> Dict:
         }
 
 
-def save_profiles_metadata(metadata: Dict) -> bool:
+def save_profiles_metadata(metadata: dict) -> bool:
     """
     Save profiles registry to database (no longer writes profiles.json).
 
@@ -419,7 +418,7 @@ def save_profiles_metadata(metadata: Dict) -> bool:
         return False
 
 
-def get_active_profile() -> Optional[Profile]:
+def get_active_profile() -> Profile | None:
     """
     Get currently active profile object from database.
 
@@ -569,7 +568,7 @@ def get_active_profile_and_query_display_names() -> dict:
 # ============================================================================
 
 
-def create_profile(name: str, settings: Dict) -> str:
+def create_profile(name: str, settings: dict) -> str:
     """
     Create a new profile with initial settings.
 
@@ -678,7 +677,7 @@ def switch_profile(profile_id: str) -> None:
         raise ValueError(f"Profile '{profile_id}' does not exist")
 
     # Update last_used timestamp
-    profile["last_used"] = datetime.now(timezone.utc).isoformat()
+    profile["last_used"] = datetime.now(UTC).isoformat()
     backend.save_profile(profile)
 
     # Update active profile
@@ -877,7 +876,7 @@ def duplicate_profile(
 
     try:
         # Step 1: Copy profile data from database
-        now = datetime.now(timezone.utc).isoformat()
+        now = datetime.now(UTC).isoformat()
         new_profile_data = source_profile.copy()
         new_profile_data["id"] = new_profile_id
         new_profile_data["name"] = new_name
@@ -925,7 +924,7 @@ def duplicate_profile(
         raise OSError(f"Failed to duplicate profile: {e}") from e
 
 
-def list_profiles() -> List[Dict]:
+def list_profiles() -> list[dict]:
     """
     List all available profiles from database.
 
@@ -953,7 +952,7 @@ def list_profiles() -> List[Dict]:
     return profiles
 
 
-def get_profile(profile_id: str) -> Dict:
+def get_profile(profile_id: str) -> dict:
     """
     Load profile configuration.
 
@@ -1011,7 +1010,7 @@ def create_query(profile_id: str, name: str, jql: str) -> str:
     raise NotImplementedError("T010 - to be implemented")
 
 
-def list_queries(profile_id: str) -> List[Dict]:
+def list_queries(profile_id: str) -> list[dict]:
     """
     List all queries in a profile.
 
@@ -1029,7 +1028,7 @@ def list_queries(profile_id: str) -> List[Dict]:
     raise NotImplementedError("T010 - to be implemented")
 
 
-def get_query(profile_id: str, query_id: str) -> Dict:
+def get_query(profile_id: str, query_id: str) -> dict:
     """
     Load query configuration.
 

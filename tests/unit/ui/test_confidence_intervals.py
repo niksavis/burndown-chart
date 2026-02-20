@@ -5,9 +5,10 @@ This module verifies that the confidence interval calculations use
 statistically correct formulas based on normal distribution percentiles.
 """
 
-import pytest
 import sys
 from pathlib import Path
+
+import pytest
 
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent))

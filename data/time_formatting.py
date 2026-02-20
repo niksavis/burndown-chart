@@ -7,13 +7,12 @@ Used for displaying data freshness in query dropdowns and other UI elements.
 """
 
 import logging
-from datetime import datetime, timezone, timedelta
-from typing import Optional
+from datetime import UTC, datetime, timedelta
 
 logger = logging.getLogger(__name__)
 
 
-def get_relative_time_string(timestamp_iso: Optional[str]) -> Optional[str]:
+def get_relative_time_string(timestamp_iso: str | None) -> str | None:
     """Convert ISO timestamp to compact relative format.
 
     Generates intuitive relative time strings that gracefully age:
@@ -64,9 +63,9 @@ def get_relative_time_string(timestamp_iso: Optional[str]) -> Optional[str]:
 
         # Ensure timezone-aware for comparison
         if then.tzinfo is None:
-            then = then.replace(tzinfo=timezone.utc)
+            then = then.replace(tzinfo=UTC)
 
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         delta = now - then
 
         # Future timestamps (clock skew, testing) - show "Just now"
@@ -109,7 +108,7 @@ def get_relative_time_string(timestamp_iso: Optional[str]) -> Optional[str]:
         return None
 
 
-def format_datetime_for_display(timestamp_iso: Optional[str]) -> str:
+def format_datetime_for_display(timestamp_iso: str | None) -> str:
     """Format ISO timestamp for human-readable display.
 
     Converts ISO 8601 timestamp to localized display format.

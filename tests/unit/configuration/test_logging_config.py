@@ -12,8 +12,8 @@ Tests cover:
 All tests use temporary directories for isolation (no project root pollution).
 """
 
-import logging
 import json
+import logging
 import os
 import time
 from typing import cast
@@ -102,7 +102,7 @@ def test_json_formatter_output(temp_log_dir):
 
     # Read the log file
     app_log = os.path.join(temp_log_dir, "app.log")
-    with open(app_log, "r") as f:
+    with open(app_log) as f:
         log_content = f.read().strip()
 
     # Verify it's valid JSON
@@ -134,7 +134,7 @@ def test_sensitive_data_filter_redacts_tokens(temp_log_dir):
 
     # Read the log file
     app_log = os.path.join(temp_log_dir, "app.log")
-    with open(app_log, "r") as f:
+    with open(app_log) as f:
         log_content = f.read()
 
     # Verify token is redacted
@@ -157,7 +157,7 @@ def test_sensitive_data_filter_redacts_passwords(temp_log_dir):
 
     # Read the log file
     app_log = os.path.join(temp_log_dir, "app.log")
-    with open(app_log, "r") as f:
+    with open(app_log) as f:
         log_content = f.read()
 
     # Verify password is redacted
@@ -180,7 +180,7 @@ def test_sensitive_data_filter_redacts_api_keys(temp_log_dir):
 
     # Read the log file
     app_log = os.path.join(temp_log_dir, "app.log")
-    with open(app_log, "r") as f:
+    with open(app_log) as f:
         log_content = f.read()
 
     # Verify API key is redacted

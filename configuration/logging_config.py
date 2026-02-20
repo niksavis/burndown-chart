@@ -21,16 +21,15 @@ Usage:
     logger.info("Application started")
 """
 
-import logging
-from logging.handlers import RotatingFileHandler
-import json
-import re
-import os
 import glob
-from datetime import datetime, timedelta, timezone
+import json
+import logging
+import os
+import re
+from datetime import UTC, datetime, timedelta
+from logging.handlers import RotatingFileHandler
 
 from data.installation_context import get_installation_context
-
 
 # Get default log directory from installation context
 _installation_context = get_installation_context()
@@ -175,7 +174,7 @@ class JSONFormatter(logging.Formatter):
             message = f"{record.msg} (formatting error: {e})"
 
         log_data = {
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
             "level": record.levelname,
             "module": record.module,
             "function": record.funcName,

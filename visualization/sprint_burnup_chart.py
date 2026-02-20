@@ -11,9 +11,9 @@ Used in Sprint Progress Tracker tab to visualize commitment vs actual delivery.
 
 import logging
 from datetime import datetime
-from typing import Dict, List, Optional
 
 import plotly.graph_objects as go
+
 from configuration import COLOR_PALETTE
 from ui.tooltip_utils import create_hoverlabel_config, format_hover_template
 
@@ -21,10 +21,10 @@ logger = logging.getLogger(__name__)
 
 
 def create_sprint_burnup_chart(
-    daily_snapshots: List[Dict],
+    daily_snapshots: list[dict],
     sprint_name: str = "Sprint",
-    sprint_start_date: Optional[str] = None,
-    sprint_end_date: Optional[str] = None,
+    sprint_start_date: str | None = None,
+    sprint_end_date: str | None = None,
     height: int = 400,
     show_points: bool = True,
 ) -> go.Figure:
@@ -154,7 +154,7 @@ def create_sprint_burnup_chart(
                     "Delta from Ideal": "%{customdata[0]:+d}",
                 },
             ),
-            customdata=[[int(ci - ii) for ci, ii in zip(completed_items, ideal_items)]],
+            customdata=[[int(ci - ii) for ci, ii in zip(completed_items, ideal_items, strict=False)]],
             hoverlabel=create_hoverlabel_config("primary"),
             showlegend=True,
         )
@@ -231,7 +231,7 @@ def create_sprint_burnup_chart(
                     },
                 ),
                 customdata=[
-                    [cp - ip for cp, ip in zip(completed_points, ideal_points)]
+                    [cp - ip for cp, ip in zip(completed_points, ideal_points, strict=False)]
                 ],
                 hoverlabel=create_hoverlabel_config("warning"),
                 showlegend=True,

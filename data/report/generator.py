@@ -6,16 +6,16 @@ metric calculation, chart generation, and rendering.
 """
 
 import logging
-from typing import Dict, List, Any, Optional, Tuple
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
 
 def generate_html_report(
-    sections: List[str],
+    sections: list[str],
     time_period_weeks: int = 12,
-    profile_id: Optional[str] = None,
-) -> Tuple[str, Dict[str, str]]:
+    profile_id: str | None = None,
+) -> tuple[str, dict[str, str]]:
     """
     Generate a self-contained HTML report with project metrics snapshot.
 
@@ -53,8 +53,8 @@ def generate_html_report(
     )
 
     # Delegate to specialized modules
-    from data.report.data_loader import load_report_data
     from data.report.chart_generator import generate_chart_scripts
+    from data.report.data_loader import load_report_data
     from data.report.renderer import render_template
 
     # Load and filter data for the time period
@@ -92,10 +92,10 @@ def generate_html_report(
 
 
 def generate_html_report_with_progress(
-    sections: List[str],
+    sections: list[str],
     time_period_weeks: int = 12,
-    profile_id: Optional[str] = None,
-) -> Tuple[str, Dict[str, str]]:
+    profile_id: str | None = None,
+) -> tuple[str, dict[str, str]]:
     """
     Generate HTML report with progress updates.
 
@@ -123,8 +123,8 @@ def generate_html_report_with_progress(
 
 
 def calculate_all_metrics(
-    report_data: Dict[str, Any], sections: List[str], time_period_weeks: int
-) -> Dict[str, Any]:
+    report_data: dict[str, Any], sections: list[str], time_period_weeks: int
+) -> dict[str, Any]:
     """
     Calculate all metrics for requested report sections.
 
@@ -136,14 +136,14 @@ def calculate_all_metrics(
     Returns:
         Dictionary with metrics for each section
     """
-    from data.report.domain_metrics import (
-        calculate_burndown_metrics,
-        calculate_bug_metrics,
-        calculate_scope_metrics,
-        calculate_flow_metrics,
-        calculate_dora_metrics,
-    )
     from data.report.dashboard_metrics import calculate_dashboard_metrics
+    from data.report.domain_metrics import (
+        calculate_bug_metrics,
+        calculate_burndown_metrics,
+        calculate_dora_metrics,
+        calculate_flow_metrics,
+        calculate_scope_metrics,
+    )
     from data.report.helpers import calculate_budget_metrics
 
     metrics = {}
@@ -152,7 +152,7 @@ def calculate_all_metrics(
     show_points = report_data["settings"].get("show_points", False)
 
     # Calculate extended metrics first (needed for comprehensive health calculation)
-    extended_metrics: Dict[str, Any] = {}
+    extended_metrics: dict[str, Any] = {}
 
     # Bug Analysis metrics
     if "burndown" in sections:
@@ -324,8 +324,8 @@ def calculate_all_metrics(
 
 
 def calculate_executive_summary(
-    dashboard_metrics: Dict[str, Any], extended_metrics: Dict[str, Any]
-) -> Dict[str, Any]:
+    dashboard_metrics: dict[str, Any], extended_metrics: dict[str, Any]
+) -> dict[str, Any]:
     """
     Generate executive summary with top insights and risks.
 
@@ -494,12 +494,12 @@ def calculate_executive_summary(
 
 
 def calculate_recommendations(
-    statistics: List[Dict],
-    dashboard_metrics: Dict[str, Any],
-    extended_metrics: Dict[str, Any],
-    settings: Dict[str, Any],
+    statistics: list[dict],
+    dashboard_metrics: dict[str, Any],
+    extended_metrics: dict[str, Any],
+    settings: dict[str, Any],
     time_period_weeks: int,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Generate actionable recommendations based on project metrics.
 
@@ -679,6 +679,7 @@ def calculate_recommendations(
     if deadline:
         try:
             from datetime import datetime
+
             import pandas as pd
 
             deadline_date = pd.to_datetime(deadline)

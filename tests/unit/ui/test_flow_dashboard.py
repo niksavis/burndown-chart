@@ -11,8 +11,9 @@ Tests the create_flow_dashboard() function and helper functions to ensure:
 T043: Unit test for Flow dashboard UI verifying distribution chart and metric cards.
 """
 
-import pytest
 import dash_bootstrap_components as dbc
+import pytest
+
 from ui.flow_metrics_dashboard import create_flow_dashboard
 
 

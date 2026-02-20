@@ -10,8 +10,8 @@ These tests verify that the logging system works correctly in real-world scenari
 with multiple modules writing logs simultaneously and under high load.
 """
 
-import logging
 import json
+import logging
 import os
 import time
 
@@ -29,9 +29,9 @@ def test_logging_workflow_end_to_end(temp_log_dir):
     - Cleanup closes files properly
     """
     from configuration.logging_config import (
+        cleanup_old_logs,
         setup_logging,
         shutdown_logging,
-        cleanup_old_logs,
     )
 
     # Setup logging
@@ -63,7 +63,7 @@ def test_logging_workflow_end_to_end(temp_log_dir):
     app_log = os.path.join(temp_log_dir, "app.log")
     assert os.path.exists(app_log), "app.log should exist"
 
-    with open(app_log, "r") as f:
+    with open(app_log) as f:
         app_log_lines = f.readlines()
 
     # Should have 7 log entries
@@ -91,7 +91,7 @@ def test_logging_workflow_end_to_end(temp_log_dir):
     errors_log = os.path.join(temp_log_dir, "errors.log")
     assert os.path.exists(errors_log), "errors.log should exist"
 
-    with open(errors_log, "r") as f:
+    with open(errors_log) as f:
         error_log_lines = f.readlines()
 
     # Should have 2 error entries
@@ -167,7 +167,7 @@ def test_log_rotation_under_load(temp_log_dir):
 
     total_entries = 0
     for log_file in log_files:
-        with open(log_file, "r") as f:
+        with open(log_file) as f:
             for line in f:
                 if line.strip():  # Skip empty lines
                     log_entry = json.loads(line.strip())
@@ -220,7 +220,7 @@ def test_multiple_handlers_write_correctly(temp_log_dir):
 
     # Verify app.log has INFO, WARNING, ERROR, CRITICAL (4 messages + 2 sensitive)
     app_log = os.path.join(temp_log_dir, "app.log")
-    with open(app_log, "r") as f:
+    with open(app_log) as f:
         app_log_lines = [line for line in f if line.strip()]
 
     assert len(app_log_lines) == 6, (
@@ -229,7 +229,7 @@ def test_multiple_handlers_write_correctly(temp_log_dir):
 
     # Verify errors.log has ERROR, CRITICAL only (2 messages + 1 sensitive)
     errors_log = os.path.join(temp_log_dir, "errors.log")
-    with open(errors_log, "r") as f:
+    with open(errors_log) as f:
         error_log_lines = [line for line in f if line.strip()]
 
     assert len(error_log_lines) == 3, (

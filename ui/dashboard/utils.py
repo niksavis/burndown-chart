@@ -13,13 +13,12 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any
 
 import pandas as pd
 from dash import html
 
 from ui.metric_cards import create_metric_card as create_professional_metric_card
-
 
 logger = logging.getLogger(__name__)
 
@@ -75,11 +74,11 @@ def format_date_relative(date_str, reference_date=None):
 
 def calculate_project_health_score(
     metrics: dict[str, Any],
-    dora_metrics: Optional[dict[str, Any]] = None,
-    flow_metrics: Optional[dict[str, Any]] = None,
-    bug_metrics: Optional[dict[str, Any]] = None,
-    budget_metrics: Optional[dict[str, Any]] = None,
-    scope_metrics: Optional[dict[str, Any]] = None,
+    dora_metrics: dict[str, Any] | None = None,
+    flow_metrics: dict[str, Any] | None = None,
+    bug_metrics: dict[str, Any] | None = None,
+    budget_metrics: dict[str, Any] | None = None,
+    scope_metrics: dict[str, Any] | None = None,
 ) -> float:
     """Calculate overall project health score (0-100) using comprehensive multi-dimensional analysis.
 
@@ -249,10 +248,10 @@ def create_metric_card(
     subtitle: str,
     icon: str,
     color: str,
-    trend: Optional[dict[str, Any]] = None,
-    sparkline_data: Optional[list[float]] = None,
-    tooltip_text: Optional[str] = None,
-    tooltip_id: Optional[str] = None,
+    trend: dict[str, Any] | None = None,
+    sparkline_data: list[float] | None = None,
+    tooltip_text: str | None = None,
+    tooltip_id: str | None = None,
 ) -> Any:
     """Create a standardized metric card using professional system.
 

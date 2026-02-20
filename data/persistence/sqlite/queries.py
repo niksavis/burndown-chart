@@ -4,10 +4,9 @@ from __future__ import annotations
 
 import logging
 from pathlib import Path
-from typing import Dict, List, Optional
 
-from data.persistence import ProfileNotFoundError, QueryNotFoundError, ValidationError
 from data.database import get_db_connection
+from data.persistence import ProfileNotFoundError, QueryNotFoundError, ValidationError
 from data.persistence.sqlite.helpers import retry_on_db_lock
 
 logger = logging.getLogger(__name__)
@@ -18,7 +17,7 @@ class QueriesMixin:
 
     db_path: Path  # Set by composition class (SQLiteBackend)
 
-    def get_query(self, profile_id: str, query_id: str) -> Optional[Dict]:
+    def get_query(self, profile_id: str, query_id: str) -> dict | None:
         """Load query configuration from queries table."""
         try:
             with get_db_connection(self.db_path) as conn:
@@ -42,7 +41,7 @@ class QueriesMixin:
             raise
 
     @retry_on_db_lock(max_retries=3, base_delay=0.1)
-    def save_query(self, profile_id: str, query: Dict) -> None:
+    def save_query(self, profile_id: str, query: dict) -> None:
         """Save query configuration (insert or update) to queries table."""
         required_fields = ["id", "name", "jql", "created_at", "last_used"]
         for field in required_fields:
@@ -89,7 +88,7 @@ class QueriesMixin:
             )
             raise
 
-    def list_queries(self, profile_id: str) -> List[Dict]:
+    def list_queries(self, profile_id: str) -> list[dict]:
         """List all queries for a profile, ordered by last_used descending."""
         try:
             with get_db_connection(self.db_path) as conn:

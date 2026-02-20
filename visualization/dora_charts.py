@@ -3,13 +3,14 @@
 Provides chart generation functions for DORA metrics visualization.
 """
 
-from typing import Dict, Any, List, Optional
+from datetime import datetime
+from typing import Any
+
 import plotly.graph_objects as go
-from datetime import datetime, timedelta
 
 
 def create_deployment_frequency_chart(
-    metric_data: Dict[str, Any], historical_data: Optional[List[Dict[str, Any]]] = None
+    metric_data: dict[str, Any], historical_data: list[dict[str, Any]] | None = None
 ) -> go.Figure:
     """Create deployment frequency visualization chart.
 
@@ -50,7 +51,7 @@ def create_deployment_frequency_chart(
         )
 
     # Add performance tier benchmark lines
-    tier_color = metric_data.get("performance_tier_color", "grey")
+    metric_data.get("performance_tier_color", "grey")
     tier_name = metric_data.get("performance_tier", "Unknown")
 
     fig.update_layout(
@@ -66,7 +67,7 @@ def create_deployment_frequency_chart(
 
 
 def create_lead_time_chart(
-    metric_data: Dict[str, Any], historical_data: Optional[List[Dict[str, Any]]] = None
+    metric_data: dict[str, Any], historical_data: list[dict[str, Any]] | None = None
 ) -> go.Figure:
     """Create lead time for changes visualization chart.
 
@@ -119,7 +120,7 @@ def create_lead_time_chart(
 
 
 def create_change_failure_rate_chart(
-    metric_data: Dict[str, Any], historical_data: Optional[List[Dict[str, Any]]] = None
+    metric_data: dict[str, Any], historical_data: list[dict[str, Any]] | None = None
 ) -> go.Figure:
     """Create change failure rate visualization chart.
 
@@ -172,7 +173,7 @@ def create_change_failure_rate_chart(
 
 
 def create_mttr_chart(
-    metric_data: Dict[str, Any], historical_data: Optional[List[Dict[str, Any]]] = None
+    metric_data: dict[str, Any], historical_data: list[dict[str, Any]] | None = None
 ) -> go.Figure:
     """Create mean time to recovery visualization chart.
 
@@ -224,7 +225,7 @@ def create_mttr_chart(
     return fig
 
 
-def create_dora_summary_chart(metrics_data: Dict[str, Dict[str, Any]]) -> go.Figure:
+def create_dora_summary_chart(metrics_data: dict[str, dict[str, Any]]) -> go.Figure:
     """Create a summary radar chart showing all four DORA metrics.
 
     Args:
@@ -294,7 +295,7 @@ def create_dora_summary_chart(metrics_data: Dict[str, Dict[str, Any]]) -> go.Fig
 
 
 def create_deployment_frequency_trend(
-    trend_data: List[Dict[str, Any]], metric_data: Dict[str, Any]
+    trend_data: list[dict[str, Any]], metric_data: dict[str, Any]
 ) -> go.Figure:
     """Create deployment frequency trend chart over time with separate deployment and release lines.
 
@@ -402,7 +403,7 @@ def create_deployment_frequency_trend(
 
 
 def create_lead_time_trend(
-    trend_data: List[Dict[str, Any]], metric_data: Dict[str, Any]
+    trend_data: list[dict[str, Any]], metric_data: dict[str, Any]
 ) -> go.Figure:
     """Create lead time for changes trend chart over time.
 

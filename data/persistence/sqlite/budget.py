@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from data.database import get_db_connection
 from data.persistence.sqlite.helpers import retry_on_db_lock
@@ -19,7 +19,7 @@ class BudgetMixin:
 
     def get_budget_settings(
         self, profile_id: str, query_id: str
-    ) -> Optional[Dict[str, Any]]:
+    ) -> dict[str, Any] | None:
         """Get budget settings for a query.
 
         Args:
@@ -65,7 +65,7 @@ class BudgetMixin:
 
     def get_budget_revisions(
         self, profile_id: str, query_id: str
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """Get all budget revisions for a query.
 
         Args:
@@ -117,7 +117,7 @@ class BudgetMixin:
 
     @retry_on_db_lock(max_retries=3, base_delay=0.1)
     def save_budget_settings(
-        self, profile_id: str, query_id: str, budget_settings: Dict[str, Any]
+        self, profile_id: str, query_id: str, budget_settings: dict[str, Any]
     ) -> None:
         """Save budget settings for a query.
 
@@ -165,7 +165,7 @@ class BudgetMixin:
 
     @retry_on_db_lock(max_retries=3, base_delay=0.1)
     def save_budget_revisions(
-        self, profile_id: str, query_id: str, revisions: List[Dict[str, Any]]
+        self, profile_id: str, query_id: str, revisions: list[dict[str, Any]]
     ) -> None:
         """Save budget revisions for a query.
 

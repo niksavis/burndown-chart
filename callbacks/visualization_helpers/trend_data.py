@@ -5,7 +5,7 @@ This module contains helper functions for preparing trend indicators
 and forecast data for visualizations.
 """
 
-from typing import Optional, Union
+
 import pandas as pd
 
 from data import (
@@ -15,9 +15,9 @@ from data import (
 
 
 def prepare_trend_data(
-    statistics: Union[list, pd.DataFrame],
-    pert_factor: Union[int, float],
-    data_points_count: Optional[int] = None,
+    statistics: list | pd.DataFrame,
+    pert_factor: int | float,
+    data_points_count: int | None = None,
 ) -> tuple[dict, dict]:
     """
     Prepare trend and forecast data for visualizations.

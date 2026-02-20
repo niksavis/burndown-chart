@@ -6,7 +6,7 @@
 
 # Application imports
 from configuration.settings import logger
-from data.persistence.adapters.app_settings import save_app_settings, load_app_settings
+from data.persistence.adapters.app_settings import load_app_settings, save_app_settings
 
 
 def save_settings(
@@ -73,13 +73,13 @@ def load_settings():
     """
     # Lazy import to avoid circular dependency
     from configuration.settings import (
-        DEFAULT_PERT_FACTOR,
-        DEFAULT_DEADLINE,
-        DEFAULT_TOTAL_ITEMS,
-        DEFAULT_TOTAL_POINTS,
         DEFAULT_DATA_POINTS_COUNT,
+        DEFAULT_DEADLINE,
         DEFAULT_ESTIMATED_ITEMS,
         DEFAULT_ESTIMATED_POINTS,
+        DEFAULT_PERT_FACTOR,
+        DEFAULT_TOTAL_ITEMS,
+        DEFAULT_TOTAL_POINTS,
     )
 
     logger.warning(

@@ -85,7 +85,7 @@ def render_template(
     # Calculate start date (Monday of the oldest week)
     current_date = datetime.now()
     weeks_list = []
-    for i in range(weeks_count):
+    for _i in range(weeks_count):
         year, week = get_iso_week(current_date)
         week_label = format_year_week(year, week)
         weeks_list.append(week_label)

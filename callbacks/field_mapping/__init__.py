@@ -7,17 +7,19 @@ and comply with 500-line architectural guidelines.
 """
 
 # Import all callback modules to register them with Dash
-from . import helpers
-from . import state_tracking
-from . import status_validation
-from . import modal_core
-from . import tab_rendering
-from . import modal_loading
-from . import auto_config
-from . import validation_helpers
-from . import save_load
-from . import profile_management
-from . import status_indicator
+from . import (
+    auto_config,
+    helpers,
+    modal_core,
+    modal_loading,
+    profile_management,
+    save_load,
+    state_tracking,
+    status_indicator,
+    status_validation,
+    tab_rendering,
+    validation_helpers,
+)
 
 __all__ = [
     "helpers",
