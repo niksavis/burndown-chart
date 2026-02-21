@@ -25,6 +25,8 @@ Apply artifacts in this order:
 - `.github/instructions/security-data-safety.instructions.md`
 - `.github/instructions/testing-quality.instructions.md`
 - `.github/instructions/context7-refresh.instructions.md`
+- `.github/instructions/python-code-quality.instructions.md`
+- `.github/instructions/html-css-style-color-guide.instructions.md`
 - `.github/instructions/powershell-python-env.instructions.md`
 - `.github/instructions/release-workflow.instructions.md`
 - `.github/instructions/build-pipeline.instructions.md`
@@ -66,6 +68,7 @@ Apply artifacts in this order:
 - `.github/agents/repo-quality-guardian.agent.md`
 - `.github/agents/layering-enforcer.agent.md`
 - `.github/agents/context7-bootstrap-sync.agent.md`
+- `.github/agents/refactor-execution.agent.md`
 - `.github/agents/test-strategy.agent.md`
 - `.github/agents/release-readiness.agent.md`
 
