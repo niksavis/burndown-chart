@@ -12,7 +12,6 @@ Design Pattern:
 - Equal height cards with h-100 class
 """
 
-
 import dash_bootstrap_components as dbc
 from dash import html
 
@@ -75,7 +74,9 @@ def create_unified_metric_card(
                 className=f"fas {icon}",
                 style={"color": status_color, "fontSize": "1.25rem"},
             ),
-            className="d-flex align-items-center justify-content-center rounded-circle me-3",
+            className=(
+                "d-flex align-items-center justify-content-center rounded-circle me-3"
+            ),
             style={
                 "width": METRIC_CARD["icon_circle_size"],
                 "height": METRIC_CARD["icon_circle_size"],

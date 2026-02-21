@@ -1,6 +1,5 @@
 """Main parameter panel controller component."""
 
-
 import dash_bootstrap_components as dbc
 from dash import html
 
@@ -15,9 +14,11 @@ def create_parameter_panel(
     statistics: list | None = None,
 ) -> html.Div:
     """
-    Create complete collapsible parameter panel combining collapsed bar and expanded section.
+    Create complete collapsible parameter panel combining collapsed bar
+    and expanded section.
 
-    This component supports User Story 1: Quick Parameter Adjustments While Viewing Charts.
+    This component supports User Story 1:
+    Quick Parameter Adjustments While Viewing Charts.
     It combines the collapsed bar (always visible) with the expanded panel (toggleable)
     using Bootstrap's Collapse component for smooth transitions.
 
@@ -25,7 +26,8 @@ def create_parameter_panel(
         settings: Dictionary containing current parameter values
         is_open: Whether panel should start in expanded state
         id_suffix: Suffix for generating unique IDs
-        statistics: Optional list of statistics data points for calculating max data points
+        statistics: Optional list of statistics data points for
+            calculating max data points
 
     Returns:
         html.Div: Complete parameter panel with collapse functionality
