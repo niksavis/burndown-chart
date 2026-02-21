@@ -146,7 +146,8 @@ class TestTabConfigRegistry:
             expected_color = expected_colors.get(tab["id"])
             if expected_color:
                 assert tab["color"] == expected_color, (
-                    f"Tab {tab['id']} color should be {expected_color}, got {tab['color']}"
+                    f"Tab {tab['id']} color should be {expected_color}, "
+                    f"got {tab['color']}"
                 )
 
 

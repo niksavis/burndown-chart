@@ -12,7 +12,9 @@ import pytest
 
 @pytest.fixture
 def sample_statistics_data():
-    """Standard statistics data for dashboard testing (10 weeks of realistic project data).
+    """Standard statistics data for dashboard testing.
+
+    Uses 10 weeks of realistic project data.
 
     Returns:
         list: 10 weeks of StatisticsDataPoint dictionaries with completed items/points

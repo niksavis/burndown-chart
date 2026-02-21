@@ -20,7 +20,8 @@ def generate_mock_bug_data(
     Args:
         num_weeks: Number of weeks of historical data to generate
         bugs_per_week_range: (min, max) bugs created per week
-        issue_types: List of issue type names (defaults to ["Bug", "Defect", "Incident"])
+        issue_types: List of issue type names.
+            Defaults to ["Bug", "Defect", "Incident"]
         resolution_rate: Percentage of bugs that get resolved (0.0-1.0)
         seed: Random seed for reproducibility
 
@@ -28,7 +29,9 @@ def generate_mock_bug_data(
         List of mock JIRA issue dictionaries with bug characteristics
 
     Example:
-        >>> bugs = generate_mock_bug_data(num_weeks=4, bugs_per_week_range=(10, 20), seed=42)
+        >>> bugs = generate_mock_bug_data(
+        ...     num_weeks=4, bugs_per_week_range=(10, 20), seed=42
+        ... )
         >>> len(bugs) >= 40  # At least 40 bugs for 4 weeks
         True
         >>> all("issuetype" in bug["fields"] for bug in bugs)
