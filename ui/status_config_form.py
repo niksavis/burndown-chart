@@ -34,7 +34,8 @@ def create_status_config_form(
     wip_statuses = wip_statuses or []
     available_statuses = available_statuses or []
 
-    # Create options for dropdowns, grouped by category - include current values even if metadata not fetched
+    # Create options for dropdowns, grouped by category.
+    # Include current values even if metadata has not been fetched yet.
     status_options = [
         {
             "label": f"{s.get('name', '')} ({s.get('category_name', 'Unknown')})",
@@ -63,7 +64,11 @@ def create_status_config_form(
                     dbc.CardBody(
                         [
                             html.P(
-                                "Configure status mappings for Flow metrics calculation. These statuses determine how issues flow through your workflow.",
+                                (
+                                    "Configure status mappings for Flow metrics "
+                                    "calculation. These statuses determine how "
+                                    "issues flow through your workflow."
+                                ),
                                 className="text-muted small mb-3",
                             ),
                             # WIP Statuses (first - the superset)
@@ -74,19 +79,29 @@ def create_status_config_form(
                                             html.Label(
                                                 [
                                                     html.I(
-                                                        className="fas fa-spinner me-2 text-warning"
+                                                        className=(
+                                                            "fas fa-spinner me-2 "
+                                                            "text-warning"
+                                                        )
                                                     ),
                                                     "Work In Progress (WIP) ",
                                                     html.Span(
                                                         "*",
                                                         className="text-danger",
-                                                        title="Required for Flow Load, Flow Efficiency",
+                                                        title=(
+                                                            "Required for Flow "
+                                                            "Load, Flow Efficiency"
+                                                        ),
                                                     ),
                                                 ],
                                                 className="form-label fw-bold",
                                             ),
                                             html.P(
-                                                "All statuses where work is in progress (superset for Flow Start and Active)",
+                                                (
+                                                    "All statuses where work is in "
+                                                    "progress (superset for Flow "
+                                                    "Start and Active)"
+                                                ),
                                                 className="text-muted small mb-2",
                                             ),
                                         ],
@@ -97,10 +112,13 @@ def create_status_config_form(
                                         [
                                             dcc.Dropdown(
                                                 id="wip-statuses-dropdown",
-                                                options=status_options,  # type: ignore  # Dash accepts list[dict]
+                                                # type: ignore  # Dash accepts list[dict]
+                                                options=status_options,
                                                 value=wip_statuses,
                                                 multi=True,
-                                                placeholder="Type or select statuses...",
+                                                placeholder=(
+                                                    "Type or select statuses..."
+                                                ),
                                                 className="mb-2",
                                                 clearable=True,
                                                 searchable=True,
@@ -122,7 +140,10 @@ def create_status_config_form(
                                             html.Label(
                                                 [
                                                     html.I(
-                                                        className="fas fa-flag me-2 text-info"
+                                                        className=(
+                                                            "fas fa-flag me-2 "
+                                                            "text-info"
+                                                        )
                                                     ),
                                                     "Flow Start ",
                                                     html.Span(
@@ -134,10 +155,15 @@ def create_status_config_form(
                                                 className="form-label fw-bold",
                                             ),
                                             html.P(
-                                                "Flow Time measurement starts when issues enter these statuses (subset of WIP)",
+                                                (
+                                                    "Flow Time measurement starts "
+                                                    "when issues enter these "
+                                                    "statuses (subset of WIP)"
+                                                ),
                                                 className="text-muted small mb-2",
                                             ),
-                                            # Dynamic validation warning - shown only when Flow Start has values not in WIP
+                                            # Dynamic validation warning - shown only
+                                            # when Flow Start has values not in WIP
                                             html.Div(
                                                 id="flow-start-wip-subset-warning",
                                                 className="mb-2",
@@ -150,10 +176,13 @@ def create_status_config_form(
                                         [
                                             dcc.Dropdown(
                                                 id="flow-start-statuses-dropdown",
-                                                options=status_options,  # type: ignore  # Dash accepts list[dict]
+                                                # type: ignore  # Dash accepts list[dict]
+                                                options=status_options,
                                                 value=flow_start_statuses,
                                                 multi=True,
-                                                placeholder="Type or select statuses...",
+                                                placeholder=(
+                                                    "Type or select statuses..."
+                                                ),
                                                 className="mb-2",
                                                 clearable=True,
                                                 searchable=True,
@@ -175,22 +204,32 @@ def create_status_config_form(
                                             html.Label(
                                                 [
                                                     html.I(
-                                                        className="fas fa-play-circle me-2 text-primary"
+                                                        className=(
+                                                            "fas fa-play-circle me-2 "
+                                                            "text-primary"
+                                                        )
                                                     ),
                                                     "Active ",
                                                     html.Span(
                                                         "*",
                                                         className="text-danger",
-                                                        title="Required for Flow Efficiency",
+                                                        title=(
+                                                            "Required for "
+                                                            "Flow Efficiency"
+                                                        ),
                                                     ),
                                                 ],
                                                 className="form-label fw-bold",
                                             ),
                                             html.P(
-                                                "Statuses indicating active work (subset of WIP)",
+                                                (
+                                                    "Statuses indicating active "
+                                                    "work (subset of WIP)"
+                                                ),
                                                 className="text-muted small mb-2",
                                             ),
-                                            # Dynamic validation warning - shown only when Active has values not in WIP
+                                            # Dynamic validation warning - shown only
+                                            # when Active has values not in WIP
                                             html.Div(
                                                 id="active-wip-subset-warning",
                                                 className="mb-2",
@@ -203,10 +242,13 @@ def create_status_config_form(
                                         [
                                             dcc.Dropdown(
                                                 id="active-statuses-dropdown",
-                                                options=status_options,  # type: ignore  # Dash accepts list[dict]
+                                                # type: ignore  # Dash accepts list[dict]
+                                                options=status_options,
                                                 value=active_statuses,
                                                 multi=True,
-                                                placeholder="Type or select statuses...",
+                                                placeholder=(
+                                                    "Type or select statuses..."
+                                                ),
                                                 className="mb-2",
                                                 clearable=True,
                                                 searchable=True,
@@ -228,19 +270,30 @@ def create_status_config_form(
                                             html.Label(
                                                 [
                                                     html.I(
-                                                        className="fas fa-check-circle me-2 text-success"
+                                                        className=(
+                                                            "fas fa-check-circle me-2 "
+                                                            "text-success"
+                                                        )
                                                     ),
                                                     "Flow End ",
                                                     html.Span(
                                                         "*",
                                                         className="text-danger",
-                                                        title="Required for Flow Velocity, Flow Time, Flow Efficiency, Flow Distribution",
+                                                        title=(
+                                                            "Required for Flow "
+                                                            "Velocity, Flow Time, "
+                                                            "Flow Efficiency, "
+                                                            "Flow Distribution"
+                                                        ),
                                                     ),
                                                 ],
                                                 className="form-label fw-bold",
                                             ),
                                             html.P(
-                                                "Issues with these statuses are counted as completed",
+                                                (
+                                                    "Issues with these statuses are "
+                                                    "counted as completed"
+                                                ),
                                                 className="text-muted small mb-2",
                                             ),
                                         ],
@@ -251,10 +304,13 @@ def create_status_config_form(
                                         [
                                             dcc.Dropdown(
                                                 id="completion-statuses-dropdown",
-                                                options=status_options,  # type: ignore  # Dash accepts list[dict]
+                                                # type: ignore  # Dash accepts list[dict]
+                                                options=status_options,
                                                 value=flow_end_statuses,
                                                 multi=True,
-                                                placeholder="Type or select statuses...",
+                                                placeholder=(
+                                                    "Type or select statuses..."
+                                                ),
                                                 className="mb-2",
                                                 clearable=True,
                                                 searchable=True,
