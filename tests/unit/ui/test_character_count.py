@@ -2,7 +2,8 @@
 Unit tests for JQL character count functionality (User Story 1).
 
 Tests character counting utility, warning detection, and display components.
-Following TDD approach: Write tests first (RED), implement minimum code (GREEN), refactor.
+Following TDD approach: write tests first (RED),
+implement minimum code (GREEN), then refactor.
 """
 
 

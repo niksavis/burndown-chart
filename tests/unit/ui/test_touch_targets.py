@@ -57,11 +57,13 @@ class TestTouchTargetCompliance:
                         f"Large input should have min 48px, got: {height}"
                     )
                 print(
-                    f"[OK] Input {size} height: {height} - meets touch target requirements"
+                    f"[OK] Input {size} height: {height} - "
+                    "meets touch target requirements"
                 )
             else:
                 print(
-                    f"[!] Input {size} height: {height} - check if this meets requirements"
+                    f"[!] Input {size} height: {height} - "
+                    "check if this meets requirements"
                 )
 
     def test_touch_target_utility_classes(self):
@@ -106,7 +108,8 @@ class TestTouchTargetCompliance:
     def test_css_touch_target_classes_implementation(self):
         """Test that CSS utility classes are properly implemented."""
         # This test verifies that our CSS classes exist with expected properties
-        # In a full implementation, we'd use a CSS parser, but for now we verify our expectations
+        # In a full implementation, we'd use a CSS parser.
+        # For now we verify our expectations.
 
         css_classes = {
             "mobile-touch-target": {"min_height": "44px", "min_width": "44px"},

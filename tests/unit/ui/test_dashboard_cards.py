@@ -13,8 +13,9 @@ from ui.dashboard_cards import (
     create_dashboard_velocity_card,
 )
 
-# Fixtures are imported automatically by pytest from conftest.py and dashboard_test_fixtures.py
-# No need to explicitly import them - they're used as function parameters
+# Fixtures are imported automatically by pytest from
+# conftest.py and dashboard_test_fixtures.py.
+# No need to import explicitly; they are used as function parameters.
 
 
 class TestHealthScore:
@@ -34,7 +35,8 @@ class TestHealthScore:
         # When: Calculate health score (v3.0 comprehensive)
         health = _calculate_health_score(metrics)
 
-        # Then: v3.0 returns score based on 6 dimensions (Delivery, Predictability, etc.)
+        # Then: v3.0 returns score based on 6 dimensions
+        # (Delivery, Predictability, etc.)
         # With limited metrics, score is typically in 40-60 range
         assert 40 <= health <= 100
         assert isinstance(health, int)
@@ -147,7 +149,8 @@ class TestHealthScore:
         # When: Calculate comprehensive health
         health = _calculate_health_score(metrics)
 
-        # Then: Should produce a good health score (v3.0 may not reach 80+ without all dimensions)
+        # Then: Should produce a good health score.
+        # v3.0 may not reach 80+ without all dimensions.
         assert health >= 50  # At least moderate health
         assert health <= 100
 
@@ -171,10 +174,12 @@ class TestHealthScore:
 
     def test_health_score_composite_needs_attention(self):
         """Test composite health score for at-risk project (<40 = needs attention)."""
-        # Given: High velocity CV, significantly behind schedule, high scope growth, declining trend
+        # Given: High velocity CV, significantly behind schedule,
+        # high scope growth, and a declining trend.
         metrics = {
             "velocity_cv": 60,  # Poor consistency (0 points - capped at 50)
-            "schedule_variance_days": 50,  # Significantly behind (25 * 0.17 = 4.2 points)
+            # Significantly behind (25 * 0.17 = 4.2 points)
+            "schedule_variance_days": 50,
             "scope_change_rate": 35,  # High scope growth (20 * 0.125 = 2.5 points)
             "trend_direction": "declining",  # Declining trend (0 points)
             "recent_velocity_change": -25,  # Negative momentum (0 points)
@@ -354,9 +359,9 @@ class TestForecastCard:
 
         # Then: Card should display days remaining (30.0)
         card_text = str(card)
-        assert (
-            "30" in card_text
-        )  # Days to completion, not percentage    def test_card_displays_forecast_date(self):
+        assert "30" in card_text  # Days to completion, not percentage
+
+    def test_card_displays_forecast_date(self):
         """Test card displays forecast completion date."""
         # Given: Metrics with forecast date
         metrics = {
@@ -420,7 +425,8 @@ class TestVelocityCard:
         # When: Create card
         card = create_dashboard_velocity_card(metrics)
 
-        # Then: Card should show trend (displayed as "Accelerating" for increasing trend)
+        # Then: Card should show trend
+        # (displayed as "Accelerating" for increasing trend)
         card_text = str(card)
         assert "accelerating" in card_text.lower() or "increasing" in card_text.lower()
 

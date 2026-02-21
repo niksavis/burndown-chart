@@ -304,7 +304,10 @@ class TestMobileNavigationIntegration:
         assert "tab-content-container" in tabs_str
 
     def test_mobile_navigation_javascript_integration(self):
-        """Test that mobile navigation JavaScript file exists and is properly structured."""
+        """Test that mobile navigation JavaScript exists.
+
+        Also verifies the file has expected structure.
+        """
         import os
 
         js_file_path = "assets/mobile_navigation.js"

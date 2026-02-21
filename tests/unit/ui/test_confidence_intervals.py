@@ -165,10 +165,12 @@ class TestConfidenceIntervals:
 
             # Strict ordering
             assert result["ci_50"] <= result["ci_80"], (
-                f"50th percentile ({result['ci_50']}) should be <= 80th ({result['ci_80']})"
+                f"50th percentile ({result['ci_50']}) should be <= "
+                f"80th ({result['ci_80']})"
             )
             assert result["ci_80"] <= result["ci_95"], (
-                f"80th percentile ({result['ci_80']}) should be <= 95th ({result['ci_95']})"
+                f"80th percentile ({result['ci_80']}) should be <= "
+                f"95th ({result['ci_95']})"
             )
 
     def test_confidence_intervals_mathematical_formula(self):

@@ -62,11 +62,13 @@ def extract_numeric_value_from_component(
 
     This function tries to extract a numeric value from a component in two ways:
     1. First by trying to follow a property path (e.g., ['children', 'children'])
-    2. If that fails, by converting the component to a string and extracting numbers using regex
+     2. If that fails, by converting the component to a string and
+         extracting numbers using regex
 
     Args:
         component: The UI component to extract value from
-        property_path: Optional list of attribute names to follow (e.g., ['children', 'children'])
+        property_path: Optional list of attribute names to follow
+            (e.g., ['children', 'children'])
 
     Returns:
         Extracted numeric value as float, or None if no value could be extracted
@@ -125,7 +127,8 @@ def extract_formatted_value_from_component(
 
     Args:
         component: The UI component to extract value from
-        property_path: Optional list of attribute names to follow (e.g., ['children', 'children'])
+        property_path: Optional list of attribute names to follow
+            (e.g., ['children', 'children'])
 
     Returns:
         Extracted formatted string, or None if no value could be extracted
@@ -142,7 +145,8 @@ def extract_formatted_value_from_component(
                     value = None
                     break
 
-            # If we got a value and it's a string or can be converted to string, return it
+            # If we got a value and it's a string or can be converted
+            # to string, return it
             if value is not None:
                 return str(value)
         except Exception:
@@ -173,12 +177,15 @@ def validate_component_structure(
     component: Any, expected_attrs: list[str], min_children: int | None = None
 ) -> bool:
     """
-    Validate that a component has the expected attributes and minimum number of children.
+    Validate that a component has the expected attributes.
+
+    Optionally validate a minimum number of children.
 
     Args:
         component: The UI component to validate
         expected_attrs: List of attribute names that should exist on the component
-        min_children: Minimum number of children the component should have (if 'children' attr exists)
+        min_children: Minimum number of children the component should have
+            (if 'children' attr exists)
 
     Returns:
         True if the component has the expected structure, False otherwise
