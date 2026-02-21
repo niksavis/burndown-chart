@@ -1,6 +1,7 @@
 # SQL Architecture Guidelines (SQLite3)
 
 **Purpose**: Create efficient, maintainable database schemas and queries that ensure data integrity and performance. These guidelines enforce:
+
 - **Data integrity**: Foreign keys, constraints, and transactions protect data consistency
 - **Query efficiency**: Indexes, query optimization, and complexity limits ensure performance
 - **Maintainability**: Clear query structure and parameterization enable safe modifications
@@ -8,9 +9,29 @@
 - **Security**: Parameterized queries prevent SQL injection
 - **AI collaboration**: Structured patterns optimized for AI-assisted development
 
+## Terminology and Enforcement
+
+- **MUST**: Required rule for all new/updated SQL/schema/query code in scope.
+- **SHOULD**: Strong recommendation; deviations need a clear reason.
+- **MAY**: Optional guidance for context-specific improvements.
+
+Critical/hard limits in this document are **MUST** constraints.
+
+## 2026 Standards Refresh (SQLite docs-aligned)
+
+Apply these as current defaults for new and updated SQL/database code:
+
+- Enable `PRAGMA foreign_keys = ON` on each connection (not just once globally).
+- Use explicit transactions for write batches; prefer `BEGIN IMMEDIATE` when write contention is expected.
+- Use `WAL` mode when concurrent readers/writers are expected; checkpoint intentionally (`wal_autocheckpoint`, manual checkpoint where needed).
+- Use parameterized queries only; never concatenate user input into SQL text.
+- Design indexes from real query patterns (filter + join + order); validate with `EXPLAIN QUERY PLAN`.
+- Run maintenance and health checks (`PRAGMA optimize`, `integrity_check`/`quick_check`) in operational workflows.
+
 ## Query Complexity Limits
 
 **CRITICAL RULES**:
+
 - **Query length**: < 50 lines per query (hard limit)
 - **Subqueries**: Maximum 2 levels deep
 - **JOINs**: Maximum 5 tables per query
@@ -114,16 +135,16 @@ CREATE TABLE issues (
     sprint_id INTEGER,
     project_id INTEGER NOT NULL,
     status TEXT NOT NULL,
-    
-    FOREIGN KEY (sprint_id) 
-        REFERENCES sprints(sprint_id) 
+
+    FOREIGN KEY (sprint_id)
+        REFERENCES sprints(sprint_id)
         ON DELETE SET NULL,
-    
-    FOREIGN KEY (project_id) 
-        REFERENCES projects(project_id) 
+
+    FOREIGN KEY (project_id)
+        REFERENCES projects(project_id)
         ON DELETE CASCADE,
-    
-    FOREIGN KEY (status) 
+
+    FOREIGN KEY (status)
         REFERENCES issue_status(status_code)
         ON UPDATE CASCADE
 );
@@ -148,16 +169,16 @@ CREATE INDEX idx_issues_status ON issues(status);
 CREATE INDEX idx_issues_created_at ON issues(created_at);
 
 -- GOOD: Composite index for common queries
-CREATE INDEX idx_issues_sprint_status 
+CREATE INDEX idx_issues_sprint_status
     ON issues(sprint_id, status);
 
 -- GOOD: Unique index for business constraints
-CREATE UNIQUE INDEX idx_issues_key 
+CREATE UNIQUE INDEX idx_issues_key
     ON issues(issue_key);
 
 -- GOOD: Partial index for filtered queries
-CREATE INDEX idx_issues_active 
-    ON issues(status, created_at) 
+CREATE INDEX idx_issues_active
+    ON issues(status, created_at)
     WHERE status != 'done';
 ```
 
@@ -200,7 +221,7 @@ CREATE TABLE users (
 
 ```sql
 -- GOOD: Specific columns, clear formatting
-SELECT 
+SELECT
     i.issue_key,
     i.summary,
     i.status,
@@ -216,8 +237,8 @@ ORDER BY i.created_at DESC
 LIMIT 100;
 
 -- BAD: SELECT *, unclear structure
-SELECT * FROM issues, sprints, projects 
-WHERE issues.sprint_id = sprints.sprint_id 
+SELECT * FROM issues, sprints, projects
+WHERE issues.sprint_id = sprints.sprint_id
 AND issues.project_id = projects.project_id;
 ```
 
@@ -225,7 +246,7 @@ AND issues.project_id = projects.project_id;
 
 ```sql
 -- GOOD: Explicit JOIN types with aliases
-SELECT 
+SELECT
     s.sprint_name,
     COUNT(i.issue_id) AS issue_count,
     SUM(i.points) AS total_points,
@@ -238,13 +259,13 @@ HAVING COUNT(i.issue_id) > 0
 ORDER BY s.start_date DESC;
 
 -- GOOD: Use subqueries for complex aggregations
-SELECT 
+SELECT
     s.sprint_name,
     s.total_points,
     s.completed_points,
     ROUND(100.0 * s.completed_points / NULLIF(s.total_points, 0), 2) AS completion_pct
 FROM (
-    SELECT 
+    SELECT
         s.sprint_id,
         s.sprint_name,
         SUM(i.points) AS total_points,
@@ -266,7 +287,7 @@ WHERE s.sprint_id = i.sprint_id;
 ```sql
 -- GOOD: Use CTEs for readability
 WITH sprint_stats AS (
-    SELECT 
+    SELECT
         sprint_id,
         COUNT(*) AS total_issues,
         SUM(points) AS total_points
@@ -274,7 +295,7 @@ WITH sprint_stats AS (
     GROUP BY sprint_id
 ),
 completed_stats AS (
-    SELECT 
+    SELECT
         sprint_id,
         COUNT(*) AS completed_issues,
         SUM(points) AS completed_points
@@ -282,7 +303,7 @@ completed_stats AS (
     WHERE status = 'done'
     GROUP BY sprint_id
 )
-SELECT 
+SELECT
     s.sprint_name,
     ss.total_issues,
     COALESCE(cs.completed_issues, 0) AS completed_issues,
@@ -300,11 +321,11 @@ WHERE s.status = 'active';
 
 ```sql
 -- GOOD: Use window functions for running totals
-SELECT 
+SELECT
     date,
     issues_completed,
     SUM(issues_completed) OVER (
-        PARTITION BY sprint_id 
+        PARTITION BY sprint_id
         ORDER BY date
         ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
     ) AS cumulative_completed
@@ -312,12 +333,12 @@ FROM daily_progress
 ORDER BY sprint_id, date;
 
 -- GOOD: Ranking
-SELECT 
+SELECT
     sprint_id,
     issue_key,
     points,
     ROW_NUMBER() OVER (
-        PARTITION BY sprint_id 
+        PARTITION BY sprint_id
         ORDER BY points DESC
     ) AS rank_in_sprint
 FROM issues
@@ -330,10 +351,10 @@ WHERE status = 'done';
 
 ```sql
 -- GOOD: Use transactions for bulk operations
-BEGIN TRANSACTION;
+BEGIN IMMEDIATE;
 
 INSERT INTO issues (issue_key, summary, points, sprint_id)
-VALUES 
+VALUES
     ('PROJ-1', 'Task 1', 3, 1),
     ('PROJ-2', 'Task 2', 5, 1),
     ('PROJ-3', 'Task 3', 2, 1);
@@ -343,8 +364,8 @@ COMMIT;
 -- GOOD: Use ON CONFLICT for upserts
 INSERT INTO issues (issue_key, summary, points, sprint_id)
 VALUES ('PROJ-1', 'Updated Task 1', 5, 1)
-ON CONFLICT (issue_key) 
-DO UPDATE SET 
+ON CONFLICT (issue_key)
+DO UPDATE SET
     summary = excluded.summary,
     points = excluded.points,
     updated_at = datetime('now');
@@ -354,15 +375,15 @@ DO UPDATE SET
 
 ```sql
 -- GOOD: Always use WHERE clause
-UPDATE issues 
+UPDATE issues
 SET status = 'done',
     completed_at = datetime('now')
 WHERE issue_key = 'PROJ-1';
 
 -- GOOD: Use transactions for safety
-BEGIN TRANSACTION;
+BEGIN IMMEDIATE;
 
-UPDATE sprints 
+UPDATE sprints
 SET status = 'completed'
 WHERE sprint_id = 1;
 
@@ -380,20 +401,20 @@ UPDATE issues SET status = 'done';
 
 ```sql
 -- GOOD: Soft delete (preferred)
-UPDATE issues 
+UPDATE issues
 SET deleted_at = datetime('now')
 WHERE issue_key = 'PROJ-1';
 
 -- GOOD: Hard delete with WHERE
-DELETE FROM issues 
+DELETE FROM issues
 WHERE issue_key = 'PROJ-1'
     AND deleted_at IS NOT NULL;
 
 -- GOOD: Delete with subquery validation
 DELETE FROM issues
 WHERE sprint_id IN (
-    SELECT sprint_id 
-    FROM sprints 
+    SELECT sprint_id
+    FROM sprints
     WHERE status = 'cancelled'
 );
 ```
@@ -403,7 +424,7 @@ WHERE sprint_id IN (
 ```sql
 -- GOOD: Views for complex queries
 CREATE VIEW v_sprint_summary AS
-SELECT 
+SELECT
     s.sprint_id,
     s.sprint_name,
     s.start_date,
@@ -413,8 +434,8 @@ SELECT
     SUM(CASE WHEN i.status = 'done' THEN 1 ELSE 0 END) AS completed_issues,
     SUM(CASE WHEN i.status = 'done' THEN i.points ELSE 0 END) AS completed_points,
     ROUND(
-        100.0 * SUM(CASE WHEN i.status = 'done' THEN i.points ELSE 0 END) / 
-        NULLIF(SUM(i.points), 0), 
+        100.0 * SUM(CASE WHEN i.status = 'done' THEN i.points ELSE 0 END) /
+        NULLIF(SUM(i.points), 0),
         2
     ) AS completion_pct
 FROM sprints s
@@ -422,7 +443,8 @@ LEFT JOIN issues i ON s.sprint_id = i.sprint_id
 GROUP BY s.sprint_id, s.sprint_name, s.start_date, s.end_date;
 
 -- Usage
-SELECT * FROM v_sprint_summary
+SELECT sprint_id, sprint_name, completion_pct
+FROM v_sprint_summary
 WHERE sprint_name = 'Sprint 1';
 ```
 
@@ -451,9 +473,9 @@ WHERE i.status = 'in_progress';
 SELECT i.issue_key
 FROM issues i
 WHERE EXISTS (
-    SELECT 1 
-    FROM sprints s 
-    WHERE s.sprint_id = i.sprint_id 
+    SELECT 1
+    FROM sprints s
+    WHERE s.sprint_id = i.sprint_id
         AND s.status = 'active'
 );
 
@@ -461,8 +483,8 @@ WHERE EXISTS (
 SELECT i.issue_key
 FROM issues i
 WHERE i.sprint_id IN (
-    SELECT sprint_id 
-    FROM sprints 
+    SELECT sprint_id
+    FROM sprints
     WHERE status = 'active'
 );
 
@@ -514,7 +536,7 @@ PRAGMA optimize;
 
 ```sql
 -- GOOD: Explicit transactions
-BEGIN TRANSACTION;
+BEGIN IMMEDIATE;
 
 INSERT INTO sprints (sprint_name, start_date, end_date)
 VALUES ('Sprint 1', '2026-02-01', '2026-02-14');
@@ -525,7 +547,7 @@ VALUES ('PROJ-1', last_insert_rowid(), 5);
 COMMIT;
 
 -- GOOD: Rollback on error
-BEGIN TRANSACTION;
+BEGIN IMMEDIATE;
 
 -- Complex operations
 
@@ -533,7 +555,7 @@ BEGIN TRANSACTION;
 ROLLBACK;
 
 -- GOOD: Savepoints for nested transactions
-BEGIN TRANSACTION;
+BEGIN IMMEDIATE;
 
 SAVEPOINT before_issues;
 
@@ -556,7 +578,7 @@ COMMIT;
 
 # Use constants for reusable queries
 GET_SPRINT_SUMMARY = """
-    SELECT 
+    SELECT
         s.sprint_id,
         s.sprint_name,
         COUNT(i.issue_id) AS issue_count,
@@ -602,7 +624,7 @@ import sqlite3
 
 class Database:
     """Database operations."""
-    
+
     def get_sprint_summary(self, sprint_id: int) -> dict:
         """Get sprint summary."""
         with self.conn:
@@ -614,7 +636,7 @@ class Database:
                 'issue_count': row[2],
                 'total_points': row[3]
             } if row else None
-    
+
     def list_active_sprints(self) -> list[dict]:
         """List all active sprints."""
         with self.conn:
@@ -681,7 +703,7 @@ SELECT * FROM issues WHERE status = 'in_progress';
 CREATE INDEX idx_issues_status ON issues(status);
 
 -- Now query uses index
-SELECT * FROM issues WHERE status = 'in_progress';
+SELECT issue_key, summary, status FROM issues WHERE status = 'in_progress';
 ```
 
 ### 3. SQL Injection
@@ -692,7 +714,7 @@ query = f"SELECT * FROM issues WHERE issue_key = '{user_input}'"
 db.execute(query)
 
 # GOOD: Parameterized queries
-query = "SELECT * FROM issues WHERE issue_key = ?"
+query = "SELECT issue_key, summary, status FROM issues WHERE issue_key = ?"
 db.execute(query, (user_input,))
 ```
 
@@ -722,16 +744,17 @@ def test_get_sprint_summary(test_db):
         "INSERT INTO sprints (sprint_name) VALUES ('Test Sprint')"
     )
     sprint_id = test_db.lastrowid
-    
+
     # Test query
     result = test_db.execute(GET_SPRINT_SUMMARY, (sprint_id,)).fetchone()
-    
+
     assert result[1] == 'Test Sprint'
 ```
 
 ## Summary
 
 **Key Principles**:
+
 1. Queries < 50 lines
 2. Enable foreign keys
 3. Index all foreign keys
@@ -739,11 +762,12 @@ def test_get_sprint_summary(test_db):
 5. Enable WAL mode for concurrency
 6. Use transactions for data integrity
 7. CTEs for complex queries
-8. Avoid SELECT *
+8. Avoid SELECT \*
 9. EXPLAIN QUERY PLAN for optimization
 10. Regular ANALYZE and VACUUM
 
 **Performance**:
+
 - Index frequently queried columns
 - Use EXISTS over IN for large datasets
 - Limit result sets with LIMIT/OFFSET
@@ -751,6 +775,7 @@ def test_get_sprint_summary(test_db):
 - Regular ANALYZE updates
 
 **Organization**:
+
 - Schema files < 200 lines each
 - Query constants in separate file
 - Split by domain if > 400 lines

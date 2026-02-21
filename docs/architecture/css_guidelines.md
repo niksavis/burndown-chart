@@ -1,6 +1,7 @@
 # CSS Architecture Guidelines
 
 **Purpose**: Create scalable, maintainable stylesheets with predictable behavior that are easily modified by both humans and AI agents. These guidelines enforce:
+
 - **Scalability**: Systems that grow without becoming unmaintainable
 - **Modularity**: Component-based architecture with BEM methodology
 - **Consistency**: CSS variables for unified theming
@@ -9,9 +10,29 @@
 - **Maintainability**: Clear patterns enable safe modifications
 - **AI collaboration**: Structured organization optimized for AI-assisted development
 
+## Terminology and Enforcement
+
+- **MUST**: Required rule for all new/updated CSS in scope.
+- **SHOULD**: Strong recommendation; deviations need a clear reason.
+- **MAY**: Optional guidance for context-specific improvements.
+
+Critical/hard limits in this document are **MUST** constraints.
+
+## 2026 Standards Refresh (MDN-aligned)
+
+Apply these as current defaults for new and updated styles:
+
+- Use cascade layers (`@layer`) to define explicit order between reset, base, components, utilities, and overrides.
+- Prefer logical properties (`margin-inline`, `padding-block`, `inset-inline-start`) over left/right/top/bottom where possible.
+- Respect user motion preferences with `@media (prefers-reduced-motion: reduce)` and provide non-animated fallbacks.
+- Keep theming in custom properties; avoid hard-coded colors/spacing in component rules.
+- Keep accessibility-visible focus states with `:focus-visible`; do not remove focus outlines without accessible replacements.
+- Avoid deprecated HTML styling attributes and inline style-driven layout decisions; keep presentation in CSS.
+
 ## File Size Limits
 
 **CRITICAL RULES**:
+
 - **Maximum file size**: 500 lines (hard limit)
 - **Target size**: 200-300 lines per stylesheet
 - **Warning threshold**: 400 lines → split immediately
@@ -44,15 +65,22 @@ assets/
 
 ```css
 /* GOOD: Lowercase with hyphens */
-.modal-dialog {}
-.btn-primary {}
-.chart-container {}
-.settings-panel {}
+.modal-dialog {
+}
+.btn-primary {
+}
+.chart-container {
+}
+.settings-panel {
+}
 
 /* BAD: Mixed case or underscores */
-.Modal-Dialog {}
-.btn_primary {}
-.chartContainer {}
+.Modal-Dialog {
+}
+.btn_primary {
+}
+.chartContainer {
+}
 ```
 
 ### File Names
@@ -82,20 +110,20 @@ s1.css
   --color-primary: #007bff;
   --color-primary-dark: #0056b3;
   --color-primary-light: #3395ff;
-  
+
   /* Semantic colors */
   --color-success: #28a745;
   --color-warning: #ffc107;
   --color-danger: #dc3545;
   --color-info: #17a2b8;
-  
+
   /* Neutral colors */
   --color-text: #212529;
   --color-text-muted: #6c757d;
   --color-bg: #ffffff;
   --color-bg-alt: #f8f9fa;
   --color-border: #dee2e6;
-  
+
   /* === SPACING === */
   --space-xs: 0.25rem;
   --space-sm: 0.5rem;
@@ -103,44 +131,44 @@ s1.css
   --space-lg: 1.5rem;
   --space-xl: 2rem;
   --space-xxl: 3rem;
-  
+
   /* === TYPOGRAPHY === */
-  --font-family-base: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  --font-family-mono: "Courier New", monospace;
-  
+  --font-family-base: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-family-mono: 'Courier New', monospace;
+
   --font-size-xs: 0.75rem;
   --font-size-sm: 0.875rem;
   --font-size-base: 1rem;
   --font-size-lg: 1.25rem;
   --font-size-xl: 1.5rem;
   --font-size-xxl: 2rem;
-  
+
   --font-weight-normal: 400;
   --font-weight-medium: 500;
   --font-weight-bold: 700;
-  
+
   --line-height-tight: 1.25;
   --line-height-base: 1.5;
   --line-height-relaxed: 1.75;
-  
+
   /* === LAYOUT === */
   --container-max-width: 1200px;
   --sidebar-width: 250px;
   --header-height: 60px;
-  
+
   /* === EFFECTS === */
   --border-radius-sm: 0.25rem;
   --border-radius-md: 0.375rem;
   --border-radius-lg: 0.5rem;
-  
+
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
   --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
   --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.15);
-  
+
   --transition-fast: 150ms ease;
   --transition-base: 300ms ease;
   --transition-slow: 500ms ease;
-  
+
   /* === Z-INDEX === */
   --z-dropdown: 1000;
   --z-sticky: 1020;
@@ -188,40 +216,56 @@ s1.css
 
 ```css
 /* GOOD: Class selectors */
-.header {}
-.navigation {}
-.modal {}
+.header {
+}
+.navigation {
+}
+.modal {
+}
 
 /* BAD: ID selectors (too specific) */
-#header {}
-#navigation {}
-#modal {}
+#header {
+}
+#navigation {
+}
+#modal {
+}
 ```
 
 ### Avoid Type Qualifiers
 
 ```css
 /* GOOD: Simple class selector */
-.error {}
-.warning {}
-.success {}
+.error {
+}
+.warning {
+}
+.success {
+}
 
 /* BAD: Qualified class selector (unnecessary specificity) */
-div.error {}
-p.warning {}
-span.success {}
+div.error {
+}
+p.warning {
+}
+span.success {
+}
 ```
 
 ### Keep Specificity Low
 
 ```css
 /* GOOD: Low specificity (10) */
-.card {}
-.card-header {}
-.card-title {}
+.card {
+}
+.card-header {
+}
+.card-title {
+}
 
 /* BAD: High specificity (30) */
-.dashboard .content .card .header .title {}
+.dashboard .content .card .header .title {
+}
 ```
 
 ## BEM Methodology (Recommended)
@@ -230,20 +274,28 @@ span.success {}
 
 ```css
 /* Block */
-.card {}
+.card {
+}
 
 /* Element: block__element */
-.card__header {}
-.card__body {}
-.card__footer {}
+.card__header {
+}
+.card__body {
+}
+.card__footer {
+}
 
 /* Modifier: block--modifier */
-.card--large {}
-.card--featured {}
+.card--large {
+}
+.card--featured {
+}
 
 /* Element modifier: block__element--modifier */
-.card__header--dark {}
-.card__title--small {}
+.card__header--dark {
+}
+.card__title--small {
+}
 ```
 
 ### BEM Example
@@ -254,10 +306,7 @@ span.success {}
 /* Block */
 .modal {
   position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
+  inset: 0;
   background-color: rgba(0, 0, 0, 0.5);
   z-index: var(--z-modal);
 }
@@ -285,8 +334,8 @@ span.success {}
 
 .modal__close {
   position: absolute;
-  top: var(--space-md);
-  right: var(--space-md);
+  inset-block-start: var(--space-md);
+  inset-inline-end: var(--space-md);
   background: none;
   border: none;
   font-size: var(--font-size-xl);
@@ -329,6 +378,7 @@ span.success {}
 ### Strategy: Split by Component
 
 **Before** (800 lines):
+
 ```css
 /* styles.css */
 /* Buttons (150 lines) */
@@ -339,6 +389,7 @@ span.success {}
 ```
 
 **After**:
+
 ```
 assets/components/
 ├── buttons.css     # 150 lines
@@ -353,22 +404,24 @@ assets/components/
 ```css
 /* custom.css (< 100 lines) */
 
+@layer reset, tokens, base, layout, components, overrides;
+
 /* Core */
-@import url('core/reset.css');
-@import url('core/variables.css');
-@import url('core/base.css');
+@import url('core/reset.css') layer(reset);
+@import url('core/variables.css') layer(tokens);
+@import url('core/base.css') layer(base);
 
 /* Layout */
-@import url('layout/grid.css');
-@import url('layout/header.css');
-@import url('layout/navigation.css');
+@import url('layout/grid.css') layer(layout);
+@import url('layout/header.css') layer(layout);
+@import url('layout/navigation.css') layer(layout);
 
 /* Components */
-@import url('components/buttons.css');
-@import url('components/forms.css');
-@import url('components/cards.css');
-@import url('components/modals.css');
-@import url('components/charts.css');
+@import url('components/buttons.css') layer(components);
+@import url('components/forms.css') layer(components);
+@import url('components/cards.css') layer(components);
+@import url('components/modals.css') layer(components);
+@import url('components/charts.css') layer(components);
 
 /* Project-specific overrides */
 .app-container {
@@ -453,11 +506,11 @@ assets/components/
 .btn--loading::after {
   content: '';
   position: absolute;
-  top: 50%;
-  left: 50%;
+  inset-block-start: 50%;
+  inset-inline-start: 50%;
   width: 1rem;
   height: 1rem;
-  margin: -0.5rem 0 0 -0.5rem;
+  transform: translate(-50%, -50%);
   border: 2px solid currentColor;
   border-right-color: transparent;
   border-radius: 50%;
@@ -465,7 +518,9 @@ assets/components/
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 ```
 
@@ -494,19 +549,44 @@ assets/components/
 }
 
 /* Column sizes */
-.col-1 { flex: 0 0 8.333333%; max-width: 8.333333%; }
-.col-2 { flex: 0 0 16.666667%; max-width: 16.666667%; }
-.col-3 { flex: 0 0 25%; max-width: 25%; }
-.col-4 { flex: 0 0 33.333333%; max-width: 33.333333%; }
-.col-6 { flex: 0 0 50%; max-width: 50%; }
-.col-8 { flex: 0 0 66.666667%; max-width: 66.666667%; }
-.col-12 { flex: 0 0 100%; max-width: 100%; }
+.col-1 {
+  flex: 0 0 8.333333%;
+  max-width: 8.333333%;
+}
+.col-2 {
+  flex: 0 0 16.666667%;
+  max-width: 16.666667%;
+}
+.col-3 {
+  flex: 0 0 25%;
+  max-width: 25%;
+}
+.col-4 {
+  flex: 0 0 33.333333%;
+  max-width: 33.333333%;
+}
+.col-6 {
+  flex: 0 0 50%;
+  max-width: 50%;
+}
+.col-8 {
+  flex: 0 0 66.666667%;
+  max-width: 66.666667%;
+}
+.col-12 {
+  flex: 0 0 100%;
+  max-width: 100%;
+}
 
 /* Responsive */
 @media (max-width: 768px) {
   .col,
-  .col-1, .col-2, .col-3,
-  .col-4, .col-6, .col-8 {
+  .col-1,
+  .col-2,
+  .col-3,
+  .col-4,
+  .col-6,
+  .col-8 {
     flex: 0 0 100%;
     max-width: 100%;
   }
@@ -547,11 +627,11 @@ assets/components/
   .dashboard {
     grid-template-columns: 1fr;
   }
-  
+
   .dashboard__sidebar {
     display: none;
   }
-  
+
   .dashboard__main {
     grid-column: 1;
   }
@@ -578,7 +658,7 @@ assets/components/
   .card {
     padding: var(--space-lg);
   }
-  
+
   .card__title {
     font-size: var(--font-size-xl);
   }
@@ -589,7 +669,7 @@ assets/components/
   .card {
     padding: var(--space-xl);
   }
-  
+
   .card__title {
     font-size: var(--font-size-xxl);
   }
@@ -678,7 +758,7 @@ assets/components/
   --color-text: #212529;
 }
 
-[data-theme="dark"] {
+[data-theme='dark'] {
   --color-bg: #212529;
   --color-text: #f8f9fa;
 }
@@ -828,6 +908,7 @@ components/
 ## Summary
 
 **Key Principles**:
+
 1. Files < 500 lines (hard limit)
 2. Use CSS custom properties
 3. BEM naming convention
@@ -838,12 +919,14 @@ components/
 8. Split by component/feature
 
 **Performance**:
+
 - Use `transform` over `top`/`left`
 - Minimize repaints/reflows
 - Use `will-change` sparingly
 - Optimize selectors
 
 **Accessibility**:
+
 - Visible focus indicators
 - Screen reader utilities
 - Sufficient color contrast

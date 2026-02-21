@@ -1,6 +1,7 @@
 # JavaScript Architecture Guidelines
 
 **Purpose**: Create maintainable, modular JavaScript that is easily understood and modified by both humans and AI agents. These guidelines enforce:
+
 - **Code clarity**: Functions and files sized for quick comprehension
 - **Modularity**: Independent, reusable components
 - **Modern patterns**: ES6 modules, async/await, event handling best practices
@@ -8,9 +9,29 @@
 - **Maintainability**: Clear separation of concerns for clientside callbacks (when used)
 - **AI collaboration**: Structures optimized for AI-assisted development
 
+## Terminology and Enforcement
+
+- **MUST**: Required rule for all new/updated JavaScript in scope.
+- **SHOULD**: Strong recommendation; deviations need a clear reason.
+- **MAY**: Optional guidance for context-specific improvements.
+
+Critical/hard limits in this document are **MUST** constraints.
+
+## 2026 Standards Refresh (MDN-aligned)
+
+Apply these as current defaults for new and updated JavaScript:
+
+- Prefer ESM (`import`/`export`) and avoid introducing new global-script patterns.
+- Use `async`/`await` with explicit error handling (`try`/`catch`) around network and async boundaries.
+- Support cancellation in fetch/data workflows with `AbortController` for user-triggered refresh, navigation, or timeout paths.
+- Use `addEventListener` options intentionally (`{ passive: true }` for scroll/touch where appropriate, `{ once: true }` for one-shot handlers).
+- Default to `const`; use `let` only for reassignment; do not introduce `var`.
+- Avoid deprecated patterns such as synchronous XHR and legacy implicit-global assignments.
+
 ## File Size Limits
 
 **CRITICAL RULES**:
+
 - **Maximum file size**: 400 lines (hard limit)
 - **Target size**: 150-250 lines per file
 - **Warning threshold**: 300 lines → refactor immediately
@@ -71,11 +92,11 @@ export default class Modal {
   constructor(options) {
     this.options = options;
   }
-  
+
   show() {
     // Implementation
   }
-  
+
   hide() {
     // Implementation
   }
@@ -109,11 +130,13 @@ function fetchData() {
 ### Strategy 1: Feature-Based Split
 
 **Before** (800 lines):
+
 ```
 assets/search_editor_complete.js
 ```
 
 **After**:
+
 ```
 assets/search_editor/
 ├── core.js             # Core editor logic (< 250 lines)
@@ -127,28 +150,44 @@ assets/search_editor/
 ```javascript
 // BEFORE: One god object (600 lines)
 const appHandlers = {
-  handleInput: function() { /* 100 lines */ },
-  handleSubmit: function() { /* 150 lines */ },
-  validateForm: function() { /* 120 lines */ },
-  formatOutput: function() { /* 80 lines */ },
+  handleInput: function () {
+    /* 100 lines */
+  },
+  handleSubmit: function () {
+    /* 150 lines */
+  },
+  validateForm: function () {
+    /* 120 lines */
+  },
+  formatOutput: function () {
+    /* 80 lines */
+  },
   // ... more functions
 };
 
 // AFTER: Split by responsibility
 // input_handlers.js (< 200 lines)
 export const inputHandlers = {
-  handleInput: function() { /* 80 lines */ },
-  handleSubmit: function() { /* 100 lines */ }
+  handleInput: function () {
+    /* 80 lines */
+  },
+  handleSubmit: function () {
+    /* 100 lines */
+  },
 };
 
 // validation.js (< 150 lines)
 export const validationHandlers = {
-  validateForm: function() { /* 100 lines */ }
+  validateForm: function () {
+    /* 100 lines */
+  },
 };
 
 // formatting.js (< 150 lines)
 export const formatHandlers = {
-  formatOutput: function() { /* 70 lines */ }
+  formatOutput: function () {
+    /* 70 lines */
+  },
 };
 ```
 
@@ -168,7 +207,7 @@ function processData(data) {
   if (data) {
     if (data.valid) {
       if (data.items.length > 0) {
-        return data.items.map(item => item.value);
+        return data.items.map((item) => item.value);
       }
     }
   }
@@ -180,8 +219,8 @@ function processData(data) {
   if (!data) return [];
   if (!data.valid) return [];
   if (data.items.length === 0) return [];
-  
-  return data.items.map(item => item.value);
+
+  return data.items.map((item) => item.value);
 }
 ```
 
@@ -230,10 +269,10 @@ function initializePlugins(editor, plugins) {
 // Example for clientside callback namespaces (if applicable in your framework)
 window.app = window.app || {};
 window.app.feature = {
-  handleInput: function(value) {
+  handleInput: function (value) {
     if (!value) return { valid: false };
     return { valid: true };
-  }
+  },
 };
 
 // Helper functions outside the namespace
@@ -251,20 +290,32 @@ function validateQuery(query) {
 ```javascript
 // search_input.js (< 200 lines)
 window.app.searchInput = {
-  handleKeyPress: function() { /* ... */ },
-  handlePaste: function() { /* ... */ }
+  handleKeyPress: function () {
+    /* ... */
+  },
+  handlePaste: function () {
+    /* ... */
+  },
 };
 
 // search_autocomplete.js (< 250 lines)
 window.app.searchAutocomplete = {
-  showSuggestions: function() { /* ... */ },
-  selectSuggestion: function() { /* ... */ }
+  showSuggestions: function () {
+    /* ... */
+  },
+  selectSuggestion: function () {
+    /* ... */
+  },
 };
 
 // search_validation.js (< 150 lines)
 window.app.searchValidation = {
-  validateSyntax: function() { /* ... */ },
-  showErrors: function() { /* ... */ }
+  validateSyntax: function () {
+    /* ... */
+  },
+  showErrors: function () {
+    /* ... */
+  },
 };
 ```
 
@@ -309,11 +360,7 @@ const config = {
   timeout: 5000,
 };
 
-const items = [
-  'item1',
-  'item2',
-  'item3',
-];
+const items = ['item1', 'item2', 'item3'];
 ```
 
 ## Error Handling
@@ -333,17 +380,25 @@ function parseJSON(jsonString) {
 
 // GOOD: Async error handling
 async function fetchData(url) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 10000);
+
   try {
-    const response = await fetch(url);
-    
+    const response = await fetch(url, { signal: controller.signal });
+
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
-    
+
     return await response.json();
   } catch (error) {
+    if (error.name === 'AbortError') {
+      return { error: 'Request timed out or was cancelled' };
+    }
     console.error('Fetch error:', error);
     return { error: error.message };
+  } finally {
+    clearTimeout(timeoutId);
   }
 }
 ```
@@ -367,7 +422,7 @@ function debounce(func, wait) {
 }
 
 // Usage
-const debouncedSearch = debounce(function(query) {
+const debouncedSearch = debounce(function (query) {
   // Expensive search operation
   performSearch(query);
 }, 300);
@@ -386,7 +441,7 @@ document.getElementById('list').addEventListener('click', (e) => {
   if (e.target.matches('.list-item')) {
     handleItemClick(e.target);
   }
-  
+
   // Handle clicks on delete buttons
   if (e.target.matches('.delete-btn')) {
     handleDelete(e.target.closest('.list-item'));
@@ -401,7 +456,7 @@ document.getElementById('list').addEventListener('click', (e) => {
 ```javascript
 // BAD: Multiple reflows
 function addItems(items) {
-  items.forEach(item => {
+  items.forEach((item) => {
     const div = document.createElement('div');
     div.textContent = item;
     container.appendChild(div); // Reflow on each append
@@ -411,13 +466,13 @@ function addItems(items) {
 // GOOD: Single reflow
 function addItems(items) {
   const fragment = document.createDocumentFragment();
-  
-  items.forEach(item => {
+
+  items.forEach((item) => {
     const div = document.createElement('div');
     div.textContent = item;
     fragment.appendChild(div);
   });
-  
+
   container.appendChild(fragment); // Single reflow
 }
 ```
@@ -451,11 +506,16 @@ function showModal(title, content) {
 ```javascript
 // GOOD: Clean async/await
 async function loadData() {
+  const controller = new AbortController();
+
   try {
-    const response = await fetch('/api/data');
+    const response = await fetch('/api/data', { signal: controller.signal });
     const data = await response.json();
     return processData(data);
   } catch (error) {
+    if (error.name === 'AbortError') {
+      return null;
+    }
     console.error('Load error:', error);
     return null;
   }
@@ -471,12 +531,8 @@ async function processWorkflow() {
 
 // Parallel operations
 async function loadMultiple() {
-  const [users, posts, comments] = await Promise.all([
-    fetchUsers(),
-    fetchPosts(),
-    fetchComments(),
-  ]);
-  
+  const [users, posts, comments] = await Promise.all([fetchUsers(), fetchPosts(), fetchComments()]);
+
   return { users, posts, comments };
 }
 ```
@@ -514,7 +570,7 @@ class Modal {
     this.title = options.title;
     this.content = options.content;
   }
-  
+
   /**
    * Show the modal
    * @returns {void}
@@ -534,7 +590,7 @@ function calculateDiscount(price, userLevel) {
   if (userLevel === 'premium') {
     return price * 0.8;
   }
-  
+
   // Regular users get tiered discounts based on price
   return price > 100 ? price * 0.9 : price * 0.95;
 }
@@ -623,19 +679,20 @@ When file exceeds 300 lines:
 
 ```javascript
 // GOOD: Descriptive, matches content
-searchAutocomplete.js        // Feature-based
-modalComponent.js            // Component-based
-apiHelpers.js                // Utility-based
+searchAutocomplete.js; // Feature-based
+modalComponent.js; // Component-based
+apiHelpers.js; // Utility-based
 
 // BAD: Generic names
-utils.js                     // Too vague
-helpers.js                   // Too vague
-misc.js                      // Never acceptable
+utils.js; // Too vague
+helpers.js; // Too vague
+misc.js; // Never acceptable
 ```
 
 ## Summary
 
 **Key Principles**:
+
 1. Files < 400 lines (hard limit)
 2. Functions < 40 lines (target)
 3. Early returns over nested conditions
@@ -648,6 +705,7 @@ misc.js                      // Never acceptable
 10. Test pure functions
 
 **Optional: Framework Clientside Pattern**:
+
 - One namespace per feature
 - Keep callbacks < 200 lines
 - Extract helpers outside the clientside namespace
