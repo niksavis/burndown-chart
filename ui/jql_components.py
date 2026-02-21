@@ -1,7 +1,8 @@
 """
 JQL Components Module
 
-Components for JQL query editor support including character counting and keyword detection.
+Components for JQL query editor support including character counting
+and keyword detection.
 Extracted from ui/components.py during refactoring (bd-rnol).
 """
 

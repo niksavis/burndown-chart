@@ -35,7 +35,9 @@ def create_save_query_modal() -> dbc.Modal:
                     html.H6("Query:", className="mb-2 fw-bold"),
                     html.Div(
                         id="save-query-jql-preview",
-                        className="p-3 mb-3 bg-light border rounded font-monospace small",
+                        className=(
+                            "p-3 mb-3 bg-light border rounded font-monospace small"
+                        ),
                         style={
                             "maxHeight": "120px",
                             "overflowY": "auto",

@@ -100,8 +100,9 @@ def detect_syntax_errors(tokens: list[dict[str, Any]]) -> list[dict[str, Any]]:
         tokens: List of SyntaxToken dicts from parse_jql_syntax()
 
     Returns:
-        List[dict]: List of SyntaxError dicts with keys: error_type, start, end, token, message
-                   Returns empty list if no errors detected
+        List[dict]: List of SyntaxError dicts with keys:
+            error_type, start, end, token, message
+            Returns empty list if no errors detected
 
     Example:
         >>> tokens = [{"text": '"Done', "type": "string", "start": 0, "end": 5}]
