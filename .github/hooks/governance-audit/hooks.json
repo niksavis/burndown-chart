@@ -31,7 +31,7 @@
         "args": [
           "-NoProfile",
           "-Command",
-          "$logDir='logs/copilot/governance'; New-Item -ItemType Directory -Path $logDir -Force | Out-Null; $logFile=Join-Path $logDir 'audit.log'; $threatCount=0; if(Test-Path $logFile){ $threatCount=(Select-String -Path $logFile -Pattern '"event":"prompt_scanned"' | Measure-Object).Count }; $event=[ordered]@{timestamp=(Get-Date).ToString('o'); event='session_end'; scanned_prompts=$threatCount}; $event | ConvertTo-Json -Compress | Add-Content -Path $logFile; Write-Host '[governance-audit] session end logged. Verify get_errors and final validation summary.'"
+          "$logDir='logs/copilot/governance'; New-Item -ItemType Directory -Path $logDir -Force | Out-Null; $logFile=Join-Path $logDir 'audit.log'; $threatCount=0; if(Test-Path $logFile){ $threatCount=(Select-String -Path $logFile -Pattern '\"event\":\"prompt_scanned\"' | Measure-Object).Count }; $event=[ordered]@{timestamp=(Get-Date).ToString('o'); event='session_end'; scanned_prompts=$threatCount}; $event | ConvertTo-Json -Compress | Add-Content -Path $logFile; Write-Host '[governance-audit] session end logged. Verify get_errors and final validation summary.'"
         ]
       }
     }
