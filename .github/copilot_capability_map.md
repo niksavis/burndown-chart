@@ -19,19 +19,21 @@ Purpose: one reviewable map of all Copilot customization artifacts, what each do
 
 ## Conditional Instructions
 
-| Artifact                                                     | Scope (`applyTo`)                                                                                                        | Capability                                                 |
-| ------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------- |
-| `.github/instructions/python-dash-layering.instructions.md`  | `callbacks/**/*.py,data/**/*.py,visualization/**/*.py,ui/**/*.py`                                                        | Enforces layered architecture boundaries                   |
-| `.github/instructions/context7-refresh.instructions.md`      | `callbacks/**/*.py,data/**/*.py,ui/**/*.py,visualization/**/*.py,assets/**/*.js,**/*.ts,**/*.tsx,docs/**/*.md`           | Requires fresh Context7 retrieval for external APIs/docs   |
-| `.github/instructions/security-data-safety.instructions.md`  | `callbacks/**/*.py,data/**/*.py,ui/**/*.py,visualization/**/*.py,**/*.sql,assets/**/*.js`                                | Enforces no-secrets/no-customer-data and sanitized logging |
-| `.github/instructions/testing-quality.instructions.md`       | `tests/**/*.py,data/**/*.py,callbacks/**/*.py`                                                                           | Requires targeted tests and isolation                      |
-| `.github/instructions/powershell-python-env.instructions.md` | `**/*.py,tests/**/*.py,release.py,regenerate_changelog.py`                                                               | Enforces PowerShell + venv command pattern                 |
-| `.github/instructions/release-workflow.instructions.md`      | `release.py,regenerate_changelog.py,changelog.md,docs/codebase_context_metrics.md,.github/codebase_context_metrics.json` | Standardizes changelog/release flow                        |
-| `.github/instructions/build-pipeline.instructions.md`        | `build/**/*,release.py,regenerate_changelog.py,pyproject.toml,build_config.yaml`                                         | Enforces safe build and packaging changes                  |
-| `.github/instructions/cache-management.instructions.md`      | `data/cache_manager.py,data/jira/cache_*.py,data/metrics_cache.py,data/persistence/sqlite/issues_cache.py`               | Enforces safe cache management patterns                    |
-| `.github/instructions/configuration-changes.instructions.md` | `configuration/**/*.py,data/config_validation.py,data/smart_defaults.py`                                                 | Enforces safe configuration management                     |
-| `.github/instructions/review-gate.instructions.md`           | `**/*`                                                                                                                   | Final completion quality gate                              |
-| `.github/instructions/review.instructions.md`                | Broad review policy document                                                                                             | Deep review checklist and coding standards                 |
+| Artifact                                                          | Scope (`applyTo`)                                                                                                        | Capability                                                 |
+| ----------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------- |
+| `.github/instructions/python-code-quality.instructions.md`        | `**/*.py`                                                                                                                | Enforces Python readability, typing, and reliability       |
+| `.github/instructions/html-css-style-color-guide.instructions.md` | `**/*.html, **/*.css, assets/**/*.js`                                                                                    | Enforces accessible style and color guidance               |
+| `.github/instructions/python-dash-layering.instructions.md`       | `callbacks/**/*.py,data/**/*.py,visualization/**/*.py,ui/**/*.py`                                                        | Enforces layered architecture boundaries                   |
+| `.github/instructions/context7-refresh.instructions.md`           | `callbacks/**/*.py,data/**/*.py,ui/**/*.py,visualization/**/*.py,assets/**/*.js,**/*.ts,**/*.tsx,docs/**/*.md`           | Requires fresh Context7 retrieval for external APIs/docs   |
+| `.github/instructions/security-data-safety.instructions.md`       | `callbacks/**/*.py,data/**/*.py,ui/**/*.py,visualization/**/*.py,**/*.sql,assets/**/*.js`                                | Enforces no-secrets/no-customer-data and sanitized logging |
+| `.github/instructions/testing-quality.instructions.md`            | `tests/**/*.py,data/**/*.py,callbacks/**/*.py`                                                                           | Requires targeted tests and isolation                      |
+| `.github/instructions/powershell-python-env.instructions.md`      | `**/*.py,tests/**/*.py,release.py,regenerate_changelog.py`                                                               | Enforces PowerShell + venv command pattern                 |
+| `.github/instructions/release-workflow.instructions.md`           | `release.py,regenerate_changelog.py,changelog.md,docs/codebase_context_metrics.md,.github/codebase_context_metrics.json` | Standardizes changelog/release flow                        |
+| `.github/instructions/build-pipeline.instructions.md`             | `build/**/*,release.py,regenerate_changelog.py,pyproject.toml,build_config.yaml`                                         | Enforces safe build and packaging changes                  |
+| `.github/instructions/cache-management.instructions.md`           | `data/cache_manager.py,data/jira/cache_*.py,data/metrics_cache.py,data/persistence/sqlite/issues_cache.py`               | Enforces safe cache management patterns                    |
+| `.github/instructions/configuration-changes.instructions.md`      | `configuration/**/*.py,data/config_validation.py,data/smart_defaults.py`                                                 | Enforces safe configuration management                     |
+| `.github/instructions/review-gate.instructions.md`                | `**/*`                                                                                                                   | Final completion quality gate                              |
+| `.github/instructions/review.instructions.md`                     | Broad review policy document                                                                                             | Deep review checklist and coding standards                 |
 
 ## Skills
 
@@ -49,13 +51,14 @@ Purpose: one reviewable map of all Copilot customization artifacts, what each do
 
 ## Custom Agents (Subagents)
 
-| Agent                                             | Capability                                | Best fit                           |
-| ------------------------------------------------- | ----------------------------------------- | ---------------------------------- |
-| `.github/agents/context7-bootstrap-sync.agent.md` | Context7 bootstrap and focused doc sync   | Tasks requiring current API truth  |
-| `.github/agents/repo-quality-guardian.agent.md`   | Quality/safety gatekeeper                 | End-of-task review and enforcement |
-| `.github/agents/layering-enforcer.agent.md`       | Boundary checks and corrections           | Multi-layer Python changes         |
-| `.github/agents/test-strategy.agent.md`           | Test planning and focused validation      | Behavior changes needing tests     |
-| `.github/agents/release-readiness.agent.md`       | Release checklist and changelog readiness | Pre-release validation             |
+| Agent                                             | Capability                                | Best fit                             |
+| ------------------------------------------------- | ----------------------------------------- | ------------------------------------ |
+| `.github/agents/context7-bootstrap-sync.agent.md` | Context7 bootstrap and focused doc sync   | Tasks requiring current API truth    |
+| `.github/agents/refactor-execution.agent.md`      | Behavior-preserving refactor execution    | Refactor tasks with validation gates |
+| `.github/agents/repo-quality-guardian.agent.md`   | Quality/safety gatekeeper                 | End-of-task review and enforcement   |
+| `.github/agents/layering-enforcer.agent.md`       | Boundary checks and corrections           | Multi-layer Python changes           |
+| `.github/agents/test-strategy.agent.md`           | Test planning and focused validation      | Behavior changes needing tests       |
+| `.github/agents/release-readiness.agent.md`       | Release checklist and changelog readiness | Pre-release validation               |
 
 ## Prompts
 
@@ -97,16 +100,16 @@ Recommended baseline composition:
 
 ## Task-to-Artifact Routing
 
-- **Python backend**: `python-backend-quality` skill + `python-dash-layering` instruction + `testing-quality` instruction
+- **Python backend**: `python-backend-quality` skill + `python-code-quality` instruction + `python-dash-layering` instruction + `testing-quality` instruction
 - **External API freshness**: `context7-retrieval-patterns` skill + `context7-refresh` instruction + `context7-bootstrap-sync` agent
-- **Frontend/JavaScript**: `frontend-javascript-quality` skill + `security-data-safety` instruction
+- **Frontend/JavaScript**: `frontend-javascript-quality` skill + `html-css-style-color-guide` instruction + `security-data-safety` instruction
 - **Persistence/Database**: `sqlite-persistence-safety` skill + `cache-management` instruction + `testing-quality` instruction
 - **Chart/Visualization**: `plotly-visualization-quality` skill + `python-dash-layering` instruction
 - **JIRA integration**: `jira-integration-reliability` skill + `cache-management` instruction + `security-data-safety` instruction
 - **Build/Packaging**: `build-pipeline` instruction + `release-management` skill (if release-related)
 - **Updater system**: `updater-reliability` skill + `build-pipeline` instruction
 - **Configuration**: `configuration-changes` instruction + `security-data-safety` instruction
-- **Refactor**: `refactor` skill + `safe-refactor-python` prompt + `layering-enforcer` agent + `testing-quality` instruction
+- **Refactor**: `refactor` skill + `safe-refactor-python` prompt + `refactor-execution` agent + `layering-enforcer` agent + `testing-quality` instruction
 - **Release prep**: `release-management` skill + `release-readiness` agent + `release-notes-draft` prompt
 - **Documentation (latest guidelines)**: `documentation-update` prompt + `context7-retrieval-patterns` skill + `context7-refresh` instruction + `context7-bootstrap-sync` agent
 
