@@ -196,7 +196,8 @@ def create_throughput_analytics_section(
                                 current_week_actual, forecast_value
                             )
                             logger.info(
-                                f"[Blending-Dashboard-Items] Actual: {current_week_actual:.1f}, "
+                                "[Blending-Dashboard-Items] "
+                                f"Actual: {current_week_actual:.1f}, "
                                 f"Forecast: {forecast_value:.1f}, "
                                 f"Blended: {items_blend_metadata['blended']:.1f}"
                             )
@@ -232,7 +233,8 @@ def create_throughput_analytics_section(
                                     current_week_actual_pts, forecast_value_pts
                                 )
                                 logger.info(
-                                    f"[Blending-Dashboard-Points] Actual: {current_week_actual_pts:.1f}, "
+                                    "[Blending-Dashboard-Points] "
+                                    f"Actual: {current_week_actual_pts:.1f}, "
                                     f"Forecast: {forecast_value_pts:.1f}, "
                                     f"Blended: {points_blend_metadata['blended']:.1f}"
                                 )
@@ -240,6 +242,103 @@ def create_throughput_analytics_section(
                             logger.warning(
                                 f"Failed to calculate points forecast for blending: {e}"
                             )
+
+    points_enabled = bool(show_points and avg_points and avg_points > 0)
+    points_disabled_message = (
+        "Points tracking is disabled. Enable Points Tracking in Parameters panel "
+        "to view story points metrics."
+    )
+    points_no_data_message = (
+        "No story points data available. Configure story points field in "
+        "Settings or complete items with point estimates."
+    )
+    points_disabled_tooltip = (
+        "Enable Points Tracking in Parameters panel and configure the points "
+        "field in JIRA Configuration to view this metric. "
+        "When disabled, forecasts use item counts instead."
+    )
+    points_period_no_data_tooltip = (
+        "No story points data available for the selected time period."
+    )
+    points_per_week_tooltip = (
+        "Average story points completed per week. Story points represent work "
+        "complexity and effort. Higher values indicate faster delivery of "
+        "larger work items. Progressive blending is applied to the current "
+        "week to smooth Monday reliability drops."
+    )
+    avg_item_size_tooltip = (
+        "Average story points per completed work item. Shows typical item "
+        "complexity. Higher values mean larger items taking longer to complete. "
+        "Use this to understand capacity: fewer large items or more small items "
+        "per sprint. Breakdown shows Week 1 (oldest) to Week 4 (newest)."
+    )
+    items_per_week_tooltip = (
+        "Average number of work items completed per week. Calculated using "
+        "the corrected velocity method that counts actual weeks with data "
+        "(not date range spans). Progressive blending is applied to the "
+        "current week to smooth Monday reliability drops."
+    )
+
+    item_size_week_rows: list[html.Div] = []
+    has_item_size_series = (
+        not statistics_df.empty
+        and "completed_points" in statistics_df.columns
+        and "completed_items" in statistics_df.columns
+    )
+    has_item_size_trend = has_item_size_series and len(statistics_df) >= 2
+    latest_item_size = 0.0
+    first_item_size = 0.0
+    if has_item_size_trend:
+        latest_item_size = safe_divide(
+            statistics_df["completed_points"].iloc[-1],
+            statistics_df["completed_items"].iloc[-1],
+        )
+        first_item_size = safe_divide(
+            statistics_df["completed_points"].iloc[0],
+            statistics_df["completed_items"].iloc[0],
+        )
+
+    is_item_size_growing = has_item_size_trend and latest_item_size > first_item_size
+    item_size_arrow = (
+        "up" if is_item_size_growing else "down" if has_item_size_trend else "right"
+    )
+    item_size_arrow_color = (
+        "#28a745"
+        if is_item_size_growing
+        else "#dc3545"
+        if has_item_size_trend
+        else "#6c757d"
+    )
+    item_size_trend_label = (
+        "Growing"
+        if is_item_size_growing
+        else "Shrinking"
+        if has_item_size_trend
+        else "Stable"
+    )
+    item_size_icon_class = f"fas fa-arrow-{item_size_arrow} me-1"
+    item_size_label_text = f"{item_size_trend_label} item size"
+    item_size_arrow_style = {"color": item_size_arrow_color}
+
+    if has_item_size_series:
+        for i in range(min(4, len(statistics_df)) - 1, -1, -1):
+            idx = -(i + 1)
+            weekly_item_size = safe_divide(
+                statistics_df["completed_points"].iloc[idx],
+                statistics_df["completed_items"].iloc[idx],
+            )
+            item_size_week_rows.append(
+                html.Div(
+                    [
+                        html.Small(f"Week {4 - i}: ", className="text-muted"),
+                        html.Small(
+                            f"{weekly_item_size:.1f} pts/item", className="fw-bold"
+                        ),
+                    ],
+                    className="d-flex justify-content-between mb-1",
+                    style={"fontSize": "0.8rem"},
+                )
+            )
 
     return html.Div(
         [
@@ -273,7 +372,7 @@ def create_throughput_analytics_section(
                                     else "orange",
                                     "error_state": "success",
                                     "_n_weeks": data_points_count,
-                                    "tooltip": "Average number of work items completed per week. Calculated using the corrected velocity method that counts actual weeks with data (not date range spans). Progressive blending is applied to the current week to smooth Monday reliability drops.",
+                                    "tooltip": items_per_week_tooltip,
                                     "weekly_values": list(
                                         statistics_df["completed_items"]
                                     )
@@ -301,38 +400,40 @@ def create_throughput_analytics_section(
                                 {
                                     "metric_name": "points_per_week",
                                     "display_name": "Points per Week",
-                                    "value": avg_points
-                                    if (show_points and avg_points and avg_points > 0)
-                                    else None,
-                                    "unit": "points/week"
-                                    if (show_points and avg_points and avg_points > 0)
-                                    else "",
+                                    "value": avg_points if points_enabled else None,
+                                    "unit": "points/week" if points_enabled else "",
                                     "subtitle": "Average story points"
-                                    if (show_points and avg_points and avg_points > 0)
+                                    if points_enabled
                                     else "",
                                     "icon": "fa-chart-bar",
                                     "color": COLOR_PALETTE["points"]
-                                    if (show_points and avg_points and avg_points > 0)
+                                    if points_enabled
                                     else "#6c757d",
                                     "performance_tier_color": "green"
                                     if show_points and avg_points and avg_points > 20
                                     else "yellow"
                                     if show_points and avg_points and avg_points > 10
                                     else "orange",
-                                    "error_state": "success"
-                                    if (show_points and avg_points and avg_points > 0)
-                                    else "points_tracking_disabled"
-                                    if not show_points
-                                    else "no_data",
-                                    "error_message": "Points tracking is disabled. Enable Points Tracking in Parameters panel to view story points metrics."
-                                    if not show_points
-                                    else "No story points data available. Configure story points field in Settings or complete items with point estimates.",
+                                    "error_state": (
+                                        "success"
+                                        if points_enabled
+                                        else "points_tracking_disabled"
+                                        if not show_points
+                                        else "no_data"
+                                    ),
+                                    "error_message": (
+                                        points_disabled_message
+                                        if not show_points
+                                        else points_no_data_message
+                                    ),
                                     "_n_weeks": data_points_count,
-                                    "tooltip": "Average story points completed per week. Story points represent work complexity and effort. Higher values indicate faster delivery of larger work items. Progressive blending is applied to the current week to smooth Monday reliability drops."
-                                    if (show_points and avg_points and avg_points > 0)
-                                    else "Enable Points Tracking in Parameters panel and configure the points field in JIRA Configuration to view this metric. When disabled, forecasts use item counts instead."
-                                    if not show_points
-                                    else "No story points data available for the selected time period.",
+                                    "tooltip": (
+                                        points_per_week_tooltip
+                                        if points_enabled
+                                        else points_disabled_tooltip
+                                        if not show_points
+                                        else points_period_no_data_tooltip
+                                    ),
                                     "weekly_values": list(
                                         statistics_df["completed_points"]
                                     )
@@ -370,33 +471,35 @@ def create_throughput_analytics_section(
                                     "metric_name": "avg_item_size",
                                     "alternative_name": "Average Item Size",
                                     "value": safe_divide(avg_points, avg_items)
-                                    if (show_points and avg_points and avg_points > 0)
+                                    if points_enabled
                                     else None,
-                                    "unit": "points/item"
-                                    if (show_points and avg_points and avg_points > 0)
-                                    else "",
+                                    "unit": "points/item" if points_enabled else "",
                                     "subtitle": "Points per item"
-                                    if (show_points and avg_points and avg_points > 0)
+                                    if points_enabled
                                     else "",
                                     "icon": "fa-weight-hanging",
-                                    "color": "#17a2b8"
-                                    if (show_points and avg_points and avg_points > 0)
-                                    else "#6c757d",
+                                    "color": "#17a2b8" if points_enabled else "#6c757d",
                                     "performance_tier_color": "green",
-                                    "error_state": "success"
-                                    if (show_points and avg_points and avg_points > 0)
-                                    else "points_tracking_disabled"
-                                    if not show_points
-                                    else "no_data",
-                                    "error_message": "Points tracking is disabled. Enable Points Tracking in Parameters panel to view story points metrics."
-                                    if not show_points
-                                    else "No story points data available. Configure story points field in Settings or complete items with point estimates.",
+                                    "error_state": (
+                                        "success"
+                                        if points_enabled
+                                        else "points_tracking_disabled"
+                                        if not show_points
+                                        else "no_data"
+                                    ),
+                                    "error_message": (
+                                        points_disabled_message
+                                        if not show_points
+                                        else points_no_data_message
+                                    ),
                                     "_n_weeks": data_points_count,
-                                    "tooltip": "Average story points per completed work item. Shows typical item complexity. Higher values mean larger items taking longer to complete. Use this to understand capacity: fewer large items or more small items per sprint. Breakdown shows Week 1 (oldest) to Week 4 (newest)."
-                                    if (show_points and avg_points and avg_points > 0)
-                                    else "Enable Points Tracking in Parameters panel and configure the points field in JIRA Configuration to view this metric. When disabled, forecasts use item counts instead."
-                                    if not show_points
-                                    else "No story points data available for the selected time period.",
+                                    "tooltip": (
+                                        avg_item_size_tooltip
+                                        if points_enabled
+                                        else points_disabled_tooltip
+                                        if not show_points
+                                        else points_period_no_data_tooltip
+                                    ),
                                 },
                                 text_details=[
                                     html.Div(
@@ -409,34 +512,15 @@ def create_throughput_analytics_section(
                                                         style={"fontSize": "0.8rem"},
                                                     ),
                                                     html.Span(
-                                                        "Past 4 Weeks (oldest → newest)",
+                                                        "Past 4 Weeks"
+                                                        " (oldest → newest)",
                                                         className="fw-bold",
                                                         style={"fontSize": "0.85rem"},
                                                     ),
                                                 ],
                                             ),
                                             html.Div(
-                                                [
-                                                    html.Div(
-                                                        [
-                                                            html.Small(
-                                                                f"Week {4 - i}: ",
-                                                                className="text-muted",
-                                                            ),
-                                                            html.Small(
-                                                                f"{safe_divide(statistics_df['completed_points'].iloc[-(i + 1)], statistics_df['completed_items'].iloc[-(i + 1)]):.1f} pts/item",
-                                                                className="fw-bold",
-                                                            ),
-                                                        ],
-                                                        className="d-flex justify-content-between mb-1",
-                                                        style={"fontSize": "0.8rem"},
-                                                    )
-                                                    for i in range(
-                                                        min(4, len(statistics_df)) - 1,
-                                                        -1,
-                                                        -1,
-                                                    )
-                                                ],
+                                                item_size_week_rows,
                                                 className="small",
                                                 style={
                                                     "backgroundColor": "#f8f9fa",
@@ -448,34 +532,14 @@ def create_throughput_analytics_section(
                                             html.Div(
                                                 [
                                                     html.I(
-                                                        className=f"fas fa-arrow-{'up' if len(statistics_df) >= 2 and safe_divide(statistics_df['completed_points'].iloc[-1], statistics_df['completed_items'].iloc[-1]) > safe_divide(statistics_df['completed_points'].iloc[0], statistics_df['completed_items'].iloc[0]) else 'down' if len(statistics_df) >= 2 else 'right'} me-1",
-                                                        style={
-                                                            "color": "#28a745"
-                                                            if len(statistics_df) >= 2
-                                                            and safe_divide(
-                                                                statistics_df[
-                                                                    "completed_points"
-                                                                ].iloc[-1],
-                                                                statistics_df[
-                                                                    "completed_items"
-                                                                ].iloc[-1],
-                                                            )
-                                                            > safe_divide(
-                                                                statistics_df[
-                                                                    "completed_points"
-                                                                ].iloc[0],
-                                                                statistics_df[
-                                                                    "completed_items"
-                                                                ].iloc[0],
-                                                            )
-                                                            else "#dc3545"
-                                                            if len(statistics_df) >= 2
-                                                            else "#6c757d"
-                                                        },
+                                                        className=item_size_icon_class,
+                                                        style=item_size_arrow_style,
                                                     ),
                                                     html.Small(
-                                                        f"{'Growing' if len(statistics_df) >= 2 and safe_divide(statistics_df['completed_points'].iloc[-1], statistics_df['completed_items'].iloc[-1]) > safe_divide(statistics_df['completed_points'].iloc[0], statistics_df['completed_items'].iloc[0]) else 'Shrinking' if len(statistics_df) >= 2 else 'Stable'} item size",
-                                                        className="text-muted fst-italic",
+                                                        item_size_label_text,
+                                                        className=(
+                                                            "text-muted fst-italic"
+                                                        ),
                                                     ),
                                                 ],
                                                 className="mt-2",
