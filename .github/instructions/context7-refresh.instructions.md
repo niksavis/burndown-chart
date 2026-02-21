@@ -3,7 +3,7 @@ applyTo: 'callbacks/**/*.py,data/**/*.py,ui/**/*.py,visualization/**/*.py,assets
 description: 'Require Context7 refresh workflow for external API and library-version sensitive tasks'
 ---
 
-# Context7 Refresh
+# Context7 Refresh Instructions
 
 Use this instruction when a task depends on external library/framework/API behavior that may be version-sensitive.
 This applies during research, planning, and implementation phases.

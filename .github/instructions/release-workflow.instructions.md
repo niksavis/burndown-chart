@@ -3,7 +3,7 @@ applyTo: 'release.py,regenerate_changelog.py,changelog.md,docs/codebase_context_
 description: 'Standardize changelog and release workflow behavior'
 ---
 
-# Release Workflow Rules
+# Release Workflow Instructions
 
 For release-related tasks:
 

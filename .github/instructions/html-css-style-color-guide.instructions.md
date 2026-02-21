@@ -3,7 +3,7 @@ applyTo: '**/*.html, **/*.css, assets/**/*.js'
 description: 'HTML/CSS style and color guidance for accessible, professional UI changes'
 ---
 
-# HTML CSS Style and Color Guide
+# HTML CSS Style and Color Guide Instructions
 
 Apply these rules for HTML/CSS styling work and related frontend scripts.
 

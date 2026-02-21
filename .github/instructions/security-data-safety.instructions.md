@@ -1,9 +1,9 @@
 ---
-applyTo: "callbacks/**/*.py,data/**/*.py,ui/**/*.py,visualization/**/*.py,**/*.sql,assets/**/*.js"
-description: "Enforce security, data safety, and no-secrets policy"
+applyTo: 'callbacks/**/*.py,data/**/*.py,ui/**/*.py,visualization/**/*.py,**/*.sql,assets/**/*.js'
+description: 'Enforce security, data safety, and no-secrets policy'
 ---
 
-# Security and Data Safety
+# Security and Data Safety Instructions
 
 Apply these rules for any code/data handling changes:
 

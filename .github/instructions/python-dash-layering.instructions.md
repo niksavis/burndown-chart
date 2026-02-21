@@ -1,9 +1,9 @@
 ---
-applyTo: "callbacks/**/*.py,data/**/*.py,visualization/**/*.py,ui/**/*.py"
-description: "Enforce burndown layered architecture for Python/Dash changes"
+applyTo: 'callbacks/**/*.py,data/**/*.py,visualization/**/*.py,ui/**/*.py'
+description: 'Enforce burndown layered architecture for Python/Dash changes'
 ---
 
-# Python Dash Layering Rules
+# Python Dash Layering Instructions
 
 Apply these rules when editing Python files in this repository:
 

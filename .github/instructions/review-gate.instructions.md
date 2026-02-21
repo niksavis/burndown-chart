@@ -1,9 +1,9 @@
 ---
-applyTo: "**/*"
-description: "Final quality gate for implementation and review responses"
+applyTo: '**/*'
+description: 'Final quality gate for implementation and review responses'
 ---
 
-# Review Gate
+# Review Gate Instructions
 
 Treat this as the final pass before declaring work complete.
 

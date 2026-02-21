@@ -19,6 +19,13 @@ Apply artifacts in this order:
 - External agents (Claude/Codex CLI): load `agents.md` as a bootstrap, then load `.github/copilot-instructions.md`.
 - Keep `agents.md` concise to reduce duplicate context and token usage.
 
+## Orchestration Defaults
+
+- Non-trivial tasks should use orchestrated subagent workflow from `.github/copilot-instructions.md`.
+- Parallel work is restricted to independent read-only discovery/research.
+- Edits/tests/validation must run in sequence and finish with quality gate checks.
+- Self-evolving specialization is required when recurring/novel task patterns are discovered.
+
 ## Package Onboarding Policy
 
 - Canonical dependency onboarding workflow is defined in `.github/copilot-instructions.md` under `Dependency Onboarding (Required)`.
@@ -70,12 +77,16 @@ Apply artifacts in this order:
 
 ## Custom Agents
 
+- `.github/agents/beast-mode-agnostic.agent.md`
+- `.github/agents/custom-agent-foundry.agent.md`
 - `.github/agents/repo-quality-guardian.agent.md`
 - `.github/agents/layering-enforcer.agent.md`
-- `.github/agents/context7-bootstrap-sync.agent.md`
+- `.github/agents/context7-expert.agent.md`
 - `.github/agents/refactor-execution.agent.md`
 - `.github/agents/test-strategy.agent.md`
 - `.github/agents/release-readiness.agent.md`
+- `.github/agents/github-actions-expert.agent.md`
+- `.github/agents/critical-thinking.agent.md`
 
 ## Hook Packs
 

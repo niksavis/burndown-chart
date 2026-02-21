@@ -10,6 +10,31 @@ Purpose: one reviewable map of all Copilot customization artifacts, what each do
 4. Optionally use a prompt template for repeatable workflows.
 5. Enable appropriate hook profile (warn-only or strict).
 
+## Orchestration Policy (Default)
+
+- **Route first**: select specialized agents before editing.
+- **Parallel phase**: read-only discovery/research only.
+- **Sequence phase**: edits, tests, and validation in strict order.
+- **Final gate**: run diagnostics and targeted tests when applicable.
+
+### Default Agent Routing
+
+- `context7-expert` for external API/version-sensitive tasks.
+- `layering-enforcer` for architecture boundary risks.
+- `refactor-execution` for behavior-preserving structure changes.
+- `test-strategy` for test planning/updates.
+- `repo-quality-guardian` as final quality gate.
+- `release-readiness` for pre-release checks.
+
+### Self-Evolving Specialization
+
+When recurring or novel task patterns are discovered during implementation:
+
+1. Use `custom-agent-foundry` to create/update specialized agents.
+2. Use `agent-skills.instructions.md` + `make-skill-template` to create/update skills.
+3. Update discoverability docs (`copilot_customization.md`, `copilot_capability_map.md`).
+4. Validate changed artifacts with `get_errors`.
+
 ## Always-on Instructions
 
 | Artifact                          | Role                                               | When to use                                                      |
@@ -51,14 +76,15 @@ Purpose: one reviewable map of all Copilot customization artifacts, what each do
 
 ## Custom Agents (Subagents)
 
-| Agent                                             | Capability                                | Best fit                             |
-| ------------------------------------------------- | ----------------------------------------- | ------------------------------------ |
-| `.github/agents/context7-bootstrap-sync.agent.md` | Context7 bootstrap and focused doc sync   | Tasks requiring current API truth    |
-| `.github/agents/refactor-execution.agent.md`      | Behavior-preserving refactor execution    | Refactor tasks with validation gates |
-| `.github/agents/repo-quality-guardian.agent.md`   | Quality/safety gatekeeper                 | End-of-task review and enforcement   |
-| `.github/agents/layering-enforcer.agent.md`       | Boundary checks and corrections           | Multi-layer Python changes           |
-| `.github/agents/test-strategy.agent.md`           | Test planning and focused validation      | Behavior changes needing tests       |
-| `.github/agents/release-readiness.agent.md`       | Release checklist and changelog readiness | Pre-release validation               |
+| Agent                                           | Capability                                | Best fit                             |
+| ----------------------------------------------- | ----------------------------------------- | ------------------------------------ |
+| `.github/agents/beast-mode-agnostic.agent.md`   | High-autonomy execution + validation loop | Complex multi-step implementation    |
+| `.github/agents/context7-expert.agent.md`       | Context7 bootstrap and focused doc sync   | Tasks requiring current API truth    |
+| `.github/agents/refactor-execution.agent.md`    | Behavior-preserving refactor execution    | Refactor tasks with validation gates |
+| `.github/agents/repo-quality-guardian.agent.md` | Quality/safety gatekeeper                 | End-of-task review and enforcement   |
+| `.github/agents/layering-enforcer.agent.md`     | Boundary checks and corrections           | Multi-layer Python changes           |
+| `.github/agents/test-strategy.agent.md`         | Test planning and focused validation      | Behavior changes needing tests       |
+| `.github/agents/release-readiness.agent.md`     | Release checklist and changelog readiness | Pre-release validation               |
 
 ## Prompts
 
@@ -101,7 +127,7 @@ Recommended baseline composition:
 ## Task-to-Artifact Routing
 
 - **Python backend**: `python-backend-quality` skill + `python-code-quality` instruction + `python-dash-layering` instruction + `testing-quality` instruction
-- **External API freshness**: `context7-retrieval-patterns` skill + `context7-refresh` instruction + `context7-bootstrap-sync` agent
+- **External API freshness**: `context7-retrieval-patterns` skill + `context7-refresh` instruction + `context7-expert` agent
 - **Frontend/JavaScript**: `frontend-javascript-quality` skill + `html-css-style-color-guide` instruction + `security-data-safety` instruction
 - **Persistence/Database**: `sqlite-persistence-safety` skill + `cache-management` instruction + `testing-quality` instruction
 - **Chart/Visualization**: `plotly-visualization-quality` skill + `python-dash-layering` instruction
@@ -112,7 +138,7 @@ Recommended baseline composition:
 - **Configuration**: `configuration-changes` instruction + `security-data-safety` instruction
 - **Refactor**: `refactor` skill + `safe-refactor-python` prompt + `refactor-execution` agent + `layering-enforcer` agent + `testing-quality` instruction
 - **Release prep**: `release-management` skill + `release-readiness` agent + `release-notes-draft` prompt
-- **Documentation (latest guidelines)**: `documentation-update` prompt + `context7-retrieval-patterns` skill + `context7-refresh` instruction + `context7-bootstrap-sync` agent
+- **Documentation (latest guidelines)**: `documentation-update` prompt + `context7-retrieval-patterns` skill + `context7-refresh` instruction + `context7-expert` agent
 
 ## Context Loading Optimization
 

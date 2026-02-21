@@ -1,9 +1,9 @@
 ---
-applyTo: "tests/**/*.py,data/**/*.py,callbacks/**/*.py"
-description: "Require targeted tests and isolation for behavior changes"
+applyTo: 'tests/**/*.py,data/**/*.py,callbacks/**/*.py'
+description: 'Require targeted tests and isolation for behavior changes'
 ---
 
-# Testing Quality
+# Testing Quality Instructions
 
 When behavior changes, apply these testing rules:
 
