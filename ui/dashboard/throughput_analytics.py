@@ -182,8 +182,8 @@ def create_throughput_analytics_section(
                 # Calculate items forecast
                 if len(forecast_weeks) >= 2:
                     try:
-                        items_forecast_data: dict[str, Any] | None = (
-                            calculate_forecast(forecast_weeks)
+                        items_forecast_data: dict[str, Any] | None = calculate_forecast(
+                            forecast_weeks
                         )
                         forecast_value = (
                             items_forecast_data.get("forecast_value", 0)
@@ -285,7 +285,8 @@ def create_throughput_analytics_section(
                                     "trend_percent": items_trend.get("percent", 0)
                                     if items_trend
                                     else 0,
-                                    "blend_metadata": items_blend_metadata,  # Progressive blending (bd-a1vn)
+                                    # Progressive blending (bd-a1vn)
+                                    "blend_metadata": items_blend_metadata,
                                 }
                             )
                         ],
@@ -352,7 +353,8 @@ def create_throughput_analytics_section(
                                     and avg_points
                                     and avg_points > 0
                                     else 0,
-                                    "blend_metadata": points_blend_metadata,  # Progressive blending (bd-a1vn)
+                                    # Progressive blending (bd-a1vn)
+                                    "blend_metadata": points_blend_metadata,
                                 }
                             )
                         ],
