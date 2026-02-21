@@ -1,6 +1,7 @@
 # Python Architecture Guidelines
 
 **Purpose**: Create maintainable, modular, and scalable Python code that is easily understood and modified by both humans and AI agents. These guidelines enforce:
+
 - **Cognitive clarity**: Keep files and functions small enough to understand at a glance
 - **Single responsibility**: Each module, class, and function has one clear purpose
 - **Discoverability**: Intuitive structure and naming make code easy to navigate
@@ -8,9 +9,29 @@
 - **Refactorability**: Modular design enables safe changes without cascading effects
 - **AI collaboration**: Files sized for AI context windows enable effective AI-assisted development
 
+## Terminology and Enforcement
+
+- **MUST**: Required rule for all new/updated Python code in scope.
+- **SHOULD**: Strong recommendation; deviations need a clear reason.
+- **MAY**: Optional guidance for context-specific improvements.
+
+Critical/hard limits in this document are **MUST** constraints.
+
+## 2026 Standards Refresh (Python 3.13-aligned)
+
+Apply these as current defaults for new and updated Python code:
+
+- Prefer modern typing syntax (`list[str]`, `dict[str, Any]`, `X | None`) over legacy `typing.List`/`Optional[X]` forms.
+- Prefer `type` aliases (3.12+) over legacy `TypeAlias` for new aliases.
+- Prefer `pathlib.Path` operations over `os.path` string manipulation for filesystem code.
+- Use context managers (`with`) for files, locks, and resources; ensure deterministic cleanup on error paths.
+- Catch specific exceptions first; avoid bare `except` and avoid swallowing exceptions without action.
+- Use `asyncio` synchronization/context patterns (`async with` locks/semaphores/task groups) for concurrent async flows.
+
 ## File Size Limits
 
 **CRITICAL RULES**:
+
 - **Maximum file size**: 500 lines (hard limit)
 - **Target size**: 200-300 lines per module
 - **Warning threshold**: 400 lines → refactor immediately
@@ -118,15 +139,15 @@ JsonDict = dict[str, Any]
 # Classes
 class MyClass:
     """Class docstring."""
-    
+
     def __init__(self) -> None:
         """Initialize."""
         pass
-    
+
     def public_method(self) -> None:
         """Public method docstring."""
         pass
-    
+
     def _private_method(self) -> None:
         """Private method docstring."""
         pass
@@ -134,10 +155,10 @@ class MyClass:
 # Module-level functions
 def public_function(param: str) -> str:
     """Function docstring.
-    
+
     Args:
         param: Description
-    
+
     Returns:
         Description
     """
@@ -233,15 +254,15 @@ class DataTransformer:
 def fetch_items(
     project: str,
     max_results: int = 100,
-    filters: Optional[dict[str, Any]] = None
+    filters: dict[str, Any] | None = None
 ) -> list[dict[str, Any]]:
     """Fetch items from a service.
-    
+
     Args:
         project: Project key or identifier
         max_results: Maximum issues to fetch
         filters: Optional filter dictionary
-    
+
     Returns:
         List of item dictionaries
     """
@@ -265,25 +286,25 @@ def process_issue(issue: IssueDict) -> None:
 def complex_function(
     param1: str,
     param2: int,
-    param3: Optional[bool] = None
+    param3: bool | None = None
 ) -> tuple[bool, str]:
     """One-line summary.
-    
+
     Extended description providing more context about what
     this function does and why it exists.
-    
+
     Args:
         param1: Description of param1
         param2: Description of param2
         param3: Optional description of param3
-    
+
     Returns:
         Tuple of (success, message)
-    
+
     Raises:
         ValueError: If param2 is negative
         ConnectionError: If API unreachable
-    
+
     Example:
         >>> success, msg = complex_function("test", 5)
         >>> print(success)
@@ -343,11 +364,11 @@ from services.cache_store import CacheStore
 
 class SettingsService:
     """Coordinate settings operations."""
-    
+
     def __init__(self) -> None:
         self.client = ApiClient()
         self.cache = CacheStore()
-    
+
     def update_settings(self, config: dict) -> dict:
         """Update settings configuration."""
         validated = self._validate_config(config)
@@ -393,7 +414,7 @@ def process(data):
     """Process data with early returns."""
     if not data:
         return None
-    
+
     valid_items = _filter_valid(data)
     active_children = _find_active_children(valid_items)
     return active_children[0] if active_children else None
@@ -429,16 +450,16 @@ from module import function
 
 class TestBasicFunctionality:
     """Basic functionality tests."""
-    
+
     def test_simple_case(self):
         assert function("input") == "expected"
-    
+
     def test_edge_case(self):
         assert function("") == ""
 
 class TestErrorHandling:
     """Error handling tests."""
-    
+
     def test_invalid_input(self):
         with pytest.raises(ValueError):
             function(None)
@@ -519,6 +540,7 @@ def function(client: 'ApiClient') -> None:
 ## Summary
 
 **Key Principles**:
+
 1. Files < 500 lines (hard limit)
 2. Functions < 50 lines (target)
 3. Classes < 15 methods

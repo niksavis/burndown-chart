@@ -1,12 +1,23 @@
 # Architecture Guidelines Index
 
 **Purpose**: Comprehensive architectural guidelines that establish maintainable, modular, scalable code patterns for both human and AI development. These guidelines ensure:
+
 - **Cognitive clarity**: Code sized for human comprehension and AI context windows
 - **Maintainability**: Clear patterns enable safe modifications without cascading effects
 - **Modularity**: Independent, reusable components with single responsibilities
 - **Quality**: Consistent standards across all languages (Python, JavaScript, HTML, CSS, SQL)
 - **Collaboration**: Structures optimized for human-AI pair programming
 - **Scalability**: Architectures that grow without becoming unmaintainable
+
+## Terminology and Enforcement
+
+Normative terms in all architecture guideline files use this meaning:
+
+- **MUST**: Required. Treat as a blocking rule unless a repository-specific policy explicitly overrides it.
+- **SHOULD**: Strong recommendation. Deviations are allowed only with a clear, task-specific reason.
+- **MAY**: Optional guidance. Use when helpful for clarity, performance, or maintainability.
+
+When language in older examples is less explicit (for example "recommended" or "preferred"), interpret it as **SHOULD** unless the section is marked as critical/hard limit, in which case treat it as **MUST**.
 
 ## Quick Reference
 
@@ -22,9 +33,18 @@
 
 These guidelines are repository-agnostic. Project-specific rules (naming, tooling, branching, CI, environment setup) must live in repository instructions such as copilot-instructions.md or a dedicated repo_rules.md.
 
+## External Documentation Refresh Policy
+
+When updating framework/library/API guidance in these documents, ground updates in current official sources.
+
+- Use Context7 retrieval for standards-sensitive updates (CSS, HTML, JavaScript, Python, SQL).
+- Record concrete guidance updates, not generic wording changes.
+- If a section is intentionally unchanged, keep it as-is and update only areas with clear standards drift.
+
 ## Guidelines by Language
 
 ### [Python Guidelines](python_guidelines.md)
+
 - **Max file size**: 500 lines (hard limit)
 - **Max function size**: 50 lines
 - **Max class methods**: 15 methods
@@ -38,6 +58,7 @@ These guidelines are repository-agnostic. Project-specific rules (naming, toolin
 **When to check**: Before creating/editing any `.py` file
 
 ### [JavaScript Guidelines](javascript_guidelines.md)
+
 - **Max file size**: 400 lines (hard limit)
 - **Max function size**: 40 lines
 - **Key patterns**: ES6 modules (import/export), Airbnb style guide, framework clientside callbacks (if applicable), early returns over nested conditionals, debounce/throttle user input
@@ -45,6 +66,7 @@ These guidelines are repository-agnostic. Project-specific rules (naming, toolin
 **When to check**: Before creating/editing any `.js` file
 
 ### [HTML Guidelines](html_guidelines.md)
+
 - **Max file size**: 300 lines (hard limit for templates)
 - **Max component size**: 200 lines
 - **Key patterns**: Semantic HTML5 elements, ARIA attributes mandatory, framework component structure (if applicable), lowercase for all HTML, no inline styles or JavaScript
@@ -52,6 +74,7 @@ These guidelines are repository-agnostic. Project-specific rules (naming, toolin
 **When to check**: Before creating/editing HTML or template files
 
 ### [CSS Guidelines](css_guidelines.md)
+
 - **Max file size**: 500 lines (hard limit)
 - **Max component file**: 300 lines
 - **Key patterns**:
@@ -64,6 +87,7 @@ These guidelines are repository-agnostic. Project-specific rules (naming, toolin
 **When to check**: Before creating/editing any `.css` file
 
 ### [SQL Guidelines](sql_guidelines.md)
+
 - **Max query length**: 50 lines (hard limit)
 - **Max schema file**: 200 lines
 - **Max query file**: 400 lines
@@ -79,6 +103,7 @@ These guidelines are repository-agnostic. Project-specific rules (naming, toolin
 ## Common Refactoring Strategies
 
 ### 1. Feature-Based Split
+
 Split by functional area when file > limit:
 
 ```
@@ -95,6 +120,7 @@ feature/
 ```
 
 ### 2. Layer-Based Split
+
 Split by architectural layer:
 
 ```
@@ -110,6 +136,7 @@ handlers/visualization/
 ```
 
 ### 3. Component-Based Split
+
 Split by UI component:
 
 ```
@@ -216,30 +243,35 @@ Examples (adjust to your environment and tooling):
 ### Language-Specific
 
 **Python**:
+
 - Type hints mandatory
 - Docstrings (Google style)
 - Layered architecture
 - Early returns
 
 **JavaScript**:
+
 - ES6 modules
 - Async/await for promises
 - Debounce user input
 - Cache DOM queries
 
 **HTML**:
+
 - Semantic elements
 - ARIA mandatory
 - No inline styles/JS
 - Component-based
 
 **CSS**:
+
 - BEM naming
 - Variables for theming
 - Class selectors only
 - Mobile-first
 
 **SQL**:
+
 - Foreign keys mandatory
 - Index foreign keys
 - Parameterized queries

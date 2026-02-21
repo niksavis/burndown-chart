@@ -1,6 +1,7 @@
 # HTML Architecture Guidelines
 
 **Purpose**: Create semantic, accessible, maintainable HTML that serves all users and is easily understood by both humans and AI agents. These guidelines enforce:
+
 - **Semantic structure**: Use proper HTML5 elements for meaning and clarity
 - **Universal accessibility**: ARIA attributes and screen reader support for all users
 - **Component modularity**: Reusable, focused layout components
@@ -8,9 +9,29 @@
 - **Discoverability**: Intuitive organization makes code easy to navigate
 - **AI collaboration**: Component structures optimized for AI-assisted development
 
+## Terminology and Enforcement
+
+- **MUST**: Required rule for all new/updated markup in scope.
+- **SHOULD**: Strong recommendation; deviations need a clear reason.
+- **MAY**: Optional guidance for context-specific improvements.
+
+Critical/hard limits in this document are **MUST** constraints.
+
+## 2026 Standards Refresh (MDN-aligned)
+
+Apply these as current defaults for new and updated markup:
+
+- Keep `<!doctype html>` at the top of every document to ensure standards mode rendering.
+- Prefer native semantic elements (`<main>`, `<nav>`, `<button>`, `<form>`, `<input>`) before adding ARIA roles.
+- Use ARIA to augment semantics, not replace native semantics; avoid redundant `role` attributes on semantic elements.
+- Ensure form controls have programmatic labels (`<label for>` or explicit accessible name) and clear error associations.
+- Use heading hierarchy (`h1` to `h6`) in document order; do not skip levels for visual styling.
+- Avoid presentational/deprecated attributes and keep behavior/presentation in JavaScript/CSS, not inline HTML attributes.
+
 ## File Size Limits
 
 **CRITICAL RULES**:
+
 - **Maximum file size**: 300 lines (hard limit for template files)
 - **Target size**: 100-200 lines per layout component
 - **Warning threshold**: 250 lines → split components
@@ -22,34 +43,34 @@
 ```html
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Example App - Dashboard</title>
-  <link rel="stylesheet" href="styles.css">
-</head>
-<body>
-  <!-- Navigation -->
-  <nav class="primary-nav" role="navigation" aria-label="Main navigation">
-    <ul class="nav-list">
-      <li class="nav-item"><a href="/" class="nav-link">Home</a></li>
-      <li class="nav-item"><a href="/dashboard" class="nav-link">Dashboard</a></li>
-    </ul>
-  </nav>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Example App - Dashboard</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <!-- Navigation -->
+    <nav class="primary-nav" aria-label="Main navigation">
+      <ul class="nav-list">
+        <li class="nav-item"><a href="/" class="nav-link">Home</a></li>
+        <li class="nav-item"><a href="/dashboard" class="nav-link">Dashboard</a></li>
+      </ul>
+    </nav>
 
-  <!-- Main content -->
-  <main class="main-content">
-    <h1>Dashboard</h1>
-    <!-- Content here -->
-  </main>
+    <!-- Main content -->
+    <main class="main-content">
+      <h1>Dashboard</h1>
+      <!-- Content here -->
+    </main>
 
-  <!-- Footer -->
-  <footer class="site-footer">
-    <p>&copy; 2026 Example App</p>
-  </footer>
+    <!-- Footer -->
+    <footer class="site-footer">
+      <p>&copy; 2026 Example App</p>
+    </footer>
 
-  <script src="app.js"></script>
-</body>
+    <script src="app.js"></script>
+  </body>
 </html>
 ```
 
@@ -60,15 +81,15 @@
 ```html
 <!-- GOOD: Lowercase for all HTML -->
 <div class="container">
-  <img src="logo.png" alt="Company logo">
+  <img src="logo.png" alt="Company logo" />
   <button type="button" class="btn-primary">Submit</button>
 </div>
 
 <!-- BAD: Mixed case -->
-<DIV class="Container">
-  <IMG SRC="logo.png" ALT="Company Logo">
-  <BUTTON TYPE="button" Class="Btn-Primary">Submit</BUTTON>
-</DIV>
+<div class="Container">
+  <img src="logo.png" alt="Company Logo" />
+  <button type="button" class="Btn-Primary">Submit</button>
+</div>
 ```
 
 ### Class Naming
@@ -109,11 +130,11 @@ from dash import html, dcc
 
 def create_modal(modal_id: str, title: str) -> html.Div:
     """Create modal component.
-    
+
     Args:
         modal_id: Unique identifier for modal
         title: Modal title text
-    
+
     Returns:
         Dash HTML Div component
     """
@@ -129,13 +150,13 @@ def create_modal(modal_id: str, title: str) -> html.Div:
                     **{'aria-label': 'Close'}
                 ),
             ], className='modal-header'),
-            
+
             # Modal body
             html.Div(
                 id=f'{modal_id}-body',
                 className='modal-body'
             ),
-            
+
             # Modal footer
             html.Div([
                 html.Button(
@@ -177,16 +198,16 @@ ui/
   <header class="card-header">
     <h2>Project Overview</h2>
   </header>
-  
+
   <section class="card-body">
     <p>Project details...</p>
-    
+
     <figure class="chart-container">
       <figcaption>Progress Chart</figcaption>
       <!-- Chart here -->
     </figure>
   </section>
-  
+
   <footer class="card-footer">
     <time datetime="2026-01-30">Last updated: Jan 30, 2026</time>
   </footer>
@@ -197,16 +218,16 @@ ui/
   <div class="card-header">
     <div class="title">Project Overview</div>
   </div>
-  
+
   <div class="card-body">
     <div>Project details...</div>
-    
+
     <div class="chart-container">
       <div>Progress Chart</div>
       <!-- Chart here -->
     </div>
   </div>
-  
+
   <div class="card-footer">
     <div>Last updated: Jan 30, 2026</div>
   </div>
@@ -232,7 +253,7 @@ ui/
 
 ```html
 <!-- GOOD: Accessible navigation -->
-<nav role="navigation" aria-label="Main navigation">
+<nav aria-label="Main navigation">
   <ul>
     <li><a href="/" aria-current="page">Home</a></li>
     <li><a href="/dashboard">Dashboard</a></li>
@@ -240,44 +261,31 @@ ui/
 </nav>
 
 <!-- GOOD: Accessible buttons -->
-<button 
-  type="button"
-  aria-label="Close modal"
-  aria-expanded="false"
-  aria-controls="modal-content">
+<button type="button" aria-label="Close modal" aria-expanded="false" aria-controls="modal-content">
   ×
 </button>
 
 <!-- GOOD: Accessible forms -->
-<form role="form" aria-label="Service configuration">
+<form aria-label="Service configuration">
   <div class="form-group">
     <label for="service-url">Service URL</label>
-    <input 
-      type="url" 
+    <input
+      type="url"
       id="service-url"
       name="service-url"
-      aria-required="true"
-      aria-describedby="service-url-help">
-    <span id="service-url-help" class="form-text">
-      Enter your service URL
-    </span>
+      required
+      aria-describedby="service-url-help"
+    />
+    <span id="service-url-help" class="form-text"> Enter your service URL </span>
   </div>
 </form>
 
 <!-- GOOD: Accessible tabs -->
 <div role="tablist" aria-label="Settings tabs">
-  <button 
-    role="tab"
-    aria-selected="true"
-    aria-controls="general-panel"
-    id="general-tab">
+  <button role="tab" aria-selected="true" aria-controls="general-panel" id="general-tab">
     General
   </button>
-  <button 
-    role="tab"
-    aria-selected="false"
-    aria-controls="advanced-panel"
-    id="advanced-tab">
+  <button role="tab" aria-selected="false" aria-controls="advanced-panel" id="advanced-tab">
     Advanced
   </button>
 </div>
@@ -298,16 +306,16 @@ ui/
 
 <!-- CSS for sr-only -->
 <style>
-.sr-only {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  border: 0;
-}
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    border: 0;
+  }
 </style>
 ```
 
@@ -357,7 +365,7 @@ def create_select(
             id=select_id,
             options=options,
             className='form-control',
-            **{'aria-required': 'true' if required else 'false'}
+          **{'aria-describedby': f'{select_id}-help' if required else None}
         ),
     ], className='form-group')
 ```
@@ -413,19 +421,15 @@ def create_validated_input(
 
 ```html
 <!-- GOOD: Use event listeners in JS -->
-<button type="button" id="submit-btn" class="btn-primary">
-  Submit
-</button>
+<button type="button" id="submit-btn" class="btn-primary">Submit</button>
 
 <!-- JavaScript in separate file -->
 <script>
-document.getElementById('submit-btn').addEventListener('click', handleSubmit);
+  document.getElementById('submit-btn').addEventListener('click', handleSubmit);
 </script>
 
 <!-- BAD: Inline JavaScript -->
-<button onclick="handleSubmit()" class="btn-primary">
-  Submit
-</button>
+<button onclick="handleSubmit()" class="btn-primary">Submit</button>
 ```
 
 ## Breaking Down Large Components
@@ -433,6 +437,7 @@ document.getElementById('submit-btn').addEventListener('click', handleSubmit);
 ### Strategy: Split by Section
 
 **Before** (500 lines):
+
 ```python
 # ui/layout.py
 def create_layout():
@@ -446,6 +451,7 @@ def create_layout():
 ```
 
 **After**:
+
 ```python
 # ui/layout.py (< 100 lines)
 from ui.components import navigation, header, sidebar, footer
@@ -482,19 +488,16 @@ def create_main_content():
 
 ```html
 <!-- GOOD: Data attributes for JS -->
-<div 
+<div
   class="chart-container"
   data-chart-type="progress"
   data-chart-id="project-123"
-  data-update-interval="5000">
+  data-update-interval="5000"
+>
   <!-- Chart content -->
 </div>
 
-<button 
-  type="button"
-  class="filter-btn"
-  data-filter="status"
-  data-value="in-progress">
+<button type="button" class="filter-btn" data-filter="status" data-value="in-progress">
   In Progress
 </button>
 ```
@@ -555,12 +558,7 @@ def update_results(values):
 
 ```html
 <!-- GOOD: Native lazy loading -->
-<img 
-  src="chart-large.png"
-  alt="Progress chart"
-  loading="lazy"
-  width="800"
-  height="600">
+<img src="chart-large.png" alt="Progress chart" loading="lazy" width="800" height="600" />
 ```
 
 ## Validation and Testing
@@ -571,21 +569,11 @@ def update_results(values):
 <!-- GOOD: Proper structure -->
 <form>
   <label for="email">Email</label>
-  <input 
-    type="email" 
-    id="email"
-    name="email"
-    required
-    pattern="[^@]+@[^@]+\.[^@]+">
-  
+  <input type="email" id="email" name="email" required pattern="[^@]+@[^@]+\.[^@]+" />
+
   <label for="age">Age</label>
-  <input 
-    type="number"
-    id="age"
-    name="age"
-    min="0"
-    max="120">
-  
+  <input type="number" id="age" name="age" min="0" max="120" />
+
   <button type="submit">Submit</button>
 </form>
 ```
@@ -610,7 +598,7 @@ def create_settings_modal() -> html.Div:
                     **{'aria-label': 'Close settings'}
                 ),
             ], className='modal-header'),
-            
+
             # Body with tabs
             html.Div([
                 # Tab list
@@ -630,7 +618,7 @@ def create_settings_modal() -> html.Div:
                         **{'aria-selected': 'false'}
                     ),
                 ], role='tablist', className='tab-list'),
-                
+
                 # Tab panels
                 html.Div([
                     html.Div(
@@ -645,7 +633,7 @@ def create_settings_modal() -> html.Div:
                     ),
                 ], className='tab-content'),
             ], className='modal-body'),
-            
+
             # Footer
             html.Div([
                 html.Button(
@@ -701,6 +689,7 @@ def build_component()
 ## Summary
 
 **Key Principles**:
+
 1. Semantic HTML5 elements
 2. Lowercase for all HTML
 3. Accessibility (ARIA) mandatory
@@ -711,6 +700,7 @@ def build_component()
 8. Valid HTML5 markup
 
 **Optional: Framework-Specific**:
+
 - Component functions in a dedicated UI module
 - Structured IDs for pattern matching (if supported)
 - Accessibility attributes on all interactive elements
