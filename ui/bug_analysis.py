@@ -11,6 +11,14 @@ from configuration.help_content import BUG_ANALYSIS_TOOLTIPS
 from data.bug_insights import InsightSeverity
 from ui.tooltip_utils import create_help_icon
 
+COMPACT_CARD_CLASS = "compact-trend-indicator d-flex align-items-center p-2 rounded"
+COMPACT_CARD_CLASS_H100 = f"{COMPACT_CARD_CLASS} h-100"
+TREND_ICON_CLASS = (
+    "trend-icon me-2 d-flex align-items-center justify-content-center rounded-circle"
+)
+BETWEEN_BASELINE_CLASS = "d-flex justify-content-between align-items-baseline"
+BETWEEN_CLASS = "d-flex justify-content-between"
+
 
 def create_bug_metrics_cards(bug_metrics: dict, forecast: dict) -> html.Div:
     """Create compact bug metrics summary display with three cards in responsive layout.
@@ -24,7 +32,8 @@ def create_bug_metrics_cards(bug_metrics: dict, forecast: dict) -> html.Div:
         forecast: Bug resolution forecast dictionary
 
     Returns:
-        Div containing three metric cards (Resolution Rate, Open Bugs, Expected Resolution)
+        Div containing three metric cards
+        (Resolution Rate, Open Bugs, Expected Resolution)
         arranged in one row on desktop (md+) and stacked on mobile
     """
     # Handle zero bugs case (T027)
@@ -107,6 +116,19 @@ def create_bug_metrics_cards(bug_metrics: dict, forecast: dict) -> html.Div:
             return iso_date
 
     most_likely_date_formatted = format_date(most_likely_date)
+    avg_resolution_text = f"Avg resolution: {avg_resolution_days:.1f} days"
+    forecast_rate_text = (
+        f"By {most_likely_date_formatted} • {avg_closure_rate:.1f} bugs/week"
+    )
+    date_from_text = (
+        date_from.strftime("%b %d, %Y")
+        if (date_from and pd.notna(date_from))
+        else "All time"
+    )
+    date_to_text = (
+        date_to.strftime("%b %d, %Y") if (date_to and pd.notna(date_to)) else "Now"
+    )
+    date_range_text = f"{date_from_text} - {date_to_text}"
 
     # Forecast colors based on weeks
     if not insufficient_data and open_bugs > 0:
@@ -145,14 +167,14 @@ def create_bug_metrics_cards(bug_metrics: dict, forecast: dict) -> html.Div:
                     dbc.Col(
                         [
                             html.Div(
-                                className="compact-trend-indicator d-flex align-items-center p-2 rounded h-100",
+                                className=COMPACT_CARD_CLASS_H100,
                                 style={
                                     "backgroundColor": rate_bg,
                                     "border": f"1px solid {rate_border}",
                                 },
                                 children=[
                                     html.Div(
-                                        className="trend-icon me-2 d-flex align-items-center justify-content-center rounded-circle",
+                                        className=TREND_ICON_CLASS,
                                         style={
                                             "width": "32px",
                                             "height": "32px",
@@ -172,7 +194,7 @@ def create_bug_metrics_cards(bug_metrics: dict, forecast: dict) -> html.Div:
                                         style={"flexGrow": 1},
                                         children=[
                                             html.Div(
-                                                className="d-flex justify-content-between align-items-baseline",
+                                                className=BETWEEN_BASELINE_CLASS,
                                                 children=[
                                                     html.Span(
                                                         [
@@ -206,14 +228,15 @@ def create_bug_metrics_cards(bug_metrics: dict, forecast: dict) -> html.Div:
                                                 autohide=True,
                                             ),
                                             html.Div(
-                                                className="d-flex justify-content-between",
+                                                className=BETWEEN_CLASS,
                                                 style={
                                                     "fontSize": "0.75rem",
                                                     "color": "#6c757d",
                                                 },
                                                 children=[
                                                     html.Span(
-                                                        f"{closed_bugs} closed / {total_bugs} total"
+                                                        f"{closed_bugs} closed / "
+                                                        f"{total_bugs} total"
                                                     ),
                                                     html.Span(
                                                         rate_status,
@@ -230,12 +253,12 @@ def create_bug_metrics_cards(bug_metrics: dict, forecast: dict) -> html.Div:
                                                 },
                                                 children=[
                                                     html.I(
-                                                        className="fas fa-calendar-alt me-1",
+                                                        className=(
+                                                            "fas fa-calendar-alt me-1"
+                                                        ),
                                                         style={"fontSize": "0.65rem"},
                                                     ),
-                                                    html.Span(
-                                                        f"{date_from.strftime('%b %d, %Y') if (date_from and pd.notna(date_from)) else 'All time'} - {date_to.strftime('%b %d, %Y') if (date_to and pd.notna(date_to)) else 'Now'}"
-                                                    ),
+                                                    html.Span(date_range_text),
                                                 ]
                                                 if date_from or date_to
                                                 else [],
@@ -253,14 +276,14 @@ def create_bug_metrics_cards(bug_metrics: dict, forecast: dict) -> html.Div:
                     dbc.Col(
                         [
                             html.Div(
-                                className="compact-trend-indicator d-flex align-items-center p-2 rounded h-100",
+                                className=COMPACT_CARD_CLASS_H100,
                                 style={
                                     "backgroundColor": open_bg,
                                     "border": f"1px solid {open_border}",
                                 },
                                 children=[
                                     html.Div(
-                                        className="trend-icon me-2 d-flex align-items-center justify-content-center rounded-circle",
+                                        className=TREND_ICON_CLASS,
                                         style={
                                             "width": "32px",
                                             "height": "32px",
@@ -280,7 +303,7 @@ def create_bug_metrics_cards(bug_metrics: dict, forecast: dict) -> html.Div:
                                         style={"flexGrow": 1},
                                         children=[
                                             html.Div(
-                                                className="d-flex justify-content-between align-items-baseline",
+                                                className=BETWEEN_BASELINE_CLASS,
                                                 children=[
                                                     html.Span(
                                                         [
@@ -317,9 +340,7 @@ def create_bug_metrics_cards(bug_metrics: dict, forecast: dict) -> html.Div:
                                                     "color": "#6c757d",
                                                 },
                                                 children=[
-                                                    html.Span(
-                                                        f"Avg resolution: {avg_resolution_days:.1f} days"
-                                                    )
+                                                    html.Span(avg_resolution_text)
                                                 ],
                                             ),
                                             html.Div(
@@ -352,14 +373,14 @@ def create_bug_metrics_cards(bug_metrics: dict, forecast: dict) -> html.Div:
                     dbc.Col(
                         [
                             html.Div(
-                                className="compact-trend-indicator d-flex align-items-center p-2 rounded h-100",
+                                className=COMPACT_CARD_CLASS_H100,
                                 style={
                                     "backgroundColor": forecast_bg,
                                     "border": f"1px solid {forecast_border}",
                                 },
                                 children=[
                                     html.Div(
-                                        className="trend-icon me-2 d-flex align-items-center justify-content-center rounded-circle",
+                                        className=TREND_ICON_CLASS,
                                         style={
                                             "width": "32px",
                                             "height": "32px",
@@ -379,7 +400,7 @@ def create_bug_metrics_cards(bug_metrics: dict, forecast: dict) -> html.Div:
                                         style={"flexGrow": 1},
                                         children=[
                                             html.Div(
-                                                className="d-flex justify-content-between align-items-baseline",
+                                                className=BETWEEN_BASELINE_CLASS,
                                                 children=[
                                                     html.Span(
                                                         [
@@ -416,14 +437,14 @@ def create_bug_metrics_cards(bug_metrics: dict, forecast: dict) -> html.Div:
                                                 autohide=True,
                                             ),
                                             html.Div(
-                                                className="d-flex justify-content-between",
+                                                className=BETWEEN_CLASS,
                                                 style={
                                                     "fontSize": "0.75rem",
                                                     "color": "#6c757d",
                                                 },
                                                 children=[
                                                     html.Span(
-                                                        f"By {most_likely_date_formatted} • {avg_closure_rate:.1f} bugs/week"
+                                                        forecast_rate_text
                                                         if not insufficient_data
                                                         and open_bugs > 0
                                                         else (
@@ -447,11 +468,14 @@ def create_bug_metrics_cards(bug_metrics: dict, forecast: dict) -> html.Div:
                                                 },
                                                 children=[
                                                     html.I(
-                                                        className="fas fa-chart-line me-1",
+                                                        className=(
+                                                            "fas fa-chart-line me-1"
+                                                        ),
                                                         style={"fontSize": "0.65rem"},
                                                     ),
                                                     html.Span(
-                                                        f"Based on {weeks_analyzed} weeks of data"
+                                                        f"Based on {weeks_analyzed} "
+                                                        "weeks of data"
                                                     ),
                                                 ]
                                                 if weeks_analyzed > 0
@@ -503,9 +527,14 @@ def create_quality_insights_panel(
                             html.Strong("Insufficient data for insights"),
                             html.Br(),
                             html.Small(
-                                f"Quality insights require at least 3 weeks of bug activity data. "
-                                f"Currently: {weeks_available} week{'s' if weeks_available != 1 else ''} available. "
-                                f"Increase the timeline filter or add more bug history.",
+                                (
+                                    "Quality insights require at least 3 weeks "
+                                    "of bug activity data. "
+                                    f"Currently: {weeks_available} "
+                                    f"week{'s' if weeks_available != 1 else ''} "
+                                    "available. Increase the timeline filter "
+                                    "or add more bug history."
+                                ),
                                 className="text-muted",
                             ),
                         ]
@@ -518,7 +547,8 @@ def create_quality_insights_panel(
                 [
                     html.I(className="fas fa-check-circle me-2 text-success"),
                     html.Span(
-                        f"Quality is stable - no critical issues detected ({weeks_available} weeks analyzed)."
+                        "Quality is stable - no critical issues detected "
+                        f"({weeks_available} weeks analyzed)."
                     ),
                 ],
                 className="alert alert-success mb-0",
@@ -614,7 +644,10 @@ def create_quality_insights_panel(
                         ],
                         className="insight-header-row",
                     ),
-                    className=f"bg-{severity_config['color']} bg-opacity-10 border-{severity_config['color']}",
+                    className=(
+                        f"bg-{severity_config['color']} bg-opacity-10 "
+                        f"border-{severity_config['color']}"
+                    ),
                     style={"cursor": "pointer"},
                     id=f"insight-header-{idx}",
                 ),
@@ -675,7 +708,8 @@ def create_bug_forecast_card(forecast: dict, open_bugs: int) -> html.Div:
                     [
                         html.I(className="fas fa-info-circle me-2 text-info"),
                         html.Span(
-                            "Insufficient data for forecasting. Need at least 4 weeks of bug resolution history."
+                            "Insufficient data for forecasting. Need at least "
+                            "4 weeks of bug resolution history."
                         ),
                     ],
                     className="alert alert-warning mb-3",
@@ -743,14 +777,14 @@ def create_bug_forecast_card(forecast: dict, open_bugs: int) -> html.Div:
         [
             # Compact forecast indicator
             html.Div(
-                className="compact-trend-indicator d-flex align-items-center p-2 rounded mb-3",
+                className=f"{COMPACT_CARD_CLASS} mb-3",
                 style={
                     "backgroundColor": forecast_bg,
                     "border": f"1px solid {forecast_border}",
                 },
                 children=[
                     html.Div(
-                        className="trend-icon me-2 d-flex align-items-center justify-content-center rounded-circle",
+                        className=TREND_ICON_CLASS,
                         style={
                             "width": "32px",
                             "height": "32px",
@@ -767,7 +801,7 @@ def create_bug_forecast_card(forecast: dict, open_bugs: int) -> html.Div:
                         style={"flexGrow": 1},
                         children=[
                             html.Div(
-                                className="d-flex justify-content-between align-items-baseline",
+                                className=BETWEEN_BASELINE_CLASS,
                                 children=[
                                     html.Span(
                                         "Expected Resolution",
@@ -785,11 +819,12 @@ def create_bug_forecast_card(forecast: dict, open_bugs: int) -> html.Div:
                                 ],
                             ),
                             html.Div(
-                                className="d-flex justify-content-between",
+                                className=BETWEEN_CLASS,
                                 style={"fontSize": "0.75rem", "color": "#6c757d"},
                                 children=[
                                     html.Span(
-                                        f"{most_likely_date_formatted} • {avg_closure_rate:.1f} bugs/week"
+                                        f"{most_likely_date_formatted} • "
+                                        f"{avg_closure_rate:.1f} bugs/week"
                                     ),
                                     html.Span(
                                         forecast_status, style={"color": forecast_color}
@@ -810,7 +845,9 @@ def create_bug_forecast_card(forecast: dict, open_bugs: int) -> html.Div:
                                         style={"fontSize": "0.65rem"},
                                     ),
                                     html.Span(
-                                        f"Based on {forecast.get('weeks_analyzed', 0)} weeks of resolution data"
+                                        "Based on "
+                                        f"{forecast.get('weeks_analyzed', 0)} "
+                                        "weeks of resolution data"
                                     ),
                                 ]
                                 if forecast.get("weeks_analyzed")
