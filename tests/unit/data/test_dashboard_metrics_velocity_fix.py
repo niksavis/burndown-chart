@@ -64,7 +64,8 @@ class TestDashboardMetricsVelocityFix:
 
     def test_velocity_trend_with_sparse_data(self):
         """Test velocity trend calculation with sparse data."""
-        # 6 data points with gaps: older half has weeks 1,2,3; recent half has weeks 8,9,10
+        # 6 data points with gaps: older half has weeks 1,2,3;
+        # recent half has weeks 8,9,10.
         statistics = [
             {"date": "2025-01-06", "completed_items": 8, "completed_points": 40},
             {"date": "2025-01-13", "completed_items": 9, "completed_points": 45},

@@ -55,10 +55,12 @@ class TestDeadlineCalculationConsistency:
             "App and report must calculate days_to_deadline identically"
         )
         assert days_over_app == days_over_report, (
-            f"App: {days_over_app:.2f} days vs Report: {days_over_report:.2f} days - MUST MATCH"
+            f"App: {days_over_app:.2f} days vs Report: "
+            f"{days_over_report:.2f} days - MUST MATCH"
         )
         assert weeks_over_app == weeks_over_report, (
-            f"App: {weeks_over_app:.2f} weeks vs Report: {weeks_over_report:.2f} weeks - MUST MATCH"
+            f"App: {weeks_over_app:.2f} weeks vs Report: "
+            f"{weeks_over_report:.2f} weeks - MUST MATCH"
         )
 
         # Expected values
@@ -109,7 +111,8 @@ class TestDeadlineCalculationConsistency:
         # This matches the user's reported issue: app=50.64 days, report=48 days
         discrepancy = abs(days_over_app - days_over_report_old)
         assert discrepancy == pytest.approx(2.64, abs=0.1), (
-            f"Expected ~2.64 day discrepancy (matching user's report), got {discrepancy:.2f}"
+            "Expected ~2.64 day discrepancy "
+            f"(matching user's report), got {discrepancy:.2f}"
         )
 
     def test_dashboard_metrics_exposes_pert_time_items(self):
