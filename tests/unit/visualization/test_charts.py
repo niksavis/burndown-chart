@@ -117,7 +117,8 @@ class TestPrepareVisualizationData(unittest.TestCase):
             is_burnup=False,
         )
 
-        # For burnup mode, we need to specify the scope_items and scope_points parameters
+        # For burnup mode, specify the scope_items and
+        # scope_points parameters.
         burnup_result = prepare_visualization_data(
             self.test_data,
             self.total_items,
@@ -491,7 +492,10 @@ class TestGenerateBurndownForecast(unittest.TestCase):
                 self.assertLessEqual(
                     pert_time_diff,
                     max_acceptable_diff,
-                    f"Burndown and burnup PERT times differ by {pert_time_diff} days, which exceeds the maximum acceptable difference of {max_acceptable_diff} days",
+                    "Burndown and burnup PERT times differ by "
+                    f"{pert_time_diff} days, which exceeds the maximum "
+                    "acceptable difference of "
+                    f"{max_acceptable_diff} days",
                 )
 
             # Optional test - skip if forecast values are insufficient
@@ -506,11 +510,13 @@ class TestGenerateBurndownForecast(unittest.TestCase):
                 burnup_values = burnup_result["items_forecasts"]["avg"][1]
                 burnup_rate = burnup_values[1] - burnup_values[0]
 
-                # Check directions - these should still hold regardless of implementation
+                # Check directions.
+                # These should still hold regardless of implementation.
                 # Burndown rate should always be negative (work remaining decreases)
                 if not burndown_rate < 0:
                     logger.error(
-                        f"FAILED: Burndown rate should be negative but is {burndown_rate}"
+                        "FAILED: Burndown rate should be negative "
+                        f"but is {burndown_rate}"
                     )
                 self.assertLess(
                     burndown_rate,
@@ -546,7 +552,9 @@ class TestGenerateBurndownForecast(unittest.TestCase):
 
                     if not (min_ratio <= ratio <= max_ratio):
                         logger.error(
-                            f"FAILED: Rate ratio {ratio} is outside acceptable range [{min_ratio}, {max_ratio}]"
+                            "FAILED: Rate ratio "
+                            f"{ratio} is outside acceptable range "
+                            f"[{min_ratio}, {max_ratio}]"
                         )
 
                     # Use try/except to continue even if this test fails
@@ -554,16 +562,19 @@ class TestGenerateBurndownForecast(unittest.TestCase):
                         self.assertGreaterEqual(
                             ratio,
                             min_ratio,
-                            f"Burndown rate is too small compared to burnup rate (ratio: {ratio})",
+                            "Burndown rate is too small compared to "
+                            f"burnup rate (ratio: {ratio})",
                         )
                         self.assertLessEqual(
                             ratio,
                             max_ratio,
-                            f"Burndown rate is too large compared to burnup rate (ratio: {ratio})",
+                            "Burndown rate is too large compared to "
+                            f"burnup rate (ratio: {ratio})",
                         )
                     except AssertionError as e:
                         logger.error(f"Rate ratio assertion failed: {e}")
-                        # Don't re-raise the exception - treat this as a warning not a test failure
+                        # Don't re-raise the exception.
+                        # Treat this as a warning, not a test failure.
 
         except Exception as e:
             logger.error(

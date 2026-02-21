@@ -99,7 +99,10 @@ class TestForecastVisualizationStandardization:
         )
 
     def test_forecast_hover_templates_consistency(self, sample_weekly_data):
-        """Test that both charts have consistent hover templates with confidence ranges."""
+        """Test both charts for consistent hover templates.
+
+        Includes confidence range content checks.
+        """
         items_fig = create_weekly_items_chart(sample_weekly_data, include_forecast=True)
         points_fig = create_weekly_points_chart(
             sample_weekly_data, include_forecast=True
@@ -255,7 +258,10 @@ class TestForecastVisualizationStandardization:
 
 
 class TestForecastVisualizationRegression:
-    """Regression tests to ensure Phase 7.5 changes don't break existing functionality."""
+    """Regression tests for Phase 7.5 behavior.
+
+    Ensures existing functionality remains intact.
+    """
 
     @pytest.fixture
     def sample_data(self):

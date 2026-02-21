@@ -1,7 +1,8 @@
 """
 Unit tests for dashboard metrics calculation functions.
 
-Tests calculate_dashboard_metrics() and calculate_pert_timeline() from data/processing.py
+Tests calculate_dashboard_metrics() and calculate_pert_timeline()
+from data/processing.py
 with comprehensive edge case coverage per test-coverage-contract.md.
 """
 
@@ -163,7 +164,8 @@ class TestCalculateDashboardMetrics:
     def test_completion_exceeds_100(self, completion_exceeds_100_data):
         """Test dashboard metrics with completion >100% (scope decreased).
 
-        completion_percentage should be 110.0 (or capped at 100.0 depending on implementation).
+        completion_percentage should be 110.0.
+        Or it may be capped at 100.0 depending on implementation.
         """
         statistics, settings = completion_exceeds_100_data
         metrics = calculate_dashboard_metrics(statistics, settings)
@@ -229,7 +231,9 @@ class TestCalculatePertTimeline:
         assert "confidence_range_days" in pert_timeline
 
     def test_pert_formula(self, sample_statistics_data, sample_settings):
-        """Test PERT weighted average formula: (optimistic + 4*likely + pessimistic) / 6.
+        """Test PERT weighted average formula.
+
+        Formula: (optimistic + 4*likely + pessimistic) / 6.
 
         Validates PERT estimate calculation.
         """

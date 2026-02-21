@@ -193,7 +193,8 @@ class TestGenerateQualityInsights:
         insights_custom = generate_quality_insights(
             metrics, statistics, thresholds=custom_thresholds
         )
-        # May or may not warn depending on implementation, just verify it accepts the parameter
+        # May or may not warn depending on implementation.
+        # Just verify it accepts the parameter.
         assert isinstance(insights_custom, list)
 
     def test_insights_max_limit(self):

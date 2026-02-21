@@ -193,7 +193,8 @@ class TestCreateWeekContainer:
             show_points=True,
         )
 
-        # Check that the children structure exists (can't easily assert on nested content)
+        # Check that the children structure exists.
+        # We cannot easily assert nested content here.
         assert len(result.children) == 2  # type: ignore[attr-defined]  # Summary and content
 
     def test_empty_issues_shows_placeholder(self):

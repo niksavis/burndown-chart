@@ -119,7 +119,8 @@ class TestCreateFieldMappingForm:
         current_mappings = {"dora": {}, "flow": {}}
 
         form = create_field_mapping_form(available_fields, current_mappings)
-        # Form children should be a list with at least DORA section, separator, and Flow section
+        # Form children should be a list with at least DORA section,
+        # separator, and Flow section.
         children = form.children
         assert isinstance(children, list)
         assert len(children) >= 2  # At least DORA and Flow sections
@@ -370,7 +371,10 @@ class TestFieldTypeDisplay:
     """Test that field types are displayed in form elements."""
 
     def test_field_type_shown_in_help_text(self):
-        """Test that field types are shown in help text (namespace mode uses help text not dropdown labels)."""
+        """Test that field types are shown in help text.
+
+        Namespace mode uses help text instead of dropdown labels.
+        """
         # Sample fields with type information
         available_fields = [
             {
@@ -404,7 +408,10 @@ class TestFieldTypeDisplay:
         assert "Type: select" in form_str
 
     def test_standard_and_custom_field_type_labels(self):
-        """Test that field type information is shown for fields (namespace mode uses help text)."""
+        """Test that field type information is shown for fields.
+
+        Namespace mode uses help text.
+        """
         available_fields = [
             {
                 "field_id": "created",
@@ -430,8 +437,9 @@ class TestFieldTypeDisplay:
         form_str = str(form)
 
         # Verify types are shown in help text (namespace mode format)
-        # Note: Old dropdown mode used "Standard Jira Fields" / "Custom Fields" separators
-        # and "[datetime]" / "[select]" format - now we use "Type: datetime" in help text
+        # Note: old dropdown mode used "Standard Jira Fields" /
+        # "Custom Fields" separators and "[datetime]" / "[select]" format.
+        # Namespace mode now uses "Type: datetime" in help text.
         assert "Type: datetime" in form_str
         assert "Type: select" in form_str
 
