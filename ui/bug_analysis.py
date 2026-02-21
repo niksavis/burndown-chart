@@ -3,7 +3,6 @@
 Provides UI components for bug metrics display, charts, and analysis tab layout.
 """
 
-
 import dash_bootstrap_components as dbc
 import pandas as pd
 from dash import html

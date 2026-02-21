@@ -5,7 +5,6 @@ Provides dropdown for profile selection and management buttons.
 Follows the same pattern as query_selector.py for consistency.
 """
 
-
 import dash_bootstrap_components as dbc
 from dash import dcc, html
 

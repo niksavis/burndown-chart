@@ -141,8 +141,7 @@ def create_status_config_form(
                                                 [
                                                     html.I(
                                                         className=(
-                                                            "fas fa-flag me-2 "
-                                                            "text-info"
+                                                            "fas fa-flag me-2 text-info"
                                                         )
                                                     ),
                                                     "Flow Start ",
