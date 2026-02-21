@@ -67,7 +67,11 @@ def create_mobile_drawer_navigation(tabs_config):
                                 className="p-1",
                             ),
                         ],
-                        className="mobile-drawer-header d-flex justify-content-between align-items-center p-3 border-bottom",
+                        className=(
+                            "mobile-drawer-header d-flex "
+                            "justify-content-between align-items-center "
+                            "p-3 border-bottom"
+                        ),
                     ),
                     # Drawer body
                     html.Div(
@@ -114,7 +118,9 @@ def create_mobile_bottom_navigation(tabs_config, active_tab="tab-dashboard"):
                             ),
                         ],
                         id=f"bottom-nav-{tab['id']}",
-                        className=f"mobile-bottom-nav-item {'active' if is_active else ''}",
+                        className=(
+                            f"mobile-bottom-nav-item {'active' if is_active else ''}"
+                        ),
                         style={
                             "color": tab["color"] if is_active else "#6c757d",
                             "flexDirection": "column",

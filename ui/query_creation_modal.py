@@ -41,12 +41,17 @@ def create_query_creation_modal():
                                     dbc.Input(
                                         id="workspace-query-name-input",
                                         type="text",
-                                        placeholder="e.g., Current Sprint, Q1 Planning",
+                                        placeholder=(
+                                            "e.g., Current Sprint, Q1 Planning"
+                                        ),
                                         maxLength=100,
                                         required=True,
                                     ),
                                     html.Small(
-                                        "A descriptive name for this query (1-100 characters)",
+                                        (
+                                            "A descriptive name for this query "
+                                            "(1-100 characters)"
+                                        ),
                                         className="text-muted",
                                     ),
                                 ],
@@ -67,7 +72,10 @@ def create_query_creation_modal():
                                     ),
                                     dbc.Textarea(
                                         id="workspace-query-jql-input",
-                                        placeholder="project = MYPROJECT AND sprint = currentSprint()",
+                                        placeholder=(
+                                            "project = MYPROJECT "
+                                            "AND sprint = currentSprint()"
+                                        ),
                                         rows=4,
                                         required=True,
                                         style={

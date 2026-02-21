@@ -157,7 +157,8 @@ def create_dora_metrics_overview(metrics_data: dict[str, Any]) -> html.Div:
         lt_metric = metrics_data["lead_time_for_changes"]
         lt_unit = lt_metric.get("unit", "days")
 
-        # Determine secondary value: show days if primary is hours, show hours if primary is days
+        # Determine secondary value:
+        # show days if primary is hours, show hours if primary is days
         secondary_value = None
         secondary_unit = ""
         if lt_unit == "hours":
@@ -215,7 +216,8 @@ def create_dora_metrics_overview(metrics_data: dict[str, Any]) -> html.Div:
         mttr_metric = metrics_data["mean_time_to_recovery"]
         mttr_unit = mttr_metric.get("unit", "hours")
 
-        # Determine secondary value: show days if primary is hours, show hours if primary is days
+        # Determine secondary value:
+        # show days if primary is hours, show hours if primary is days
         secondary_value = None
         secondary_unit = ""
         if mttr_unit == "hours":

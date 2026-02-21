@@ -64,7 +64,8 @@ def create_cost_breakdown_card(
     """
     Create Cost Breakdown by Work Type card.
 
-    4-category breakdown matching Flow Distribution (Feature/Defect/Technical Debt/Risk).
+    4-category breakdown matching Flow Distribution
+    (Feature/Defect/Technical Debt/Risk).
     Shows aggregated total + per-category costs with percentages.
     Optional sparklines respecting data_points_count filter.
 
@@ -179,7 +180,10 @@ def create_cost_breakdown_card(
                 ]
             ),
             _create_card_footer(
-                f"Costs aggregated over {data_points_count} weeks • Categorized by Flow Distribution types",
+                (
+                    f"Costs aggregated over {data_points_count} weeks • "
+                    "Categorized by Flow Distribution types"
+                ),
                 "fa-chart-bar",
             ),
         ],
