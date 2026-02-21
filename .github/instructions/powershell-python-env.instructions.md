@@ -1,9 +1,9 @@
 ---
-applyTo: "**/*.py,tests/**/*.py,release.py,regenerate_changelog.py"
-description: "Enforce PowerShell + venv command patterns for Python tasks"
+applyTo: '**/*.py,tests/**/*.py,release.py,regenerate_changelog.py'
+description: 'Enforce PowerShell + venv command patterns for Python tasks'
 ---
 
-# PowerShell + Python Environment Rules
+# PowerShell + Python Environment Instructions
 
 When executing Python commands in this repository:
 

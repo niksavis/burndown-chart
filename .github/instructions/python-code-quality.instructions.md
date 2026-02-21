@@ -3,7 +3,7 @@ applyTo: '**/*.py'
 description: 'Python coding conventions, readability, and reliability rules for burndown-chart'
 ---
 
-# Python Code Quality
+# Python Code Quality Instructions
 
 Apply these rules for Python changes.
 

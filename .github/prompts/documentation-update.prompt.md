@@ -12,7 +12,7 @@ Change description: ${input:change}
 When the request asks for "latest", "up-to-date", "current version", or guideline refreshes for external languages/frameworks:
 
 1. Apply skill: `.github/skills/context7-retrieval-patterns/SKILL.md`
-2. Invoke subagent: `.github/agents/context7-bootstrap-sync.agent.md`
+2. Invoke subagent: `.github/agents/context7-expert.agent.md`
 3. Apply instruction: `.github/instructions/context7-refresh.instructions.md`
 
 Report in output:

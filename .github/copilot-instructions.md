@@ -104,6 +104,46 @@ When important, reusable guidance is discovered during implementation or review:
 3. Reflect additions/changes in `.github/copilot_customization.md` and `.github/copilot_capability_map.md`.
 4. Keep changes minimal and avoid duplicating policy text across files.
 
+## Orchestration Workflow (Required for Non-Trivial Tasks)
+
+For non-trivial implementation tasks (multi-file, refactor, migration, release, cross-layer changes), use an orchestrated workflow instead of ad-hoc execution.
+
+1. **Route first**: Choose specialized agents/skills/instructions before editing.
+2. **Parallel phase (read-only only)**: Run independent analysis/research in parallel when safe.
+3. **Sequence phase (edits/validation)**: Execute code-editing and validation steps in strict sequence.
+4. **Quality gate**: End with repository quality checks (`get_errors`, targeted tests when applicable).
+
+### Parallel vs Sequence Rules
+
+- **Parallel allowed** only for read-only discovery/research (context mapping, doc retrieval, architecture checks).
+- **Sequence required** for edits, refactors, tests, and release changes.
+- If any parallel branch returns conflicting guidance, resolve conflict in sequence before editing.
+
+### Default Subagent Routing
+
+- External API/version-sensitive tasks: `context7-expert`.
+- Layer boundary risks: `layering-enforcer`.
+- Behavior-preserving structure work: `refactor-execution`.
+- Test planning/updates: `test-strategy`.
+- Final completion gate: `repo-quality-guardian`.
+- Release readiness: `release-readiness`.
+
+## Self-Evolving Specialization Loop (Required)
+
+When implementation reveals recurring or novel specialized task patterns, evolve the customization set in-session:
+
+1. Detect specialization candidate (repeated workflow, recurring edge cases, repeated manual steps).
+2. Decide artifact type:
+
+- New/updated **agent** for workflow orchestration or role behavior.
+- New/updated **skill** for reusable domain procedure/resources.
+- New/updated **instruction** for scoped policy enforcement.
+
+3. Use `custom-agent-foundry` to create/update specialized subagents.
+4. Use `agent-skills.instructions.md` and `make-skill-template` to create/update skills.
+5. Wire discoverability updates in `.github/copilot_customization.md` and `.github/copilot_capability_map.md`.
+6. Validate with `get_errors` and report what was added and why.
+
 ## Security and Data Safety
 
 - Parameterized SQL only.
