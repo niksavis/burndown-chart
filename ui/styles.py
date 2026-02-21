@@ -176,7 +176,8 @@ def get_breakpoint_value(breakpoint_key):
     Get the pixel value for a specific breakpoint.
 
     Args:
-        breakpoint_key (str): Key for the breakpoint ('xs', 'sm', 'md', 'lg', 'xl', 'xxl')
+        breakpoint_key (str): Key for the breakpoint
+            ('xs', 'sm', 'md', 'lg', 'xl', 'xxl')
 
     Returns:
         str: Pixel value for the breakpoint
@@ -228,8 +229,8 @@ def create_responsive_container(content, responsive_settings=None):
 
     Args:
         content: Content to place inside the container
-        responsive_settings (dict): Dictionary mapping breakpoint keys to display settings
-                                   Example: {'xs': 'block', 'md': 'flex'}
+        responsive_settings (dict): Dictionary mapping breakpoint keys
+            to display settings. Example: {'xs': 'block', 'md': 'flex'}
 
     Returns:
         html.Div: A responsive container
@@ -317,7 +318,8 @@ def get_breakpoint_range(start_breakpoint, end_breakpoint=None):
     if end_breakpoint and end_breakpoint in breakpoint_order:
         next_bp = next_breakpoint(end_breakpoint)
         if next_bp:
-            max_width = f"(max-width: {int(get_breakpoint_value(next_bp).replace('px', '')) - 0.02}px)"
+            next_width_px = int(get_breakpoint_value(next_bp).replace("px", ""))
+            max_width = f"(max-width: {next_width_px - 0.02}px)"
             return f"@media (min-width: {min_width}) and {max_width}"
 
     return f"@media (min-width: {min_width})"
@@ -610,17 +612,20 @@ def create_input_style(
     # Apply size with mobile-first touch target optimization
     size_styles = {
         "sm": {
-            "height": "max(calc(1.5em + 0.5rem + 2px), 38px)",  # Minimum 38px for small inputs
+            # Minimum 38px for small inputs
+            "height": "max(calc(1.5em + 0.5rem + 2px), 38px)",
             "padding": "0.25rem 0.5rem",
             "fontSize": "0.875rem",
         },
         "md": {
-            "height": "max(calc(1.5em + 0.75rem + 2px), 44px)",  # Minimum 44px touch target
+            # Minimum 44px touch target
+            "height": "max(calc(1.5em + 0.75rem + 2px), 44px)",
             "padding": "0.375rem 0.75rem",
             "fontSize": "1rem",
         },
         "lg": {
-            "height": "max(calc(1.5em + 1rem + 2px), 48px)",  # Larger touch target for lg
+            # Larger touch target for lg
+            "height": "max(calc(1.5em + 1rem + 2px), 48px)",
             "padding": "0.5rem 1rem",
             "fontSize": "1.25rem",
         },
@@ -652,7 +657,9 @@ def create_input_style(
         base_style.update(
             {
                 "borderColor": SEMANTIC_COLORS["danger"],
-                "boxShadow": f"0 0 0 0.2rem {rgb_to_rgba(SEMANTIC_COLORS['danger'], 0.25)}",
+                "boxShadow": (
+                    f"0 0 0 0.2rem {rgb_to_rgba(SEMANTIC_COLORS['danger'], 0.25)}"
+                ),
             }
         )
         return base_style
@@ -662,15 +669,21 @@ def create_input_style(
         "default": {},
         "success": {
             "borderColor": SEMANTIC_COLORS["success"],
-            "boxShadow": f"0 0 0 0.2rem {rgb_to_rgba(SEMANTIC_COLORS['success'], 0.25)}",
+            "boxShadow": (
+                f"0 0 0 0.2rem {rgb_to_rgba(SEMANTIC_COLORS['success'], 0.25)}"
+            ),
         },
         "warning": {
             "borderColor": SEMANTIC_COLORS["warning"],
-            "boxShadow": f"0 0 0 0.2rem {rgb_to_rgba(SEMANTIC_COLORS['warning'], 0.25)}",
+            "boxShadow": (
+                f"0 0 0 0.2rem {rgb_to_rgba(SEMANTIC_COLORS['warning'], 0.25)}"
+            ),
         },
         "danger": {
             "borderColor": SEMANTIC_COLORS["danger"],
-            "boxShadow": f"0 0 0 0.2rem {rgb_to_rgba(SEMANTIC_COLORS['danger'], 0.25)}",
+            "boxShadow": (
+                f"0 0 0 0.2rem {rgb_to_rgba(SEMANTIC_COLORS['danger'], 0.25)}"
+            ),
         },
         "info": {
             "borderColor": SEMANTIC_COLORS["info"],
@@ -908,17 +921,21 @@ def create_card_header_with_tooltip(
     title, tooltip_id=None, tooltip_text=None, help_key=None, help_category=None
 ):
     """
-    Create a standardized card header with an optional tooltip and help button (Phase 9.2 Progressive Disclosure).
+    Create a standardized card header with an optional tooltip
+    and help button (Phase 9.2 Progressive Disclosure).
 
     Args:
         title (str): Card title text
         tooltip_id (str, optional): ID for the tooltip
         tooltip_text (str, optional): Tooltip text content
-        help_key (str, optional): Key for comprehensive help content (Phase 9.2)
-        help_category (str, optional): Category for comprehensive help content (Phase 9.2)
+        help_key (str, optional): Key for comprehensive help content
+            (Phase 9.2)
+        help_category (str, optional): Category for comprehensive help content
+            (Phase 9.2)
 
     Returns:
-        list or html.H4: Components for card header with tooltip and optional help button
+        list or html.H4: Components for card header with tooltip
+            and optional help button
     """
     import dash_bootstrap_components as dbc
     from dash import html
@@ -1328,7 +1345,13 @@ SPINNER_SIZES = {
     "xl": {"width": "4rem", "height": "4rem", "border_width": "0.35rem"},
 }
 
-SKELETON_ANIMATION = "@keyframes skeleton-loading { 0% { background-color: rgba(200, 200, 200, 0.2); } 50% { background-color: rgba(200, 200, 200, 0.6); } 100% { background-color: rgba(200, 200, 200, 0.2); } }"
+SKELETON_ANIMATION = (
+    "@keyframes skeleton-loading { "
+    "0% { background-color: rgba(200, 200, 200, 0.2); } "
+    "50% { background-color: rgba(200, 200, 200, 0.6); } "
+    "100% { background-color: rgba(200, 200, 200, 0.2); } "
+    "}"
+)
 
 
 def create_loading_style(style_key="default", size_key="md"):
