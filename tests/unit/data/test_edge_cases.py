@@ -182,7 +182,8 @@ class TestMalformedInputData(unittest.TestCase):
         data["date"] = pd.to_datetime(data["date"])
 
         try:
-            # Convert DataFrame to list of dictionaries before passing to calculate_performance_trend
+            # Convert DataFrame to list of dictionaries
+            # before passing to calculate_performance_trend.
             data_dict_list = data.to_dict("records")
 
             # Test handling of extreme values in trend calculation
@@ -388,8 +389,10 @@ class TestMultiYearProjectData(unittest.TestCase):
         result = compute_weekly_throughput(self.multi_year_data)
 
         # Test for presence of any year data
-        # In the current implementation, compute_weekly_throughput doesn't extract year information
-        # So instead of testing for specific year formatting, we'll just check that the function works
+        # In the current implementation, compute_weekly_throughput
+        # doesn't extract year information.
+        # Instead of testing specific year formatting,
+        # check that the function works.
         self.assertIsNotNone(result)
         self.assertIsInstance(result, pd.DataFrame)
         self.assertIn("completed_items", result.columns)
