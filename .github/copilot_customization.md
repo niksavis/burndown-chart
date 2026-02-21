@@ -19,6 +19,11 @@ Apply artifacts in this order:
 - External agents (Claude/Codex CLI): load `agents.md` as a bootstrap, then load `.github/copilot-instructions.md`.
 - Keep `agents.md` concise to reduce duplicate context and token usage.
 
+## Package Onboarding Policy
+
+- Canonical dependency onboarding workflow is defined in `.github/copilot-instructions.md` under `Dependency Onboarding (Required)`.
+- Build/packaging-specific enforcement is defined in `.github/instructions/build-pipeline.instructions.md`.
+
 ## Conditional Instructions
 
 - `.github/instructions/python-dash-layering.instructions.md`

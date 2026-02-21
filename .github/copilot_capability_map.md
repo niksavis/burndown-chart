@@ -107,6 +107,7 @@ Recommended baseline composition:
 - **Chart/Visualization**: `plotly-visualization-quality` skill + `python-dash-layering` instruction
 - **JIRA integration**: `jira-integration-reliability` skill + `cache-management` instruction + `security-data-safety` instruction
 - **Build/Packaging**: `build-pipeline` instruction + `release-management` skill (if release-related)
+- **Dependency onboarding**: `.github/copilot-instructions.md` `Dependency Onboarding (Required)` + `build-pipeline` instruction
 - **Updater system**: `updater-reliability` skill + `build-pipeline` instruction
 - **Configuration**: `configuration-changes` instruction + `security-data-safety` instruction
 - **Refactor**: `refactor` skill + `safe-refactor-python` prompt + `refactor-execution` agent + `layering-enforcer` agent + `testing-quality` instruction

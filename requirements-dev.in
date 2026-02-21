@@ -23,4 +23,5 @@ PyYAML>=6.0.0       # Used by regenerate_changelog.py build script
 pip-tools==7.4.1    # Dependency management (pip-compile)
 pre-commit>=4.2.0   # Shared git hooks for lint/format checks
 ruff>=0.12.10       # Python linting and formatting
+autopep8>=2.3.2     # Supplemental PEP 8 line-wrapping formatter for refactors
 djlint>=1.36.4      # Jinja/HTML linting and formatting
