@@ -10,7 +10,6 @@ Focuses on items being actively worked on (WIP + recent completions).
 Follows Sprint Tracker pattern for consistent layout and behavior.
 """
 
-
 import dash_bootstrap_components as dbc
 from dash import html
 
@@ -241,7 +240,8 @@ def create_issue_card(issue: dict, show_points: bool = False) -> html.Div | dbc.
             )
         )
 
-    # Issue type icon (matches Sprint Tracker pattern from visualization/sprint_charts.py)
+    # Issue type icon (matches Sprint Tracker pattern from
+    # visualization/sprint_charts.py)
     issue_type_lower = issue_type.lower()
     if "bug" in issue_type_lower or "defect" in issue_type_lower:
         type_icon = "fas fa-bug text-danger"  # Red for bugs

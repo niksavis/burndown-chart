@@ -5,7 +5,6 @@ Provides a reusable modal for delete/confirmation actions following DRY principl
 Can be configured for different use cases (profile deletion, query deletion, etc.).
 """
 
-
 import dash_bootstrap_components as dbc
 from dash import html
 
@@ -49,7 +48,9 @@ def create_confirmation_modal(
         >>> modal = create_confirmation_modal(
         ...     modal_id="delete-profile-modal",
         ...     title="[!] Delete Profile",
-        ...     warning_message="This profile and all its data will be permanently deleted.",
+        ...     warning_message=(
+        ...         "This profile and all its data will be permanently deleted."
+        ...     ),
         ...     cancel_button_id="cancel-delete-profile",
         ...     confirm_button_id="confirm-delete-profile",
         ...     confirmation_input_id="delete-confirmation-input"
@@ -163,7 +164,10 @@ def create_profile_deletion_modal() -> dbc.Modal:
     return create_confirmation_modal(
         modal_id="delete-profile-modal",
         title="Delete Profile",
-        warning_message="This profile and all its queries, data, and settings will be permanently deleted.",
+        warning_message=(
+            "This profile and all its queries, data, and settings will be "
+            "permanently deleted."
+        ),
         confirmation_type="DELETE",
         cancel_button_id="cancel-delete-profile",
         confirm_button_id="confirm-delete-profile",
@@ -182,7 +186,10 @@ def create_query_deletion_modal() -> dbc.Modal:
     return create_confirmation_modal(
         modal_id="delete-jql-query-modal",
         title="Delete JQL Query",
-        warning_message="Are you sure you want to delete this saved query? This action cannot be undone.",
+        warning_message=(
+            "Are you sure you want to delete this saved query? "
+            "This action cannot be undone."
+        ),
         confirmation_type="DELETE",
         cancel_button_id="cancel-delete-query-button",
         confirm_button_id="confirm-delete-query-button",

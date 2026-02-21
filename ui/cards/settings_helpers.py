@@ -12,7 +12,6 @@ All functions follow a consistent pattern:
 """
 
 
-
 def _get_default_data_source() -> str:
     """
     Determine the default data source based on persisted settings.
@@ -117,7 +116,8 @@ def _get_query_profile_options() -> list[dict[str, str]]:
     Get options for the query profile dropdown.
 
     Returns:
-        List of option dictionaries for the dropdown in format [{"label": str, "value": str}]
+        List of option dictionaries for the dropdown in format
+        [{"label": str, "value": str}]
     """
     try:
         from data.jira.query_profiles import load_query_profiles
