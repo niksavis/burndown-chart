@@ -22,6 +22,7 @@ Purpose: one reviewable map of all Copilot customization artifacts, what each do
 | Artifact                                                     | Scope (`applyTo`)                                                                                                        | Capability                                                 |
 | ------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------- |
 | `.github/instructions/python-dash-layering.instructions.md`  | `callbacks/**/*.py,data/**/*.py,visualization/**/*.py,ui/**/*.py`                                                        | Enforces layered architecture boundaries                   |
+| `.github/instructions/context7-refresh.instructions.md`      | `callbacks/**/*.py,data/**/*.py,ui/**/*.py,visualization/**/*.py,assets/**/*.js,**/*.ts,**/*.tsx,docs/**/*.md`           | Requires fresh Context7 retrieval for external APIs/docs   |
 | `.github/instructions/security-data-safety.instructions.md`  | `callbacks/**/*.py,data/**/*.py,ui/**/*.py,visualization/**/*.py,**/*.sql,assets/**/*.js`                                | Enforces no-secrets/no-customer-data and sanitized logging |
 | `.github/instructions/testing-quality.instructions.md`       | `tests/**/*.py,data/**/*.py,callbacks/**/*.py`                                                                           | Requires targeted tests and isolation                      |
 | `.github/instructions/powershell-python-env.instructions.md` | `**/*.py,tests/**/*.py,release.py,regenerate_changelog.py`                                                               | Enforces PowerShell + venv command pattern                 |
@@ -36,6 +37,7 @@ Purpose: one reviewable map of all Copilot customization artifacts, what each do
 
 | Skill                                                  | Capability                                     | Best fit                             |
 | ------------------------------------------------------ | ---------------------------------------------- | ------------------------------------ |
+| `.github/skills/context7-retrieval-patterns/SKILL.md`  | Up-to-date external API/doc retrieval workflow | Version-sensitive external libraries |
 | `.github/skills/python-backend-quality/SKILL.md`       | Python backend quality and layered enforcement | General Python/backend changes       |
 | `.github/skills/sqlite-persistence-safety/SKILL.md`    | Safe SQLite and persistence changes            | `data/persistence/`, SQL, migrations |
 | `.github/skills/jira-integration-reliability/SKILL.md` | Reliable Jira fetch/cache/error handling       | Jira flows in `data/` + delegates    |
@@ -47,12 +49,13 @@ Purpose: one reviewable map of all Copilot customization artifacts, what each do
 
 ## Custom Agents (Subagents)
 
-| Agent                                           | Capability                                | Best fit                           |
-| ----------------------------------------------- | ----------------------------------------- | ---------------------------------- |
-| `.github/agents/repo-quality-guardian.agent.md` | Quality/safety gatekeeper                 | End-of-task review and enforcement |
-| `.github/agents/layering-enforcer.agent.md`     | Boundary checks and corrections           | Multi-layer Python changes         |
-| `.github/agents/test-strategy.agent.md`         | Test planning and focused validation      | Behavior changes needing tests     |
-| `.github/agents/release-readiness.agent.md`     | Release checklist and changelog readiness | Pre-release validation             |
+| Agent                                             | Capability                                | Best fit                           |
+| ------------------------------------------------- | ----------------------------------------- | ---------------------------------- |
+| `.github/agents/context7-bootstrap-sync.agent.md` | Context7 bootstrap and focused doc sync   | Tasks requiring current API truth  |
+| `.github/agents/repo-quality-guardian.agent.md`   | Quality/safety gatekeeper                 | End-of-task review and enforcement |
+| `.github/agents/layering-enforcer.agent.md`       | Boundary checks and corrections           | Multi-layer Python changes         |
+| `.github/agents/test-strategy.agent.md`           | Test planning and focused validation      | Behavior changes needing tests     |
+| `.github/agents/release-readiness.agent.md`       | Release checklist and changelog readiness | Pre-release validation             |
 
 ## Prompts
 
@@ -95,6 +98,7 @@ Recommended baseline composition:
 ## Task-to-Artifact Routing
 
 - **Python backend**: `python-backend-quality` skill + `python-dash-layering` instruction + `testing-quality` instruction
+- **External API freshness**: `context7-retrieval-patterns` skill + `context7-refresh` instruction + `context7-bootstrap-sync` agent
 - **Frontend/JavaScript**: `frontend-javascript-quality` skill + `security-data-safety` instruction
 - **Persistence/Database**: `sqlite-persistence-safety` skill + `cache-management` instruction + `testing-quality` instruction
 - **Chart/Visualization**: `plotly-visualization-quality` skill + `python-dash-layering` instruction
@@ -104,7 +108,7 @@ Recommended baseline composition:
 - **Configuration**: `configuration-changes` instruction + `security-data-safety` instruction
 - **Refactor**: `refactor` skill + `safe-refactor-python` prompt + `layering-enforcer` agent + `testing-quality` instruction
 - **Release prep**: `release-management` skill + `release-readiness` agent + `release-notes-draft` prompt
-- **Documentation**: `documentation-update` prompt + accuracy verification against code
+- **Documentation (latest guidelines)**: `documentation-update` prompt + `context7-retrieval-patterns` skill + `context7-refresh` instruction + `context7-bootstrap-sync` agent
 
 ## Context Loading Optimization
 
