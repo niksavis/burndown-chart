@@ -68,8 +68,13 @@ python -m PyInstaller build/app.spec
 
 ### Dependency management
 
-- Add deps to requirements.in (not requirements.txt)
-- Regenerate: `pip-compile requirements.in`
+- Add runtime deps to `requirements.in` and dev-only deps to `requirements-dev.in` (never edit compiled `.txt` directly)
+- Regenerate lock files after any onboarding change:
+  - `pip-compile requirements.in`
+  - `pip-compile requirements-dev.in`
+- Install from compiled files after regeneration:
+  - `pip install -r requirements.txt`
+  - `pip install -r requirements-dev.txt`
 - Vendor deps tracked in vendor_dependencies.txt
 - Report deps tracked in report_dependencies.txt
 

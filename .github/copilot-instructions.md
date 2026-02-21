@@ -115,6 +115,19 @@ When important, reusable guidance is discovered during implementation or review:
 - Each terminal run is a new shell; activation does not persist.
 - Background process + new command in same terminal can terminate the process.
 
+## Dependency Onboarding (Required)
+
+- Treat new packages as explicit onboarding work.
+- Runtime package workflow:
+  1.  Add to `requirements.in`
+  2.  Regenerate `requirements.txt`
+  3.  Install with `pip install -r requirements.txt`
+- Development package workflow:
+  1.  Add to `requirements-dev.in`
+  2.  Regenerate `requirements-dev.txt`
+  3.  Install with `pip install -r requirements-dev.txt`
+- Never edit compiled `requirements.txt` or `requirements-dev.txt` by hand.
+
 ## Commit Rules (Mandatory)
 
 - Format: type(scope): description (bd-XXX)

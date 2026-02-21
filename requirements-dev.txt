@@ -10,6 +10,8 @@ annotated-types==0.7.0
     # via
     #   -r D:\Development\burndown-chart\requirements.txt
     #   pydantic
+autopep8==2.3.2
+    # via -r requirements-dev.in
 blinker==1.9.0
     # via
     #   -r D:\Development\burndown-chart\requirements.txt
@@ -168,6 +170,8 @@ psutil==6.1.1
     # via
     #   -r D:\Development\burndown-chart\requirements.txt
     #   dash
+pycodestyle==2.14.0
+    # via autopep8
 pydantic==2.12.4
     # via -r D:\Development\burndown-chart\requirements.txt
 pydantic-core==2.41.5

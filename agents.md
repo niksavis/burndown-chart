@@ -44,6 +44,24 @@ Rules:
 - Never use `bd edit`.
 - Beads metadata lives in `.git/beads-worktrees/beads-metadata/` and must be pushed.
 
+## Dependency Onboarding Rule
+
+For any new Python package, perform onboarding explicitly:
+
+```powershell
+# Runtime dependency
+# 1) Edit requirements.in
+pip-compile requirements.in
+pip install -r requirements.txt
+
+# Development dependency
+# 1) Edit requirements-dev.in
+pip-compile requirements-dev.in
+pip install -r requirements-dev.txt
+```
+
+Never edit compiled requirement files directly.
+
 ## Non-Interactive Command Rule
 
 Use `-Force` for file operations to avoid interactive hangs:
