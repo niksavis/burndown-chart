@@ -18,7 +18,8 @@ def create_export_buttons(chart_id=None, statistics_data=None):
 
     Args:
         chart_id: ID of the chart for export filename
-        statistics_data: Statistics data to export (if provided, shows statistics export button)
+        statistics_data: Statistics data to export
+            (if provided, shows statistics export button)
 
     Returns:
         Dash Div component with export buttons

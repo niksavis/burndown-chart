@@ -51,7 +51,8 @@ def create_improved_settings_panel(is_open: bool = False):
     """
     return html.Div(
         [
-            # Collapsible settings panel content only (no banner - drops down from main banner)
+            # Collapsible settings panel content only
+            # (no banner - drops down from main banner)
             dbc.Collapse(
                 create_settings_panel_content(),
                 id="settings-collapse",
