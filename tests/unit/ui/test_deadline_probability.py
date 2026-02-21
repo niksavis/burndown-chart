@@ -156,7 +156,8 @@ class TestDeadlineProbability:
 
             # Probability must be in [0, 100]
             assert 0 <= result <= 100, (
-                f"Probability {result}% out of bounds for scenario {(deadline, forecast, vel_mean, vel_std)}"
+                f"Probability {result}% out of bounds for scenario "
+                f"{(deadline, forecast, vel_mean, vel_std)}"
             )
 
     def test_deadline_probability_increases_with_deadline(self):

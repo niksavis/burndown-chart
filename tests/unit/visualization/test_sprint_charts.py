@@ -141,7 +141,8 @@ class TestCalculateDailySprintSnapshots:
         assert day1["total_scope"] == 10  # All 3 issues
         assert day1["completed_count"] == 0
 
-        # Second day (Feb 2) - PROJ-1 transitions at 14:00, not yet in snapshot (taken at 00:00)
+        # Second day (Feb 2): PROJ-1 transitions at 14:00,
+        # not yet in snapshot taken at 00:00.
         day2 = snapshots[1]
         assert day2["date"] == "2026-02-02"
         assert day2["completed_points"] == 0  # Not done yet at midnight
@@ -191,7 +192,8 @@ class TestCalculateDailySprintSnapshots:
 
         # Day 2: PROJ-3 added at 15:00 (+2), PROJ-1 removed at 16:00 (-5)
         # Scope changes are applied within the day they occur (before day_end)
-        # So Day 2 shows: PROJ-2 (3) only, as PROJ-1 removed and PROJ-3 added then removed
+        # So Day 2 shows PROJ-2 (3) only,
+        # as PROJ-1 is removed and PROJ-3 is added then removed.
         # Actually: Day 2 processes both changes, ending with just PROJ-2
         assert snapshots[1]["total_scope"] == 3  # PROJ-2 only
 
@@ -245,7 +247,8 @@ class TestCalculateDailySprintSnapshots:
             flow_end_statuses=["Done"],
         )
 
-        # Verify linear increase in completed points (transitions at 14:00, visible next day)
+        # Verify linear increase in completed points.
+        # Transitions at 14:00 become visible next day.
         assert (
             snapshots[0]["completed_points"] == 0
         )  # Feb 1: PROJ-1 completes at 14:00, not in midnight snapshot
@@ -354,7 +357,8 @@ class TestGetStatusAtTimestamp:
             datetime(2026, 2, 2, 12, 0, tzinfo=UTC),
             proj1_changelog,
         )
-        # At Feb 2 12:00, PROJ-1 was "In Progress" (transitioned at 10:00, not done until 14:00)
+        # At Feb 2 12:00, PROJ-1 was "In Progress"
+        # (transitioned at 10:00, not done until 14:00).
         assert status == "In Progress"
 
 

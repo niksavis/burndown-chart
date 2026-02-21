@@ -134,7 +134,10 @@ class TestCalculateTrendVsForecast:
         assert result["is_good"] is True
 
     def test_zero_current_value_monday(self):
-        """T018: Test Monday morning scenario with zero current value (Feature 009 - T046)."""
+        """T018: Monday morning scenario with zero current value.
+
+        Feature 009 - T046.
+        """
         result = calculate_trend_vs_forecast(
             current_value=0.0, forecast_value=13.0, metric_type="higher_better"
         )
@@ -196,7 +199,10 @@ class TestForecastPerformance:
     """Performance tests for forecast calculations (Feature 009 - T083)."""
 
     def test_forecast_calculation_meets_performance_target(self):
-        """T083: Verify forecast calculations meet <5ms per metric, <50ms total target."""
+        """T083: Verify forecast performance targets.
+
+        Target: <5ms per metric, <50ms total.
+        """
         historical = [10.0, 12.0, 11.0, 13.0]
 
         # Measure total overhead for all 9 metrics

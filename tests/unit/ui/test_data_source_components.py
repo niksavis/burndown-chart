@@ -1,7 +1,8 @@
 """
 Unit Tests for UI Components Data Source Changes
 
-Tests the UI components for data source radio button order and persistence functionality.
+Tests the UI components for data source radio button order
+and persistence functionality.
 Covers the recently implemented UI changes for JIRA API prioritization.
 """
 
