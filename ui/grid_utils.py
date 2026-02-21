@@ -1,9 +1,10 @@
 """
 Grid Utilities Module
 
-This module provides a unified grid system with both simple and advanced responsive
-layout capabilities. It combines functionality from both grid_templates.py and responsive_grid.py
-into a layered API that offers flexibility for different use cases.
+This module provides a unified grid system with both simple and
+advanced responsive layout capabilities. It combines functionality
+from both grid_templates.py and responsive_grid.py into a layered
+API that offers flexibility for different use cases.
 """
 
 #######################################################################
@@ -47,9 +48,11 @@ def create_responsive_row(
         children: Content for the row
         className: Base class name for the row
         style: Base style for the row
-        row_class_by_breakpoint: Dict mapping breakpoints to classes (e.g. {'xs': 'flex-column', 'md': 'flex-row'})
+        row_class_by_breakpoint: Dict mapping breakpoints to classes
+            (e.g. {'xs': 'flex-column', 'md': 'flex-row'})
         alignment_by_breakpoint: Dict mapping breakpoints to alignment classes
-                                 (e.g. {'xs': 'justify-content-center', 'lg': 'justify-content-start'})
+                                 (e.g. {'xs': 'justify-content-center',
+                                 'lg': 'justify-content-start'})
         gutters_by_breakpoint: Dict mapping breakpoints to gutter sizes
                                (e.g. {'xs': '1', 'md': '3', 'lg': '5'})
 
@@ -104,16 +107,20 @@ def create_responsive_column(
     padding_by_breakpoint=None,
 ):
     """
-    Create a responsive column with different widths and properties at different breakpoints.
+    Create a responsive column with different widths and properties
+    at different breakpoints.
 
     Args:
         content: Column content
         xs, sm, md, lg, xl, xxl: Column widths at different breakpoints (1-12)
         className: Additional CSS classes
         style: Additional inline styles
-        order_by_breakpoint: Dict mapping breakpoints to order values (e.g. {'xs': '2', 'md': '1'})
-        visibility_by_breakpoint: Dict mapping breakpoints to visibility boolean (e.g. {'xs': True, 'md': False})
-        padding_by_breakpoint: Dict mapping breakpoints to padding values (e.g. {'xs': '1', 'md': '3'})
+        order_by_breakpoint: Dict mapping breakpoints to order values
+            (e.g. {'xs': '2', 'md': '1'})
+        visibility_by_breakpoint: Dict mapping breakpoints to visibility
+            boolean (e.g. {'xs': True, 'md': False})
+        padding_by_breakpoint: Dict mapping breakpoints to padding values
+            (e.g. {'xs': '1', 'md': '3'})
 
     Returns:
         A dbc.Col with responsive behavior
@@ -278,7 +285,8 @@ def create_multi_column_layout(
         if breakpoint != "xs":
             widths[breakpoint] = column_widths[i] if i < len(column_widths) else 12
 
-        # Add margin bottom on xs only (above breakpoint the columns will be side by side)
+        # Add margin bottom on xs only
+        # (above breakpoint the columns will be side by side)
         col_class = f"mb-4 mb-{breakpoint}-0" if i < num_columns - 1 else ""
 
         cols.append(create_responsive_column(content, className=col_class, **widths))
@@ -376,7 +384,8 @@ def create_stacked_to_horizontal(
         className: Additional CSS classes for the row
 
     Returns:
-        A layout that stacks vertically on small screens and horizontally on larger screens
+        A layout that stacks vertically on small screens
+        and horizontally on larger screens
     """
     # Find the index of the stack_until breakpoint
     bp_order = BOOTSTRAP_BREAKPOINTS
@@ -427,7 +436,8 @@ def create_responsive_grid(
     container_class="",
 ):
     """
-    Create a responsive grid with a configurable number of columns at different breakpoints.
+    Create a responsive grid with a configurable number of columns
+    at different breakpoints.
 
     Args:
         items: List of content items to place in the grid
@@ -556,7 +566,8 @@ def create_dashboard_layout(
         stack_until: Stack layout vertically until this breakpoint
         main_width: Width of main content area when not stacked (1-12)
         side_width: Width of side content area when not stacked (1-12)
-        secondary_display_breakpoint: Only show secondary content at this breakpoint and larger
+        secondary_display_breakpoint: Only show secondary content
+            at this breakpoint and larger
 
     Returns:
         A responsive dashboard layout
@@ -634,9 +645,7 @@ def create_dashboard_layout(
 #######################################################################
 
 
-def create_card_grid(
-    cards, cols_by_breakpoint=None, equal_height=True
-):
+def create_card_grid(cards, cols_by_breakpoint=None, equal_height=True):
     """
     Create a responsive grid of cards.
 
@@ -770,7 +779,8 @@ def create_form_section(title, components, help_text=None):
 
 def create_breakpoint_visibility_examples():
     """
-    Create examples demonstrating how content can be shown/hidden at different breakpoints.
+    Create examples demonstrating how content can be shown/hidden
+    at different breakpoints.
     Useful for testing responsive behavior.
 
     Returns:
