@@ -196,14 +196,20 @@ def create_active_work_legend(
             autohide=True,
         ),
         dbc.Tooltip(
-            "Epic is aging when any child issue is aging (3-5 days unchanged) and none are idle",
+            (
+                "Epic is aging when any child issue is aging "
+                "(3-5 days unchanged) and none are idle"
+            ),
             target="legend-epic-aging",
             placement="top",
             trigger="click",
             autohide=True,
         ),
         dbc.Tooltip(
-            "Epic is in progress when any child issue is in progress (changed in last 2 days) and none are idle or aging",
+            (
+                "Epic is in progress when any child issue is in progress "
+                "(changed in last 2 days) and none are idle or aging"
+            ),
             target="legend-epic-wip",
             placement="top",
             trigger="click",

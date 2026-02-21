@@ -21,10 +21,15 @@ def create_pert_analysis_card() -> dbc.Card:
     Returns:
         Dash Card component for PERT analysis
     """
-    # Create the card header with tooltip and Phase 9.2 Progressive Disclosure help button
+    # Create the card header with tooltip and
+    # Phase 9.2 Progressive Disclosure help button
     header_content = create_metric_card_header(
         title="PERT Analysis",
-        tooltip_text="PERT (Program Evaluation and Review Technique) estimates project completion time based on optimistic, pessimistic, and most likely scenarios.",
+        tooltip_text=(
+            "PERT (Program Evaluation and Review Technique) estimates "
+            "project completion time based on optimistic, pessimistic, "
+            "and most likely scenarios."
+        ),
         tooltip_id="pert-info",
     )
 

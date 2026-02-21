@@ -2,7 +2,8 @@
 Error States Module
 
 This module provides standardized error state components for the application.
-It implements consistent patterns for form validation, empty states, error boundaries, etc.
+It implements consistent patterns for form validation,
+empty states, error boundaries, etc.
 """
 
 #######################################################################
@@ -248,7 +249,8 @@ def create_validation_message(
             create_icon(
                 style_info["icon"],
                 color=style_info["color"],
-                className=f"me-2 {style_info.get('icon_class', '')}",  # Use className for spacing
+                # Use className for spacing
+                className=f"me-2 {style_info.get('icon_class', '')}",
                 size="sm",
             ),
             html.Span(
