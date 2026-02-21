@@ -29,11 +29,13 @@ def identify_significant_scope_growth(df, threshold_pct=10):
     Identify periods with significant scope growth.
 
     Args:
-        df: DataFrame with statistics data including cum_scope_items and cum_scope_points
+        df: DataFrame with statistics data
+            including cum_scope_items and cum_scope_points
         threshold_pct: Percentage threshold for significant growth (default: 10%)
 
     Returns:
-        List of dictionaries with start_date and end_date for periods of significant growth
+        List of dictionaries with start_date and end_date
+        for periods of significant growth
     """
     if df.empty:
         return []
@@ -104,8 +106,10 @@ def generate_burndown_forecast(
     last_value, avg_rate, opt_rate, pes_rate, start_date, end_date
 ):
     """
-    Generate burndown forecast with a fixed end date to ensure consistency with burnup charts.
-    Includes strict performance optimizations: 2-year max horizon, 100 points per line max.
+    Generate burndown forecast with a fixed end date
+    to ensure consistency with burnup charts.
+    Includes strict performance optimizations:
+    2-year max horizon, 100 points per line max.
 
     Args:
         last_value: Current remaining value (items or points)
@@ -116,7 +120,8 @@ def generate_burndown_forecast(
         end_date: End date the forecast should reach (for alignment with burnup chart)
 
     Returns:
-        Dictionary containing forecasts for average, optimistic, and pessimistic scenarios
+        Dictionary containing forecasts for average,
+        optimistic, and pessimistic scenarios
     """
     # PERFORMANCE: Limit forecast to 2 years and max 100 points per line
     # This prevents chart freezing with thousands of data points
@@ -145,9 +150,12 @@ def generate_burndown_forecast(
 
     # PERFORMANCE: Calculate sampling interval to limit data points
     def generate_sampled_forecast(days_to_zero, rate):
-        """Generate forecast with even sampling throughout the entire forecast period."""
+        """Generate forecast with even sampling
+        throughout the entire forecast period.
+        """
         # Calculate interval to distribute points evenly across entire forecast
-        # This ensures consistent spacing from start to finish (no condensed-then-sparse appearance)
+        # This ensures consistent spacing from start to finish
+        # (no condensed-then-sparse appearance)
         sample_interval = max(1, int(days_to_zero / MAX_POINTS_PER_LINE))
 
         dates = []
@@ -299,7 +307,8 @@ def prepare_visualization_data(
         total_scope_points = completed_points + total_points
 
         # PERFORMANCE OPTIMIZATION: Use vectorized operations instead of slow loop
-        # Calculate remaining work by reverse cumsum (much faster than iterative approach)
+        # Calculate remaining work by reverse cumsum
+        # (much faster than iterative approach)
         if (
             "completed_items" in df_calc.columns
             and "completed_points" in df_calc.columns
@@ -340,11 +349,21 @@ def prepare_visualization_data(
         rows_before = len(df_calc)
         df_calc = df_calc[df_calc["date"] >= cutoff_date]
         rows_after = len(df_calc)
+        latest_date_text = (
+            latest_date.strftime("%Y-%m-%d")
+            if hasattr(latest_date, "strftime")
+            else latest_date
+        )
+        cutoff_date_text = (
+            cutoff_date.strftime("%Y-%m-%d")
+            if hasattr(cutoff_date, "strftime")
+            else cutoff_date
+        )
 
         logger.info(
             f"[FORECAST FILTER] data_points_count={data_points_count} weeks, "
-            f"latest_date={latest_date.strftime('%Y-%m-%d') if hasattr(latest_date, 'strftime') else latest_date}, "
-            f"cutoff_date={cutoff_date.strftime('%Y-%m-%d') if hasattr(cutoff_date, 'strftime') else cutoff_date}, "
+            f"latest_date={latest_date_text}, "
+            f"cutoff_date={cutoff_date_text}, "
             f"rows: {rows_before} -> {rows_after}"
         )
 
@@ -362,7 +381,8 @@ def prepare_visualization_data(
     )
 
     # Filter out zero-value weeks before calculating rates
-    # Filter separately for items and points to support projects with only one tracking type
+    # Filter separately for items and points
+    # to support projects with only one tracking type
     # Zero weeks (often from fill_missing_weeks) shouldn't influence rate calculations
     grouped_items_non_zero = grouped[grouped["completed_items"] > 0].copy()
     grouped_points_non_zero = grouped[grouped["completed_points"] > 0].copy()
@@ -470,8 +490,13 @@ def prepare_visualization_data(
     start_date = df_calc["date"].iloc[-1] if not df_calc.empty else datetime.now()
 
     # Debug logging for forecast calculation
+    start_date_text = (
+        start_date.strftime("%Y-%m-%d")
+        if hasattr(start_date, "strftime")
+        else start_date
+    )
     logger.info(
-        f"[CHART FORECAST] start_date={start_date.strftime('%Y-%m-%d') if hasattr(start_date, 'strftime') else start_date}, "
+        f"[CHART FORECAST] start_date={start_date_text}, "
         f"pert_time_items={pert_time_items:.2f}, total_items={total_items}, "
         f"items_daily_rate={items_daily_rate:.4f}"
     )
@@ -593,10 +618,21 @@ def prepare_visualization_data(
         points_end_date = (
             burnup_points_avg[0][-1] if burnup_points_avg[0] else start_date
         )
+        items_end_date_text = (
+            items_end_date.strftime("%Y-%m-%d")
+            if hasattr(items_end_date, "strftime")
+            else items_end_date
+        )
+        days_to_items_end = (
+            (items_end_date - start_date).days
+            if hasattr(items_end_date, "strftime")
+            else 0
+        )
 
         logger.info(
-            f"[CHART FORECAST] Burndown end dates: items_end_date={items_end_date.strftime('%Y-%m-%d') if hasattr(items_end_date, 'strftime') else items_end_date}, "
-            f"days_to_items_end={(items_end_date - start_date).days if hasattr(items_end_date, 'strftime') else 0}"
+            "[CHART FORECAST] Burndown end dates: "
+            f"items_end_date={items_end_date_text}, "
+            f"days_to_items_end={days_to_items_end}"
         )
 
         # Now calculate burndown forecasts with fixed end dates

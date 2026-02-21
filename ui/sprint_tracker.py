@@ -9,7 +9,6 @@ This module provides UI components for the Sprint Tracker tab including:
 Follows Bug Analysis pattern for conditional tab display.
 """
 
-
 import dash_bootstrap_components as dbc
 from dash import dcc, html
 
@@ -160,7 +159,9 @@ def create_sprint_summary_cards(
                                 html.Div(
                                     [
                                         html.I(
-                                            className="fas fa-chart-pie fa-2x text-info",
+                                            className=(
+                                                "fas fa-chart-pie fa-2x text-info"
+                                            ),
                                         ),
                                     ],
                                     className="mb-2",
@@ -189,7 +190,9 @@ def create_sprint_summary_cards(
                                 html.Div(
                                     [
                                         html.I(
-                                            className="fas fa-list fa-2x text-secondary",
+                                            className=(
+                                                "fas fa-list fa-2x text-secondary"
+                                            ),
                                         ),
                                     ],
                                     className="mb-2",
@@ -219,7 +222,9 @@ def create_sprint_summary_cards(
                                 html.Div(
                                     [
                                         html.I(
-                                            className="fas fa-spinner fa-2x text-warning",
+                                            className=(
+                                                "fas fa-spinner fa-2x text-warning"
+                                            ),
                                         ),
                                     ],
                                     className="mb-2",
@@ -293,7 +298,8 @@ def create_sprint_selector(
     Args:
         available_sprints: List of sprint names/IDs
         selected_sprint: Currently selected sprint (to set as dropdown value)
-        sprint_metadata: Dict mapping sprint name to {"state": "ACTIVE/CLOSED/FUTURE", ...}
+        sprint_metadata: Dict mapping sprint name to
+            {"state": "ACTIVE/CLOSED/FUTURE", ...}
 
     Returns:
         Dropdown component for sprint selection with status badges
@@ -369,7 +375,8 @@ def create_combined_sprint_controls(
     Args:
         available_sprints: List of sprint names/IDs
         selected_sprint: Currently selected sprint
-        sprint_metadata: Dict mapping sprint name to {"state": "ACTIVE/CLOSED/FUTURE", ...}
+        sprint_metadata: Dict mapping sprint name to
+            {"state": "ACTIVE/CLOSED/FUTURE", ...}
 
     Returns:
         Styled container with both dropdowns in one row

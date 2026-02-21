@@ -53,7 +53,9 @@ def get_mobile_chart_config(viewport_size: str = "mobile") -> dict[str, Any]:
             ],
             "toImageButtonOptions": {
                 "format": "png",
-                "filename": f"burndown_chart_{datetime.now().strftime('%Y%m%d_%H%M%S')}",
+                "filename": (
+                    f"burndown_chart_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+                ),
                 "height": 400,  # Smaller export size for mobile
                 "width": 600,  # Smaller export size for mobile
                 "scale": 2,
@@ -244,7 +246,8 @@ def create_bug_trend_chart(
     include_forecast: bool = True,
 ) -> go.Figure:
     """
-    Create bug trend chart showing bugs created vs resolved per week with next week forecast.
+    Create bug trend chart showing bugs created vs resolved per week
+    with next week forecast.
 
     Implements T037 - Bug trend visualization with mobile optimization.
     Implements T037a - Visual warnings for 3+ consecutive weeks of negative trends.
@@ -326,7 +329,10 @@ def create_bug_trend_chart(
             created_upper = forecast["created"]["optimistic"] - created_ml
             created_lower = created_ml - forecast["created"]["pessimistic"]
 
-            created_range_text = f"{forecast['created']['pessimistic']:.1f}-{forecast['created']['optimistic']:.1f}"
+            created_range_text = (
+                f"{forecast['created']['pessimistic']:.1f}-"
+                f"{forecast['created']['optimistic']:.1f}"
+            )
             fig.add_trace(
                 go.Scatter(
                     x=[next_week],
@@ -347,7 +353,10 @@ def create_bug_trend_chart(
                         color="rgba(220, 53, 69, 0.4)",
                         thickness=2,
                     ),
-                    hovertemplate=f"<b>%{{x}}</b><br>Forecast Created: %{{y:.1f}}<br>Range: {created_range_text}<extra></extra>",
+                    hovertemplate=(
+                        "<b>%{x}</b><br>Forecast Created: %{y:.1f}<br>"
+                        f"Range: {created_range_text}<extra></extra>"
+                    ),
                 )
             )
 
@@ -356,7 +365,10 @@ def create_bug_trend_chart(
             resolved_upper = forecast["resolved"]["optimistic"] - resolved_ml
             resolved_lower = resolved_ml - forecast["resolved"]["pessimistic"]
 
-            resolved_range_text = f"{forecast['resolved']['pessimistic']:.1f}-{forecast['resolved']['optimistic']:.1f}"
+            resolved_range_text = (
+                f"{forecast['resolved']['pessimistic']:.1f}-"
+                f"{forecast['resolved']['optimistic']:.1f}"
+            )
             fig.add_trace(
                 go.Scatter(
                     x=[next_week],
@@ -377,7 +389,10 @@ def create_bug_trend_chart(
                         color="rgba(40, 167, 69, 0.4)",
                         thickness=2,
                     ),
-                    hovertemplate=f"<b>%{{x}}</b><br>Forecast Resolved: %{{y:.1f}}<br>Range: {resolved_range_text}<extra></extra>",
+                    hovertemplate=(
+                        "<b>%{x}</b><br>Forecast Resolved: %{y:.1f}<br>"
+                        f"Range: {resolved_range_text}<extra></extra>"
+                    ),
                 )
             )
 
@@ -390,7 +405,8 @@ def create_bug_trend_chart(
                 line_width=1.5,
             )
 
-            # Add forecast annotation positioned within the plot area to avoid toolbar overlap
+            # Add forecast annotation in the plot area
+            # to avoid toolbar overlap
             # Position at 85% height to ensure it doesn't interfere with plotly modebar
             fig.add_annotation(
                 x=len(weeks) - 0.5,
@@ -431,7 +447,8 @@ def create_bug_trend_chart(
                         x1=weeks[idx - 1],
                         y0=0,
                         y1=1,
-                        fillcolor="rgba(255, 100, 0, 0.2)",  # Transparent red-orange for concern
+                        # Transparent red-orange for concern
+                        fillcolor="rgba(255, 100, 0, 0.2)",
                         layer="below",
                         line_width=0,
                     )
@@ -450,7 +467,8 @@ def create_bug_trend_chart(
                 x1=weeks[-1],
                 y0=0,
                 y1=1,
-                fillcolor="rgba(255, 100, 0, 0.2)",  # Transparent red-orange for concern
+                # Transparent red-orange for concern
+                fillcolor="rgba(255, 100, 0, 0.2)",
                 layer="below",
                 line_width=0,
             )
@@ -459,7 +477,8 @@ def create_bug_trend_chart(
     # Configure layout
     layout_config = get_mobile_chart_layout(viewport_size)
 
-    # Remove xaxis/yaxis from layout_config to avoid conflicts (we'll set them explicitly)
+    # Remove xaxis/yaxis from layout_config to avoid conflicts
+    # (we'll set them explicitly)
     layout_config_clean = {
         k: v for k, v in layout_config.items() if k not in ["xaxis", "yaxis", "yaxis2"]
     }
@@ -513,7 +532,8 @@ def create_bug_investment_chart(
     include_forecast: bool = True,
 ) -> go.Figure:
     """
-    Create bug investment chart showing bug items and points per week with next week forecast.
+    Create bug investment chart showing bug items and points per week
+    with next week forecast.
 
     Implements T052 - Bug investment visualization with dual-axis (items + points).
 
@@ -553,10 +573,12 @@ def create_bug_investment_chart(
     points_created = [stat["bugs_points_created"] for stat in weekly_stats]
     points_resolved = [stat["bugs_points_resolved"] for stat in weekly_stats]
 
-    # Create figure (no secondary y-axis needed - we'll use text annotations for point values)
+    # Create figure (no secondary y-axis needed)
+    # We'll use text annotations for point values.
     fig = go.Figure()
 
-    # Convert resolved to negative values to show below x-axis (like Weekly Scope Growth)
+    # Convert resolved to negative values
+    # to show below x-axis (like Weekly Scope Growth)
     bugs_resolved_negative = [-x for x in bugs_resolved]
     points_resolved_negative = [-x for x in points_resolved]
 
@@ -627,7 +649,9 @@ def create_bug_investment_chart(
             y=points_resolved_negative_scaled,
             name="Points Resolved",
             marker=dict(color="rgb(255, 127, 14)", opacity=0.9),
-            hovertemplate="<b>%{x}</b><br>Points Resolved: %{customdata}<extra></extra>",
+            hovertemplate=(
+                "<b>%{x}</b><br>Points Resolved: %{customdata}<extra></extra>"
+            ),
             customdata=points_resolved,  # Show actual positive values in hover
             width=0.35,
             offset=0.2,
@@ -658,7 +682,9 @@ def create_bug_investment_chart(
                         opacity=0.4,
                         pattern_shape="x",  # Pattern to distinguish forecast
                     ),
-                    hovertemplate="<b>%{x}</b><br>Forecast Bugs Created: %{y:.1f}<extra></extra>",
+                    hovertemplate=(
+                        "<b>%{x}</b><br>Forecast Bugs Created: %{y:.1f}<extra></extra>"
+                    ),
                     width=0.35,
                     offset=-0.2,
                 ),
@@ -674,7 +700,10 @@ def create_bug_investment_chart(
                         opacity=0.4,
                         pattern_shape="x",
                     ),
-                    hovertemplate="<b>%{x}</b><br>Forecast Bugs Resolved: %{customdata:.1f}<extra></extra>",
+                    hovertemplate=(
+                        "<b>%{x}</b><br>Forecast Bugs Resolved: "
+                        "%{customdata:.1f}<extra></extra>"
+                    ),
                     customdata=[resolved_ml],  # Show actual positive value
                     width=0.35,
                     offset=-0.2,
@@ -703,7 +732,10 @@ def create_bug_investment_chart(
                             opacity=0.4,
                             pattern_shape="x",
                         ),
-                        hovertemplate="<b>%{x}</b><br>Forecast Points Created: %{customdata:.1f}<extra></extra>",
+                        hovertemplate=(
+                            "<b>%{x}</b><br>Forecast Points Created: "
+                            "%{customdata:.1f}<extra></extra>"
+                        ),
                         customdata=[created_points_ml],
                         width=0.35,
                         offset=0.2,
@@ -720,7 +752,10 @@ def create_bug_investment_chart(
                             opacity=0.4,
                             pattern_shape="x",
                         ),
-                        hovertemplate="<b>%{x}</b><br>Forecast Points Resolved: %{customdata:.1f}<extra></extra>",
+                        hovertemplate=(
+                            "<b>%{x}</b><br>Forecast Points Resolved: "
+                            "%{customdata:.1f}<extra></extra>"
+                        ),
                         customdata=[resolved_points_ml],  # Show actual positive value
                         width=0.35,
                         offset=0.2,
@@ -736,7 +771,8 @@ def create_bug_investment_chart(
                 line_width=1.5,
             )
 
-            # Add forecast annotation positioned within the plot area to avoid toolbar overlap
+            # Add forecast annotation in the plot area
+            # to avoid toolbar overlap
             # Position at 85% height to ensure it doesn't interfere with plotly modebar
             fig.add_annotation(
                 x=len(weeks) - 0.5,
@@ -846,7 +882,10 @@ def create_bug_forecast_chart(
     if forecast.get("insufficient_data") or forecast.get("most_likely_weeks") is None:
         # Show empty state with message
         fig.add_annotation(
-            text="Insufficient data to generate forecast<br>Need at least 4 weeks of history with bug resolutions",
+            text=(
+                "Insufficient data to generate forecast<br>"
+                "Need at least 4 weeks of history with bug resolutions"
+            ),
             xref="paper",
             yref="paper",
             x=0.5,
@@ -915,7 +954,10 @@ def create_bug_forecast_chart(
 
     fig.update_layout(
         title=dict(
-            text=f"Bug Resolution Forecast<br><sub>Based on {forecast.get('open_bugs', 0)} open bugs</sub>",
+            text=(
+                "Bug Resolution Forecast<br><sub>Based on "
+                f"{forecast.get('open_bugs', 0)} open bugs</sub>"
+            ),
             font=dict(size=14 if viewport_size == "mobile" else 18),
             x=0.5,
             xanchor="center",

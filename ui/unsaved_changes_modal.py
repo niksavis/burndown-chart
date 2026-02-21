@@ -49,7 +49,9 @@ def create_unsaved_changes_modal() -> dbc.Modal:
                     html.H6("Current Changes:", className="mb-2"),
                     html.Div(
                         id="unsaved-changes-jql-preview",
-                        className="p-3 mb-3 bg-light border rounded font-monospace small",
+                        className=(
+                            "p-3 mb-3 bg-light border rounded font-monospace small"
+                        ),
                         style={
                             "maxHeight": "150px",
                             "overflowY": "auto",

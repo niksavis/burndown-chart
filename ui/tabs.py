@@ -184,7 +184,8 @@ def create_desktop_tabs_only():
     """
     tabs_config = get_tabs_sorted()
 
-    # Use Unicode icons in string labels (dbc.Tab v2.0.2 doesn't support Component labels)
+    # Use Unicode icons in string labels
+    # (dbc.Tab v2.0.2 doesn't support Component labels)
     tabs = [
         dbc.Tab(
             label=f"{tab.get('unicode_icon', '')} {tab['label']}",
@@ -212,7 +213,8 @@ def create_tabs():
     Create tabs for navigating between different chart views with mobile-first design.
 
     Returns:
-        A Dash component containing the tab navigation interface with mobile enhancements
+        A Dash component containing the tab navigation interface
+        with mobile enhancements
     """
     # Get mobile-optimized tab configuration
     tab_config = get_mobile_tabs_config()
@@ -224,7 +226,8 @@ def create_tabs():
             dbc.Tab(
                 label=f"{tab.get('unicode_icon', '')} {tab['label']}",
                 tab_id=tab["id"],
-                labelClassName="fw-bold tab-with-icon",  # Bold text prevents width shift on tab switch
+                # Bold text prevents width shift on tab switch
+                labelClassName="fw-bold tab-with-icon",
                 activeLabelClassName="text-primary fw-bold",
                 tab_style={"minWidth": "150px"},
             )
@@ -267,9 +270,12 @@ def create_tab_content(active_tab, charts, statistics_df=None, pert_data=None):
     tab_info_cards = {
         "tab-burndown": create_forecast_info_card(),
         "tab-scope-tracking": html.Div(),  # Always provide a component, even if empty
-        "tab-bug-analysis": html.Div(),  # Bug analysis has its own info cards in the content
-        "tab-dora-metrics": html.Div(),  # DORA dashboard has its own info cards in the content
-        "tab-flow-metrics": html.Div(),  # Flow dashboard has its own info cards in the content
+        # Bug analysis has its own info cards in the content
+        "tab-bug-analysis": html.Div(),
+        # DORA dashboard has its own info cards in the content
+        "tab-dora-metrics": html.Div(),
+        # Flow dashboard has its own info cards in the content
+        "tab-flow-metrics": html.Div(),
         "tab-statistics-data": html.Div(),  # Weekly data is the content itself
     }
 
@@ -284,7 +290,8 @@ def create_tab_content(active_tab, charts, statistics_df=None, pert_data=None):
                 "Project Burndown Forecast",
                 create_info_tooltip(
                     CHART_HELP_TEXTS["burndown_vs_burnup"],
-                    "Burndown vs Burnup chart differences and when to use each approach",
+                    "Burndown vs Burnup chart differences "
+                    "and when to use each approach",
                 ),
             ],
             className="mb-3 border-bottom pb-2 d-flex align-items-center fw-bold",
@@ -340,7 +347,8 @@ def create_tab_content(active_tab, charts, statistics_df=None, pert_data=None):
         ),
     }
 
-    # Create the tab content with consistent layout and styling - using the imported function
+    # Create the tab content with consistent layout and styling
+    # using the imported function
     return grid_create_tab_content(
         [
             # Tab title with enhanced styling
@@ -348,7 +356,8 @@ def create_tab_content(active_tab, charts, statistics_df=None, pert_data=None):
                 tab_titles.get(active_tab, "Chart View"),
                 className="mb-4 pb-2 border-bottom",
             ),
-            # Tab content - ensure we always have content, never fallback to avoid React hooks issues
+            # Tab content - ensure we always have content,
+            # never fallback to avoid React hooks issues
             charts.get(
                 active_tab, charts.get("tab-burndown", html.Div("Loading chart..."))
             ),

@@ -94,7 +94,10 @@ def hex_to_rgb(hex_color):
         str: RGB color string (e.g. 'rgb(255, 0, 0)')
     """
     hex_color = hex_color.lstrip("#")
-    return f"rgb({int(hex_color[0:2], 16)}, {int(hex_color[2:4], 16)}, {int(hex_color[4:6], 16)})"
+    red = int(hex_color[0:2], 16)
+    green = int(hex_color[2:4], 16)
+    blue = int(hex_color[4:6], 16)
+    return f"rgb({red}, {green}, {blue})"
 
 
 def rgb_to_rgba(rgb_color, alpha=1.0):

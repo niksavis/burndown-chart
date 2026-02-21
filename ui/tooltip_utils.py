@@ -30,7 +30,8 @@ def get_tooltip_style(variant="default"):
     Get tooltip styling configuration for a specific variant.
 
     Args:
-        variant (str): Tooltip style variant (default, success, warning, error, info, primary, dark)
+        variant (str): Tooltip style variant
+            (default, success, warning, error, info, primary, dark)
 
     Returns:
         dict: Style configuration for the tooltip
@@ -45,7 +46,8 @@ def create_hoverlabel_config(variant="default"):
     Create a consistent hoverlabel configuration for Plotly charts.
 
     Args:
-        variant (str): Tooltip style variant (default, success, warning, error, info, primary, dark)
+        variant (str): Tooltip style variant
+            (default, success, warning, error, info, primary, dark)
 
     Returns:
         dict: hoverlabel configuration for Plotly
@@ -550,7 +552,8 @@ def create_enhanced_tooltip(
         id_suffix: Suffix for component ID
         help_text: Text to display in the tooltip (can be string or Dash component)
         target: Optional target ID (if not provided, will use info-icon)
-        variant: Style variant (dark, primary, info, success, warning, error) - default: "dark"
+        variant: Style variant (dark, primary, info, success, warning, error)
+            - default: "dark"
         placement: Tooltip placement (top, bottom, left, right)
         trigger_text: Optional text to show as the tooltip trigger
         icon_class: FontAwesome icon class for custom icon (defaults to info circle)
