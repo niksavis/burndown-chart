@@ -275,9 +275,9 @@ models/*
 !tsconfig.json
 !*.example.json
 !.prettierrc.json
-!data/ai_assistant/knowledge_base.json
 !.vscode/*.json
 !.github/codebase_context_metrics.json
+!.github/hooks/**/*.json
 
 .playwright-mcp/
 playwright-screenshots/

@@ -1,0 +1,30 @@
+{
+  "name": "session-logger-lite",
+  "version": "1.0.0",
+  "hooks": [
+    {
+      "event": "sessionStart",
+      "run": {
+        "command": "pwsh",
+        "args": [
+          "-NoProfile",
+          "-Command",
+          "$logDir='logs/copilot'; New-Item -ItemType Directory -Path $logDir -Force | Out-Null; $event=[ordered]@{timestamp=(Get-Date).ToString('o'); event='session_start'; cwd=(Get-Location).Path}; $event | ConvertTo-Json -Compress | Add-Content -Path (Join-Path $logDir 'session.log'); Write-Host '[session-logger-lite] session start logged.'
+"
+        ]
+      }
+    },
+    {
+      "event": "sessionEnd",
+      "run": {
+        "command": "pwsh",
+        "args": [
+          "-NoProfile",
+          "-Command",
+          "$logDir='logs/copilot'; New-Item -ItemType Directory -Path $logDir -Force | Out-Null; $event=[ordered]@{timestamp=(Get-Date).ToString('o'); event='session_end'}; $event | ConvertTo-Json -Compress | Add-Content -Path (Join-Path $logDir 'session.log'); Write-Host '[session-logger-lite] session end logged.'
+"
+        ]
+      }
+    }
+  ]
+}

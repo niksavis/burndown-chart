@@ -1,17 +1,22 @@
 ---
-agent: "agent"
+agent: 'agent'
 model: GPT-5.3-Codex
 tools:
   [
-    "codebase",
-    "editFiles",
-    "search",
-    "usages",
-    "changes",
-    "runTasks",
-    "runCommands",
+    'search/codebase',
+    'edit/editFiles',
+    'search',
+    'search/usages',
+    'search/changes',
+    'execute/createAndRunTask',
+    'execute/runTask',
+    'read/getTaskOutput',
+    'execute/getTerminalOutput',
+    'execute/runInTerminal',
+    'read/terminalLastCommand',
+    'read/terminalSelection',
   ]
-description: "Add targeted tests for changed behavior with isolation and clarity"
+description: 'Add targeted tests for changed behavior with isolation and clarity'
 ---
 
 Add targeted tests for recent behavior changes.

@@ -1,0 +1,39 @@
+{
+  "name": "governance-strict",
+  "version": "1.0.0",
+  "hooks": [
+    {
+      "event": "sessionStart",
+      "run": {
+        "command": "pwsh",
+        "args": [
+          "-NoProfile",
+          "-Command",
+          "Write-Host '[governance-strict] active: final responses must include explicit validation outcomes and skipped-check reasons.'"
+        ]
+      }
+    },
+    {
+      "event": "userPromptSubmitted",
+      "run": {
+        "command": "pwsh",
+        "args": [
+          "-NoProfile",
+          "-Command",
+          "Write-Host '[governance-strict] enforce: keep layering boundaries, no secrets/customer data, and no emoji in code/logging/comments.'"
+        ]
+      }
+    },
+    {
+      "event": "sessionEnd",
+      "run": {
+        "command": "pwsh",
+        "args": [
+          "-NoProfile",
+          "-Command",
+          "Write-Host '[governance-strict] gate: verify get_errors clean for changed files and report any unvalidated checks.'"
+        ]
+      }
+    }
+  ]
+}

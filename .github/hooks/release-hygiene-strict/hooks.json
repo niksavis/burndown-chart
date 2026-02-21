@@ -1,0 +1,39 @@
+{
+  "name": "release-hygiene-strict",
+  "version": "1.0.0",
+  "hooks": [
+    {
+      "event": "sessionStart",
+      "run": {
+        "command": "pwsh",
+        "args": [
+          "-NoProfile",
+          "-Command",
+          "Write-Host '[release-hygiene-strict] active: release workflow and changelog quality checks are mandatory.'"
+        ]
+      }
+    },
+    {
+      "event": "userPromptSubmitted",
+      "run": {
+        "command": "pwsh",
+        "args": [
+          "-NoProfile",
+          "-Command",
+          "Write-Host '[release-hygiene-strict] enforce: venv-in-command, flat user-benefit changelog bullets, and no sensitive data.'"
+        ]
+      }
+    },
+    {
+      "event": "sessionEnd",
+      "run": {
+        "command": "pwsh",
+        "args": [
+          "-NoProfile",
+          "-Command",
+          "Write-Host '[release-hygiene-strict] gate: final response must report release validation checks and skipped items.'"
+        ]
+      }
+    }
+  ]
+}

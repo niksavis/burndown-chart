@@ -1,17 +1,22 @@
 ---
-agent: "agent"
+agent: 'agent'
 model: GPT-5.3-Codex
 tools:
   [
-    "codebase",
-    "editFiles",
-    "search",
-    "usages",
-    "changes",
-    "runTasks",
-    "runCommands",
+    'search/codebase',
+    'edit/editFiles',
+    'search',
+    'search/usages',
+    'search/changes',
+    'execute/createAndRunTask',
+    'execute/runTask',
+    'read/getTaskOutput',
+    'execute/getTerminalOutput',
+    'execute/runInTerminal',
+    'read/terminalLastCommand',
+    'read/terminalSelection',
   ]
-description: "Perform a safe, layered Python refactor in burndown-chart"
+description: 'Perform a safe, layered Python refactor in burndown-chart'
 ---
 
 Perform a safe refactor for the requested Python target.
