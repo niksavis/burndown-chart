@@ -94,7 +94,8 @@ sqlite3 .\profiles\burndown.db "SELECT name FROM sqlite_master WHERE type='table
 ## Data Architecture
 
 - **Persistence**: SQLite database at `profiles/burndown.db`
-- **Tables** (12): profiles, queries, jira_cache, jira_issues, jira_changelog_entries, project_statistics, project_scope, metrics_data_points, budget_revisions, budget_settings, app_state, task_progress
+- **Tables** (11 active + app_state): app_state, profiles, queries, jira_issues, jira_changelog_entries, project_statistics, project_scope, metrics_data_points, budget_settings, budget_revisions, task_progress
+- **Legacy table**: `jira_cache` may exist in older databases and is dropped by migrations
 - **JSON usage**: Export/import/reports only (not primary storage)
 - **User Data Protection**: All user data in `profiles/` (excluded via `.gitignore`)
 
@@ -124,12 +125,13 @@ sqlite3 .\profiles\burndown.db "SELECT name FROM sqlite_master WHERE type='table
 
 ## File Naming
 
-- All file names use lowercase; do not use uppercase letters.
+- New file names should use lowercase; do not introduce uppercase letters.
 - Avoid vague names such as utils.py or misc.py.
 
 ## Version Control and Beads
 
-- Commit format: type(scope): description (bd-XXX)
+- Commit format: type(scope): description (bd-{bead-id})
+- Example: `refactor(lint): reduce Ruff ignores for ui tests (bd-qog3)`
 - Close the bead before pushing code.
 - Beads metadata is stored in a separate worktree and must be pushed.
 
