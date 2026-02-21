@@ -1,0 +1,39 @@
+{
+  "name": "governance-warn-only",
+  "version": "1.0.0",
+  "hooks": [
+    {
+      "event": "sessionStart",
+      "run": {
+        "command": "pwsh",
+        "args": [
+          "-NoProfile",
+          "-Command",
+          "Write-Host '[governance] session started: apply repo instructions, keep changes minimal, and enforce layered architecture.'"
+        ]
+      }
+    },
+    {
+      "event": "userPromptSubmitted",
+      "run": {
+        "command": "pwsh",
+        "args": [
+          "-NoProfile",
+          "-Command",
+          "Write-Host '[governance] reminder: zero diagnostics, no customer data, no emoji in code/logging/comments.'"
+        ]
+      }
+    },
+    {
+      "event": "sessionEnd",
+      "run": {
+        "command": "pwsh",
+        "args": [
+          "-NoProfile",
+          "-Command",
+          "Write-Host '[governance] session end: verify get_errors clean and summarize validation performed.'"
+        ]
+      }
+    }
+  ]
+}

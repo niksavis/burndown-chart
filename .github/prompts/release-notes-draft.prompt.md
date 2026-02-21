@@ -1,8 +1,8 @@
 ---
-agent: "agent"
+agent: 'agent'
 model: GPT-5.3-Codex
-tools: ["codebase", "search", "changes", "runCommands"]
-description: "Draft concise user-focused release notes from repo changes"
+tools: ['search/codebase', 'search', 'search/changes', 'execute/runInTerminal']
+description: 'Draft concise user-focused release notes from repo changes'
 ---
 
 Draft release notes for the current pending changes.

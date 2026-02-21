@@ -1,0 +1,39 @@
+{
+  "name": "governance-audit",
+  "version": "1.0.0",
+  "hooks": [
+    {
+      "event": "sessionStart",
+      "run": {
+        "command": "pwsh",
+        "args": [
+          "-NoProfile",
+          "-Command",
+          "$logDir='logs/copilot/governance'; New-Item -ItemType Directory -Path $logDir -Force | Out-Null; $event=[ordered]@{timestamp=(Get-Date).ToString('o'); event='session_start'; governance_level='standard'; cwd=(Get-Location).Path}; $event | ConvertTo-Json -Compress | Add-Content -Path (Join-Path $logDir 'audit.log'); Write-Host '[governance-audit] session start logged (standard mode).'"
+        ]
+      }
+    },
+    {
+      "event": "userPromptSubmitted",
+      "run": {
+        "command": "pwsh",
+        "args": [
+          "-NoProfile",
+          "-Command",
+          "$logDir='logs/copilot/governance'; New-Item -ItemType Directory -Path $logDir -Force | Out-Null; $promptText=($env:COPILOT_USER_PROMPT ?? ''); $lower=$promptText.ToLowerInvariant(); $threats=@(); if($lower -match 'ignore previous instructions|bypass|override safeguards'){ $threats += 'prompt_injection' }; if($lower -match 'api key|token|secret|password'){ $threats += 'credential_exposure' }; if($lower -match 'drop database|rm -rf|delete all'){ $threats += 'system_destruction' }; if($lower -match 'sudo|chmod 777|sudoers'){ $threats += 'privilege_escalation' }; if($lower -match 'send .* external|exfiltrat|export .* customer'){ $threats += 'data_exfiltration' }; $event=[ordered]@{timestamp=(Get-Date).ToString('o'); event='prompt_scanned'; governance_level='standard'; threat_count=$threats.Count; threats=$threats}; $event | ConvertTo-Json -Compress | Add-Content -Path (Join-Path $logDir 'audit.log'); if($threats.Count -gt 0){ Write-Host ('[governance-audit] warning: potential threats detected: ' + ($threats -join ', ')) } else { Write-Host '[governance-audit] prompt scan clean.' }"
+        ]
+      }
+    },
+    {
+      "event": "sessionEnd",
+      "run": {
+        "command": "pwsh",
+        "args": [
+          "-NoProfile",
+          "-Command",
+          "$logDir='logs/copilot/governance'; New-Item -ItemType Directory -Path $logDir -Force | Out-Null; $logFile=Join-Path $logDir 'audit.log'; $threatCount=0; if(Test-Path $logFile){ $threatCount=(Select-String -Path $logFile -Pattern '"event":"prompt_scanned"' | Measure-Object).Count }; $event=[ordered]@{timestamp=(Get-Date).ToString('o'); event='session_end'; scanned_prompts=$threatCount}; $event | ConvertTo-Json -Compress | Add-Content -Path $logFile; Write-Host '[governance-audit] session end logged. Verify get_errors and final validation summary.'"
+        ]
+      }
+    }
+  ]
+}

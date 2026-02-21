@@ -1,0 +1,39 @@
+{
+  "name": "layering-warn-only",
+  "version": "1.0.0",
+  "hooks": [
+    {
+      "event": "sessionStart",
+      "run": {
+        "command": "pwsh",
+        "args": [
+          "-NoProfile",
+          "-Command",
+          "Write-Host '[layering] active: preserve callbacks/data/ui/visualization boundaries.'"
+        ]
+      }
+    },
+    {
+      "event": "userPromptSubmitted",
+      "run": {
+        "command": "pwsh",
+        "args": [
+          "-NoProfile",
+          "-Command",
+          "Write-Host '[layering] reminder: callbacks route only, business logic in data, charts in visualization, layout/components in ui.'"
+        ]
+      }
+    },
+    {
+      "event": "sessionEnd",
+      "run": {
+        "command": "pwsh",
+        "args": [
+          "-NoProfile",
+          "-Command",
+          "Write-Host '[layering] session end: confirm no boundary violations were introduced.'"
+        ]
+      }
+    }
+  ]
+}

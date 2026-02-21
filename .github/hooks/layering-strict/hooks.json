@@ -1,0 +1,39 @@
+{
+  "name": "layering-strict",
+  "version": "1.0.0",
+  "hooks": [
+    {
+      "event": "sessionStart",
+      "run": {
+        "command": "pwsh",
+        "args": [
+          "-NoProfile",
+          "-Command",
+          "Write-Host '[layering-strict] active: boundary compliance must be validated and reported explicitly.'"
+        ]
+      }
+    },
+    {
+      "event": "userPromptSubmitted",
+      "run": {
+        "command": "pwsh",
+        "args": [
+          "-NoProfile",
+          "-Command",
+          "Write-Host '[layering-strict] enforce: keep callbacks routing-only and avoid cross-layer logic leakage.'"
+        ]
+      }
+    },
+    {
+      "event": "sessionEnd",
+      "run": {
+        "command": "pwsh",
+        "args": [
+          "-NoProfile",
+          "-Command",
+          "Write-Host '[layering-strict] gate: final response must state boundary validation outcome and unresolved risks.'"
+        ]
+      }
+    }
+  ]
+}
