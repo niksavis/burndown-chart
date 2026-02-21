@@ -20,7 +20,8 @@ from plotly.subplots import make_subplots
 from configuration import COLOR_PALETTE
 from ui.tooltip_utils import create_hoverlabel_config, format_hover_template
 
-# Mobile optimization removed for simplicity - will implement via CSS and responsive config
+# Mobile optimization removed for simplicity.
+# Will implement via CSS and responsive config.
 
 #######################################################################
 # CHART CREATION FUNCTIONS
@@ -302,7 +303,9 @@ def create_chart_with_loading(
             "responsive": True,
             "toImageButtonOptions": {
                 "format": "png",
-                "filename": f"{id.replace('-', '_')}_{datetime.now().strftime('%Y%m%d_%H%M%S')}",
+                "filename": (
+                    f"{id.replace('-', '_')}_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+                ),
                 "scale": 2,
             },
             "modeBarButtonsToRemove": [
@@ -421,7 +424,10 @@ def _calculate_forecast_completion_dates(pert_time_items, pert_time_points):
         current_date = datetime.now()
         items_completion_date = current_date + timedelta(days=pert_time_items)
         items_completion_str = items_completion_date.strftime("%Y-%m-%d")
-        items_completion_enhanced = f"{items_completion_str} ({pert_time_items:.1f} days, {pert_time_items / 7:.1f} weeks)"
+        items_completion_enhanced = (
+            f"{items_completion_str} ({pert_time_items:.1f} days, "
+            f"{pert_time_items / 7:.1f} weeks)"
+        )
 
     if pert_time_points is None or (
         isinstance(pert_time_points, float) and math.isnan(pert_time_points)
@@ -431,7 +437,10 @@ def _calculate_forecast_completion_dates(pert_time_items, pert_time_points):
         current_date = datetime.now()
         points_completion_date = current_date + timedelta(days=pert_time_points)
         points_completion_str = points_completion_date.strftime("%Y-%m-%d")
-        points_completion_enhanced = f"{points_completion_str} ({pert_time_points:.1f} days, {pert_time_points / 7:.1f} weeks)"
+        points_completion_enhanced = (
+            f"{points_completion_str} ({pert_time_points:.1f} days, "
+            f"{pert_time_points / 7:.1f} weeks)"
+        )
 
     return items_completion_enhanced, points_completion_enhanced
 
@@ -531,7 +540,8 @@ def _prepare_metrics_data(
         "avg_weekly_points": round(float(avg_weekly_points), 2),
         "med_weekly_items": round(float(med_weekly_items), 2),
         "med_weekly_points": round(float(med_weekly_points), 2),
-        # Ensure string representations use 2 decimal places and never get converted to integers
+        # Ensure string representations use 2 decimal places
+        # and never get converted to integers
         "avg_weekly_items_str": f"{float(avg_weekly_items):.2f}",
         "avg_weekly_points_str": f"{float(avg_weekly_points):.2f}",
         "med_weekly_items_str": f"{float(med_weekly_items):.2f}",
@@ -666,7 +676,11 @@ def create_pert_timeline_chart(pert_data: dict) -> go.Figure:
                 textposition="top center",
                 name=label,
                 showlegend=True,
-                hovertemplate=f"<b>{label}</b><br>Date: %{{x|%Y-%m-%d}}<br>Days: {pert_data.get(label.lower().replace(' ', '_') + '_days', 'N/A')}<extra></extra>",
+                hovertemplate=(
+                    f"<b>{label}</b><br>Date: %{{x|%Y-%m-%d}}<br>Days: "
+                    f"{pert_data.get(label.lower().replace(' ', '_') + '_days', 'N/A')}"
+                    "<extra></extra>"
+                ),
             )
         )
 

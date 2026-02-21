@@ -16,7 +16,6 @@ Usage:
     toast = create_toast("Failed to connect", "danger", duration=5000)
 """
 
-
 import dash_bootstrap_components as dbc
 from dash import html
 
@@ -60,7 +59,8 @@ def create_toast(
     )
 
     logger.info(
-        f"[TOAST CREATED] type={toast_type}, header={header or 'auto'}, message={message_preview}",
+        f"[TOAST CREATED] type={toast_type}, "
+        f"header={header or 'auto'}, message={message_preview}",
         extra={
             "operation": "create_toast",
             "toast_type": toast_type,

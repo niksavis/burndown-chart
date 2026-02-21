@@ -208,7 +208,8 @@ def create_jira_integration_tab():
             # Query Management Actions
             html.H6("Saved Queries", className="mb-3 mt-4"),
             html.P(
-                "Save your current query, or select a saved query to load it into the editor above.",
+                "Save your current query, or select a saved query "
+                "to load it into the editor above.",
                 className="text-muted small mb-3",
             ),
             dbc.Row(
@@ -287,7 +288,8 @@ def create_jira_integration_tab():
             # Update Data Action
             html.H6("Fetch JIRA Data", className="mb-3"),
             html.P(
-                "Fetches JIRA data using the query above and automatically calculates project scope.",
+                "Fetches JIRA data using the query above "
+                "and automatically calculates project scope.",
                 className="text-muted small mb-3",
             ),
             create_button(

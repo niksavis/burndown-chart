@@ -213,7 +213,8 @@ def create_update_error_alert(error_message: str) -> dbc.Alert:
                 className="mb-2 update-alert-text",
             ),
             html.P(
-                "You can check for updates manually by visiting the GitHub releases page.",
+                "You can check for updates manually by visiting "
+                "the GitHub releases page.",
                 className="mb-0 update-alert-muted",
             ),
         ],

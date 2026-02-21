@@ -51,7 +51,10 @@ def create_connect_tab_content() -> html.Div:
                                 className="mb-2",
                                 children=[
                                     html.I(
-                                        className="fas fa-exclamation-triangle text-warning me-2"
+                                        className=(
+                                            "fas fa-exclamation-triangle "
+                                            "text-warning me-2"
+                                        )
                                     ),
                                     html.Span(
                                         "Configure JIRA to begin",
@@ -79,7 +82,9 @@ def create_connect_tab_content() -> html.Div:
                             html.Div(
                                 [
                                     html.I(
-                                        className="fas fa-project-diagram me-2 text-primary"
+                                        className=(
+                                            "fas fa-project-diagram me-2 text-primary"
+                                        )
                                     ),
                                     html.Span("Field Mapping", className="fw-bold"),
                                 ],
@@ -90,7 +95,10 @@ def create_connect_tab_content() -> html.Div:
                                 className="mb-2",
                                 children=[
                                     html.I(
-                                        className="fas fa-exclamation-triangle text-warning me-2"
+                                        className=(
+                                            "fas fa-exclamation-triangle "
+                                            "text-warning me-2"
+                                        )
                                     ),
                                     html.Span(
                                         "Configure field mappings to enable metrics",
@@ -126,7 +134,8 @@ def create_queries_and_data_tab_content() -> html.Div:
     """
     Create unified Queries tab with query management and data operations.
 
-    Combines query selector, JQL editor, and data fetch operations in a streamlined workflow:
+    Combines query selector, JQL editor,
+    and data fetch operations in a streamlined workflow:
     - Select/create query from dropdown
     - Edit query name and JQL
     - Save/Save As/Discard changes
@@ -137,7 +146,8 @@ def create_queries_and_data_tab_content() -> html.Div:
     """
     return html.Div(
         [
-            # Hidden store for tracking original query state (for unsaved changes detection)
+            # Hidden store for tracking original query state
+            # (for unsaved changes detection)
             dcc.Store(
                 id="query-original-state", data={"name": "", "jql": "", "id": ""}
             ),
@@ -228,7 +238,10 @@ def create_queries_and_data_tab_content() -> html.Div:
                     create_jql_editor(
                         editor_id="query-jql-editor",
                         initial_value="",
-                        placeholder="project = EXAMPLE AND created >= -12w ORDER BY created DESC",
+                        placeholder=(
+                            "project = EXAMPLE AND created >= -12w "
+                            "ORDER BY created DESC"
+                        ),
                         rows=4,
                     ),
                     html.Div(id="jql-validation-feedback", className="mt-2"),
@@ -290,9 +303,11 @@ def create_queries_and_data_tab_content() -> html.Div:
                         color="primary",
                         disabled=True,  # Enabled when query is saved
                         className="long-press-button action-button",
-                        style={},  # Visible by default, controlled by progress_bar callback
+                        # Visible by default, controlled by progress_bar callback
+                        style={},
                     ),
-                    # Cancel button (shown during operation, replaces Update Data button)
+                    # Cancel button (shown during operation,
+                    # replaces Update Data button)
                     dbc.Button(
                         [
                             html.I(className="fas fa-times-circle"),
@@ -314,7 +329,8 @@ def create_queries_and_data_tab_content() -> html.Div:
             ),
             # Hidden store for force refresh functionality (long-press)
             dcc.Store(id="force-refresh-store", data=False),
-            # Progress bar (hidden when not in use, fixed height to prevent layout shift)
+            # Progress bar (hidden when not in use,
+            # fixed height to prevent layout shift)
             html.Div(
                 id="update-data-progress-container",
                 className="mb-2",
@@ -338,7 +354,8 @@ def create_queries_and_data_tab_content() -> html.Div:
             # Interval for polling progress
             dcc.Interval(
                 id="progress-poll-interval",
-                interval=250,  # Poll every 250ms (smoother updates, faster phase detection)
+                # Poll every 250ms (smoother updates, faster phase detection)
+                interval=250,
                 disabled=True,  # Disabled by default
             ),
             # Status message (hidden - progress bar shows status now)
@@ -399,7 +416,8 @@ def create_tabbed_settings_panel() -> html.Div:
                                         id="jira-config-section-content",
                                         children=[create_connect_tab_content()],
                                     ),
-                                    # Keep legacy field-mapping-section-content for callbacks
+                                    # Keep legacy
+                                    # field-mapping-section-content for callbacks
                                     html.Div(
                                         id="field-mapping-section-content",
                                         style={"display": "none"},
@@ -418,7 +436,8 @@ def create_tabbed_settings_panel() -> html.Div:
                                             create_queries_and_data_tab_content()
                                         ],
                                     ),
-                                    # Keep legacy data-actions-section-content for callbacks
+                                    # Keep legacy
+                                    # data-actions-section-content for callbacks
                                     html.Div(
                                         id="data-actions-section-content",
                                         style={"display": "none"},
