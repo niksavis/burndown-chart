@@ -7,6 +7,20 @@ Update documentation for this change in `burndown-chart`.
 
 Change description: ${input:change}
 
+## Required retrieval routing
+
+When the request asks for "latest", "up-to-date", "current version", or guideline refreshes for external languages/frameworks:
+
+1. Apply skill: `.github/skills/context7-retrieval-patterns/SKILL.md`
+2. Invoke subagent: `.github/agents/context7-bootstrap-sync.agent.md`
+3. Apply instruction: `.github/instructions/context7-refresh.instructions.md`
+
+Report in output:
+
+- Whether Context7 retrieval ran
+- Libraries/topics queried (for example CSS, HTML, JavaScript, Python, SQL)
+- Key version/freshness cues used
+
 ## Output format
 
 1. **Files to update**: List specific doc files that need updates (max 5)
@@ -32,6 +46,7 @@ Change description: ${input:change}
 
 Update when: Code structure, patterns, or guidelines change
 Focus: How and why, not what (code already shows what)
+For language/framework guideline updates, use Context7 retrieval before drafting doc changes.
 
 ### Feature docs (`docs/`)
 

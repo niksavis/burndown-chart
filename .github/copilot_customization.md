@@ -24,6 +24,7 @@ Apply artifacts in this order:
 - `.github/instructions/python-dash-layering.instructions.md`
 - `.github/instructions/security-data-safety.instructions.md`
 - `.github/instructions/testing-quality.instructions.md`
+- `.github/instructions/context7-refresh.instructions.md`
 - `.github/instructions/powershell-python-env.instructions.md`
 - `.github/instructions/release-workflow.instructions.md`
 - `.github/instructions/build-pipeline.instructions.md`
@@ -41,6 +42,7 @@ Apply artifacts in this order:
 ## Skills
 
 - `.github/skills/python-backend-quality/SKILL.md`
+- `.github/skills/context7-retrieval-patterns/SKILL.md`
 - `.github/skills/sqlite-persistence-safety/SKILL.md`
 - `.github/skills/jira-integration-reliability/SKILL.md`
 - `.github/skills/plotly-visualization-quality/SKILL.md`
@@ -63,6 +65,7 @@ Apply artifacts in this order:
 
 - `.github/agents/repo-quality-guardian.agent.md`
 - `.github/agents/layering-enforcer.agent.md`
+- `.github/agents/context7-bootstrap-sync.agent.md`
 - `.github/agents/test-strategy.agent.md`
 - `.github/agents/release-readiness.agent.md`
 
