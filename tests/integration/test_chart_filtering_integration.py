@@ -69,7 +69,7 @@ class TestChartFilteringIntegration(unittest.TestCase):
         self.assertIsNotNone(fig_filtered)
 
     def test_weekly_items_forecast_chart_accepts_data_points_count(self):
-        """Test that create_weekly_items_forecast_chart accepts data_points_count parameter."""
+        """Test create_weekly_items_forecast_chart accepts data_points_count."""
         # Should work without data_points_count (backward compatibility)
         fig_all = create_weekly_items_forecast_chart(self.statistics_data)
         self.assertIsNotNone(fig_all)
@@ -81,7 +81,7 @@ class TestChartFilteringIntegration(unittest.TestCase):
         self.assertIsNotNone(fig_filtered)
 
     def test_weekly_points_forecast_chart_accepts_data_points_count(self):
-        """Test that create_weekly_points_forecast_chart accepts data_points_count parameter."""
+        """Test create_weekly_points_forecast_chart accepts data_points_count."""
         # Should work without data_points_count (backward compatibility)
         fig_all = create_weekly_points_forecast_chart(self.statistics_data)
         self.assertIsNotNone(fig_all)
@@ -93,7 +93,7 @@ class TestChartFilteringIntegration(unittest.TestCase):
         self.assertIsNotNone(fig_filtered)
 
     def test_get_weekly_metrics_accepts_data_points_count(self):
-        """Test that get_weekly_metrics helper function accepts data_points_count parameter."""
+        """Test get_weekly_metrics accepts data_points_count."""
         # Should work without data_points_count (backward compatibility)
         metrics_all = get_weekly_metrics(self.df)
         self.assertIsInstance(metrics_all, tuple)
@@ -147,7 +147,8 @@ class TestChartFilteringIntegration(unittest.TestCase):
 
             except Exception as e:
                 self.fail(
-                    f"Chart function failed with edge case '{case['name']}' (data_points_count={dpc}): {e}"
+                    "Chart function failed with edge case "
+                    f"'{case['name']}' (data_points_count={dpc}): {e}"
                 )
 
     def test_chart_functions_with_empty_data(self):
