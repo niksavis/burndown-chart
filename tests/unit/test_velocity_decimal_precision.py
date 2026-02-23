@@ -12,7 +12,8 @@ import pytest
 
 from data.processing import calculate_weekly_averages
 
-# TODO: Update this import once the correct module for _prepare_metrics_data and _get_weekly_metrics is identified
+# TODO: Update this import once the correct module for
+# _prepare_metrics_data and _get_weekly_metrics is identified.
 # from callbacks.dashboard_callbacks import _prepare_metrics_data, _get_weekly_metrics
 from tests.utils.ui_test_helpers import (
     extract_formatted_value_from_component,

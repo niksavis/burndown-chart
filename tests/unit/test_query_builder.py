@@ -110,7 +110,10 @@ class TestBuildJQLWithParentTypes:
 
     def test_complex_jql(self):
         """Handle complex JQL with multiple clauses."""
-        jql = 'issuesInEpics("key = EPIC-1") AND issuetype in (Story, Bug) AND status != Done'
+        jql = (
+            'issuesInEpics("key = EPIC-1") AND issuetype in (Story, Bug) '
+            "AND status != Done"
+        )
         result = build_jql_with_parent_types(jql, ["Epic"])
         assert "issuetype in (Story, Bug, Epic)" in result
         assert 'issuesInEpics("key = EPIC-1")' in result

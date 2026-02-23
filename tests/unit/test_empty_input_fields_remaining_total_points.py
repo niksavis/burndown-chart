@@ -58,13 +58,18 @@ class TestEmptyInputFieldsRemainingTotalPointsEdgeCase(unittest.TestCase):
 
         print("\n=== USER REPORTED BUG REPRODUCTION ===")
         print(
-            f"Scenario: total_items={total_items}, estimated_items={estimated_items}, estimated_points={estimated_points}"
+            "Scenario: "
+            f"total_items={total_items}, "
+            f"estimated_items={estimated_items}, "
+            f"estimated_points={estimated_points}"
         )
         print(
-            f"Buggy behavior (use_fallback=True): total_points={buggy_total_points}, avg={buggy_avg}"
+            "Buggy behavior (use_fallback=True): "
+            f"total_points={buggy_total_points}, avg={buggy_avg}"
         )
         print(
-            f"Fixed behavior (use_fallback=False): total_points={fixed_total_points}, avg={fixed_avg}"
+            "Fixed behavior (use_fallback=False): "
+            f"total_points={fixed_total_points}, avg={fixed_avg}"
         )
 
         # Bug: Default behavior uses historical data to calculate points
@@ -106,10 +111,13 @@ class TestEmptyInputFieldsRemainingTotalPointsEdgeCase(unittest.TestCase):
 
         print("\n=== EMPTY VS ZERO CONSISTENCY ===")
         print(
-            f"Explicit zero: total_points={explicit_zero_points}, avg={explicit_zero_avg}"
+            "Explicit zero: "
+            f"total_points={explicit_zero_points}, avg={explicit_zero_avg}"
         )
         print(
-            f"Empty->zero: total_points={empty_treated_as_zero_points}, avg={empty_treated_as_zero_avg}"
+            "Empty->zero: "
+            f"total_points={empty_treated_as_zero_points}, "
+            f"avg={empty_treated_as_zero_avg}"
         )
 
         # Both should behave identically with the fix
@@ -214,7 +222,8 @@ class TestEmptyInputFieldsRemainingTotalPointsEdgeCase(unittest.TestCase):
 
         print("\n=== BACKWARD COMPATIBILITY ===")
         print(
-            f"Old behavior preserved: total_points={old_behavior_points}, avg={old_behavior_avg}"
+            "Old behavior preserved: "
+            f"total_points={old_behavior_points}, avg={old_behavior_avg}"
         )
 
     def test_edge_cases_after_fix(self):

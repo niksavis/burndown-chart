@@ -92,7 +92,8 @@ def test_prepare_visualization_data_with_dataframe(sample_dataframe):
             sample_dataframe, total_items=100, total_points=200, pert_factor=3
         )
 
-        # Check that calculate_rates was called with a DataFrame (as expected by the implementation)
+        # Check that calculate_rates was called with a DataFrame.
+        # This matches the expected implementation behavior.
         args, kwargs = mock_calculate_rates.call_args
         assert isinstance(args[0], pd.DataFrame), (
             "calculate_rates should be called with a DataFrame"
@@ -109,7 +110,7 @@ def test_prepare_visualization_data_with_dataframe(sample_dataframe):
 
 
 def test_prepare_visualization_data_with_dict_list(sample_dict_list):
-    """Test that prepare_visualization_data handles list of dictionaries input correctly."""
+    """Test list-of-dictionaries input handling in prepare_visualization_data."""
     with (
         patch("data.processing.calculate_rates") as mock_calculate_rates,
         patch(
@@ -142,10 +143,12 @@ def test_prepare_visualization_data_with_dict_list(sample_dict_list):
             sample_dict_list, total_items=100, total_points=200, pert_factor=3
         )
 
-        # Check that calculate_rates was called with a DataFrame (converted from list of dicts)
+        # Check that calculate_rates was called with a DataFrame converted
+        # from the input list of dictionaries.
         args, kwargs = mock_calculate_rates.call_args
         assert isinstance(args[0], pd.DataFrame), (
-            "calculate_rates should be called with a DataFrame (converted from input list)"
+            "calculate_rates should be called with a DataFrame "
+            "(converted from input list)"
         )
 
         # Check that the function returns expected data types

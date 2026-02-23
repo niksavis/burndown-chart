@@ -52,7 +52,7 @@ def test_make_hashable_with_primitives():
 
 
 def test_make_hashable_with_dataframe(simple_dataframe):
-    """Test that _make_hashable correctly converts a DataFrame to a hashable representation."""
+    """Test _make_hashable conversion of a DataFrame to a hashable value."""
     result = _make_hashable(simple_dataframe)
 
     # The result should be a string starting with 'DataFrame:'

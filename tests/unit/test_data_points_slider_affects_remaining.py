@@ -150,11 +150,13 @@ class TestDataPointsSliderRemainingFixed:
 
             # Both should show the SAME remaining work (current)
             assert remaining_items_12w == remaining_items_4w, (
-                f"Remaining items should be the same: 12w={remaining_items_12w}, 4w={remaining_items_4w}"
+                "Remaining items should be the same: "
+                f"12w={remaining_items_12w}, 4w={remaining_items_4w}"
             )
 
             assert remaining_points_12w == remaining_points_4w, (
-                f"Remaining points should be the same: 12w={remaining_points_12w}, 4w={remaining_points_4w}"
+                "Remaining points should be the same: "
+                f"12w={remaining_points_12w}, 4w={remaining_points_4w}"
             )
 
     def test_avg_points_per_item_calculated(self, mock_statistics, mock_project_scope):

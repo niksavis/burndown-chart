@@ -136,7 +136,8 @@ class TestCreateJiraIssueLink:
 
         result = create_jira_issue_link("PROJ-123", text="Custom Text")
 
-        # Check that component was created (detailed attribute checks in integration tests)
+        # Check that component was created.
+        # Detailed attribute checks are covered in integration tests.
         assert result is not None
 
     @patch("ui.jira_link_helper.get_jira_base_url")

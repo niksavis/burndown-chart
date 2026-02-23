@@ -19,10 +19,10 @@ from data.processing import calculate_total_points
 
 
 class TestEmptyInputFieldsRemainingTotalPoints(unittest.TestCase):
-    """Test edge cases with empty input fields for Remaining Total Points calculation."""
+    """Test edge cases for Remaining Total Points with empty input fields."""
 
     def test_fix_empty_estimated_items_and_points(self):
-        """Test that explicitly setting both estimated_items and estimated_points to 0 returns 0."""
+        """Explicitly setting both estimates to 0 returns total points of 0."""
 
         # Mock historical statistics data
         historical_data = [
@@ -166,7 +166,10 @@ class TestEmptyInputFieldsRemainingTotalPoints(unittest.TestCase):
                 self.assertEqual(
                     total_points,
                     scenario["expected_total_points"],
-                    f"Scenario '{scenario['name']}' should return expected total points",
+                    (
+                        f"Scenario '{scenario['name']}' should return "
+                        "expected total points"
+                    ),
                 )
                 self.assertEqual(
                     avg,
