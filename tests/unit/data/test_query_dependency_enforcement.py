@@ -38,9 +38,7 @@ class TestQueryDependencyEnforcement:
         profile_data = {
             "id": "default",
             "name": "Default",
-            "created_at": datetime(
-                2026, 1, 1, 0, 0, 0, tzinfo=UTC
-            ).isoformat(),
+            "created_at": datetime(2026, 1, 1, 0, 0, 0, tzinfo=UTC).isoformat(),
             "last_used": datetime(2026, 1, 1, 0, 0, 0, tzinfo=UTC).isoformat(),
             "jira_config": {
                 "base_url": "",
@@ -69,9 +67,7 @@ class TestQueryDependencyEnforcement:
         profile_data = {
             "id": "default",
             "name": "Default",
-            "created_at": datetime(
-                2026, 1, 1, 0, 0, 0, tzinfo=UTC
-            ).isoformat(),
+            "created_at": datetime(2026, 1, 1, 0, 0, 0, tzinfo=UTC).isoformat(),
             "last_used": datetime(2026, 1, 1, 0, 0, 0, tzinfo=UTC).isoformat(),
             "jira_config": {
                 "base_url": "https://test.jira.com",
@@ -97,7 +93,8 @@ class TestQueryDependencyEnforcement:
         assert query is not None
         assert query["name"] == "Test Query"
         assert query["jql"] == "project = TEST"
-        # Note: description field not stored in database schema (queries table has: id, profile_id, name, jql, created_at, last_used)
+        # Note: description field is not stored in database schema.
+        # Queries table has: id, profile_id, name, jql, created_at, last_used.
         assert "created_at" in query
 
     def test_create_query_logs_warning_when_field_mappings_missing(
@@ -117,9 +114,7 @@ class TestQueryDependencyEnforcement:
         profile_data = {
             "id": "default",
             "name": "Default",
-            "created_at": datetime(
-                2026, 1, 1, 0, 0, 0, tzinfo=UTC
-            ).isoformat(),
+            "created_at": datetime(2026, 1, 1, 0, 0, 0, tzinfo=UTC).isoformat(),
             "last_used": datetime(2026, 1, 1, 0, 0, 0, tzinfo=UTC).isoformat(),
             "jira_config": {
                 "base_url": "https://test.jira.com",
@@ -156,9 +151,7 @@ class TestQueryValidationForDataOperations:
         profile_data = {
             "id": "default",
             "name": "Default",
-            "created_at": datetime(
-                2026, 1, 1, 0, 0, 0, tzinfo=UTC
-            ).isoformat(),
+            "created_at": datetime(2026, 1, 1, 0, 0, 0, tzinfo=UTC).isoformat(),
             "last_used": datetime(2026, 1, 1, 0, 0, 0, tzinfo=UTC).isoformat(),
             "jira_config": {},
             "field_mappings": {},
@@ -170,9 +163,7 @@ class TestQueryValidationForDataOperations:
             "profile_id": "default",
             "name": "Main Query",
             "jql": "project = TEST",
-            "created_at": datetime(
-                2026, 1, 1, 0, 0, 0, tzinfo=UTC
-            ).isoformat(),
+            "created_at": datetime(2026, 1, 1, 0, 0, 0, tzinfo=UTC).isoformat(),
             "last_used": datetime(2026, 1, 1, 0, 0, 0, tzinfo=UTC).isoformat(),
         }
         backend.save_query("default", query_data)
@@ -195,9 +186,7 @@ class TestQueryValidationForDataOperations:
         profile_data = {
             "id": "default",
             "name": "Default",
-            "created_at": datetime(
-                2026, 1, 1, 0, 0, 0, tzinfo=UTC
-            ).isoformat(),
+            "created_at": datetime(2026, 1, 1, 0, 0, 0, tzinfo=UTC).isoformat(),
             "last_used": datetime(2026, 1, 1, 0, 0, 0, tzinfo=UTC).isoformat(),
             "jira_config": {},
             "field_mappings": {},
@@ -240,9 +229,7 @@ class TestQueryDeletionWithCascade:
         profile_data = {
             "id": "default",
             "name": "Default",
-            "created_at": datetime(
-                2026, 1, 1, 0, 0, 0, tzinfo=UTC
-            ).isoformat(),
+            "created_at": datetime(2026, 1, 1, 0, 0, 0, tzinfo=UTC).isoformat(),
             "last_used": datetime(2026, 1, 1, 0, 0, 0, tzinfo=UTC).isoformat(),
             "jira_config": {},
             "field_mappings": {},
@@ -254,9 +241,7 @@ class TestQueryDeletionWithCascade:
             "profile_id": "default",
             "name": "Main",
             "jql": "project = TEST",
-            "created_at": datetime(
-                2026, 1, 1, 0, 0, 0, tzinfo=UTC
-            ).isoformat(),
+            "created_at": datetime(2026, 1, 1, 0, 0, 0, tzinfo=UTC).isoformat(),
             "last_used": datetime(2026, 1, 1, 0, 0, 0, tzinfo=UTC).isoformat(),
         }
         backend.save_query("default", main_query)
@@ -266,9 +251,7 @@ class TestQueryDeletionWithCascade:
             "profile_id": "default",
             "name": "Bugs",
             "jql": "type = Bug",
-            "created_at": datetime(
-                2026, 1, 1, 0, 0, 0, tzinfo=UTC
-            ).isoformat(),
+            "created_at": datetime(2026, 1, 1, 0, 0, 0, tzinfo=UTC).isoformat(),
             "last_used": datetime(2026, 1, 1, 0, 0, 0, tzinfo=UTC).isoformat(),
         }
         backend.save_query("default", bugs_query)
@@ -298,9 +281,7 @@ class TestQueryDeletionWithCascade:
         profile_data = {
             "id": "default",
             "name": "Default",
-            "created_at": datetime(
-                2026, 1, 1, 0, 0, 0, tzinfo=UTC
-            ).isoformat(),
+            "created_at": datetime(2026, 1, 1, 0, 0, 0, tzinfo=UTC).isoformat(),
             "last_used": datetime(2026, 1, 1, 0, 0, 0, tzinfo=UTC).isoformat(),
             "jira_config": {},
             "field_mappings": {},
@@ -312,9 +293,7 @@ class TestQueryDeletionWithCascade:
             "profile_id": "default",
             "name": "Main",
             "jql": "project = TEST",
-            "created_at": datetime(
-                2026, 1, 1, 0, 0, 0, tzinfo=UTC
-            ).isoformat(),
+            "created_at": datetime(2026, 1, 1, 0, 0, 0, tzinfo=UTC).isoformat(),
             "last_used": datetime(2026, 1, 1, 0, 0, 0, tzinfo=UTC).isoformat(),
         }
         backend.save_query("default", main_query)
@@ -324,9 +303,7 @@ class TestQueryDeletionWithCascade:
             "profile_id": "default",
             "name": "Bugs",
             "jql": "type = Bug",
-            "created_at": datetime(
-                2026, 1, 1, 0, 0, 0, tzinfo=UTC
-            ).isoformat(),
+            "created_at": datetime(2026, 1, 1, 0, 0, 0, tzinfo=UTC).isoformat(),
             "last_used": datetime(2026, 1, 1, 0, 0, 0, tzinfo=UTC).isoformat(),
         }
         backend.save_query("default", bugs_query)
@@ -357,9 +334,7 @@ class TestQueryDeletionWithCascade:
         profile_data = {
             "id": "default",
             "name": "Default",
-            "created_at": datetime(
-                2026, 1, 1, 0, 0, 0, tzinfo=UTC
-            ).isoformat(),
+            "created_at": datetime(2026, 1, 1, 0, 0, 0, tzinfo=UTC).isoformat(),
             "last_used": datetime(2026, 1, 1, 0, 0, 0, tzinfo=UTC).isoformat(),
             "jira_config": {},
             "field_mappings": {},
@@ -371,9 +346,7 @@ class TestQueryDeletionWithCascade:
             "profile_id": "default",
             "name": "Main",
             "jql": "project = TEST",
-            "created_at": datetime(
-                2026, 1, 1, 0, 0, 0, tzinfo=UTC
-            ).isoformat(),
+            "created_at": datetime(2026, 1, 1, 0, 0, 0, tzinfo=UTC).isoformat(),
             "last_used": datetime(2026, 1, 1, 0, 0, 0, tzinfo=UTC).isoformat(),
         }
         backend.save_query("default", main_query)
@@ -383,9 +356,7 @@ class TestQueryDeletionWithCascade:
             "profile_id": "default",
             "name": "Bugs",
             "jql": "type = Bug",
-            "created_at": datetime(
-                2026, 1, 1, 0, 0, 0, tzinfo=UTC
-            ).isoformat(),
+            "created_at": datetime(2026, 1, 1, 0, 0, 0, tzinfo=UTC).isoformat(),
             "last_used": datetime(2026, 1, 1, 0, 0, 0, tzinfo=UTC).isoformat(),
         }
         backend.save_query("default", bugs_query)
@@ -400,7 +371,8 @@ class TestQueryDeletionWithCascade:
         # Delete main query (now not active)
         delete_query("default", "main", allow_cascade=False)
 
-        # Try to delete bugs (now the only query AND active) - should fail with PermissionError first
+        # Try to delete bugs (now the only query and active).
+        # This should fail with PermissionError first.
         with pytest.raises(PermissionError) as exc_info:
             delete_query("default", "bugs", allow_cascade=False)
 
@@ -408,7 +380,8 @@ class TestQueryDeletionWithCascade:
 
     def test_delete_query_allows_deleting_last_query_with_cascade(self, temp_database):
         """
-        Verify can delete last query with allow_cascade=True (for profile cascade deletion).
+        Verify deleting last query with allow_cascade=True
+        for profile cascade deletion.
         Uses SQLite database backend via temp_database fixture.
         """
         from data.persistence.factory import get_backend
@@ -419,9 +392,7 @@ class TestQueryDeletionWithCascade:
         profile_data = {
             "id": "default",
             "name": "Default",
-            "created_at": datetime(
-                2026, 1, 1, 0, 0, 0, tzinfo=UTC
-            ).isoformat(),
+            "created_at": datetime(2026, 1, 1, 0, 0, 0, tzinfo=UTC).isoformat(),
             "last_used": datetime(2026, 1, 1, 0, 0, 0, tzinfo=UTC).isoformat(),
             "jira_config": {},
             "field_mappings": {},
@@ -433,9 +404,7 @@ class TestQueryDeletionWithCascade:
             "profile_id": "default",
             "name": "Main",
             "jql": "project = TEST",
-            "created_at": datetime(
-                2026, 1, 1, 0, 0, 0, tzinfo=UTC
-            ).isoformat(),
+            "created_at": datetime(2026, 1, 1, 0, 0, 0, tzinfo=UTC).isoformat(),
             "last_used": datetime(2026, 1, 1, 0, 0, 0, tzinfo=UTC).isoformat(),
         }
         backend.save_query("default", main_query)
@@ -445,9 +414,7 @@ class TestQueryDeletionWithCascade:
             "profile_id": "default",
             "name": "Bugs",
             "jql": "type = Bug",
-            "created_at": datetime(
-                2026, 1, 1, 0, 0, 0, tzinfo=UTC
-            ).isoformat(),
+            "created_at": datetime(2026, 1, 1, 0, 0, 0, tzinfo=UTC).isoformat(),
             "last_used": datetime(2026, 1, 1, 0, 0, 0, tzinfo=UTC).isoformat(),
         }
         backend.save_query("default", bugs_query)
@@ -478,9 +445,7 @@ class TestQueryDeletionWithCascade:
         profile_data = {
             "id": "default",
             "name": "Default",
-            "created_at": datetime(
-                2026, 1, 1, 0, 0, 0, tzinfo=UTC
-            ).isoformat(),
+            "created_at": datetime(2026, 1, 1, 0, 0, 0, tzinfo=UTC).isoformat(),
             "last_used": datetime(2026, 1, 1, 0, 0, 0, tzinfo=UTC).isoformat(),
             "jira_config": {},
             "field_mappings": {},
@@ -492,9 +457,7 @@ class TestQueryDeletionWithCascade:
             "profile_id": "default",
             "name": "Main",
             "jql": "project = TEST",
-            "created_at": datetime(
-                2026, 1, 1, 0, 0, 0, tzinfo=UTC
-            ).isoformat(),
+            "created_at": datetime(2026, 1, 1, 0, 0, 0, tzinfo=UTC).isoformat(),
             "last_used": datetime(2026, 1, 1, 0, 0, 0, tzinfo=UTC).isoformat(),
         }
         backend.save_query("default", main_query)
@@ -504,9 +467,7 @@ class TestQueryDeletionWithCascade:
             "profile_id": "default",
             "name": "Bugs",
             "jql": "type = Bug",
-            "created_at": datetime(
-                2026, 1, 1, 0, 0, 0, tzinfo=UTC
-            ).isoformat(),
+            "created_at": datetime(2026, 1, 1, 0, 0, 0, tzinfo=UTC).isoformat(),
             "last_used": datetime(2026, 1, 1, 0, 0, 0, tzinfo=UTC).isoformat(),
         }
         backend.save_query("default", bugs_query)
