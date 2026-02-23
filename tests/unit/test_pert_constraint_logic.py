@@ -47,7 +47,8 @@ class TestPERTConstraintLogic:
         max_pert_factor = min(max_pert_factor, 15)
 
         assert max_pert_factor == expected_max_pert, (
-            f"For {data_points} data points, expected max PERT factor {expected_max_pert}, "
+            f"For {data_points} data points, "
+            f"expected max PERT factor {expected_max_pert}, "
             f"got {max_pert_factor}"
         )
 
@@ -69,12 +70,14 @@ class TestPERTConstraintLogic:
         """
         Test PERT Factor minimum constraint calculation.
 
-        The minimum should be 1 for small datasets (<6 points) and 3 for larger datasets.
+        The minimum should be 1 for small datasets (<6 points)
+        and 3 for larger datasets.
         """
         min_pert_factor = 1 if data_points < 6 else 3
 
         assert min_pert_factor == expected_min_pert, (
-            f"For {data_points} data points, expected min PERT factor {expected_min_pert}, "
+            f"For {data_points} data points, "
+            f"expected min PERT factor {expected_min_pert}, "
             f"got {min_pert_factor}"
         )
 
@@ -188,7 +191,8 @@ class TestPERTConstraintLogic:
         # Test constraint satisfaction for edge cases
         min_required = max_pert_factor * 2
         assert min_required <= data_points, (
-            f"Large dataset constraint violated: need {min_required} but have {data_points}"
+            "Large dataset constraint violated: "
+            f"need {min_required} but have {data_points}"
         )
 
     def test_constraint_rule_documentation(self):

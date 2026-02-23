@@ -113,7 +113,9 @@ class TestHealthConsistency:
 
         # Health scores must match exactly
         assert app_health["overall_score"] == report_health["overall_score"], (
-            f"Health mismatch: app={app_health['overall_score']}, report={report_health['overall_score']}"
+            "Health mismatch: "
+            f"app={app_health['overall_score']}, "
+            f"report={report_health['overall_score']}"
         )
 
         # Formula versions must match
@@ -163,7 +165,9 @@ class TestHealthConsistency:
 
         # Health scores must match exactly (with dynamic weight redistribution)
         assert app_health["overall_score"] == report_health["overall_score"], (
-            f"Health mismatch without extended metrics: app={app_health['overall_score']}, report={report_health['overall_score']}"
+            "Health mismatch without extended metrics: "
+            f"app={app_health['overall_score']}, "
+            f"report={report_health['overall_score']}"
         )
 
     def test_health_calculation_consistency_partial_metrics(

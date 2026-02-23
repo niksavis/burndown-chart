@@ -170,7 +170,8 @@ class TestJiraScopeCalculationFormulas(unittest.TestCase):
             issues_with_all_points, "customfield_10002"
         )
 
-        # When all remaining items have points, estimated = remaining for both items and points
+        # When all remaining items have points, estimated equals remaining
+        # for both items and points.
         self.assertEqual(result["remaining_items"], 2, "2 remaining items")
         self.assertEqual(
             result["estimated_items"], 2, "All remaining items have points"
