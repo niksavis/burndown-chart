@@ -225,10 +225,14 @@ class TestAppReportHealthParity:
         df_report_windowed = df_report_windowed.sort_values("date", ascending=True)
 
         print(
-            f"Report filtered to {len(df_report_windowed)} weeks (requested {data_points_count})"
+            "Report filtered to "
+            f"{len(df_report_windowed)} weeks "
+            f"(requested {data_points_count})"
         )
         print(
-            f"Report date range: {df_report_windowed['date'].min()} to {df_report_windowed['date'].max()}"
+            "Report date range: "
+            f"{df_report_windowed['date'].min()} "
+            f"to {df_report_windowed['date'].max()}"
         )
 
         # Calculate velocity (report way)
@@ -287,13 +291,17 @@ class TestAppReportHealthParity:
         print(f"\nFiltered weeks: App={len(df_app)}, Report={len(df_report_windowed)}")
         print(f"Velocity: App={app_velocity:.2f}, Report={report_velocity:.2f}")
         print(
-            f"Completion: App={app_completion_pct:.2f}%, Report={report_completion_pct:.2f}%"
+            "Completion: "
+            f"App={app_completion_pct:.2f}%, "
+            f"Report={report_completion_pct:.2f}%"
         )
         print(
             f"Velocity CV: App={app_velocity_cv:.2f}%, Report={report_velocity_cv:.2f}%"
         )
         print(
-            f"\nFINAL HEALTH: App={app_health['overall_score']}%, Report={report_health['overall_score']}%"
+            "\nFINAL HEALTH: "
+            f"App={app_health['overall_score']}%, "
+            f"Report={report_health['overall_score']}%"
         )
 
         # Compare dashboard metrics
