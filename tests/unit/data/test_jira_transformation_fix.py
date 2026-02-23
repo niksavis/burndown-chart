@@ -47,7 +47,8 @@ def test_story_points_extraction():
 
         status = "[OK]" if result == expected_output else "[X]"
         print(
-            f"   {status} Test {i}: {input_value} → {result} (expected {expected_output})"
+            f"   {status} Test {i}: {input_value} → {result} "
+            f"(expected {expected_output})"
         )
 
         if result != expected_output:
@@ -102,7 +103,8 @@ def test_votes_field_in_transformation():
         csv_data = jira_to_csv_format(test_issues, config)
 
         print(
-            f"   [OK] Transformation SUCCESS! Generated {len(csv_data)} weekly data points"
+            "   [OK] Transformation SUCCESS! "
+            f"Generated {len(csv_data)} weekly data points"
         )
 
         # Check if votes were properly extracted

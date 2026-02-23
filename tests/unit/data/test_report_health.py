@@ -78,10 +78,13 @@ def test_dashboard_metrics_uses_comprehensive_health():
     assert "total_items" in result
     assert "velocity_items" in result
 
-    # Verify health score is reasonable for early stage project with good velocity
-    # With 26.7% completion, improving trend, and low CV, score should be moderate (30-70)
+    # Verify health score is reasonable for early stage project
+    # with good velocity.
+    # With 26.7% completion, improving trend, and low CV,
+    # score should be moderate (30-70).
     assert 20 <= result["health_score"] <= 80, (
-        f"Health score {result['health_score']} outside expected range for early project"
+        f"Health score {result['health_score']} outside expected "
+        "range for early project"
     )
 
 

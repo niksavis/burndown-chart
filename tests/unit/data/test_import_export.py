@@ -396,7 +396,7 @@ class TestExportProfileWithMode:
         pytest.skip("Function uses hardcoded 'profiles' dir - needs integration test")
 
     def test_export_config_only_size_reduction(self):
-        """T024: Verify CONFIG_ONLY exports are significantly smaller (90%+ reduction)."""
+        """T024: Verify CONFIG_ONLY exports are significantly smaller."""
         # Given - Sample data structures
         config_only_export = {
             "manifest": {
@@ -520,7 +520,8 @@ class TestExportFullDataMode:
         """T032: Verify FULL_DATA mode exports ALL queries (true full-profile export).
 
         This ensures complete profile backup including all queries the user has created.
-        Updated: Changed from single-query to all-queries export for better backup coverage.
+        Updated: Changed from single-query to all-queries export
+        for better backup coverage.
         """
         # Given - Profile with multiple queries
         profile_with_multiple_queries = {

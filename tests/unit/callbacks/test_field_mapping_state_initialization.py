@@ -194,9 +194,10 @@ class TestFieldMappingStateInitialization:
     def test_render_reinitializes_when_profile_tracking_only(
         self, mock_dash_ctx, mock_callback_ctx, mock_load_settings, mock_fetch_fields
     ):
-        """Test that state with only _profile_id is considered empty and gets reinitialized."""
+        """Test state with only _profile_id is treated as empty and reinitialized."""
         # Arrange: Mock fetch_available_jira_fields to prevent real JIRA API calls
-        # CRITICAL: Without this mock, fetch_available_jira_fields() calls load_jira_configuration()
+        # CRITICAL: Without this mock, fetch_available_jira_fields()
+        # calls load_jira_configuration()
         # which triggers migration code that WRITES to the real profile.json!
         mock_fetch_fields.return_value = []
 
