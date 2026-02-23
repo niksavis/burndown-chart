@@ -5,7 +5,8 @@ NOTE: These tests are currently disabled as they test internal helper functions
 (_create_weekly_velocity_section, _create_velocity_footer_content) that were
 refactored during the components.py extraction (bd-rnol).
 
-The public API (create_pert_info_table) is tested in test_velocity_metrics_integration.py
+The public API (create_pert_info_table) is tested in
+test_velocity_metrics_integration.py
 and those tests continue to pass, confirming the functionality works correctly.
 
 TODO: Either delete this file or rewrite tests to use public API instead of internals.
@@ -121,7 +122,7 @@ class TestVelocityUIFilteringContext:
             pytest.fail(f"Function should accept new parameters without error: {e}")
 
     def test_weekly_velocity_section_backward_compatibility(self):
-        """Test that _create_weekly_velocity_section maintains backward compatibility."""
+        """Test _create_weekly_velocity_section backward compatibility."""
         # Sample trend values (same as above)
         sample_trend_values = {
             "avg_weekly_items": 5.2,

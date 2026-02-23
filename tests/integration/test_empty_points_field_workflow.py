@@ -4,7 +4,8 @@ Test for empty points field caching scenarios - reproduces and tests user report
 User Reported Bug:
 - Points Field is empty but Remaining Total Points shows 1394 instead of 0
 - Remaining Total Items shows 295 instead of expected value
-- This happens before clicking "Calculate Scope" - suggests caching issue with "Update Data"
+- This happens before clicking "Calculate Scope"
+    - suggests caching issue with "Update Data"
 
 Root Cause Analysis:
 The bug was NOT in cache invalidation (which works correctly) but in user workflow:
@@ -54,9 +55,7 @@ class TestEmptyPointsFieldCachingWorkflow:
         profile_data = {
             "id": self.test_profile_id,
             "name": "Empty Points Test Profile",
-            "created_at": datetime(
-                2026, 1, 1, 0, 0, 0, tzinfo=UTC
-            ).isoformat(),
+            "created_at": datetime(2026, 1, 1, 0, 0, 0, tzinfo=UTC).isoformat(),
             "last_used": datetime(2026, 1, 1, 0, 0, 0, tzinfo=UTC).isoformat(),
             "jira_config": {
                 "base_url": "https://test.jira.com",
@@ -251,7 +250,7 @@ class TestEmptyPointsFieldCachingWorkflow:
             assert updated_scope.get("remaining_points") == 0
 
     def test_cache_invalidation_votes_to_empty(self):
-        """Test that cache is properly invalidated when switching from votes to empty."""
+        """Test cache invalidation when switching from votes to empty."""
 
         # This test verifies the cache invalidation logic works correctly
         # (which it does based on our previous tests)

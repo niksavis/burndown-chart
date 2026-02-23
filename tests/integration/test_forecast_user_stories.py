@@ -5,7 +5,9 @@ Tests:
 - US4: WIP health with forecast ranges (Flow Load bidirectional)
 - US5: Baseline building (<4 weeks of data)
 
-Run: .\\.venv\\Scripts\\activate; pytest tests/integration/test_forecast_user_stories.py -v
+Run:
+    .\\.venv\\Scripts\\activate
+    pytest tests/integration/test_forecast_user_stories.py -v
 """
 
 import shutil
@@ -96,7 +98,8 @@ def isolated_metrics_snapshots():
     patches = [
         patch("data.persistence.factory.get_backend", side_effect=mock_get_backend),
         patch("data.database.get_db_connection", side_effect=mock_get_db_connection),
-        # Note: sqlite.backend no longer exposes get_db_connection (uses internal connection)
+        # Note: sqlite.backend no longer exposes get_db_connection
+        # (uses internal connection)
     ]
 
     for p in patches:
