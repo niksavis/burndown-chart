@@ -86,7 +86,7 @@ class TestGetActiveQueryId:
         assert result is None
 
     def test_raises_if_active_query_id_missing(self, temp_database):
-        """Verify returns None when active_query_id is missing (valid state for empty profile)."""
+        """Verify None return when active_query_id is missing."""
         from data.persistence.factory import get_backend
         from data.query_manager import get_active_query_id
 

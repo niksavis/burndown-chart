@@ -64,7 +64,7 @@ class TestSensitiveDataFilter:
         assert "secretPass123" not in record.msg
 
     def test_preserve_production_urls(self):
-        """Test that production URLs are NOT redacted (intentionally kept for debugging)."""
+        """Test production URLs are not redacted for debugging."""
         record = logging.LogRecord(
             name="test",
             level=logging.INFO,

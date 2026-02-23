@@ -350,7 +350,8 @@ class TestProgressionThroughWeek:
         )
         monday_blend = calculate_current_week_blend(monday_actual, forecast, monday)
 
-        # Friday should show blended (80% actual, 20% forecast): 12*0.8 + 11.5*0.2 = 9.6 + 2.3 = 11.9
+        # Friday blended value (80% actual, 20% forecast):
+        # 12*0.8 + 11.5*0.2 = 9.6 + 2.3 = 11.9
         assert friday_blend == pytest.approx(11.9, rel=0.01)
         # Monday should show forecast (11.5), NOT zero
         assert monday_blend == pytest.approx(11.5, rel=0.01)
