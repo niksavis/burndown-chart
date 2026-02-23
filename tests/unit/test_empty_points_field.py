@@ -103,8 +103,9 @@ class TestEmptyPointsField(unittest.TestCase):
         self.assertEqual(result["estimated_items"], 2)
 
     def test_empty_points_field_with_many_issues(self):
-        """Test empty points field behavior with a larger dataset similar to user scenario."""
-        # Create a larger dataset similar to the user's scenario with 195 total items
+        """Test empty points behavior with a larger user-like dataset."""
+        # Create a larger dataset similar to the user's scenario
+        # with 195 total items
         large_issues = []
 
         # Add 145 completed issues (Done status)

@@ -197,7 +197,8 @@ class TestProfileCascadeDeletion:
         Database cascade deletion is atomic - this test is no longer applicable.
         Database foreign keys handle cascade deletion automatically.
         """
-        # SKIPPED: Database backend handles cascade deletion via foreign key constraints.
+        # SKIPPED: Database backend handles cascade deletion via
+        # foreign key constraints.
         # No need to test error handling for individual query deletions.
         pass
 

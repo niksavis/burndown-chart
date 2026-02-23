@@ -112,7 +112,8 @@ class TestGetRelativeTimeString:
             parts = result.split()
             assert len(parts) == 2
             assert parts[0][0].isupper()  # Month starts with capital
-            # Day part might have leading zero stripped, so just check it contains digits
+            # Day part might have leading zero stripped,
+            # so just check it contains digits
             assert any(c.isdigit() for c in parts[1])
         else:
             # If we crossed years, should get "Mon 'YY" format instead

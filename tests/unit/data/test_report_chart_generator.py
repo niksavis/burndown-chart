@@ -496,7 +496,7 @@ class TestChartScriptFormat:
     """Test that all generated scripts have correct format."""
 
     def test_all_scripts_are_iife(self):
-        """Test all scripts are wrapped in IIFE (Immediately Invoked Function Expression)."""
+        """Test all scripts are wrapped in an IIFE."""
         metrics = {
             "burndown": {
                 "has_data": True,
