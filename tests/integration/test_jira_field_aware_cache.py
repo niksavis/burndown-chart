@@ -107,7 +107,10 @@ def isolated_jira_cache_test():
 
 
 @pytest.mark.skip(
-    reason="Test expects JSON file caching, but app now uses database-first caching with JSON fallback"
+    reason=(
+        "Test expects JSON file caching, but app now uses database-first caching "
+        "with JSON fallback"
+    )
 )
 def test_field_aware_caching():
     """Test that cache invalidates when field configuration changes."""

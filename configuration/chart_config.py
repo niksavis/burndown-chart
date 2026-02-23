@@ -122,7 +122,8 @@ def get_chart_layout_config(
         margin: Custom margins dict with t, r, b, l keys (default: None, uses standards)
         font_size: Base font size for chart text (default: 12)
         show_legend: Display chart legend (default: True)
-        legend_position: Legend position - 'top', 'bottom', 'left', 'right' (default: 'top')
+        legend_position: Legend position - 'top', 'bottom', 'left',
+            'right' (default: 'top')
         mobile_optimized: Apply mobile-friendly spacing (default: True)
         **kwargs: Additional layout options to override defaults
 

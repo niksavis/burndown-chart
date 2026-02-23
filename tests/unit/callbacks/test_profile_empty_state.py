@@ -102,7 +102,7 @@ class TestProfileEmptyState:
                 assert "highlight-first-action" not in new_button_class
 
     def test_load_statistics_returns_empty_when_no_active_profile(self):
-        """Verify load_statistics gracefully returns empty list when no active profile."""
+        """Verify load_statistics returns empty list with no active profile."""
         from data.persistence.adapters import load_statistics
 
         with patch("data.persistence.factory.get_backend") as mock_backend_factory:

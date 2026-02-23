@@ -138,7 +138,9 @@ DORA_METRIC_NAMES = {
 
 # Metric descriptions
 DORA_METRIC_DESCRIPTIONS = {
-    "deployment_frequency": "How frequently code is successfully deployed to production",
+    "deployment_frequency": (
+        "How frequently code is successfully deployed to production"
+    ),
     "lead_time_for_changes": "Time from code commit to production deployment",
     "change_failure_rate": "Percentage of deployments causing failures or incidents",
     "mean_time_to_recovery": "Time to restore service after a production incident",

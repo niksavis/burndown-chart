@@ -4,7 +4,6 @@ Sample JIRA cache data fixtures for testing.
 Provides mock JIRA API response data for testing without real API calls.
 """
 
-
 import pytest
 
 
@@ -66,7 +65,9 @@ def sample_jira_cache_data(sample_jira_issue) -> dict:
     return {
         "version": "2.0",
         "jql_query": "project = TEST AND created >= -12w ORDER BY created DESC",
-        "fields": "key,summary,status,created,updated,issuetype,priority,customfield_10002",
+        "fields": (
+            "key,summary,status,created,updated,issuetype,priority,customfield_10002"
+        ),
         "cached_at": "2025-11-13T10:00:00.000000",
         "issue_count": 150,
         "issues": [sample_jira_issue] * 150,  # Simulate 150 issues
