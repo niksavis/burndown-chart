@@ -28,7 +28,7 @@ class TestDoraJiraCompatibilityValidation:
         assert result["alternative_metrics_available"] is False
 
     def test_issue_tracker_with_proxy_fields(self):
-        """Test validation with standard JIRA fields as proxies (Apache Kafka scenario)."""
+        """Validate standard JIRA fields used as proxy mappings."""
         field_mappings = {
             "deployment_date": "resolutiondate",
             "incident_detected_at": "created",
@@ -53,7 +53,7 @@ class TestDoraJiraCompatibilityValidation:
         assert "resolved issues" in deployment_warning["issue"].lower()
 
     def test_recommended_interpretations_for_issue_tracker(self):
-        """Test that alternative metric interpretations are provided for issue trackers."""
+        """Verify alternative metric interpretations for issue trackers."""
         field_mappings = {
             "deployment_date": "resolutiondate",
             "incident_detected_at": "created",

@@ -243,7 +243,8 @@ class TestFlowEfficiencyClean:
         """Test efficiency calculation with active and total time.
 
         Note: This test requires complex variable mapping configuration for active_time
-        and total_time variables. Currently skipped in favor of simpler integration tests.
+        and total_time variables.
+        Currently skipped in favor of simpler integration tests.
         """
         # Skip test - requires complex DEFAULT_VARIABLE_COLLECTION setup
         pass

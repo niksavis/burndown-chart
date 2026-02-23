@@ -76,7 +76,7 @@ def mock_profile_config() -> dict[str, Any]:
 
 @pytest.fixture
 def mock_load_app_settings(temp_database, mock_profile_config):
-    """Patch load_app_settings to return mock profile config AND mock get_metrics_config.
+    """Patch load_app_settings with mock profile and metrics config.
 
     Args:
         temp_database: Ensures database is initialized before tests run
@@ -290,7 +290,8 @@ class TestFlowVelocity:
     def test_flow_velocity_breakdown_by_type(self, mock_load_app_settings):
         """Test velocity breakdown by flow type mappings.
 
-        Given: 2 Tasks (Feature), 1 Bug (Defect), 1 Story with Maintenance (Technical Debt)
+        Given: 2 Tasks (Feature), 1 Bug (Defect), and 1 Story with
+        Maintenance (Technical Debt).
         Expected: Breakdown shows correct categorization
         """
         from data.flow_metrics import calculate_flow_velocity
@@ -308,7 +309,8 @@ class TestFlowVelocity:
 
         assert result["error_state"] is None
         assert "breakdown" in result
-        # Task and Story → Feature (2 + 0), Bug → Defect (1), Story + Maintenance → Technical Debt (1)
+        # Task and Story → Feature (2 + 0), Bug → Defect (1),
+        # Story + Maintenance → Technical Debt (1).
         # Note: Classification depends on flow_type_mappings priority
 
     def test_flow_velocity_different_time_periods(self, mock_load_app_settings):
@@ -434,11 +436,13 @@ class TestFlowTime:
                 "changelog": {
                     "histories": [
                         {
-                            "created": "2025-01-03T10:00:00.000+0000",  # This is when we moved to In Progress
+                            "created": "2025-01-03T10:00:00.000+0000",
+                            # This is when we moved to In Progress.
                             "items": [{"field": "status", "toString": "In Progress"}],
                         },
                         {
-                            "created": "2025-01-10T10:00:00.000+0000",  # This is when we moved to Done
+                            "created": "2025-01-10T10:00:00.000+0000",
+                            # This is when we moved to Done.
                             "items": [{"field": "status", "toString": "Done"}],
                         },
                     ]
@@ -485,7 +489,8 @@ class TestFlowEfficiency:
     Formula: (Active Time / Total Time) * 100
     Uses:
         - active_statuses: In Progress, In Review, Testing
-        - wip_statuses: In Progress, In Review, Testing, Ready for Testing, In Deployment
+                - wip_statuses: In Progress, In Review, Testing,
+                    Ready for Testing, In Deployment
     """
 
     def test_flow_efficiency_full_active(self, mock_load_app_settings):
@@ -524,7 +529,8 @@ class TestFlowEfficiency:
     def test_flow_efficiency_partial_active(self, mock_load_app_settings):
         """Test partial efficiency with waiting time.
 
-        Given: 2 days In Progress (active), 3 days Ready for Testing (WIP but not active)
+        Given: 2 days In Progress (active), and 3 days Ready for
+        Testing (WIP but not active).
         Expected: 40% efficiency (2/5 days)
         """
         from data.flow_metrics import calculate_flow_efficiency
@@ -612,7 +618,8 @@ class TestFlowLoad:
     """Test Flow Load metric calculation.
 
     Measures: Current WIP (work in progress) count
-    Uses: wip_statuses (In Progress, In Review, Testing, Ready for Testing, In Deployment)
+        Uses: wip_statuses (In Progress, In Review, Testing,
+            Ready for Testing, In Deployment)
     Note: The info message should say "across WIP statuses" not "active statuses"
     """
 

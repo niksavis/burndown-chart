@@ -144,7 +144,7 @@ class TestHealthScoreConsistency:
     def test_export_import_preserves_show_points(
         self, profile_with_artificial_points, query_with_statistics
     ):
-        """Integration test: Verify show_points preserved through export/import cycle."""
+        """Integration test verifying show_points survives export/import."""
         from unittest.mock import MagicMock, patch
 
         from data.import_export import export_profile_with_mode
@@ -202,14 +202,15 @@ class TestHealthScoreConsistency:
             query_data = export_package["query_data"]["q_test1"]
             assert "project_scope" in query_data
             assert "metrics" in query_data, (
-                "metrics missing from exported query_data (CRITICAL for health consistency)"
+                "metrics missing from exported query_data "
+                "(CRITICAL for health consistency)"
             )
             assert len(query_data["metrics"]) > 0, (
                 "metrics array is empty (should include DORA/Flow/Bug metrics)"
             )
 
     def test_different_completion_percentages_cause_health_difference(self):
-        """Verify that using items vs points completion causes health score difference."""
+        """Verify items vs points completion can change health score."""
         from data.project_health_calculator import (
             calculate_comprehensive_project_health,
             prepare_dashboard_metrics_for_health,
