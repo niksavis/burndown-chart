@@ -174,11 +174,14 @@ class TestScopeBaselineConsistency(unittest.TestCase):
         expected_current_total_items = baseline_items + total_created_items
         expected_current_total_points = baseline_points + total_created_points
 
-        # Verify this matches reality: completed + remaining + (created items not yet completed)
-        # In a real project: current_total = remaining + (completed that were original) + (created items)
+        # Verify this matches reality:
+        # completed + remaining + (created items not yet completed)
+        # In a real project: current_total = remaining
+        # + (completed that were original) + (created items)
         # Simplification: If we assume created items are either completed or remaining,
         # then: current_total = remaining + all_completed = baseline + net_created
-        # But in our test data, created items may already be in completed/remaining counts
+        # But in our test data, created items may already be in
+        # completed/remaining counts
 
         # The key assertion: Current Total = Baseline + Created
         self.assertEqual(
