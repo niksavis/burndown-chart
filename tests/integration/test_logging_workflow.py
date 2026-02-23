@@ -109,7 +109,8 @@ def test_logging_workflow_end_to_end(temp_log_dir):
     # Test cleanup
     shutdown_logging()
 
-    # Verify we can delete files after shutdown (returns count, may be 0 if files are too new)
+    # Verify we can delete files after shutdown.
+    # Returns count, may be 0 if files are too new.
     _ = cleanup_old_logs(log_dir=temp_log_dir, max_age_days=0)
 
 
@@ -224,7 +225,9 @@ def test_multiple_handlers_write_correctly(temp_log_dir):
         app_log_lines = [line for line in f if line.strip()]
 
     assert len(app_log_lines) == 6, (
-        f"app.log should have 6 entries (INFO, WARNING, ERROR, CRITICAL, + 2 sensitive), got {len(app_log_lines)}"
+        "app.log should have 6 entries "
+        "(INFO, WARNING, ERROR, CRITICAL, + 2 sensitive), "
+        f"got {len(app_log_lines)}"
     )
 
     # Verify errors.log has ERROR, CRITICAL only (2 messages + 1 sensitive)
@@ -233,7 +236,9 @@ def test_multiple_handlers_write_correctly(temp_log_dir):
         error_log_lines = [line for line in f if line.strip()]
 
     assert len(error_log_lines) == 3, (
-        f"errors.log should have 3 entries (ERROR, CRITICAL, + 1 sensitive ERROR), got {len(error_log_lines)}"
+        "errors.log should have 3 entries "
+        "(ERROR, CRITICAL, + 1 sensitive ERROR), "
+        f"got {len(error_log_lines)}"
     )
 
     # Verify ERROR and CRITICAL are in both files

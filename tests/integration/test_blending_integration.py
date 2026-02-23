@@ -47,7 +47,8 @@ class TestBlendingIntegration:
         monday = datetime(2026, 2, 9, 10, 0)  # Monday 10:00 AM
 
         # Prior 4 weeks: [10, 11, 12, 13]
-        # Weighted forecast (0.1, 0.2, 0.3, 0.4): 10*0.1 + 11*0.2 + 12*0.3 + 13*0.4 = 12.0
+        # Weighted forecast (0.1, 0.2, 0.3, 0.4):
+        # 10*0.1 + 11*0.2 + 12*0.3 + 13*0.4 = 12.0
         prior_weeks = sample_weekly_values[:-1]
         forecast_data = calculate_forecast(prior_weeks)
         assert forecast_data is not None, "Forecast calculation failed"
@@ -212,7 +213,8 @@ class TestProcessingIntegration:
         from data.processing import calculate_weekly_averages
 
         # TODO: Implement mock for metric snapshots
-        # Should verify that calculate_weekly_averages() applies blending to current week
+        # Should verify calculate_weekly_averages()
+        # applies blending to current week
         # Expected: Monday shows stable forecast, not raw actual
 
         tuesday = datetime(2026, 2, 10, 10, 0)  # Week 10 = Tuesday
@@ -230,7 +232,8 @@ class TestProcessingIntegration:
             # Call function
             avg_items, _, _, _ = calculate_weekly_averages([], data_points_count=5)
 
-            # Verify: Tuesday with actual=2, forecast=12.0 (weighted average of [10,11,12,13])
+            # Verify Tuesday with actual=2, forecast=12.0
+            # (weighted average of [10, 11, 12, 13])
             # Blended = (2 * 0.2) + (12.0 * 0.8) = 10.0
             # Average of [10, 11, 12, 13, 10.0] = 11.2
             assert avg_items == pytest.approx(11.2, abs=0.1)

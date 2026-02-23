@@ -18,7 +18,7 @@ from data.scope_metrics import calculate_weekly_scope_growth
 
 
 class TestBaselineWithScopeCreep(unittest.TestCase):
-    """Test that baseline calculations handle scope creep correctly in filtered windows."""
+    """Test baseline calculations with scope creep in filtered windows."""
 
     def setUp(self):
         """Set up test data representing a project with significant scope creep."""
@@ -125,7 +125,7 @@ class TestBaselineWithScopeCreep(unittest.TestCase):
 
     def test_baseline_calculation_with_filtered_window(self):
         """
-        Test that baseline calculation correctly accounts for created items in filtered window.
+        Test baseline calculation with created items in filtered window.
 
         When filtering to last 12 weeks (data_points_count=12):
         - Current remaining: 50 items
@@ -186,7 +186,8 @@ class TestBaselineWithScopeCreep(unittest.TestCase):
         With the fix:
         - Chart shows: baseline + cumulative_net_change
         - Where cumulative_net_change = cumsum(created - completed)
-        - As long as baseline > 0 and we don't complete more than baseline, chart stays positive
+                - If baseline > 0 and completed does not exceed baseline,
+                    chart stays positive
         """
         # Calculate weekly growth
         weekly_data = calculate_weekly_scope_growth(self.statistics_df)
