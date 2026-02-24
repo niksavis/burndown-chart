@@ -59,7 +59,8 @@ def create_mobile_parameter_bottom_sheet(
 
     Args:
         settings: Dictionary containing current parameter values
-        statistics: Optional list of statistics data points for calculating max data points
+        statistics: Optional list of statistics data points for
+            calculating max data points
 
     Returns:
         dbc.Offcanvas: Mobile parameter bottom sheet component
@@ -117,15 +118,22 @@ def create_mobile_parameter_bottom_sheet(
                         className="mb-0",
                     ),
                 ],
-                className="d-flex justify-content-between align-items-center mb-3 pb-3 border-bottom",
+                className=(
+                    "d-flex justify-content-between align-items-center "
+                    "mb-3 pb-3 border-bottom"
+                ),
             ),
             # Scrollable content area
             html.Div(
                 [
-                    # NOTE: Timeline section (Deadline/Milestone) removed - desktop pickers
-                    # use responsive dbc.Col (xs=12, md=6, lg=3) which already works on mobile.
-                    # Mobile bottom sheet is unused (FAB never added to layout), so these
-                    # duplicate pickers were dead code. Date inputs now unified in Parameters tab.
+                    # NOTE: Timeline section (Deadline/Milestone)
+                    # removed - desktop pickers use responsive
+                    # dbc.Col (xs=12, md=6, lg=3) which already
+                    # works on mobile.
+                    # Mobile bottom sheet is unused (FAB never
+                    # added to layout), so these duplicate pickers
+                    # were dead code. Date inputs now unified in
+                    # Parameters tab.
                     # Confidence Window Section (formerly PERT Factor)
                     html.Div(
                         [

@@ -20,16 +20,19 @@ def create_parameter_panel_expanded(
     """
     Create expanded parameter panel section with all input fields.
 
-    This component supports User Story 1: Quick Parameter Adjustments While Viewing Charts.
+    This component supports User Story 1: Quick Parameter Adjustments
+    While Viewing Charts.
     When expanded, it displays ALL forecast-critical parameter input fields matching
     the functionality of the old Input Parameters card with improved UX using sliders.
 
     User Story 6: Contextual Help System - Adds help icons to parameter inputs.
 
     Args:
-        settings: Dictionary containing current parameter values (pert_factor, deadline, etc.)
+        settings: Dictionary containing current parameter values
+            (pert_factor, deadline, etc.)
         id_suffix: Suffix for generating unique IDs
-        statistics: Optional list of statistics data points for calculating max data points
+        statistics: Optional list of statistics data points for
+            calculating max data points
 
     Returns:
         html.Div: Expanded parameter panel with complete input fields and help tooltips
@@ -82,7 +85,8 @@ def create_parameter_panel_expanded(
                     # Tabs row with collapse button
                     html.Div(
                         [
-                            # Collapse button (positioned absolutely, so order doesn't matter)
+                            # Collapse button (positioned absolutely,
+                            # so order doesn't matter)
                             create_panel_collapse_button("parameter-collapse"),
                             # Tabbed interface matching Settings panel
                             dbc.Tabs(
@@ -94,7 +98,8 @@ def create_parameter_panel_expanded(
                                         children=[
                                             html.Div(
                                                 [
-                                                    # No header - tab label serves as title
+                                                    # No header - tab label
+                                                    # serves as title
                                                     # Section 1: Project Timeline
                                                     html.Div(
                                                         _create_timeline_section(
@@ -103,7 +108,9 @@ def create_parameter_panel_expanded(
                                                             data_points_marks,
                                                             max_data_points,
                                                         ),
-                                                        className="mb-4 pb-3 border-bottom",
+                                                        className=(
+                                                            "mb-4 pb-3 border-bottom"
+                                                        ),
                                                     ),
                                                     # Section 2: Work Scope
                                                     html.Div(

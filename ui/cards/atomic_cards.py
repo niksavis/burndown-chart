@@ -45,7 +45,8 @@ def create_info_card(
     in specs/006-ux-ui-redesign/contracts/component-builders.md
 
     Args:
-        title: Card title/label (required) - can be string or Dash component for rich formatting
+        title: Card title/label (required) - can be string or Dash
+            component for rich formatting
         value: Primary value to display (required)
         icon: Optional Font Awesome icon name (without "fa-" prefix)
         subtitle: Optional subtitle/description
@@ -270,7 +271,10 @@ def create_dashboard_metrics_card(
             "variant": "default",
             "value_field": "days_to_completion",
             "value_suffix": " days",
-            "subtitle_template": "{completion_percentage}% complete • {completion_confidence}% confidence",
+            "subtitle_template": (
+                "{completion_percentage}% complete • "
+                "{completion_confidence}% confidence"
+            ),
             "help_key": "completion_forecast",
         },
         "velocity": {
@@ -279,7 +283,9 @@ def create_dashboard_metrics_card(
             "variant": "default",
             "value_field": "current_velocity_items",
             "value_suffix": " items/week",
-            "subtitle_template": "{current_velocity_points} pts/week • {velocity_trend}",
+            "subtitle_template": (
+                "{current_velocity_points} pts/week • {velocity_trend}"
+            ),
             "help_key": "velocity_trend",
         },
         "remaining": {
@@ -333,7 +339,8 @@ def create_dashboard_metrics_card(
         style={"display": "flex", "alignItems": "center"},
     )
 
-    # Extract 'id' from kwargs to avoid conflict with create_info_card's auto-generated ID
+    # Extract 'id' from kwargs to avoid conflict with create_info_card's
+    # auto-generated ID
     # We'll let create_info_card generate the ID based on the title
     # The dashboard callback uses container IDs, not the card IDs directly
     kwargs.pop("id", None)  # Remove any id from kwargs

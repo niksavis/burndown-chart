@@ -1,7 +1,9 @@
 """Work Distribution metric card component.
 
-Displays work distribution breakdown across 4 Flow item types (Feature, Defect, Tech Debt, Risk)
-with stacked bar chart showing historical trends. Matches the style of other DORA/Flow metric cards.
+Displays work distribution breakdown across 4 Flow item types
+(Feature, Defect, Tech Debt, Risk) with stacked bar chart
+showing historical trends. Matches the style of other
+DORA/Flow metric cards.
 
 This card is 2x wider than regular metric cards (width=12 instead of 6).
 """
@@ -103,10 +105,16 @@ def create_work_distribution_card(
 
     # Build card header with title and badge with tooltip
     badge_id = f"{card_id}-badge" if card_id else "work-distribution-badge"
+    distribution_tooltip = (
+        "Distribution of completed work across Flow item types. "
+        "Healthy balance: Feature >60% (higher is better), "
+        "Defect <20% (lower is better), Tech Debt <10% "
+        "(lower is better), Risk 0-10% (acceptable)."
+    )
 
     card_header = create_metric_card_header(
         title="Work Distribution",
-        tooltip_text="Distribution of completed work across Flow item types. Healthy balance: Feature >60% (higher is better), Defect <20% (lower is better), Tech Debt <10% (lower is better), Risk 0-10% (acceptable).",
+        tooltip_text=distribution_tooltip,
         tooltip_id="work-distribution",
         badge=dbc.Badge(
             badge_text,
@@ -147,7 +155,10 @@ def create_work_distribution_card(
                                             className="h5 mb-0 text-success",
                                         ),
                                     ],
-                                    className="d-flex align-items-baseline justify-content-center",
+                                    className=(
+                                        "d-flex align-items-baseline "
+                                        "justify-content-center"
+                                    ),
                                 ),
                             ],
                             className="text-center",
@@ -197,7 +208,10 @@ def create_work_distribution_card(
                                             className="h5 mb-0 text-danger",
                                         ),
                                     ],
-                                    className="d-flex align-items-baseline justify-content-center",
+                                    className=(
+                                        "d-flex align-items-baseline "
+                                        "justify-content-center"
+                                    ),
                                 ),
                             ],
                             className="text-center",
@@ -248,7 +262,10 @@ def create_work_distribution_card(
                                             className="h5 mb-0 text-points",
                                         ),
                                     ],
-                                    className="d-flex align-items-baseline justify-content-center",
+                                    className=(
+                                        "d-flex align-items-baseline "
+                                        "justify-content-center"
+                                    ),
                                 ),
                             ],
                             className="text-center",
@@ -298,7 +315,10 @@ def create_work_distribution_card(
                                             className="h5 mb-0 text-warning",
                                         ),
                                     ],
-                                    className="d-flex align-items-baseline justify-content-center",
+                                    className=(
+                                        "d-flex align-items-baseline "
+                                        "justify-content-center"
+                                    ),
                                 ),
                             ],
                             className="text-center",
@@ -335,13 +355,17 @@ def create_work_distribution_card(
     # Create stacked bar chart using visualization module (same pattern as other charts)
     fig = create_work_distribution_chart(distribution_history)
 
-    # Add relationship hint for work distribution patterns (before chart, matching metric_cards.py)
+    # Add relationship hint for work distribution patterns
+    # (before chart, matching metric_cards.py)
     relationship_hint = None
     if defect_pct > 30 or tech_debt_pct > 15:
         relationship_hint = html.P(
             [
                 html.I(className="fas fa-lightbulb me-1"),
-                "High defect/debt work reduces capacity for features and may signal quality issues",
+                (
+                    "High defect/debt work reduces capacity for features "
+                    "and may signal quality issues"
+                ),
             ],
             className="text-muted text-center small mb-2 metric-hint",
         )
@@ -528,7 +552,10 @@ def create_work_distribution_no_metrics_card(
                 ),
                 html.H5("Metrics Not Yet Calculated", className="text-dark mb-2"),
                 html.P(
-                    "Flow metrics are calculated from your JIRA data and cached for fast display.",
+                    (
+                        "Flow metrics are calculated from your JIRA data "
+                        "and cached for fast display."
+                    ),
                     className="text-muted mb-3",
                 ),
                 html.P(
