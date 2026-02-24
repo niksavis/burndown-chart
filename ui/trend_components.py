@@ -24,7 +24,8 @@ TREND_COLORS = {
 
 def create_compact_trend_indicator(trend_data, metric_name="Items"):
     """
-    Create a compact trend indicator component that shows performance trends in a space-efficient way.
+    Create a compact trend indicator component that shows performance trends
+    in a space-efficient way.
 
     Args:
         trend_data: Dictionary containing trend information
@@ -39,7 +40,8 @@ def create_compact_trend_indicator(trend_data, metric_name="Items"):
     previous_avg = trend_data.get("previous_avg", 0)
     weeks_compared = trend_data.get("weeks_compared", 4)
 
-    # Check if we're in baseline building mode (need 8 weeks: 4 recent + 4 older for comparison)
+    # Check if we're in baseline building mode
+    # (need 8 weeks: 4 recent + 4 older for comparison)
     # Two conditions indicate insufficient data:
     # 1. weeks_compared < 4 means not enough weeks after aggregation
     # 2. total_weeks_available < 8 means insufficient total data
@@ -85,6 +87,18 @@ def create_compact_trend_indicator(trend_data, metric_name="Items"):
         bg_color = "rgba(220, 53, 69, 0.1)"
         border_color = "rgba(220, 53, 69, 0.2)"
 
+    # Pre-compute trend badge to avoid long inline ternaries
+    if direction == "baseline":
+        if total_weeks_available == 0:
+            trend_badge = "Building baseline..."
+        else:
+            trend_badge = (
+                f"Building baseline ({total_weeks_available}"
+                f" of {total_weeks_needed} weeks)"
+            )
+    else:
+        trend_badge = f"{abs(percent_change):.0f}% {direction.capitalize()}"
+
     # Create the compact trend indicator
     return html.Div(
         className="compact-trend-indicator d-flex align-items-center p-2 rounded mb-3",
@@ -96,7 +110,10 @@ def create_compact_trend_indicator(trend_data, metric_name="Items"):
         children=[
             # Trend icon with circle background
             html.Div(
-                className="trend-icon me-3 d-flex align-items-center justify-content-center rounded-circle",
+                className=(
+                    "trend-icon me-3 d-flex align-items-center "
+                    "justify-content-center rounded-circle"
+                ),
                 style={
                     "width": "36px",
                     "height": "36px",
@@ -123,14 +140,7 @@ def create_compact_trend_indicator(trend_data, metric_name="Items"):
                                 style={"fontSize": "0.9rem"},
                             ),
                             html.Span(
-                                (
-                                    "Building baseline..."
-                                    if direction == "baseline"
-                                    and total_weeks_available == 0
-                                    else f"Building baseline ({total_weeks_available} of {total_weeks_needed} weeks)"
-                                    if direction == "baseline"
-                                    else f"{abs(percent_change):.0f}% {direction.capitalize()}"
-                                ),
+                                trend_badge,
                                 style={
                                     "color": text_color,
                                     "fontWeight": "500",
@@ -140,7 +150,9 @@ def create_compact_trend_indicator(trend_data, metric_name="Items"):
                         ],
                     ),
                     html.Div(
-                        className="d-flex justify-content-between align-items-baseline mt-1",
+                        className=(
+                            "d-flex justify-content-between align-items-baseline mt-1"
+                        ),
                         style={"fontSize": "0.8rem", "color": "#6c757d"},
                         children=(
                             [
@@ -152,11 +164,13 @@ def create_compact_trend_indicator(trend_data, metric_name="Items"):
                             if direction == "baseline"
                             else [
                                 html.Span(
-                                    f"4-week avg: {current_avg:.1f} {metric_name.lower()}/week",
+                                    f"4-week avg: {current_avg:.1f}"
+                                    f" {metric_name.lower()}/week",
                                     style={"marginRight": "15px"},
                                 ),
                                 html.Span(
-                                    f"Previous: {previous_avg:.1f} {metric_name.lower()}/week",
+                                    f"Previous: {previous_avg:.1f}"
+                                    f" {metric_name.lower()}/week",
                                     style={"marginLeft": "5px"},
                                 ),
                             ]
@@ -201,6 +215,34 @@ def create_trend_indicator(trend_data, metric_name="Items"):
     # Determine font weight based on significance
     font_weight = "bold" if is_significant else "normal"
 
+    # Pre-compute direction strings to avoid long inline f-strings
+    direction_label = (
+        "Increase"
+        if direction == "up"
+        else "Decrease"
+        if direction == "down"
+        else "Change"
+    )
+    trend_word = (
+        "increase"
+        if direction == "up"
+        else "decrease"
+        if direction == "down"
+        else "trend"
+    )
+    significance_text = (
+        "statistically significant"
+        if is_significant
+        else "not statistically significant"
+    )
+    trend_class = (
+        "text-success"
+        if direction == "up" and is_significant
+        else "text-danger"
+        if direction == "down" and is_significant
+        else "text-muted"
+    )
+
     # Build the component
     return html.Div(
         [
@@ -216,7 +258,7 @@ def create_trend_indicator(trend_data, metric_name="Items"):
                         },
                     ),
                     html.Span(
-                        f"{abs(percent_change)}% {'Increase' if direction == 'up' else 'Decrease' if direction == 'down' else 'Change'}",
+                        f"{abs(percent_change)}% {direction_label}",
                         style={
                             "color": text_color,
                             "fontWeight": font_weight,
@@ -249,8 +291,8 @@ def create_trend_indicator(trend_data, metric_name="Items"):
             # Add warning/celebration message for significant changes
             html.Div(
                 html.Span(
-                    f"This {'increase' if direction == 'up' else 'decrease' if direction == 'down' else 'trend'} is {'statistically significant' if is_significant else 'not statistically significant'}.",
-                    className=f"{'text-success' if direction == 'up' and is_significant else 'text-danger' if direction == 'down' and is_significant else 'text-muted'}",
+                    f"This {trend_word} is {significance_text}.",
+                    className=trend_class,
                 ),
                 className="mt-2 small",
                 style={"display": "block" if is_significant else "none"},

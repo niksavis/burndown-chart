@@ -2,7 +2,8 @@
 JQL Editor Component
 
 Factory function for creating CodeMirror 6-based JQL editor components.
-Returns html.Div() container with CodeMirror initialization target and dcc.Store() for state sync.
+Returns html.Div() container with CodeMirror initialization target and
+dcc.Store() for state sync.
 
 Architecture:
     - Python creates container structure (html.Div + dcc.Store + hidden textarea)
@@ -54,8 +55,9 @@ def create_jql_editor(
     CRITICAL: Returns a dbc.Textarea component (source of truth for callbacks)
     wrapped in a container that JavaScript will enhance with CodeMirror overlay.
 
-    This maintains backward compatibility - callbacks read from textarea "value" property
-    exactly as before, while CodeMirror provides syntax highlighting as a visual enhancement.
+    This maintains backward compatibility - callbacks read from textarea
+    "value" property exactly as before, while CodeMirror provides syntax
+    highlighting as a visual enhancement.
 
     Args:
         editor_id: Unique identifier for the editor (e.g., "jira-jql-query")
@@ -115,7 +117,8 @@ def create_jql_editor(
                 },
             ),
             # Textarea for Dash callbacks (CodeMirror syncs to this)
-            # CRITICAL: NOT hidden - Dash callbacks need visible inputs to detect changes
+            # CRITICAL: NOT hidden - Dash callbacks need visible inputs
+            # to detect changes
             dbc.Textarea(
                 id=editor_id,
                 value=initial_value,

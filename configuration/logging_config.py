@@ -59,16 +59,19 @@ class SensitiveDataFilter(logging.Filter):
     #       Technical data (URLs, endpoints) is NOT redacted to enable debugging
     SENSITIVE_PATTERNS = [
         # Authorization header with Bearer token - matches the entire header
-        # Captures: Authorization: Bearer abc123... → Authorization: Bearer [REDACTED]
-        # This must come BEFORE the generic Authorization pattern to preserve "Bearer" keyword
+        # Captures: Authorization: Bearer abc123... -> Authorization: Bearer [REDACTED]
+        # This must come BEFORE the generic Authorization pattern to preserve
+        # "Bearer" keyword
         (
             r"Authorization:\s+Bearer\s+[A-Za-z0-9\-._~+/]+=*",
             "Authorization: Bearer [REDACTED]",
         ),
-        # Generic token in Authorization header - matches any value after "Authorization:"
+        # Generic token in Authorization header - matches any value after
+        # "Authorization:"
         # BUT excludes Bearer tokens (handled by pattern above)
         # Captures: Authorization: Basic abc123... → Authorization: [REDACTED]
-        # Negative lookahead (?!Bearer) ensures we don't match "Authorization: Bearer" again
+        # Negative lookahead (?!Bearer) ensures we don't match
+        # "Authorization: Bearer" again
         (r"Authorization:\s+(?!Bearer)[^\s]+", "Authorization: [REDACTED]"),
         # JSON-style token field - matches "token": "value" in JSON objects
         # Captures: "token": "abc123xyz" → "token": "[REDACTED]"
@@ -83,7 +86,8 @@ class SensitiveDataFilter(logging.Filter):
         # JSON-style api_key field - matches OpenAI-style keys (sk-...)
         # Captures: "api_key": "sk-proj-abc123" → "api_key": "[REDACTED]"
         (r'"api_key":\s*"[^"]*"', '"api_key": "[REDACTED]"'),
-        # Generic API key patterns - handles various formats: "API key:", "api_key=", "apikey:", etc.
+        # Generic API key patterns - handles various formats:
+        # "API key:", "api_key=", "apikey:", etc.
         # Captures: api_key=sk-abc123, API-KEY: "xyz789", apikey="test123"
         # [_\-\s]? allows optional separator (underscore, hyphen, or space)
         # [:=] matches colon or equals sign
@@ -120,7 +124,8 @@ class SensitiveDataFilter(logging.Filter):
         record.msg = msg
 
         # Also redact args if present
-        # IMPORTANT: Preserve original types (int, float) to avoid breaking format strings
+        # IMPORTANT: Preserve original types (int, float) to avoid breaking
+        # format strings
         # like %d in waitress. Only convert to string for redaction check, then preserve
         # original value if no sensitive patterns were found.
         if record.args:
@@ -170,7 +175,8 @@ class JSONFormatter(logging.Formatter):
         try:
             message = record.getMessage()
         except (TypeError, ValueError) as e:
-            # Fallback: Use raw message without formatting if args don't match format string
+            # Fallback: Use raw message without formatting if args don't
+            # match format string
             message = f"{record.msg} (formatting error: {e})"
 
         log_data = {
@@ -206,7 +212,8 @@ def setup_logging(
     All handlers use SensitiveDataFilter to redact sensitive data.
 
     Args:
-        log_dir: Directory for log files (default: from InstallationContext), created if doesn't exist
+        log_dir: Directory for log files (default: from InstallationContext),
+            created if doesn't exist
         max_bytes: Maximum size per log file before rotation (default 10MB)
         backup_count: Number of rotated backup files to keep (default 5)
         log_level: Minimum log level - 'DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'
