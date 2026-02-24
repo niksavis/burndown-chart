@@ -65,7 +65,8 @@ class TestConfigOnlyExport:
         except FileNotFoundError:
             # Expected if profile.json doesn't exist in test fixture
             pytest.skip(
-                "Profile fixture needs profile.json - use temp_profiles_dir_with_default fixture"
+                "Profile fixture needs profile.json - "
+                "use temp_profiles_dir_with_default fixture"
             )
 
         # Then
@@ -137,7 +138,8 @@ class TestConfigOnlyExport:
 
         except FileNotFoundError:
             pytest.skip(
-                "Profile fixture needs profile.json - use temp_profiles_dir_with_default fixture"
+                "Profile fixture needs profile.json - "
+                "use temp_profiles_dir_with_default fixture"
             )
 
     def test_config_only_preserves_configuration_structure(
@@ -176,7 +178,8 @@ class TestConfigOnlyExport:
 
         except FileNotFoundError:
             pytest.skip(
-                "Profile fixture needs profile.json - use temp_profiles_dir_with_default fixture"
+                "Profile fixture needs profile.json - "
+                "use temp_profiles_dir_with_default fixture"
             )
 
 
@@ -380,7 +383,7 @@ class TestFullDataImport:
     """Integration tests for FULL_DATA import behavior."""
 
     def test_full_data_import_no_token_prompt(self, temp_profiles_dir_with_default):
-        """T037: Verify FULL_DATA import doesn't prompt for token (data already present).
+        """T037: Verify FULL_DATA import does not prompt for token.
 
         Independent Test: Import FULL_DATA export with cached data, verify
         immediate access without JIRA sync prompt.
@@ -442,7 +445,7 @@ class TestFullDataImport:
         assert manifest["export_mode"] == "FULL_DATA"
 
     def test_full_data_charts_render_immediately(self, temp_profiles_dir_with_default):
-        """T038: Verify FULL_DATA import allows charts to render without JIRA connection.
+        """T038: Verify FULL_DATA import supports chart rendering offline.
 
         Independent Test: Import FULL_DATA, verify all chart data is present
         and can be visualized offline.
