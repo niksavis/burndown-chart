@@ -126,7 +126,10 @@ def create_nested_epic_timeline(
             ),
             html.Div(
                 id="active-work-search-query-preview",
-                className="form-control active-work-search-input active-work-search-query-preview",
+                className=(
+                    "form-control active-work-search-input "
+                    "active-work-search-query-preview"
+                ),
             ),
             html.P(
                 [
@@ -138,7 +141,10 @@ def create_nested_epic_timeline(
                     html.Code("Undo"),
                     " to remove the last clause and ",
                     html.Code("Search"),
-                    " to run the query. For list-backed fields, you can select multiple values.",
+                    (
+                        " to run the query. For list-backed fields, "
+                        "you can select multiple values."
+                    ),
                     html.Br(),
                     "Example: ",
                     html.Code(
@@ -281,7 +287,10 @@ def create_nested_epic_timeline(
                                             className="active-work-epic-arrow",
                                         ),
                                     ],
-                                    className="d-flex align-items-center mb-2 active-work-epic-title-row",
+                                    className=(
+                                        "d-flex align-items-center mb-2 "
+                                        "active-work-epic-title-row"
+                                    ),
                                 ),
                                 dbc.Progress(
                                     value=completion_pct,
@@ -553,7 +562,10 @@ def _render_filtered_timeline(timeline: list[dict], show_points: bool = False) -
                                             className="active-work-epic-arrow",
                                         ),
                                     ],
-                                    className="d-flex align-items-center mb-2 active-work-epic-title-row",
+                                    className=(
+                                        "d-flex align-items-center mb-2 "
+                                        "active-work-epic-title-row"
+                                    ),
                                 ),
                                 dbc.Progress(
                                     value=completion_pct,

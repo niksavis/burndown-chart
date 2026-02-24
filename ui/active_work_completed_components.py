@@ -125,6 +125,8 @@ def create_week_container(
     else:
         issue_rows = [html.P("No items completed this week", className="text-muted")]
 
+    epic_label_suffix = "s" if total_epics_linked != 1 else ""
+
     # Week container (collapsible, closed by default)
     return html.Details(
         [
@@ -157,21 +159,30 @@ def create_week_container(
                                     className="active-work-epic-arrow",
                                 ),
                             ],
-                            className="d-flex align-items-center mb-2 active-work-epic-title-row",
+                            className=(
+                                "d-flex align-items-center mb-2 "
+                                "active-work-epic-title-row"
+                            ),
                         ),
                         html.Div(
                             [
                                 html.Span(
                                     [
                                         html.I(className="fas fa-flag me-1"),
-                                        f"{total_epics_linked} Epic{'s' if total_epics_linked != 1 else ''}",
+                                        (
+                                            f"{total_epics_linked} "
+                                            f"Epic{epic_label_suffix}"
+                                        ),
                                     ],
                                     className="badge bg-secondary me-2",
                                 ),
                                 html.Span(
                                     [
                                         html.I(className="fas fa-check me-1"),
-                                        f"{total_issues} Issue{'s' if total_issues != 1 else ''}",
+                                        (
+                                            f"{total_issues} "
+                                            f"Issue{'s' if total_issues != 1 else ''}"
+                                        ),
                                     ],
                                     className="badge bg-success",
                                 ),
@@ -188,7 +199,10 @@ def create_week_container(
                     html.H6(
                         [
                             html.I(className="fas fa-check me-1"),
-                            f"Completed ({total_issues} issues, {total_epics_closed} epics)",
+                            (
+                                f"Completed ({total_issues} issues, "
+                                f"{total_epics_closed} epics)"
+                            ),
                         ],
                         className="text-success mb-2 mt-2",
                         style={"fontSize": "0.9rem"},
@@ -199,7 +213,10 @@ def create_week_container(
             ),
         ],
         open=False,  # Collapsed by default
-        className=f"card mb-3 shadow-sm active-work-epic-card week-container week-{'current' if is_current else 'last'}",
+        className=(
+            "card mb-3 shadow-sm active-work-epic-card "
+            f"week-container week-{'current' if is_current else 'last'}"
+        ),
         id=f"week-{week_label}",
     )
 

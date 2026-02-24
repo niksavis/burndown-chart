@@ -28,7 +28,8 @@ def create_budget_timeline_card(
     Shows temporal relationships between all critical dates:
     - Purple filled bar: elapsed time (start → today)
     - Yellow outlined bar: remaining baseline time (today → baseline end)
-    - Vertical markers: TODAY (blue), BASELINE (yellow), FORECAST (green), RUNWAY (green/red)
+        - Vertical markers: TODAY (blue), BASELINE (yellow), FORECAST (green),
+            RUNWAY (green/red)
     - Compact metrics: elapsed, to baseline, runway gaps
 
     Args:
@@ -103,6 +104,9 @@ def create_budget_timeline_card(
         weeks_elapsed + pert_forecast_weeks if pert_forecast_weeks else None
     )
     weeks_to_runway = (runway_end - start_date).days / 7.0 if runway_end else None
+    runway_caret_class = (
+        "text-success" if weeks_to_runway > weeks_to_baseline else "text-danger"
+    )
 
     # Determine timeline range
     timeline_dates = [weeks_elapsed, weeks_to_baseline]
@@ -316,7 +320,7 @@ def create_budget_timeline_card(
                         ),
                         html.Div(
                             html.I(
-                                className=f"fas fa-caret-up {'text-success' if weeks_to_runway > weeks_to_baseline else 'text-danger'}",
+                                className=(f"fas fa-caret-up {runway_caret_class}"),
                                 style={"fontSize": "1rem"},
                             ),
                             style={
@@ -459,7 +463,10 @@ def create_budget_timeline_card(
             create_metric_card_header(title="Budget Timeline"),
             dbc.CardBody([timeline_bar, metrics_row], className="pb-3"),
             _create_card_footer(
-                "Purple: elapsed • Yellow: baseline remaining • Green/Red: forecast/runway markers",
+                (
+                    "Purple: elapsed • Yellow: baseline remaining • "
+                    "Green/Red: forecast/runway markers"
+                ),
                 "fa-clock",
             ),
         ],

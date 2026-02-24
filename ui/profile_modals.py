@@ -80,7 +80,9 @@ def create_profile_form_modal() -> dbc.Modal:
                                             ),
                                             dbc.Textarea(
                                                 id="profile-form-description-input",
-                                                placeholder="Describe this profile's purpose...",
+                                                placeholder=(
+                                                    "Describe this profile's purpose..."
+                                                ),
                                                 rows=3,
                                                 maxLength=500,
                                                 className="mb-3",
@@ -136,7 +138,8 @@ def create_profile_deletion_modal() -> dbc.Modal:
             dbc.ModalHeader(dbc.ModalTitle("[!] Delete Profile")),
             dbc.ModalBody(
                 [
-                    # Store profile ID when modal opens to prevent wrong profile deletion
+                    # Store profile ID when modal opens to prevent
+                    # wrong profile deletion
                     dcc.Store(id="delete-profile-target-id", data=None),
                     html.P(
                         id="delete-profile-warning",
@@ -145,7 +148,11 @@ def create_profile_deletion_modal() -> dbc.Modal:
                     dbc.Alert(
                         [
                             html.Strong("Warning: "),
-                            "This action cannot be undone. All queries, data, and settings for this profile will be permanently deleted.",
+                            (
+                                "This action cannot be undone. All queries, "
+                                "data, and settings for this profile will be "
+                                "permanently deleted."
+                            ),
                         ],
                         color="danger",
                         className="mb-3",
