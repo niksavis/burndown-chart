@@ -1,7 +1,7 @@
 """
 Integration tests for velocity metric decimal precision.
 
-These tests ensure that velocity metrics are displayed with the correct decimal precision
+These tests ensure velocity metrics are displayed with correct decimal precision
 throughout the entire application flow, from data processing to UI rendering.
 """
 
@@ -47,7 +47,7 @@ class TestVelocityMetricsIntegration:
 
     def test_pert_info_table_decimal_formatting(self, sample_velocity_data):
         """
-        Test that velocity metrics in the PERT info table are displayed with one decimal place.
+        Test velocity metrics in the PERT info table with one decimal place.
 
         This is an integration test that verifies the decimal formatting throughout the
         entire flow from raw data to UI component rendering.
@@ -123,7 +123,8 @@ class TestVelocityMetricsIntegration:
             formatted_value = str(value_container)
             expected_format = f"{float(value):.1f}"
             assert expected_format in formatted_value, (
-                f"Value {value} should be formatted as {expected_format}, not found in {formatted_value}"
+                f"Value {value} should be formatted as {expected_format}, "
+                f"not found in {formatted_value}"
             )
 
     def test_end_to_end_metrics_flow(self, sample_dataframe):
@@ -163,8 +164,10 @@ class TestVelocityMetricsIntegration:
         # Verify formatted strings in metrics data (if they exist)
         if "avg_weekly_items_str" in metrics_data:
             formatted_avg_items = metrics_data["avg_weekly_items_str"]
-            # The visualization.charts._prepare_metrics_data function may still use 2 decimal places
-            # This is separate from the UI component formatting which uses 1 decimal place
+            # visualization.charts._prepare_metrics_data may still
+            # use 2 decimal places.
+            # This is separate from UI component formatting,
+            # which uses 1 decimal place.
             # So we should check that it's properly formatted according to its own rules
             if "." in formatted_avg_items:
                 # Just verify it's a valid formatted string
