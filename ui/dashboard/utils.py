@@ -80,10 +80,13 @@ def calculate_project_health_score(
     budget_metrics: dict[str, Any] | None = None,
     scope_metrics: dict[str, Any] | None = None,
 ) -> float:
-    """Calculate overall project health score (0-100) using comprehensive multi-dimensional analysis.
+    """Calculate overall project health score (0-100).
+
+    Uses comprehensive multi-dimensional analysis.
 
     Formula - Comprehensive with dynamic weighting:
-    Calculates health across 6 dimensions with dynamic weight redistribution when metrics are unavailable:
+    Calculates health across 6 dimensions with dynamic weight
+    redistribution when metrics are unavailable:
     - Delivery Performance (25% max): velocity, throughput, completion rate
     - Predictability (20% max): velocity CV, forecast confidence, schedule adherence
     - Quality (20% max): bug density, DORA CFR, bug resolution, MTTR
@@ -91,8 +94,9 @@ def calculate_project_health_score(
     - Sustainability (10% max): scope stability, WIP management, flow distribution
     - Financial Health (10% max): budget adherence, burn rate, runway
 
-    When extended metrics (DORA, Flow, Bug, Budget) are unavailable, the v3.0 calculator
-    redistributes weights dynamically to available dimensions, ensuring consistent scoring.
+    When extended metrics (DORA, Flow, Bug, Budget) are unavailable,
+    the v3.0 calculator redistributes weights dynamically to
+    available dimensions, ensuring consistent scoring.
 
     Args:
         metrics: Dashboard metrics with velocity, completion, schedule data
@@ -123,14 +127,22 @@ def calculate_project_health_score(
         completion_confidence=metrics.get("completion_confidence", 50),
     )
 
+    completion_pct = metrics.get("completion_percentage", 0)
+    velocity_items = metrics.get("current_velocity_items", 0)
+    velocity_cv = metrics.get("velocity_cv", 0)
+    trend = metrics.get("trend_direction", "stable")
+    recent_change = metrics.get("recent_velocity_change", 0)
+    schedule_var = metrics.get("schedule_variance_days", 0)
+    confidence = metrics.get("completion_confidence", 50)
+
     logger.info(
-        f"[APP HEALTH] Input: completion_pct={metrics.get('completion_percentage', 0):.2f}, "
-        f"velocity_items={metrics.get('current_velocity_items', 0):.2f}, "
-        f"velocity_cv={metrics.get('velocity_cv', 0):.2f}, "
-        f"trend={metrics.get('trend_direction', 'stable')}, "
-        f"recent_change={metrics.get('recent_velocity_change', 0):.2f}, "
-        f"schedule_var={metrics.get('schedule_variance_days', 0):.2f}, "
-        f"confidence={metrics.get('completion_confidence', 50)}"
+        f"[APP HEALTH] Input: completion_pct={completion_pct:.2f}, "
+        f"velocity_items={velocity_items:.2f}, "
+        f"velocity_cv={velocity_cv:.2f}, "
+        f"trend={trend}, "
+        f"recent_change={recent_change:.2f}, "
+        f"schedule_var={schedule_var:.2f}, "
+        f"confidence={confidence}"
     )
 
     # Call comprehensive calculator
@@ -414,7 +426,12 @@ def create_progress_ring(percentage: float, color: str, size: int = 80) -> html.
             "width": f"{size}px",
             "height": f"{size}px",
             "borderRadius": "50%",
-            "background": f"conic-gradient(from -90deg, {color} 0deg {percentage * 3.6}deg, #e9ecef {percentage * 3.6}deg 360deg)",
+            "background": (
+                "conic-gradient("
+                f"from -90deg, {color} 0deg {percentage * 3.6}deg, "
+                f"#e9ecef {percentage * 3.6}deg 360deg"
+                ")"
+            ),
             "position": "relative",
             "transition": "all 0.3s ease",
             "display": "inline-block",

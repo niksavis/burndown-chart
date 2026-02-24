@@ -1,7 +1,8 @@
 """
 Project Configuration Form Component
 
-Provides UI for configuring JIRA project classification (development vs devops projects).
+Provides UI for configuring JIRA project classification
+(development vs devops projects).
 """
 
 import dash_bootstrap_components as dbc
@@ -92,8 +93,14 @@ def create_project_config_form(
                                     html.I(
                                         className="fas fa-info-circle me-1 text-info"
                                     ),
-                                    "Optional. Specify projects containing operational tasks (deployments, incidents). ",
-                                    "If empty, all issues will be scanned for DORA-relevant fields.",
+                                    (
+                                        "Optional. Specify projects containing "
+                                        "operational tasks (deployments, incidents). "
+                                    ),
+                                    (
+                                        "If empty, all issues will be scanned "
+                                        "for DORA-relevant fields."
+                                    ),
                                 ],
                                 className="text-muted d-block mb-3",
                             ),
