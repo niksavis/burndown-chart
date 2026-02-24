@@ -1,7 +1,8 @@
 """
 Test Coverage Summary for Data Source Switching Feature
 
-This file documents the test coverage for the recently implemented multiple JQL queries feature.
+This file documents test coverage for the recently implemented
+multiple JQL queries feature.
 Run these commands to validate the implementation.
 """
 
@@ -12,7 +13,10 @@ Run these commands to validate the implementation.
 # Test the core query profile management functionality
 UNIT_DATA_TESTS = [
     r".\.venv\Scripts\activate; pytest tests/unit/data/test_jira_query_manager.py -v",
-    r".\.venv\Scripts\activate; pytest tests/unit/data/test_data_source_persistence.py -v",
+    (
+        r".\.venv\Scripts\activate; pytest "
+        r"tests/unit/data/test_data_source_persistence.py -v"
+    ),
 ]
 
 # 2. Unit Tests - UI Layer
@@ -24,13 +28,22 @@ UNIT_UI_TESTS = [
 # 3. Integration Tests
 # Test end-to-end workflows and data flow integration
 INTEGRATION_TESTS = [
-    r".\.venv\Scripts\activate; pytest tests/integration/test_data_source_switching.py -v",
+    (
+        r".\.venv\Scripts\activate; pytest "
+        r"tests/integration/test_data_source_switching.py -v"
+    ),
 ]
 
 # 4. Run All New Tests
 # Command to run all tests for the data source switching feature
 ALL_NEW_TESTS = [
-    r".\.venv\Scripts\activate; pytest tests/unit/data/test_jira_query_manager.py tests/unit/data/test_data_source_persistence.py tests/unit/ui/test_data_source_components.py tests/integration/test_data_source_switching.py -v"
+    (
+        r".\.venv\Scripts\activate; pytest "
+        r"tests/unit/data/test_jira_query_manager.py "
+        r"tests/unit/data/test_data_source_persistence.py "
+        r"tests/unit/ui/test_data_source_components.py "
+        r"tests/integration/test_data_source_switching.py -v"
+    )
 ]
 
 # Test Coverage Areas
@@ -70,7 +83,10 @@ CRITICAL_TEST_SCENARIOS = [
     "Combining default and user-created profiles correctly",
     "Preventing duplicate profile names",
     "Deleting user profiles but protecting default profiles",
-    "Settings persistence with new fields (last_used_data_source, active_jql_profile_id)",
+    (
+        "Settings persistence with new fields "
+        "(last_used_data_source, active_jql_profile_id)"
+    ),
     "Backward compatibility when new fields are missing",
     "UI components using persisted settings correctly",
     "Graceful error handling when files are corrupted",
