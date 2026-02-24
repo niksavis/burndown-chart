@@ -8,8 +8,9 @@ Follows Sprint Tracker pattern for conditional tab display.
 
 import logging
 import re
-from dash import ClientsideFunction, Input, Output, State, ctx, html
+
 import dash_bootstrap_components as dbc
+from dash import ClientsideFunction, Input, Output, State, ctx, html
 
 logger = logging.getLogger(__name__)
 
@@ -57,7 +58,7 @@ def _remove_last_clause(query: str) -> str:
     keep_operators = operators[: len(keep_clauses) - 1]
 
     rebuilt = keep_clauses[0]
-    for op, clause in zip(keep_operators, keep_clauses[1:]):
+    for op, clause in zip(keep_operators, keep_clauses[1:], strict=True):
         rebuilt = f"{rebuilt} {op} {clause}"
 
     return rebuilt.strip()
@@ -80,8 +81,8 @@ def _render_active_work_timeline_content(
         Div containing nested epic timeline
     """
     try:
-        from data.persistence.factory import get_backend
         from data.active_work_manager import get_active_work_data
+        from data.persistence.factory import get_backend
         from ui.active_work_epic_timeline import create_nested_epic_timeline
         from ui.empty_states import create_no_active_work_state
 
@@ -96,7 +97,9 @@ def _render_active_work_timeline_content(
             return create_no_active_work_state()
 
         logger.info(
-            f"[ACTIVE WORK] Rendering Active Work Timeline for profile={active_profile_id}, query={active_query_id}, data_points={data_points_count}"
+            "[ACTIVE WORK] Rendering Active Work Timeline for "
+            f"profile={active_profile_id}, query={active_query_id}, "
+            f"data_points={data_points_count}"
         )
 
         # Load issues from database
@@ -150,13 +153,15 @@ def _render_active_work_timeline_content(
             parent_field = "parent"  # Won't match anything, all issues will be orphaned
 
         logger.info(
-            f"[ACTIVE WORK] Using parent field: {parent_field} (configured: {parent_field_configured})"
+            f"[ACTIVE WORK] Using parent field: {parent_field} "
+            f"(configured: {parent_field_configured})"
         )
 
         # Get active work data with nested structure
         try:
             logger.info(
-                f"[ACTIVE WORK] Calling get_active_work_data with {len(issues)} issues..."
+                "[ACTIVE WORK] Calling get_active_work_data with "
+                f"{len(issues)} issues..."
             )
             work_data = get_active_work_data(
                 issues,
@@ -230,7 +235,7 @@ def _render_active_work_timeline_content(
             [
                 dbc.Container(
                     [
-                        # Nested epic timeline (includes legend, completed items, and epics)
+                        # Nested epic timeline (legend, completed items, epics)
                         timeline_content,
                     ],
                     fluid=True,
@@ -447,14 +452,14 @@ def register(app):
         Output("completed-items-section", "children"),
         Input("active-work-applied-query-store", "data"),
         State("active-work-issues-store", "data"),
-        prevent_initial_call=False,
+        prevent_initial_call=True,
     )
     def filter_timeline(search_input, timeline_data):
         """Filter timeline based on search input (server-side for now)."""
-        from ui.active_work_epic_timeline import _render_filtered_timeline
-        from ui.active_work_completed_components import create_completed_items_section
         from data.active_work_completed import get_completed_items_by_week
         from data.persistence import load_app_settings
+        from ui.active_work_completed_components import create_completed_items_section
+        from ui.active_work_epic_timeline import _render_filtered_timeline
 
         def _flatten_issues(epics):
             flattened = []
@@ -473,8 +478,21 @@ def register(app):
             parent_field = general_mappings.get("parent_field")
             flow_end_statuses = workflow_mappings.get("flow_end_statuses", [])
 
+            # Build synthetic epic lookup records from the timeline store so
+            # _group_issues_by_epic can resolve epic names without re-querying
+            # the database (DRY: epic_summary is already resolved in the store).
+            epic_lookup_records = [
+                {
+                    "issue_key": epic.get("epic_key"),
+                    "key": epic.get("epic_key"),
+                    "summary": epic.get("epic_summary") or epic.get("epic_key"),
+                }
+                for epic in (epics or [])
+                if epic.get("epic_key")
+            ]
+            all_issues_with_epics = epic_lookup_records + _flatten_issues(epics)
             completed_by_week = get_completed_items_by_week(
-                issues=_flatten_issues(epics),
+                issues=all_issues_with_epics,
                 flow_end_statuses=flow_end_statuses if flow_end_statuses else None,
                 n_weeks=2,
                 parent_field=parent_field,
@@ -539,7 +557,7 @@ def register(app):
         Input("active-work-search-clear", "n_clicks"),
         State("active-work-builder-query-store", "data"),
         State("active-work-search-input", "value"),
-        prevent_initial_call=False,
+        prevent_initial_call=True,
     )
     def apply_or_clear_search(n_apply, n_clear, builder_query, search_input):
         """Apply search only when Search is clicked; clear applied query on Clear."""
