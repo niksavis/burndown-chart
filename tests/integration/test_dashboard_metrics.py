@@ -91,7 +91,7 @@ class TestDashboardMetricsConsistency(unittest.TestCase):
         )
 
     def test_pert_forecast_consistency(self):
-        """Test that PERT forecast times are consistent across different calculations."""
+        """Test PERT forecast times are consistent across calculations."""
         # Calculate rates directly
         (
             pert_time_items,
@@ -109,7 +109,8 @@ class TestDashboardMetricsConsistency(unittest.TestCase):
             self.statistics_data, self.total_items, self.total_points, self.pert_factor
         )
 
-        # In the updated structure, PERT times are directly available in the root of the result
+        # In the updated structure, PERT times are directly available
+        # in the root of the result.
         self.assertAlmostEqual(pert_time_items, viz_data["pert_time_items"], places=1)
         self.assertAlmostEqual(pert_time_points, viz_data["pert_time_points"], places=1)
 
@@ -136,8 +137,10 @@ class TestDashboardMetricsConsistency(unittest.TestCase):
                 if days_elapsed > 0:  # Prevent division by zero
                     actual_daily_rate = (values[0] - values[1]) / days_elapsed
 
-                    # Rates should be similar (within 50% to account for different calculation paths)
-                    # This is a very generous tolerance because the calculation methods are different
+                    # Rates should be similar (within 50%)
+                    # to account for different calculation paths.
+                    # This is a generous tolerance because
+                    # calculation methods are different.
                     if items_daily_rate > 0:
                         ratio = actual_daily_rate / items_daily_rate
                         self.assertGreater(ratio, 0.5)
