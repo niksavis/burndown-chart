@@ -15,7 +15,9 @@ from dash import dcc, html
 def create_namespace_input(
     field_id: str,
     current_value: str | None = None,
-    placeholder: str = "Type namespace path (e.g., *.created, DevOps.Status:Deployed.DateTime)",
+    placeholder: str = (
+        "Type namespace path (e.g., *.created, DevOps.Status:Deployed.DateTime)"
+    ),
     label: str | None = None,
     help_text: str | None = None,
 ) -> html.Div:
@@ -88,7 +90,8 @@ def create_namespace_input_with_toggle(
     2. Advanced mode: Namespace syntax input with autocomplete
 
     Args:
-        field_id: Unique ID for the input component (string or dict for pattern-matching)
+        field_id: Unique ID for the input component (string or dict
+            for pattern-matching)
         current_value: Current value (field ID or namespace path)
         field_options: Options for dropdown mode (traditional field selection)
         placeholder: Placeholder text
@@ -262,7 +265,8 @@ def create_syntax_help_section() -> dbc.Collapse:
                 [
                     html.H5("Namespace Syntax Reference", className="card-title"),
                     html.P(
-                        "Use namespace paths to access JIRA fields with intuitive dot notation.",
+                        "Use namespace paths to access JIRA fields "
+                        "with intuitive dot notation.",
                         className="card-text",
                     ),
                     html.H6("Basic Syntax", className="mt-3"),

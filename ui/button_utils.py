@@ -43,7 +43,8 @@ def create_action_button(
     Args:
         text: Button label text (required)
         icon: Font Awesome icon name (e.g., "save", "trash") without "fa-" prefix
-        variant: Button style - "primary", "secondary", "success", "danger", "warning", "info", "light", "dark", "link"
+        variant: Button style - "primary", "secondary", "success", "danger",
+            "warning", "info", "light", "dark", "link"
         size: Button size - "sm", "md", "lg"
         id_suffix: Unique identifier suffix for button ID
         **kwargs: Additional props (onClick, disabled, className, etc.)
@@ -132,7 +133,8 @@ def create_button_style(
     Create a consistent button style based on design system.
 
     Args:
-        variant (str): Button variant (primary, secondary, success, danger, warning, info, light, dark)
+        variant (str): Button variant (primary, secondary, success, danger,
+            warning, info, light, dark)
         size (str): Button size (sm, md, lg)
         outline (bool): Whether the button should have outline style
         disabled (bool): Whether the button is disabled
@@ -249,7 +251,8 @@ def create_button(
     Args:
         text (str, optional): Button text content (required if no icon_class)
         id (str, optional): Button ID for callbacks
-        variant (str): Button variant (primary, secondary, success, danger, warning, info, light, dark)
+        variant (str): Button variant (primary, secondary, success, danger,
+            warning, info, light, dark)
         size (str): Button size (sm, md, lg)
         outline (bool): Whether to use outline style
         icon_class (str, optional): Font Awesome icon class (e.g., "fas fa-download")
@@ -455,7 +458,8 @@ def create_close_button(
 
     Args:
         id (str, optional): Button ID for callbacks
-        variant (str): Button variant (primary, secondary, success, danger, warning, info, light, dark)
+        variant (str): Button variant (primary, secondary, success, danger,
+            warning, info, light, dark)
         size (str): Button size (sm, md, lg)
         tooltip (str): Tooltip text
         className (str): Additional CSS classes
@@ -507,7 +511,8 @@ def create_menu_button(
 
     Args:
         id (str, optional): Button ID for callbacks
-        variant (str): Button variant (primary, secondary, success, danger, warning, info, light, dark)
+        variant (str): Button variant (primary, secondary, success, danger,
+            warning, info, light, dark)
         size (str): Button size (sm, md, lg)
         tooltip (str): Tooltip text
         className (str): Additional CSS classes
@@ -546,7 +551,8 @@ def create_segmented_button_group(
     Create a segmented button group (radio-style buttons).
 
     Args:
-        options (list): List of dictionaries with 'label', 'value', and optional 'icon_class'
+        options (list): List of dictionaries with 'label', 'value', and
+            optional 'icon_class'
         id (str, optional): Component ID
         value (any, optional): Currently selected value
         size (str): Button size (sm, md, lg)

@@ -91,7 +91,8 @@ def create_jira_issue_link(
 
     Example:
         >>> link = create_jira_issue_link("PROJ-123", className="fw-bold")
-        >>> # Returns: <a href="https://jira.example.com/browse/PROJ-123" target="_blank">PROJ-123</a>
+        >>> # Returns: <a href="https://jira.example.com/browse/PROJ-123"
+        >>> #           target="_blank">PROJ-123</a>
     """
     display_text = text or issue_key
 
@@ -131,7 +132,8 @@ def create_jira_issue_link_html(issue_key: str, text: str | None = None) -> str:
 
     Example:
         >>> html = create_jira_issue_link_html("PROJ-123")
-        >>> # Returns: '<a href="https://jira.example.com/browse/PROJ-123" target="_blank">PROJ-123</a>'
+        >>> # Returns: '<a href="https://jira.example.com/browse/PROJ-123"
+        >>> #           target="_blank">PROJ-123</a>'
     """
     display_text = text or issue_key
 
@@ -146,7 +148,11 @@ def create_jira_issue_link_html(issue_key: str, text: str | None = None) -> str:
     issue_url = construct_jira_issue_url(issue_key, base_url)
 
     # Return HTML anchor tag
-    return f'<a href="{issue_url}" target="_blank" rel="noopener noreferrer" title="Open {issue_key} in JIRA">{display_text}</a>'
+    return (
+        f'<a href="{issue_url}" target="_blank"'
+        f' rel="noopener noreferrer" title="Open {issue_key} in JIRA">'
+        f"{display_text}</a>"
+    )
 
 
 def batch_create_jira_issue_links(

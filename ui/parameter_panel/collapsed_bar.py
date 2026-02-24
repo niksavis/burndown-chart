@@ -22,7 +22,8 @@ def create_parameter_bar_collapsed(
     """
     Create collapsed parameter bar showing key values and expand button.
 
-    This component supports User Story 1: Quick Parameter Adjustments While Viewing Charts.
+    This component supports User Story 1: Quick Parameter Adjustments
+    While Viewing Charts.
     When collapsed, it displays a compact summary of current parameter values with an
     expand button to show the full parameter panel.
 
@@ -45,7 +46,9 @@ def create_parameter_bar_collapsed(
         html.Div: Collapsed parameter bar component
 
     Example:
-        >>> create_parameter_bar_collapsed(1.5, "2025-12-31", 100, 500, remaining_items=50)
+        >>> create_parameter_bar_collapsed(
+        ...     1.5, "2025-12-31", 100, 500, remaining_items=50
+        ... )
     """
     from ui.style_constants import DESIGN_TOKENS
 
@@ -53,7 +56,8 @@ def create_parameter_bar_collapsed(
     expand_btn_id = f"btn-expand-parameters{'-' + id_suffix if id_suffix else ''}"
 
     # Display the total items/points (remaining scope) for Remaining label
-    # Use remaining values only if total values not available (fallback to current scope)
+    # Use remaining values only if total values not available
+    # (fallback to current scope)
     display_items = (
         total_items
         if total_items is not None and total_items > 0
@@ -181,7 +185,11 @@ def create_parameter_bar_collapsed(
                                     ),
                                 ],
                                 className="param-summary-item me-1 me-sm-2",
-                                title=f"Forecast Range: {pert_factor} weeks (samples best/worst case velocity from your history)",
+                                title=(
+                                    f"Forecast Range: {pert_factor} weeks "
+                                    "(samples best/worst case velocity "
+                                    "from your history)"
+                                ),
                             ),
                             html.Span(
                                 [
@@ -196,7 +204,10 @@ def create_parameter_bar_collapsed(
                                     ),
                                 ],
                                 className="param-summary-item me-1 me-sm-2",
-                                title=f"Data Points: {data_points} weeks of historical data used for forecasting",
+                                title=(
+                                    f"Data Points: {data_points} weeks "
+                                    "of historical data used for forecasting"
+                                ),
                                 style={"display": "inline" if data_points else "none"},
                             )
                             if data_points
@@ -322,7 +333,10 @@ def create_parameter_bar_collapsed(
                                 title="Expand Data",
                             ),
                         ],
-                        className="d-flex justify-content-end align-items-center flex-nowrap flex-shrink-0",
+                        className=(
+                            "d-flex justify-content-end align-items-center "
+                            "flex-nowrap flex-shrink-0"
+                        ),
                         style={"minWidth": "fit-content"},
                     ),
                 ],

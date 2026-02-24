@@ -33,7 +33,8 @@ def create_input_field(
 
     Args:
         label: Display label for input field (required)
-        input_type: HTML input type - "text", "number", "date", "email", "password", "tel", "url"
+        input_type: HTML input type - "text", "number", "date", "email",
+            "password", "tel", "url"
         input_id: Unique ID for input element (if empty, generated from label)
         placeholder: Placeholder text
         value: Initial/current value
@@ -49,7 +50,9 @@ def create_input_field(
 
     Examples:
         >>> create_input_field("Deadline", input_type="date", value="2025-12-31")
-        >>> create_input_field("PERT Factor", input_type="number", min=1.0, max=3.0, step=0.1)
+        >>> create_input_field(
+        ...     "PERT Factor", input_type="number", min=1.0, max=3.0, step=0.1
+        ... )
         >>> create_input_field("Email", input_type="email", required=True)
 
     ID Pattern: input-{label-slugified} or provided input_id
@@ -66,7 +69,8 @@ def create_input_field(
     valid_input_types = ["text", "number", "date", "email", "password", "tel", "url"]
     if input_type not in valid_input_types:
         raise ValueError(
-            f"Invalid input_type '{input_type}'. Must be one of: {', '.join(valid_input_types)}"
+            f"Invalid input_type '{input_type}'. "
+            f"Must be one of: {', '.join(valid_input_types)}"
         )
 
     # Generate ID from label if not provided
@@ -165,7 +169,8 @@ def create_labeled_input(
     valid_input_types = ["text", "number", "date", "email", "password", "tel", "url"]
     if input_type not in valid_input_types:
         raise ValueError(
-            f"Invalid input_type '{input_type}'. Must be one of: {', '.join(valid_input_types)}"
+            f"Invalid input_type '{input_type}'. "
+            f"Must be one of: {', '.join(valid_input_types)}"
         )
 
     # Build aria-describedby references for accessibility
