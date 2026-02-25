@@ -4,7 +4,8 @@ Provides the user interface for viewing Flow metrics including Velocity, Time,
 Efficiency, Load, and Distribution with work type breakdown.
 
 Uses Data Points slider from settings panel to control historical data display.
-Metrics calculated per ISO week (Monday-Sunday), showing current week + N-1 historical weeks.
+Metrics calculated per ISO week (Monday-Sunday), showing current week
+and N-1 historical weeks.
 """
 
 from typing import Any
@@ -81,7 +82,8 @@ def create_flow_dashboard() -> dbc.Container:
                                     children=[],  # Will be populated by callback
                                 ),
                             ],
-                            className="pt-3 px-3 pb-0",  # Top and side padding, no bottom padding
+                            className="pt-3 px-3 pb-0",
+                            # Top and side padding, no bottom padding
                         ),
                         className="mb-3 overview-section",
                         style={
@@ -100,17 +102,20 @@ def create_flow_dashboard() -> dbc.Container:
                             html.Strong("Data Points slider"),
                             " controls weeks displayed.",
                         ],
-                        className="text-muted small mb-3 mt-3",  # Equal top and bottom margin
+                        className="text-muted small mb-3 mt-3",
+                        # Equal top and bottom margin
                     ),
                 ],
                 style={
                     "display": "none"
                 },  # Hidden by default, shown by callback when metrics exist
             ),
-            # Metrics cards grid (includes both Flow metrics + Work Distribution in same container)
+            # Metrics cards grid
+            # (includes Flow metrics + Work Distribution in one container)
             # No loading wrapper - skeleton provides loading state
             html.Div(
-                children=initial_content,  # Show banner or skeleton based on data availability
+                children=initial_content,
+                # Show banner or skeleton based on data availability
                 id="flow-metrics-cards-container",
                 className="mb-4",  # Add spacing below cards
             ),
@@ -220,7 +225,9 @@ def _create_flow_error_card(metric_data: dict[str, Any], metric_name: str) -> db
                     html.Div(
                         children=[
                             html.I(
-                                className="fas fa-exclamation-triangle text-warning me-2"
+                                className=(
+                                    "fas fa-exclamation-triangle text-warning me-2"
+                                )
                             ),
                             html.Span("Error", className="text-warning"),
                         ],
@@ -389,7 +396,8 @@ def _get_flow_performance_tier_color(metric_name: str, value: float) -> str:
     tier = _get_flow_performance_tier(metric_name, value)
 
     # Map tier labels to colors with visual distinction
-    # Excellent (best) -> green, Good -> blue, Fair -> yellow, Low/Slow/High -> orange, Critical -> red
+    # Excellent (best) -> green, Good -> blue, Fair -> yellow,
+    # Low/Slow/High -> orange, Critical -> red
     tier_color_map = {
         "Excellent": "green",
         "Good": "blue",  # Use blue to distinguish from Excellent
@@ -441,7 +449,8 @@ def create_flow_metrics_cards_grid(metrics_data: dict):
     """Create a grid of Flow metric cards with Phase 1 enhancements.
 
     Now uses the same create_metric_card() function as DORA metrics to include:
-    - Performance tier badges (Healthy/Warning/Critical for WIP, Good/Needs Improvement for others)
+        - Performance tier badges (Healthy/Warning/Critical for WIP,
+            Good/Needs Improvement for others)
     - Trend indicators with percentage change
     - Mini sparklines
     - Collapsible detail charts
@@ -491,7 +500,8 @@ def create_flow_metrics_cards_grid(metrics_data: dict):
         card_id = f"{metric_name}-card"
         card = create_metric_card(metric_info, card_id)
 
-        # Phase 2: One card per row for better detail chart visibility, with bottom margin
+        # Phase 2: One card per row for better detail chart visibility,
+        # with bottom margin
         cards.append(dbc.Col(card, width=12, className="mb-3"))
 
     return dbc.Row(cards, className="metric-cards-grid")

@@ -189,7 +189,10 @@ def _create_license_accordion(licenses: list[dict]) -> html.Div | dbc.Alert:
         return dbc.Alert(
             [
                 html.I(className="fas fa-info-circle me-2 text-info"),
-                "License information could not be parsed. The application uses open source dependencies - ",
+                (
+                    "License information could not be parsed. "
+                    "The application uses open source dependencies - "
+                ),
                 "please see the project repository for full license details.",
             ],
             color="info",
@@ -376,8 +379,14 @@ def _get_app_info_tab() -> dbc.Tab:
             html.P(
                 [
                     "Project forecasting and metrics platform with JIRA integration. ",
-                    "Delivers probabilistic completion forecasts, comprehensive project health scores, ",
-                    "and industry-standard performance metrics (DORA, Flow) using statistical modeling ",
+                    (
+                        "Delivers probabilistic completion forecasts, "
+                        "comprehensive project health scores, "
+                    ),
+                    (
+                        "and industry-standard performance metrics "
+                        "(DORA, Flow) using statistical modeling "
+                    ),
                     "based on your team's actual velocity and work patterns.",
                 ],
                 className="text-muted mb-3",
@@ -419,8 +428,14 @@ def _get_open_source_tab() -> dbc.Tab:
             html.H5("Open Source Software", className="mb-3"),
             html.P(
                 [
-                    "This application is built with open source technologies and libraries. ",
-                    "We are grateful to the open source community for making this project possible.",
+                    (
+                        "This application is built with open source "
+                        "technologies and libraries. "
+                    ),
+                    (
+                        "We are grateful to the open source community "
+                        "for making this project possible."
+                    ),
                 ],
                 className="text-muted mb-3",
             ),
@@ -556,7 +571,10 @@ def _get_licenses_tab() -> dbc.Tab:
                 html.H5("Third-Party Software Licenses", className="mb-3"),
                 html.P(
                     [
-                        "This application bundles the following open source dependencies. ",
+                        (
+                            "This application bundles the following "
+                            "open source dependencies. "
+                        ),
                         "Expand each item to view full license details.",
                     ],
                     className="text-muted mb-3",
@@ -572,7 +590,8 @@ def _get_licenses_tab() -> dbc.Tab:
                                     placeholder="Search by name or license type...",
                                     size="sm",
                                     list="license-types-datalist",
-                                    debounce=300,  # 300ms debounce for better performance
+                                    debounce=300,
+                                    # 300ms debounce for better performance
                                 ),
                                 dbc.InputGroupText(
                                     html.I(className="fas fa-search"),
@@ -754,7 +773,8 @@ def _read_and_parse_changelog() -> html.Div:
                                     "Auto-update functionality with standalone updater"
                                 ),
                                 html.Li(
-                                    "Build system with PyInstaller for standalone executables"
+                                    "Build system with PyInstaller "
+                                    "for standalone executables"
                                 ),
                                 html.Li("License management and attribution"),
                                 html.Li("About dialog with open source information"),
@@ -767,7 +787,10 @@ def _read_and_parse_changelog() -> html.Div:
                 dbc.Alert(
                     [
                         html.I(className="fas fa-info-circle me-2 text-info"),
-                        "Changelog file not found. See GitHub Releases for full version history.",
+                        (
+                            "Changelog file not found. See GitHub Releases "
+                            "for full version history."
+                        ),
                     ],
                     color="info",
                     className="mb-0",
