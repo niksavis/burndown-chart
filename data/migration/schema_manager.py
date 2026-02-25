@@ -89,7 +89,9 @@ def initialize_schema(db_path: Path = DEFAULT_DB_PATH, force: bool = False) -> b
             else:
                 # Schema exists but version mismatch - run migrations
                 logger.warning(
-                    f"Schema version mismatch: existing={existing_version}, current={CURRENT_SCHEMA_VERSION}"
+                    "Schema version mismatch: "
+                    f"existing={existing_version}, "
+                    f"current={CURRENT_SCHEMA_VERSION}"
                 )
                 logger.info("Running schema migrations")
                 ensure_budget_velocity_columns(conn)
