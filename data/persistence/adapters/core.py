@@ -23,7 +23,8 @@ It provides functions for managing settings and statistics using JSON files.
 #######################################################################
 # Application imports - lazy import constants to avoid circular import
 # Constants are imported inside functions to break circular dependency:
-# configuration.settings -> logging_config -> data.installation_context -> data -> adapters
+# configuration.settings -> logging_config
+# -> data.installation_context -> data -> adapters
 # Logger is safe to import at module level (doesn't trigger the chain)
 # File locking to prevent race conditions during concurrent writes
 _file_locks: dict[str, threading.Lock] = {}
