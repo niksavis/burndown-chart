@@ -32,7 +32,9 @@ def calculate_dashboard_metrics(
     3. Total comes from settings.estimated_total_items (NOT calculated)
     4. Remaining = total - completed (same as app)
     5. Completion % = completed / total (LIFETIME, same as app)
-    6. Health score uses comprehensive formula (6 dimensions: Delivery, Predictability, Quality, Efficiency, Sustainability, Financial)
+     6. Health score uses comprehensive formula
+         (6 dimensions: Delivery, Predictability, Quality,
+         Efficiency, Sustainability, Financial)
 
     Args:
         all_statistics: ALL statistics for lifetime completion calculation
@@ -40,8 +42,10 @@ def calculate_dashboard_metrics(
         project_scope: Current project scope with remaining items/points
         settings: App settings with deadline and milestone
         weeks_count: Actual number of weeks with data
-        show_points: Whether to use points-based (True) or items-based (False) forecasting
-        extended_metrics: Optional extended metrics (DORA, Flow, Bug, Budget) for comprehensive health calculation
+        show_points: Whether to use points-based (True) or items-based (False)
+        forecasting
+        extended_metrics: Optional extended metrics (DORA, Flow, Bug, Budget)
+        for comprehensive health calculation
 
     Returns:
         Dictionary with dashboard metrics
@@ -91,7 +95,8 @@ def calculate_dashboard_metrics(
     remaining_items = project_scope.get("remaining_items", 0)
     remaining_points = project_scope.get("remaining_total_points", 0)
 
-    # Calculate WINDOW-BASED total = current remaining + completed in window (same as app)
+    # Calculate WINDOW-BASED total = current remaining + completed in window
+    # (same as app)
     total_items = remaining_items + completed_items
     total_points = remaining_points + completed_points
 
@@ -104,7 +109,8 @@ def calculate_dashboard_metrics(
     )
 
     logger.info(
-        f"[REPORT COMPLETION] completed_items={completed_items}, remaining_items={remaining_items}, "
+        f"[REPORT COMPLETION] completed_items={completed_items}, "
+        f"remaining_items={remaining_items}, "
         f"total_items={total_items}, completion_pct={items_completion_pct:.2f}%"
     )
 
@@ -114,7 +120,8 @@ def calculate_dashboard_metrics(
     df_for_velocity = df_windowed
 
     logger.info(
-        f"[REPORT FILTER DEBUG] weeks_count={weeks_count}, df_windowed len={len(df_windowed)}, "
+        f"[REPORT FILTER DEBUG] weeks_count={weeks_count}, "
+        f"df_windowed len={len(df_windowed)}, "
         f"data_points_count={data_points_count}"
     )
 
@@ -150,7 +157,9 @@ def calculate_dashboard_metrics(
                 df_windowed_temp["week_label"].isin(week_labels)
             ]
             logger.info(
-                f"[REPORT FILTER EARLY] Filtered to {len(df_for_velocity)} rows for health calculation (requested {data_points_count} weeks)"
+                "[REPORT FILTER EARLY] Filtered to "
+                f"{len(df_for_velocity)} rows for health calculation "
+                f"(requested {data_points_count} weeks)"
             )
         else:
             # Fallback: date range filtering (old behavior for backward compatibility)
@@ -158,7 +167,9 @@ def calculate_dashboard_metrics(
             cutoff_date = latest_date - timedelta(weeks=data_points_count)
             df_for_velocity = df_windowed_temp[df_windowed_temp["date"] > cutoff_date]
             logger.warning(
-                f"[REPORT FILTER EARLY] No week_label column - using date range filtering: {len(df_for_velocity)} rows"
+                "[REPORT FILTER EARLY] No week_label column - "
+                "using date range filtering: "
+                f"{len(df_for_velocity)} rows"
             )
 
     # Calculate health metrics (same as app's dashboard.py)
@@ -168,7 +179,8 @@ def calculate_dashboard_metrics(
     # Calculate velocity coefficient of variation (CV)
     velocity_cv = 0
     logger.info(
-        f"[REPORT FILTER DEBUG] After filtering: df_for_velocity len={len(df_for_velocity)}"
+        "[REPORT FILTER DEBUG] After filtering: "
+        f"df_for_velocity len={len(df_for_velocity)}"
     )
     if not df_for_velocity.empty and len(df_for_velocity) >= 2:
         weekly_velocities = df_for_velocity["completed_items"].tolist()
@@ -209,7 +221,8 @@ def calculate_dashboard_metrics(
     schedule_variance_days = 0
     completion_confidence = 50  # Default confidence
 
-    # Calculate velocity using filtered data (df_for_velocity was already filtered above)
+    # Calculate velocity using filtered data
+    # (df_for_velocity was already filtered above)
     from data.processing import calculate_velocity_from_dataframe
 
     velocity_items_early = calculate_velocity_from_dataframe(
@@ -235,8 +248,11 @@ def calculate_dashboard_metrics(
         completion_confidence=50,  # Default, will be updated after PERT forecast
     )
 
+    completion_pct_for_health = (
+        items_completion_pct if not show_points else points_completion_pct
+    )
     logger.info(
-        f"[REPORT HEALTH FIRST] Input: completion_pct={items_completion_pct if not show_points else points_completion_pct:.2f}, "
+        f"[REPORT HEALTH FIRST] Input: completion_pct={completion_pct_for_health:.2f}, "
         f"velocity_items={velocity_items_early:.2f}, velocity_cv={velocity_cv:.2f}, "
         f"trend={trend_direction}, recent_change={recent_velocity_change:.2f}, "
         f"schedule_var={schedule_variance_days:.2f}, confidence=50"
@@ -271,13 +287,15 @@ def calculate_dashboard_metrics(
         health_status = "CRITICAL"
 
     logger.info(
-        f"[REPORT HEALTH] Comprehensive health_score={health_score}% status={health_status} "
+        f"[REPORT HEALTH] Comprehensive health_score={health_score}% "
+        f"status={health_status} "
         f"formula_version={health_result.get('formula_version')} "
         f"dimensions={len(health_result.get('dimensions', {}))}"
     )
 
     # Calculate velocity using EXACT SAME method as app dashboard
-    # App uses calculate_velocity_from_dataframe() which returns WEEKLY velocity (items per week)
+    # App uses calculate_velocity_from_dataframe() which returns WEEKLY velocity
+    # (items per week)
     # Velocity calculation - df_for_velocity was already filtered earlier (line ~690)
     # Just calculate velocity from the already-filtered dataframe
     from data.processing import calculate_velocity_from_dataframe
@@ -290,10 +308,13 @@ def calculate_dashboard_metrics(
     )
 
     logger.debug(
-        f"[REPORT VELOCITY] df_windowed len={len(df_windowed)}, data_points_count={data_points_count}, df_for_velocity len={len(df_for_velocity)}"
+        f"[REPORT VELOCITY] df_windowed len={len(df_windowed)}, "
+        f"data_points_count={data_points_count}, "
+        f"df_for_velocity len={len(df_for_velocity)}"
     )
     logger.debug(
-        f"[REPORT VELOCITY] velocity_items={velocity_items:.2f} items/week, velocity_points={velocity_points:.2f} points/week"
+        f"[REPORT VELOCITY] velocity_items={velocity_items:.2f} items/week, "
+        f"velocity_points={velocity_points:.2f} points/week"
     )
 
     # Calculate recent 4-week velocity for short-term performance indicator
@@ -309,7 +330,8 @@ def calculate_dashboard_metrics(
             df_recent_4w, "completed_points"
         )
         logger.debug(
-            f"[REPORT VELOCITY 4W] Recent 4 weeks: velocity_items={velocity_items_recent_4w:.2f}, "
+            "[REPORT VELOCITY 4W] Recent 4 weeks: "
+            f"velocity_items={velocity_items_recent_4w:.2f}, "
             f"velocity_points={velocity_points_recent_4w:.2f}"
         )
     elif not df_for_velocity.empty:
@@ -326,7 +348,8 @@ def calculate_dashboard_metrics(
             scope_change_rate = (total_created / total_items) * 100
 
     logger.debug(
-        f"[REPORT SCOPE] scope_change_rate={scope_change_rate:.2f}% (from {len(df_for_velocity)} rows)"
+        f"[REPORT SCOPE] scope_change_rate={scope_change_rate:.2f}% "
+        f"(from {len(df_for_velocity)} rows)"
     )
 
     # Get deadline and milestone from settings
@@ -335,7 +358,8 @@ def calculate_dashboard_metrics(
     pert_factor = settings.get("pert_factor", 6)
 
     # Calculate PERT forecast using EXACT SAME method as app comprehensive dashboard
-    # App uses calculate_rates() which returns empirical PERT days (not simplified formula)
+    # App uses calculate_rates() which returns empirical PERT days
+    # (not simplified formula)
     # This is in ui/dashboard.py and data/processing.py calculate_rates()
     from data.processing import calculate_rates, compute_weekly_throughput
 
@@ -351,7 +375,8 @@ def calculate_dashboard_metrics(
     grouped = compute_weekly_throughput(df_for_velocity)
 
     logger.info(
-        f"[REPORT DATA] df_for_velocity rows={len(df_for_velocity)}, grouped weeks={len(grouped)}, "
+        f"[REPORT DATA] df_for_velocity rows={len(df_for_velocity)}, "
+        f"grouped weeks={len(grouped)}, "
         f"data_points_count={data_points_count}"
     )
 
@@ -370,14 +395,19 @@ def calculate_dashboard_metrics(
     )
 
     logger.debug(
-        f"[REPORT FORECAST] velocity_items={velocity_items:.2f}, velocity_points={velocity_points:.2f}, "
-        f"remaining_items={remaining_items}, remaining_points={remaining_points:.2f}, "
-        f"pert_factor={pert_factor}, pert_days={pert_days}, pert_time_items={pert_time_items:.2f}, "
-        f"pert_time_points={pert_time_points:.2f}, show_points={show_points}"
+        f"[REPORT FORECAST] velocity_items={velocity_items:.2f}, "
+        f"velocity_points={velocity_points:.2f}, "
+        f"remaining_items={remaining_items}, "
+        f"remaining_points={remaining_points:.2f}, "
+        f"pert_factor={pert_factor}, pert_days={pert_days}, "
+        f"pert_time_items={pert_time_items:.2f}, "
+        f"pert_time_points={pert_time_points:.2f}, "
+        f"show_points={show_points}"
     )
 
     # Get last statistics date for forecast starting point
-    # CRITICAL: Statistics are weekly-based (Mondays), so we must use the last Monday data point
+    # CRITICAL: Statistics are weekly-based (Mondays), so we must use the last
+    # Monday data point
     # NOT datetime.now() which could be any day of the week
     # This aligns with burndown chart which uses df_calc["date"].iloc[-1]
     # IMPORTANT: Use df_for_velocity (filtered data) to match dashboard behavior
@@ -387,10 +417,18 @@ def calculate_dashboard_metrics(
         else datetime.now()
     )
 
+    last_date_display = (
+        last_date.strftime("%Y-%m-%d") if hasattr(last_date, "strftime") else last_date
+    )
+    completion_date_display = (
+        (last_date + timedelta(days=pert_days)).strftime("%Y-%m-%d")
+        if pert_days and pert_days > 0
+        else "None"
+    )
     logger.info(
-        f"[REPORT FORECAST] last_date={last_date.strftime('%Y-%m-%d') if hasattr(last_date, 'strftime') else last_date}, "
+        f"[REPORT FORECAST] last_date={last_date_display}, "
         f"pert_days={pert_days}, df_for_velocity_rows={len(df_for_velocity)}, "
-        f"completion_date={(last_date + timedelta(days=pert_days)).strftime('%Y-%m-%d') if pert_days and pert_days > 0 else 'None'}"
+        f"completion_date={completion_date_display}"
     )
 
     if pert_days and pert_days > 0:
@@ -402,25 +440,32 @@ def calculate_dashboard_metrics(
         # Calculate months to forecast from last date
         forecast_months = round(pert_days / 30.44)  # Average days per month
 
-    # Calculate both items and points forecast dates for display (matching dashboard logic)
-    # Only show if pert time is positive (not 0 which means no data or already complete)
+    # Calculate both items and points forecast dates for display
+    # (matching dashboard logic)
+    # Only show if pert time is positive
+    # (not 0 which means no data or already complete)
     if pert_time_items and pert_time_items > 0:
         forecast_date_items_obj = last_date + timedelta(days=pert_time_items)
         forecast_date_items = forecast_date_items_obj.strftime("%Y-%m-%d")
         logger.info(
-            f"[REPORT] Calculated forecast_date_items: {forecast_date_items} (pert_time_items={pert_time_items:.2f} days from {last_date.strftime('%Y-%m-%d')})"
+            f"[REPORT] Calculated forecast_date_items: {forecast_date_items} "
+            f"(pert_time_items={pert_time_items:.2f} days "
+            f"from {last_date.strftime('%Y-%m-%d')})"
         )
 
     if pert_time_points and pert_time_points > 0:
         forecast_date_points_obj = last_date + timedelta(days=pert_time_points)
         forecast_date_points = forecast_date_points_obj.strftime("%Y-%m-%d")
         logger.info(
-            f"[REPORT] Calculated forecast_date_points: {forecast_date_points} (pert_time_points={pert_time_points:.2f} days from {last_date.strftime('%Y-%m-%d')})"
+            f"[REPORT] Calculated forecast_date_points: {forecast_date_points} "
+            f"(pert_time_points={pert_time_points:.2f} days "
+            f"from {last_date.strftime('%Y-%m-%d')})"
         )
 
     logger.info(
         f"[REPORT] Final forecast values: forecast_date={forecast_date}, "
-        f"forecast_date_items={forecast_date_items}, forecast_date_points={forecast_date_points}"
+        f"forecast_date_items={forecast_date_items}, "
+        f"forecast_date_points={forecast_date_points}"
     )
 
     # Calculate months to deadline (from last statistics date, not today)
@@ -443,7 +488,8 @@ def calculate_dashboard_metrics(
         # Simplified: schedule_var = days_to_deadline - pert_days
         schedule_variance_days = days_to_deadline - pert_days
         logger.info(
-            f"[REPORT HEALTH] RECALC: schedule_variance_days={schedule_variance_days:.2f} "
+            f"[REPORT HEALTH] RECALC: "
+            f"schedule_variance_days={schedule_variance_days:.2f} "
             f"(pert_days={pert_days:.2f}, days_to_deadline={days_to_deadline})"
         )
 
@@ -465,7 +511,8 @@ def calculate_dashboard_metrics(
         else:
             completion_confidence = 25  # Very low confidence
 
-        # Recalculate comprehensive health score with updated schedule variance and confidence
+        # Recalculate comprehensive health score with updated schedule variance
+        # and confidence
         # ALWAYS use items_completion_pct for health (consistent with app)
         dashboard_metrics_for_health = prepare_dashboard_metrics_for_health(
             completion_percentage=items_completion_pct,  # Always items, not points
@@ -481,7 +528,8 @@ def calculate_dashboard_metrics(
             f"[REPORT HEALTH] Input: completion_pct={items_completion_pct:.2f}, "
             f"velocity_items={velocity_items:.2f}, velocity_cv={velocity_cv:.2f}, "
             f"trend={trend_direction}, recent_change={recent_velocity_change:.2f}, "
-            f"schedule_var={schedule_variance_days:.2f}, confidence={completion_confidence}, "
+            f"schedule_var={schedule_variance_days:.2f}, "
+            f"confidence={completion_confidence}, "
             f"scope_change_rate={scope_change_rate:.2f}"
         )
 
@@ -507,14 +555,16 @@ def calculate_dashboard_metrics(
             health_status = "CRITICAL"
 
         logger.info(
-            f"[REPORT HEALTH] FINAL health_score={health_score}% status={health_status} "
+            f"[REPORT HEALTH] FINAL health_score={health_score}% "
+            f"status={health_status} "
             f"(recalculated with schedule_variance_days={schedule_variance_days:.2f})"
         )
     else:
         # No deadline configured - recalculate health with final extended_metrics
         # This ensures budget_metrics are included even without deadline
         logger.info(
-            "[REPORT HEALTH] No deadline - recalculating health with all extended metrics"
+            "[REPORT HEALTH] No deadline - recalculating health "
+            "with all extended metrics"
         )
         health_result = calculate_comprehensive_project_health(
             dashboard_metrics=dashboard_metrics_for_health,
@@ -559,7 +609,8 @@ def calculate_dashboard_metrics(
         "velocity_items_recent_4w": velocity_items_recent_4w,
         "velocity_points_recent_4w": velocity_points_recent_4w,
         "weeks_count": weeks_count,
-        "pert_time_items": pert_time_items,  # Raw PERT days for items (for deadline calculations)
+        # Raw PERT days for items (for deadline calculations)
+        "pert_time_items": pert_time_items,
         "pert_time_points": pert_time_points,  # Raw PERT days for points
         "pert_time_items_weeks": (pert_time_items / 7.0) if pert_time_items else 0,
         "pert_time_points_weeks": (pert_time_points / 7.0) if pert_time_points else 0,
@@ -569,10 +620,12 @@ def calculate_dashboard_metrics(
         ),  # Pass health dimensions for breakdown visualization
         "velocity_cv": velocity_cv,  # Pass velocity coefficient of variation
         "trend_direction": trend_direction,  # Pass trend direction
-        "recent_velocity_change": recent_velocity_change,  # Pass recent velocity change for Delivery dimension
+        # Pass recent velocity change for Delivery dimension
+        "recent_velocity_change": recent_velocity_change,
         "schedule_variance_days": schedule_variance_days,  # Pass schedule variance
         "completion_confidence": completion_confidence,  # Pass completion confidence
-        "scope_change_rate": scope_change_rate,  # Pass scope change rate for Sustainability dimension display
+        # Pass scope change rate for Sustainability dimension display
+        "scope_change_rate": scope_change_rate,
         "forecast_weeks_items": (pert_time_items / 7.0)
         if pert_time_items
         else 0,  # Pass forecast weeks for budget alignment

@@ -9,7 +9,8 @@ Tables:
 2. queries - Saved JQL queries
 3. app_state - Application state (key-value)
 4. jira_issues - Normalized JIRA issues (replaces jira_cache JSON blob)
-5. jira_changelog_entries - Normalized changelog (replaces jira_changelog_cache JSON blob)
+5. jira_changelog_entries - Normalized changelog (replaces jira_changelog_cache JSON
+blob)
 6. project_statistics - Normalized weekly stats (replaces project_data.statistics array)
 7. project_scope - Project scope data (small JSON)
 8. metrics_data_points - Normalized metrics (replaces metrics_snapshots JSON blob)
@@ -71,7 +72,8 @@ def create_schema(conn: sqlite3.Connection) -> None:
             last_used TEXT NOT NULL,
             jira_config TEXT NOT NULL DEFAULT '{}',
             field_mappings TEXT NOT NULL DEFAULT '{}',
-            forecast_settings TEXT NOT NULL DEFAULT '{"pert_factor": 1.2, "deadline": null, "data_points_count": 12}',
+            forecast_settings TEXT NOT NULL DEFAULT '{"pert_factor": 1.2, "deadline":
+            null, "data_points_count": 12}',
             project_classification TEXT NOT NULL DEFAULT '{}',
             flow_type_mappings TEXT NOT NULL DEFAULT '{}',
             show_milestone INTEGER DEFAULT 0,
@@ -101,7 +103,8 @@ def create_schema(conn: sqlite3.Connection) -> None:
 
     # Indexes for queries
     cursor.execute(
-        "CREATE INDEX IF NOT EXISTS idx_queries_profile ON queries(profile_id, last_used DESC)"
+        "CREATE INDEX IF NOT EXISTS idx_queries_profile "
+        "ON queries(profile_id, last_used DESC)"
     )
     cursor.execute(
         "CREATE INDEX IF NOT EXISTS idx_queries_name ON queries(profile_id, name)"
@@ -133,29 +136,36 @@ def create_schema(conn: sqlite3.Connection) -> None:
             custom_fields TEXT,
             expires_at TEXT NOT NULL,
             fetched_at TEXT NOT NULL,
-            FOREIGN KEY (profile_id, query_id) REFERENCES queries(profile_id, id) ON DELETE CASCADE,
+            FOREIGN KEY (profile_id, query_id) REFERENCES queries(profile_id, id) ON
+            DELETE CASCADE,
             UNIQUE(profile_id, query_id, issue_key)
         )
     """)
 
     # Indexes for jira_issues (9 indexes per data-model.md)
     cursor.execute(
-        "CREATE INDEX IF NOT EXISTS idx_jira_issues_query ON jira_issues(profile_id, query_id)"
+        "CREATE INDEX IF NOT EXISTS idx_jira_issues_query "
+        "ON jira_issues(profile_id, query_id)"
     )
     cursor.execute(
-        "CREATE INDEX IF NOT EXISTS idx_jira_issues_key ON jira_issues(profile_id, query_id, issue_key)"
+        "CREATE INDEX IF NOT EXISTS idx_jira_issues_key "
+        "ON jira_issues(profile_id, query_id, issue_key)"
     )
     cursor.execute(
-        "CREATE INDEX IF NOT EXISTS idx_jira_issues_status ON jira_issues(profile_id, query_id, status)"
+        "CREATE INDEX IF NOT EXISTS idx_jira_issues_status "
+        "ON jira_issues(profile_id, query_id, status)"
     )
     cursor.execute(
-        "CREATE INDEX IF NOT EXISTS idx_jira_issues_assignee ON jira_issues(profile_id, query_id, assignee)"
+        "CREATE INDEX IF NOT EXISTS idx_jira_issues_assignee "
+        "ON jira_issues(profile_id, query_id, assignee)"
     )
     cursor.execute(
-        "CREATE INDEX IF NOT EXISTS idx_jira_issues_type ON jira_issues(profile_id, query_id, issue_type)"
+        "CREATE INDEX IF NOT EXISTS idx_jira_issues_type "
+        "ON jira_issues(profile_id, query_id, issue_type)"
     )
     cursor.execute(
-        "CREATE INDEX IF NOT EXISTS idx_jira_issues_resolved ON jira_issues(resolved DESC)"
+        "CREATE INDEX IF NOT EXISTS idx_jira_issues_resolved "
+        "ON jira_issues(resolved DESC)"
     )
     cursor.execute(
         "CREATE INDEX IF NOT EXISTS idx_jira_issues_project ON jira_issues(project_key)"
@@ -167,7 +177,8 @@ def create_schema(conn: sqlite3.Connection) -> None:
         "CREATE INDEX IF NOT EXISTS idx_jira_issues_cache ON jira_issues(cache_key)"
     )
 
-    # Table 5: jira_changelog_entries (normalized - replaces jira_changelog_cache JSON blob)
+    # Table 5: jira_changelog_entries (normalized - replaces
+    # jira_changelog_cache JSON blob)
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS jira_changelog_entries (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -181,32 +192,42 @@ def create_schema(conn: sqlite3.Connection) -> None:
             old_value TEXT,
             new_value TEXT,
             expires_at TEXT NOT NULL,
-            FOREIGN KEY (profile_id, query_id) REFERENCES queries(profile_id, id) ON DELETE CASCADE,
-            FOREIGN KEY (profile_id, query_id, issue_key) REFERENCES jira_issues(profile_id, query_id, issue_key) ON DELETE CASCADE
+            FOREIGN KEY (profile_id, query_id) REFERENCES queries(profile_id, id) ON
+            DELETE CASCADE,
+            FOREIGN KEY (profile_id, query_id, issue_key) REFERENCES
+            jira_issues(profile_id, query_id, issue_key) ON DELETE CASCADE
         )
     """)
 
     # Indexes for jira_changelog_entries (6 indexes per data-model.md)
     cursor.execute(
-        "CREATE INDEX IF NOT EXISTS idx_changelog_query ON jira_changelog_entries(profile_id, query_id)"
+        "CREATE INDEX IF NOT EXISTS idx_changelog_query "
+        "ON jira_changelog_entries(profile_id, query_id)"
     )
     cursor.execute(
-        "CREATE INDEX IF NOT EXISTS idx_changelog_issue ON jira_changelog_entries(profile_id, query_id, issue_key)"
+        "CREATE INDEX IF NOT EXISTS idx_changelog_issue "
+        "ON jira_changelog_entries(profile_id, query_id, issue_key)"
     )
     cursor.execute(
-        "CREATE INDEX IF NOT EXISTS idx_changelog_field ON jira_changelog_entries(field_name)"
+        "CREATE INDEX IF NOT EXISTS idx_changelog_field "
+        "ON jira_changelog_entries(field_name)"
     )
     cursor.execute(
-        "CREATE INDEX IF NOT EXISTS idx_changelog_date ON jira_changelog_entries(change_date DESC)"
+        "CREATE INDEX IF NOT EXISTS idx_changelog_date "
+        "ON jira_changelog_entries(change_date DESC)"
     )
     cursor.execute(
-        "CREATE INDEX IF NOT EXISTS idx_changelog_status ON jira_changelog_entries(field_name, new_value) WHERE field_name='status'"
+        "CREATE INDEX IF NOT EXISTS idx_changelog_status "
+        "ON jira_changelog_entries(field_name, new_value) "
+        "WHERE field_name='status'"
     )
     cursor.execute(
-        "CREATE INDEX IF NOT EXISTS idx_changelog_expiry ON jira_changelog_entries(expires_at)"
+        "CREATE INDEX IF NOT EXISTS idx_changelog_expiry "
+        "ON jira_changelog_entries(expires_at)"
     )
 
-    # Table 6: project_statistics (normalized - replaces project_data.statistics array)
+    # Table 6: project_statistics (normalized - replaces
+    # project_data.statistics array)
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS project_statistics (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -225,20 +246,24 @@ def create_schema(conn: sqlite3.Connection) -> None:
             velocity_items REAL DEFAULT 0.0,
             velocity_points REAL DEFAULT 0.0,
             recorded_at TEXT NOT NULL,
-            FOREIGN KEY (profile_id, query_id) REFERENCES queries(profile_id, id) ON DELETE CASCADE,
+            FOREIGN KEY (profile_id, query_id) REFERENCES queries(profile_id, id) ON
+            DELETE CASCADE,
             UNIQUE(profile_id, query_id, stat_date)
         )
     """)
 
     # Indexes for project_statistics (3 indexes per data-model.md)
     cursor.execute(
-        "CREATE INDEX IF NOT EXISTS idx_project_stats_query ON project_statistics(profile_id, query_id)"
+        "CREATE INDEX IF NOT EXISTS idx_project_stats_query "
+        "ON project_statistics(profile_id, query_id)"
     )
     cursor.execute(
-        "CREATE INDEX IF NOT EXISTS idx_project_stats_date ON project_statistics(profile_id, query_id, stat_date DESC)"
+        "CREATE INDEX IF NOT EXISTS idx_project_stats_date "
+        "ON project_statistics(profile_id, query_id, stat_date DESC)"
     )
     cursor.execute(
-        "CREATE INDEX IF NOT EXISTS idx_project_stats_week ON project_statistics(week_label)"
+        "CREATE INDEX IF NOT EXISTS idx_project_stats_week "
+        "ON project_statistics(week_label)"
     )
 
     # Table 7: project_scope (small JSON aggregate data)
@@ -249,16 +274,19 @@ def create_schema(conn: sqlite3.Connection) -> None:
             query_id TEXT NOT NULL,
             scope_data TEXT NOT NULL,
             updated_at TEXT NOT NULL,
-            FOREIGN KEY (profile_id, query_id) REFERENCES queries(profile_id, id) ON DELETE CASCADE,
+            FOREIGN KEY (profile_id, query_id) REFERENCES queries(profile_id, id) ON
+            DELETE CASCADE,
             UNIQUE(profile_id, query_id)
         )
     """)
 
     cursor.execute(
-        "CREATE INDEX IF NOT EXISTS idx_project_scope_query ON project_scope(profile_id, query_id)"
+        "CREATE INDEX IF NOT EXISTS idx_project_scope_query "
+        "ON project_scope(profile_id, query_id)"
     )
 
-    # Table 8: metrics_data_points (normalized - replaces metrics_snapshots JSON blob)
+    # Table 8: metrics_data_points (normalized - replaces metrics_snapshots
+    # JSON blob)
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS metrics_data_points (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -275,26 +303,32 @@ def create_schema(conn: sqlite3.Connection) -> None:
             forecast_confidence_low REAL,
             forecast_confidence_high REAL,
             calculated_at TEXT NOT NULL,
-            FOREIGN KEY (profile_id, query_id) REFERENCES queries(profile_id, id) ON DELETE CASCADE,
+            FOREIGN KEY (profile_id, query_id) REFERENCES queries(profile_id, id) ON
+            DELETE CASCADE,
             UNIQUE(profile_id, query_id, snapshot_date, metric_category, metric_name)
         )
     """)
 
     # Indexes for metrics_data_points (5 indexes per data-model.md)
     cursor.execute(
-        "CREATE INDEX IF NOT EXISTS idx_metrics_query ON metrics_data_points(profile_id, query_id)"
+        "CREATE INDEX IF NOT EXISTS idx_metrics_query "
+        "ON metrics_data_points(profile_id, query_id)"
     )
     cursor.execute(
-        "CREATE INDEX IF NOT EXISTS idx_metrics_date ON metrics_data_points(profile_id, query_id, snapshot_date DESC)"
+        "CREATE INDEX IF NOT EXISTS idx_metrics_date "
+        "ON metrics_data_points(profile_id, query_id, snapshot_date DESC)"
     )
     cursor.execute(
-        "CREATE INDEX IF NOT EXISTS idx_metrics_name ON metrics_data_points(profile_id, query_id, metric_name, snapshot_date DESC)"
+        "CREATE INDEX IF NOT EXISTS idx_metrics_name "
+        "ON metrics_data_points(profile_id, query_id, metric_name, snapshot_date DESC)"
     )
     cursor.execute(
-        "CREATE INDEX IF NOT EXISTS idx_metrics_category ON metrics_data_points(metric_category)"
+        "CREATE INDEX IF NOT EXISTS idx_metrics_category "
+        "ON metrics_data_points(metric_category)"
     )
     cursor.execute(
-        "CREATE INDEX IF NOT EXISTS idx_metrics_value ON metrics_data_points(metric_name, metric_value)"
+        "CREATE INDEX IF NOT EXISTS idx_metrics_value "
+        "ON metrics_data_points(metric_name, metric_value)"
     )
 
     # Table 9: budget_settings (query-level budget configuration)
@@ -313,12 +347,14 @@ def create_schema(conn: sqlite3.Connection) -> None:
             created_at TEXT NOT NULL,
             updated_at TEXT NOT NULL,
             UNIQUE(profile_id, query_id),
-            FOREIGN KEY (profile_id, query_id) REFERENCES queries(profile_id, id) ON DELETE CASCADE
+            FOREIGN KEY (profile_id, query_id) REFERENCES queries(profile_id, id) ON
+            DELETE CASCADE
         )
     """)
 
     cursor.execute(
-        "CREATE INDEX IF NOT EXISTS idx_budget_settings_profile_query ON budget_settings(profile_id, query_id)"
+        "CREATE INDEX IF NOT EXISTS idx_budget_settings_profile_query "
+        "ON budget_settings(profile_id, query_id)"
     )
 
     # Table 10: budget_revisions (budget change event log)
@@ -335,16 +371,19 @@ def create_schema(conn: sqlite3.Connection) -> None:
             revision_reason TEXT,
             created_at TEXT NOT NULL,
             metadata TEXT,
-            FOREIGN KEY (profile_id, query_id) REFERENCES queries(profile_id, id) ON DELETE CASCADE
+            FOREIGN KEY (profile_id, query_id) REFERENCES queries(profile_id, id) ON
+            DELETE CASCADE
         )
     """)
 
     # Indexes for budget_revisions
     cursor.execute(
-        "CREATE INDEX IF NOT EXISTS idx_budget_revisions_profile_query ON budget_revisions(profile_id, query_id)"
+        "CREATE INDEX IF NOT EXISTS idx_budget_revisions_profile_query "
+        "ON budget_revisions(profile_id, query_id)"
     )
     cursor.execute(
-        "CREATE INDEX IF NOT EXISTS idx_budget_revisions_week ON budget_revisions(profile_id, query_id, week_label)"
+        "CREATE INDEX IF NOT EXISTS idx_budget_revisions_week "
+        "ON budget_revisions(profile_id, query_id, week_label)"
     )
 
     # Table 11: task_progress (runtime state)
@@ -470,7 +509,9 @@ def ensure_budget_velocity_columns(conn: sqlite3.Connection) -> None:
         cursor.execute("ALTER TABLE budget_settings ADD COLUMN updated_at TEXT")
         # Backfill updated_at with created_at for existing rows
         cursor.execute(
-            "UPDATE budget_settings SET updated_at = created_at WHERE updated_at IS NULL"
+            "UPDATE budget_settings "
+            "SET updated_at = created_at "
+            "WHERE updated_at IS NULL"
         )
 
     conn.commit()
