@@ -13,18 +13,32 @@ from data.sprint_manager import (
     get_sprint_snapshots,
 )
 
+SPRINT_22_SERIALIZED = (
+    "com.atlassian.greenhopper.service.sprint.Sprint@14b3c[id=22,name=Sprint 22]"
+)
+SPRINT_23_SERIALIZED = (
+    "com.atlassian.greenhopper.service.sprint.Sprint@14b3c[id=23,name=Sprint 23]"
+)
+SPRINT_23_ACTIVE_SERIALIZED = (
+    "com.atlassian.greenhopper.service.sprint.Sprint@14b3c"
+    "[id=23,name=Sprint 23,state=ACTIVE]"
+)
+SPRINT_42_SERIALIZED = (
+    "com.atlassian.greenhopper.service.sprint.Sprint@14b3c[id=42,name=Sprint 42]"
+)
+
 
 class TestParseSprintName:
     """Test suite for _parse_sprint_name helper function."""
 
     def test_parse_jira_sprint_object_format(self):
         """Test parsing JIRA sprint object serialization format."""
-        sprint_value = "com.atlassian.greenhopper.service.sprint.Sprint@14b3c[id=23,name=Sprint 23,state=ACTIVE]"
+        sprint_value = SPRINT_23_ACTIVE_SERIALIZED
         assert _parse_sprint_name(sprint_value) == "Sprint 23"
 
     def test_parse_sprint_name_with_closing_bracket(self):
         """Test parsing when comma not found (use closing bracket)."""
-        sprint_value = "com.atlassian.greenhopper.service.sprint.Sprint@14b3c[id=42,name=Sprint 42]"
+        sprint_value = SPRINT_42_SERIALIZED
         assert _parse_sprint_name(sprint_value) == "Sprint 42"
 
     def test_parse_simple_string(self):
@@ -69,14 +83,14 @@ class TestGetSprintSnapshots:
                 "change_date": "2025-01-10T10:00:00Z",
                 "field_name": "sprint",
                 "old_value": None,
-                "new_value": "com.atlassian.greenhopper.service.sprint.Sprint@14b3c[id=23,name=Sprint 23,state=ACTIVE]",
+                "new_value": SPRINT_23_ACTIVE_SERIALIZED,
             },
             {
                 "issue_key": "PROJ-2",
                 "change_date": "2025-01-11T10:00:00Z",
                 "field_name": "sprint",
                 "old_value": None,
-                "new_value": "com.atlassian.greenhopper.service.sprint.Sprint@14b3c[id=23,name=Sprint 23,state=ACTIVE]",
+                "new_value": SPRINT_23_ACTIVE_SERIALIZED,
             },
         ]
 
@@ -122,13 +136,13 @@ class TestGetSprintSnapshots:
                 "change_date": "2025-01-10T10:00:00Z",
                 "field_name": "sprint",
                 "old_value": None,
-                "new_value": "com.atlassian.greenhopper.service.sprint.Sprint@14b3c[id=23,name=Sprint 23]",
+                "new_value": SPRINT_23_SERIALIZED,
             },
             {
                 "issue_key": "PROJ-1",
                 "change_date": "2025-01-15T10:00:00Z",
                 "field_name": "sprint",
-                "old_value": "com.atlassian.greenhopper.service.sprint.Sprint@14b3c[id=23,name=Sprint 23]",
+                "old_value": SPRINT_23_SERIALIZED,
                 "new_value": None,
             },
         ]
@@ -161,14 +175,14 @@ class TestGetSprintSnapshots:
                 "change_date": "2025-01-10T10:00:00Z",
                 "field_name": "sprint",
                 "old_value": None,
-                "new_value": "com.atlassian.greenhopper.service.sprint.Sprint@14b3c[id=22,name=Sprint 22]",
+                "new_value": SPRINT_22_SERIALIZED,
             },
             {
                 "issue_key": "PROJ-1",
                 "change_date": "2025-01-15T10:00:00Z",
                 "field_name": "sprint",
-                "old_value": "com.atlassian.greenhopper.service.sprint.Sprint@14b3c[id=22,name=Sprint 22]",
-                "new_value": "com.atlassian.greenhopper.service.sprint.Sprint@14b3c[id=23,name=Sprint 23]",
+                "old_value": SPRINT_22_SERIALIZED,
+                "new_value": SPRINT_23_SERIALIZED,
             },
         ]
 
@@ -213,14 +227,14 @@ class TestDetectSprintChanges:
                 "change_date": "2025-01-10T10:00:00Z",
                 "field_name": "sprint",
                 "old_value": None,
-                "new_value": "com.atlassian.greenhopper.service.sprint.Sprint@14b3c[id=23,name=Sprint 23]",
+                "new_value": SPRINT_23_SERIALIZED,
             },
             {
                 "issue_key": "PROJ-2",
                 "change_date": "2025-01-11T10:00:00Z",
                 "field_name": "sprint",
                 "old_value": None,
-                "new_value": "com.atlassian.greenhopper.service.sprint.Sprint@14b3c[id=23,name=Sprint 23]",
+                "new_value": SPRINT_23_SERIALIZED,
             },
         ]
 
@@ -238,7 +252,7 @@ class TestDetectSprintChanges:
                 "issue_key": "PROJ-1",
                 "change_date": "2025-01-15T10:00:00Z",
                 "field_name": "sprint",
-                "old_value": "com.atlassian.greenhopper.service.sprint.Sprint@14b3c[id=23,name=Sprint 23]",
+                "old_value": SPRINT_23_SERIALIZED,
                 "new_value": None,
             }
         ]
@@ -257,8 +271,8 @@ class TestDetectSprintChanges:
                 "issue_key": "PROJ-1",
                 "change_date": "2025-01-15T10:00:00Z",
                 "field_name": "sprint",
-                "old_value": "com.atlassian.greenhopper.service.sprint.Sprint@14b3c[id=22,name=Sprint 22]",
-                "new_value": "com.atlassian.greenhopper.service.sprint.Sprint@14b3c[id=23,name=Sprint 23]",
+                "old_value": SPRINT_22_SERIALIZED,
+                "new_value": SPRINT_23_SERIALIZED,
             }
         ]
 

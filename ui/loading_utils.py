@@ -102,7 +102,13 @@ SPINNER_SIZES = {
 }
 
 # CSS animation for skeleton loaders
-SKELETON_ANIMATION = "@keyframes skeleton-loading { 0% { background-color: rgba(200, 200, 200, 0.2); } 50% { background-color: rgba(200, 200, 200, 0.6); } 100% { background-color: rgba(200, 200, 200, 0.2); } }"
+SKELETON_ANIMATION = (
+    "@keyframes skeleton-loading { "
+    "0% { background-color: rgba(200, 200, 200, 0.2); } "
+    "50% { background-color: rgba(200, 200, 200, 0.6); } "
+    "100% { background-color: rgba(200, 200, 200, 0.2); } "
+    "}"
+)
 
 #######################################################################
 # LOADING STYLE UTILITIES
@@ -165,7 +171,10 @@ def create_spinner_style(style_key="primary", size_key="md", custom_style=None):
     spinner_style = {
         "borderRadius": "50%",
         "borderStyle": "solid",
-        "borderColor": f"{base_style['color']} {base_style['color']} {base_style['color']} transparent",
+        "borderColor": (
+            f"{base_style['color']} {base_style['color']} "
+            f"{base_style['color']} transparent"
+        ),
         "animation": "spinner-border 0.75s linear infinite",
         "display": "inline-block",
     }
@@ -197,10 +206,12 @@ def create_spinner(
     Creates a Bootstrap spinner component.
 
     Args:
-        style_key (str, optional): The color style of the spinner (e.g., "primary", "secondary").
-                                   Defaults to "primary".
-        size_key (str, optional): The size of the spinner ("sm", "md", "lg"). Defaults to "md".
-        text (str, optional): Optional text to display alongside the spinner. Defaults to None.
+        style_key (str, optional): The color style of the spinner
+            (e.g., "primary", "secondary"). Defaults to "primary".
+        size_key (str, optional): The size of the spinner
+            ("sm", "md", "lg"). Defaults to "md".
+        text (str, optional): Optional text to display alongside
+            the spinner. Defaults to None.
         className (str, optional): Additional CSS classes to apply. Defaults to "".
 
     Returns:
@@ -332,7 +343,9 @@ def create_bootstrap_spinner(
     if text:
         component = html.Div(
             [spinner, html.Div(text, className="text-center mt-2 text-muted small")],
-            className="d-flex flex-column align-items-center justify-content-center py-3",
+            className=(
+                "d-flex flex-column align-items-center justify-content-center py-3"
+            ),
         )
     else:
         component = spinner
@@ -474,11 +487,13 @@ def create_skeleton_loader(
     Creates a skeleton loading placeholder element.
 
     Args:
-        type (str, optional): The type of skeleton element ("text", "card", "avatar", etc.).
-                              Defaults to "text". Determines base styling.
+        type (str, optional): The type of skeleton element
+            ("text", "card", "avatar", etc.).
+            Defaults to "text". Determines base styling.
         lines (int, optional): Number of lines for text-type skeletons. Defaults to 1.
         width (str, optional): CSS width of the skeleton element. Defaults to "100%".
-        height (str, optional): CSS height of the skeleton element. Defaults to None (auto).
+        height (str, optional): CSS height of the skeleton element.
+            Defaults to None (auto).
         className (str, optional): Additional CSS classes to apply. Defaults to "".
 
     Returns:
@@ -666,13 +681,16 @@ def create_content_placeholder(
     Creates a placeholder indicating the type of content being loaded.
 
     Args:
-        type (str, optional): The type of content ("table", "chart", "text", "data", "image", "file", "form").
-                              Defaults to "table". Determines default icon and text.
+        type (str, optional): The type of content
+            ("table", "chart", "text", "data", "image", "file", "form").
+            Defaults to "table". Determines default icon and text.
         text (str, optional): Custom text to display in the placeholder.
                               Overrides default text if provided. Defaults to None.
-        icon (str, optional): Custom Font Awesome icon class (e.g., "fas fa-cog") to display.
-                              Overrides default icon if provided. Defaults to None.
-        height (str, optional): CSS height of the placeholder container. Defaults to "100px".
+        icon (str, optional): Custom Font Awesome icon class
+            (e.g., "fas fa-cog") to display.
+            Overrides default icon if provided. Defaults to None.
+        height (str, optional): CSS height of the placeholder container.
+            Defaults to "100px".
         className (str, optional): Additional CSS classes to apply. Defaults to "".
 
     Returns:
@@ -727,7 +745,10 @@ def create_content_placeholder(
             ),
             html.Div(display_text, className="text-muted"),
         ],
-        className=f"d-flex flex-column justify-content-center align-items-center py-5 {className}",
+        className=(
+            "d-flex flex-column justify-content-center "
+            f"align-items-center py-5 {className}"
+        ),
         style={
             "backgroundColor": NEUTRAL_COLORS.get("gray-100"),
             "border": f"1px dashed {NEUTRAL_COLORS.get('gray-300')}",
@@ -760,7 +781,8 @@ def create_loading_state(
     Args:
         children: Content to display when not loading (required for overlay type)
         is_loading (bool): Whether to show the loading state
-        type (str): Type of loading component ('spinner', 'growing', 'skeleton', 'overlay', 'placeholder')
+        type (str): Type of loading component
+            ('spinner', 'growing', 'skeleton', 'overlay', 'placeholder')
         style_key (str): Color style key (primary, secondary, success, etc.)
         size_key (str): Size key (xs, sm, md, lg, xl)
         message (str): Message to display with the loading indicator
@@ -861,7 +883,8 @@ def create_async_content(id, loading_state_id=None, content_type="chart"):
 
     Args:
         id (str): ID for the component
-        loading_state_id (str): ID for the loading state indicator, defaults to {id}-loading
+        loading_state_id (str): ID for loading-state indicator,
+            defaults to {id}-loading
         content_type (str): Type of content ('chart', 'data', 'table', etc.)
 
     Returns:
