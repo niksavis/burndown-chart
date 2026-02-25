@@ -20,7 +20,7 @@ def embed_report_dependencies() -> dict:
     else:
         assets_dir = Path(__file__).parent.parent / "report_assets"
 
-    # Read CSS files, stripping source map comments (map files not included in offline reports)
+    # Read CSS files, stripping source map comments (map files not included)
     bootstrap_css = _strip_source_map_comments(
         (assets_dir / "bootstrap.min.css").read_text(encoding="utf-8")
     )
