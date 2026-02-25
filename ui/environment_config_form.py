@@ -16,13 +16,51 @@ def create_environment_config_form(
 
     Args:
         production_environment_values: List of production identifier values
-        available_environment_values: List of available environment values from JIRA field
+        available_environment_values: List of available environment values
+            from JIRA field
 
     Returns:
         Dash component with environment configuration UI
     """
     production_environment_values = production_environment_values or []
     available_environment_values = available_environment_values or []
+    has_available_environment_values = bool(available_environment_values)
+
+    info_icon_class = "fas fa-info-circle me-1 text-info"
+    magic_icon_class = "fas fa-magic me-1 text-info"
+    check_icon_class = "fas fa-check-circle me-1 text-success"
+    hint_icon_class = "fas fa-lightbulb me-1 text-warning"
+    muted_small_class = "text-muted d-block mb-2"
+    muted_block_class = "text-muted d-block"
+
+    auto_populated_help = [
+        html.I(className=magic_icon_class),
+        html.Strong("Auto-populated: "),
+        "Values are loaded automatically from JIRA when you open this modal. ",
+        "Use ",
+        html.Strong("'Auto-Configure'"),
+        " to detect production identifiers.",
+    ]
+    loaded_values_help = [
+        html.I(className=check_icon_class),
+        f"Loaded {len(available_environment_values)} unique value(s) from JIRA.",
+    ]
+    no_values_help = [
+        html.I(className=hint_icon_class),
+        html.Strong("No values showing? "),
+        "Ensure JIRA is connected and 'Affected Environment' field is mapped in the ",
+        "Fields tab. Re-open this modal to refresh the available values.",
+    ]
+    auto_help_content = (
+        auto_populated_help
+        if not has_available_environment_values
+        else loaded_values_help
+    )
+    no_values_help_component = (
+        html.Small(no_values_help, className=muted_block_class)
+        if not has_available_environment_values
+        else html.Div()
+    )
 
     # Create options for dropdown - include current values even if metadata not fetched
     env_options = [{"label": val, "value": val} for val in available_environment_values]
@@ -47,7 +85,9 @@ def create_environment_config_form(
                     dbc.CardBody(
                         [
                             html.P(
-                                "Configure production environment identifiers for DORA MTTR (Mean Time to Recovery) calculation.",
+                                "Configure production environment identifiers "
+                                "for DORA MTTR (Mean Time to Recovery) "
+                                "calculation.",
                                 className="text-muted small mb-3",
                             ),
                             # Production Identifiers
@@ -58,7 +98,10 @@ def create_environment_config_form(
                                             html.Label(
                                                 [
                                                     html.I(
-                                                        className="fas fa-server me-2 text-danger"
+                                                        className=(
+                                                            "fas fa-server "
+                                                            "me-2 text-danger"
+                                                        )
                                                     ),
                                                     "Production Identifiers (Required)",
                                                 ],
@@ -69,7 +112,11 @@ def create_environment_config_form(
                                                 options=env_options,  # type: ignore  # Dash accepts list[dict]
                                                 value=production_environment_values,
                                                 multi=True,
-                                                placeholder="Select production environment identifiers (e.g., PROD, Production)...",
+                                                placeholder=(
+                                                    "Select production environment "
+                                                    "identifiers (e.g., PROD, "
+                                                    "Production)..."
+                                                ),
                                                 className="mb-2",
                                             ),
                                             html.Div(
@@ -77,54 +124,22 @@ def create_environment_config_form(
                                                     html.Small(
                                                         [
                                                             html.I(
-                                                                className="fas fa-info-circle me-1 text-info"
+                                                                className=info_icon_class
                                                             ),
-                                                            "Issues affecting these environments are counted for MTTR calculation. ",
-                                                            "Select all values that identify your production environment.",
+                                                            "Issues affecting these "
+                                                            "environments are counted "
+                                                            "for MTTR calculation. "
+                                                            "Select all values that "
+                                                            "identify your production "
+                                                            "environment.",
                                                         ],
-                                                        className="text-muted d-block mb-2",
+                                                        className=muted_small_class,
                                                     ),
                                                     html.Small(
-                                                        [
-                                                            html.I(
-                                                                className="fas fa-magic me-1 text-info"
-                                                            ),
-                                                            html.Strong(
-                                                                "Auto-populated: "
-                                                            ),
-                                                            "Values are loaded automatically from JIRA when you open this modal. ",
-                                                            "Use ",
-                                                            html.Strong(
-                                                                "'Auto-Configure'"
-                                                            ),
-                                                            " to detect production identifiers.",
-                                                        ]
-                                                        if not available_environment_values
-                                                        else [
-                                                            html.I(
-                                                                className="fas fa-check-circle me-1 text-success"
-                                                            ),
-                                                            f"Loaded {len(available_environment_values)} unique value(s) from JIRA.",
-                                                        ],
-                                                        className="text-muted d-block mb-2",
+                                                        auto_help_content,
+                                                        className=muted_small_class,
                                                     ),
-                                                    (
-                                                        html.Small(
-                                                            [
-                                                                html.I(
-                                                                    className="fas fa-lightbulb me-1 text-warning"
-                                                                ),
-                                                                html.Strong(
-                                                                    "No values showing? "
-                                                                ),
-                                                                "Ensure JIRA is connected and 'Affected Environment' field is mapped in the Fields tab. ",
-                                                                "Re-open this modal to refresh the available values.",
-                                                            ],
-                                                            className="text-muted d-block",
-                                                        )
-                                                        if not available_environment_values
-                                                        else html.Div()
-                                                    ),
+                                                    no_values_help_component,
                                                 ],
                                             ),
                                         ],
