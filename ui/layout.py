@@ -35,7 +35,8 @@ from ui.mobile_navigation import create_mobile_navigation_system
 from ui.parameter_panel import create_parameter_panel
 from ui.query_creation_modal import create_query_creation_modal
 
-# Integrated query management modals (Feature 011 - replaces legacy settings_modal query functions)
+# Integrated query management modals
+# (Feature 011 - replaces legacy settings_modal query functions)
 from ui.save_query_modal import create_save_query_modal
 from ui.tabs import create_desktop_tabs_only
 from ui.unsaved_changes_modal import create_unsaved_changes_modal
@@ -62,8 +63,9 @@ def serve_layout():
     app_settings = load_app_settings()
 
     # DEBUG: Log the show_points value being loaded
+    loaded_show_points = app_settings.get("show_points", "NOT_FOUND")
     logger.info(
-        f"[LAYOUT DEBUG] show_points loaded from settings: {app_settings.get('show_points', 'NOT_FOUND')}"
+        f"[LAYOUT DEBUG] show_points loaded from settings: {loaded_show_points}"
     )
 
     statistics, is_sample_data = load_statistics()
@@ -101,7 +103,8 @@ def create_app_layout(settings, statistics, is_sample_data):
         Dash Container component with complete application layout
     """
     # Calculate total points based on estimated values (for initial display)
-    # Use .get() with defaults since these values will be set by the initialization callback
+    # Use .get() with defaults since these values
+    # will be set by the initialization callback
     estimated_total_points, avg_points_per_item = calculate_total_points(
         settings.get("total_items", 0),
         settings.get("estimated_items", 0),
@@ -130,6 +133,61 @@ def create_app_layout(settings, statistics, is_sample_data):
     else:
         version_info = None
 
+    version_result = getattr(app, "VERSION_CHECK_RESULT", None)
+    has_update_state = version_result is not None and hasattr(version_result, "state")
+    update_state = version_result.state if has_update_state else None
+    show_footer_update = has_update_state and update_state in [
+        update_state.__class__.AVAILABLE,
+        update_state.__class__.MANUAL_UPDATE_REQUIRED,
+        update_state.__class__.READY,
+    ]
+
+    if show_footer_update:
+        update_icon_class = (
+            "fas fa-check-circle me-1"
+            if update_state == update_state.__class__.READY
+            else "fas fa-sync-alt me-1"
+        )
+        if update_state == update_state.__class__.AVAILABLE:
+            update_text = (
+                "Update Available: "
+                f"{version_result.current_version} → "
+                f"{version_result.available_version}"
+            )
+        elif update_state == update_state.__class__.READY:
+            update_text = "Update Ready - Click to Install"
+        else:
+            update_text = (
+                "Manual Update Available: "
+                f"{version_result.current_version} → "
+                f"{version_result.available_version}"
+            )
+
+        footer_update_children = html.Div(
+            html.Button(
+                [
+                    html.I(
+                        className=update_icon_class,
+                        style={"fontSize": "0.7rem"},
+                    ),
+                    update_text,
+                ],
+                id="footer-update-indicator",
+                n_clicks=0,
+                className="btn btn-link p-0 border-0",
+                style={
+                    "color": "#198754",
+                    "fontWeight": "500",
+                    "fontSize": "0.75rem",
+                    "textDecoration": "none",
+                },
+            ),
+            className="mt-1 text-center",
+            style={"lineHeight": "1.2"},
+        )
+    else:
+        footer_update_children = None
+
     # Modern app container with updated styling matching DORA/Flow design
     return dbc.Container(
         [
@@ -147,7 +205,8 @@ def create_app_layout(settings, statistics, is_sample_data):
             ),
             # Store version info for callback to display toast after page loads
             dcc.Store(id="version-check-info", data=version_info),
-            # Track if update toast has been shown this session (prevents showing on every page refresh)
+            # Track if update toast has been shown this session
+            # (prevents showing on every page refresh)
             dcc.Store(id="update-toast-shown", storage_type="session", data=False),
             # Update status store for tracking download/install progress
             dcc.Store(id="update-status-store", data=None),
@@ -178,7 +237,8 @@ def create_app_layout(settings, statistics, is_sample_data):
             dcc.Store(id="is-sample-data", data=is_sample_data),
             # Store for raw JIRA issues data (for DORA/Flow metrics calculations)
             dcc.Store(id="jira-issues-store", data=None),
-            # App-level JIRA metadata store (fetched once on startup, refreshed on config change)
+            # App-level JIRA metadata store
+            # (fetched once on startup, refreshed on config change)
             # This store is used by field mapping modal and namespace autocomplete
             dcc.Store(id="jira-metadata-store", data=None),
             # Track JIRA config version to detect changes and trigger metadata refresh
@@ -242,9 +302,11 @@ def create_app_layout(settings, statistics, is_sample_data):
                     create_parameter_panel(
                         settings, is_open=False, statistics=statistics
                     ),
-                    # Settings panel - always use improved panel, which now contains accordion
+                    # Settings panel - always use improved panel,
+                    # which now contains accordion
                     create_improved_settings_panel(),
-                    # Import/Export flyout panel - separate from Settings (pure data operations)
+                    # Import/Export flyout panel - separate from Settings
+                    # (pure data operations)
                     create_import_export_flyout(),
                     # Desktop tabs - integrated as part of sticky panel
                     create_desktop_tabs_only(),
@@ -253,7 +315,8 @@ def create_app_layout(settings, statistics, is_sample_data):
             ),
             # Backdrop overlay to dim content when panels are expanded
             html.Div(id="panel-backdrop", className="panel-backdrop"),
-            # Add an empty div to hold the forecast-graph (will be populated by callback)
+            # Add an empty div to hold the forecast-graph
+            # (will be populated by callback)
             html.Div(
                 dcc.Graph(id="forecast-graph", style={"display": "none"}),
                 id="forecast-graph-container",
@@ -271,7 +334,10 @@ def create_app_layout(settings, statistics, is_sample_data):
                                         html.Strong("Using Sample Data"),
                                         html.Br(),
                                         html.Small(
-                                            "You're currently viewing demo data. Upload your own data using the form below or add entries manually to start tracking your project.",
+                                            "You're currently viewing demo data. "
+                                            "Upload your own data using the form "
+                                            "below or add entries manually to start "
+                                            "tracking your project.",
                                             style={"opacity": "0.85"},
                                         ),
                                     ]
@@ -288,7 +354,8 @@ def create_app_layout(settings, statistics, is_sample_data):
                 ],
                 id="sample-data-banner",
             ),
-            # Mobile navigation system - must be outside card for proper fixed positioning
+            # Mobile navigation system
+            # must be outside card for proper fixed positioning
             create_mobile_navigation_system(),
             # Tab content container - wrapped in card for styling
             create_full_width_layout(
@@ -315,7 +382,9 @@ def create_app_layout(settings, statistics, is_sample_data):
                                 html.Small(
                                     [
                                         html.I(
-                                            className="fas fa-chart-line me-1 text-primary",
+                                            className=(
+                                                "fas fa-chart-line me-1 text-primary"
+                                            ),
                                             style={"fontSize": "0.8rem"},
                                         ),
                                         html.Span(
@@ -328,7 +397,10 @@ def create_app_layout(settings, statistics, is_sample_data):
                                 ),
                                 xs=12,
                                 sm=4,
-                                className="d-flex align-items-center justify-content-center justify-content-sm-start mb-1 mb-sm-0",
+                                className=(
+                                    "d-flex align-items-center justify-content-center "
+                                    "justify-content-sm-start mb-1 mb-sm-0"
+                                ),
                             ),
                             # Center column - GitHub and About links
                             dbc.Col(
@@ -344,7 +416,10 @@ def create_app_layout(settings, statistics, is_sample_data):
                                             ],
                                             href="https://github.com/niksavis/burndown-chart",
                                             target="_blank",
-                                            className="text-decoration-none text-primary fw-medium me-3",
+                                            className=(
+                                                "text-decoration-none "
+                                                "text-primary fw-medium me-3"
+                                            ),
                                             style={
                                                 "fontSize": "0.85rem",
                                                 "transition": "opacity 0.2s",
@@ -353,21 +428,29 @@ def create_app_layout(settings, statistics, is_sample_data):
                                         html.A(
                                             [
                                                 html.I(
-                                                    className="fas fa-question-circle me-1",
+                                                    className=(
+                                                        "fas fa-question-circle me-1"
+                                                    ),
                                                     style={"fontSize": "0.85rem"},
                                                 ),
                                                 "About",
                                             ],
                                             id="about-button",
                                             href="#",
-                                            className="text-decoration-none text-primary fw-medium",
+                                            className=(
+                                                "text-decoration-none "
+                                                "text-primary fw-medium"
+                                            ),
                                             style={
                                                 "fontSize": "0.85rem",
                                                 "transition": "opacity 0.2s",
                                             },
                                         ),
                                     ],
-                                    className="d-flex align-items-center justify-content-center",
+                                    className=(
+                                        "d-flex align-items-center "
+                                        "justify-content-center"
+                                    ),
                                 ),
                                 xs=12,
                                 sm=4,
@@ -388,7 +471,10 @@ def create_app_layout(settings, statistics, is_sample_data):
                                 ),
                                 xs=12,
                                 sm=4,
-                                className="d-flex align-items-center justify-content-center justify-content-sm-end",
+                                className=(
+                                    "d-flex align-items-center justify-content-center "
+                                    "justify-content-sm-end"
+                                ),
                             ),
                         ],
                         className="g-1",
@@ -396,53 +482,7 @@ def create_app_layout(settings, statistics, is_sample_data):
                     # Update available banner (compact, below main row)
                     html.Div(
                         id="footer-update-container",
-                        children=(
-                            html.Div(
-                                html.Button(
-                                    [
-                                        html.I(
-                                            className="fas fa-sync-alt me-1"
-                                            if app.VERSION_CHECK_RESULT.state
-                                            != app.VERSION_CHECK_RESULT.state.__class__.READY
-                                            else "fas fa-check-circle me-1",
-                                            style={"fontSize": "0.7rem"},
-                                        ),
-                                        (
-                                            f"Update Available: {app.VERSION_CHECK_RESULT.current_version} → {app.VERSION_CHECK_RESULT.available_version}"
-                                            if app.VERSION_CHECK_RESULT.state
-                                            == app.VERSION_CHECK_RESULT.state.__class__.AVAILABLE
-                                            else (
-                                                "Update Ready - Click to Install"
-                                                if app.VERSION_CHECK_RESULT.state
-                                                == app.VERSION_CHECK_RESULT.state.__class__.READY
-                                                else f"Manual Update Available: {app.VERSION_CHECK_RESULT.current_version} → {app.VERSION_CHECK_RESULT.available_version}"
-                                            )
-                                        ),
-                                    ],
-                                    id="footer-update-indicator",
-                                    n_clicks=0,
-                                    className="btn btn-link p-0 border-0",
-                                    style={
-                                        "color": "#198754",
-                                        "fontWeight": "500",
-                                        "fontSize": "0.75rem",
-                                        "textDecoration": "none",
-                                    },
-                                ),
-                                className="mt-1 text-center",
-                                style={"lineHeight": "1.2"},
-                            )
-                            if hasattr(app, "VERSION_CHECK_RESULT")
-                            and app.VERSION_CHECK_RESULT is not None
-                            and hasattr(app.VERSION_CHECK_RESULT, "state")
-                            and app.VERSION_CHECK_RESULT.state
-                            in [
-                                app.VERSION_CHECK_RESULT.state.__class__.AVAILABLE,
-                                app.VERSION_CHECK_RESULT.state.__class__.MANUAL_UPDATE_REQUIRED,
-                                app.VERSION_CHECK_RESULT.state.__class__.READY,
-                            ]
-                            else None
-                        ),
+                        children=footer_update_children,
                     ),
                 ],
                 className="mt-2 mb-1 py-2",
