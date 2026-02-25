@@ -4,7 +4,8 @@ SQLite persistence backend implementation (DEPRECATED - imports from new locatio
 This module is deprecated and exists only for backwards compatibility.
 The implementation has been refactored into a mixin-based architecture.
 
-Import SQLiteBackend from this module as before - it now delegates to the new implementation:
+Import SQLiteBackend from this module as before;
+it now delegates to the new implementation:
     from data.persistence.sqlite_backend import SQLiteBackend
 
 New mixin-based structure (for reference):
