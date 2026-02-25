@@ -12,12 +12,8 @@
             <i class="fas fa-calendar-week"></i> {{ weeks_count }} Weeks
           </span>
           <span class="report-period-detail">
-            {% if first_week and last_week %}
-            {{ first_week }} to {{ last_week }}
-            {% endif %}
-            {% if start_date and end_date %}
-            ({{ start_date }} to {{ end_date }})
-            {% endif %}
+            {% if first_week and last_week %}{{ first_week }} to {{ last_week }}{% endif %}
+            {% if start_date and end_date %}({{ start_date }} to {{ end_date }}){% endif %}
           </span>
         </div>
         <div class="report-meta">

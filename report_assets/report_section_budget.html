@@ -1,5 +1,11 @@
-<!-- Budget Section -->
+﻿<!-- Budget Section -->
 {% if 'budget' in sections and metrics.budget.has_data %}
-  {% include 'report_section_budget_overview.html' %}
-  {% include 'report_section_budget_details.html' %}
+  <div class="section">
+    <h2 class="section-title">
+      <i class="fas fa-money-bill-wave"></i>
+      Beyond Budgeting Analysis
+    </h2>
+    {% include "report_section_budget_overview.html" %}
+    {% include "report_section_budget_details.html" %}
+  </div>
 {% endif %}

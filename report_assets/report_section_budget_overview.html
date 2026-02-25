@@ -1,54 +1,47 @@
-<!-- Budget Section Overview -->
-<div class="section">
-  <h2 class="section-title">
-    <i class="fas fa-money-bill-wave"></i>
-    Beyond Budgeting Analysis
-  </h2>
-
-  <!-- Budget Overview -->
-  <div class="velocity-cards mb-4">
-    <div class="velocity-card" style="border-left-color: #6f42c1;">
-      <div class="velocity-card-title">
-        <i class="fas fa-wallet"></i> Total Budget
-      </div>
-      <div class="velocity-card-value" style="color: #6f42c1;">
-        {{ metrics.budget.currency_symbol }}{{ metrics.budget.budget_total|round(0)|int }}
-        <span class="velocity-card-unit"></span>
-      </div>
+<!-- Budget Overview -->
+<div class="velocity-cards mb-4">
+  <div class="velocity-card" style="border-left-color: #6f42c1;">
+    <div class="velocity-card-title">
+      <i class="fas fa-wallet"></i> Total Budget
     </div>
-    <div class="velocity-card" style="border-left-color: #6f42c1;">
-      <div class="velocity-card-title">
-        <i class="fas fa-calendar-alt"></i> Time Allocated
-      </div>
-      <div class="velocity-card-value" style="color: #6f42c1;">
-        {{ metrics.budget.time_allocated_weeks }}
-        <span class="velocity-card-unit">weeks</span>
-      </div>
-    </div>
-    <div class="velocity-card" style="border-left-color: #6f42c1;">
-      <div class="velocity-card-title">
-        <i class="fas fa-chart-line"></i> Team Cost
-      </div>
-      <div class="velocity-card-value" style="color: #6f42c1;">
-        {{ metrics.budget.currency_symbol }}{{ metrics.budget.cost_per_week|round(0)|int }}
-        <span class="velocity-card-unit">/week</span>
-      </div>
+    <div class="velocity-card-value" style="color: #6f42c1;">
+      {{ metrics.budget.currency_symbol }}{{ metrics.budget.budget_total|round(0) |int }}
+      <span class="velocity-card-unit"></span>
     </div>
   </div>
-
-  <!-- Cost Efficiency -->
-  <div class="velocity-cards mb-4">
-    <div class="velocity-card" style="border-left-color: #0d6efd;">
-      <div class="velocity-card-title">
-        <i class="fas fa-calculator"></i> Cost Per Item
-      </div>
-      <div class="velocity-card-value" style="color: #0d6efd;">
-        {{ metrics.budget.currency_symbol }}{{ metrics.budget.cost_per_item|dec2 }}
-        <span class="velocity-card-unit">(4-week velocity avg)</span>
-      </div>
+  <div class="velocity-card" style="border-left-color: #6f42c1;">
+    <div class="velocity-card-title">
+      <i class="fas fa-calendar-alt"></i> Time Allocated
     </div>
-    {% if metrics.dashboard.show_points and metrics.dashboard.velocity_points and metrics.dashboard.velocity_points > 0 %}
-    <div class="velocity-card points" style="border-left-color: var(--color-orange);">
+    <div class="velocity-card-value" style="color: #6f42c1;">
+      {{ metrics.budget.time_allocated_weeks }}
+      <span class="velocity-card-unit">weeks</span>
+    </div>
+  </div>
+  <div class="velocity-card" style="border-left-color: #6f42c1;">
+    <div class="velocity-card-title">
+      <i class="fas fa-chart-line"></i> Team Cost
+    </div>
+    <div class="velocity-card-value" style="color: #6f42c1;">
+      {{ metrics.budget.currency_symbol }}{{ metrics.budget.cost_per_week|round(0) |int }}
+      <span class="velocity-card-unit">/week</span>
+    </div>
+  </div>
+</div>
+<!-- Cost Efficiency -->
+<div class="velocity-cards mb-4">
+  <div class="velocity-card" style="border-left-color: #0d6efd;">
+    <div class="velocity-card-title">
+      <i class="fas fa-calculator"></i> Cost Per Item
+    </div>
+    <div class="velocity-card-value" style="color: #0d6efd;">
+      {{ metrics.budget.currency_symbol }}{{ metrics.budget.cost_per_item|dec2 }}
+      <span class="velocity-card-unit">(4-week velocity avg)</span>
+    </div>
+  </div>
+  {% if metrics.dashboard.show_points and metrics.dashboard.velocity_points and metrics.dashboard.velocity_points > 0 %}
+    <div class="velocity-card points"
+         style="border-left-color: var(--color-orange)">
       <div class="velocity-card-title">
         <i class="fas fa-chart-bar"></i> Cost Per Point
       </div>
@@ -57,11 +50,10 @@
         <span class="velocity-card-unit">(4-week velocity avg)</span>
       </div>
     </div>
-    {% endif %}
-  </div>
-
-  <!-- Budget-Forecast Alignment (NEW) -->
-  {% if metrics.dashboard.forecast_weeks_items %}
+  {% endif %}
+</div>
+<!-- Budget-Forecast Alignment (NEW) -->
+{% if metrics.dashboard.forecast_weeks_items %}
   <div class="row justify-content-center mb-4">
     <div class="col-md-10">
       {% set forecast_weeks = metrics.dashboard.forecast_weeks_items %}
@@ -97,4 +89,4 @@
       {% endif %}
     </div>
   </div>
-  {% endif %}
+{% endif %}

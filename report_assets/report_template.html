@@ -1,22 +1,20 @@
-{% import 'report_macros.html' as macros %}
+﻿{% import 'report_macros.html' as macros %}
 <!DOCTYPE html>
 <html lang="en">
-  {% include 'report_head.html' %}
+  {% include "report_head.html" %}
   <body>
-    {% include 'report_header.html' %}
-
+    {% include "report_header.html" %}
     <div class="container">
-      {% include 'report_section_dashboard.html' %}
-      {% include 'report_section_burndown.html' %}
-      {% include 'report_section_scope.html' %}
-      {% include 'report_section_bugs.html' %}
-      {% include 'report_section_budget.html' %}
-      {% include 'report_section_flow.html' %}
-      {% include 'report_section_dora.html' %}
-      {% include 'report_section_recommendations.html' %}
+      {% include "report_section_dashboard.html" %}
+      {% include "report_section_burndown.html" %}
+      {% include "report_section_scope.html" %}
+      {% include "report_section_bugs.html" %}
+      {% include "report_section_budget.html" %}
+      {% include "report_section_flow.html" %}
+      {% include "report_section_dora.html" %}
+      {% include "report_section_recommendations.html" %}
     </div>
-
-    {% include 'report_footer.html' %}
-    {% include 'report_scripts.html' %}
+    {% include "report_footer.html" %}
+    {% include "report_scripts.html" %}
   </body>
 </html>

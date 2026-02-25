@@ -23,7 +23,9 @@ indent-style = "space"
 profile = "jinja"
 indent = 2
 max_line_length = 120
-format_css = true
-format_js = true
-ignore = "H006,H013,H021,H031"
-extension = "html,j2,jinja"
+format_css = false
+format_js = false
+# H006/H013: img alt handled by content authors
+# H016/H030/H031: title/meta live in report_head.html included partial
+# H021: inline styles are intentional for dynamic Jinja2 color values
+ignore = "H006,H013,H016,H021,H030,H031"

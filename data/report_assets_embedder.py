@@ -20,14 +20,20 @@ def embed_report_dependencies() -> dict:
     else:
         assets_dir = Path(__file__).parent.parent / "report_assets"
 
-    # Read CSS files
-    bootstrap_css = (assets_dir / "bootstrap.min.css").read_text(encoding="utf-8")
-    fontawesome_css = (assets_dir / "font-awesome.min.css").read_text(encoding="utf-8")
+    # Read CSS files, stripping source map comments (map files not included in offline reports)
+    bootstrap_css = _strip_source_map_comments(
+        (assets_dir / "bootstrap.min.css").read_text(encoding="utf-8")
+    )
+    fontawesome_css = _strip_source_map_comments(
+        (assets_dir / "font-awesome.min.css").read_text(encoding="utf-8")
+    )
 
-    # Read JS files
-    chartjs = (assets_dir / "chart.umd.min.js").read_text(encoding="utf-8")
-    chartjs_annotation = (assets_dir / "chartjs-plugin-annotation.min.js").read_text(
-        encoding="utf-8"
+    # Read JS files, stripping source map comments
+    chartjs = _strip_source_map_comments(
+        (assets_dir / "chart.umd.min.js").read_text(encoding="utf-8")
+    )
+    chartjs_annotation = _strip_source_map_comments(
+        (assets_dir / "chartjs-plugin-annotation.min.js").read_text(encoding="utf-8")
     )
 
     # Embed fonts as base64 in Font Awesome CSS
@@ -39,6 +45,26 @@ def embed_report_dependencies() -> dict:
         "chartjs": chartjs,
         "chartjs_annotation": chartjs_annotation,
     }
+
+
+def _strip_source_map_comments(content: str) -> str:
+    """
+    Remove sourceMappingURL comments from CSS and JS content.
+
+    Browsers attempt to fetch map files referenced in embedded assets, producing
+    NetworkError warnings in offline reports where map files are not included.
+
+    Args:
+        content: CSS or JS file content
+
+    Returns:
+        Content with sourceMappingURL comments removed
+    """
+    # CSS: /*# sourceMappingURL=... */
+    content = re.sub(r"/\*#\s*sourceMappingURL=[^\*]+\*/", "", content)
+    # JS: //# sourceMappingURL=...
+    content = re.sub(r"//# sourceMappingURL=\S+", "", content)
+    return content
 
 
 def _embed_fonts_in_css(css_content: str, fonts_dir: Path) -> str:

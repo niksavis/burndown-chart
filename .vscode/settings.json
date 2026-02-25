@@ -28,10 +28,12 @@
     "editor.formatOnSave": true
   },
   "files.associations": {
-    "**/report_assets/report_template.html": "jinja-html",
+    "**/report_assets/*.html": "jinja-html",
     ".prettierignore": "ignore",
     "**/.prettierignore": "ignore"
   },
+  "html.validate.styles": false,
+  "html.validate.scripts": false,
   "emmet.includeLanguages": {
     "jinja-html": "html"
   },
