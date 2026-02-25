@@ -29,7 +29,7 @@ from data.scope_metrics import (
 
 
 class TestDataPointsFilteringIntegration(unittest.TestCase):
-    """Integration tests for data_points_count parameter implementation across data processing layer."""
+    """Integration tests for data_points_count behavior across processing layer."""
 
     def setUp(self):
         """Set up comprehensive test data."""
@@ -130,7 +130,7 @@ class TestDataPointsFilteringIntegration(unittest.TestCase):
         self.baseline_points = 500
 
     def test_consistent_filtering_across_all_functions(self):
-        """Test that all functions filter data consistently when given same data_points_count."""
+        """All functions filter data consistently for same data_points_count."""
         data_points_count = 6
 
         # Test all processing functions with same filtering
@@ -185,7 +185,7 @@ class TestDataPointsFilteringIntegration(unittest.TestCase):
         self.assertIn("items_stability", scope_stability)
 
     def test_progressive_filtering_consistency(self):
-        """Test that progressively smaller data_points_count produces consistent results."""
+        """Progressively smaller data_points_count produces consistent results."""
         # Test with different filtering levels
         filter_sizes = [12, 8, 6, 4]  # From all data down to 4 weeks
 
@@ -209,7 +209,8 @@ class TestDataPointsFilteringIntegration(unittest.TestCase):
             self.assertTrue(
                 weekly_avgs[i] != weekly_avgs[i - 1]
                 or forecasts[i] != forecasts[i - 1],
-                f"Results should differ between {filter_sizes[i - 1]} and {filter_sizes[i]} data points",
+                "Results should differ between "
+                f"{filter_sizes[i - 1]} and {filter_sizes[i]} data points",
             )
 
     def test_forecast_and_velocity_consistency(self):
@@ -312,11 +313,12 @@ class TestDataPointsFilteringIntegration(unittest.TestCase):
 
             except Exception as e:
                 self.fail(
-                    f"Function failed with edge case '{case['name']}' (data_points_count={dpc}): {e}"
+                    "Function failed with edge case "
+                    f"'{case['name']}' (data_points_count={dpc}): {e}"
                 )
 
     def test_backward_compatibility_integration(self):
-        """Test that all functions maintain backward compatibility when used together."""
+        """All functions maintain backward compatibility when used together."""
         # Test calling all functions without data_points_count (old way)
         try:
             avg_old = calculate_weekly_averages(self.statistics_data)
@@ -336,7 +338,8 @@ class TestDataPointsFilteringIntegration(unittest.TestCase):
         except Exception as e:
             self.fail(f"Backward compatibility broken: {e}")
 
-        # Test calling all functions with data_points_count=None (should be same as old way)
+        # Test all functions with data_points_count=None
+        # (should be same as old way)
         avg_none = calculate_weekly_averages(
             self.statistics_data, data_points_count=None
         )

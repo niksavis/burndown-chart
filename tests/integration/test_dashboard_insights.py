@@ -22,7 +22,10 @@ class TestScheduleVarianceInsights:
     """Test schedule variance insights (ahead/behind/on-track)."""
 
     def test_schedule_variance_insight_appears_when_both_dates_available(self):
-        """T087: Verify schedule variance insight appears when both days_to_completion and days_to_deadline available."""
+        """T087: Verify schedule variance insight appears.
+
+        Requires both days_to_completion and days_to_deadline.
+        """
         metrics = {
             "completion_percentage": 50.0,
             "days_to_completion": 80,
@@ -41,7 +44,7 @@ class TestScheduleVarianceInsights:
         assert "20 days" in dashboard_str
 
     def test_ahead_of_schedule_insight_displays_with_success_color(self):
-        """T088: Verify ahead-of-schedule insight displays with success color and day count."""
+        """T088: Verify ahead-of-schedule insight uses success color/day count."""
         metrics = {
             "completion_percentage": 60.0,
             "days_to_completion": 70,
@@ -60,7 +63,7 @@ class TestScheduleVarianceInsights:
         assert "text-success" in dashboard_str  # Green color for ahead
 
     def test_behind_schedule_insight_displays_with_warning_color(self):
-        """T089: Verify behind-schedule insight displays with warning color and day count."""
+        """T089: Verify behind-schedule insight uses warning color/day count."""
         metrics = {
             "completion_percentage": 40.0,
             "days_to_completion": 120,
@@ -79,7 +82,7 @@ class TestScheduleVarianceInsights:
         assert "text-warning" in dashboard_str  # Warning color for behind
 
     def test_on_track_insight_displays_when_days_equal(self):
-        """T090: Verify on-track insight displays when completion and deadline days are equal."""
+        """T090: Verify on-track insight when completion/deadline days are equal."""
         metrics = {
             "completion_percentage": 55.0,
             "days_to_completion": 90,
@@ -101,7 +104,7 @@ class TestVelocityTrendInsights:
     """Test velocity trend insights (increasing/decreasing)."""
 
     def test_velocity_increasing_insight_with_acceleration_message(self):
-        """T091: Verify velocity increasing insight displays with acceleration messaging."""
+        """T091: Verify velocity increasing insight with acceleration messaging."""
         metrics = {
             "completion_percentage": 50.0,
             "days_to_completion": 80,
@@ -168,7 +171,7 @@ class TestEndToEndInsightsDisplay:
     """End-to-end test with realistic project data."""
 
     def test_dashboard_with_realistic_data_displays_all_applicable_insights(self):
-        """T094: Load dashboard with realistic project data, verify all applicable insights display.
+        """T094: Load dashboard with realistic data and verify insights.
 
         Scenario: Project is behind schedule, velocity increasing, and in final stretch.
         Should display 3 insights:
@@ -209,7 +212,7 @@ class TestEndToEndInsightsDisplay:
         assert "Light blue background" in str(dashboard) or "#e7f3ff" in dashboard_str
 
     def test_dashboard_without_insights_returns_empty_div(self):
-        """Test that dashboard with no applicable insights returns empty div (no crash)."""
+        """Dashboard with no applicable insights returns empty div (no crash)."""
         metrics = {
             "completion_percentage": 50.0,
             "days_to_completion": None,  # No completion forecast
