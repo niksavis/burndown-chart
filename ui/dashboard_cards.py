@@ -55,7 +55,9 @@ def create_dashboard_forecast_card(metrics: dict[str, Any]) -> dbc.Card:
             "completion_percentage": completion_percentage,
             "confidence": completion_confidence,
         },
-        "tooltip": "PERT-based estimate of project completion date with confidence level",
+        "tooltip": (
+            "PERT-based estimate of project completion date with confidence level"
+        ),
     }
 
     return create_metric_card(metric_data, card_id="dashboard-forecast-card")
@@ -103,7 +105,9 @@ def create_dashboard_velocity_card(metrics: dict[str, Any]) -> dbc.Card:
             "velocity_points": velocity_points,
             "trend": velocity_trend,
         },
-        "tooltip": "Team throughput and delivery pace based on recent completion history",
+        "tooltip": (
+            "Team throughput and delivery pace based on recent completion history"
+        ),
     }
 
     return create_metric_card(metric_data, card_id="dashboard-velocity-card")
@@ -205,7 +209,10 @@ def create_dashboard_pert_card(metrics: dict[str, Any]) -> dbc.Card:
         "details": {
             "days_to_completion": days_to_completion,
         },
-        "tooltip": "PERT-based timeline range showing optimistic, likely, and pessimistic completion scenarios",
+        "tooltip": (
+            "PERT-based timeline range showing optimistic, "
+            "likely, and pessimistic completion scenarios"
+        ),
     }
 
     return create_metric_card(metric_data, card_id="dashboard-pert-card")
@@ -239,6 +246,7 @@ def create_dashboard_overview_content(metrics: dict[str, Any]) -> html.Div:
         "unknown": ("fas fa-question", "#6c757d"),  # Gray
     }
     trend_icon, trend_color = trend_icons.get(velocity_trend, trend_icons["unknown"])
+    completion_label_text = f"{completion_percentage:.1f}% Complete"
 
     # Create summary row with enhanced visuals
     return html.Div(
@@ -256,18 +264,29 @@ def create_dashboard_overview_content(metrics: dict[str, Any]) -> html.Div:
                                                 [
                                                     html.Small(
                                                         "Project Health Score",
-                                                        className="text-muted text-uppercase fw-medium me-2",
+                                                        className=(
+                                                            "text-muted text-uppercase "
+                                                            "fw-medium me-2"
+                                                        ),
                                                         style={
                                                             "display": "inline-block"
                                                         },
                                                     ),
                                                     create_info_tooltip(
                                                         help_text=(
-                                                            "Weighted health score based on: "
-                                                            "Progress (25%) - completion percentage, "
-                                                            "Schedule Adherence (30%) - forecast vs deadline, "
-                                                            "Velocity Stability (25%) - team consistency, "
-                                                            "Confidence (20%) - estimate reliability"
+                                                            "Weighted health score "
+                                                            "based on: "
+                                                            "Progress (25%) - "
+                                                            "completion "
+                                                            "percentage, "
+                                                            "Schedule Adherence "
+                                                            "(30%) - forecast "
+                                                            "vs deadline, "
+                                                            "Velocity Stability "
+                                                            "(25%) - team "
+                                                            "consistency, "
+                                                            "Confidence (20%) - "
+                                                            "estimate reliability"
                                                         ),
                                                         id_suffix="project-health-score",
                                                     ),
@@ -314,8 +333,11 @@ def create_dashboard_overview_content(metrics: dict[str, Any]) -> html.Div:
                                     html.Div(
                                         [
                                             html.Small(
-                                                f"{completion_percentage:.1f}% Complete",
-                                                className="text-muted d-block mb-1 text-center",
+                                                completion_label_text,
+                                                className=(
+                                                    "text-muted d-block "
+                                                    "mb-1 text-center"
+                                                ),
                                                 style={"fontSize": "0.75rem"},
                                             ),
                                             dbc.Progress(
@@ -348,12 +370,18 @@ def create_dashboard_overview_content(metrics: dict[str, Any]) -> html.Div:
                                             html.Div(
                                                 [
                                                     html.I(
-                                                        className="fas fa-calendar-check text-success mb-2",
+                                                        className=(
+                                                            "fas fa-calendar-check "
+                                                            "text-success mb-2"
+                                                        ),
                                                         style={"fontSize": "1.5rem"},
                                                     ),
                                                     html.Small(
                                                         "Est. Completion",
-                                                        className="text-muted text-uppercase d-block mb-1",
+                                                        className=(
+                                                            "text-muted text-uppercase "
+                                                            "d-block mb-1"
+                                                        ),
                                                     ),
                                                     html.H4(
                                                         f"{days_to_completion} days"
@@ -383,7 +411,10 @@ def create_dashboard_overview_content(metrics: dict[str, Any]) -> html.Div:
                                                     ),
                                                     html.Small(
                                                         "Velocity",
-                                                        className="text-muted text-uppercase d-block mb-1 mt-2",
+                                                        className=(
+                                                            "text-muted text-uppercase "
+                                                            "d-block mb-1 mt-2"
+                                                        ),
                                                     ),
                                                     html.H4(
                                                         f"{velocity_items:.1f}/wk"
@@ -405,12 +436,18 @@ def create_dashboard_overview_content(metrics: dict[str, Any]) -> html.Div:
                                             html.Div(
                                                 [
                                                     html.I(
-                                                        className="fas fa-chart-line text-warning mb-2",
+                                                        className=(
+                                                            "fas fa-chart-line "
+                                                            "text-warning mb-2"
+                                                        ),
                                                         style={"fontSize": "1.5rem"},
                                                     ),
                                                     html.Small(
                                                         "Confidence",
-                                                        className="text-muted text-uppercase d-block mb-1",
+                                                        className=(
+                                                            "text-muted text-uppercase "
+                                                            "d-block mb-1"
+                                                        ),
                                                     ),
                                                     html.H4(
                                                         f"{completion_confidence}%"
@@ -432,12 +469,18 @@ def create_dashboard_overview_content(metrics: dict[str, Any]) -> html.Div:
                                             html.Div(
                                                 [
                                                     html.I(
-                                                        className="fas fa-flag-checkered text-primary mb-2",
+                                                        className=(
+                                                            "fas fa-flag-checkered "
+                                                            "text-primary mb-2"
+                                                        ),
                                                         style={"fontSize": "1.5rem"},
                                                     ),
                                                     html.Small(
                                                         "To Deadline",
-                                                        className="text-muted text-uppercase d-block mb-1",
+                                                        className=(
+                                                            "text-muted text-uppercase "
+                                                            "d-block mb-1"
+                                                        ),
                                                     ),
                                                     html.H4(
                                                         f"{days_to_deadline} days"
@@ -470,7 +513,9 @@ def create_dashboard_overview_content(metrics: dict[str, Any]) -> html.Div:
 
 
 def _calculate_health_score(metrics: dict[str, Any]) -> int:
-    """Calculate overall project health score (0-100) using comprehensive health formula.
+    """Calculate overall project health score (0-100).
+
+    Uses the comprehensive health formula.
 
     This function uses the comprehensive health calculator (6 dimensions) to ensure
     consistency with dashboard and reports.
@@ -632,7 +677,10 @@ def _create_key_insights(metrics: dict[str, Any]) -> html.Div:
                                 html.Div(
                                     [
                                         html.I(
-                                            className=f"{insight['icon']} text-{insight['color']} me-2",
+                                            className=(
+                                                f"{insight['icon']} "
+                                                f"text-{insight['color']} me-2"
+                                            ),
                                         ),
                                         html.Span(insight["text"]),
                                     ],
