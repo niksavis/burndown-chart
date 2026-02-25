@@ -23,6 +23,8 @@ def _create_info_card_row(cards: list[dict[str, Any]]) -> dbc.Row:
     Returns:
         dbc.Row with centered cards
     """
+    info_icon_class_template = "fas fa-{icon} fa-2x text-{color} mb-3"
+
     cols = [
         dbc.Col(
             dbc.Card(
@@ -30,7 +32,9 @@ def _create_info_card_row(cards: list[dict[str, Any]]) -> dbc.Row:
                     html.Div(
                         [
                             html.I(
-                                className=f"fas fa-{card['icon']} fa-2x text-{card['icon_color']} mb-3"
+                                className=info_icon_class_template.format(
+                                    icon=card["icon"], color=card["icon_color"]
+                                )
                             ),
                             html.H5(card["title"], className="mb-2"),
                             html.P(
@@ -54,9 +58,9 @@ def _create_info_card_row(cards: list[dict[str, Any]]) -> dbc.Row:
 
 
 def create_loading_placeholder() -> html.Div:
-    """Create an invisible placeholder that exactly matches empty state banner structure.
+    """Create an invisible placeholder matching empty state banner structure.
 
-    This prevents layout shift (CLS) by reserving exact space before the actual banner loads.
+    This prevents layout shift (CLS) by reserving space before banner load.
     Uses the same DOM structure as create_no_data_state() but with opacity: 0.
 
     Returns:
@@ -71,7 +75,9 @@ def create_loading_placeholder() -> html.Div:
                             html.Div(
                                 [
                                     html.I(
-                                        className="fas fa-database fa-4x text-warning mb-4",
+                                        className=(
+                                            "fas fa-database fa-4x text-warning mb-4"
+                                        ),
                                         style={"opacity": "0"},
                                     ),
                                     html.H4(
@@ -99,13 +105,17 @@ def create_loading_placeholder() -> html.Div:
                                     "icon": "download",
                                     "icon_color": "primary",
                                     "title": "Placeholder Card",
-                                    "description": "Placeholder text to match card height exactly.",
+                                    "description": (
+                                        "Placeholder text to match card height exactly."
+                                    ),
                                 },
                                 {
                                     "icon": "cog",
                                     "icon_color": "info",
                                     "title": "Placeholder Card",
-                                    "description": "Placeholder text to match card height exactly.",
+                                    "description": (
+                                        "Placeholder text to match card height exactly."
+                                    ),
                                 },
                             ]
                         ),
@@ -124,7 +134,8 @@ def create_loading_placeholder() -> html.Div:
                                 [
                                     html.I(className="fas fa-lightbulb me-2"),
                                     html.Strong("Tip: "),
-                                    "The first data load may take a few minutes depending on your project size. "
+                                    "The first data load may take a few minutes "
+                                    "depending on your project size. "
                                     "Placeholder text to match alert height exactly.",
                                 ],
                                 color="info",
@@ -160,7 +171,9 @@ def create_no_metrics_state(metric_type: str = "Flow") -> html.Div:
                             html.Div(
                                 [
                                     html.I(
-                                        className="fas fa-chart-line fa-4x text-primary mb-4",
+                                        className=(
+                                            "fas fa-chart-line fa-4x text-primary mb-4"
+                                        ),
                                         style={"opacity": "0.3"},
                                     ),
                                     html.H4(
@@ -169,11 +182,17 @@ def create_no_metrics_state(metric_type: str = "Flow") -> html.Div:
                                     ),
                                     html.P(
                                         [
-                                            f"{metric_type} metrics are calculated from your JIRA data and cached for fast display. ",
-                                            "Configure Field Mappings (Settings → Field Mappings → Fields tab) ",
-                                            "and optionally specify DevOps Projects before calculating."
+                                            f"{metric_type} metrics are calculated "
+                                            "from your "
+                                            "JIRA data and cached for fast display. ",
+                                            "Configure Field Mappings "
+                                            "(Settings → Field Mappings → Fields tab) ",
+                                            "and optionally specify DevOps Projects "
+                                            "before calculating."
                                             if metric_type == "DORA"
-                                            else "to ensure accurate metric calculation.",
+                                            else (
+                                                "to ensure accurate metric calculation."
+                                            ),
                                         ],
                                         className="empty-state-lead mb-4",
                                     ),
@@ -194,13 +213,21 @@ def create_no_metrics_state(metric_type: str = "Flow") -> html.Div:
                                     "icon": "calculator",
                                     "icon_color": "primary",
                                     "title": "Calculate Metrics",
-                                    "description": "Click 'Update Data' (delta fetch) or 'Force Refresh' (full refresh) in the Settings panel to calculate metrics from your JIRA data.",
+                                    "description": (
+                                        "Click 'Update Data' (delta fetch) or "
+                                        "'Force Refresh' (full refresh) in the "
+                                        "Settings panel to calculate metrics "
+                                        "from your JIRA data."
+                                    ),
                                 },
                                 {
                                     "icon": "bolt",
                                     "icon_color": "success",
                                     "title": "Fast & Cached",
-                                    "description": "Metrics are calculated once and cached. Future page loads are instant.",
+                                    "description": (
+                                        "Metrics are calculated once and cached. "
+                                        "Future page loads are instant."
+                                    ),
                                 },
                             ]
                         ),
@@ -231,7 +258,9 @@ def create_no_data_state() -> html.Div:
                             html.Div(
                                 [
                                     html.I(
-                                        className="fas fa-database fa-4x text-warning mb-4",
+                                        className=(
+                                            "fas fa-database fa-4x text-warning mb-4"
+                                        ),
                                         style={"opacity": "0.3"},
                                     ),
                                     html.H4(
@@ -239,7 +268,8 @@ def create_no_data_state() -> html.Div:
                                         className="empty-state-title mb-3",
                                     ),
                                     html.P(
-                                        "Load your JIRA project data to start tracking metrics.",
+                                        "Load your JIRA project data "
+                                        "to start tracking metrics.",
                                         className="empty-state-lead mb-4",
                                     ),
                                 ],
@@ -259,13 +289,19 @@ def create_no_data_state() -> html.Div:
                                     "icon": "download",
                                     "icon_color": "primary",
                                     "title": "Load JIRA Data",
-                                    "description": "Click the Update Data button in the Settings panel to fetch issues from JIRA.",
+                                    "description": (
+                                        "Click the Update Data button in the "
+                                        "Settings panel to fetch issues from JIRA."
+                                    ),
                                 },
                                 {
                                     "icon": "cog",
                                     "icon_color": "info",
                                     "title": "Configure JIRA",
-                                    "description": "Ensure JIRA connection is configured in Settings → JIRA Configuration tab.",
+                                    "description": (
+                                        "Ensure JIRA connection is configured in "
+                                        "Settings → JIRA Configuration tab."
+                                    ),
                                 },
                             ]
                         ),
@@ -298,7 +334,10 @@ def create_no_bugs_state() -> html.Div:
                             html.Div(
                                 [
                                     html.I(
-                                        className="fas fa-check-circle fa-4x text-success mb-4",
+                                        className=(
+                                            "fas fa-check-circle fa-4x "
+                                            "text-success mb-4"
+                                        ),
                                         style={"opacity": "0.7"},
                                     ),
                                     html.H4(
@@ -306,11 +345,14 @@ def create_no_bugs_state() -> html.Div:
                                         className="empty-state-title mb-3",
                                     ),
                                     html.P(
-                                        "Great news! No bugs were found in the current dataset.",
+                                        "Great news! No bugs were found "
+                                        "in the current dataset.",
                                         className="empty-state-lead mb-2",
                                     ),
                                     html.P(
-                                        "This could mean your project has excellent quality, or bug tracking uses different issue types.",
+                                        "This could mean your project has "
+                                        "excellent quality, or bug tracking "
+                                        "uses different issue types.",
                                         className="empty-state-subtle",
                                     ),
                                 ],
@@ -330,13 +372,19 @@ def create_no_bugs_state() -> html.Div:
                                     "icon": "cog",
                                     "icon_color": "info",
                                     "title": "Check Bug Types",
-                                    "description": "Verify bug issue types are configured in Settings → Field Mappings → Types tab.",
+                                    "description": (
+                                        "Verify bug issue types are configured in "
+                                        "Settings → Field Mappings → Types tab."
+                                    ),
                                 },
                                 {
                                     "icon": "filter",
                                     "icon_color": "secondary",
                                     "title": "Check Query Scope",
-                                    "description": "Ensure your JQL query includes projects that contain bug issues.",
+                                    "description": (
+                                        "Ensure your JQL query includes projects "
+                                        "that contain bug issues."
+                                    ),
                                 },
                             ]
                         ),
@@ -367,7 +415,9 @@ def create_no_sprints_state() -> html.Div:
                             html.Div(
                                 [
                                     html.I(
-                                        className="fas fa-tasks fa-4x text-primary mb-4",
+                                        className=(
+                                            "fas fa-tasks fa-4x text-primary mb-4"
+                                        ),
                                         style={"opacity": "0.3"},
                                     ),
                                     html.H4(
@@ -375,7 +425,9 @@ def create_no_sprints_state() -> html.Div:
                                         className="empty-state-title mb-3",
                                     ),
                                     html.P(
-                                        "Sprint tracking requires your JIRA instance to have Agile/Scrum boards with active sprints.",
+                                        "Sprint tracking requires your JIRA instance "
+                                        "to have Agile/Scrum boards "
+                                        "with active sprints.",
                                         className="empty-state-lead mb-4",
                                     ),
                                 ],
@@ -395,13 +447,22 @@ def create_no_sprints_state() -> html.Div:
                                     "icon": "cog",
                                     "icon_color": "info",
                                     "title": "Configure Sprint Field",
-                                    "description": "The sprint field (typically customfield_10020) should be auto-detected, or configure it manually in Settings → Field Mappings → Fields → General Fields → Sprint.",
+                                    "description": (
+                                        "The sprint field "
+                                        "(typically customfield_10020) "
+                                        "should be auto-detected, or configure it "
+                                        "manually in Settings → Field Mappings → "
+                                        "Fields → General Fields → Sprint."
+                                    ),
                                 },
                                 {
                                     "icon": "sync-alt",
                                     "icon_color": "primary",
                                     "title": "Fetch Sprint Data",
-                                    "description": "After configuration, click Update Data to fetch sprint changelog from JIRA.",
+                                    "description": (
+                                        "After configuration, click Update Data "
+                                        "to fetch sprint changelog from JIRA."
+                                    ),
                                 },
                             ]
                         ),
@@ -436,7 +497,9 @@ def create_no_active_work_state(parent_field_configured: bool = True) -> html.Di
                                 html.Div(
                                     [
                                         html.I(
-                                            className="fas fa-sitemap fa-4x text-info mb-4",
+                                            className=(
+                                                "fas fa-sitemap fa-4x text-info mb-4"
+                                            ),
                                             style={"opacity": "0.3"},
                                         ),
                                         html.H4(
@@ -444,11 +507,13 @@ def create_no_active_work_state(parent_field_configured: bool = True) -> html.Di
                                             className="empty-state-title mb-3",
                                         ),
                                         html.P(
-                                            "Enable epic timeline visualization by configuring the Parent/Epic Link field.",
+                                            "Enable epic timeline visualization by "
+                                            "configuring the Parent/Epic Link field.",
                                             className="empty-state-lead mb-2",
                                         ),
                                         html.P(
-                                            "Issues will still be displayed, but without epic grouping.",
+                                            "Issues will still be displayed, "
+                                            "but without epic grouping.",
                                             className="empty-state-subtle mb-4",
                                         ),
                                     ],
@@ -468,13 +533,24 @@ def create_no_active_work_state(parent_field_configured: bool = True) -> html.Di
                                         "icon": "cog",
                                         "icon_color": "info",
                                         "title": "Configure Field",
-                                        "description": "Go to Settings → Field Mappings → Fields → General Fields and set the Parent Field to your epic/parent field name (e.g., 'parent', 'Epic Link', 'customfield_10006').",
+                                        "description": (
+                                            "Go to Settings → Field Mappings → "
+                                            "Fields → "
+                                            "General Fields and set the Parent Field "
+                                            "to your epic/parent field name "
+                                            "(e.g., 'parent', 'Epic Link', "
+                                            "'customfield_10006')."
+                                        ),
                                     },
                                     {
                                         "icon": "sync-alt",
                                         "icon_color": "primary",
                                         "title": "Refresh Data",
-                                        "description": "Click Update Data after configuration to fetch parent/epic relationships from JIRA.",
+                                        "description": (
+                                            "Click Update Data after configuration "
+                                            "to fetch parent/epic relationships "
+                                            "from JIRA."
+                                        ),
                                     },
                                 ]
                             ),
@@ -499,7 +575,10 @@ def create_no_active_work_state(parent_field_configured: bool = True) -> html.Di
                             html.Div(
                                 [
                                     html.I(
-                                        className="fas fa-project-diagram fa-4x text-success mb-4",
+                                        className=(
+                                            "fas fa-project-diagram fa-4x "
+                                            "text-success mb-4"
+                                        ),
                                         style={"opacity": "0.5"},
                                     ),
                                     html.H4(
@@ -507,11 +586,13 @@ def create_no_active_work_state(parent_field_configured: bool = True) -> html.Di
                                         className="empty-state-title mb-3",
                                     ),
                                     html.P(
-                                        "Active Work Timeline shows WIP issues and recent completions from the last 2 weeks.",
+                                        "Active Work Timeline shows WIP issues "
+                                        "and recent completions from the last 2 weeks.",
                                         className="empty-state-lead mb-2",
                                     ),
                                     html.P(
-                                        "No active work detected in your current dataset.",
+                                        "No active work detected "
+                                        "in your current dataset.",
                                         className="empty-state-subtle",
                                     ),
                                 ],
@@ -531,13 +612,21 @@ def create_no_active_work_state(parent_field_configured: bool = True) -> html.Di
                                     "icon": "tasks",
                                     "icon_color": "primary",
                                     "title": "Check In-Progress Work",
-                                    "description": "Verify that your JQL query includes issues in WIP statuses (In Progress, In Review, etc.).",
+                                    "description": (
+                                        "Verify that your JQL query includes "
+                                        "issues in WIP statuses "
+                                        "(In Progress, In Review, etc.)."
+                                    ),
                                 },
                                 {
                                     "icon": "calendar-alt",
                                     "icon_color": "info",
                                     "title": "Adjust Time Window",
-                                    "description": "Active Work shows a 2-week window. Use the Data Points slider to include more recent issues.",
+                                    "description": (
+                                        "Active Work shows a 2-week window. "
+                                        "Use the Data Points slider to include "
+                                        "more recent issues."
+                                    ),
                                 },
                             ]
                         ),
@@ -604,7 +693,7 @@ def create_metrics_skeleton(num_cards: int = 4) -> dbc.Row:
                         ),
                         className="text-muted text-center small mb-2 skeleton-text-sm",
                     ),
-                    # Div deployment count placeholder (text-center text-muted small mb-2)
+                    # Deployment count placeholder
                     html.Div(
                         html.Div(
                             className="skeleton-shimmer skeleton-bar-deployments",
@@ -646,12 +735,15 @@ def create_metrics_skeleton(num_cards: int = 4) -> dbc.Row:
                                 ),
                                 className="text-center",
                             ),
-                            # Sparkline bars placeholder (d-flex align-items-end justify-content-center, height: 40px)
+                            # Sparkline bars placeholder
                             html.Div(
                                 html.Div(
                                     className="skeleton-shimmer skeleton-bar-sparkline",
                                 ),
-                                className="d-flex align-items-end justify-content-center skeleton-sparkline",
+                                className=(
+                                    "d-flex align-items-end justify-content-center "
+                                    "skeleton-sparkline"
+                                ),
                             ),
                             # "Show Details" button placeholder (mt-2 p-0)
                             html.Div(
@@ -681,10 +773,10 @@ def create_metrics_skeleton(num_cards: int = 4) -> dbc.Row:
                     className="text-center text-muted skeleton-text-xs",
                     style={"opacity": "0"},
                 ),
-                className="bg-light border-top py-2",  # Same padding and styling as real cards
+                className="bg-light border-top py-2",  # Matches real card footer
             ),
         ],
-        className="metric-card mb-3 h-100",  # Added h-100 for consistent height
+        className="metric-card mb-3 h-100",  # Keep equal card heights
     )
 
     # Create 2-column grid with specified number of cards
@@ -699,6 +791,6 @@ def create_metrics_skeleton(num_cards: int = 4) -> dbc.Row:
 
     return dbc.Row(
         cols,
-        className="metric-cards-skeleton",  # Different class to avoid animation conflict
+        className="metric-cards-skeleton",  # Avoids animation conflict
         # Removed opacity: 0 - skeleton should be visible with shimmer
     )
