@@ -14,7 +14,8 @@ The insights engine provides:
 - Baseline deviation detection
 
 Functions:
-    create_insights_section: Generate actionable insights section with comprehensive intelligence
+    create_insights_section: Generate actionable insights section with
+    comprehensive intelligence
 """
 
 from __future__ import annotations
@@ -83,7 +84,11 @@ def create_insights_section(
                         f"{metrics['pct_change']:.2f}% in recent weeks "
                         f"({metrics['recent_velocity']:.1f} vs "
                         f"{metrics['historical_velocity']:.1f} items/week)",
-                        "recommendation": "Consider taking on additional scope or bringing forward deliverables to capitalize on this momentum.",
+                        "recommendation": (
+                            "Consider taking on additional scope or bringing "
+                            "forward deliverables to capitalize on this "
+                            "momentum."
+                        ),
                     }
                 )
             elif signal["id"] == "velocity_decline":
@@ -94,7 +99,11 @@ def create_insights_section(
                         f"{metrics['pct_change']:.2f}% recently "
                         f"({metrics['recent_velocity']:.1f} vs "
                         f"{metrics['historical_velocity']:.1f} items/week)",
-                        "recommendation": "Review team capacity, identify blockers, and assess scope complexity. Consider retrospectives to understand root causes.",
+                        "recommendation": (
+                            "Review team capacity, identify blockers, and "
+                            "assess scope complexity. Consider retrospectives "
+                            "to understand root causes."
+                        ),
                     }
                 )
 
@@ -107,7 +116,12 @@ def create_insights_section(
                     {
                         "severity": signal["severity"],
                         "message": "Budget Status - No consumption detected",
-                        "recommendation": "Budget tracking will begin once team velocity and costs are established. Ensure project parameters and team costs are configured correctly.",
+                        "recommendation": (
+                            "Budget tracking will begin once team velocity "
+                            "and costs are established. Ensure project "
+                            "parameters and team costs are configured "
+                            "correctly."
+                        ),
                     }
                 )
             elif signal["id"] == "budget_critical":
@@ -117,19 +131,30 @@ def create_insights_section(
                         "message": "Budget Critical - "
                         f"{metrics['utilization_pct']:.2f}% consumed with only "
                         f"{metrics['runway_weeks']:.2f} weeks remaining",
-                        "recommendation": "Immediate action required: Review remaining scope, consider budget increase, or reduce team costs. Current burn rate: "
-                        f"{metrics['currency']}{metrics['burn_rate']:,.0f}/week.",
+                        "recommendation": (
+                            "Immediate action required: Review remaining "
+                            "scope, consider budget increase, or reduce team "
+                            "costs. Current burn rate: "
+                            f"{metrics['currency']}{metrics['burn_rate']:,.0f}/week."
+                        ),
                     }
                 )
             elif signal["id"] == "budget_alert":
                 insights.append(
                     {
                         "severity": signal["severity"],
-                        "message": "Budget Alert - "
-                        f"{metrics['utilization_pct']:.2f}% consumed, approaching budget limits",
-                        "recommendation": "Monitor closely: "
-                        f"{metrics['runway_weeks']:.2f} weeks of runway remaining at current burn rate "
-                        f"({metrics['currency']}{metrics['burn_rate']:,.2f}/week). Consider optimizing team costs or adjusting scope.",
+                        "message": (
+                            "Budget Alert - "
+                            f"{metrics['utilization_pct']:.2f}% consumed, "
+                            "approaching budget limits"
+                        ),
+                        "recommendation": (
+                            "Monitor closely: "
+                            f"{metrics['runway_weeks']:.2f} weeks of runway "
+                            "remaining at current burn rate "
+                            f"({metrics['currency']}{metrics['burn_rate']:,.2f}/week). "
+                            "Consider optimizing team costs or adjusting scope."
+                        ),
                     }
                 )
             elif signal["id"] == "budget_limited_runway":
@@ -138,8 +163,13 @@ def create_insights_section(
                         "severity": signal["severity"],
                         "message": "Limited Runway - Only "
                         f"{metrics['runway_weeks']:.2f} weeks of budget remaining",
-                        "recommendation": "Plan for project completion or budget extension. Current burn rate: "
-                        f"{metrics['currency']}{metrics['burn_rate']:,.0f}/week. Review if remaining scope aligns with available runway.",
+                        "recommendation": (
+                            "Plan for project completion or budget extension. "
+                            "Current burn rate: "
+                            f"{metrics['currency']}{metrics['burn_rate']:,.0f}/week. "
+                            "Review if remaining scope aligns with available "
+                            "runway."
+                        ),
                     }
                 )
             elif signal["id"] == "budget_healthy":
@@ -149,8 +179,11 @@ def create_insights_section(
                         "message": "Healthy Budget - "
                         f"{metrics['utilization_pct']:.2f}% consumed with "
                         f"{metrics['runway_weeks']:.2f} weeks of runway",
-                        "recommendation": "Budget on track. Continue monitoring burn rate "
-                        f"({metrics['currency']}{metrics['burn_rate']:,.0f}/week) and adjust forecasts as scope evolves.",
+                        "recommendation": (
+                            "Budget on track. Continue monitoring burn rate "
+                            f"({metrics['currency']}{metrics['burn_rate']:,.0f}/week) "
+                            "and adjust forecasts as scope evolves."
+                        ),
                     }
                 )
 
@@ -164,8 +197,19 @@ def create_insights_section(
                 insights.append(
                     {
                         "severity": signal["severity"],
-                        "message": f"Accelerating Scope Creep - New items added faster than completion rate for {weeks_over} consecutive weeks (backlog growing by {excess_pct:.2f}%)",
-                        "recommendation": "Implement change control immediately: (1) Temporary freeze on new items to stabilize backlog, (2) Require stakeholder approval for all additions, (3) Establish scope change buffer in forecast, (4) Review and prioritize existing backlog before accepting new work.",
+                        "message": (
+                            "Accelerating Scope Creep - New items added faster "
+                            "than completion rate for "
+                            f"{weeks_over} consecutive weeks (backlog growing by "
+                            f"{excess_pct:.2f}%)"
+                        ),
+                        "recommendation": (
+                            "Implement change control immediately: (1) Temporary "
+                            "freeze on new items to stabilize backlog, (2) Require "
+                            "stakeholder approval for all additions, (3) Establish "
+                            "scope change buffer in forecast, (4) Review and "
+                            "prioritize existing backlog before accepting new work."
+                        ),
                     }
                 )
             elif signal["id"] == "scope_burndown_acceleration":
@@ -173,8 +217,18 @@ def create_insights_section(
                 insights.append(
                     {
                         "severity": signal["severity"],
-                        "message": f"Backlog Burn-Down Accelerating - Completing items faster than new additions for {weeks_over} consecutive weeks",
-                        "recommendation": "Leverage momentum to maximize value delivery: (1) Consider accepting additional valuable scope, (2) Advance roadmap items, or (3) Use capacity for quality/UX enhancements. Coordinate with product stakeholders.",
+                        "message": (
+                            "Backlog Burn-Down Accelerating - Completing items "
+                            "faster than new additions for "
+                            f"{weeks_over} consecutive weeks"
+                        ),
+                        "recommendation": (
+                            "Leverage momentum to maximize value delivery: "
+                            "(1) Consider accepting additional valuable scope, "
+                            "(2) Advance roadmap items, or (3) Use capacity for "
+                            "quality/UX enhancements. Coordinate with product "
+                            "stakeholders."
+                        ),
                     }
                 )
             elif signal["id"] == "scope_growth_ratio":
@@ -189,16 +243,36 @@ def create_insights_section(
                     insights.append(
                         {
                             "severity": signal["severity"],
-                            "message": f"High Scope Growth{time_window_desc} - For every completed item, {ratio:.2f} new items are being created ({scope_growth} created vs {scope_completion} completed)",
-                            "recommendation": "Consider scope prioritization and implement change management processes. Assess if continuous scope growth impacts delivery predictability.",
+                            "message": (
+                                f"High Scope Growth{time_window_desc} - For every "
+                                f"completed item, {ratio:.2f} new items are being "
+                                f"created ({scope_growth} created vs "
+                                f"{scope_completion} completed)"
+                            ),
+                            "recommendation": (
+                                "Consider scope prioritization and implement "
+                                "change management processes. Assess if "
+                                "continuous scope growth impacts delivery "
+                                "predictability."
+                            ),
                         }
                     )
                 else:
                     insights.append(
                         {
                             "severity": signal["severity"],
-                            "message": f"Active Scope Management{time_window_desc} - Moderate scope growth with {ratio:.2f} new items created per completed item ({scope_growth} created vs {scope_completion} completed)",
-                            "recommendation": "Continue monitoring scope changes and maintaining stakeholder feedback loops to ensure alignment.",
+                            "message": (
+                                f"Active Scope Management{time_window_desc} - "
+                                f"Moderate scope growth with {ratio:.2f} new "
+                                f"items created per completed item "
+                                f"({scope_growth} created vs "
+                                f"{scope_completion} completed)"
+                            ),
+                            "recommendation": (
+                                "Continue monitoring scope changes and "
+                                "maintaining stakeholder feedback loops to "
+                                "ensure alignment."
+                            ),
                         }
                     )
 
@@ -211,8 +285,13 @@ def create_insights_section(
                     {
                         "severity": signal["severity"],
                         "message": "Predictable Delivery - Low velocity variation "
-                        f"({metrics['velocity_cv']:.2f}%) indicates predictable delivery rhythm",
-                        "recommendation": "Maintain current practices and leverage this predictability for better sprint planning and stakeholder commitments.",
+                        f"({metrics['velocity_cv']:.2f}%) indicates "
+                        "predictable delivery rhythm",
+                        "recommendation": (
+                            "Maintain current practices and leverage this "
+                            "predictability for better sprint planning and "
+                            "stakeholder commitments."
+                        ),
                     }
                 )
             elif signal["id"] == "velocity_inconsistent":
@@ -220,12 +299,19 @@ def create_insights_section(
                     {
                         "severity": signal["severity"],
                         "message": "Inconsistent Velocity - High velocity variation "
-                        f"({metrics['velocity_cv']:.2f}%) suggests unpredictable delivery",
-                        "recommendation": "Investigate root causes: story sizing accuracy, blockers, team availability, or external dependencies. Consider establishing sprint commitments discipline.",
+                        f"({metrics['velocity_cv']:.2f}%) suggests "
+                        "unpredictable delivery",
+                        "recommendation": (
+                            "Investigate root causes: story sizing accuracy, "
+                            "blockers, team availability, or external "
+                            "dependencies. Consider establishing sprint "
+                            "commitments discipline."
+                        ),
                     }
                 )
 
-        # Throughput efficiency insights - compare first half vs second half of filtered data
+        # Throughput efficiency insights - compare first half vs second half
+        # of filtered data.
         throughput_signals = build_throughput_signals(statistics_df)
         for signal in throughput_signals:
             metrics = signal["metrics"]
@@ -233,11 +319,19 @@ def create_insights_section(
                 insights.append(
                     {
                         "severity": signal["severity"],
-                        "message": "Increasing Throughput - Recent period delivered "
-                        f"{metrics['recent_items']:.0f} items, exceeding previous period by "
-                        f"{metrics['pct_increase']:.2f}% "
-                        f"({metrics['recent_items']:.0f} vs {metrics['prev_items']:.0f} items)",
-                        "recommendation": "Analyze what's working well and consider scaling successful practices across the team or to other projects.",
+                        "message": (
+                            "Increasing Throughput - Recent period delivered "
+                            f"{metrics['recent_items']:.0f} items, exceeding "
+                            "previous period by "
+                            f"{metrics['pct_increase']:.2f}% "
+                            f"({metrics['recent_items']:.0f} vs "
+                            f"{metrics['prev_items']:.0f} items)"
+                        ),
+                        "recommendation": (
+                            "Analyze what's working well and consider scaling "
+                            "successful practices across the team or to other "
+                            "projects."
+                        ),
                     }
                 )
 
@@ -267,8 +361,19 @@ def create_insights_section(
                     insights.append(
                         {
                             "severity": "danger",
-                            "message": f"Deadline At Risk - Current forecast shows completion {days_over:.2f} days ({weeks_over:.2f} weeks) after deadline",
-                            "recommendation": f"Escalate immediately. Options: (1) Descope to MVP and reduce scope by {(days_over / pert_most_likely_days * 100):.2f}%, (2) Request deadline extension, (3) Increase team capacity (with ramp-up risk). Review deadline feasibility with stakeholders.",
+                            "message": (
+                                "Deadline At Risk - Current forecast shows "
+                                f"completion {days_over:.2f} days "
+                                f"({weeks_over:.2f} weeks) after deadline"
+                            ),
+                            "recommendation": (
+                                "Escalate immediately. Options: (1) Descope to "
+                                "MVP and reduce scope by "
+                                f"{(days_over / pert_most_likely_days * 100):.2f}%, "
+                                "(2) Request deadline extension, (3) Increase "
+                                "team capacity (with ramp-up risk). Review "
+                                "deadline feasibility with stakeholders."
+                            ),
                         }
                     )
 
@@ -282,8 +387,20 @@ def create_insights_section(
                     insights.append(
                         {
                             "severity": "danger",
-                            "message": f"Deadline Unachievable - Even best-case scenario completes {days_over:.2f} days after deadline",
-                            "recommendation": "Immediate action required. Deadline is mathematically unattainable without dramatic changes: (1) Aggressively descope to critical MVP features only, (2) Negotiate deadline extension immediately, (3) Consider increasing team size (requires ramp-up time). No realistic path exists with current parameters.",
+                            "message": (
+                                "Deadline Unachievable - Even best-case "
+                                f"scenario completes {days_over:.2f} days "
+                                "after deadline"
+                            ),
+                            "recommendation": (
+                                "Immediate action required. Deadline is "
+                                "mathematically unattainable without dramatic "
+                                "changes: (1) Aggressively descope to critical "
+                                "MVP features only, (2) Negotiate deadline "
+                                "extension immediately, (3) Consider increasing "
+                                "team size (requires ramp-up time). No realistic "
+                                "path exists with current parameters."
+                            ),
                         }
                     )
 
@@ -297,8 +414,21 @@ def create_insights_section(
                     insights.append(
                         {
                             "severity": "success",
-                            "message": f"High Deadline Confidence - Even pessimistic forecast completes {buffer_days:.2f} days before deadline ({(buffer_days / days_to_deadline * 100):.2f}% buffer)",
-                            "recommendation": "Strong position. Consider: (1) Committing to stretch goals or additional features, (2) Adding low-risk quality enhancements, (3) Building buffer for technical debt or documentation. Use confidence to negotiate valuable scope additions.",
+                            "message": (
+                                "High Deadline Confidence - Even pessimistic "
+                                f"forecast completes {buffer_days:.2f} days "
+                                "before deadline "
+                                f"({(buffer_days / days_to_deadline * 100):.2f}% "
+                                "buffer)"
+                            ),
+                            "recommendation": (
+                                "Strong position. Consider: (1) Committing to "
+                                "stretch goals or additional features, (2) "
+                                "Adding low-risk quality enhancements, (3) "
+                                "Building buffer for technical debt or "
+                                "documentation. Use confidence to negotiate "
+                                "valuable scope additions."
+                            ),
                         }
                     )
 
@@ -316,11 +446,29 @@ def create_insights_section(
 
                         if slippage_days > 14:  # >2 weeks slippage
                             slippage_weeks = slippage_days / 7.0
+                            descoping_pct = slippage_days / pert_most_likely_days * 100
+                            allocated_weeks = budget_data.get("baseline", {}).get(
+                                "time_allocated_weeks", 0
+                            )
                             insights.append(
                                 {
                                     "severity": "warning",
-                                    "message": f"Forecast Slippage - Project expected to complete {slippage_weeks:.2f} weeks after planned end date",
-                                    "recommendation": f"Re-evaluate scope priorities and adjust timeline expectations. Current velocity suggests {(pert_most_likely_days / 7.0):.2f} weeks needed vs {budget_data.get('baseline', {}).get('time_allocated_weeks', 0):.2f} weeks allocated. Consider descoping {(slippage_days / pert_most_likely_days * 100):.2f}% of remaining work or extending timeline.",
+                                    "message": (
+                                        "Forecast Slippage - Project expected "
+                                        f"to complete {slippage_weeks:.2f} "
+                                        "weeks after planned end date"
+                                    ),
+                                    "recommendation": (
+                                        "Re-evaluate scope priorities and adjust "
+                                        "timeline expectations. Current velocity "
+                                        "suggests "
+                                        f"{(pert_most_likely_days / 7.0):.2f} weeks "
+                                        "needed vs "
+                                        f"{allocated_weeks:.2f} "
+                                        "weeks allocated. Consider descoping "
+                                        f"{descoping_pct:.2f}% "
+                                        "of remaining work or extending timeline."
+                                    ),
                                 }
                             )
 
@@ -334,8 +482,20 @@ def create_insights_section(
                     insights.append(
                         {
                             "severity": "warning",
-                            "message": f"Low Forecast Confidence - Wide prediction range (±{range_weeks:.2f} weeks) indicates delivery uncertainty",
-                            "recommendation": "Improve predictability by: (1) Stabilizing team capacity and reducing interruptions, (2) Breaking down large stories into smaller chunks, (3) Reducing work-in-progress limits, (4) Addressing recurring blockers. Use Monte Carlo projections for stakeholder communication to set realistic expectations.",
+                            "message": (
+                                "Low Forecast Confidence - Wide prediction "
+                                f"range (±{range_weeks:.2f} weeks) indicates "
+                                "delivery uncertainty"
+                            ),
+                            "recommendation": (
+                                "Improve predictability by: (1) Stabilizing "
+                                "team capacity and reducing interruptions, "
+                                "(2) Breaking down large stories into smaller "
+                                "chunks, (3) Reducing work-in-progress limits, "
+                                "(4) Addressing recurring blockers. Use Monte "
+                                "Carlo projections for stakeholder communication "
+                                "to set realistic expectations."
+                            ),
                         }
                     )
         except Exception:
@@ -354,21 +514,47 @@ def create_insights_section(
                     insights.append(
                         {
                             "severity": signal["severity"],
-                            "message": "Budget Exhaustion Before Completion - Budget runs out "
-                            f"{metrics['shortfall_weeks']:.2f} weeks before forecast completion",
-                            "recommendation": "Critical misalignment detected. Forecast requires "
-                            f"{metrics['pert_forecast_weeks']:.2f} weeks but only "
-                            f"{metrics['runway_weeks']:.2f} weeks of budget remain. Required actions: (1) Reduce burn rate by scaling down team, (2) Secure additional budget "
-                            f"({metrics['shortfall_pct']:.2f}% increase needed), or (3) Aggressively descope to fit runway.",
+                            "message": (
+                                "Budget Exhaustion Before Completion - Budget "
+                                "runs out "
+                                f"{metrics['shortfall_weeks']:.2f} weeks before "
+                                "forecast completion"
+                            ),
+                            "recommendation": (
+                                "Critical misalignment detected. Forecast "
+                                "requires "
+                                f"{metrics['pert_forecast_weeks']:.2f} weeks "
+                                "but only "
+                                f"{metrics['runway_weeks']:.2f} weeks of budget "
+                                "remain. Required actions: (1) Reduce burn "
+                                "rate by scaling down team, (2) Secure "
+                                "additional budget "
+                                f"({metrics['shortfall_pct']:.2f}% increase "
+                                "needed), or (3) Aggressively descope to fit "
+                                "runway."
+                            ),
                         }
                     )
                 elif signal["id"] == "budget_surplus_likely":
                     insights.append(
                         {
                             "severity": signal["severity"],
-                            "message": "Budget Surplus Likely - Project forecast suggests "
-                            f"{metrics['surplus_weeks']:.2f} weeks of unspent budget",
-                            "recommendation": "Consider value-adding opportunities: (1) Adding high-priority backlog items within scope, (2) Investing in technical debt reduction or quality improvements, (3) Enhancing UX/documentation, or (4) Reallocating surplus to other initiatives. Confirm assumptions and opportunities with stakeholders.",
+                            "message": (
+                                "Budget Surplus Likely - Project forecast "
+                                "suggests "
+                                f"{metrics['surplus_weeks']:.2f} weeks of "
+                                "unspent budget"
+                            ),
+                            "recommendation": (
+                                "Consider value-adding opportunities: "
+                                "(1) Adding high-priority backlog items within "
+                                "scope, (2) Investing in technical debt "
+                                "reduction or quality improvements, "
+                                "(3) Enhancing UX/documentation, or "
+                                "(4) Reallocating surplus to other initiatives. "
+                                "Confirm assumptions and opportunities with "
+                                "stakeholders."
+                            ),
                         }
                     )
         except Exception:
@@ -405,8 +591,21 @@ def create_insights_section(
                         insights.append(
                             {
                                 "severity": "warning",
-                                "message": f"Stagnant Velocity - Team throughput unchanged for {len(statistics_df)} weeks at {pct_below:.2f}% below baseline",
-                                "recommendation": "Investigate capacity constraints: Are we hitting team size limits, facing consistent blockers, or underutilizing available capacity? Review sprint retrospectives for patterns and consider process improvements or removing impediments.",
+                                "message": (
+                                    "Stagnant Velocity - Team throughput "
+                                    "unchanged for "
+                                    f"{len(statistics_df)} weeks at "
+                                    f"{pct_below:.2f}% below baseline"
+                                ),
+                                "recommendation": (
+                                    "Investigate capacity constraints: Are we "
+                                    "hitting team size limits, facing "
+                                    "consistent blockers, or underutilizing "
+                                    "available capacity? Review sprint "
+                                    "retrospectives for patterns and consider "
+                                    "process improvements or removing "
+                                    "impediments."
+                                ),
                             }
                         )
         except Exception:
@@ -436,8 +635,21 @@ def create_insights_section(
                     insights.append(
                         {
                             "severity": "warning",
-                            "message": f"Accelerating Scope Creep - New items added faster than completion rate for {weeks_over} consecutive weeks (backlog growing by {excess_pct:.2f}%)",
-                            "recommendation": "Implement change control immediately: (1) Temporary freeze on new items to stabilize backlog, (2) Require stakeholder approval for all additions, (3) Establish scope change budget/buffer in forecast, (4) Review and prioritize existing backlog before accepting new work.",
+                            "message": (
+                                "Accelerating Scope Creep - New items added "
+                                "faster than completion rate for "
+                                f"{weeks_over} consecutive weeks (backlog "
+                                f"growing by {excess_pct:.2f}%)"
+                            ),
+                            "recommendation": (
+                                "Implement change control immediately: "
+                                "(1) Temporary freeze on new items to "
+                                "stabilize backlog, (2) Require stakeholder "
+                                "approval for all additions, (3) Establish "
+                                "scope change budget/buffer in forecast, "
+                                "(4) Review and prioritize existing backlog "
+                                "before accepting new work."
+                            ),
                         }
                     )
 
@@ -457,8 +669,21 @@ def create_insights_section(
                         insights.append(
                             {
                                 "severity": "success",
-                                "message": f"Backlog Burn-Down Accelerating - Completing items faster than new additions for {weeks_over} consecutive weeks",
-                                "recommendation": "Leverage momentum to maximize value delivery: (1) Consider accepting additional valuable scope from backlog, (2) Advance future roadmap items to capitalize on team productivity, or (3) Use capacity for quality/UX enhancements. Coordinate with product stakeholders.",
+                                "message": (
+                                    "Backlog Burn-Down Accelerating - "
+                                    "Completing items faster than new additions "
+                                    f"for {weeks_over} consecutive weeks"
+                                ),
+                                "recommendation": (
+                                    "Leverage momentum to maximize value "
+                                    "delivery: (1) Consider accepting "
+                                    "additional valuable scope from backlog, "
+                                    "(2) Advance future roadmap items to "
+                                    "capitalize on team productivity, or "
+                                    "(3) Use capacity for quality/UX "
+                                    "enhancements. Coordinate with product "
+                                    "stakeholders."
+                                ),
                             }
                         )
 
@@ -476,8 +701,19 @@ def create_insights_section(
                     insights.append(
                         {
                             "severity": "info",
-                            "message": "No New Requirements - Zero items added for last 3 weeks",
-                            "recommendation": "Verify backlog health: (1) Is product backlog refinement happening regularly? (2) Are stakeholders engaged and providing feedback? (3) Is this an intentional scope freeze for delivery focus? Ensure pipeline exists for future work and stakeholder feedback loops remain active.",
+                            "message": (
+                                "No New Requirements - Zero items added for "
+                                "last 3 weeks"
+                            ),
+                            "recommendation": (
+                                "Verify backlog health: (1) Is product backlog "
+                                "refinement happening regularly? "
+                                "(2) Are stakeholders engaged and providing "
+                                "feedback? (3) Is this an intentional scope "
+                                "freeze for delivery focus? Ensure pipeline "
+                                "exists for future work and stakeholder "
+                                "feedback loops remain active."
+                            ),
                         }
                     )
         except Exception:
@@ -506,8 +742,20 @@ def create_insights_section(
                 insights.append(
                     {
                         "severity": "danger",
-                        "message": f"Unstable Delivery + Scope Creep - High velocity variation ({velocity_cv:.2f}%) combined with increasing scope creates critical delivery risk",
-                        "recommendation": "Dual intervention required: (1) Stabilize velocity through consistent team capacity, better story sizing, and reduced context switching, (2) Implement strict change control to prevent scope additions until delivery stabilizes. Consider freezing new features until predictability improves.",
+                        "message": (
+                            "Unstable Delivery + Scope Creep - High velocity "
+                            f"variation ({velocity_cv:.2f}%) combined with "
+                            "increasing scope creates critical delivery risk"
+                        ),
+                        "recommendation": (
+                            "Dual intervention required: (1) Stabilize velocity "
+                            "through consistent team capacity, better story "
+                            "sizing, and reduced context switching, "
+                            "(2) Implement strict change control to prevent "
+                            "scope additions until delivery stabilizes. "
+                            "Consider freezing new features until "
+                            "predictability improves."
+                        ),
                     }
                 )
 
@@ -530,8 +778,21 @@ def create_insights_section(
                     insights.append(
                         {
                             "severity": "danger",
-                            "message": f"Budget Risk + Forecast Uncertainty - Limited budget ({runway_weeks:.2f} weeks) combined with unpredictable delivery creates critical planning risk",
-                            "recommendation": "Urgently stabilize project: (1) Define and commit to minimum viable scope that fits budget, (2) Increase forecast accuracy by breaking stories into smaller pieces and reducing WIP, (3) Secure budget contingency or prepare for partial delivery. Risk of budget overrun or incomplete delivery is high.",
+                            "message": (
+                                "Budget Risk + Forecast Uncertainty - Limited "
+                                f"budget ({runway_weeks:.2f} weeks) combined "
+                                "with unpredictable delivery creates critical "
+                                "planning risk"
+                            ),
+                            "recommendation": (
+                                "Urgently stabilize project: (1) Define and "
+                                "commit to minimum viable scope that fits "
+                                "budget, (2) Increase forecast accuracy by "
+                                "breaking stories into smaller pieces and "
+                                "reducing WIP, (3) Secure budget contingency or "
+                                "prepare for partial delivery. Risk of budget "
+                                "overrun or incomplete delivery is high."
+                            ),
                         }
                     )
 
@@ -568,8 +829,20 @@ def create_insights_section(
                     insights.append(
                         {
                             "severity": "success",
-                            "message": f"Performance Surplus - Team accelerating ({velocity_increase:.2f}% increase) while budget has {surplus_weeks:.2f} weeks headroom",
-                            "recommendation": "Opportunity to maximize value delivery: (1) Bring forward high-value roadmap items from future releases, (2) Invest in technical debt reduction or architecture improvements, (3) Enhance product quality, UX, or documentation. Coordinate with stakeholders to capitalize on this favorable position.",
+                            "message": (
+                                "Performance Surplus - Team accelerating "
+                                f"({velocity_increase:.2f}% increase) while "
+                                f"budget has {surplus_weeks:.2f} weeks headroom"
+                            ),
+                            "recommendation": (
+                                "Opportunity to maximize value delivery: "
+                                "(1) Bring forward high-value roadmap items "
+                                "from future releases, (2) Invest in technical "
+                                "debt reduction or architecture improvements, "
+                                "(3) Enhance product quality, UX, or "
+                                "documentation. Coordinate with stakeholders to "
+                                "capitalize on this favorable position."
+                            ),
                         }
                     )
         except Exception:
@@ -593,8 +866,22 @@ def create_insights_section(
                 insights.append(
                     {
                         "severity": "warning",
-                        "message": f"Underperforming Baseline - Team velocity {pct_below:.2f}% below planned baseline ({actual_velocity:.2f} vs {baseline_velocity:.2f} items/week) for {len(statistics_df)} weeks",
-                        "recommendation": "Baseline assumptions appear incorrect. Actions: (1) Adjust baseline expectations to realistic levels and re-plan timeline, (2) Investigate root causes of underperformance (team capacity, story complexity, blockers), (3) Reset stakeholder expectations with revised forecasts. Document lessons learned for future planning.",
+                        "message": (
+                            "Underperforming Baseline - Team velocity "
+                            f"{pct_below:.2f}% below planned baseline "
+                            f"({actual_velocity:.2f} vs "
+                            f"{baseline_velocity:.2f} items/week) for "
+                            f"{len(statistics_df)} weeks"
+                        ),
+                        "recommendation": (
+                            "Baseline assumptions appear incorrect. Actions: "
+                            "(1) Adjust baseline expectations to realistic "
+                            "levels and re-plan timeline, (2) Investigate root "
+                            "causes of underperformance (team capacity, story "
+                            "complexity, blockers), (3) Reset stakeholder "
+                            "expectations with revised forecasts. Document "
+                            "lessons learned for future planning."
+                        ),
                     }
                 )
 
@@ -607,16 +894,41 @@ def create_insights_section(
                     insights.append(
                         {
                             "severity": "warning",
-                            "message": f"Cost Efficiency Degraded - Items costing {cost_variance_pct:.2f}% more than baseline assumption",
-                            "recommendation": "Stories more complex than expected or velocity lower than planned. Review: (1) Are stories properly sized and estimated? (2) Is team capacity lower than assumed? (3) Are there hidden complexities or technical debt? Consider adjusting cost assumptions for future planning.",
+                            "message": (
+                                "Cost Efficiency Degraded - Items costing "
+                                f"{cost_variance_pct:.2f}% more than baseline "
+                                "assumption"
+                            ),
+                            "recommendation": (
+                                "Stories more complex than expected or "
+                                "velocity lower than planned. Review: "
+                                "(1) Are stories properly sized and estimated? "
+                                "(2) Is team capacity lower than assumed? "
+                                "(3) Are there hidden complexities or technical "
+                                "debt? Consider adjusting cost assumptions for "
+                                "future planning."
+                            ),
                         }
                     )
                 else:
                     insights.append(
                         {
                             "severity": "success",
-                            "message": f"Cost Efficiency Improved - Items costing {abs(cost_variance_pct):.2f}% less than baseline assumption",
-                            "recommendation": "Team more efficient than planned, possibly due to higher velocity or simpler stories. Consider: (1) Taking on additional valuable scope within budget, (2) Reducing future budget projections if sustainable, (3) Documenting efficiency drivers for replication. Verify this is sustainable before committing to expanded scope.",
+                            "message": (
+                                "Cost Efficiency Improved - Items costing "
+                                f"{abs(cost_variance_pct):.2f}% less than "
+                                "baseline assumption"
+                            ),
+                            "recommendation": (
+                                "Team more efficient than planned, possibly "
+                                "due to higher velocity or simpler stories. "
+                                "Consider: (1) Taking on additional valuable "
+                                "scope within budget, (2) Reducing future "
+                                "budget projections if sustainable, "
+                                "(3) Documenting efficiency drivers for "
+                                "replication. Verify this is sustainable before "
+                                "committing to expanded scope."
+                            ),
                         }
                     )
         except Exception:
@@ -629,26 +941,50 @@ def create_insights_section(
             for signal in pace_signals:
                 metrics = signal["metrics"]
                 if signal["id"] == "pace_critically_behind":
+                    gap_items = metrics["gap_pct"] / 100 * metrics["remaining_items"]
                     insights.append(
                         {
                             "severity": signal["severity"],
                             "message": "Pace Critically Behind - Current velocity "
-                            f"{metrics['gap_pct']:.0f}% below required pace to meet deadline "
+                            f"{metrics['gap_pct']:.0f}% below required pace "
+                            "to meet deadline "
                             f"({metrics['current_velocity_items']:.1f} vs "
                             f"{metrics['required_velocity_items']:.1f} items/week)",
-                            "recommendation": "Immediate action required: (1) Increase team capacity if possible, (2) Aggressively descope to reduce remaining work by "
-                            f"{metrics['gap_pct']:.0f}% ({metrics['gap_pct'] / 100 * metrics['remaining_items']:.0f} items), (3) Request deadline extension of ~{metrics['delay_days']:.0f} days, or (4) Accept partial delivery risk. Current pace will miss deadline by significant margin. Need {metrics['gap_absolute']:.1f} more items/week.",
+                            "recommendation": (
+                                "Immediate action required: (1) Increase team "
+                                "capacity if possible, (2) Aggressively descope "
+                                "to reduce remaining work by "
+                                f"{metrics['gap_pct']:.0f}% "
+                                f"({gap_items:.0f} "
+                                "items), (3) Request deadline extension of "
+                                f"~{metrics['delay_days']:.0f} days, or "
+                                "(4) Accept partial delivery risk. Current pace "
+                                "will miss deadline by significant margin. Need "
+                                f"{metrics['gap_absolute']:.1f} more items/week."
+                            ),
                         }
                     )
                 elif signal["id"] == "pace_at_risk":
+                    gap_items = metrics["gap_pct"] / 100 * metrics["remaining_items"]
                     insights.append(
                         {
                             "severity": signal["severity"],
                             "message": "Pace Below Target - Current velocity "
                             f"{metrics['gap_pct']:.0f}% below required pace, need "
-                            f"{metrics['gap_absolute']:.1f} more items/week to meet deadline",
-                            "recommendation": "Close the gap by: (1) Removing blockers to increase throughput "
-                            f"{metrics['gap_pct']:.0f}%, (2) Reducing WIP limits to improve flow, (3) Descoping low-priority items (~{metrics['gap_pct'] / 100 * metrics['remaining_items']:.0f} items, {metrics['gap_pct']:.0f}% of remaining work), or (4) Minor deadline adjustment (+{metrics['delay_days']:.0f} days). Deadline achievable with focused improvements.",
+                            f"{metrics['gap_absolute']:.1f} more items/week "
+                            "to meet deadline",
+                            "recommendation": (
+                                "Close the gap by: (1) Removing blockers to "
+                                "increase throughput "
+                                f"{metrics['gap_pct']:.0f}%, (2) Reducing WIP "
+                                "limits to improve flow, (3) Descoping "
+                                "low-priority items (~"
+                                f"{gap_items:.0f} "
+                                f"items, {metrics['gap_pct']:.0f}% of remaining "
+                                "work), or (4) Minor deadline adjustment "
+                                f"(+{metrics['delay_days']:.0f} days). Deadline "
+                                "achievable with focused improvements."
+                            ),
                         }
                     )
                 elif signal["id"] == "pace_significantly_ahead":
@@ -656,9 +992,20 @@ def create_insights_section(
                         {
                             "severity": signal["severity"],
                             "message": "Pace Significantly Ahead - Current velocity "
-                            f"{metrics['ahead_pct']:.0f}% above required pace, tracking to complete ~{metrics['days_ahead']:.0f} days early",
-                            "recommendation": "Capitalize on momentum: (1) Consider adding high-value scope from backlog (~"
-                            f"{metrics['extra_capacity_items']:.0f} items, {metrics['ahead_pct']:.0f}% more capacity available), (2) Bring forward future roadmap items, (3) Invest in quality improvements or technical debt reduction, or (4) Communicate early completion potential to stakeholders. Strong delivery position.",
+                            f"{metrics['ahead_pct']:.0f}% above required pace, "
+                            f"tracking to complete ~{metrics['days_ahead']:.0f} "
+                            "days early",
+                            "recommendation": (
+                                "Capitalize on momentum: (1) Consider adding "
+                                "high-value scope from backlog (~"
+                                f"{metrics['extra_capacity_items']:.0f} items, "
+                                f"{metrics['ahead_pct']:.0f}% more capacity "
+                                "available), (2) Bring forward future roadmap "
+                                "items, (3) Invest in quality improvements or "
+                                "technical debt reduction, or (4) Communicate "
+                                "early completion potential to stakeholders. "
+                                "Strong delivery position."
+                            ),
                         }
                     )
                 elif signal["id"] == "pace_on_track":
@@ -666,8 +1013,15 @@ def create_insights_section(
                         {
                             "severity": signal["severity"],
                             "message": "Pace On Track - Current velocity "
-                            f"{metrics['ahead_pct']:.0f}% above required pace, well-positioned to meet deadline",
-                            "recommendation": "Maintain current momentum and monitor for changes. Consider small scope additions or quality investments if sustained. Continue removing blockers and maintaining team capacity.",
+                            f"{metrics['ahead_pct']:.0f}% above required pace, "
+                            "well-positioned to meet deadline",
+                            "recommendation": (
+                                "Maintain current momentum and monitor for "
+                                "changes. Consider small scope additions or "
+                                "quality investments if sustained. Continue "
+                                "removing blockers and maintaining team "
+                                "capacity."
+                            ),
                         }
                     )
                 elif signal["id"] == "pace_metric_divergence":
@@ -675,16 +1029,38 @@ def create_insights_section(
                         {
                             "severity": signal["severity"],
                             "message": "Pace Metric Divergence - Items pace "
-                            f"({metrics['ratio_items']:.0%}) and points pace ({metrics['ratio_points']:.0%}) significantly differ",
-                            "recommendation": "Investigate story sizing accuracy: (1) Are larger items being completed without proportional points delivery? (2) Review estimation practices in refinement, (3) Consider whether items or points is more accurate predictor for this team, (4) Adjust forecasting primary metric accordingly. This divergence suggests estimation inconsistency.",
+                            f"({metrics['ratio_items']:.0%}) and points pace "
+                            f"({metrics['ratio_points']:.0%}) significantly differ",
+                            "recommendation": (
+                                "Investigate story sizing accuracy: "
+                                "(1) Are larger items being completed without "
+                                "proportional points delivery? (2) Review "
+                                "estimation practices in refinement, "
+                                "(3) Consider whether items or points is more "
+                                "accurate predictor for this team, (4) Adjust "
+                                "forecasting primary metric accordingly. This "
+                                "divergence suggests estimation inconsistency."
+                            ),
                         }
                     )
                 elif signal["id"] == "pace_deadline_exceeded":
                     insights.append(
                         {
                             "severity": signal["severity"],
-                            "message": "Deadline Exceeded - Project deadline has passed with work remaining",
-                            "recommendation": "Critical status: (1) Establish new realistic deadline based on current velocity and remaining work, (2) Prioritize ruthlessly - complete only critical MVP features, (3) Communicate revised timeline to all stakeholders immediately, (4) Conduct post-mortem to understand planning gaps and prevent recurrence.",
+                            "message": (
+                                "Deadline Exceeded - Project deadline has "
+                                "passed with work remaining"
+                            ),
+                            "recommendation": (
+                                "Critical status: (1) Establish new realistic "
+                                "deadline based on current velocity and "
+                                "remaining work, (2) Prioritize ruthlessly - "
+                                "complete only critical MVP features, "
+                                "(3) Communicate revised timeline to all "
+                                "stakeholders immediately, (4) Conduct "
+                                "post-mortem to understand planning gaps and "
+                                "prevent recurrence."
+                            ),
                         }
                     )
         except Exception:
@@ -701,8 +1077,14 @@ def create_insights_section(
         insights.append(
             {
                 "severity": "success",
-                "message": "Stable Performance - Project metrics are within normal ranges, no immediate concerns detected",
-                "recommendation": "Continue current practices and monitor for changes in upcoming weeks. Consider documenting what's working well.",
+                "message": (
+                    "Stable Performance - Project metrics are within normal "
+                    "ranges, no immediate concerns detected"
+                ),
+                "recommendation": (
+                    "Continue current practices and monitor for changes in "
+                    "upcoming weeks. Consider documenting what's working well."
+                ),
             }
         )
 
@@ -775,7 +1157,10 @@ def create_insights_section(
                         ],
                         className="insight-header-row",
                     ),
-                    className=f"bg-{severity_config['color']} bg-opacity-10 border-{severity_config['color']}",
+                    className=(
+                        f"bg-{severity_config['color']} bg-opacity-10 "
+                        f"border-{severity_config['color']}"
+                    ),
                     style={"cursor": "pointer"},
                     id=f"actionable-insight-header-{idx}",
                 ),
