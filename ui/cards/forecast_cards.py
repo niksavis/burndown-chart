@@ -43,7 +43,8 @@ def create_forecast_graph_card() -> dbc.Card:
     current_date = datetime.now().strftime("%Y%m%d")
     default_filename = f"burndown_forecast_{current_date}"
 
-    # Create the card header with tooltip and Phase 9.2 Progressive Disclosure help button
+    # Create the card header with tooltip
+    # and Phase 9.2 Progressive Disclosure help button
     header_content = create_card_header_with_tooltip(
         "Forecast Graph",
         tooltip_id="forecast-graph",
@@ -59,7 +60,8 @@ def create_forecast_graph_card() -> dbc.Card:
             "height": "700px"
         },  # Updated from 650px to match the height in apply_layout_settings
         config={
-            # Only specify the filename, let Plotly handle the rest of the export settings
+            # Only specify the filename; let Plotly handle
+            # the rest of the export settings
             "toImageButtonOptions": {
                 "filename": default_filename,
             },
@@ -92,10 +94,13 @@ def create_forecast_info_card() -> dbc.Card:
             create_rhythm_text(
                 [
                     html.Strong("PERT Forecast: "),
-                    "Estimates based on optimistic, most likely, and pessimistic scenarios from your historical data.",
+                    "Estimates based on optimistic, most likely, and "
+                    "pessimistic scenarios from your historical data.",
                     create_expandable_tooltip(
                         id_suffix="pert-methodology-main",
-                        summary_text="PERT uses 3-point estimation for realistic forecasts",
+                        summary_text=(
+                            "PERT uses 3-point estimation for realistic forecasts"
+                        ),
                         detailed_text=CHART_HELP_TEXTS["pert_forecast_methodology"],
                         variant="primary",
                         placement="right",
@@ -163,7 +168,7 @@ def create_forecast_info_card() -> dbc.Card:
                                                 "/",
                                                 html.Span(
                                                     "Gold",
-                                                    style={  # Fixed double curly braces to single
+                                                    style={
                                                         "color": "rgb(184, 134, 11)",
                                                         "fontWeight": "bold",
                                                     },
@@ -240,7 +245,8 @@ def create_forecast_info_card() -> dbc.Card:
                                                     CHART_HELP_TEXTS[
                                                         "chart_legend_explained"
                                                     ],
-                                                    "Visual legend and line type meanings",
+                                                    "Visual legend and "
+                                                    "line type meanings",
                                                 ),
                                             ]
                                         ),
@@ -251,7 +257,8 @@ def create_forecast_info_card() -> dbc.Card:
                                                     CHART_HELP_TEXTS[
                                                         "forecast_confidence_bands"
                                                     ],
-                                                    "Understanding forecast uncertainty ranges",
+                                                    "Understanding forecast "
+                                                    "uncertainty ranges",
                                                 ),
                                             ]
                                         ),
@@ -262,7 +269,8 @@ def create_forecast_info_card() -> dbc.Card:
                                                     CHART_HELP_TEXTS[
                                                         "scope_change_indicators"
                                                     ],
-                                                    "How scope changes are shown on the main chart",
+                                                    "How scope changes are "
+                                                    "shown on the main chart",
                                                 ),
                                             ]
                                         ),
@@ -273,7 +281,8 @@ def create_forecast_info_card() -> dbc.Card:
                                                     CHART_HELP_TEXTS[
                                                         "data_points_precision"
                                                     ],
-                                                    "How number of data points affects forecast precision",
+                                                    "How number of data points "
+                                                    "affects forecast precision",
                                                 ),
                                             ]
                                         ),
@@ -302,7 +311,7 @@ def create_forecast_info_card() -> dbc.Card:
                                 className="d-inline mb-0",
                                 style={"fontSize": "0.875rem", "fontWeight": "600"},
                             ),
-                            className="col-10 col-lg-11",  # Explicit Bootstrap column classes
+                            className="col-10 col-lg-11",
                         ),
                         dbc.Col(
                             html.Div(
@@ -319,9 +328,11 @@ def create_forecast_info_card() -> dbc.Card:
                                         "How to interpret the forecast graph.",
                                     ),
                                 ],
-                                className="d-flex justify-content-end align-items-center",
+                                className=(
+                                    "d-flex justify-content-end align-items-center"
+                                ),
                             ),
-                            className="col-2 col-lg-1",  # Explicit Bootstrap column classes
+                            className="col-2 col-lg-1",
                         ),
                     ],
                     align="center",
@@ -335,7 +346,7 @@ def create_forecast_info_card() -> dbc.Card:
                 is_open=False,
             ),
         ],
-        className="my-2 shadow-sm",  # Changed from "mb-3 shadow-sm mt-3" to "my-2" for consistent 8px margins
+        className="my-2 shadow-sm",
     )
 
 
@@ -485,7 +496,7 @@ def create_items_forecast_info_card(
                                 className="d-inline mb-0",
                                 style={"fontSize": "0.875rem", "fontWeight": "600"},
                             ),
-                            className="col-10 col-lg-11",  # Explicit Bootstrap column classes
+                            className="col-10 col-lg-11",
                         ),
                         dbc.Col(
                             html.Div(
@@ -499,12 +510,15 @@ def create_items_forecast_info_card(
                                     ),
                                     create_info_tooltip(
                                         "items-forecast-info",
-                                        "Understanding the weekly items forecast chart and trends.",
+                                        "Understanding the weekly items "
+                                        "forecast chart and trends.",
                                     ),
                                 ],
-                                className="d-flex justify-content-end align-items-center",
+                                className=(
+                                    "d-flex justify-content-end align-items-center"
+                                ),
                             ),
-                            className="col-2 col-lg-1",  # Explicit Bootstrap column classes
+                            className="col-2 col-lg-1",
                         ),
                     ],
                     align="center",
@@ -518,7 +532,7 @@ def create_items_forecast_info_card(
                 is_open=False,
             ),
         ],
-        className="my-2 shadow-sm",  # Changed from "mt-3 mb-2 shadow-sm" to "my-2" for consistent 8px margins
+        className="my-2 shadow-sm",
     )
 
 
@@ -602,7 +616,8 @@ def create_points_forecast_info_card(
                                                 "fontWeight": "bold",
                                             },
                                         ),
-                                        ": Next week's forecast with confidence interval",
+                                        ": Next week's forecast "
+                                        "with confidence interval",
                                     ]
                                 ),
                             ],
@@ -670,7 +685,7 @@ def create_points_forecast_info_card(
                                 className="d-inline mb-0",
                                 style={"fontSize": "0.875rem", "fontWeight": "600"},
                             ),
-                            className="col-10 col-lg-11",  # Explicit Bootstrap column classes
+                            className="col-10 col-lg-11",
                         ),
                         dbc.Col(
                             html.Div(
@@ -684,12 +699,15 @@ def create_points_forecast_info_card(
                                     ),
                                     create_info_tooltip(
                                         "points-forecast-info",
-                                        "Understanding the weekly points forecast chart and trends.",
+                                        "Understanding the weekly points "
+                                        "forecast chart and trends.",
                                     ),
                                 ],
-                                className="d-flex justify-content-end align-items-center",
+                                className=(
+                                    "d-flex justify-content-end align-items-center"
+                                ),
                             ),
-                            className="col-2 col-lg-1",  # Explicit Bootstrap column classes
+                            className="col-2 col-lg-1",
                         ),
                     ],
                     align="center",
