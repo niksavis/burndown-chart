@@ -71,14 +71,16 @@ def create_forecast_alignment_card(
     Create Forecast vs Budget Alignment card showing timeline comparison.
 
     Displays gap between PERT forecast completion time and budget runway
-    for both items and points tracking with dates. Styled as table matching Cost Breakdown card.
+    for both items and points tracking with dates.
+    Styled as table matching Cost Breakdown card.
 
     Args:
         pert_time_items: PERT forecast days (items-based)
         pert_time_points: PERT forecast days (points-based)
         runway_weeks: Budget runway in weeks
         show_points: Whether points tracking is active
-        last_date: Last statistics date for date calculations (defaults to datetime.now())
+        last_date: Last statistics date for date calculations
+            (defaults to datetime.now())
         card_id: Optional HTML ID for the card
 
     Returns:
@@ -138,9 +140,12 @@ def create_forecast_alignment_card(
                                 html.I(className="fas fa-hourglass-start me-2"),
                                 html.Strong("No Budget Consumption Data"),
                                 html.P(
-                                    "Budget tracking will begin once work completion is recorded. "
-                                    "The burn rate is calculated from ACTUAL completed work, not just team cost. "
-                                    "Complete some items to start tracking budget consumption.",
+                                    "Budget tracking will begin once work "
+                                    "completion is recorded. "
+                                    "The burn rate is calculated from ACTUAL completed "
+                                    "work, not just team cost. "
+                                    "Complete some items to start tracking budget "
+                                    "consumption.",
                                     className="mb-0 mt-2 small",
                                 ),
                             ],
@@ -330,12 +335,18 @@ def create_forecast_alignment_card(
                                 style={"fontSize": "1rem", "color": "#6c757d"},
                             ),
                             html.Small(
-                                "Enable Points Tracking in Parameters panel to view story points metrics.",
+                                (
+                                    "Enable Points Tracking in Parameters panel to "
+                                    "view story points metrics."
+                                ),
                                 className="text-muted",
                                 style={"fontSize": "0.85rem"},
                             ),
                         ],
-                        className="d-flex align-items-center justify-content-center flex-column",
+                        className=(
+                            "d-flex align-items-center "
+                            "justify-content-center flex-column"
+                        ),
                         style={"gap": "0.25rem"},
                     ),
                 ],
@@ -376,12 +387,19 @@ def create_forecast_alignment_card(
                                 style={"fontSize": "1rem", "color": "#6c757d"},
                             ),
                             html.Small(
-                                "No story points data available. Configure story points field in Settings or complete items with point estimates.",
+                                (
+                                    "No story points data available. Configure story "
+                                    "points field in Settings or complete items with "
+                                    "point estimates."
+                                ),
                                 className="text-muted",
                                 style={"fontSize": "0.85rem"},
                             ),
                         ],
-                        className="d-flex align-items-center justify-content-center flex-column",
+                        className=(
+                            "d-flex align-items-center "
+                            "justify-content-center flex-column"
+                        ),
                         style={"gap": "0.25rem"},
                     ),
                 ],
@@ -522,10 +540,13 @@ def create_forecast_alignment_card(
         [
             create_metric_card_header(
                 title="Forecast vs Budget Alignment",
-                tooltip_text="Compares PERT forecast completion time with budget runway. "
-                "Positive gap = budget outlasts forecast (healthy). "
-                "Negative gap = budget exhausts before completion (risk). "
-                "Budget runway is calculated from ACTUAL work completed, not just team cost.",
+                tooltip_text=(
+                    "Compares PERT forecast completion time with budget runway. "
+                    "Positive gap = budget outlasts forecast (healthy). "
+                    "Negative gap = budget exhausts before completion (risk). "
+                    "Budget runway is calculated from ACTUAL work completed, "
+                    "not just team cost."
+                ),
                 tooltip_id="metric-forecast_alignment",
                 badge=dbc.Badge(
                     overall_health,
@@ -557,7 +578,10 @@ def create_forecast_alignment_card(
                                         },
                                     ),
                                 ],
-                                className="d-flex align-items-center justify-content-center mb-1",
+                                className=(
+                                    "d-flex align-items-center "
+                                    "justify-content-center mb-1"
+                                ),
                             ),
                             html.P(
                                 f"Worst gap: {min_gap:+.1f} weeks",
@@ -572,7 +596,8 @@ def create_forecast_alignment_card(
                 className="pt-3 pb-0 mb-0",
             ),
             _create_card_footer(
-                "Positive gap = sufficient budget • Negative gap = budget risk • Runway from actual burn rate",
+                "Positive gap = sufficient budget • Negative gap = budget risk • "
+                "Runway from actual burn rate",
                 "fa-balance-scale",
             ),
         ],
@@ -600,14 +625,17 @@ def create_budget_timeline_card(
     Args:
         baseline_data: Dict from get_budget_baseline_vs_actual()
         pert_forecast_weeks: Optional PERT forecast weeks for completion date
-        last_date: Optional last statistics date for forecast alignment (defaults to datetime.now())
+        last_date: Optional last statistics date for forecast alignment
+            (defaults to datetime.now())
         card_id: Optional HTML ID for the card
 
     Returns:
         Dash Bootstrap Card component
 
     Example:
-        >>> card = create_budget_timeline_card(baseline_data, 15.0, last_date=datetime(2026, 1, 6))
+        >>> card = create_budget_timeline_card(
+        ...     baseline_data, 15.0, last_date=datetime(2026, 1, 6)
+        ... )
     """
     # Extract data
     start_date_str = baseline_data["baseline"]["start_date"]
@@ -622,7 +650,9 @@ def create_budget_timeline_card(
         # Validate required date strings
         if not start_date_str or not allocated_end_str:
             logger.error(
-                f"Missing required timeline dates: start_date='{start_date_str}', allocated_end='{allocated_end_str}'"
+                "Missing required timeline dates: "
+                f"start_date='{start_date_str}', "
+                f"allocated_end='{allocated_end_str}'"
             )
             raise ValueError("Missing required timeline dates")
 
@@ -914,7 +944,10 @@ def create_budget_timeline_card(
                 ),
                 html.Td(allocated_end.strftime("%Y-%m-%d"), className="fw-bold"),
                 html.Td(
-                    f"{abs(baseline_weeks_remaining):.1f} weeks {'remaining' if baseline_weeks_remaining > 0 else 'overdue'}",
+                    (
+                        f"{abs(baseline_weeks_remaining):.1f} weeks "
+                        f"{'remaining' if baseline_weeks_remaining > 0 else 'overdue'}"
+                    ),
                     className="text-end",
                     style={
                         "color": "#198754"
