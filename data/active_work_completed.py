@@ -73,7 +73,8 @@ def get_completed_items_by_week(
         if not status:
             status = issue.get("fields", {}).get("status", {}).get("name", "")
 
-        # Access resolutiondate - try flat format first (database), then JIRA nested format
+        # Access resolutiondate - try flat format first (database),
+        # then JIRA nested format
         resolutiondate = issue.get("resolutiondate")
         if not resolutiondate:
             resolutiondate = issue.get("resolved")
@@ -94,7 +95,8 @@ def get_completed_items_by_week(
             completed_issues.append(issue)
 
     logger.info(
-        f"[COMPLETED ITEMS] Found {len(completed_issues)} completed issues with resolutiondate (out of {len(issues)} total)"
+        f"[COMPLETED ITEMS] Found {len(completed_issues)} completed issues "
+        f"with resolutiondate (out of {len(issues)} total)"
     )
 
     if not completed_issues:

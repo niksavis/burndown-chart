@@ -133,7 +133,8 @@ def bucket_issues_by_week(
 
     # Bucket issues
     for issue in issues:
-        # Get the date value from the issue - try flat format first (database), then JIRA nested format
+        # Get the date value from the issue - try flat format first (database),
+        # then JIRA nested format
         date_value = issue.get(date_field)
         if not date_value and date_field == "resolutiondate":
             date_value = issue.get("resolved")
@@ -155,7 +156,8 @@ def bucket_issues_by_week(
                 issue_date = datetime.fromisoformat(date_value).date()
         except (ValueError, AttributeError) as e:
             logger.warning(
-                f"Could not parse date {date_value} for issue {issue.get('key', 'unknown')}: {e}"
+                f"Could not parse date {date_value} "
+                f"for issue {issue.get('key', 'unknown')}: {e}"
             )
             continue
 

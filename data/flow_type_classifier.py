@@ -62,7 +62,8 @@ def get_flow_type(issue: Any, effort_category_field: str) -> str:
 
     Args:
         issue: JIRA issue object with fields attribute
-        effort_category_field: Custom field ID for effort category (e.g., "customfield_XXXXX")
+        effort_category_field: Custom field ID for effort category
+            (e.g., "customfield_XXXXX")
 
     Returns:
         Flow type string: "Feature", "Defect", "Technical Debt", or "Risk"
@@ -125,7 +126,8 @@ def get_flow_type(issue: Any, effort_category_field: str) -> str:
         return FLOW_TYPE_DEFECT
 
     # For Task and Story: Check effort category (secondary classification)
-    # NOTE: Operational Tasks should NEVER reach this function - they're filtered out in metrics_calculator
+    # NOTE: Operational Tasks should NEVER reach this function
+    # - they're filtered out in metrics_calculator
     if issue_type in ("Task", "Story"):
         # Get effort category - handle both dict and object formats
         if isinstance(fields, dict):
