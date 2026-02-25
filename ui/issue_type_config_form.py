@@ -27,13 +27,16 @@ def create_issue_type_config_form(
 
     Args:
         devops_task_types: List of DevOps task type names (DORA)
-        bug_types: List of incident type names for production incidents (DORA MTTR) - can include Bug, Incident, Production Issue, etc.
+        bug_types: List of incident type names for production incidents
+            (DORA MTTR) - can include Bug, Incident,
+            Production Issue, etc.
         story_types: DEPRECATED - Use flow_type_mappings instead
         task_types: DEPRECATED - Use flow_type_mappings instead
         available_issue_types: List of available issue type dictionaries from JIRA
         flow_type_mappings: Dict with Flow type mappings (Feature, Defect, etc.)
         available_effort_categories: List of effort category values from JIRA
-        parent_issue_types: List of parent issue type names (Epic, Initiative, Feature, etc.)
+        parent_issue_types: List of parent issue type names
+            (Epic, Initiative, Feature, etc.)
 
     Returns:
         Dash component with issue type configuration UI
@@ -90,6 +93,45 @@ def create_issue_type_config_form(
         {"label": cat, "value": cat} for cat in available_effort_categories
     ]
 
+    form_label_bold = "form-label fw-bold"
+    helper_text_class = "text-muted small mb-2"
+    type_placeholder = "Type or select issue types..."
+    category_placeholder = "Type or select categories..."
+    optional_effort_label = "2. Effort Categories (optional)"
+    required_issue_type_text = "Required: Select at least one issue type"
+    match_all_text = "Leave empty to match ALL above issue types"
+    help_icon_class = "fas fa-info-circle me-1 text-info"
+    flow_subtitle_class = "text-muted small ms-2"
+    parent_label_icon_class = "fas fa-layer-group me-2 text-primary"
+    devops_label_icon_class = "fas fa-rocket me-2 text-primary"
+    incident_label_icon_class = "fas fa-exclamation-triangle me-2 text-danger"
+    feature_icon_class = "fas fa-lightbulb me-2 text-success"
+    defect_icon_class = "fas fa-bug me-2 text-danger"
+    risk_icon_class = "fas fa-shield-alt me-2"
+    flow_feature_border_class = "border-start border-flow-feature border-4"
+    flow_defect_border_class = "border-start border-flow-defect border-4"
+    flow_tech_debt_border_class = "border-start border-flow-tech-debt border-4"
+    flow_risk_border_class = "border-start border-flow-risk border-4"
+    parent_types_help_text = (
+        "Select issue types that represent parents (not included in velocity/burndown)"
+    )
+    parent_common_text = (
+        "Parent issues will be fetched in the same query as child issues "
+        "for complete data, but filtered from metrics calculations."
+    )
+    dora_intro_text = (
+        "Configure issue types used to identify deployments and "
+        "production incidents for DORA metrics calculation."
+    )
+    flow_intro_text = (
+        "Configure AND-filter: Issue Type + Effort Category → Flow Type. "
+        "Leave Effort Categories empty to match all issues of that type."
+    )
+    feature_subtitle = " - New capabilities and improvements (Target: 40-70%)"
+    defect_subtitle = " - Bug fixes and production incidents (Target: < 20%)"
+    tech_debt_subtitle = " - Refactoring and technical improvements (Target: 10-20%)"
+    risk_subtitle = " - Security, compliance, and experiments (Target: < 10%)"
+
     # Add current effort categories to options if not present
     existing_categories = set(available_effort_categories)
     for _flow_type, config in flow_type_mappings.items():
@@ -121,9 +163,11 @@ def create_issue_type_config_form(
                             ),
                             html.P(
                                 [
-                                    "Issue types that act as parents in work hierarchy (Epic, Initiative, Feature, Portfolio Epic). ",
+                                    "Issue types that act as parents in work hierarchy "
+                                    "(Epic, Initiative, Feature, Portfolio Epic). ",
                                     html.Strong(
-                                        "These types are included in queries but excluded from burndown calculations."
+                                        "These types are included in queries "
+                                        "but excluded from burndown calculations."
                                     ),
                                 ],
                                 className="text-muted small mb-3",
@@ -135,15 +179,15 @@ def create_issue_type_config_form(
                                             html.Label(
                                                 [
                                                     html.I(
-                                                        className="fas fa-layer-group me-2 text-primary"
+                                                        className=parent_label_icon_class
                                                     ),
                                                     "Parent Types",
                                                 ],
-                                                className="form-label fw-bold",
+                                                className=form_label_bold,
                                             ),
                                             html.P(
-                                                "Select issue types that represent parents (not included in velocity/burndown)",
-                                                className="text-muted small mb-2",
+                                                parent_types_help_text,
+                                                className=helper_text_class,
                                             ),
                                         ],
                                         width=12,
@@ -156,7 +200,11 @@ def create_issue_type_config_form(
                                                 options=issue_type_options,  # type: ignore
                                                 value=parent_issue_types,
                                                 multi=True,
-                                                placeholder="Select parent types (e.g., Epic, Initiative, Feature)...",
+                                                placeholder=(
+                                                    "Select parent types "
+                                                    "(e.g., Epic, Initiative, "
+                                                    "Feature)..."
+                                                ),
                                                 className="mb-2",
                                                 clearable=True,
                                                 searchable=True,
@@ -165,12 +213,10 @@ def create_issue_type_config_form(
                                             ),
                                             html.Small(
                                                 [
-                                                    html.I(
-                                                        className="fas fa-info-circle me-1 text-info"
-                                                    ),
-                                                    "Common: Epic, Initiative, Feature. ",
-                                                    "Parent issues will be fetched in the same query as child issues for complete data, ",
-                                                    "but filtered from metrics calculations.",
+                                                    html.I(className=help_icon_class),
+                                                    "Common: Epic, Initiative, "
+                                                    "Feature. ",
+                                                    parent_common_text,
                                                 ],
                                                 className="text-muted",
                                             ),
@@ -196,7 +242,7 @@ def create_issue_type_config_form(
                     dbc.CardBody(
                         [
                             html.P(
-                                "Configure issue types used to identify deployments and production incidents for DORA metrics calculation.",
+                                dora_intro_text,
                                 className="text-muted small mb-3",
                             ),
                             # DevOps Task Types
@@ -207,11 +253,11 @@ def create_issue_type_config_form(
                                             html.Label(
                                                 [
                                                     html.I(
-                                                        className="fas fa-rocket me-2 text-primary"
+                                                        className=devops_label_icon_class
                                                     ),
                                                     "DevOps Task Types",
                                                 ],
-                                                className="form-label fw-bold",
+                                                className=form_label_bold,
                                             ),
                                             html.P(
                                                 "Deployment Frequency & Lead Time",
@@ -228,7 +274,7 @@ def create_issue_type_config_form(
                                                 options=issue_type_options,  # type: ignore  # Dash accepts list[dict]
                                                 value=devops_task_types,
                                                 multi=True,
-                                                placeholder="Type or select issue types...",
+                                                placeholder=type_placeholder,
                                                 className="mb-2",
                                                 clearable=True,
                                                 searchable=True,
@@ -250,11 +296,11 @@ def create_issue_type_config_form(
                                             html.Label(
                                                 [
                                                     html.I(
-                                                        className="fas fa-exclamation-triangle me-2 text-danger"
+                                                        className=incident_label_icon_class
                                                     ),
                                                     "Incident Types",
                                                 ],
-                                                className="form-label fw-bold",
+                                                className=form_label_bold,
                                             ),
                                             html.P(
                                                 "Change Failure Rate & MTTR",
@@ -271,7 +317,9 @@ def create_issue_type_config_form(
                                                 options=issue_type_options,  # type: ignore  # Dash accepts list[dict]
                                                 value=bug_types,
                                                 multi=True,
-                                                placeholder="Type or select incident types...",
+                                                placeholder=(
+                                                    "Type or select incident types..."
+                                                ),
                                                 clearable=True,
                                                 searchable=True,
                                                 optionHeight=50,
@@ -298,7 +346,7 @@ def create_issue_type_config_form(
                     dbc.CardBody(
                         [
                             html.P(
-                                "Configure AND-filter: Issue Type + Effort Category → Flow Type. Leave Effort Categories empty to match all issues of that type.",
+                                flow_intro_text,
                                 className="text-muted small mb-3",
                             ),
                             # Feature Types - Grouped Card
@@ -309,12 +357,12 @@ def create_issue_type_config_form(
                                             html.Div(
                                                 [
                                                     html.I(
-                                                        className="fas fa-lightbulb me-2 text-success"
+                                                        className=feature_icon_class
                                                     ),
                                                     html.Strong("Feature Types"),
                                                     html.Span(
-                                                        " - New capabilities and improvements (Target: 40-70%)",
-                                                        className="text-muted small ms-2",
+                                                        feature_subtitle,
+                                                        className=flow_subtitle_class,
                                                     ),
                                                 ],
                                                 className="mb-3",
@@ -325,11 +373,11 @@ def create_issue_type_config_form(
                                                         [
                                                             html.Label(
                                                                 "1. Issue Types",
-                                                                className="form-label fw-bold",
+                                                                className=form_label_bold,
                                                             ),
                                                             html.P(
-                                                                "Required: Select at least one issue type",
-                                                                className="text-muted small mb-2",
+                                                                required_issue_type_text,
+                                                                className=helper_text_class,
                                                             ),
                                                         ],
                                                         width=12,
@@ -346,7 +394,7 @@ def create_issue_type_config_form(
                                                                     "issue_types", []
                                                                 ),
                                                                 multi=True,
-                                                                placeholder="Type or select issue types...",
+                                                                placeholder=type_placeholder,
                                                                 className="mb-2",
                                                                 clearable=True,
                                                                 searchable=True,
@@ -365,17 +413,17 @@ def create_issue_type_config_form(
                                                     dbc.Col(
                                                         [
                                                             html.Label(
-                                                                "2. Effort Categories (optional)",
-                                                                className="form-label fw-bold",
+                                                                optional_effort_label,
+                                                                className=form_label_bold,
                                                             ),
                                                             html.P(
                                                                 [
                                                                     html.I(
-                                                                        className="fas fa-info-circle me-1 text-info"
+                                                                        className=help_icon_class
                                                                     ),
-                                                                    "Leave empty to match ALL above issue types",
+                                                                    match_all_text,
                                                                 ],
-                                                                className="text-muted small mb-2",
+                                                                className=helper_text_class,
                                                             ),
                                                         ],
                                                         width=12,
@@ -393,7 +441,7 @@ def create_issue_type_config_form(
                                                                     [],
                                                                 ),
                                                                 multi=True,
-                                                                placeholder="Type or select categories...",
+                                                                placeholder=category_placeholder,
                                                                 className="mb-2",
                                                                 clearable=True,
                                                                 searchable=True,
@@ -407,7 +455,7 @@ def create_issue_type_config_form(
                                                 ],
                                             ),
                                         ],
-                                        className="border-start border-flow-feature border-4",
+                                        className=flow_feature_border_class,
                                     ),
                                 ],
                                 className="mb-3",
@@ -419,13 +467,11 @@ def create_issue_type_config_form(
                                         [
                                             html.Div(
                                                 [
-                                                    html.I(
-                                                        className="fas fa-bug me-2 text-danger"
-                                                    ),
+                                                    html.I(className=defect_icon_class),
                                                     html.Strong("Defect Types"),
                                                     html.Span(
-                                                        " - Bug fixes and production incidents (Target: < 20%)",
-                                                        className="text-muted small ms-2",
+                                                        defect_subtitle,
+                                                        className=flow_subtitle_class,
                                                     ),
                                                 ],
                                                 className="mb-3",
@@ -436,11 +482,11 @@ def create_issue_type_config_form(
                                                         [
                                                             html.Label(
                                                                 "1. Issue Types",
-                                                                className="form-label fw-bold",
+                                                                className=form_label_bold,
                                                             ),
                                                             html.P(
-                                                                "Required: Select at least one issue type",
-                                                                className="text-muted small mb-2",
+                                                                required_issue_type_text,
+                                                                className=helper_text_class,
                                                             ),
                                                         ],
                                                         width=12,
@@ -457,7 +503,7 @@ def create_issue_type_config_form(
                                                                     "issue_types", []
                                                                 ),
                                                                 multi=True,
-                                                                placeholder="Type or select issue types...",
+                                                                placeholder=type_placeholder,
                                                                 className="mb-2",
                                                                 clearable=True,
                                                                 searchable=True,
@@ -476,17 +522,17 @@ def create_issue_type_config_form(
                                                     dbc.Col(
                                                         [
                                                             html.Label(
-                                                                "2. Effort Categories (optional)",
+                                                                optional_effort_label,
                                                                 className="form-label",
                                                             ),
                                                             html.P(
                                                                 [
                                                                     html.I(
-                                                                        className="fas fa-info-circle me-1 text-info"
+                                                                        className=help_icon_class
                                                                     ),
-                                                                    "Leave empty to match ALL above issue types",
+                                                                    match_all_text,
                                                                 ],
-                                                                className="text-muted small mb-2",
+                                                                className=helper_text_class,
                                                             ),
                                                         ],
                                                         width=12,
@@ -504,7 +550,7 @@ def create_issue_type_config_form(
                                                                     [],
                                                                 ),
                                                                 multi=True,
-                                                                placeholder="Type or select categories...",
+                                                                placeholder=category_placeholder,
                                                                 className="mb-2",
                                                                 clearable=True,
                                                                 searchable=True,
@@ -518,7 +564,7 @@ def create_issue_type_config_form(
                                                 ],
                                             ),
                                         ],
-                                        className="border-start border-flow-defect border-4",
+                                        className=flow_defect_border_class,
                                     ),
                                 ],
                                 className="mb-3",
@@ -535,8 +581,8 @@ def create_issue_type_config_form(
                                                     ),
                                                     html.Strong("Technical Debt Types"),
                                                     html.Span(
-                                                        " - Refactoring and technical improvements (Target: 10-20%)",
-                                                        className="text-muted small ms-2",
+                                                        tech_debt_subtitle,
+                                                        className=flow_subtitle_class,
                                                     ),
                                                 ],
                                                 className="mb-3",
@@ -547,11 +593,11 @@ def create_issue_type_config_form(
                                                         [
                                                             html.Label(
                                                                 "1. Issue Types",
-                                                                className="form-label fw-bold",
+                                                                className=form_label_bold,
                                                             ),
                                                             html.P(
-                                                                "Required: Select at least one issue type",
-                                                                className="text-muted small mb-2",
+                                                                required_issue_type_text,
+                                                                className=helper_text_class,
                                                             ),
                                                         ],
                                                         width=12,
@@ -568,7 +614,7 @@ def create_issue_type_config_form(
                                                                     "issue_types", []
                                                                 ),
                                                                 multi=True,
-                                                                placeholder="Type or select issue types...",
+                                                                placeholder=type_placeholder,
                                                                 className="mb-2",
                                                                 clearable=True,
                                                                 searchable=True,
@@ -587,17 +633,17 @@ def create_issue_type_config_form(
                                                     dbc.Col(
                                                         [
                                                             html.Label(
-                                                                "2. Effort Categories (optional)",
+                                                                optional_effort_label,
                                                                 className="form-label",
                                                             ),
                                                             html.P(
                                                                 [
                                                                     html.I(
-                                                                        className="fas fa-info-circle me-1 text-info"
+                                                                        className=help_icon_class
                                                                     ),
-                                                                    "Leave empty to match ALL above issue types",
+                                                                    match_all_text,
                                                                 ],
-                                                                className="text-muted small mb-2",
+                                                                className=helper_text_class,
                                                             ),
                                                         ],
                                                         width=12,
@@ -615,7 +661,7 @@ def create_issue_type_config_form(
                                                                     [],
                                                                 ),
                                                                 multi=True,
-                                                                placeholder="Type or select categories...",
+                                                                placeholder=category_placeholder,
                                                                 className="mb-2",
                                                                 clearable=True,
                                                                 searchable=True,
@@ -629,7 +675,7 @@ def create_issue_type_config_form(
                                                 ],
                                             ),
                                         ],
-                                        className="border-start border-flow-tech-debt border-4",
+                                        className=flow_tech_debt_border_class,
                                     ),
                                 ],
                                 className="mb-3",
@@ -641,13 +687,11 @@ def create_issue_type_config_form(
                                         [
                                             html.Div(
                                                 [
-                                                    html.I(
-                                                        className="fas fa-shield-alt me-2"
-                                                    ),
+                                                    html.I(className=risk_icon_class),
                                                     html.Strong("Risk Types"),
                                                     html.Span(
-                                                        " - Security, compliance, and experiments (Target: < 10%)",
-                                                        className="text-muted small ms-2",
+                                                        risk_subtitle,
+                                                        className=flow_subtitle_class,
                                                     ),
                                                 ],
                                                 className="mb-3",
@@ -658,11 +702,11 @@ def create_issue_type_config_form(
                                                         [
                                                             html.Label(
                                                                 "1. Issue Types",
-                                                                className="form-label fw-bold",
+                                                                className=form_label_bold,
                                                             ),
                                                             html.P(
-                                                                "Required: Select at least one issue type",
-                                                                className="text-muted small mb-2",
+                                                                required_issue_type_text,
+                                                                className=helper_text_class,
                                                             ),
                                                         ],
                                                         width=12,
@@ -679,7 +723,7 @@ def create_issue_type_config_form(
                                                                     "issue_types", []
                                                                 ),
                                                                 multi=True,
-                                                                placeholder="Type or select issue types...",
+                                                                placeholder=type_placeholder,
                                                                 className="mb-2",
                                                                 clearable=True,
                                                                 searchable=True,
@@ -698,17 +742,17 @@ def create_issue_type_config_form(
                                                     dbc.Col(
                                                         [
                                                             html.Label(
-                                                                "2. Effort Categories (optional)",
+                                                                optional_effort_label,
                                                                 className="form-label",
                                                             ),
                                                             html.P(
                                                                 [
                                                                     html.I(
-                                                                        className="fas fa-info-circle me-1 text-info"
+                                                                        className=help_icon_class
                                                                     ),
-                                                                    "Leave empty to match ALL above issue types",
+                                                                    match_all_text,
                                                                 ],
-                                                                className="text-muted small mb-2",
+                                                                className=helper_text_class,
                                                             ),
                                                         ],
                                                         width=12,
@@ -726,7 +770,7 @@ def create_issue_type_config_form(
                                                                     [],
                                                                 ),
                                                                 multi=True,
-                                                                placeholder="Type or select categories...",
+                                                                placeholder=category_placeholder,
                                                                 className="mb-2",
                                                                 clearable=True,
                                                                 searchable=True,
@@ -740,7 +784,7 @@ def create_issue_type_config_form(
                                                 ],
                                             ),
                                         ],
-                                        className="border-start border-flow-risk border-4",
+                                        className=flow_risk_border_class,
                                     ),
                                 ],
                                 className="mb-3",

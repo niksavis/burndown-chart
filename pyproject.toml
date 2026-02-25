@@ -19,7 +19,6 @@ select = ["E", "F", "I", "B", "UP"]
 "configuration/help_content.py" = ["E501"]
 "data/**/*.py" = ["E501"]
 "ui/dashboard/insights_engine.py" = ["E501"]
-"ui/issue_type_config_form.py" = ["E501"]
 
 [tool.ruff.format]
 quote-style = "double"
