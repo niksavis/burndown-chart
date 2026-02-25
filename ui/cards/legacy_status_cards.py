@@ -56,6 +56,7 @@ def create_project_status_card(statistics_df, settings) -> dbc.Card:
             if not statistics_df.empty
             else 0
         )
+        data_points_count = len(statistics_df) if not statistics_df.empty else 0
 
         # Calculate true project totals (completed + remaining)
         total_items = remaining_items + completed_items
@@ -185,7 +186,9 @@ def create_project_status_card(statistics_df, settings) -> dbc.Card:
             [
                 create_metric_card_header(
                     title="Project Status Summary",
-                    tooltip_text="Summary of your project's current progress and metrics.",
+                    tooltip_text=(
+                        "Summary of your project's current progress and metrics."
+                    ),
                     tooltip_id="project-status",
                 ),
                 dbc.CardBody(
@@ -201,7 +204,19 @@ def create_project_status_card(statistics_df, settings) -> dbc.Card:
                                                 "Items Completion",
                                                 create_info_tooltip(
                                                     "items-completion-status",
-                                                    "Percentage of total work completed based on historical progress data. Items: (Completed Items ÷ Total Items) × 100%. Different percentages indicate varying complexity or estimation accuracy.",
+                                                    "Percentage of total "
+                                                    "work completed "
+                                                    "based on historical "
+                                                    "progress data. "
+                                                    "Items: (Completed "
+                                                    "Items ÷ Total "
+                                                    "Items) × 100%. "
+                                                    "Different "
+                                                    "percentages "
+                                                    "indicate varying "
+                                                    "complexity or "
+                                                    "estimation "
+                                                    "accuracy.",
                                                 ),
                                             ]
                                         ),
@@ -217,7 +232,11 @@ def create_project_status_card(statistics_df, settings) -> dbc.Card:
                                                 ),
                                                 html.Div(
                                                     [
-                                                        f"Completed: {completed_items} of {total_items} items",
+                                                        (
+                                                            "Completed: "
+                                                            f"{completed_items} of "
+                                                            f"{total_items} items"
+                                                        ),
                                                     ],
                                                     className="text-muted small",
                                                 ),
@@ -242,7 +261,17 @@ def create_project_status_card(statistics_df, settings) -> dbc.Card:
                                                 "Points Completion",
                                                 create_info_tooltip(
                                                     "points-completion-status",
-                                                    "Percentage of total work completed based on historical progress data. Points: (Completed Points ÷ Total Points) × 100%. Points typically reflect effort/complexity better than item count.",
+                                                    "Percentage of total "
+                                                    "work completed "
+                                                    "based on historical "
+                                                    "progress data. "
+                                                    "Points: (Completed "
+                                                    "Points ÷ Total "
+                                                    "Points) × 100%. "
+                                                    "Points typically "
+                                                    "reflect effort/"
+                                                    "complexity better than "
+                                                    "item count.",
                                                 ),
                                             ]
                                         ),
@@ -260,7 +289,12 @@ def create_project_status_card(statistics_df, settings) -> dbc.Card:
                                                 ),
                                                 html.Div(
                                                     [
-                                                        f"Completed: {completed_points:.1f} of {total_points:.1f} points",
+                                                        (
+                                                            "Completed: "
+                                                            f"{completed_points:.1f} "
+                                                            "of "
+                                                            f"{total_points:.1f} points"
+                                                        ),
                                                     ],
                                                     className="text-muted small",
                                                 ),
@@ -291,7 +325,16 @@ def create_project_status_card(statistics_df, settings) -> dbc.Card:
                                                 "Weekly Averages",
                                                 create_info_tooltip(
                                                     "weekly-averages-status",
-                                                    "Average completion rates over recent weeks, showing sustainable team velocity. These metrics help predict future performance and identify capacity changes.",
+                                                    "Average completion "
+                                                    "rates over recent "
+                                                    "weeks, showing "
+                                                    "sustainable team "
+                                                    "velocity. These "
+                                                    "metrics help "
+                                                    "predict future "
+                                                    "performance and "
+                                                    "identify "
+                                                    "capacity changes.",
                                                 ),
                                             ],
                                             className="mb-3",
@@ -301,7 +344,9 @@ def create_project_status_card(statistics_df, settings) -> dbc.Card:
                                                 html.Div(
                                                     [
                                                         html.I(
-                                                            className="fas fa-tasks me-2",
+                                                            className=(
+                                                                "fas fa-tasks me-2"
+                                                            ),
                                                             style={
                                                                 "color": COLOR_PALETTE[
                                                                     "items"
@@ -311,12 +356,16 @@ def create_project_status_card(statistics_df, settings) -> dbc.Card:
                                                         f"{float(avg_weekly_items):.2f}",
                                                         html.Small(" items/week"),
                                                     ],
-                                                    className="d-flex align-items-center mb-2",
+                                                    className=(
+                                                        "d-flex align-items-center mb-2"
+                                                    ),
                                                 ),
                                                 html.Div(
                                                     [
                                                         html.I(
-                                                            className="fas fa-chart-line me-2",
+                                                            className=(
+                                                                "fas fa-chart-line me-2"
+                                                            ),
                                                             style={
                                                                 "color": COLOR_PALETTE[
                                                                     "points"
@@ -326,7 +375,9 @@ def create_project_status_card(statistics_df, settings) -> dbc.Card:
                                                         f"{float(avg_weekly_points):.1f}",
                                                         html.Small(" points/week"),
                                                     ],
-                                                    className="d-flex align-items-center",
+                                                    className=(
+                                                        "d-flex align-items-center"
+                                                    ),
                                                 ),
                                             ],
                                             className="ps-3",
@@ -342,7 +393,17 @@ def create_project_status_card(statistics_df, settings) -> dbc.Card:
                                                 "Velocity Stability",
                                                 create_info_tooltip(
                                                     "velocity-stability-status",
-                                                    "Measure of how consistent your team's weekly completion rates are. Stable: Low variation (predictable). Variable: High week-to-week changes (less predictable).",
+                                                    "Measure of how "
+                                                    "consistent your "
+                                                    "team's weekly "
+                                                    "completion rates "
+                                                    "are. Stable: "
+                                                    "Low variation "
+                                                    "(predictable). "
+                                                    "Variable: High "
+                                                    "week-to-week "
+                                                    "changes (less "
+                                                    "predictable).",
                                                 ),
                                             ],
                                             className="mb-3",
@@ -350,15 +411,21 @@ def create_project_status_card(statistics_df, settings) -> dbc.Card:
                                         html.Div(
                                             [
                                                 html.I(
-                                                    className=f"fas {stability_icon} me-2",
+                                                    className=(
+                                                        f"fas {stability_icon} me-2"
+                                                    ),
                                                     style={
-                                                        "color": f"var(--bs-{stability_color})"
+                                                        "color": (
+                                                            f"var(--bs-{stability_color})"
+                                                        )
                                                     },
                                                 ),
                                                 html.Span(
                                                     stability_status,
                                                     style={
-                                                        "color": f"var(--bs-{stability_color})",
+                                                        "color": (
+                                                            f"var(--bs-{stability_color})"
+                                                        ),
                                                         "fontWeight": "bold",
                                                     },
                                                 ),
@@ -377,20 +444,33 @@ def create_project_status_card(statistics_df, settings) -> dbc.Card:
                                                 html.Div(
                                                     [
                                                         html.I(
-                                                            className="fas fa-calendar-alt me-2 text-secondary"
+                                                            className=(
+                                                                "fas fa-calendar-alt "
+                                                                "me-2 text-secondary"
+                                                            )
                                                         ),
                                                         f"{days_of_data} days of data",
                                                     ],
-                                                    className="d-flex align-items-center mb-2",
+                                                    className=(
+                                                        "d-flex align-items-center mb-2"
+                                                    ),
                                                 ),
                                                 html.Div(
                                                     [
                                                         html.I(
-                                                            className="fas fa-table me-2 text-secondary"
+                                                            className=(
+                                                                "fas fa-table "
+                                                                "me-2 text-secondary"
+                                                            )
                                                         ),
-                                                        f"{len(statistics_df) if not statistics_df.empty else 0} data points",
+                                                        (
+                                                            f"{data_points_count} "
+                                                            "data points"
+                                                        ),
                                                     ],
-                                                    className="d-flex align-items-center",
+                                                    className=(
+                                                        "d-flex align-items-center"
+                                                    ),
                                                 ),
                                             ],
                                             className="ps-3",
@@ -419,10 +499,13 @@ def create_project_status_card(statistics_df, settings) -> dbc.Card:
                         html.Div(
                             [
                                 html.I(
-                                    className="fas fa-exclamation-triangle text-danger me-2"
+                                    className=(
+                                        "fas fa-exclamation-triangle text-danger me-2"
+                                    )
                                 ),
                                 html.Span(
-                                    "Unable to display project information. Please ensure you have valid project data.",
+                                    "Unable to display project information. "
+                                    "Please ensure you have valid project data.",
                                     className="text-danger",
                                 ),
                             ],
