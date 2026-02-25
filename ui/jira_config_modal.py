@@ -31,7 +31,8 @@ def create_jira_config_modal():
             dbc.ModalHeader(dbc.ModalTitle("JIRA Configuration"), close_button=True),
             dbc.ModalBody(
                 [
-                    # Connection status feedback area (minimal space - toasts used for messages)
+                    # Connection status feedback area
+                    # (minimal space; toasts used for messages)
                     html.Div(
                         id="jira-connection-status",
                         style={"minHeight": "0px", "marginBottom": "4px"},
@@ -82,7 +83,10 @@ def create_jira_config_modal():
                         [
                             dbc.Col(
                                 dbc.FormText(
-                                    "Enter your JIRA instance URL (without /rest/api/...)",
+                                    (
+                                        "Enter your JIRA instance URL "
+                                        "(without /rest/api/...)"
+                                    ),
                                     color="muted",
                                 ),
                                 width=12,
@@ -105,11 +109,15 @@ def create_jira_config_modal():
                                     dbc.Input(
                                         id="jira-token-input",
                                         type="password",
-                                        placeholder="Leave empty for public JIRA servers",
+                                        placeholder=(
+                                            "Leave empty for public JIRA servers"
+                                        ),
                                         required=False,
                                     ),
                                     dbc.FormText(
-                                        "Required for private JIRA instances. Public servers (e.g., Apache, Jenkins) don't need authentication.",
+                                        "Required for private JIRA instances. "
+                                        "Public servers (e.g., Apache, "
+                                        "Jenkins) do not need authentication.",
                                         color="muted",
                                     ),
                                 ],
@@ -164,7 +172,9 @@ def create_jira_config_modal():
                         [
                             dbc.Col(
                                 dbc.FormText(
-                                    "Cache: 10-1000 MB | Page Size: 10-1000 (JIRA API limit 1000/page). App uses pagination to fetch ALL issues automatically.",
+                                    "Cache: 10-1000 MB | Page Size: 10-1000 "
+                                    "(JIRA API limit 1000/page). App uses "
+                                    "pagination to fetch all issues automatically.",
                                     color="muted",
                                 ),
                                 width=12,
@@ -178,7 +188,8 @@ def create_jira_config_modal():
             ),
             dbc.ModalFooter(
                 [
-                    # Standard web pattern: Close on left (safe exit), actions grouped on right
+                    # Standard web pattern:
+                    # Close on left (safe exit), actions grouped on right
                     dbc.Button(
                         "Close",
                         id="jira-config-cancel-button",
@@ -216,7 +227,8 @@ def create_jira_config_button(compact: bool = False):
     Create button to open JIRA configuration modal.
 
     Args:
-        compact: If True, creates icon-only button; if False, creates full button with text
+        compact: If True, creates icon-only button;
+            if False, creates full button with text
 
     Returns:
         dbc.Button: Configuration button for Data Source interface

@@ -39,7 +39,8 @@ def create_help_button(
 
     Args:
         help_key: Key for specific help content in COMPREHENSIVE_HELP_CONTENT
-        help_category: Category of help content (forecast, velocity, scope, statistics, charts)
+        help_category: Category of help content
+            (forecast, velocity, scope, statistics, charts)
         button_id: Optional custom button ID, auto-generated if None
         size: Button size ("sm", "md", "lg")
         className: Additional CSS classes
@@ -56,7 +57,9 @@ def create_help_button(
     return html.Button(
         html.I(className="fas fa-question-circle"),
         id=button_id,
-        className=f"btn btn-link text-info p-2 {className} help-button-enhanced",  # Bootstrap + custom classes
+        className=(
+            f"btn btn-link text-info p-2 {className} help-button-enhanced"
+        ),  # Bootstrap + custom classes
         style={
             "border": "none",
             "background": "transparent",
@@ -70,7 +73,8 @@ def create_help_button(
         },
         title=f"Get detailed help about {help_topic}",
         **{
-            "aria-label": f"Get detailed help about {help_topic}",  # Explicit screen reader text
+            "aria-label": f"Get detailed help about {help_topic}",
+            # Explicit screen reader text
             "role": "button",
             "tabIndex": 0,  # Ensure keyboard accessibility
             "type": "button",
@@ -275,7 +279,8 @@ def create_help_system_layout():
 )
 def handle_help_modal(help_clicks, close_clicks, is_open):
     """
-    Enhanced help modal handler with performance optimizations and better error handling.
+    Enhanced help modal handler with performance optimizations
+    and better error handling.
     Provides loading states, cross-references, and accessibility features.
     """
     ctx = dash.callback_context
@@ -307,17 +312,22 @@ def handle_help_modal(help_clicks, close_clicks, is_open):
                     available_keys = list(
                         COMPREHENSIVE_HELP_CONTENT.get(category, {}).keys()
                     )
+                    topic_suggestions = chr(10).join(
+                        f"• {key_name.replace('_', ' ').title()}"
+                        for key_name in available_keys[:5]
+                    )
                     help_content = f"""
                     **Help Content Not Available**
                     
                     Content for '{key}' in category '{category}' was not found.
                     
                     **Available Help Topics in {category.title()}:**
-                    {chr(10).join(f"• {k.replace('_', ' ').title()}" for k in available_keys[:5])}
+                    {topic_suggestions}
                     
                     **Troubleshooting:**
                     • Check that the help system is properly initialized
-                    • Verify the help content configuration in configuration/help_content.py
+                                        • Verify help content in
+                                            configuration/help_content.py
                     • Contact system administrator if this error persists
                     """
 
@@ -340,7 +350,8 @@ def handle_help_modal(help_clicks, close_clicks, is_open):
                             html.P(
                                 [
                                     "There was an error loading the help content. ",
-                                    "Please try again or contact support if the problem persists.",
+                                    "Please try again or contact support if "
+                                    "the problem persists.",
                                 ],
                                 className="mb-3",
                             ),
@@ -681,7 +692,8 @@ def _create_cross_references_footer(category, key):
             ),
             html.P(
                 [
-                    f"For more information, see: {', '.join(topic.replace('_', ' ').title() for topic in related)}"
+                    "For more information, see: "
+                    + ", ".join(topic.replace("_", " ").title() for topic in related)
                 ],
                 className="small text-muted mb-0",
             ),
