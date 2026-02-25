@@ -33,7 +33,8 @@ def create_project_summary_card(
     statistics_df, settings, pert_data=None, show_points=True
 ) -> dbc.Card:
     """
-    [DEPRECATED] Create a card with project dashboard information optimized for side-by-side layout.
+    [DEPRECATED] Create a project dashboard card optimized
+    for side-by-side layout.
 
     WARNING: This function is deprecated. For new features, use the unified metric card
     pattern from ui.cards.metric_cards.create_unified_metric_card() instead.
@@ -133,10 +134,12 @@ def create_project_summary_card(
                         )
                         points_days = round(pert_time_points)
                         points_weeks = round(pert_time_points / 7, 1)
+                        points_duration_text = f"{points_days}d ({points_weeks}w)"
                     else:
                         points_completion_str = "Unknown"
                         points_days = "--"
                         points_weeks = "--"
+                        points_duration_text = "--"
 
                     # Create compact PERT info content with optimized spacing
                     pert_info_content = html.Div(
@@ -152,7 +155,9 @@ def create_project_summary_card(
                                         ],
                                     ),
                                 ],
-                                className="legacy-section-title border-bottom pb-1 mb-3",
+                                className=(
+                                    "legacy-section-title border-bottom pb-1 mb-3"
+                                ),
                             ),
                             # PERT Forecast in compact table format
                             dbc.Row(
@@ -205,7 +210,10 @@ def create_project_summary_card(
                                             html.Div(
                                                 [
                                                     html.Span(
-                                                        f"{items_days} days ({items_weeks} weeks)",
+                                                        (
+                                                            f"{items_days} days "
+                                                            f"({items_weeks} weeks)"
+                                                        ),
                                                         style={"fontSize": "0.9rem"},
                                                     ),
                                                 ],
@@ -218,13 +226,16 @@ def create_project_summary_card(
                                 ]
                                 + (
                                     [
-                                        # Points Forecast Column - only show if points tracking is enabled
+                                        # Points Forecast Column
+                                        # shown only when points tracking is enabled
                                         dbc.Col(
                                             [
                                                 html.Div(
                                                     [
                                                         html.I(
-                                                            className="fas fa-chart-line me-1",
+                                                            className=(
+                                                                "fas fa-chart-line me-1"
+                                                            ),
                                                             style={
                                                                 "color": COLOR_PALETTE[
                                                                     "points"
@@ -266,7 +277,7 @@ def create_project_summary_card(
                                                 html.Div(
                                                     [
                                                         html.Span(
-                                                            f"{points_days} days ({points_weeks} weeks)",
+                                                            points_duration_text,
                                                             style={
                                                                 "fontSize": "0.9rem"
                                                             },
@@ -282,7 +293,7 @@ def create_project_summary_card(
                                     if show_points
                                     else []
                                 ),
-                                className="mb-4",  # Increased bottom margin for better spacing
+                                className="mb-4",
                             ),
                             # Weekly velocity section
                             html.H6(
@@ -293,7 +304,9 @@ def create_project_summary_card(
                                         help_text=PROJECT_HELP_TEXTS["weekly_averages"],
                                     ),
                                 ],
-                                className="legacy-section-title border-bottom pb-1 mb-3",
+                                className=(
+                                    "legacy-section-title border-bottom pb-1 mb-3"
+                                ),
                             ),
                             dbc.Row(
                                 [
@@ -335,13 +348,16 @@ def create_project_summary_card(
                                 ]
                                 + (
                                     [
-                                        # Points velocity - only show if points tracking is enabled
+                                        # Points velocity
+                                        # shown only when points tracking is enabled
                                         dbc.Col(
                                             [
                                                 html.Div(
                                                     [
                                                         html.I(
-                                                            className="fas fa-chart-line me-1",
+                                                            className=(
+                                                                "fas fa-chart-line me-1"
+                                                            ),
                                                             style={
                                                                 "color": COLOR_PALETTE[
                                                                     "points"
@@ -376,7 +392,7 @@ def create_project_summary_card(
                                     if show_points
                                     else []
                                 ),
-                                className="mb-3",  # Added bottom margin to prevent overlap
+                                className="mb-3",
                             ),
                             # Deadline section if available
                             html.Div(
@@ -384,7 +400,10 @@ def create_project_summary_card(
                                     html.Div(
                                         [
                                             html.I(
-                                                className="fas fa-calendar-alt me-1 text-secondary",
+                                                className=(
+                                                    "fas fa-calendar-alt "
+                                                    "me-1 text-secondary"
+                                                ),
                                                 style={"fontSize": "1rem"},
                                             ),
                                             html.Span(
@@ -415,7 +434,7 @@ def create_project_summary_card(
                             if deadline_date
                             else html.Div(),
                         ],
-                        className="mb-2",  # Added bottom margin to prevent overlap with card border
+                        className="mb-2",
                     )
             except Exception as pert_error:
                 pert_info_content = html.P(
@@ -439,7 +458,7 @@ def create_project_summary_card(
                 ),
                 dbc.CardBody(
                     [
-                        # The content is directly placed here without any header or section dividers
+                        # Content is placed directly without section dividers
                         html.Div(
                             pert_info_content,
                             id="project-dashboard-pert-content",
@@ -461,7 +480,8 @@ def create_project_summary_card(
                 dbc.CardBody(
                     [
                         html.P(
-                            "Unable to display project information. Please ensure you have valid project data.",
+                            "Unable to display project information. "
+                            "Please ensure you have valid project data.",
                             className="text-danger mb-1",
                             style={"fontSize": "1rem"},
                         ),
