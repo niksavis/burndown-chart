@@ -4,7 +4,6 @@ Sample profile and query data fixtures for testing.
 Provides realistic test data that matches the profile/query data model.
 """
 
-
 import pytest
 
 

@@ -20,9 +20,7 @@ def collect_changelog_entries(
         tracked_fields.append(sprint_field)
 
     entries: list[dict] = []
-    seen: set[
-        tuple[str | None, str | None, str | None, str | None, str | None]
-    ] = set()
+    seen: set[tuple[str | None, str | None, str | None, str | None, str | None]] = set()
 
     for field_name in dict.fromkeys(tracked_fields):
         field_entries = backend.get_changelog_entries(

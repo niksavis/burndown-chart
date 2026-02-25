@@ -4,7 +4,6 @@ Unit Tests for JIRA Scope Calculator
 Test the core JIRA scope calculation functionality with various scenarios.
 """
 
-
 import pytest
 
 from data.jira.scope_calculator import calculate_jira_project_scope

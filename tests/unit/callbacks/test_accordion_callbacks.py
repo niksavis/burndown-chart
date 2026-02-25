@@ -490,9 +490,7 @@ class TestLoadQueryJQL:
         profile_data = {
             "id": "kafka",
             "name": "Kafka Profile",
-            "created_at": datetime(
-                2026, 1, 1, 0, 0, 0, tzinfo=UTC
-            ).isoformat(),
+            "created_at": datetime(2026, 1, 1, 0, 0, 0, tzinfo=UTC).isoformat(),
             "last_used": datetime(2026, 1, 1, 0, 0, 0, tzinfo=UTC).isoformat(),
             "jira_config": {},
             "field_mappings": {},
@@ -506,9 +504,7 @@ class TestLoadQueryJQL:
             "name": "Main Query",
             "jql": "project = KAFKA AND priority > Medium",
             "description": "High priority items",
-            "created_at": datetime(
-                2026, 1, 1, 0, 0, 0, tzinfo=UTC
-            ).isoformat(),
+            "created_at": datetime(2026, 1, 1, 0, 0, 0, tzinfo=UTC).isoformat(),
             "last_used": datetime(2026, 1, 1, 0, 0, 0, tzinfo=UTC).isoformat(),
         }
         backend.save_query("kafka", query_data)
@@ -542,9 +538,7 @@ class TestLoadQueryJQL:
         profile_data = {
             "id": "default",
             "name": "Default Profile",
-            "created_at": datetime(
-                2026, 1, 1, 0, 0, 0, tzinfo=UTC
-            ).isoformat(),
+            "created_at": datetime(2026, 1, 1, 0, 0, 0, tzinfo=UTC).isoformat(),
             "last_used": datetime(2026, 1, 1, 0, 0, 0, tzinfo=UTC).isoformat(),
             "jira_config": {},
             "field_mappings": {},
@@ -579,9 +573,7 @@ class TestSaveQueryChanges:
         profile_data = {
             "id": "kafka",
             "name": "Kafka Profile",
-            "created_at": datetime(
-                2026, 1, 1, 0, 0, 0, tzinfo=UTC
-            ).isoformat(),
+            "created_at": datetime(2026, 1, 1, 0, 0, 0, tzinfo=UTC).isoformat(),
             "last_used": datetime(2026, 1, 1, 0, 0, 0, tzinfo=UTC).isoformat(),
             "jira_config": {},
             "field_mappings": {},
@@ -594,9 +586,7 @@ class TestSaveQueryChanges:
             "name": "Main Query",
             "jql": "project = KAFKA",
             "description": "Original query",
-            "created_at": datetime(
-                2026, 1, 1, 0, 0, 0, tzinfo=UTC
-            ).isoformat(),
+            "created_at": datetime(2026, 1, 1, 0, 0, 0, tzinfo=UTC).isoformat(),
             "last_used": datetime(2026, 1, 1, 0, 0, 0, tzinfo=UTC).isoformat(),
         }
         backend.save_query("kafka", query_data)
@@ -659,9 +649,7 @@ class TestCancelQueryEdit:
         profile_data = {
             "id": "kafka",
             "name": "Kafka Profile",
-            "created_at": datetime(
-                2026, 1, 1, 0, 0, 0, tzinfo=UTC
-            ).isoformat(),
+            "created_at": datetime(2026, 1, 1, 0, 0, 0, tzinfo=UTC).isoformat(),
             "last_used": datetime(2026, 1, 1, 0, 0, 0, tzinfo=UTC).isoformat(),
             "jira_config": {},
             "field_mappings": {},
@@ -675,9 +663,7 @@ class TestCancelQueryEdit:
             "name": "Main Query",
             "jql": original_jql,
             "description": "",
-            "created_at": datetime(
-                2026, 1, 1, 0, 0, 0, tzinfo=UTC
-            ).isoformat(),
+            "created_at": datetime(2026, 1, 1, 0, 0, 0, tzinfo=UTC).isoformat(),
             "last_used": datetime(2026, 1, 1, 0, 0, 0, tzinfo=UTC).isoformat(),
         }
         backend.save_query("kafka", query_data)
