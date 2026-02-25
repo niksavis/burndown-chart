@@ -137,8 +137,16 @@ def create_forecast_section(
 
     Example:
         >>> forecast_section = create_forecast_section(
-        ...     forecast_data={"forecast_value": 11.9, "confidence": "established", ...},
-        ...     trend_vs_forecast={"direction": "↗", "deviation_percent": 26.1, ...},
+        ...     forecast_data={
+        ...         "forecast_value": 11.9,
+        ...         "confidence": "established",
+        ...         ...
+        ...     },
+        ...     trend_vs_forecast={
+        ...         "direction": "↗",
+        ...         "deviation_percent": 26.1,
+        ...         ...
+        ...     },
         ...     metric_name="flow_velocity",
         ...     unit="items/week"
         ... )
@@ -149,7 +157,8 @@ def create_forecast_section(
 
     forecast_value = forecast_data.get("forecast_value")
     confidence = forecast_data.get("confidence", "building")
-    # Support both keys for backwards compatibility (weeks_with_data is preferred, weeks_available is fallback)
+    # Support both keys for backwards compatibility
+    # (weeks_with_data is preferred, weeks_available is fallback)
     weeks_with_data = forecast_data.get("weeks_with_data") or forecast_data.get(
         "weeks_available"
     )
@@ -167,7 +176,8 @@ def create_forecast_section(
     forecast_children = []
 
     # Build forecast label based on metric type and data availability
-    # Duration metrics (filtered zeros): "(3w with data)" - emphasizes found non-zero weeks
+    # Duration metrics (filtered zeros): "(3w with data)"
+    # - emphasizes found non-zero weeks
     # Count/rate metrics (kept zeros): "(4w)" - standard label
     if weeks_with_data:
         if used_non_zero_filter:
@@ -262,22 +272,75 @@ def _get_metric_explanation(metric_name: str) -> str:
         Explanation text for the metric
     """
     explanations = {
-        "deployment_frequency": "How often you deploy to production. Higher is better - measures delivery velocity.",
-        "lead_time_for_changes": "Time from code commit to production. Lower is better - measures delivery speed.",
-        "change_failure_rate": "Percentage of deployments causing failures. Lower is better - measures quality.",
-        "mean_time_to_recovery": "Time to restore service after incident. Lower is better - measures resilience.",
-        "flow_velocity": "Work items completed per week. Higher is better - measures throughput.",
-        "flow_load": "Work in progress (WIP). Lower WIP enables faster delivery and better focus.",
-        "flow_time": "Time to complete work items. Lower is better - measures cycle time.",
-        "flow_efficiency": "Active work time vs. total time. 25-40% is healthy - too high indicates overload.",
-        "flow_distribution": "Mix of feature vs. defect vs. risk work. Balance indicates healthy product development.",
-        "budget_utilization": "Percentage of total budget consumed. Shows how much budget has been spent based on completed work and team costs.",
-        "weekly_burn_rate": "Budget spent per week. Calculated from completed items × cost per item. Trend shows if spending is accelerating or decelerating.",
-        "budget_runway": "Weeks of budget remaining at current burn rate. Based on actual work completion, not just team cost. Critical when < 4 weeks.",
-        "cost_per_item": "Average cost to complete one work item. Calculated from team cost per week ÷ velocity. Lower indicates better efficiency.",
-        "cost_per_point": "Average cost to complete one story point. Calculated from team cost per week ÷ velocity. Tracks cost efficiency over time.",
-        "budget_forecast": "Projected final budget at completion. Uses PERT three-point estimation with optimistic, likely, and pessimistic scenarios.",
-        "cost_breakdown": "Distribution of budget across work types (Feature, Defect, Tech Debt, Risk). Shows where money is being spent.",
+        "deployment_frequency": (
+            "How often you deploy to production. "
+            "Higher is better - measures delivery velocity."
+        ),
+        "lead_time_for_changes": (
+            "Time from code commit to production. "
+            "Lower is better - measures delivery speed."
+        ),
+        "change_failure_rate": (
+            "Percentage of deployments causing failures. "
+            "Lower is better - measures quality."
+        ),
+        "mean_time_to_recovery": (
+            "Time to restore service after incident. "
+            "Lower is better - measures resilience."
+        ),
+        "flow_velocity": (
+            "Work items completed per week. Higher is better - measures throughput."
+        ),
+        "flow_load": (
+            "Work in progress (WIP). Lower WIP enables "
+            "faster delivery and better focus."
+        ),
+        "flow_time": (
+            "Time to complete work items. Lower is better - measures cycle time."
+        ),
+        "flow_efficiency": (
+            "Active work time vs. total time. 25-40% is healthy "
+            "- too high indicates overload."
+        ),
+        "flow_distribution": (
+            "Mix of feature vs. defect vs. risk work. "
+            "Balance indicates healthy product development."
+        ),
+        "budget_utilization": (
+            "Percentage of total budget consumed. "
+            "Shows how much budget has been spent based "
+            "on completed work and team costs."
+        ),
+        "weekly_burn_rate": (
+            "Budget spent per week. Calculated from completed items "
+            "× cost per item. Trend shows if spending is "
+            "accelerating or decelerating."
+        ),
+        "budget_runway": (
+            "Weeks of budget remaining at current burn rate. "
+            "Based on actual work completion, not just team cost. "
+            "Critical when < 4 weeks."
+        ),
+        "cost_per_item": (
+            "Average cost to complete one work item. Calculated from "
+            "team cost per week ÷ velocity. Lower indicates "
+            "better efficiency."
+        ),
+        "cost_per_point": (
+            "Average cost to complete one story point. Calculated from "
+            "team cost per week ÷ velocity. Tracks cost "
+            "efficiency over time."
+        ),
+        "budget_forecast": (
+            "Projected final budget at completion. Uses PERT "
+            "three-point estimation with optimistic, likely, "
+            "and pessimistic scenarios."
+        ),
+        "cost_breakdown": (
+            "Distribution of budget across work types "
+            "(Feature, Defect, Tech Debt, Risk). "
+            "Shows where money is being spent."
+        ),
     }
 
     return explanations.get(
@@ -317,7 +380,10 @@ def _get_metric_relationship_hint(
 
     # Mean Time To Recovery - affected by CFR and process maturity
     elif metric_name == "mean_time_to_recovery":
-        return "Long MTTR may indicate insufficient monitoring or unclear rollback procedures"
+        return (
+            "Long MTTR may indicate insufficient monitoring "
+            "or unclear rollback procedures"
+        )
 
     # Deployment Frequency - foundation for other DORA metrics
     elif metric_name == "deployment_frequency":
@@ -344,7 +410,10 @@ def _get_metric_relationship_hint(
         elif value > 60:
             return "Very high efficiency may indicate team overload - check WIP"
         else:
-            return "Efficiency = active work time / total time. 25-40% is typical for healthy teams"
+            return (
+                "Efficiency = active work time / total time. "
+                "25-40% is typical for healthy teams"
+            )
 
     return None
 
@@ -371,12 +440,18 @@ def _get_action_prompt(
         critical_threshold = wip_thresholds.get("critical", 40)
 
         if value >= critical_threshold:
-            return "Stop starting new work. Focus on finishing existing items to reduce WIP."
+            return (
+                "Stop starting new work. Focus on finishing existing "
+                "items to reduce WIP."
+            )
 
     # Change Failure Rate - High failure rate
     elif metric_name == "change_failure_rate":
         if value > 30:
-            return "High failure rate detected. Review deployment process and testing procedures."
+            return (
+                "High failure rate detected. Review deployment process "
+                "and testing procedures."
+            )
 
     # Lead Time for Changes - Slow delivery (>1 week = 7 days)
     elif metric_name == "lead_time_for_changes":
@@ -390,22 +465,37 @@ def _get_action_prompt(
     elif metric_name == "mean_time_to_recovery":
         unit = metric_data.get("unit", "")
         if "hour" in unit.lower() and value > 24:
-            return "Slow incident recovery. Review incident response process and automation."
+            return (
+                "Slow incident recovery. Review incident response "
+                "process and automation."
+            )
         elif "day" in unit.lower() and value > 1:
-            return "Slow incident recovery. Review incident response process and automation."
+            return (
+                "Slow incident recovery. Review incident response "
+                "process and automation."
+            )
 
     # Deployment Frequency - Low deployment rate
     elif metric_name == "deployment_frequency":
         # Check if deploying less than once per week (< ~0.14 deploys/week = < 1/month)
         if value < 1:
-            return "Low deployment frequency. Consider smaller batch sizes and more frequent releases."
+            return (
+                "Low deployment frequency. Consider smaller batch sizes "
+                "and more frequent releases."
+            )
 
     # Flow Efficiency - Too low or too high
     elif metric_name == "flow_efficiency":
         if value < 20:
-            return "Low efficiency indicates high wait times. Investigate process bottlenecks."
+            return (
+                "Low efficiency indicates high wait times. "
+                "Investigate process bottlenecks."
+            )
         elif value > 60:
-            return "Very high efficiency may indicate overload. Check WIP and team capacity."
+            return (
+                "Very high efficiency may indicate overload. "
+                "Check WIP and team capacity."
+            )
 
     return None
 
@@ -426,7 +516,8 @@ def _create_detailed_chart(
     For other metrics (including change_failure_rate), shows standard single-line chart.
 
     Args:
-        metric_name: Internal metric name (e.g., "deployment_frequency", "change_failure_rate")
+        metric_name: Internal metric name
+            (e.g., "deployment_frequency", "change_failure_rate")
         display_name: Display name for chart title
         weekly_labels: Week labels
         weekly_values: Primary metric values
@@ -478,7 +569,8 @@ def _create_detailed_chart(
         return chart
 
     # Standard single-line chart for other metrics
-    # Note: change_failure_rate uses standard single-line chart (not dual-line like deployment_frequency)
+    # Note: change_failure_rate uses standard single-line chart
+    # (not dual-line like deployment_frequency)
     # Use full trend chart with performance zones for DORA metrics
     is_dora_metric = metric_name in [
         "deployment_frequency",
@@ -543,7 +635,8 @@ def _create_detailed_chart(
             style={"height": f"{chart_height}px"},
         )
     elif metric_name == "flow_load":
-        # Use specialized Flow Load chart with dynamic WIP thresholds and tier-based color
+        # Use specialized Flow Load chart with dynamic WIP thresholds
+        # and tier-based color
         from dash import dcc
 
         from visualization.flow_charts import create_flow_load_trend_chart
@@ -746,7 +839,8 @@ def create_metric_card(
                 "unit": str,
                 "performance_tier": str | None,  # Elite/High/Medium/Low
                 "performance_tier_color": str,   # green/yellow/orange/red
-                "error_state": str,              # success/missing_mapping/no_data/calculation_error
+                "error_state": str,  # success/missing_mapping/no_data/
+                # calculation_error
                 "error_message": str | None,
                 "excluded_issue_count": int,
                 "total_issue_count": int,
@@ -755,8 +849,10 @@ def create_metric_card(
         card_id: Optional HTML ID for the card
         forecast_data: Optional forecast calculation results (Feature 009)
         trend_vs_forecast: Optional trend vs forecast analysis (Feature 009)
-        show_details_button: If True, show "Show Details" button for expandable chart (default: True)
-        text_details: Optional list of html.Div components with rich text content to display inline
+        show_details_button: If True, show "Show Details" button
+            for expandable chart (default: True)
+        text_details: Optional list of html.Div components
+            with rich text content to display inline
 
     Returns:
         Dash Bootstrap Card component
@@ -807,7 +903,8 @@ def _create_success_card(
     Feature 009: Also includes forecast display section when forecast_data is provided.
 
     Args:
-        text_details: Optional list of html components to display inline (e.g., baseline comparisons)
+        text_details: Optional list of html components to display inline
+            (e.g., baseline comparisons)
     """
     # Map performance tier colors to Bootstrap/custom colors
     # Use custom 'tier-orange' class for proper visual distinction
@@ -857,7 +954,8 @@ def _create_success_card(
                 tier_color = "red"  # Critical
 
     # Map tier colors to valid Bootstrap color names OR custom CSS classes
-    # Standard Bootstrap colors: success, danger, primary, secondary, warning, info, light, dark
+    # Standard Bootstrap colors:
+    # success, danger, primary, secondary, warning, info, light, dark
     # Custom colors need className with bg- prefix
     bootstrap_color = tier_color_map.get(tier_color, "secondary")
     use_custom_class = bootstrap_color in ["tier-high", "tier-medium", "tier-orange"]
@@ -886,7 +984,8 @@ def _create_success_card(
             # Items per week average can have decimals (e.g., 3.5 items/week)
             formatted_value = f"{value:.1f}"
         elif "points" in metric_name:
-            # Points are typically Fibonacci-based (0.5, 1, 2, 3, 5, 8, etc.) - 1 decimal
+            # Points are typically Fibonacci-based
+            # (0.5, 1, 2, 3, 5, 8, etc.) - 1 decimal
             formatted_value = f"{value:.1f}"
         else:
             # Default: 2 decimal places
@@ -980,7 +1079,10 @@ def _create_success_card(
                 )
             elif value < warning_threshold:
                 badge_text = f"Warning (<{warning_threshold:.1f})"
-                badge_tooltip_text = "Moderate WIP - Monitor closely, consider finishing items before starting new work"
+                badge_tooltip_text = (
+                    "Moderate WIP - Monitor closely, consider finishing "
+                    "items before starting new work"
+                )
             elif value < high_threshold:
                 badge_text = f"High (<{high_threshold:.1f})"
                 badge_tooltip_text = (
@@ -1000,7 +1102,10 @@ def _create_success_card(
                 )
             elif value < 20:
                 badge_text = "Warning (<20)"
-                badge_tooltip_text = "Moderate WIP - Monitor closely, consider finishing items before starting new work"
+                badge_tooltip_text = (
+                    "Moderate WIP - Monitor closely, consider finishing "
+                    "items before starting new work"
+                )
             elif value < 30:
                 badge_text = "High (<30)"
                 badge_tooltip_text = (
@@ -1061,7 +1166,8 @@ def _create_success_card(
                 or "Performance tier indicator"
             )
 
-            # Use className for custom colors, color parameter for standard Bootstrap colors
+            # Use className for custom colors,
+            # color parameter for standard Bootstrap colors
             if use_custom_class:
                 badge_element = dbc.Badge(
                     children=perf_tier,
@@ -1333,7 +1439,8 @@ def _create_success_card(
         )
         card_body_children.append(blend_placeholder)
     elif forecast_data and not blend_metadata:
-        # Forecast exists but blending not available (insufficient historical data for blending)
+        # Forecast exists but blending not available
+        # (insufficient historical data for blending)
         weeks_count = len(weekly_values) if weekly_values else 0
         blend_placeholder = html.Div(
             [
@@ -1372,7 +1479,8 @@ def _create_success_card(
         }.get(tier_color, "#6c757d")
 
         # Create inline mini sparkline (CSS-based, compact)
-        # For deployment_frequency, use sparkline_values (releases) not weekly_values (deployments)
+        # For deployment_frequency, use sparkline_values (releases)
+        # not weekly_values (deployments)
         mini_sparkline = _create_mini_bar_sparkline(
             sparkline_values, sparkline_color, height=40
         )
@@ -1417,7 +1525,8 @@ def _create_success_card(
                     dbc.Collapse(
                         dbc.CardBody(
                             [
-                                # Render chart lazily on first expand to avoid zero-width sizing.
+                                # Render chart lazily on first expand
+                                # to avoid zero-width sizing.
                                 html.Div(
                                     id=f"{metric_name}-details-chart",
                                     className="metric-details-chart",
@@ -1425,14 +1534,16 @@ def _create_success_card(
                                 html.Div(
                                     [
                                         html.Small(
-                                            "Hover for values • Double-click to reset zoom",
+                                            "Hover for values • "
+                                            "Double-click to reset zoom",
                                             className="text-muted",
                                         )
                                     ],
                                     className="text-center mt-2",
                                 ),
                             ],
-                            className="bg-white border-top",  # Clean white background instead of gray
+                            className="bg-white border-top",  # Clean white
+                            # background instead of gray
                         ),
                         id=collapse_id,
                         is_open=False,
@@ -1514,7 +1625,9 @@ def _create_error_card(metric_data: dict, card_id: str | None) -> dbc.Card:
                 "type": "open-field-mapping",
                 "index": metric_name,
             },  # Pattern-matching ID
-            "message_override": "Configure JIRA field mappings in Settings to enable this metric.",
+            "message_override": (
+                "Configure JIRA field mappings in Settings to enable this metric."
+            ),
         },
         "field_not_configured": {
             "icon": "fas fa-toggle-off",
@@ -1525,7 +1638,10 @@ def _create_error_card(metric_data: dict, card_id: str | None) -> dbc.Card:
                 "type": "open-field-mapping",
                 "index": metric_name,
             },
-            "message_override": "This metric is disabled because the required JIRA field mapping is not configured for your JIRA setup.",
+            "message_override": (
+                "This metric is disabled because the required JIRA field "
+                "mapping is not configured for your JIRA setup."
+            ),
         },
         "points_tracking_disabled": {
             "icon": "fas fa-toggle-off",
@@ -1533,7 +1649,10 @@ def _create_error_card(metric_data: dict, card_id: str | None) -> dbc.Card:
             "color": "secondary",
             "action_text": "Enable in Parameters",
             "action_id": "open-parameters-panel",
-            "message_override": "Points tracking is disabled. Enable Points Tracking in Parameters panel to view story points metrics.",
+            "message_override": (
+                "Points tracking is disabled. Enable Points Tracking in "
+                "Parameters panel to view story points metrics."
+            ),
         },
         "no_data": {
             "icon": "fas fa-database",
@@ -1541,7 +1660,10 @@ def _create_error_card(metric_data: dict, card_id: str | None) -> dbc.Card:
             "color": "secondary",
             "action_text": "Recalculate Metrics",
             "action_id": "open-time-period-selector",
-            "message_override": "No data available for the selected time period. Adjust the Data Points slider or refresh metrics.",
+            "message_override": (
+                "No data available for the selected time period. "
+                "Adjust the Data Points slider or refresh metrics."
+            ),
         },
         "calculation_error": {
             "icon": "fas fa-exclamation-triangle",
@@ -1621,7 +1743,8 @@ def _create_error_card(metric_data: dict, card_id: str | None) -> dbc.Card:
             className="text-center text-muted",
             style={"fontSize": "0.75rem", "opacity": "0"},
         ),
-        className="bg-light border-top py-2",  # Same padding and styling as success cards
+        className="bg-light border-top py-2",  # Same padding and styling
+        # as success cards
     )
 
     return dbc.Card([card_header, card_body, card_footer], **card_props)  # type: ignore[call-arg]
