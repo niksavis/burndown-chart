@@ -101,8 +101,10 @@ def create_comprehensive_dashboard(
     - Actionable insights and recommendations
 
     Args:
-        statistics_df: DataFrame with filtered project statistics (respects data_points_count slider)
-        statistics_df_unfiltered: DataFrame with ALL project statistics (for Recent Completions)
+        statistics_df: DataFrame with filtered project statistics
+            (respects data_points_count slider)
+        statistics_df_unfiltered: DataFrame with ALL project statistics
+            (for Recent Completions)
         pert_time_items: PERT forecast time for items
         pert_time_points: PERT forecast time for points
         avg_weekly_items: Average weekly items completed
@@ -120,7 +122,8 @@ def create_comprehensive_dashboard(
         html.Div: Complete dashboard layout
     """
     # CRITICAL FIX: Dashboard shows CURRENT remaining work, not windowed scope
-    # The Data Points slider filters statistics for forecasting, but remaining is always current
+    # The Data Points slider filters statistics for forecasting,
+    # but remaining is always current
     from data.persistence import load_unified_project_data
     from ui.budget_section import _create_budget_section
 
@@ -159,12 +162,17 @@ def create_comprehensive_dashboard(
         else 0
     )
     logger.info(
-        f"[APP SCHEDULE] forecast_days={forecast_days}, days_to_deadline={days_to_deadline}, schedule_variance={schedule_variance_calc}"
+        f"[APP SCHEDULE] forecast_days={forecast_days}, "
+        f"days_to_deadline={days_to_deadline}, "
+        f"schedule_variance={schedule_variance_calc}"
     )
 
-    # Extract last statistics date for forecast starting point (aligns with weekly data structure)
-    # CRITICAL: Statistics are weekly-based (Mondays), so use last Monday data point not datetime.now()
-    # Use iloc[-1] (not max()) to ensure we get the LAST date in the sorted/filtered dataframe
+    # Extract last statistics date for forecast starting point
+    # (aligns with weekly data structure)
+    # CRITICAL: Statistics are weekly-based (Mondays), so use last
+    # Monday data point not datetime.now()
+    # Use iloc[-1] (not max()) to ensure we get the LAST date
+    # in the sorted/filtered dataframe
     # This matches report_generator.py logic exactly (df_windowed["date"].iloc[-1])
     last_date = (
         statistics_df["date"].iloc[-1]
@@ -172,10 +180,18 @@ def create_comprehensive_dashboard(
         else datetime.now()
     )
 
+    formatted_last_date = (
+        last_date.strftime("%Y-%m-%d") if hasattr(last_date, "strftime") else last_date
+    )
+    completion_date = (
+        (last_date + timedelta(days=forecast_days)).strftime("%Y-%m-%d")
+        if forecast_days
+        else "None"
+    )
     logger.info(
-        f"[DASHBOARD FORECAST] last_date={last_date.strftime('%Y-%m-%d') if hasattr(last_date, 'strftime') else last_date}, "
+        f"[DASHBOARD FORECAST] last_date={formatted_last_date}, "
         f"forecast_days={forecast_days}, statistics_rows={len(statistics_df)}, "
-        f"completion_date={(last_date + timedelta(days=forecast_days)).strftime('%Y-%m-%d') if forecast_days else 'None'}"
+        f"completion_date={completion_date}"
     )
 
     forecast_data = {
@@ -208,9 +224,13 @@ def create_comprehensive_dashboard(
             )
 
     # Calculate statistically-based confidence intervals
-    # Using Monte Carlo-inspired approach: forecast uncertainty grows with remaining work
-    # Standard error of completion time ≈ (remaining / velocity) * (velocity_std / velocity_mean)
-    # This accounts for: more remaining work = more uncertainty, higher velocity variance = more uncertainty
+    # Using Monte Carlo-inspired approach:
+    # forecast uncertainty grows with remaining work
+    # Standard error of completion time ≈
+    # (remaining / velocity) * (velocity_std / velocity_mean)
+    # This accounts for:
+    # more remaining work = more uncertainty,
+    # higher velocity variance = more uncertainty
 
     # Use points-based forecast when available (matches report and burndown chart)
     forecast_days = pert_time_points if pert_time_points else pert_time_items
@@ -254,8 +274,10 @@ def create_comprehensive_dashboard(
         # Coefficient of variation as a ratio (not percentage)
         cv_ratio = velocity_std / velocity_mean
 
-        # Forecast standard deviation: uncertainty scales with forecast duration and velocity variability
-        # Using: σ_forecast ≈ forecast_days * CV * sqrt(weeks_remaining / weeks_observed)
+        # Forecast standard deviation:
+        # uncertainty scales with forecast duration and velocity variability
+        # Using: σ_forecast ≈ forecast_days * CV *
+        # sqrt(weeks_remaining / weeks_observed)
         weeks_remaining = max(1, forecast_days / 7)  # Convert days to weeks
         uncertainty_factor = (weeks_remaining / weeks_observed) ** 0.5
 
@@ -313,7 +335,8 @@ def create_comprehensive_dashboard(
     # Extract budget data from additional_context for insights
     budget_data = additional_context.get("budget_data") if additional_context else None
 
-    # Construct PERT data for insights (need optimistic/pessimistic for uncertainty analysis)
+    # Construct PERT data for insights
+    # (need optimistic/pessimistic for uncertainty analysis)
     # Calculate PERT bounds based on velocity variability
     pert_optimistic_days = 0
     pert_pessimistic_days = 0
@@ -354,7 +377,8 @@ def create_comprehensive_dashboard(
                 data_points_count,
                 additional_context,
             ),
-            # Recent Completions Section - uses unfiltered data for consistent 4-week view
+            # Recent Completions Section uses unfiltered data
+            # for consistent 4-week view
             create_recent_activity_section(
                 statistics_df_unfiltered, show_points, additional_context
             ),
