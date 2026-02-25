@@ -35,7 +35,8 @@ def save_settings(
     )
 
     logger.warning(
-        "[Deprecated] save_settings() called - use save_app_settings() for profile-based storage"
+        "[Deprecated] save_settings() called - use save_app_settings() "
+        "for profile-based storage"
     )
 
     # Delegate to save_app_settings with proper structure
@@ -83,7 +84,8 @@ def load_settings():
     )
 
     logger.warning(
-        "[Deprecated] load_settings() called - use load_app_settings() for profile-based storage"
+        "[Deprecated] load_settings() called - use load_app_settings() "
+        "for profile-based storage"
     )
 
     # Delegate to load_app_settings and flatten the structure

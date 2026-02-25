@@ -350,7 +350,8 @@ def validate_jira_config(config: dict[str, Any]) -> tuple[bool, str]:
     # Points field validation (optional, but must be valid field name if provided)
     points_field = config.get("points_field", "")
     if points_field:
-        # Allow standard JIRA fields (timeoriginalestimate, aggregatetimeoriginalestimate, etc.)
+        # Allow standard JIRA fields
+        # (timeoriginalestimate, aggregatetimeoriginalestimate, etc.)
         # and custom fields (customfield_XXXXX format)
 
         # Basic validation: field name should be alphanumeric with underscores
@@ -369,7 +370,8 @@ def validate_jira_config(config: dict[str, Any]) -> tuple[bool, str]:
             except ValueError:
                 return (
                     False,
-                    "Custom field must be in format 'customfield_XXXXX' where XXXXX is numeric",
+                    "Custom field must be in format 'customfield_XXXXX' "
+                    "where XXXXX is numeric",
                 )
 
     return (True, "")
