@@ -207,7 +207,10 @@ class FieldMappingIndex:
                        Example: {"deployment_date": "customfield_10001"}
 
     Example:
-        >>> mappings = {"deployment_date": "customfield_10001", "work_type": "customfield_10002"}
+        >>> mappings = {
+        ...     "deployment_date": "customfield_10001",
+        ...     "work_type": "customfield_10002",
+        ... }
         >>> index = FieldMappingIndex(mappings)
         >>> index.get_jira_field("deployment_date")
         "customfield_10001"
