@@ -35,7 +35,8 @@ logger.info("Application configuration loaded - logging initialized")
 # APPLICATION CONSTANTS
 #######################################################################
 # Default values
-# Confidence Window (formerly called PERT Factor) - controls sample size for best/worst case
+# Confidence Window (formerly called PERT Factor)
+# controls sample size for best/worst case
 # Higher values = more conservative, Lower values = reflects recent volatility
 # Recommended: 6 weeks (20-30% of typical history)
 DEFAULT_PERT_FACTOR = 6
@@ -75,7 +76,7 @@ SAMPLE_DATA = pd.DataFrame(
 COLOR_PALETTE = {
     "items": "rgb(0, 99, 178)",  # Blue for items
     "points": "rgb(255, 127, 14)",  # Orange for points
-    "optimistic": "rgb(20, 168, 150)",  # Teal for optimistic forecast (changed from green)
+    "optimistic": "rgb(20, 168, 150)",  # Teal for optimistic forecast
     "pessimistic": "rgb(128, 0, 128)",  # Purple for pessimistic forecast
     "deadline": "rgb(220, 20, 60)",  # Crimson for deadline
     "items_grid": "rgba(0, 99, 178, 0.1)",  # Light blue grid
@@ -90,9 +91,12 @@ COLOR_PALETTE = {
 }
 
 # PERT and Forecasting Help Texts - Phase 9.1 Simplified
-# Note: Comprehensive content moved to configuration/help_content.py for Phase 9.2 help system
+# Note: Detailed content moved to configuration/help_content.py
+# for Phase 9.2 help system.
 FORECAST_HELP_TEXTS = {
-    "pert_methodology": "3-point estimation combining optimistic, likely, and pessimistic scenarios.",
+    "pert_methodology": (
+        "3-point estimation combining optimistic, likely, and pessimistic scenarios."
+    ),
     "optimistic_forecast": "Best-case completion estimate from peak velocity periods.",
     "most_likely_forecast": "Most probable estimate based on current average velocity.",
     "pessimistic_forecast": "Worst-case estimate from lowest velocity periods.",
@@ -117,12 +121,19 @@ FORECAST_HELP_TEXTS = {
 }
 
 # Weekly Velocity and Trend Help Texts - Phase 9.1 Simplified
-# Note: Comprehensive content moved to configuration/help_content.py for Phase 9.2 help system
+# Note: Detailed content moved to configuration/help_content.py
+# for Phase 9.2 help system.
 VELOCITY_HELP_TEXTS = {
-    "weekly_velocity": "Team's completion rate over recent weeks with trend indicators.",
-    "velocity_average": "Simple average of weekly completion rates over selected period.",
+    "weekly_velocity": (
+        "Team's completion rate over recent weeks with trend indicators."
+    ),
+    "velocity_average": (
+        "Simple average of weekly completion rates over selected period."
+    ),
     "velocity_median": "Middle value of weekly rates, resistant to outliers.",
-    "velocity_trend": "Direction of velocity change - up, down, or stable with percentage.",
+    "velocity_trend": (
+        "Direction of velocity change - up, down, or stable with percentage."
+    ),
     "ten_week_calculation": "Uses 10 weeks of data for statistical reliability.",
     "trend_significance": "Bold trends indicate statistically significant changes.",
     "weighted_moving_average": "Recent weeks weighted more heavily in calculations.",
@@ -130,34 +141,71 @@ VELOCITY_HELP_TEXTS = {
 
 # Project Dashboard and Progress Help Texts
 # Project Overview Help Texts - Phase 9.1 Simplified
-# Note: Comprehensive content moved to configuration/help_content.py for Phase 9.2 help system
+# Note: Detailed content moved to configuration/help_content.py
+# for Phase 9.2 help system.
 PROJECT_HELP_TEXTS = {
     "project_overview": "High-level project completion status and progress metrics.",
     "completion_percentage": "Percentage of work completed based on items or points.",
     "items_vs_points": "Comparison of item-based vs point-based progress tracking.",
     "weekly_averages": "Average completion rates showing sustainable team velocity.",
-    "velocity_stability": "Consistency of weekly completion rates - stable, moderate, or variable.",
+    "velocity_stability": (
+        "Consistency of weekly completion rates - stable, moderate, or variable."
+    ),
     "completion_timeline": "Projected completion dates based on PERT calculations.",
 }
 
 # Scope Change and Stability Help Texts
 # Scope Change and Stability Help Texts - Phase 9.1 Simplified
-# Note: Comprehensive content moved to configuration/help_content.py for Phase 9.2 help system
+# Note: Detailed content moved to configuration/help_content.py
+# for Phase 9.2 help system.
 SCOPE_HELP_TEXTS = {
-    "scope_change_rate": "New work added vs baseline scope. Baseline = work remaining at window start (current remaining + completed in period - created in period). Shows scope expansion within selected timeframe (e.g., 12 weeks).",
-    "throughput_ratio": "Work creation vs completion ratio. >1 = adding faster than completing (growing backlog), <1 = completing faster (shrinking backlog). Calculated for selected time window.",
-    "threshold_color_coding": "Visual indicators showing velocity impact of scope changes.",
-    "adaptability_index": "Scope Stability Index: Measures how stable the scope is relative to total work. Calculated as 1 - (created / total_scope). Higher values (0.7+) = stable, predictable scope with few additions. Lower values (0.3-0.6) = dynamic, evolving scope with frequent additions (normal for responsive agile teams).",
+    "scope_change_rate": (
+        "New work added vs baseline scope. Baseline = work remaining "
+        "at window start (current remaining + completed in period - "
+        "created in period). Shows scope expansion within selected "
+        "timeframe (e.g., 12 weeks)."
+    ),
+    "throughput_ratio": (
+        "Work creation vs completion ratio. >1 = adding faster than "
+        "completing (growing backlog), <1 = completing faster "
+        "(shrinking backlog). Calculated for selected time window."
+    ),
+    "threshold_color_coding": (
+        "Visual indicators showing velocity impact of scope changes."
+    ),
+    "adaptability_index": (
+        "Scope Stability Index: Measures how stable the scope is relative "
+        "to total work. Calculated as 1 - (created / total_scope). "
+        "Higher values (0.7+) = stable, predictable scope with few "
+        "additions. Lower values (0.3-0.6) = dynamic, evolving scope "
+        "with frequent additions (normal for responsive agile teams)."
+    ),
     "weekly_scope_patterns": "Week-by-week tracking of requirement discovery patterns.",
-    "agile_scope_philosophy": "Scope changes are expected and valuable in agile projects.",
-    "scope_metrics_explanation": "Tracks scope changes within selected time window. Baseline = scope at window start. All metrics respond to data point slider setting.",
-    "jira_scope_calculation": "Intelligent extrapolation for items without story points.",
-    "cumulative_chart": "Shows actual remaining work over time. Begins with the backlog size at the start of the selected window (baseline) and tracks week-by-week changes. Values represent real backlog size that cannot go negative.",
-    "weekly_growth": "Week-by-week scope additions and reductions showing discovery patterns.",
+    "agile_scope_philosophy": (
+        "Scope changes are expected and valuable in agile projects."
+    ),
+    "scope_metrics_explanation": (
+        "Tracks scope changes within selected time window. "
+        "Baseline = scope at window start. All metrics respond "
+        "to data point slider setting."
+    ),
+    "jira_scope_calculation": (
+        "Intelligent extrapolation for items without story points."
+    ),
+    "cumulative_chart": (
+        "Shows actual remaining work over time. Begins with the backlog "
+        "size at the start of the selected window (baseline) and tracks "
+        "week-by-week changes. Values represent real backlog size "
+        "that cannot go negative."
+    ),
+    "weekly_growth": (
+        "Week-by-week scope additions and reductions showing discovery patterns."
+    ),
 }
 
 # Statistics Data and Collection Help Texts - Phase 9.1 Simplified
-# Note: Comprehensive content moved to configuration/help_content.py for Phase 9.2 help system
+# Note: Detailed content moved to configuration/help_content.py
+# for Phase 9.2 help system.
 STATISTICS_HELP_TEXTS = {
     "date_field": "Data collection date - weekly snapshots in YYYY-MM-DD format.",
     "completed_items": "Number of work items finished during this period.",
@@ -167,26 +215,56 @@ STATISTICS_HELP_TEXTS = {
     "velocity_items": "Weekly completion rate for items based on historical data.",
     "velocity_points": "Weekly completion rate for points based on historical data.",
     "data_frequency": "Weekly snapshots provide optimal balance for forecasting.",
-    "cumulative_vs_incremental": "Values represent incremental work per period, not cumulative totals.",
+    "cumulative_vs_incremental": (
+        "Values represent incremental work per period, not cumulative totals."
+    ),
 }
 
 # Chart and Visualization Help Texts
 # Chart and Visualization Help Texts - Phase 9.1 Simplified
-# Note: Comprehensive content moved to configuration/help_content.py for Phase 9.2 help system
+# Note: Detailed content moved to configuration/help_content.py
+# for Phase 9.2 help system.
 CHART_HELP_TEXTS = {
-    "weighted_moving_average": "Recent weeks weighted more heavily than older data (40%, 30%, 20%, 10%).",
-    "forecast_vs_actual_bars": "Solid bars show historical data, patterned bars show forecasts with error bars.",
-    "forecast_confidence_intervals": "Error bars show uncertainty range around forecast predictions.",
-    "exponential_weighting": "Recent performance emphasized over older data for better trend capture.",
-    "weekly_chart_methodology": "Weekly aggregation with PERT forecasts and confidence intervals.",
-    "pert_forecast_methodology": "Three-point estimation using optimistic, likely, and pessimistic scenarios.",
-    "historical_data_influence": "More data points improve forecast accuracy - 6+ weeks recommended.",
-    "chart_legend_explained": "Visual cues distinguish historical data, forecasts, and confidence bands.",
-    "forecast_confidence_bands": "Band width indicates forecast uncertainty based on velocity variability.",
-    "scope_change_indicators": "Vertical markers show scope changes with automatic forecast adjustments.",
-    "data_points_precision": "8-15 recent data points provide optimal forecast accuracy.",
-    "burndown_vs_burnup": "Burndown shows remaining work decreasing; Burnup shows completed work increasing.",
-    "forecast_explanation": """The graph shows your burndown forecast based on historical data:
+    "weighted_moving_average": (
+        "Recent weeks weighted more heavily than older data (40%, 30%, 20%, 10%)."
+    ),
+    "forecast_vs_actual_bars": (
+        "Solid bars show historical data, patterned bars "
+        "show forecasts with error bars."
+    ),
+    "forecast_confidence_intervals": (
+        "Error bars show uncertainty range around forecast predictions."
+    ),
+    "exponential_weighting": (
+        "Recent performance emphasized over older data for better trend capture."
+    ),
+    "weekly_chart_methodology": (
+        "Weekly aggregation with PERT forecasts and confidence intervals."
+    ),
+    "pert_forecast_methodology": (
+        "Three-point estimation using optimistic, likely, and pessimistic scenarios."
+    ),
+    "historical_data_influence": (
+        "More data points improve forecast accuracy - 6+ weeks recommended."
+    ),
+    "chart_legend_explained": (
+        "Visual cues distinguish historical data, forecasts, and confidence bands."
+    ),
+    "forecast_confidence_bands": (
+        "Band width indicates forecast uncertainty based on velocity variability."
+    ),
+    "scope_change_indicators": (
+        "Vertical markers show scope changes with automatic forecast adjustments."
+    ),
+    "data_points_precision": (
+        "8-15 recent data points provide optimal forecast accuracy."
+    ),
+    "burndown_vs_burnup": (
+        "Burndown shows remaining work decreasing; "
+        "Burnup shows completed work increasing."
+    ),
+    "forecast_explanation": """The graph shows your burndown forecast
+based on historical data:
         - Solid lines: Historical progress
         - Dashed lines: Most likely forecast
         - Dotted lines: Optimistic and pessimistic forecasts
@@ -194,7 +272,7 @@ CHART_HELP_TEXTS = {
         - Orange/Yellow lines: Points tracking
         - Red vertical line: Your deadline
         
-        Where the forecast lines cross the zero line indicates estimated completion dates.""",
+        Where forecast lines cross zero indicates estimated completion dates.""",
 }
 
 

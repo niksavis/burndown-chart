@@ -17,7 +17,6 @@ select = ["E", "F", "I", "B", "UP"]
 
 [tool.ruff.lint.per-file-ignores]
 "configuration/help_content.py" = ["E501"]
-"configuration/settings.py" = ["E501"]
 "data/**/*.py" = ["E501"]
 "ui/dashboard/activity_quality.py" = ["E501"]
 "ui/dashboard/forecast_analytics.py" = ["E501"]
