@@ -45,8 +45,10 @@ def create_input_parameters_card(
 
     Args:
         current_settings: Dictionary with current application settings
-        avg_points_per_item: Current average points per item (unused but kept for compatibility)
-        estimated_total_points: Estimated total points (unused but kept for compatibility)
+        avg_points_per_item: Current average points per item
+            (unused but kept for compatibility)
+        estimated_total_points: Estimated total points
+            (unused but kept for compatibility)
 
     Returns:
         Dash Card component for data import configuration
@@ -82,7 +84,8 @@ def create_input_parameters_card(
                                         "Data Source:",
                                         create_info_tooltip(
                                             "data-source",
-                                            "Choose between JIRA API (recommended) or JSON/CSV file upload.",
+                                            "Choose between JIRA API "
+                                            "(recommended) or JSON/CSV upload.",
                                         ),
                                     ],
                                     className="fw-medium mb-2",
@@ -173,12 +176,19 @@ def create_input_parameters_card(
                                             children=html.Div(
                                                 [
                                                     html.I(
-                                                        className="fas fa-cloud-upload-alt fa-2x mb-2"
+                                                        className=(
+                                                            "fas fa-cloud-upload-alt "
+                                                            "fa-2x mb-2"
+                                                        )
                                                     ),
                                                     html.Br(),
                                                     "Drag and Drop or Click to Select",
                                                 ],
-                                                className="d-flex flex-column justify-content-center align-items-center h-100",
+                                                className=(
+                                                    "d-flex flex-column "
+                                                    "justify-content-center "
+                                                    "align-items-center h-100"
+                                                ),
                                                 style={"lineHeight": "1.2"},
                                             ),
                                             style={
@@ -240,7 +250,10 @@ def create_input_parameters_card(
                                                 create_jql_editor(
                                                     editor_id="jira-jql-query",
                                                     initial_value=_get_default_jql_query(),
-                                                    placeholder="project = MYPROJECT AND created >= startOfYear()",
+                                                    placeholder=(
+                                                        "project = MYPROJECT "
+                                                        "AND created >= startOfYear()"
+                                                    ),
                                                     rows=1,
                                                 ),
                                                 html.Div(
@@ -259,7 +272,8 @@ def create_input_parameters_card(
                                                     className="mb-2",
                                                 ),
                                                 html.Small(
-                                                    "Write your JQL query here, then use the buttons below to save or manage it.",
+                                                    "Write your JQL query here, then "
+                                                    "use buttons below to save/manage.",
                                                     className="text-muted",
                                                 ),
                                             ],
@@ -289,16 +303,26 @@ def create_input_parameters_card(
                                                                     id="jql-profile-selector",
                                                                     options=_get_query_profile_options(),  # type: ignore[arg-type]
                                                                     value=_get_default_jql_profile_id(),
-                                                                    placeholder="Select saved query",
+                                                                    placeholder=(
+                                                                        "Select "
+                                                                        "saved query"
+                                                                    ),
                                                                     clearable=True,
                                                                     searchable=True,
                                                                     style={
-                                                                        "minWidth": "200px",
-                                                                        "maxWidth": "300px",
+                                                                        "minWidth": (
+                                                                            "200px"
+                                                                        ),
+                                                                        "maxWidth": (
+                                                                            "300px"
+                                                                        ),
                                                                     },
                                                                 ),
                                                             ],
-                                                            className="d-inline-block me-2 mb-2",
+                                                            className=(
+                                                                "d-inline-block "
+                                                                "me-2 mb-2"
+                                                            ),
                                                         ),
                                                         create_button(
                                                             text="Clear",
@@ -309,7 +333,10 @@ def create_input_parameters_card(
                                                             className="me-2 mb-2",
                                                         ),
                                                     ],
-                                                    className="d-flex flex-wrap justify-content-start",
+                                                    className=(
+                                                        "d-flex flex-wrap "
+                                                        "justify-content-start"
+                                                    ),
                                                 ),
                                             ],
                                             width=12,
@@ -341,7 +368,8 @@ def create_input_parameters_card(
                                                     className="mb-2",
                                                 ),
                                                 html.Small(
-                                                    "Fetches JIRA data and automatically calculates project scope",
+                                                    "Fetches JIRA data "
+                                                    "and calculates scope",
                                                     className="text-muted d-block",
                                                 ),
                                             ]

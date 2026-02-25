@@ -1,7 +1,9 @@
 """DORA & Flow Metrics Configuration Loader.
 
-This module provides the master configuration loader for all DORA and Flow metrics settings.
-It loads customer-specific configuration from profiles/{profile_id}/profile.json including:
+This module provides the master configuration loader
+for all DORA and Flow metrics settings.
+It loads customer-specific configuration from
+profiles/{profile_id}/profile.json including:
 - Field mappings (JIRA custom fields → internal metric fields)
 - Workflow status mappings (WIP, active, completion, flow_start statuses)
 - Project classifications (development vs operational)
@@ -33,7 +35,8 @@ class MetricsConfig:
         """Initialize configuration loader.
 
         Args:
-            profile_id: Profile ID to load. If None, loads active profile from profiles.json
+            profile_id: Profile ID to load.
+                If None, loads active profile from profiles.json.
         """
         self.profile_id = profile_id or self._get_active_profile_id()
         self.profile_config = self._load_profile_config()
@@ -56,7 +59,8 @@ class MetricsConfig:
             if not active_profile_id:
                 logger.error("No active_profile_id in database")
                 raise RuntimeError(
-                    "No active profile configured. Create a profile via UI before calculating metrics."
+                    "No active profile configured. "
+                    "Create a profile via UI before calculating metrics."
                 )
 
             logger.info(f"Loaded active profile ID from database: {active_profile_id}")
@@ -294,8 +298,10 @@ class MetricsConfig:
         Classification algorithm:
         1. Find ALL flow types where issue_type matches
         2. If effort_category is provided:
-           a. First try to find a flow type that matches BOTH issue_type AND effort_category
-           b. If no match, fall back to a flow type with empty effort_categories (catch-all)
+              a. First try to find a flow type that matches
+                  BOTH issue_type AND effort_category
+              b. If no match, fall back to a flow type with
+                  empty effort_categories (catch-all)
         3. If no effort_category, use the first matching flow type
 
         This allows effort_category to refine classification when the same issue_type
@@ -333,7 +339,8 @@ class MetricsConfig:
                     if catch_all_flow_type is None:
                         catch_all_flow_type = flow_type
                         logger.debug(
-                            f"[FLOW TYPE CLASSIFICATION] Set catch-all: '{catch_all_flow_type}'"
+                            "[FLOW TYPE CLASSIFICATION] Set catch-all: "
+                            f"'{catch_all_flow_type}'"
                         )
                 else:
                     matching_flow_types.append((flow_type, effort_categories))
@@ -341,7 +348,8 @@ class MetricsConfig:
         # If effort_category is provided, try to find exact match first
         if effort_category:
             logger.debug(
-                f"[FLOW TYPE CLASSIFICATION] Searching for exact effort match in: {matching_flow_types}"
+                "[FLOW TYPE CLASSIFICATION] "
+                f"Searching for exact effort match in: {matching_flow_types}"
             )
             for flow_type, effort_categories in matching_flow_types:
                 if effort_category in effort_categories:
@@ -358,7 +366,8 @@ class MetricsConfig:
             )
             return catch_all_flow_type
 
-        # If no catch-all but we have matches, return first one (for None effort_category)
+        # If no catch-all but we have matches,
+        # return first one (for None effort_category)
         if matching_flow_types and not effort_category:
             result = matching_flow_types[0][0]
             logger.debug(
@@ -367,7 +376,8 @@ class MetricsConfig:
             return result
 
         logger.warning(
-            f"[FLOW TYPE CLASSIFICATION] No mapping found for issue_type='{issue_type}', "
+            "[FLOW TYPE CLASSIFICATION] No mapping found for "
+            f"issue_type='{issue_type}', "
             f"effort_category='{effort_category}'"
         )
         return None
@@ -395,7 +405,8 @@ class MetricsConfig:
         if not flow_end_statuses:
             warnings.append(
                 "No completion statuses configured. "
-                "Configure via 'Configure JIRA Mappings' → Status tab → Completion Statuses"
+                "Configure via 'Configure JIRA Mappings' "
+                "→ Status tab → Completion Statuses"
             )
 
         # Check for active statuses (required for Flow Efficiency)
@@ -423,7 +434,8 @@ class MetricsConfig:
         if not dora_mappings and not flow_mappings:
             warnings.append(
                 "No field mappings configured. "
-                "Use 'Configure JIRA Mappings' modal → Fields tab to configure JIRA custom fields."
+                "Use 'Configure JIRA Mappings' modal → Fields tab "
+                "to configure JIRA custom fields."
             )
 
         # Check for development projects (for DORA metrics)
