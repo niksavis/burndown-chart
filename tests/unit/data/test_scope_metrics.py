@@ -166,7 +166,7 @@ class TestCalculateScopeChangeRate(unittest.TestCase):
         self.assertEqual(result["throughput_ratio"]["points"], 0)
 
     def test_negative_scope_change(self):
-        """Test with negative created values (should not happen but test for robustness)."""
+        """Test with negative created values for robustness."""
         negative_change_data = pd.DataFrame(
             {
                 "date": pd.date_range(start="2025-01-01", periods=5, freq="W"),
@@ -181,7 +181,8 @@ class TestCalculateScopeChangeRate(unittest.TestCase):
             negative_change_data, self.baseline_items, self.baseline_points
         )
 
-        # Function should still handle this correctly, summing the negative and positive values
+        # Function should still handle this correctly,
+        # summing negative and positive values.
         total_created_items = negative_change_data["created_items"].sum()
         total_created_points = negative_change_data["created_points"].sum()
         total_completed_items = negative_change_data["completed_items"].sum()
@@ -411,7 +412,8 @@ class TestCalculateWeeklyScopeGrowth(unittest.TestCase):
         actual_items_growth = week2_row.iloc[0]["items_growth"]
         actual_points_growth = week2_row.iloc[0]["points_growth"]
 
-        # Instead of comparing to calculated values, verify the actual implementation values
+        # Instead of comparing to calculated values,
+        # verify actual implementation values.
         # The implementation reports these growth values for the test data
         self.assertEqual(actual_items_growth, -7)  # Expected items growth value
         self.assertEqual(actual_points_growth, -35)  # Expected points growth value
@@ -448,7 +450,8 @@ class TestCalculateWeeklyScopeGrowth(unittest.TestCase):
         # Result should be an empty dataframe with the correct columns
         self.assertTrue(result.empty)
 
-        # The columns could be either "week" or "week_label" depending on the implementation
+        # The columns could be either "week" or "week_label"
+        # depending on the implementation.
         # and may not include "start_date"
         self.assertIn("items_growth", result.columns)
         self.assertIn("points_growth", result.columns)
@@ -518,7 +521,8 @@ class TestCalculateScopeStabilityIndex(unittest.TestCase):
             self.medium_stability_data, self.baseline_items, self.baseline_points
         )
 
-        # In the current implementation, the stability is slightly higher than expected (0.81 vs < 0.8)
+        # In the current implementation, stability is slightly
+        # higher than expected (0.81 vs < 0.8).
         # Update the expectation to match the current implementation
         self.assertGreaterEqual(result["items_stability"], 0.8)
         self.assertLess(
@@ -532,7 +536,8 @@ class TestCalculateScopeStabilityIndex(unittest.TestCase):
             self.low_stability_data, self.baseline_items, self.baseline_points
         )
 
-        # In the current implementation, the stability index is higher than what was expected (0.53 vs < 0.5)
+        # In the current implementation, stability index is higher
+        # than expected (0.53 vs < 0.5).
         # Update the expectation to match the current implementation
         self.assertGreaterEqual(result["items_stability"], 0.5)
         self.assertLess(result["items_stability"], 0.6)  # Still relatively low
@@ -634,7 +639,8 @@ class TestCheckScopeChangeThreshold(unittest.TestCase):
 
         result = check_scope_change_threshold(scope_change_rate, threshold)
 
-        # Should return "info" status when rates are above threshold but throughput is under 1
+        # Should return "info" status when rates are above threshold
+        # but throughput is under 1.
         self.assertEqual(result["status"], "info")
 
     def test_above_threshold_above_throughput(self):
@@ -656,7 +662,7 @@ class TestCheckScopeChangeThreshold(unittest.TestCase):
         )
 
     def test_points_exceeds_threshold_and_throughput(self):
-        """Test when points scope change exceeds threshold and throughput is concerning."""
+        """Test when points scope change exceeds threshold and throughput concerns."""
         scope_change_rate = {
             "items_rate": 5.0,
             "points_rate": 15.0,
@@ -689,7 +695,8 @@ class TestCheckScopeChangeThreshold(unittest.TestCase):
         self.assertIn("Items scope growth (15.0%)", result["message"])
         self.assertIn("Points scope growth (20.0%)", result["message"])
         self.assertIn(
-            "Scope is growing 1.2x faster than items completion and 1.8x faster than points completion",
+            "Scope is growing 1.2x faster than items completion "
+            "and 1.8x faster than points completion",
             result["message"],
         )
 
@@ -1009,7 +1016,7 @@ class TestScopeMetricsDataPointsFiltering(unittest.TestCase):
         self.assertIn("throughput_ratio", scope_rate)
 
     def test_backward_compatibility_alias_functions(self):
-        """Test that alias functions maintain backward compatibility with new parameter."""
+        """Alias functions maintain backward compatibility with new parameter."""
         # Test calculate_scope_creep_rate alias
         creep_rate = calculate_scope_creep_rate(
             self.scope_data,

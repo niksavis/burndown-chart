@@ -84,7 +84,8 @@ class TestCalculateRatesNormalDataset(unittest.TestCase):
             optimistic_time_items + 4 * most_likely_time_items + pessimistic_time_items
         ) / 6
 
-        # Assert PERT time calculation is correct (allow small floating point difference)
+        # Assert PERT time calculation is correct
+        # (allow small floating point difference)
         self.assertAlmostEqual(pert_time_items, expected_pert_time_items, places=2)
 
         # Verify returned rates match expected rates
@@ -129,7 +130,8 @@ class TestCalculateRatesNormalDataset(unittest.TestCase):
             )
 
         # Verify large factor is adjusted to the valid maximum
-        # Since calculate_rates handles this internally, these results should be the same
+        # Since calculate_rates handles this internally,
+        # these results should be the same
         self.assertEqual(
             round(result_factor_large[0], 2),
             round(
@@ -237,7 +239,8 @@ class TestCalculateRatesSmallDataset(unittest.TestCase):
         min_rate = min(three_data["completed_items"]) / 7
         max_rate = max(three_data["completed_items"]) / 7
 
-        # These would be different if using min/max, but should be equal with small dataset handling
+        # These would differ if using min/max,
+        # but should be equal with small dataset handling
         self.assertNotEqual(min_rate, max_rate)  # Sanity check
         self.assertEqual(
             round(result[1], 4), round(result[2], 4)
@@ -412,7 +415,8 @@ class TestCalculateWeeklyAverages(unittest.TestCase):
         """Test basic calculation of weekly averages."""
         result = calculate_weekly_averages(self.statistics_data)
 
-        # Function should return a tuple of 4 values (avg_items, avg_points, med_items, med_points)
+        # Function should return a tuple of 4 values:
+        # avg_items, avg_points, med_items, med_points
         self.assertEqual(len(result), 4)
 
         # Calculate expected values
@@ -642,8 +646,9 @@ class TestGenerateWeeklyForecast(unittest.TestCase):
 
     def test_multiple_forecast_weeks(self):
         """Test forecasting multiple weeks."""
-        # Note: The current implementation of generate_weekly_forecast only returns a single week forecast
-        # regardless of the forecast_weeks parameter, so we'll adjust our test to verify that we get at least one date
+        # The current implementation of generate_weekly_forecast
+        # only returns a single week forecast regardless of
+        # the forecast_weeks parameter, so verify at least one date.
         forecast = generate_weekly_forecast(self.statistics_data)
 
         # We should get at least one date in the forecast
@@ -772,9 +777,9 @@ class TestDailyForecast(unittest.TestCase):
         # For burndown with zero rate, we should just get the start point
         x_vals, y_vals = daily_forecast(start_val, daily_rate, start_date)
         self.assertGreaterEqual(len(x_vals), 1)  # At least 1 point
-        self.assertEqual(
-            y_vals[0], start_val
-        )  # First value should be start_val        # For burnup with zero rate, we should now also get at least one point
+        # First value should be start_val.
+        self.assertEqual(y_vals[0], start_val)
+        # For burnup with zero rate, we should now also get at least one point
         # with the implementation fix
         x_vals, y_vals = daily_forecast_burnup(start_val, daily_rate, start_date, 40)
         self.assertGreaterEqual(len(x_vals), 1)
@@ -808,7 +813,8 @@ class TestDailyForecast(unittest.TestCase):
 
         x_vals, y_vals = daily_forecast(start_val, daily_rate, start_date)
 
-        # The function should cap at MAX_FORECAST_DAYS (3653 - 10 years accounting for leap years)
+        # The function should cap at MAX_FORECAST_DAYS
+        # (3653 - 10 years accounting for leap years)
         # It might use fewer points for efficiency
         max_days = (x_vals[-1] - x_vals[0]).days
         self.assertLessEqual(max_days, 3653)
@@ -971,8 +977,8 @@ class TestCalculatePerformanceTrend(unittest.TestCase):
         self.assertEqual(result["trend_direction"], "up")
         self.assertEqual(result["is_significant"], True)
 
-        # The parameter significance_threshold doesn't exist in the current implementation
-        # So we'll just check that the is_significant property is set correctly based on the default threshold
+        # The significance_threshold parameter does not exist in
+        # the current implementation, so validate default behavior.
         self.assertGreaterEqual(result["percent_change"], 20)  # Change should be >= 20%
 
 
