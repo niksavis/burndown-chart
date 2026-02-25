@@ -53,14 +53,16 @@ def calculate_and_save_dora_weekly_metrics(
 
         # Calculate Deployment Frequency
         logger.info(
-            f"Week {week_label}: Calculating deployment frequency with {len(all_issues)} issues"
+            f"Week {week_label}: Calculating deployment frequency with "
+            f"{len(all_issues)} issues"
         )
         deployment_freq = calculate_deployment_frequency(
             all_issues,
             time_period_days=7,  # Weekly calculation
         )
         logger.info(
-            f"Week {week_label}: Deployment frequency result: {deployment_freq.get('deployment_count', 0)} deployments"
+            f"Week {week_label}: Deployment frequency result: "
+            f"{deployment_freq.get('deployment_count', 0)} deployments"
         )
 
         # Calculate Lead Time for Changes
@@ -71,7 +73,8 @@ def calculate_and_save_dora_weekly_metrics(
 
         if lead_time.get("value") is None:
             logger.info(
-                f"Week {week_label}: No lead time data (checked {len(all_issues)} issues)"
+                f"Week {week_label}: No lead time data "
+                f"(checked {len(all_issues)} issues)"
             )
 
         # Calculate Change Failure Rate
@@ -223,7 +226,8 @@ def load_dora_metrics_from_cache(n_weeks: int = 12) -> dict[str, Any] | None:
                 lt_data.get("issues_with_lead_time", 0) if lt_data else 0
             )  # FIX: Use correct field name
             logger.info(
-                f"[LOAD_CACHE] Week {week_label}: lt_data={lt_data}, lt_hours={lt_hours}"
+                f"[LOAD_CACHE] Week {week_label}: lt_data={lt_data}, "
+                f"lt_hours={lt_hours}"
             )
             lt_days = lt_hours / 24 if lt_hours else 0
             weekly_lead_time.append(lt_days)
@@ -241,7 +245,8 @@ def load_dora_metrics_from_cache(n_weeks: int = 12) -> dict[str, Any] | None:
                 if lt_mean_hours is not None:
                     all_lead_times_mean.append(lt_mean_hours)
                 logger.info(
-                    f"[LOAD_CACHE] Week {week_label}: Added {lt_hours}h to all_lead_times (total: {len(all_lead_times)})"
+                    f"[LOAD_CACHE] Week {week_label}: Added {lt_hours}h to "
+                    f"all_lead_times (total: {len(all_lead_times)})"
                 )
 
             # Change Failure Rate
@@ -337,7 +342,8 @@ def load_dora_metrics_from_cache(n_weeks: int = 12) -> dict[str, Any] | None:
                 "release_value": round(release_freq_per_week, 2),  # NEW
                 "weekly_labels": weekly_labels,
                 "weekly_values": weekly_deployment_freq,
-                "weekly_release_values": weekly_release_freq,  # NEW: Release counts per week
+                "weekly_release_values": weekly_release_freq,  # NEW: Release
+                # counts per week
                 "total_issue_count": total_deployment_issues,
             },
             "lead_time_for_changes": {
@@ -365,7 +371,8 @@ def load_dora_metrics_from_cache(n_weeks: int = 12) -> dict[str, Any] | None:
                 "release_value": overall_cfr_releases,  # NEW: Release-based CFR
                 "weekly_labels": weekly_labels,
                 "weekly_values": weekly_cfr,
-                "weekly_release_values": weekly_cfr_releases,  # NEW: Release CFR per week
+                "weekly_release_values": weekly_cfr_releases,  # NEW: Release
+                # CFR per week
                 "total_issue_count": total_cfr_issues,
             },
             "mean_time_to_recovery": {
@@ -415,12 +422,8 @@ def calculate_and_save_dora_metrics_for_all_issues(
     """
     try:
         # Convert date to datetime for time_period_days calculation
-        start_date = datetime.combine(monday, datetime.min.time()).replace(
-            tzinfo=UTC
-        )
-        end_date = datetime.combine(sunday, datetime.max.time()).replace(
-            tzinfo=UTC
-        )
+        start_date = datetime.combine(monday, datetime.min.time()).replace(tzinfo=UTC)
+        end_date = datetime.combine(sunday, datetime.max.time()).replace(tzinfo=UTC)
         time_period_days = (end_date - start_date).days
 
         logger.info(
@@ -467,7 +470,8 @@ def calculate_and_save_dora_metrics_for_all_issues(
             )
         else:
             logger.warning(
-                f"Week {week_label}: Deployment frequency calculation failed - {deployment_freq.get('error_message', 'Unknown error')}"
+                f"Week {week_label}: Deployment frequency calculation failed - "
+                f"{deployment_freq.get('error_message', 'Unknown error')}"
             )
 
         # Convert lead time days to hours for legacy compatibility
@@ -499,7 +503,8 @@ def calculate_and_save_dora_metrics_for_all_issues(
             )
         else:
             logger.warning(
-                f"Week {week_label}: Lead time calculation failed - {lead_time.get('error_message', 'Unknown error')}"
+                f"Week {week_label}: Lead time calculation failed - "
+                f"{lead_time.get('error_message', 'Unknown error')}"
             )
 
         if "error_state" not in cfr:
@@ -519,7 +524,8 @@ def calculate_and_save_dora_metrics_for_all_issues(
             )
         else:
             logger.warning(
-                f"Week {week_label}: Change failure rate calculation failed - {cfr.get('error_message', 'Unknown error')}"
+                f"Week {week_label}: Change failure rate calculation failed - "
+                f"{cfr.get('error_message', 'Unknown error')}"
             )
 
         if "error_state" not in mttr:
@@ -541,7 +547,8 @@ def calculate_and_save_dora_metrics_for_all_issues(
             )
         else:
             logger.warning(
-                f"Week {week_label}: MTTR calculation failed - {mttr.get('error_message', 'Unknown error')}"
+                f"Week {week_label}: MTTR calculation failed - "
+                f"{mttr.get('error_message', 'Unknown error')}"
             )
 
         return True, f"Week {week_label} calculated successfully (variable extraction)"

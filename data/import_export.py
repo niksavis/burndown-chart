@@ -573,7 +573,8 @@ def export_profile_with_mode(
 
     Args:
         profile_id: Profile identifier (e.g., "default")
-        query_id: Active query identifier (used for manifest metadata, but all queries exported)
+        query_id: Active query identifier (used for manifest metadata, but all
+            queries exported)
         export_mode: One of "CONFIG_ONLY", "FULL_DATA"
         include_token: Whether to include JIRA token (default: False)
         include_budget: Whether to include budget data (default: False)
@@ -585,7 +586,9 @@ def export_profile_with_mode(
             "manifest": ExportManifest,
             "profile_data": dict,
             "query_data": {
-                "query_id_1": {query_metadata, project_data, jira_cache, metrics_snapshots},
+                "query_id_1": {
+                    query_metadata, project_data, jira_cache, metrics_snapshots
+                },
                 "query_id_2": {...},
                 ...
             }
@@ -686,14 +689,16 @@ def export_profile_with_mode(
                 query_data["project_scope"] = project_scope
                 logger.info(f"Exported project scope for query '{current_query_id}'")
 
-            # Get metrics data points (DORA, Flow, Bug metrics) - CRITICAL for health score consistency
+            # Get metrics data points (DORA, Flow, Bug metrics) - CRITICAL for
+            # health score consistency
             metrics = backend.get_metric_values(
                 profile_id, current_query_id, limit=100000
             )
             if metrics:
                 query_data["metrics"] = metrics
                 logger.info(
-                    f"Exported {len(metrics)} metrics data points for query '{current_query_id}'"
+                    f"Exported {len(metrics)} metrics data points for query "
+                    f"'{current_query_id}'"
                 )
 
             if include_changelog:
@@ -710,10 +715,12 @@ def export_profile_with_mode(
                 if changelog_entries:
                     query_data["changelog_entries"] = changelog_entries
                     logger.info(
-                        f"Exported {len(changelog_entries)} changelog entries for query '{current_query_id}'"
+                        f"Exported {len(changelog_entries)} changelog entries "
+                        f"for query '{current_query_id}'"
                     )
 
-        # Export budget settings and revisions (query-level data) - only if explicitly requested
+        # Export budget settings and revisions (query-level data) - only if
+        # explicitly requested
         if include_budget:
             budget_settings = backend.get_budget_settings(profile_id, current_query_id)
             if budget_settings:
@@ -726,7 +733,8 @@ def export_profile_with_mode(
             if budget_revisions:
                 query_data["budget_revisions"] = budget_revisions
                 logger.info(
-                    f"Exported {len(budget_revisions)} budget revisions for query '{current_query_id}'"
+                    f"Exported {len(budget_revisions)} budget revisions for "
+                    f"query '{current_query_id}'"
                 )
 
         all_queries_data[current_query_id] = query_data
@@ -1192,7 +1200,8 @@ def restore_from_system_backup(
 
             return (
                 True,
-                f"Restored {len(restored_profiles)} profiles: {', '.join(restored_profiles)}",
+                f"Restored {len(restored_profiles)} profiles: "
+                f"{', '.join(restored_profiles)}",
             )
 
     except Exception as e:

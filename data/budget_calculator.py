@@ -456,10 +456,9 @@ def calculate_runway(
         if not weekly_costs or all(c == 0 for c in weekly_costs):
             return 0.0, 0.0
 
-        weighted_burn_rate = (
-            sum(w * c for w, c in zip(weights, weekly_costs, strict=False))
-            / sum(weights)
-        )
+        weighted_burn_rate = sum(
+            w * c for w, c in zip(weights, weekly_costs, strict=False)
+        ) / sum(weights)
 
         if weighted_burn_rate > 0:
             runway_weeks = max(0, remaining / weighted_burn_rate)  # Clamp to 0 minimum

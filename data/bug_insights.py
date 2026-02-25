@@ -164,9 +164,7 @@ def check_low_resolution_rate(metrics: dict, thresholds: dict) -> dict | None:
     return None
 
 
-def check_increasing_bug_trend(
-    statistics: list[dict], thresholds: dict
-) -> dict | None:
+def check_increasing_bug_trend(statistics: list[dict], thresholds: dict) -> dict | None:
     """Check if bug creation exceeds closure for consecutive weeks.
 
     Args:
@@ -297,8 +295,7 @@ def check_no_open_bugs(metrics: dict) -> dict | None:
             "severity": InsightSeverity.LOW,
             "message": "Perfect: No open bugs - all bugs resolved!",
             "actionable_recommendation": (
-                "Excellent work - maintain proactive bug prevention and "
-                "resolution"
+                "Excellent work - maintain proactive bug prevention and resolution"
             ),
         }
 
@@ -370,8 +367,7 @@ def check_long_resolution_time(metrics: dict, thresholds: dict) -> dict | None:
             "type": InsightType.LONG_RESOLUTION_TIME,
             "severity": InsightSeverity.CRITICAL,
             "message": (
-                f"Critical: Bugs taking {avg_days:.1f} days to resolve on "
-                "average"
+                f"Critical: Bugs taking {avg_days:.1f} days to resolve on average"
             ),
             "actionable_recommendation": (
                 "Immediate action - review bug triage process and ensure "
