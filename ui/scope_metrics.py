@@ -27,7 +27,8 @@ def create_scope_change_indicator(
     help_category=None,
 ):
     """
-    Create a scope change indicator that shows scope change rate with throughput ratio comparison.
+    Create a scope change indicator that shows scope change rate
+    with throughput ratio comparison.
 
     Args:
         title: Title of the scope change metric
@@ -50,7 +51,8 @@ def create_scope_change_indicator(
     high_throughput_ratio = throughput_ratio and throughput_ratio > 1
 
     # By default, scope changes are not considered negative
-    # Only if changes are significant AND outpacing throughput, we show warning indicators
+    # Only if changes are significant AND outpacing throughput,
+    # we show warning indicators
     if value is None or pd.isna(value):
         icon_class = TREND_ICONS["stable"]
         text_color = TREND_COLORS["stable"]
@@ -86,6 +88,13 @@ def create_scope_change_indicator(
     status_class = "ms-1 scope-change-status"
     if value is None or pd.isna(value):
         status_class = f"{status_class} scope-change-status--inherit"
+
+    help_button_title = f"Get detailed help about {title.lower()}"
+    help_button_icon_class = "fas fa-question-circle"
+    threshold_row_class = (
+        "d-flex justify-content-between align-items-baseline "
+        "mt-1 text-size-xs text-muted"
+    )
 
     # Create the compact trend-style indicator
     indicator = html.Div(
@@ -123,7 +132,8 @@ def create_scope_change_indicator(
                                         title,
                                         className="fw-medium text-size-sm",
                                     ),
-                                    # Phase 9.2 Progressive Disclosure: Add help button if help parameters provided
+                                    # Phase 9.2 Progressive Disclosure:
+                                    # Add help button if help parameters provided
                                     (
                                         help_key
                                         and help_category
@@ -131,7 +141,7 @@ def create_scope_change_indicator(
                                             [
                                                 dbc.Button(
                                                     html.I(
-                                                        className="fas fa-question-circle"
+                                                        className=help_button_icon_class
                                                     ),
                                                     id={
                                                         "type": "help-button",
@@ -144,7 +154,7 @@ def create_scope_change_indicator(
                                                         "text-secondary p-0 ms-1 "
                                                         "scope-change-help-button"
                                                     ),
-                                                    title=f"Get detailed help about {title.lower()}",
+                                                    title=help_button_title,
                                                 )
                                             ],
                                             className="ms-1",
@@ -161,7 +171,7 @@ def create_scope_change_indicator(
                         ],
                     ),
                     html.Div(
-                        className="d-flex justify-content-between align-items-baseline mt-1 text-size-xs text-muted",
+                        className=threshold_row_class,
                         children=[
                             html.Span(
                                 [
@@ -218,7 +228,10 @@ create_scope_creep_indicator = create_scope_change_indicator
 
 
 def create_scope_growth_chart(weekly_growth_data, show_points=True):
-    """Create a bar chart showing weekly scope growth with side-by-side bars and separate y-axes for items and points."""
+    """Create a bar chart showing weekly scope growth.
+
+    Uses side-by-side bars and separate y-axes for items and points.
+    """
     if weekly_growth_data.empty:
         empty_layout = go.Layout(
             title="Weekly Scope Growth",
@@ -267,7 +280,8 @@ def create_scope_growth_chart(weekly_growth_data, show_points=True):
         x=weekly_growth_data["week_label"],
         y=weekly_growth_data["items_growth"],
         name="Items (darker=completing faster)",
-        marker_color=items_colors,  # Darker blue = net reduction (good), lighter = additions
+        marker_color=items_colors,
+        # Darker blue = net reduction (good), lighter = additions
         width=0.4,  # Make bars narrower to fit side by side
         offset=-0.25,  # Shift to the left for side by side
         yaxis="y",  # Use primary y-axis
@@ -291,7 +305,8 @@ def create_scope_growth_chart(weekly_growth_data, show_points=True):
         x=weekly_growth_data["week_label"],
         y=weekly_growth_data["points_growth"],
         name="Points (darker=completing faster)",
-        marker_color=points_colors,  # Darker orange = net reduction (good), lighter = additions
+        marker_color=points_colors,
+        # Darker orange = net reduction (good), lighter = additions
         width=0.4,  # Make bars narrower to fit side by side
         offset=0.25,  # Shift to the right for side by side
         yaxis="y2",  # Use secondary y-axis
@@ -402,7 +417,8 @@ def create_enhanced_stability_gauge(
     stability_value, title="Scope Stability Index", height=300, show_toolbar=True
 ):
     """
-    Create an enhanced gauge visualization for the scope stability index with better visual indicators.
+    Create an enhanced gauge visualization for the scope stability index
+    with better visual indicators.
 
     Args:
         stability_value (float): A value between 0 and 1 representing stability
@@ -547,8 +563,10 @@ def create_enhanced_stability_gauge(
     )
 
 
-# PRINCIPAL ENGINEER: Stubbed out create_scope_change_alert to fix import errors.
-# The alert banner was causing component lifecycle issues in Dash, appearing in wrong tabs.
+# PRINCIPAL ENGINEER: Stubbed out create_scope_change_alert
+# to fix import errors.
+# The alert banner was causing component lifecycle issues in Dash,
+# appearing in wrong tabs.
 # All scope change information is already displayed in the metrics cards above,
 # making this banner redundant. The function now returns an empty div to maintain
 # backwards compatibility with imports.
@@ -567,12 +585,15 @@ def create_cumulative_scope_chart(
     weekly_growth_data, baseline_items, baseline_points, show_points=True
 ):
     """
-    Create a line chart showing backlog evolution over time with separate y-axes for items and points.
+    Create a line chart showing backlog evolution over time
+    with separate y-axes for items and points.
 
     Args:
         weekly_growth_data (DataFrame): DataFrame with weekly growth data
-        baseline_items (int): Initial baseline for items (backlog at period start = current + completed - created)
-        baseline_points (int): Initial baseline for points (backlog at period start = current + completed - created)
+        baseline_items (int): Initial baseline for items
+            (backlog at period start = current + completed - created)
+        baseline_points (int): Initial baseline for points
+            (backlog at period start = current + completed - created)
         show_points (bool): Whether to show points traces
 
     Returns:
@@ -602,7 +623,8 @@ def create_cumulative_scope_chart(
     weekly_data["cum_items_growth"] = weekly_data["items_growth"].cumsum()
     weekly_data["cum_points_growth"] = weekly_data["points_growth"].cumsum()
 
-    # Calculate actual remaining work over time by starting from baseline and applying cumulative changes
+    # Calculate actual remaining work over time
+    # by starting from baseline and applying cumulative changes
     # This represents the actual backlog size at each week (baseline + net_change)
     # Cannot go negative as long as baseline is positive
     weekly_data["net_scope_items"] = baseline_items + weekly_data["cum_items_growth"]
@@ -615,7 +637,10 @@ def create_cumulative_scope_chart(
         mode="lines",
         name="Items Baseline",
         line=dict(color="rgba(128, 128, 128, 0.5)", width=2, dash="dash"),
-        hovertemplate=f"<b>Items Baseline</b><br>Week: %{{x}}<br>Items: {baseline_items}<extra></extra>",
+        hovertemplate=(
+            "<b>Items Baseline</b><br>"
+            f"Week: %{{x}}<br>Items: {baseline_items}<extra></extra>"
+        ),
         yaxis="y",
         showlegend=True,
     )
@@ -629,7 +654,9 @@ def create_cumulative_scope_chart(
         marker=dict(size=7),
         fill="tonexty",
         fillcolor="rgba(0, 123, 255, 0.1)",
-        hovertemplate="<b>Items Remaining</b><br>Week: %{x}<br>Remaining: %{y}<extra></extra>",
+        hovertemplate=(
+            "<b>Items Remaining</b><br>Week: %{x}<br>Remaining: %{y}<extra></extra>"
+        ),
         yaxis="y",
     )
 
@@ -640,7 +667,10 @@ def create_cumulative_scope_chart(
         mode="lines",
         name="Points Baseline",
         line=dict(color="rgba(253, 126, 20, 0.3)", width=2, dash="dash"),
-        hovertemplate=f"<b>Points Baseline</b><br>Week: %{{x}}<br>Points: {baseline_points:.1f}<extra></extra>",
+        hovertemplate=(
+            "<b>Points Baseline</b><br>"
+            f"Week: %{{x}}<br>Points: {baseline_points:.1f}<extra></extra>"
+        ),
         yaxis="y2",
         showlegend=False,
     )
@@ -654,7 +684,10 @@ def create_cumulative_scope_chart(
         marker=dict(size=7),
         fill="tonexty",
         fillcolor="rgba(253, 126, 20, 0.1)",
-        hovertemplate="<b>Points Remaining</b><br>Week: %{x}<br>Remaining: %{y:.1f}<extra></extra>",
+        hovertemplate=(
+            "<b>Points Remaining</b><br>"
+            "Week: %{x}<br>Remaining: %{y:.1f}<extra></extra>"
+        ),
         yaxis="y2",
     )
 
@@ -792,12 +825,16 @@ def create_scope_metrics_dashboard(
     created items. See data/scope_metrics.py module documentation for details.
 
     Args:
-        scope_change_rate (dict): Dictionary containing items_rate, points_rate and throughput_ratio
+        scope_change_rate (dict): Dictionary containing items_rate,
+            points_rate and throughput_ratio
         weekly_growth_data (DataFrame): DataFrame containing weekly growth data
-        stability_index (dict): Dictionary containing items_stability and points_stability values
+        stability_index (dict): Dictionary containing items_stability
+            and points_stability values
         threshold (int): Threshold percentage for scope change notifications
-        total_items_scope (int, optional): Initial items scope (baseline) at project start
-        total_points_scope (int, optional): Initial points scope (baseline) at project start
+        total_items_scope (int, optional): Initial items scope (baseline)
+            at project start
+        total_points_scope (int, optional): Initial points scope (baseline)
+            at project start
         show_points (bool): Whether points tracking is enabled (default: True)
 
     Returns:
@@ -937,7 +974,8 @@ def create_scope_metrics_dashboard(
             )
         if points_exceeded:
             parts.append(
-                f"Points scope change from baseline ({scope_change_rate['points_rate']}%)"
+                "Points scope change from baseline "
+                f"({scope_change_rate['points_rate']}%)"
             )
 
         if parts:
@@ -947,22 +985,93 @@ def create_scope_metrics_dashboard(
                 )
             else:
                 alert_data["message"] = (
-                    f"{' and '.join(parts)} changing significantly ({threshold}% threshold)."
+                    f"{' and '.join(parts)} changing significantly "
+                    f"({threshold}% threshold)."
                 )
 
             # Add throughput insight
             if items_throughput_concern and points_throughput_concern:
                 alert_data["message"] += (
-                    f" Scope is growing {items_throughput_ratio:.2f}x faster than items completion and {points_throughput_ratio:.2f}x faster than points completion."
+                    " Scope is growing "
+                    f"{items_throughput_ratio:.2f}x faster than items completion "
+                    "and "
+                    f"{points_throughput_ratio:.2f}x faster than points completion."
                 )
             elif items_throughput_concern:
                 alert_data["message"] += (
-                    f" Scope is growing {items_throughput_ratio:.2f}x faster than items completion."
+                    " Scope is growing "
+                    f"{items_throughput_ratio:.2f}x faster than items completion."
                 )
             elif points_throughput_concern:
                 alert_data["message"] += (
-                    f" Scope is growing {points_throughput_ratio:.2f}x faster than points completion."
+                    " Scope is growing "
+                    f"{points_throughput_ratio:.2f}x faster than points completion."
                 )
+
+    info_icon_class = "fas fa-info-circle text-info ms-2 cursor-pointer"
+    points_header_icon_class = "fas fa-chart-bar me-2 text-points"
+    calc_icon_class = "fas fa-calculator text-info ms-2 cursor-pointer"
+    line_icon_class = "fas fa-chart-line text-info ms-2 cursor-pointer"
+    bar_icon_class = "fas fa-chart-bar text-info ms-2 cursor-pointer"
+    forecast_pills_class = "d-flex flex-wrap align-items-center mt-2 gap-1"
+    muted_small_class = "text-muted ms-1 text-size-sm"
+    points_created_completed_label = (
+        f" ({total_created_points} created vs {total_completed_points} completed)"
+    )
+
+    points_scope_change_help = (
+        SCOPE_HELP_TEXTS["scope_change_rate"]
+        + " This version measures scope changes based on story points "
+        "rather than item counts."
+    )
+    points_scope_methodology_help = (
+        SCOPE_HELP_TEXTS["scope_metrics_explanation"]
+        + " This version tracks changes based on story points rather than "
+        "item counts, giving a weighted view of scope complexity changes."
+    )
+    points_throughput_help = (
+        SCOPE_HELP_TEXTS["throughput_ratio"]
+        + " Points-based throughput shows if scope complexity is growing "
+        "faster than delivery capability."
+    )
+    items_scope_breakdown_help = (
+        "Breakdown of scope metrics: Created items show new work added, "
+        "Completed items show work finished, Threshold shows the alert level, "
+        "and Baseline shows the initial backlog remaining at the start of "
+        "this tracking period (calculated as current remaining + completed "
+        "- created in period)."
+    )
+    points_scope_breakdown_help = (
+        "Breakdown of scope metrics based on story points: Created points "
+        "show complexity of new work added, Completed points show effort "
+        "delivered, Threshold shows the alert level for complexity growth, "
+        "and Baseline shows the initial backlog remaining at the start of "
+        "this tracking period (calculated as current remaining + completed "
+        "- created in period)."
+    )
+    throughput_note = (
+        "A ratio greater than 1.0 indicates scope is growing faster than "
+        "the team can deliver. This may affect delivery timelines."
+    )
+    growth_patterns_note = (
+        "Growth Patterns: Positive spikes show scope additions from new "
+        "requirements or discoveries. Negative values indicate backlog "
+        "refinement or completion focus."
+    )
+    adaptability_points_help = (
+        SCOPE_HELP_TEXTS["adaptability_index"]
+        + " This version measures adaptability based on story points rather "
+        "than item counts."
+    )
+    agile_context_intro = (
+        "In agile projects, scope changes are normal and healthy—"
+        "these metrics help you understand patterns, not problems. "
+    )
+    agile_context_detail = (
+        "Lower stability values (0.3-0.6) indicate dynamic, evolving "
+        "scope (typical for responsive agile teams). Higher values (0.7+) "
+        "indicate more predictable, stable scope."
+    )
 
     return html.Div(
         [
@@ -972,7 +1081,8 @@ def create_scope_metrics_dashboard(
                     # Items trend box
                     html.Div(
                         [
-                            # Header with icon and tooltip - matching weekly metrics style
+                            # Header with icon and tooltip
+                            # - matching weekly metrics style
                             html.Div(
                                 className="d-flex align-items-center mb-2",
                                 children=[
@@ -984,7 +1094,7 @@ def create_scope_metrics_dashboard(
                                         className="fw-medium",
                                     ),
                                     html.I(
-                                        className="fas fa-info-circle text-info ms-2 cursor-pointer",
+                                        className=info_icon_class,
                                         id="info-tooltip-items-scope-methodology",
                                     ),
                                 ],
@@ -1001,17 +1111,17 @@ def create_scope_metrics_dashboard(
                                     ),
                                     # Add scope calculation tooltip icon
                                     html.I(
-                                        className="fas fa-calculator text-info ms-2 cursor-pointer",
+                                        className=calc_icon_class,
                                         id="info-tooltip-items-scope-calculation",
                                     ),
                                     # Add throughput ratio tooltip icon
                                     html.I(
-                                        className="fas fa-chart-line text-info ms-2 cursor-pointer",
+                                        className=line_icon_class,
                                         id="info-tooltip-items-throughput-ratio",
                                     ),
                                     # Add scope breakdown methodology tooltip icon
                                     html.I(
-                                        className="fas fa-chart-bar text-info ms-2 cursor-pointer",
+                                        className=bar_icon_class,
                                         id="info-tooltip-items-scope-breakdown",
                                     ),
                                 ],
@@ -1043,9 +1153,10 @@ def create_scope_metrics_dashboard(
                                         className="metric-baseline-note",
                                     ),
                                 ],
-                                className="d-flex flex-wrap align-items-center mt-2 gap-1",
+                                className=forecast_pills_class,
                             ),
-                            # Add all tooltip components at the end for proper rendering - matching weekly metrics pattern
+                            # Add all tooltip components at the end
+                            # for proper rendering - matching weekly metrics pattern
                             html.Div(
                                 [
                                     create_info_tooltip(
@@ -1062,7 +1173,7 @@ def create_scope_metrics_dashboard(
                                     ),
                                     create_info_tooltip(
                                         "items-scope-breakdown",
-                                        "Breakdown of scope metrics: Created items show new work added, Completed items show work finished, Threshold shows the alert level, and Baseline shows the initial backlog remaining at the start of this tracking period (calculated as current remaining + completed - created in period).",
+                                        items_scope_breakdown_help,
                                     ),
                                 ],
                                 className="d-none",
@@ -1076,19 +1187,18 @@ def create_scope_metrics_dashboard(
                     [
                         html.Div(
                             [
-                                # Header with icon and tooltip - matching weekly metrics style
+                                # Header with icon and tooltip
+                                # - matching weekly metrics style
                                 html.Div(
                                     className="d-flex align-items-center mb-2",
                                     children=[
-                                        html.I(
-                                            className="fas fa-chart-bar me-2 text-points",
-                                        ),
+                                        html.I(className=points_header_icon_class),
                                         html.Span(
                                             "Scope Change vs Baseline (Points)",
                                             className="fw-medium",
                                         ),
                                         html.I(
-                                            className="fas fa-info-circle text-info ms-2 cursor-pointer",
+                                            className=info_icon_class,
                                             id="info-tooltip-points-scope-methodology",
                                         ),
                                     ],
@@ -1100,29 +1210,29 @@ def create_scope_metrics_dashboard(
                                             "Scope Change vs Baseline (Points)",
                                             scope_change_rate["points_rate"],
                                             threshold,
-                                            SCOPE_HELP_TEXTS["scope_change_rate"]
-                                            + " This version measures scope changes based on story points rather than item counts.",
+                                            points_scope_change_help,
                                             points_throughput_ratio,
                                         ),
                                         # Add scope calculation tooltip icon
                                         html.I(
-                                            className="fas fa-calculator text-info ms-2 cursor-pointer",
+                                            className=calc_icon_class,
                                             id="info-tooltip-points-scope-calculation",
                                         ),
                                         # Add throughput ratio tooltip icon
                                         html.I(
-                                            className="fas fa-chart-line text-info ms-2 cursor-pointer",
+                                            className=line_icon_class,
                                             id="info-tooltip-points-throughput-ratio",
                                         ),
                                         # Add scope breakdown methodology tooltip icon
                                         html.I(
-                                            className="fas fa-chart-bar text-info ms-2 cursor-pointer",
+                                            className=bar_icon_class,
                                             id="info-tooltip-points-scope-breakdown",
                                         ),
                                     ],
                                     className="d-flex align-items-center gap-1",
                                 ),
-                                # Enhanced forecast pills - matching weekly metrics style
+                                # Enhanced forecast pills
+                                # - matching weekly metrics style
                                 html.Div(
                                     [
                                         create_forecast_pill(
@@ -1142,37 +1252,36 @@ def create_scope_metrics_dashboard(
                                         ),
                                         html.Div(
                                             html.Small(
-                                                f"baseline: {int(baseline_points)} points",
+                                                (
+                                                    f"baseline: {int(baseline_points)}"
+                                                    " points"
+                                                ),
                                                 className="text-muted fst-italic",
                                             ),
                                             className="metric-baseline-note",
                                         ),
                                     ],
-                                    className="d-flex flex-wrap align-items-center mt-2 gap-1",
+                                    className=forecast_pills_class,
                                 ),
-                                # Add all tooltip components at the end for proper rendering - matching weekly metrics pattern
+                                # Add all tooltip components at the end
+                                # for proper rendering - matching weekly metrics pattern
                                 html.Div(
                                     [
                                         create_info_tooltip(
                                             "points-scope-methodology",
-                                            SCOPE_HELP_TEXTS[
-                                                "scope_metrics_explanation"
-                                            ]
-                                            + " This version tracks changes based on story points rather than item counts, giving a weighted view of scope complexity changes.",
+                                            points_scope_methodology_help,
                                         ),
                                         create_info_tooltip(
                                             "points-scope-calculation",
-                                            SCOPE_HELP_TEXTS["scope_change_rate"]
-                                            + " This version measures scope changes based on story points rather than item counts.",
+                                            points_scope_change_help,
                                         ),
                                         create_info_tooltip(
                                             "points-throughput-ratio",
-                                            SCOPE_HELP_TEXTS["throughput_ratio"]
-                                            + " Points-based throughput shows if scope complexity is growing faster than delivery capability.",
+                                            points_throughput_help,
                                         ),
                                         create_info_tooltip(
                                             "points-scope-breakdown",
-                                            "Breakdown of scope metrics based on story points: Created points show complexity of new work added, Completed points show effort delivered, Threshold shows the alert level for complexity growth, and Baseline shows the initial backlog remaining at the start of this tracking period (calculated as current remaining + completed - created in period).",
+                                            points_scope_breakdown_help,
                                         ),
                                     ],
                                     className="d-none",
@@ -1187,7 +1296,8 @@ def create_scope_metrics_dashboard(
                 className="row mb-3",
             ),
             # PRINCIPAL ENGINEER FIX: Removed problematic alert banner entirely.
-            # The scope change information is already displayed in the metrics cards above,
+            # The scope change information is already displayed
+            # in the metrics cards above,
             # so this redundant banner was causing component lifecycle issues in Dash.
             # Cumulative Scope Growth Chart with Tooltip
             html.Div(
@@ -1243,7 +1353,11 @@ def create_scope_metrics_dashboard(
                                     [
                                         "Items: ",
                                         html.Span(
-                                            f"For every completed item, {items_throughput_ratio:.2f} new items are being created",
+                                            (
+                                                "For every completed item, "
+                                                f"{items_throughput_ratio:.2f} "
+                                                "new items are being created"
+                                            ),
                                             className=(
                                                 "fw-medium text-danger"
                                                 if items_throughput_ratio > 1
@@ -1251,7 +1365,10 @@ def create_scope_metrics_dashboard(
                                             ),
                                         ),
                                         html.Span(
-                                            f" ({total_created_items} created vs {total_completed_items} completed)",
+                                            (
+                                                f" ({total_created_items} created vs "
+                                                f"{total_completed_items} completed)"
+                                            ),
                                             className="text-muted ms-1 text-size-sm",
                                         ),
                                     ]
@@ -1263,7 +1380,11 @@ def create_scope_metrics_dashboard(
                                         [
                                             "Points: ",
                                             html.Span(
-                                                f"For every completed point, {points_throughput_ratio:.2f} new points are being created",
+                                                (
+                                                    "For every completed point, "
+                                                    f"{points_throughput_ratio:.2f} "
+                                                    "new points are being created"
+                                                ),
                                                 className=(
                                                     "fw-medium text-danger"
                                                     if points_throughput_ratio > 1
@@ -1271,8 +1392,8 @@ def create_scope_metrics_dashboard(
                                                 ),
                                             ),
                                             html.Span(
-                                                f" ({total_created_points} created vs {total_completed_points} completed)",
-                                                className="text-muted ms-1 text-size-sm",
+                                                points_created_completed_label,
+                                                className=muted_small_class,
                                             ),
                                         ]
                                     ),
@@ -1282,7 +1403,7 @@ def create_scope_metrics_dashboard(
                             )
                             + [
                                 html.P(
-                                    "A ratio greater than 1.0 indicates scope is growing faster than the team can deliver. This may affect delivery timelines.",
+                                    throughput_note,
                                     className="text-muted small mb-0 mt-2 fst-italic",
                                 ),
                             ]
@@ -1323,7 +1444,7 @@ def create_scope_metrics_dashboard(
                     html.I(
                         className="fas fa-seedling me-1 text-muted",
                     ),
-                    "Growth Patterns: Positive spikes show scope additions from new requirements or discoveries. Negative values indicate backlog refinement or completion focus.",
+                    growth_patterns_note,
                 ],
             ),
             # Adaptability section with title
@@ -1356,9 +1477,11 @@ def create_scope_metrics_dashboard(
                                             ),
                                             create_enhanced_stability_gauge(
                                                 stability_index["items_stability"],
-                                                "",  # Empty title since we have header above
+                                                "",
+                                                # Empty title since we have header above
                                                 height=280,
-                                                show_toolbar=False,  # Hide toolbar for cleaner UI
+                                                show_toolbar=False,
+                                                # Hide toolbar for cleaner UI
                                             ),
                                         ]
                                     )
@@ -1382,19 +1505,18 @@ def create_scope_metrics_dashboard(
                                                         "Points Adaptability Index ",
                                                         create_info_tooltip(
                                                             "points_adaptability_index",
-                                                            SCOPE_HELP_TEXTS[
-                                                                "adaptability_index"
-                                                            ]
-                                                            + " This version measures adaptability based on story points rather than item counts.",
+                                                            adaptability_points_help,
                                                         ),
                                                     ],
                                                     className="mb-3 text-center",
                                                 ),
                                                 create_enhanced_stability_gauge(
                                                     stability_index["points_stability"],
-                                                    "",  # Empty title since we have header above
+                                                    "",
+                                                    # Empty title (header above)
                                                     height=280,
-                                                    show_toolbar=False,  # Hide toolbar for cleaner UI
+                                                    show_toolbar=False,
+                                                    # Hide toolbar for cleaner UI
                                                 ),
                                             ]
                                         )
@@ -1417,8 +1539,8 @@ def create_scope_metrics_dashboard(
                         className="fas fa-lightbulb me-1",
                     ),
                     html.Strong("Agile Context: ", className="fw-semibold"),
-                    "In agile projects, scope changes are normal and healthy—these metrics help you understand patterns, not problems. ",
-                    "Lower stability values (0.3-0.6) indicate dynamic, evolving scope (typical for responsive agile teams). Higher values (0.7+) indicate more predictable, stable scope.",
+                    agile_context_intro,
+                    agile_context_detail,
                 ],
             ),
         ]
