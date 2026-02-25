@@ -203,7 +203,8 @@ class TokenBucket:
             tokens_needed = tokens - self.tokens
             wait_time = tokens_needed / self.refill_rate
 
-            # Sleep for the calculated time (capped at 1 second intervals for responsiveness)
+            # Sleep for the calculated time
+            # (capped at 1 second intervals for responsiveness)
             time.sleep(min(wait_time, 1.0))
 
         return time.time() - wait_start
