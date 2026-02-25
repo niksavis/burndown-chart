@@ -22,7 +22,6 @@ select = ["E", "F", "I", "B", "UP"]
 "ui/dashboard/insights_engine.py" = ["E501"]
 "ui/issue_type_config_form.py" = ["E501"]
 "ui/metric_cards.py" = ["E501"]
-"ui/pert_components.py" = ["E501"]
 "ui/scope_metrics.py" = ["E501"]
 
 [tool.ruff.format]

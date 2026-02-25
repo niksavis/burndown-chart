@@ -220,10 +220,17 @@ def _create_project_overview_section(
                                             f"{items_percentage}% Complete",
                                             create_info_tooltip(
                                                 "combined-completion-percentage",
-                                                "Percentage of total work completed based on historical progress data. Items vs Points comparison shows estimation accuracy.",
+                                                "Percentage of total work completed "
+                                                "based on historical progress data. "
+                                                "Items vs Points comparison shows "
+                                                "estimation accuracy.",
                                             ),
                                         ],
-                                        className=f"progress-label {'dark-text' if items_percentage > 40 else 'light-text'}",
+                                        className=(
+                                            "progress-label dark-text"
+                                            if items_percentage > 40
+                                            else "progress-label light-text"
+                                        ),
                                     ),
                                 ],
                             ),
@@ -258,7 +265,9 @@ def _create_project_overview_section(
                                                 html.Span(
                                                     [
                                                         html.I(
-                                                            className="fas fa-chart-line me-1",
+                                                            className=(
+                                                                "fas fa-chart-line me-1"
+                                                            ),
                                                             style={
                                                                 "color": COLOR_PALETTE[
                                                                     "points"
@@ -268,10 +277,18 @@ def _create_project_overview_section(
                                                         html.Strong(
                                                             f"{completed_points:.1f}"
                                                         ),
-                                                        f" of {actual_total_points:.1f} points",
+                                                        " of ",
+                                                        f"{actual_total_points:.1f}",
+                                                        " points",
                                                         create_info_tooltip(
                                                             "points-progress-combined",
-                                                            "Comparison between item-based and point-based progress tracking. Similar percentages indicate consistent estimation accuracy.",
+                                                            "Comparison between "
+                                                            "item-based and "
+                                                            "point-based progress "
+                                                            "tracking. "
+                                                            "Similar percentages "
+                                                            "indicate consistent "
+                                                            "estimation accuracy.",
                                                         ),
                                                     ]
                                                 ),
@@ -295,7 +312,10 @@ def _create_project_overview_section(
                             html.Div(
                                 [
                                     html.Div(
-                                        className="d-flex justify-content-between align-items-center mb-1",
+                                        className=(
+                                            "d-flex justify-content-between "
+                                            "align-items-center mb-1"
+                                        ),
                                         children=[
                                             html.Small(
                                                 [
@@ -310,7 +330,10 @@ def _create_project_overview_section(
                                                     "Items Progress",
                                                     create_info_tooltip(
                                                         "items-progress-separate",
-                                                        "Progress tracking by item count. Shows (Completed Items ÷ Total Items) × 100%",
+                                                        "Progress tracking by "
+                                                        "item count. "
+                                                        "Shows (Completed Items ÷ "
+                                                        "Total Items) × 100%",
                                                     ),
                                                 ],
                                                 className="fw-medium",
@@ -320,7 +343,9 @@ def _create_project_overview_section(
                                                     f"{items_percentage}% Complete",
                                                     create_info_tooltip(
                                                         "items-completion-separate",
-                                                        "Percentage completion based on item count progress tracking",
+                                                        "Percentage completion "
+                                                        "based on "
+                                                        "item count progress tracking",
                                                     ),
                                                 ],
                                                 className="text-muted",
@@ -333,7 +358,9 @@ def _create_project_overview_section(
                                             "height": "16px",
                                             "borderRadius": "4px",
                                             "overflow": "hidden",
-                                            "boxShadow": "inset 0 1px 2px rgba(0,0,0,.1)",
+                                            "boxShadow": (
+                                                "inset 0 1px 2px rgba(0,0,0,.1)"
+                                            ),
                                         },
                                         children=[
                                             html.Div(
@@ -347,7 +374,9 @@ def _create_project_overview_section(
                                         ],
                                     ),
                                     html.Small(
-                                        f"{completed_items} of {actual_total_items} items ({total_items} remaining)",
+                                        f"{completed_items} of "
+                                        f"{actual_total_items} items "
+                                        f"({total_items} remaining)",
                                         className="text-muted mt-1 d-block",
                                     ),
                                 ],
@@ -356,16 +385,21 @@ def _create_project_overview_section(
                         ]
                         + (
                             [
-                                # Points progress - only show if points tracking is enabled
+                                # Points progress shown when tracking is enabled.
                                 html.Div(
                                     [
                                         html.Div(
-                                            className="d-flex justify-content-between align-items-center mb-1",
+                                            className=(
+                                                "d-flex justify-content-between "
+                                                "align-items-center mb-1"
+                                            ),
                                             children=[
                                                 html.Small(
                                                     [
                                                         html.I(
-                                                            className="fas fa-chart-line me-1",
+                                                            className=(
+                                                                "fas fa-chart-line me-1"
+                                                            ),
                                                             style={
                                                                 "color": COLOR_PALETTE[
                                                                     "points"
@@ -384,7 +418,8 @@ def _create_project_overview_section(
                                                 ),
                                                 html.Small(
                                                     [
-                                                        f"{points_percentage}% Complete",
+                                                        f"{points_percentage}%",
+                                                        " Complete",
                                                         create_info_tooltip(
                                                             id_suffix="points-completion-separate",
                                                             help_text=PROJECT_HELP_TEXTS[
@@ -402,13 +437,17 @@ def _create_project_overview_section(
                                                 "height": "16px",
                                                 "borderRadius": "4px",
                                                 "overflow": "hidden",
-                                                "boxShadow": "inset 0 1px 2px rgba(0,0,0,.1)",
+                                                "boxShadow": (
+                                                    "inset 0 1px 2px rgba(0,0,0,.1)"
+                                                ),
                                             },
                                             children=[
                                                 html.Div(
                                                     className="progress-bar bg-warning",
                                                     style={
-                                                        "width": f"{points_percentage}%",
+                                                        "width": (
+                                                            f"{points_percentage}%"
+                                                        ),
                                                         "height": "100%",
                                                         "transition": "width 1s ease",
                                                     },
@@ -416,7 +455,9 @@ def _create_project_overview_section(
                                             ],
                                         ),
                                         html.Small(
-                                            f"{completed_points:.1f} of {actual_total_points:.1f} points ({remaining_points:.1f} remaining)",
+                                            f"{completed_points:.1f} of "
+                                            f"{actual_total_points:.1f} points "
+                                            f"({remaining_points:.1f} remaining)",
                                             className="text-muted mt-1 d-block",
                                         ),
                                     ],
@@ -448,6 +489,11 @@ def _create_deadline_section(deadline_date_str, days_to_deadline):
     Returns:
         dash.html.Div: Deadline visualization section
     """
+    deadline_pressure_percent = max(
+        5,
+        min(100, (100 - (days_to_deadline / (days_to_deadline + 30) * 100))),
+    )
+
     return html.Div(
         [
             html.Div(
@@ -494,7 +540,7 @@ def _create_deadline_section(deadline_date_str, days_to_deadline):
                             html.Div(
                                 className="progress-bar bg-danger",
                                 style={
-                                    "width": f"{max(5, min(100, (100 - (days_to_deadline / (days_to_deadline + 30) * 100))))}%",
+                                    "width": f"{deadline_pressure_percent}%",
                                 },
                             ),
                         ],
@@ -518,7 +564,10 @@ def _create_deadline_section(deadline_date_str, days_to_deadline):
         ],
         className="p-3 border rounded",
         style={
-            "background": "linear-gradient(to bottom, rgba(220, 53, 69, 0.05), rgba(255, 255, 255, 1))",
+            "background": (
+                "linear-gradient(to bottom, rgba(220, 53, 69, 0.05), "
+                "rgba(255, 255, 255, 1))"
+            ),
             "boxShadow": "rgba(0, 0, 0, 0.05) 0px 1px 2px 0px",
         },
     )
@@ -560,13 +609,33 @@ def _create_forecast_card(
     Returns:
         dash.html.Div: A forecast card component
     """
+    metric_icon_class = (
+        "fas fa-tasks me-2" if metric_type == "items" else "fas fa-chart-bar me-2"
+    )
+    center_header_class = (
+        "text-muted text-center d-flex align-items-center justify-content-center"
+    )
+    end_header_class = (
+        "text-muted text-end d-flex align-items-center justify-content-end"
+    )
+    week_tone_avg = "40,167,69" if weeks_avg_color == "green" else "220,53,69"
+    week_tone_med = "40,167,69" if weeks_med_color == "green" else "220,53,69"
+    avg_row_bg = f"rgba({week_tone_avg},0.05)"
+    med_row_bg = f"rgba({week_tone_med},0.05)"
+    card_bg_items = (
+        "linear-gradient(to bottom, rgba(13, 110, 253, 0.05), rgba(255, 255, 255, 1))"
+    )
+    card_bg_points = (
+        "linear-gradient(to bottom, rgba(253, 126, 20, 0.05), rgba(255, 255, 255, 1))"
+    )
+
     return html.Div(
         [
             # Header with icon
             html.Div(
                 [
                     html.I(
-                        className=f"{'fas fa-tasks' if metric_type == 'items' else 'fas fa-chart-bar'} me-2",
+                        className=metric_icon_class,
                         style={"color": COLOR_PALETTE[metric_type]},
                     ),
                     html.Span(
@@ -589,7 +658,8 @@ def _create_forecast_card(
                                 FORECAST_HELP_TEXTS["three_point_estimation"],
                                 "Three-Point Estimation",
                                 [
-                                    "PERT: (Optimistic + 4×Most_Likely + Pessimistic) / 6",
+                                    "PERT: (Optimistic + 4×Most_Likely + "
+                                    "Pessimistic) / 6",
                                     "Average: Historical mean completion rate",
                                     "Median: Middle value of historical rates",
                                     "Each method provides different confidence levels",
@@ -604,10 +674,12 @@ def _create_forecast_card(
                             "Completion Date",
                             create_info_tooltip(
                                 f"completion-date-{metric_type}",
-                                "Projected completion date based on historical velocity and confidence window analysis.",
+                                "Projected completion date based on "
+                                "historical velocity "
+                                "and confidence window analysis.",
                             ),
                         ],
-                        className="text-muted text-center d-flex align-items-center justify-content-center",
+                        className=center_header_class,
                         style={"width": "45%"},
                     ),
                     html.Div(
@@ -615,10 +687,11 @@ def _create_forecast_card(
                             "Timeframe",
                             create_info_tooltip(
                                 f"timeframe-{metric_type}",
-                                "Estimated duration to complete remaining work, shown in days (d) and weeks (w).",
+                                "Estimated duration to complete remaining work, "
+                                "shown in days (d) and weeks (w).",
                             ),
                         ],
-                        className="text-muted text-end d-flex align-items-center justify-content-end",
+                        className=end_header_class,
                         style={"width": "30%"},
                     ),
                 ],
@@ -634,7 +707,8 @@ def _create_forecast_card(
                             "O = Best case scenario (optimistic)",
                             "M = Most likely scenario (modal)",
                             "P = Worst case scenario (pessimistic)",
-                            "Uses beta distribution weighting with 4x emphasis on most likely case",
+                            "Uses beta distribution weighting with 4x emphasis "
+                            "on the most likely case",
                         ],
                     ),
                 ],
@@ -665,7 +739,7 @@ def _create_forecast_card(
                     if weeks_avg != float("inf")
                     else "∞"
                 ),
-                f"rgba({weeks_avg_color == 'green' and '40,167,69' or '220,53,69'},0.05)",
+                avg_row_bg,
             ),
             # Median row
             _create_forecast_row(
@@ -675,7 +749,9 @@ def _create_forecast_card(
                         f"median-forecast-{metric_type}",
                         VELOCITY_HELP_TEXTS["velocity_median"],
                         "50th percentile",
-                        "More robust than average - less affected by outliers and extreme values. Better for forecasting when velocity varies significantly.",
+                        "More robust than average - less affected by outliers "
+                        "and extreme values. Better for forecasting "
+                        "when velocity varies significantly.",
                     ),
                 ],
                 med_completion_str,
@@ -684,15 +760,13 @@ def _create_forecast_card(
                     if weeks_med != float("inf")
                     else "∞"
                 ),
-                f"rgba({weeks_med_color == 'green' and '40,167,69' or '220,53,69'},0.05)",
+                med_row_bg,
             ),
         ],
         className=f"{'mb-4' if metric_type == 'items' else 'mb-3'} p-3 border rounded",
         style={
             "boxShadow": "rgba(0, 0, 0, 0.05) 0px 1px 2px 0px",
-            "background": "linear-gradient(to bottom, rgba(13, 110, 253, 0.05), rgba(255, 255, 255, 1))"
-            if metric_type == "items"
-            else "linear-gradient(to bottom, rgba(253, 126, 20, 0.05), rgba(255, 255, 255, 1))",
+            "background": card_bg_items if metric_type == "items" else card_bg_points,
         },
     )
 
@@ -784,13 +858,17 @@ def _create_completion_forecast_section(
                             className="fas fa-chart-line me-1",
                             style={"color": "#6c757d"},
                         ),
-                        "Confidence Window three-point estimation (optimistic + most likely + pessimistic)",
+                        "Confidence Window three-point estimation "
+                        "(optimistic + most likely + pessimistic)",
                         create_info_tooltip(
                             "pert-methodology",
                             FORECAST_HELP_TEXTS["pert_methodology"],
                         ),
                     ],
-                    className="text-muted fst-italic text-center d-flex align-items-center justify-content-center",
+                    className=(
+                        "text-muted fst-italic text-center d-flex "
+                        "align-items-center justify-content-center"
+                    ),
                 ),
                 className="mt-3",
             ),
@@ -817,7 +895,7 @@ def _create_velocity_metric_card(
     Returns:
         dash.html.Div: A velocity metric card
     """
-    # Generate some demo data for the sparklines
+    # Generate demo data for sparklines.
     sparkline_bars = []
     for i in range(10):
         if title == "Average" and not is_mini:
@@ -842,11 +920,25 @@ def _create_velocity_metric_card(
             )
         )
 
-    # Create the card with proper styles - remove fixed margins
+    # Create card styles.
     style_dict = {
         "flex": "1",
         "minWidth": "150px",
     }
+    title_key = title.lower()
+    velocity_help_key = f"velocity_{title_key}"
+    velocity_calc_key = f"velocity_{title_key}_calculation"
+    detail_help_title = f"Get detailed help about {title_key} velocity"
+    trend_title = (
+        f"Visual representation of {title_key} "
+        f"{'items' if not is_mini else 'points'} completed over the last 10 weeks"
+    )
+    formula_description = (
+        "Σ(values)/n" if title == "Average" else "middle value when sorted"
+    )
+    formula_example = (
+        "(3+5+7+4+6)/5 = 5.0" if title == "Average" else "[3,4,5,6,7] → 5.0"
+    )
 
     return html.Div(
         [
@@ -857,13 +949,17 @@ def _create_velocity_metric_card(
                         [
                             title,
                             create_calculation_step_tooltip(
-                                f"velocity-{title.lower()}",
-                                VELOCITY_HELP_TEXTS[f"velocity_{title.lower()}"],
+                                f"velocity-{title_key}",
+                                VELOCITY_HELP_TEXTS[velocity_help_key],
                                 [
-                                    f"{title} = {'Σ(values)/n' if title == 'Average' else 'middle value when sorted'}",
-                                    f"Example: {'(3+5+7+4+6)/5 = 5.0' if title == 'Average' else '[3,4,5,6,7] → 5.0'}",
+                                    f"{title} = {formula_description}",
+                                    f"Example: {formula_example}",
                                     "Based on last 10 weeks of completed work",
-                                    f"{'Arithmetic mean' if title == 'Average' else '50th percentile - outlier resistant'}",
+                                    (
+                                        "Arithmetic mean"
+                                        if title == "Average"
+                                        else "50th percentile - outlier resistant"
+                                    ),
                                 ],
                             ),
                             # Phase 9.2 Progressive Disclosure Help Button
@@ -878,7 +974,7 @@ def _create_velocity_metric_card(
                                                 id={
                                                     "type": "help-button",
                                                     "category": "velocity",
-                                                    "key": f"velocity_{title.lower()}_calculation",
+                                                    "key": velocity_calc_key,
                                                 },
                                                 size="sm",
                                                 color="link",
@@ -889,7 +985,7 @@ def _create_velocity_metric_card(
                                                     "fontSize": "0.7rem",
                                                     "lineHeight": "1",
                                                 },
-                                                title=f"Get detailed help about {title.lower()} velocity",
+                                                title=detail_help_title,
                                             )
                                         ],
                                         className="help-button-container",
@@ -899,8 +995,8 @@ def _create_velocity_metric_card(
                             )
                             if title in ["Average", "Median"]
                             else create_info_tooltip(
-                                f"velocity-{title.lower()}",
-                                VELOCITY_HELP_TEXTS[f"velocity_{title.lower()}"],
+                                f"velocity-{title_key}",
+                                VELOCITY_HELP_TEXTS[velocity_help_key],
                             ),
                         ],
                         className="fw-medium d-flex align-items-center",
@@ -958,7 +1054,7 @@ def _create_velocity_metric_card(
                         className="text-center mt-1",
                     ),
                 ],
-                title=f"Visual representation of {title.lower()} {'items' if not is_mini else 'points'} completed over the last 10 weeks",
+                title=trend_title,
             ),
         ],
         className="p-3 border rounded mb-3",
@@ -1000,13 +1096,21 @@ def _create_velocity_metric_section(
     med_color = "#6c757d"
     is_mini = not is_items
 
+    metric_icon_class = "fas fa-tasks me-2" if is_items else "fas fa-chart-bar me-2"
+    card_bg_items = (
+        "linear-gradient(to bottom, rgba(13, 110, 253, 0.05), rgba(255, 255, 255, 1))"
+    )
+    card_bg_points = (
+        "linear-gradient(to bottom, rgba(253, 126, 20, 0.05), rgba(255, 255, 255, 1))"
+    )
+
     return html.Div(
         [
             # Header with icon - align left instead of center
             html.Div(
                 [
                     html.I(
-                        className=f"{'fas fa-tasks' if is_items else 'fas fa-chart-bar'} me-2",
+                        className=metric_icon_class,
                         style={"color": COLOR_PALETTE[metric_type]},
                     ),
                     html.Span("Items" if is_items else "Points", className="fw-medium"),
@@ -1062,9 +1166,7 @@ def _create_velocity_metric_section(
         className=f"{'mb-4' if is_items else 'mb-3'} p-3 border rounded",
         style={
             "boxShadow": "rgba(0, 0, 0, 0.05) 0px 1px 2px 0px",
-            "background": "linear-gradient(to bottom, rgba(13, 110, 253, 0.05), rgba(255, 255, 255, 1))"
-            if is_items
-            else "linear-gradient(to bottom, rgba(253, 126, 20, 0.05), rgba(255, 255, 255, 1))",
+            "background": card_bg_items if is_items else card_bg_points,
         },
     )
 
@@ -1141,9 +1243,16 @@ def _create_weekly_velocity_section(
 
     if data_points_count is not None and total_data_points is not None:
         if data_points_count < total_data_points:
-            footer_text = f"Based on last {data_points_count} weeks of data (filtered from {total_data_points} available weeks)"
+            footer_text = (
+                f"Based on last {data_points_count} weeks of data "
+                f"(filtered from {total_data_points} available weeks)"
+            )
             tooltip_key = "velocity-data-filtering"
-            tooltip_text = f"Velocity calculations use the most recent {data_points_count} data points as selected by the 'Data Points to Include' slider."
+            tooltip_text = (
+                "Velocity calculations use the most recent "
+                f"{data_points_count} data points as selected by the "
+                "'Data Points to Include' slider."
+            )
 
     return html.Div(
         [
@@ -1163,7 +1272,10 @@ def _create_weekly_velocity_section(
                             tooltip_text,
                         ),
                     ],
-                    className="text-muted fst-italic small text-center d-flex align-items-center justify-content-center",
+                    className=(
+                        "text-muted fst-italic small text-center d-flex "
+                        "align-items-center justify-content-center"
+                    ),
                 ),
                 className="mt-3",
             ),
