@@ -74,8 +74,8 @@ def create_forecast_analytics_section(
         avg_weekly_items: Current velocity in items/week (from filtered data)
         avg_weekly_points: Current velocity in points/week (from filtered data)
         days_to_deadline: Days remaining to deadline (for display purposes)
-        deadline_str: Deadline date string in YYYY-MM-DD format (for accurate calculation)
-        days_to_deadline: Days remaining to deadline (for pace health calculation)
+        deadline_str: Deadline in YYYY-MM-DD format
+            (used for accurate date calculation)
 
     Returns:
         dbc.Card component containing forecast analytics
@@ -88,7 +88,8 @@ def create_forecast_analytics_section(
 
         Args:
             forecast_date_str: Forecast date in YYYY-MM-DD format
-            deadline_date_str: Deadline date in YYYY-MM-DD format (None if no deadline set)
+            deadline_date_str: Deadline in YYYY-MM-DD format
+                (None if no deadline is set)
             current_date: Current date/time
 
         Returns:
@@ -121,7 +122,7 @@ def create_forecast_analytics_section(
                     "status": "overdue",
                 }
 
-            # Calculate percentage (how much of timeline to deadline is used by forecast)
+            # Calculate percentage of deadline timeline used by forecast.
             percentage = (days_to_forecast / days_to_deadline) * 100
 
             # Determine status
@@ -242,15 +243,45 @@ def create_forecast_analytics_section(
         pessimistic_date, deadline_str, current_date
     )
 
+    row_between_class = "d-flex justify-content-between align-items-center mb-2"
+    points_disabled_text = (
+        "Points tracking is disabled. Enable Points Tracking "
+        "in Parameters panel to view story points metrics."
+    )
+    no_points_data_text = (
+        "No story points data available. Configure story points field "
+        "in Settings or complete items with point estimates."
+    )
+    expected_completion_tooltip = (
+        "Calculated using PERT three-point estimation: "
+        "(Optimistic + 4×Most_Likely + Pessimistic) ÷ 6. "
+        "Shows forecasts based on both items and story points velocity. "
+        "This weighted average emphasizes the most likely scenario (4x weight) "
+        "while accounting for best/worst cases from historical velocity data. "
+        "Same method used in Burndown and Report."
+    )
+    confidence_intervals_tooltip = (
+        "Statistical probability ranges based on "
+        f"{forecast_metric} velocity variability. "
+        "50%: 50th percentile (median) - the PERT forecast itself. "
+        "95%: 95th percentile - conservative estimate with 1.65σ buffer "
+        "(adds uncertainty for remaining work). "
+        "Wider spread indicates higher velocity uncertainty. "
+        "Calculated from historical data variance."
+    )
+    on_track_tooltip = (
+        "Statistical probability of meeting deadline using normal distribution. "
+        "Calculated via Z-score: (deadline_days - expected_days) / forecast_std_dev. "
+        "Based on how many standard deviations your deadline is from expected "
+        "completion, adjusted for velocity consistency."
+    )
+
     # Create Enhanced Expected Completion card with BOTH forecasts
     expected_completion_card = dbc.Card(
         [
             create_metric_card_header(
                 title="Expected Completion",
-                tooltip_text="Calculated using PERT three-point estimation: (Optimistic + 4×Most_Likely + Pessimistic) ÷ 6. "
-                "Shows forecasts based on both items and story points velocity. "
-                "This weighted average emphasizes the most likely scenario (4x weight) while accounting for best/worst cases from your historical velocity data. "
-                "Same method used in Burndown and Report.",
+                tooltip_text=expected_completion_tooltip,
                 tooltip_id="metric-expected_completion",
             ),
             dbc.CardBody(
@@ -292,14 +323,14 @@ def create_forecast_analytics_section(
                                                 items_schedule_status["badge_text"],
                                                 className="badge ms-2",
                                                 style={
-                                                    "backgroundColor": items_schedule_status[
-                                                        "color"
-                                                    ],
+                                                    "backgroundColor": (
+                                                        items_schedule_status["color"]
+                                                    ),
                                                     "fontSize": "0.75rem",
                                                 },
                                             ),
                                         ],
-                                        className="d-flex justify-content-between align-items-center mb-2",
+                                        className=row_between_class,
                                     ),
                                     # Progress bar
                                     html.Div(
@@ -307,10 +338,12 @@ def create_forecast_analytics_section(
                                             f"{items_schedule_status['percentage']:.1f}%",
                                             className="progress-bar",
                                             style={
-                                                "width": f"{items_schedule_status['bar_width']}%",
-                                                "backgroundColor": items_schedule_status[
-                                                    "color"
-                                                ],
+                                                "width": (
+                                                    f"{items_schedule_status['bar_width']}%"
+                                                ),
+                                                "backgroundColor": (
+                                                    items_schedule_status["color"]
+                                                ),
                                             },
                                             role="progressbar",
                                         ),
@@ -325,7 +358,7 @@ def create_forecast_analytics_section(
                         if show_points
                         else {"marginBottom": "0"},
                     ),
-                    # Points-based forecast (always show, with placeholder when disabled or no data)
+                    # Points-based forecast with placeholder when disabled/no data.
                     html.Div(
                         [
                             html.Div(
@@ -365,14 +398,14 @@ def create_forecast_analytics_section(
                                                 points_schedule_status["badge_text"],
                                                 className="badge ms-2",
                                                 style={
-                                                    "backgroundColor": points_schedule_status[
-                                                        "color"
-                                                    ],
+                                                    "backgroundColor": (
+                                                        points_schedule_status["color"]
+                                                    ),
                                                     "fontSize": "0.75rem",
                                                 },
                                             ),
                                         ],
-                                        className="d-flex justify-content-between align-items-center mb-2",
+                                        className=row_between_class,
                                     ),
                                     # Progress bar
                                     html.Div(
@@ -380,10 +413,12 @@ def create_forecast_analytics_section(
                                             f"{points_schedule_status['percentage']:.1f}%",
                                             className="progress-bar",
                                             style={
-                                                "width": f"{points_schedule_status['bar_width']}%",
-                                                "backgroundColor": points_schedule_status[
-                                                    "color"
-                                                ],
+                                                "width": (
+                                                    f"{points_schedule_status['bar_width']}%"
+                                                ),
+                                                "backgroundColor": (
+                                                    points_schedule_status["color"]
+                                                ),
                                             },
                                             role="progressbar",
                                         ),
@@ -399,7 +434,10 @@ def create_forecast_analytics_section(
                                 html.Div(
                                     [
                                         html.I(
-                                            className="fas fa-toggle-off fa-2x text-secondary mb-2"
+                                            className=(
+                                                "fas fa-toggle-off fa-2x "
+                                                "text-secondary mb-2"
+                                            )
                                         ),
                                         html.Div(
                                             "Points Tracking Disabled",
@@ -410,7 +448,7 @@ def create_forecast_analytics_section(
                                             },
                                         ),
                                         html.Small(
-                                            "Points tracking is disabled. Enable Points Tracking in Parameters panel to view story points metrics.",
+                                            points_disabled_text,
                                             className="text-muted",
                                             style={"fontSize": "0.75rem"},
                                         ),
@@ -422,7 +460,10 @@ def create_forecast_analytics_section(
                                 else html.Div(
                                     [
                                         html.I(
-                                            className="fas fa-database fa-2x text-secondary mb-2"
+                                            className=(
+                                                "fas fa-database fa-2x "
+                                                "text-secondary mb-2"
+                                            )
                                         ),
                                         html.Div(
                                             "No Points Data",
@@ -433,7 +474,7 @@ def create_forecast_analytics_section(
                                             },
                                         ),
                                         html.Small(
-                                            "No story points data available. Configure story points field in Settings or complete items with point estimates.",
+                                            no_points_data_text,
                                             className="text-muted",
                                             style={"fontSize": "0.75rem"},
                                         ),
@@ -463,10 +504,7 @@ def create_forecast_analytics_section(
         [
             create_metric_card_header(
                 title="Confidence Intervals",
-                tooltip_text=f"Statistical probability ranges based on {forecast_metric} velocity variability. "
-                f"50%: 50th percentile (median) - the PERT forecast itself. "
-                f"95%: 95th percentile - conservative estimate with 1.65σ buffer (adds uncertainty for remaining work). "
-                f"Wider spread indicates higher velocity uncertainty. Calculated from your historical data variance.",
+                tooltip_text=confidence_intervals_tooltip,
                 tooltip_id="metric-confidence_intervals",
             ),
             dbc.CardBody(
@@ -515,7 +553,7 @@ def create_forecast_analytics_section(
                                                 },
                                             ),
                                         ],
-                                        className="d-flex justify-content-between align-items-center mb-2",
+                                        className=row_between_class,
                                     ),
                                     # Progress bar
                                     html.Div(
@@ -523,7 +561,9 @@ def create_forecast_analytics_section(
                                             f"{ci_50_status['percentage']:.1f}%",
                                             className="progress-bar",
                                             style={
-                                                "width": f"{ci_50_status['bar_width']}%",
+                                                "width": (
+                                                    f"{ci_50_status['bar_width']}%"
+                                                ),
                                                 "backgroundColor": ci_50_status[
                                                     "color"
                                                 ],
@@ -583,7 +623,7 @@ def create_forecast_analytics_section(
                                                 },
                                             ),
                                         ],
-                                        className="d-flex justify-content-between align-items-center mb-2",
+                                        className=row_between_class,
                                     ),
                                     # Progress bar
                                     html.Div(
@@ -591,7 +631,9 @@ def create_forecast_analytics_section(
                                             f"{ci_95_status['percentage']:.1f}%",
                                             className="progress-bar",
                                             style={
-                                                "width": f"{ci_95_status['bar_width']}%",
+                                                "width": (
+                                                    f"{ci_95_status['bar_width']}%"
+                                                ),
                                                 "backgroundColor": ci_95_status[
                                                     "color"
                                                 ],
@@ -623,9 +665,7 @@ def create_forecast_analytics_section(
         [
             create_metric_card_header(
                 title="On-Track Probability",
-                tooltip_text="Statistical probability of meeting deadline using normal distribution. "
-                "Calculated via Z-score: (deadline_days - expected_days) / forecast_std_dev. "
-                "Based on how many standard deviations your deadline is from expected completion, adjusted for velocity consistency.",
+                tooltip_text=on_track_tooltip,
                 tooltip_id="metric-on_track_probability",
             ),
             dbc.CardBody(
@@ -671,14 +711,16 @@ def create_forecast_analytics_section(
                                                 },
                                             ),
                                         ],
-                                        className="d-flex justify-content-between align-items-center mb-2",
+                                        className=row_between_class,
                                     ),
                                     html.Div(
                                         html.Div(
                                             f"{deadline_prob_items:.1f}%",
                                             className="progress-bar",
                                             style={
-                                                "width": f"{min(deadline_prob_items, 100)}%",
+                                                "width": (
+                                                    f"{min(deadline_prob_items, 100)}%"
+                                                ),
                                                 "backgroundColor": items_prob_color,
                                             },
                                             role="progressbar",
@@ -694,7 +736,7 @@ def create_forecast_analytics_section(
                         if show_points
                         else {"marginBottom": "0"},
                     ),
-                    # Points-based probability (always show, with placeholder when disabled)
+                    # Points-based probability with placeholder when disabled.
                     html.Div(
                         [
                             html.Div(
@@ -737,14 +779,16 @@ def create_forecast_analytics_section(
                                                 },
                                             ),
                                         ],
-                                        className="d-flex justify-content-between align-items-center mb-2",
+                                        className=row_between_class,
                                     ),
                                     html.Div(
                                         html.Div(
                                             f"{deadline_prob_points:.1f}%",
                                             className="progress-bar",
                                             style={
-                                                "width": f"{min(deadline_prob_points, 100)}%",
+                                                "width": (
+                                                    f"{min(deadline_prob_points, 100)}%"
+                                                ),
                                                 "backgroundColor": prob_color,
                                             },
                                             role="progressbar",
@@ -762,7 +806,10 @@ def create_forecast_analytics_section(
                                 html.Div(
                                     [
                                         html.I(
-                                            className="fas fa-toggle-off fa-2x text-secondary mb-2"
+                                            className=(
+                                                "fas fa-toggle-off fa-2x "
+                                                "text-secondary mb-2"
+                                            )
                                         ),
                                         html.Div(
                                             "Points Tracking Disabled",
@@ -773,7 +820,7 @@ def create_forecast_analytics_section(
                                             },
                                         ),
                                         html.Small(
-                                            "Points tracking is disabled. Enable Points Tracking in Parameters panel to view story points metrics.",
+                                            points_disabled_text,
                                             className="text-muted",
                                             style={"fontSize": "0.75rem"},
                                         ),
@@ -785,7 +832,10 @@ def create_forecast_analytics_section(
                                 else html.Div(
                                     [
                                         html.I(
-                                            className="fas fa-database fa-2x text-secondary mb-2"
+                                            className=(
+                                                "fas fa-database fa-2x "
+                                                "text-secondary mb-2"
+                                            )
                                         ),
                                         html.Div(
                                             "No Points Data",
@@ -796,7 +846,7 @@ def create_forecast_analytics_section(
                                             },
                                         ),
                                         html.Small(
-                                            "No story points data available. Configure story points field in Settings or complete items with point estimates.",
+                                            no_points_data_text,
                                             className="text-muted",
                                             style={"fontSize": "0.75rem"},
                                         ),
@@ -895,7 +945,8 @@ def create_forecast_analytics_section(
                     ),
                     html.Div(
                         html.Small(
-                            "Historical trend showing how forecast dates have changed as the project progresses",
+                            "Historical trend showing how forecast dates "
+                            "change as the project progresses",
                             className="text-muted",
                         ),
                         className="text-center mt-2",
@@ -916,7 +967,7 @@ def create_forecast_analytics_section(
     ):
         from data.velocity_projections import calculate_required_velocity
 
-        # Calculate required velocities using ACTUAL deadline date (not reconstructed from days)
+        # Calculate required velocities using the actual deadline date.
         # This ensures exact match with burndown charts calculation
         # Use date() to ensure value doesn't change during the same day (consistency)
         deadline_date = datetime.strptime(deadline_str, "%Y-%m-%d")
