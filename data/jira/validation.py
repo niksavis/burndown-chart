@@ -4,7 +4,6 @@ JIRA Validation Functions
 Handles JQL query validation and connection testing.
 """
 
-
 import requests
 
 from configuration import logger
@@ -49,9 +48,12 @@ def validate_jql_for_scriptrunner(jql_query: str) -> tuple[bool, str]:
 
     if found_functions:
         warning = (
-            f"Warning: JQL query contains ScriptRunner functions: {', '.join(found_functions)}. "
-            "These functions require the ScriptRunner add-on and may not be available on all JIRA instances. "
-            "If you get 'failed to fetch jira data' errors, try simplifying the query or verify ScriptRunner is installed."
+            "Warning: JQL query contains ScriptRunner functions: "
+            f"{', '.join(found_functions)}. "
+            "These functions require the ScriptRunner add-on and "
+            "may not be available on all JIRA instances. "
+            "If you get 'failed to fetch jira data' errors, "
+            "try simplifying the query or verify ScriptRunner is installed."
         )
         return False, warning
 
@@ -118,7 +120,10 @@ def test_jql_query(config: dict) -> tuple[bool, str]:
             ):
                 return (
                     False,
-                    f"ScriptRunner function error: {error_details}. This JIRA instance may not have ScriptRunner installed or you may not have permission to use these functions.",
+                    "ScriptRunner function error: "
+                    f"{error_details}. "
+                    "This JIRA instance may not have ScriptRunner installed "
+                    "or you may not have permission to use these functions.",
                 )
 
             return False, f"JQL query invalid: {error_details}"
@@ -130,14 +135,17 @@ def test_jql_query(config: dict) -> tuple[bool, str]:
             logger.info(f"[JIRA] Query valid - would return {total} issues")
             return True, f"JQL query is valid (would return {total} issues)"
         except ValueError as json_error:
-            # Response was 200 OK but body is not valid JSON - API version likely not supported
+            # Response was 200 OK but body is not valid JSON
+            # - API version likely not supported
             logger.error(f"[JIRA] HTTP 200 but invalid JSON: {json_error}")
             logger.error(
                 f"[JIRA] Response body (first 200 chars): {response.text[:200]}"
             )
             return (
                 False,
-                "JIRA API returned invalid response (HTTP 200 but not JSON). Your JIRA server may not support this API version. Try switching to API v2 in Configure JIRA.",
+                "JIRA API returned invalid response (HTTP 200 but not JSON). "
+                "Your JIRA server may not support this API version. "
+                "Try switching to API v2 in Configure JIRA.",
             )
 
     except requests.exceptions.RequestException as e:

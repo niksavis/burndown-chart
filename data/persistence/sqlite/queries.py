@@ -59,7 +59,9 @@ class QueriesMixin:
 
                 cursor.execute(
                     """
-                    INSERT INTO queries (id, profile_id, name, jql, created_at, last_used)
+                    INSERT INTO queries (
+                        id, profile_id, name, jql, created_at, last_used
+                    )
                     VALUES (?, ?, ?, ?, ?, ?)
                     ON CONFLICT(profile_id, id) DO UPDATE SET
                         name = excluded.name,
@@ -83,7 +85,8 @@ class QueriesMixin:
             raise
         except Exception as e:
             logger.error(
-                f"Failed to save query '{query.get('id')}' for profile '{profile_id}': {e}",
+                "Failed to save query "
+                f"'{query.get('id')}' for profile '{profile_id}': {e}",
                 extra={"error_type": type(e).__name__},
             )
             raise
@@ -94,7 +97,8 @@ class QueriesMixin:
             with get_db_connection(self.db_path) as conn:
                 cursor = conn.cursor()
                 cursor.execute(
-                    "SELECT * FROM queries WHERE profile_id = ? ORDER BY last_used DESC",
+                    "SELECT * FROM queries "
+                    "WHERE profile_id = ? ORDER BY last_used DESC",
                     (profile_id,),
                 )
                 results = cursor.fetchall()

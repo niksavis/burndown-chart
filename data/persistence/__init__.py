@@ -286,7 +286,8 @@ class PersistenceBackend(ABC):
     # ========================================================================
 
     # NOTE: Methods below provide normalized access to JIRA data
-    # Legacy JSON blob methods (get_jira_cache/save_jira_cache) kept for migration compatibility
+    # Legacy JSON blob methods (get_jira_cache/save_jira_cache) kept for
+    # migration compatibility
 
     @abstractmethod
     def get_issues(
@@ -347,7 +348,9 @@ class PersistenceBackend(ABC):
 
         Example:
             >>> issues = jira_api.fetch_issues(jql)
-            >>> backend.save_issues_batch("kafka", "12w", "cache_abc", issues, expires_at)
+            >>> backend.save_issues_batch(
+            ...     "kafka", "12w", "cache_abc", issues, expires_at
+            ... )
         """
         pass
 
@@ -700,7 +703,8 @@ class PersistenceBackend(ABC):
         Args:
             profile_id: Profile ID
             query_id: Query ID
-            metric_name: Filter by metric (e.g., "deployment_frequency", "lead_time_days")
+            metric_name: Filter by metric
+                (e.g., "deployment_frequency", "lead_time_days")
             metric_category: Filter by category ("dora" or "flow")
             start_date: ISO week - metrics after this date (e.g., "2025-W48")
             end_date: ISO week - metrics before this date
@@ -717,7 +721,9 @@ class PersistenceBackend(ABC):
             ...     limit=12
             ... )
             >>> for v in values:
-            ...     print(f"{v['snapshot_date']}: {v['metric_value']} {v['metric_unit']}")
+            ...     print(
+            ...         f"{v['snapshot_date']}: {v['metric_value']} {v['metric_unit']}"
+            ...     )
         """
         pass
 
@@ -792,7 +798,9 @@ class PersistenceBackend(ABC):
             List of snapshot dicts, ordered by snapshot_date descending
 
         Example:
-            >>> snapshots = backend.get_metrics_snapshots("kafka", "12w", "dora", limit=12)
+            >>> snapshots = backend.get_metrics_snapshots(
+            ...     "kafka", "12w", "dora", limit=12
+            ... )
             >>> for snap in snapshots:
             ...     print(f"{snap['snapshot_date']}: {snap['metrics']}")
         """
@@ -825,7 +833,9 @@ class PersistenceBackend(ABC):
 
         Example:
             >>> metrics = {"deployment_frequency": 2.5, "lead_time_days": 4.2}
-            >>> backend.save_metrics_snapshot("kafka", "12w", "2025-W12", "dora", metrics)
+            >>> backend.save_metrics_snapshot(
+            ...     "kafka", "12w", "2025-W12", "dora", metrics
+            ... )
         """
         pass
 

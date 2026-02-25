@@ -13,8 +13,10 @@ def load_parameter_panel_state() -> dict:
     """
     Load parameter panel state from app settings.
 
-    This function supports User Story 1: Quick Parameter Adjustments While Viewing Charts.
-    The parameter panel state is stored in localStorage via dcc.Store on the client side,
+    This function supports User Story 1: Quick Parameter Adjustments While
+    Viewing Charts.
+    The parameter panel state is stored in localStorage via dcc.Store on the
+    client side,
     but this function provides a server-side default state for initialization.
 
     Returns:
@@ -53,7 +55,8 @@ def save_parameter_panel_state(is_open: bool, user_preference: bool = True) -> b
     """
     Save parameter panel state to app settings.
 
-    This function supports User Story 1: Quick Parameter Adjustments While Viewing Charts.
+    This function supports User Story 1: Quick Parameter Adjustments While
+    Viewing Charts.
     The parameter panel state is primarily managed client-side via dcc.Store,
     but this function persists the state to profile.json for session continuity.
 

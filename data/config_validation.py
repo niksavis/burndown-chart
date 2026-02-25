@@ -66,7 +66,8 @@ def validate_project_overlap(
     if overlap:
         return (
             True,
-            f"Projects appear in both lists: {', '.join(overlap)}. This is unusual but allowed.",
+            "Projects appear in both lists: "
+            f"{', '.join(overlap)}. This is unusual but allowed.",
         )
 
     return False, ""
@@ -145,7 +146,8 @@ def validate_wip_excludes_completion(
     if overlap:
         return (
             False,
-            f"WIP statuses should NOT include completion statuses. Found: {', '.join(overlap)}. "
+            "WIP statuses should NOT include completion statuses. "
+            f"Found: {', '.join(overlap)}. "
             "This causes Flow Load (WIP count) to incorrectly include completed items.",
         )
 
@@ -201,7 +203,8 @@ def validate_comprehensive_config(config: dict[str, Any]) -> dict[str, list[str]
 
     if missing_dora_fields:
         warnings.append(
-            f"Optional DORA field mappings not configured: {', '.join(missing_dora_fields)}. "
+            "Optional DORA field mappings not configured: "
+            f"{', '.join(missing_dora_fields)}. "
             "Some DORA metrics may be unavailable."
         )
 
@@ -234,7 +237,8 @@ def validate_comprehensive_config(config: dict[str, Any]) -> dict[str, list[str]
 
     if not bug_types:
         warnings.append(
-            "Incident types empty - DORA MTTR will not work without production incident issue types"
+            "Incident types empty - DORA MTTR will not work "
+            "without production incident issue types"
         )
 
     # Status validation
@@ -265,7 +269,8 @@ def validate_comprehensive_config(config: dict[str, Any]) -> dict[str, list[str]
     # Only warn about production values if affected_environment is configured
     if affected_env_field and not prod_env_values:
         warnings.append(
-            "Production environment values empty - MTTR will include all bugs (not just production)"
+            "Production environment values empty - MTTR will include all bugs "
+            "(not just production)"
         )
 
     return {"errors": errors, "warnings": warnings}

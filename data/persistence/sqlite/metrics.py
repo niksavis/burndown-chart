@@ -33,7 +33,10 @@ class MetricsMixin:
             with get_db_connection(self.db_path) as conn:
                 cursor = conn.cursor()
 
-                query = "SELECT * FROM metrics_data_points WHERE profile_id = ? AND query_id = ?"
+                query = (
+                    "SELECT * FROM metrics_data_points "
+                    "WHERE profile_id = ? AND query_id = ?"
+                )
                 params: list[Any] = [profile_id, query_id]
 
                 if metric_name:
@@ -94,7 +97,8 @@ class MetricsMixin:
             with get_db_connection(self.db_path) as conn:
                 cursor = conn.cursor()
                 cursor.execute(
-                    "DELETE FROM metrics_data_points WHERE profile_id = ? AND query_id = ?",
+                    "DELETE FROM metrics_data_points "
+                    "WHERE profile_id = ? AND query_id = ?",
                     (profile_id, query_id),
                 )
                 deleted_count = cursor.rowcount
@@ -133,18 +137,25 @@ class MetricsMixin:
                     cursor.execute(
                         """
                         INSERT INTO metrics_data_points (
-                            profile_id, query_id, snapshot_date, metric_category, metric_name,
-                            metric_value, metric_unit, excluded_issue_count, calculation_metadata,
-                            forecast_value, forecast_confidence_low, forecast_confidence_high, calculated_at
+                            profile_id, query_id, snapshot_date, metric_category,
+                            metric_name, metric_value, metric_unit,
+                            excluded_issue_count, calculation_metadata,
+                            forecast_value, forecast_confidence_low,
+                            forecast_confidence_high, calculated_at
                         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                        ON CONFLICT(profile_id, query_id, snapshot_date, metric_category, metric_name) DO UPDATE SET
+                        ON CONFLICT(
+                            profile_id, query_id, snapshot_date,
+                            metric_category, metric_name
+                        ) DO UPDATE SET
                             metric_value = excluded.metric_value,
                             metric_unit = excluded.metric_unit,
                             excluded_issue_count = excluded.excluded_issue_count,
                             calculation_metadata = excluded.calculation_metadata,
                             forecast_value = excluded.forecast_value,
-                            forecast_confidence_low = excluded.forecast_confidence_low,
-                            forecast_confidence_high = excluded.forecast_confidence_high,
+                            forecast_confidence_low =
+                                excluded.forecast_confidence_low,
+                            forecast_confidence_high =
+                                excluded.forecast_confidence_high,
                             calculated_at = excluded.calculated_at
                     """,
                         (

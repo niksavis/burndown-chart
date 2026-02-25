@@ -31,7 +31,10 @@ class StatisticsMixin:
             with get_db_connection(self.db_path) as conn:
                 cursor = conn.cursor()
 
-                query = "SELECT * FROM project_statistics WHERE profile_id = ? AND query_id = ?"
+                query = (
+                    "SELECT * FROM project_statistics "
+                    "WHERE profile_id = ? AND query_id = ?"
+                )
                 params: list[Any] = [profile_id, query_id]
 
                 if start_date:
@@ -71,12 +74,14 @@ class StatisticsMixin:
 
                 # Delete all existing statistics for this query first
                 cursor.execute(
-                    "DELETE FROM project_statistics WHERE profile_id = ? AND query_id = ?",
+                    "DELETE FROM project_statistics "
+                    "WHERE profile_id = ? AND query_id = ?",
                     (profile_id, query_id),
                 )
                 deleted_count = cursor.rowcount
                 logger.info(
-                    f"Deleted {deleted_count} existing statistics for {profile_id}/{query_id}"
+                    f"Deleted {deleted_count} existing statistics "
+                    f"for {profile_id}/{query_id}"
                 )
 
                 if not stats:
@@ -96,8 +101,10 @@ class StatisticsMixin:
                         """
                         INSERT INTO project_statistics (
                             profile_id, query_id, stat_date, week_label,
-                            remaining_items, remaining_total_points, items_added, items_completed,
-                            completed_items, completed_points, created_items, created_points,
+                            remaining_items, remaining_total_points,
+                            items_added, items_completed,
+                            completed_items, completed_points,
+                            created_items, created_points,
                             velocity_items, velocity_points, recorded_at
                         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """,
@@ -138,7 +145,8 @@ class StatisticsMixin:
             with get_db_connection(self.db_path) as conn:
                 cursor = conn.cursor()
                 cursor.execute(
-                    "SELECT scope_data, updated_at FROM project_scope WHERE profile_id = ? AND query_id = ?",
+                    "SELECT scope_data, updated_at FROM project_scope "
+                    "WHERE profile_id = ? AND query_id = ?",
                     (profile_id, query_id),
                 )
                 result = cursor.fetchone()
@@ -166,7 +174,9 @@ class StatisticsMixin:
                 cursor = conn.cursor()
                 cursor.execute(
                     """
-                    INSERT INTO project_scope (profile_id, query_id, scope_data, updated_at)
+                    INSERT INTO project_scope (
+                        profile_id, query_id, scope_data, updated_at
+                    )
                     VALUES (?, ?, ?, ?)
                     ON CONFLICT(profile_id, query_id) DO UPDATE SET
                         scope_data = excluded.scope_data,

@@ -49,7 +49,9 @@ class TasksMixin:
                 cursor = conn.cursor()
                 cursor.execute(
                     """
-                    INSERT INTO task_progress (task_name, progress_percent, status, message, updated_at)
+                    INSERT INTO task_progress (
+                        task_name, progress_percent, status, message, updated_at
+                    )
                     VALUES (?, ?, ?, ?, ?)
                     ON CONFLICT(task_name) DO UPDATE SET
                         progress_percent = excluded.progress_percent,
@@ -145,7 +147,9 @@ class TasksMixin:
                 cursor = conn.cursor()
                 cursor.execute(
                     """
-                    INSERT INTO task_progress (task_name, progress_percent, status, message, updated_at)
+                    INSERT INTO task_progress (
+                        task_name, progress_percent, status, message, updated_at
+                    )
                     VALUES (?, ?, ?, ?, ?)
                     ON CONFLICT(task_name) DO UPDATE SET
                         progress_percent = excluded.progress_percent,

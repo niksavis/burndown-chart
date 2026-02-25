@@ -54,7 +54,8 @@ def filter_active_issues(
     cutoff_date = now - timedelta(weeks=data_points_count)
 
     logger.info(
-        f"Filtering issues with activity since {cutoff_date.date()} ({data_points_count} weeks)"
+        "Filtering issues with activity since "
+        f"{cutoff_date.date()} ({data_points_count} weeks)"
     )
 
     filtered_issues = []
@@ -133,7 +134,8 @@ def get_active_work_data(
         parent_field: Field name for parent/epic
         flow_end_statuses: Completion statuses
         flow_wip_statuses: WIP statuses
-        filter_parents: If True, filter out parent issues from timeline (they're for display only)
+        filter_parents: If True, filter out parent issues from timeline
+            (they're for display only)
 
     Returns:
         Dict with nested epic timeline
@@ -142,7 +144,8 @@ def get_active_work_data(
         f"[ACTIVE WORK MGR] Building active work data from {len(issues)} issues"
     )
     logger.info(
-        f"[ACTIVE WORK MGR] data_points_count={data_points_count}, parent_field={parent_field}"
+        "[ACTIVE WORK MGR] "
+        f"data_points_count={data_points_count}, parent_field={parent_field}"
     )
 
     # Filter to date range first (includes parents + children)
@@ -164,7 +167,8 @@ def get_active_work_data(
         )
 
     logger.info(
-        f"[ACTIVE WORK MGR] After filtering: {len(filtered_issues)} issues within {data_points_count} weeks"
+        "[ACTIVE WORK MGR] After filtering: "
+        f"{len(filtered_issues)} issues within {data_points_count} weeks"
     )
 
     if not filtered_issues:
@@ -370,7 +374,8 @@ def _add_health_indicators(
 
                         except (ValueError, AttributeError) as e:
                             logger.debug(
-                                f"Could not parse status change date for {issue_key}: {e}"
+                                "Could not parse status change date "
+                                f"for {issue_key}: {e}"
                             )
                 else:
                     # No status changes in changelog - use created date as fallback
@@ -455,7 +460,8 @@ def _build_epic_timeline(
         parent_field: Field name for parent/epic
         flow_end_statuses: Completion statuses
         flow_wip_statuses: WIP statuses
-        all_issues_unfiltered: Original unfiltered issues list (includes parents for summary lookup)
+        all_issues_unfiltered: Original unfiltered issues list
+            (includes parents for summary lookup)
 
     Returns:
         List of epic summaries for timeline visualization
@@ -509,7 +515,8 @@ def _build_epic_timeline(
                 parent = custom_fields.get(parent_field)
 
             logger.debug(
-                f"[EPIC] epic_key={epic_key}, parent type: {type(parent)}, value: {parent}"
+                "[EPIC] "
+                f"epic_key={epic_key}, parent type: {type(parent)}, value: {parent}"
             )
 
             if isinstance(parent, dict):
@@ -546,7 +553,8 @@ def _build_epic_timeline(
                     try:
                         all_issues_db = backend.get_issues(profile_id, query_id)
                         logger.debug(
-                            f"[EPIC] Searching {len(all_issues_db)} issues in DB for parent {parent}"
+                            "[EPIC] Searching "
+                            f"{len(all_issues_db)} issues in DB for parent {parent}"
                         )
                         epic_issue = next(
                             (
@@ -563,7 +571,9 @@ def _build_epic_timeline(
                             )
                         else:
                             logger.warning(
-                                f"[EPIC] Parent {parent} not found in database (may need to run 'Update Data')"
+                                "[EPIC] Parent "
+                                f"{parent} not found in database "
+                                "(may need to run 'Update Data')"
                             )
                             epic_summary = epic_key
                     except Exception as e:

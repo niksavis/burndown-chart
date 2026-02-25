@@ -61,7 +61,8 @@ def save_statistics(data: list[dict[str, Any]]) -> None:
                         stat["week_label"] = get_week_label(date_obj)
                     except (ValueError, TypeError) as e:
                         logger.warning(
-                            f"Could not calculate week_label for date {stat.get('date')}: {e}"
+                            "Could not calculate week_label for date "
+                            f"{stat.get('date')}: {e}"
                         )
 
         # Ensure any remaining Timestamp objects are converted to strings
@@ -73,7 +74,8 @@ def save_statistics(data: list[dict[str, Any]]) -> None:
         # Update statistics in unified data
         unified_data["statistics"] = statistics_data
 
-        # Update metadata - preserve existing source and jira_query unless explicitly overriding
+        # Update metadata - preserve existing source and jira_query unless
+        # explicitly overriding
         unified_data["metadata"].update(
             {
                 "last_updated": datetime.now().isoformat(),
@@ -84,7 +86,8 @@ def save_statistics(data: list[dict[str, Any]]) -> None:
         save_unified_project_data(unified_data)
 
         logger.info(
-            f"[Persistence] ✓ Statistics saved successfully to DB: {len(statistics_data)} rows"
+            "[Persistence] ✓ Statistics saved successfully to DB: "
+            f"{len(statistics_data)} rows"
         )
     except Exception as e:
         logger.error(f"[Persistence] ✗ FAILED to save statistics: {e}", exc_info=True)
@@ -130,7 +133,8 @@ def save_statistics_from_csv_import(data: list[dict[str, Any]]) -> None:
                         stat["week_label"] = get_week_label(date_obj)
                     except (ValueError, TypeError) as e:
                         logger.warning(
-                            f"Could not calculate week_label for date {stat.get('date')}: {e}"
+                            "Could not calculate week_label for date "
+                            f"{stat.get('date')}: {e}"
                         )
 
         # Load current unified data
@@ -194,12 +198,14 @@ def load_statistics() -> tuple:
         # CRITICAL FIX: Remove duplicate dates from legacy data
         # Normalize dates and keep only the most recent entry per date
         if "date" in statistics_df.columns and not statistics_df.empty:
-            # Normalize dates to YYYY-MM-DD format using apply to avoid type checker issues
+            # Normalize dates to YYYY-MM-DD format using apply to avoid
+            # type checker issues
             statistics_df["date_normalized"] = statistics_df["date"].apply(
                 lambda x: x.strftime("%Y-%m-%d") if pd.notna(x) else None
             )
 
-            # Sort by date descending and drop duplicates, keeping the first (most recent)
+            # Sort by date descending and drop duplicates, keeping the first
+            # (most recent)
             statistics_df = statistics_df.sort_values("date", ascending=False)
             statistics_df = statistics_df.drop_duplicates(
                 subset=["date_normalized"], keep="first"

@@ -76,18 +76,24 @@ def retry_on_db_lock(max_retries: int = 3, base_delay: float = 0.1):
                         if attempt < max_retries:
                             delay = base_delay * (2**attempt)
                             logger.warning(
-                                f"Database locked in {func.__name__}, retrying in {delay}s (attempt {attempt + 1}/{max_retries})"
+                                f"Database locked in {func.__name__}, "
+                                f"retrying in {delay}s "
+                                f"(attempt {attempt + 1}/{max_retries})"
                             )
                             time.sleep(delay)
                             continue
                         else:
                             logger.error(
-                                f"Database locked in {func.__name__} after {max_retries} retries"
+                                f"Database locked in {func.__name__} "
+                                f"after {max_retries} retries"
                             )
                             raise RuntimeError(
-                                f"Database is locked after {max_retries} retry attempts. "
-                                "This may indicate concurrent access or a hung transaction. "
-                                "Try closing other instances of the app or wait a moment."
+                                "Database is locked after "
+                                f"{max_retries} retry attempts. "
+                                "This may indicate concurrent access "
+                                "or a hung transaction. "
+                                "Try closing other instances of the app "
+                                "or wait a moment."
                             ) from e
                     else:
                         # Non-lock error - don't retry

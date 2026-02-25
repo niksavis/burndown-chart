@@ -31,7 +31,10 @@ class ChangelogMixin:
             with get_db_connection(self.db_path) as conn:
                 cursor = conn.cursor()
 
-                query = "SELECT * FROM jira_changelog_entries WHERE profile_id = ? AND query_id = ?"
+                query = (
+                    "SELECT * FROM jira_changelog_entries "
+                    "WHERE profile_id = ? AND query_id = ?"
+                )
                 params: list[Any] = [profile_id, query_id]
 
                 if issue_key:
@@ -131,7 +134,8 @@ class ChangelogMixin:
 
                 conn.commit()
                 logger.info(
-                    f"Saved {len(entries)} changelog entries for {profile_id}/{query_id}"
+                    f"Saved {len(entries)} changelog entries "
+                    f"for {profile_id}/{query_id}"
                 )
 
         except Exception as e:

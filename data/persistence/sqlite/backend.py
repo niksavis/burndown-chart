@@ -17,7 +17,8 @@ Performance:
 - Indexed queries for <50ms response times
 
 Concurrency:
-- Automatic retry logic for database lock scenarios (up to 3 retries with exponential backoff)
+- Automatic retry logic for database lock scenarios
+    (up to 3 retries with exponential backoff)
 - Graceful handling of OperationalError: database is locked
 - WAL mode enables concurrent reads
 
@@ -121,15 +122,18 @@ class SQLiteBackend(
         which automatically rollback on exception.
         """
         logger.warning(
-            "rollback_transaction() called but not needed - use context managers instead"
+            "rollback_transaction() called but not needed - "
+            "use context managers instead"
         )
 
     def close(self) -> None:
         """
         Close database connection (no-op in connection-per-request pattern).
 
-        NOTE: This is a no-op because SQLiteBackend uses connection-per-request pattern.
+        NOTE: This is a no-op because SQLiteBackend uses
+        connection-per-request pattern.
         Each operation opens and closes its own connection via context managers.
-        This prevents connection state issues and enables concurrent access via WAL mode.
+        This prevents connection state issues and enables concurrent access
+        via WAL mode.
         """
         logger.debug("close() called but no-op in connection-per-request pattern")

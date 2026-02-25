@@ -13,7 +13,8 @@ def generate_burndown_chart(
     statistics: list[dict] | None = None,
     pert_factor: int = 3,
 ) -> str:
-    """Generate Chart.js script for burndown chart with forecasts and milestone/forecast/deadline lines.
+    """Generate Chart.js script for burndown chart with forecasts and
+    milestone/forecast/deadline lines.
 
     Args:
         burndown_metrics: Historical burndown data
@@ -112,7 +113,8 @@ def generate_burndown_chart(
                 ("deadline", deadline, "Deadline", "#dc3545", "#fff", 2, [])
             )
 
-    # Assign yAdjust values: space labels 30px apart starting from top (-90, -60, -30, 0...)
+    # Assign yAdjust values: space labels 30px apart starting from top
+    # (-90, -60, -30, 0...)
     # Start from -90 to ensure no overlap with chart area
     base_y = -90
     spacing = 30
@@ -240,7 +242,8 @@ def generate_weekly_breakdown_chart(
     remaining_points: float | None = None,
 ) -> str:
     """
-    Generate Chart.js script for weekly breakdown showing completed items/points with forecasts and targets.
+    Generate Chart.js script for weekly breakdown showing completed
+    items/points with forecasts and targets.
 
     Shows:
     - Weekly completed bars (items and optionally points)
@@ -560,7 +563,9 @@ def generate_weekly_breakdown_chart(
                             callbacks: {{
                                 title: function(context) {{
                                     const label = context[0].label;
-                                    return label.includes('W') ? 'Week ' + label : 'Forecast: ' + label;
+                                    return label.includes('W')
+                                        ? 'Week ' + label
+                                        : 'Forecast: ' + label;
                                 }},
                                 label: function(context) {{
                                     let label = context.dataset.label || '';
@@ -776,7 +781,9 @@ def generate_weekly_items_chart(
                             callbacks: {{
                                 title: function(context) {{
                                     const label = context[0].label;
-                                    return label.includes('W') ? 'Week ' + label : 'Forecast: ' + label;
+                                    return label.includes('W')
+                                        ? 'Week ' + label
+                                        : 'Forecast: ' + label;
                                 }},
                                 label: function(context) {{
                                     let label = context.dataset.label || '';
@@ -988,7 +995,9 @@ def generate_weekly_points_chart(
                             callbacks: {{
                                 title: function(context) {{
                                     const label = context[0].label;
-                                    return label.includes('W') ? 'Week ' + label : 'Forecast: ' + label;
+                                    return label.includes('W')
+                                        ? 'Week ' + label
+                                        : 'Forecast: ' + label;
                                 }},
                                 label: function(context) {{
                                     let label = context.dataset.label || '';

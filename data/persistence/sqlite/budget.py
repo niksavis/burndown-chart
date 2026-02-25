@@ -35,7 +35,8 @@ class BudgetMixin:
                 cursor.execute(
                     """
                     SELECT time_allocated_weeks, budget_total_eur, currency_symbol,
-                           team_cost_per_week_eur, cost_rate_type, created_at, updated_at,
+                              team_cost_per_week_eur, cost_rate_type,
+                              created_at, updated_at,
                            baseline_velocity_items, baseline_velocity_points
                     FROM budget_settings
                     WHERE profile_id = ? AND query_id = ?
@@ -111,7 +112,8 @@ class BudgetMixin:
 
         except Exception as e:
             logger.error(
-                f"Failed to get budget revisions for profile '{profile_id}', query '{query_id}': {e}"
+                "Failed to get budget revisions for profile "
+                f"'{profile_id}', query '{query_id}': {e}"
             )
             return []
 
@@ -154,12 +156,14 @@ class BudgetMixin:
                 )
                 conn.commit()
                 logger.info(
-                    f"Saved budget settings for profile '{profile_id}', query '{query_id}'"
+                    "Saved budget settings for profile "
+                    f"'{profile_id}', query '{query_id}'"
                 )
 
         except Exception as e:
             logger.error(
-                f"Failed to save budget settings for profile '{profile_id}', query '{query_id}': {e}"
+                "Failed to save budget settings for profile "
+                f"'{profile_id}', query '{query_id}': {e}"
             )
             raise
 
@@ -204,11 +208,13 @@ class BudgetMixin:
 
                 conn.commit()
                 logger.info(
-                    f"Saved {len(revisions)} budget revisions for profile '{profile_id}', query '{query_id}'"
+                    f"Saved {len(revisions)} budget revisions for profile "
+                    f"'{profile_id}', query '{query_id}'"
                 )
 
         except Exception as e:
             logger.error(
-                f"Failed to save budget revisions for profile '{profile_id}', query '{query_id}': {e}"
+                "Failed to save budget revisions for profile "
+                f"'{profile_id}', query '{query_id}': {e}"
             )
             raise

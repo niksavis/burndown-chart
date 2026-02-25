@@ -50,7 +50,8 @@ INTERNAL_FIELD_TYPES = {
     "code_commit_date": "datetime",  # When code was committed
     "incident_detected_at": "datetime",  # When production issue found
     "incident_resolved_at": "datetime",  # When issue fixed in production
-    "change_failure": "select",  # Deployment failure indicator (field or field=Value syntax)
+    "change_failure": "select",  # Deployment failure indicator
+    # (field or field=Value syntax)
     "affected_environment": "select",  # Environment affected by incidents
     "target_environment": "select",  # Deployment target environment
     "severity_level": "select",  # Incident priority/severity
@@ -186,7 +187,8 @@ def validate_field_mapping(
     if "=" in jira_field_id:
         actual_field_id = jira_field_id.split("=", 1)[0].strip()
         logger.debug(
-            f"Value filter syntax detected: '{jira_field_id}' -> field '{actual_field_id}'"
+            "Value filter syntax detected: "
+            f"'{jira_field_id}' -> field '{actual_field_id}'"
         )
 
     # Check if internal field has type requirement
@@ -595,7 +597,8 @@ def validate_dora_jira_compatibility(field_mappings: dict[str, str]) -> dict[str
                     "severity": "warning",
                     "field": internal_field,
                     "mapped_to": None,
-                    "issue": f"Field not mapped - {field_info['purpose']} will not be tracked",
+                    "issue": "Field not mapped - "
+                    f"{field_info['purpose']} will not be tracked",
                     "recommendation": field_info["recommendation"],
                 }
             )
@@ -624,7 +627,8 @@ def validate_dora_jira_compatibility(field_mappings: dict[str, str]) -> dict[str
                     "field": internal_field,
                     "mapped_to": jira_field,
                     "issue": None,
-                    "recommendation": "[OK] Appears to be a proper DevOps tracking field",
+                    "recommendation": "[OK] Appears to be a proper "
+                    "DevOps tracking field",
                 }
             )
         else:

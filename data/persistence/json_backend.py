@@ -58,7 +58,9 @@ class JSONBackend(PersistenceBackend):
         """
         self.base_path = Path(base_path)
         logger.warning(
-            f"JSONBackend initialized - LEGACY MODE. Use SQLiteBackend for new features. Path: {self.base_path}"
+            "JSONBackend initialized - LEGACY MODE. "
+            "Use SQLiteBackend for new features. "
+            f"Path: {self.base_path}"
         )
 
     # ========================================================================
@@ -149,7 +151,8 @@ class JSONBackend(PersistenceBackend):
     ) -> list[dict]:
         """NOT SUPPORTED: JSON backend cannot filter issues efficiently."""
         raise NotImplementedError(
-            "JSONBackend.get_issues - Not supported, use SQLiteBackend for filtered queries"
+            "JSONBackend.get_issues - Not supported, "
+            "use SQLiteBackend for filtered queries"
         )
 
     def save_issues_batch(
@@ -257,7 +260,8 @@ class JSONBackend(PersistenceBackend):
         end_date: str | None = None,
         limit: int | None = None,
     ) -> list[dict]:
-        """NOT SUPPORTED: JSON backend stores statistics as array in project_data.json."""
+        """NOT SUPPORTED: JSON backend stores statistics as array in
+        project_data.json."""
         raise NotImplementedError(
             "JSONBackend.get_statistics - Not supported, use SQLiteBackend"
         )

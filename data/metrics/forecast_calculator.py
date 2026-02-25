@@ -20,7 +20,8 @@ def calculate_forecast(
 
     Args:
         historical_values: List of metric values from recent weeks (oldest to newest)
-        weights: Optional custom weights (must sum to 1.0). Defaults to [0.1, 0.2, 0.3, 0.4]
+        weights: Optional custom weights (must sum to 1.0).
+            Defaults to [0.1, 0.2, 0.3, 0.4]
         min_weeks: Minimum weeks required for forecast (default: 2)
         decimal_precision: Number of decimal places to round forecast (default: 1)
 
@@ -98,7 +99,9 @@ def calculate_forecast(
             weights_to_use = [equal_weight] * len(historical_values)
 
     # Calculate weighted average
-    forecast_value = sum(v * w for v, w in zip(historical_values, weights_to_use, strict=False))
+    forecast_value = sum(
+        v * w for v, w in zip(historical_values, weights_to_use, strict=False)
+    )
 
     # Round to specified precision
     forecast_value = round(forecast_value, decimal_precision)
@@ -202,16 +205,23 @@ def calculate_trend_vs_forecast(
             "direction": str,         # "↗" (up), "→" (neutral), "↘" (down)
             "deviation_percent": float, # Percentage deviation from forecast
             "status_text": str,       # Human-readable status message
-            "color_class": str,       # CSS class: "text-success", "text-secondary", "text-danger"
+            "color_class": str,       # CSS class: "text-success",
+                                      # "text-secondary", "text-danger"
             "is_good": bool           # Directional interpretation
         }
 
     Examples:
         >>> calculate_trend_vs_forecast(16, 13, "higher_better")
-        {"direction": "↗", "deviation_percent": 23.1, "status_text": "+23% above forecast", "color_class": "text-success", ...}
+        {
+            "direction": "↗", "deviation_percent": 23.1,
+            "status_text": "+23% above forecast", "color_class": "text-success", ...
+        }
 
         >>> calculate_trend_vs_forecast(5, 13, "higher_better")
-        {"direction": "↘", "deviation_percent": -61.5, "status_text": "-62% vs forecast", "color_class": "text-danger", ...}
+        {
+            "direction": "↘", "deviation_percent": -61.5,
+            "status_text": "-62% vs forecast", "color_class": "text-danger", ...
+        }
     """
     # Input validation
     if not isinstance(current_value, (int, float)):
@@ -229,8 +239,10 @@ def calculate_trend_vs_forecast(
             f"metric_type must be one of {valid_types}, got '{metric_type}'"
         )
 
-    # Special case: Zero forecast value (perfect score for lower_better metrics like CFR, MTTR)
-    # For metrics like Change Failure Rate or MTTR, a forecast of 0 means "no failures expected"
+    # Special case: Zero forecast value
+    # (perfect score for lower_better metrics like CFR, MTTR)
+    # For metrics like Change Failure Rate or MTTR,
+    # a forecast of 0 means "no failures expected"
     if forecast_value == 0:
         if current_value == 0:
             # Both zero - perfect performance maintained

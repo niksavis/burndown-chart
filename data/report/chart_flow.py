@@ -127,9 +127,14 @@ def generate_work_distribution_chart(flow_metrics: dict[str, Any]) -> str:
                         tooltip: {{
                             callbacks: {{
                                 label: function(context) {{
-                                    const count = context.dataset.counts[context.dataIndex];
+                                    const count = context.dataset.counts[
+                                        context.dataIndex
+                                    ];
                                     const pct = context.parsed.y.toFixed(1);
-                                    return context.dataset.label + ': ' + pct + '% (' + count + ' items)';
+                                    return (
+                                        context.dataset.label + ': ' + pct +
+                                        '% (' + count + ' items)'
+                                    );
                                 }}
                             }}
                         }}

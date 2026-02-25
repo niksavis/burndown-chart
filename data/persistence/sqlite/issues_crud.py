@@ -123,7 +123,8 @@ class IssuesCRUDMixin:
                 points_field = jira_config.get("points_field", "").strip()
                 if not points_field:
                     logger.debug(
-                        f"No points_field configured for profile {profile_id} - points will be NULL"
+                        "No points_field configured for profile "
+                        f"{profile_id} - points will be NULL"
                     )
             else:
                 logger.warning(f"Unexpected jira_config type: {type(jira_config)}")
@@ -277,7 +278,8 @@ class IssuesCRUDMixin:
                                     points = float(points_raw)
                                 except (ValueError, TypeError):
                                     logger.warning(
-                                        f"Cannot convert points to float for {issue.get('key')}: {points_raw}"
+                                        "Cannot convert points to float for "
+                                        f"{issue.get('key')}: {points_raw}"
                                     )
                                     points = None
                             else:
@@ -298,7 +300,10 @@ class IssuesCRUDMixin:
                             created, updated, resolved, points, project_key,
                             project_name, fix_versions, labels, components,
                             custom_fields, expires_at, fetched_at
-                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        ) VALUES (
+                            ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
+                            ?, ?, ?, ?, ?, ?
+                        )
                         ON CONFLICT(profile_id, query_id, issue_key) DO UPDATE SET
                             summary = excluded.summary,
                             status = excluded.status,
@@ -350,7 +355,8 @@ class IssuesCRUDMixin:
                     else " (no points mapping)"
                 )
                 logger.info(
-                    f"Saved {len(issues)} issues for {profile_id}/{query_id}{points_configured}"
+                    f"Saved {len(issues)} issues for {profile_id}/{query_id}"
+                    f"{points_configured}"
                 )
 
         except Exception as e:
@@ -380,9 +386,7 @@ class IssuesCRUDMixin:
             )
             raise
 
-    def renormalize_points(
-        self, profile_id: str, query_id: str | None = None
-    ) -> int:
+    def renormalize_points(self, profile_id: str, query_id: str | None = None) -> int:
         """Re-normalize points column from raw custom_fields data."""
         profile = self.get_profile(profile_id)
         if not profile:
@@ -414,7 +418,8 @@ class IssuesCRUDMixin:
 
         if not points_field:
             logger.warning(
-                f"No points_field configured for profile {profile_id} - cannot re-normalize"
+                "No points_field configured for profile "
+                f"{profile_id} - cannot re-normalize"
             )
             return 0
 
@@ -468,7 +473,8 @@ class IssuesCRUDMixin:
                                 points = float(points_raw)
                             except (ValueError, TypeError):
                                 logger.debug(
-                                    f"Cannot convert points to float for issue ID {issue_id}: {points_raw}"
+                                    "Cannot convert points to float for "
+                                    f"issue ID {issue_id}: {points_raw}"
                                 )
                                 points = None
                         else:
@@ -484,7 +490,8 @@ class IssuesCRUDMixin:
 
                 query_info = f" for query {query_id}" if query_id else ""
                 logger.info(
-                    f"Re-normalized {updated_count} issues for profile {profile_id}{query_info} using {points_field}"
+                    f"Re-normalized {updated_count} issues for profile "
+                    f"{profile_id}{query_info} using {points_field}"
                 )
                 return updated_count
 

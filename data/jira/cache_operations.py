@@ -76,7 +76,9 @@ def cache_jira_response(
                 )
 
                 logger.info(
-                    f"[Database] Saved {len(data)} issues to database for {active_profile_id}/{active_query_id}"
+                    "[Database] Saved "
+                    f"{len(data)} issues to database for "
+                    f"{active_profile_id}/{active_query_id}"
                 )
 
                 # Save cache metadata to app settings for audit trail
@@ -248,7 +250,8 @@ def load_changelog_cache(
 
             if cache_age > timedelta(hours=cache_expiration_hours):
                 logger.debug(
-                    f"[Cache] Changelog expired: {cache_age.total_seconds() / 3600:.1f}h"
+                    "[Cache] Changelog expired: "
+                    f"{cache_age.total_seconds() / 3600:.1f}h"
                 )
                 return False, []
 
@@ -257,7 +260,8 @@ def load_changelog_cache(
             cache_age_str = "unknown age"
 
         logger.info(
-            f"[Cache] Loaded {len(issues)} issues with changelog from database ({cache_age_str})"
+            "[Cache] Loaded "
+            f"{len(issues)} issues with changelog from database ({cache_age_str})"
         )
         return True, issues
 

@@ -80,10 +80,17 @@ def generate_scope_changes_chart(metrics: dict[str, Any]) -> str:
                             callbacks: {{
                                 afterBody: function(context) {{
                                     const idx = context[0].dataIndex;
-                                    const created = context[0].chart.data.datasets[0].data[idx];
-                                    const completed = context[0].chart.data.datasets[1].data[idx];
+                                    const created = context[0].chart.data
+                                        .datasets[0].data[idx];
+                                    const completed = context[0].chart.data
+                                        .datasets[1].data[idx];
                                     const net = created - completed;
-                                    return 'Net Change: ' + (net > 0 ? '+' : '') + net + ' items';
+                                    return (
+                                        'Net Change: ' +
+                                        (net > 0 ? '+' : '') +
+                                        net +
+                                        ' items'
+                                    );
                                 }}
                             }}
                         }}

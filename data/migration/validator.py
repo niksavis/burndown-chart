@@ -103,7 +103,8 @@ def validate_migration(
             else:
                 report["checks_failed"] += 1
                 report["errors"].append(
-                    f"Query count mismatch: JSON={json_query_count}, DB={db_query_count}"
+                    "Query count mismatch: "
+                    f"JSON={json_query_count}, DB={db_query_count}"
                 )
                 report["details"]["queries_count"] = {
                     "json": json_query_count,
@@ -133,7 +134,8 @@ def validate_migration(
             )
         else:
             logger.warning(
-                f"Validation FAILED for {profile_id}: {report['checks_failed']} failures, {len(report['errors'])} errors"
+                f"Validation FAILED for {profile_id}: "
+                f"{report['checks_failed']} failures, {len(report['errors'])} errors"
             )
 
     except Exception as e:
@@ -200,7 +202,8 @@ def validate_all_profiles(
         )
 
         logger.info(
-            f"Validation complete: {summary['profiles_valid']}/{summary['profiles_count']} profiles valid"
+            "Validation complete: "
+            f"{summary['profiles_valid']}/{summary['profiles_count']} profiles valid"
         )
 
     except Exception as e:

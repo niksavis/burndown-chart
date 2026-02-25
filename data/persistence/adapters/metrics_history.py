@@ -27,7 +27,11 @@ def load_metrics_history() -> dict[str, list[dict[str, Any]]]:
                 {
                     "timestamp": "2025-10-29T10:00:00Z",
                     "time_period_days": 30,
-                    "deployment_frequency": {"value": 5.2, "unit": "deployments/month", ...},
+                    "deployment_frequency": {
+                        "value": 5.2,
+                        "unit": "deployments/month",
+                        ...
+                    },
                     "lead_time_for_changes": {"value": 2.5, "unit": "days", ...},
                     ...
                 }
@@ -118,7 +122,8 @@ def save_metrics_snapshot(
             # Replace existing snapshot from today with same time period
             history[existing_today[0]] = snapshot
             logger.debug(
-                f"[Metrics] Updated {metric_type} snapshot for {time_period_days}d period"
+                f"[Metrics] Updated {metric_type} snapshot "
+                f"for {time_period_days}d period"
             )
         else:
             # Add new snapshot
@@ -155,7 +160,8 @@ def get_metric_trend_data(
 
     Args:
         metric_type: Either 'dora_metrics' or 'flow_metrics'
-        metric_name: Name of the specific metric (e.g., 'deployment_frequency', 'flow_velocity')
+        metric_name: Name of the specific metric
+            (e.g., 'deployment_frequency', 'flow_velocity')
         time_period_days: Filter for specific time period (default: 30)
 
     Returns:
