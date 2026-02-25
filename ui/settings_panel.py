@@ -115,6 +115,40 @@ def create_settings_panel_expanded(id_suffix: str = "") -> html.Div:
     Returns:
         html.Div: Expanded panel content
     """
+    align_items_center_mb2 = "d-flex align-items-center mb-2"
+    align_items_center_mb3 = "d-flex align-items-center mb-3"
+    form_label_small_muted = "form-label small text-muted mb-1"
+    status_text_class = "text-center text-muted small mt-2"
+    margin_left_quarter_rem = {"marginLeft": "0.25rem"}
+    min_height_40 = {"minHeight": "40px"}
+    jira_mappings_title = (
+        "Configure JIRA mappings (fields, projects, types, statuses, environment)"
+    )
+    force_refresh_hint = "(Hold 3s to force refresh)"
+    flow_dora_label = "Flow & DORA Metrics"
+    import_upload_icon_class = "fas fa-cloud-upload-alt fa-lg mb-1 text-primary"
+    jira_plug_icon_class = "fas fa-plug me-2 text-primary"
+    jira_mappings_icon_class = "fas fa-project-diagram me-1"
+    update_data_icon_class = "fas fa-sync-alt"
+    update_data_button_class = "w-100 long-press-button"
+    calculate_metrics_label = "Calculate Metrics"
+    calculate_metrics_icon_class = "fas fa-calculator"
+    import_export_icon_class = "fas fa-exchange-alt me-2 text-success"
+    drop_file_text = "Drop file or click"
+    small_text_class = "mb-0 small"
+    font_size_small = {"fontSize": "0.75rem"}
+    font_size_small_normal = {"fontSize": "0.75rem", "fontWeight": "normal"}
+    upload_text_center_class = "text-center py-2"
+    upload_dropzone_style = {
+        "width": "100%",
+        "borderWidth": "2px",
+        "borderStyle": "dashed",
+        "borderRadius": "8px",
+        "borderColor": "#dee2e6",
+        "backgroundColor": "#f8f9fa",
+        "cursor": "pointer",
+    }
+
     return html.Div(
         [
             dbc.Card(
@@ -131,7 +165,7 @@ def create_settings_panel_expanded(id_suffix: str = "") -> html.Div:
                                             html.Div(
                                                 [
                                                     html.I(
-                                                        className="fas fa-plug me-2 text-primary"
+                                                        className=jira_plug_icon_class
                                                     ),
                                                     html.Span(
                                                         "JIRA Integration",
@@ -145,7 +179,7 @@ def create_settings_panel_expanded(id_suffix: str = "") -> html.Div:
                                                         style={"marginLeft": "0.25rem"},
                                                     ),
                                                 ],
-                                                className="d-flex align-items-center mb-2",
+                                                className=align_items_center_mb2,
                                             ),
                                             # Status indicator and config button row
                                             html.Div(
@@ -166,7 +200,7 @@ def create_settings_panel_expanded(id_suffix: str = "") -> html.Div:
                                                             dbc.Button(
                                                                 [
                                                                     html.I(
-                                                                        className="fas fa-project-diagram me-1"
+                                                                        className=jira_mappings_icon_class
                                                                     ),
                                                                     "Mappings",
                                                                 ],
@@ -175,7 +209,7 @@ def create_settings_panel_expanded(id_suffix: str = "") -> html.Div:
                                                                 size="sm",
                                                                 outline=True,
                                                                 className="me-2",
-                                                                title="Configure JIRA mappings (fields, projects, types, statuses, environment)",
+                                                                title=jira_mappings_title,
                                                             ),
                                                             create_jira_config_button(
                                                                 compact=True
@@ -185,11 +219,13 @@ def create_settings_panel_expanded(id_suffix: str = "") -> html.Div:
                                                         style={"flexShrink": "0"},
                                                     ),
                                                 ],
-                                                className="d-flex align-items-center mb-3",
+                                                className=align_items_center_mb3,
                                             ),
-                                            # Integrated Query Management - JQL-first workflow
+                                            # Integrated Query Management
+                                            # (JQL-first workflow)
                                             create_integrated_query_management(),
-                                            # Hidden compatibility components for old JQL profile callbacks
+                                            # Hidden compatibility components
+                                            # for old JQL profile callbacks
                                             html.Div(
                                                 [
                                                     dcc.Dropdown(
@@ -213,7 +249,7 @@ def create_settings_panel_expanded(id_suffix: str = "") -> html.Div:
                                                 ],
                                                 style={"display": "none"},
                                             ),
-                                            # Action Buttons - side by side below Saved Queries
+                                            # Action buttons below Saved Queries
                                             dbc.Row(
                                                 [
                                                     dbc.Col(
@@ -222,31 +258,26 @@ def create_settings_panel_expanded(id_suffix: str = "") -> html.Div:
                                                                 [
                                                                     "Fetch Data ",
                                                                     html.Span(
-                                                                        "(Hold 3s to force refresh)",
+                                                                        force_refresh_hint,
                                                                         className="text-muted",
-                                                                        style={
-                                                                            "fontSize": "0.75rem",
-                                                                            "fontWeight": "normal",
-                                                                        },
+                                                                        style=font_size_small_normal,
                                                                     ),
                                                                     html.Span(
                                                                         create_settings_tooltip(
                                                                             "update_data",
                                                                             "fetch-data-help",
                                                                         ),
-                                                                        style={
-                                                                            "marginLeft": "0.25rem"
-                                                                        },
+                                                                        style=margin_left_quarter_rem,
                                                                     ),
                                                                 ],
-                                                                className="form-label small text-muted mb-1",
+                                                                className=form_label_small_muted,
                                                             ),
                                                             create_button(
                                                                 text="Update Data",
                                                                 id="update-data-unified",
                                                                 variant="primary",
-                                                                icon_class="fas fa-sync-alt",
-                                                                className="w-100 long-press-button",
+                                                                icon_class=update_data_icon_class,
+                                                                className=update_data_button_class,
                                                                 size="md",
                                                             ),
                                                             dcc.Store(
@@ -259,10 +290,9 @@ def create_settings_panel_expanded(id_suffix: str = "") -> html.Div:
                                                                 color="#0d6efd",
                                                                 children=html.Div(
                                                                     id="jira-cache-status",
-                                                                    className="text-center text-muted small mt-2",
-                                                                    style={
-                                                                        "minHeight": "40px"
-                                                                    },  # Fixed height for consistent loading position
+                                                                    className=status_text_class,
+                                                                    style=min_height_40,
+                                                                    # Fixed loading area
                                                                     children="",
                                                                 ),
                                                             ),
@@ -273,24 +303,22 @@ def create_settings_panel_expanded(id_suffix: str = "") -> html.Div:
                                                         [
                                                             html.Label(
                                                                 [
-                                                                    "Flow & DORA Metrics",
+                                                                    flow_dora_label,
                                                                     html.Span(
                                                                         create_settings_tooltip(
                                                                             "calculate_metrics",
                                                                             "calculate-metrics-help",
                                                                         ),
-                                                                        style={
-                                                                            "marginLeft": "0.25rem"
-                                                                        },
+                                                                        style=margin_left_quarter_rem,
                                                                     ),
                                                                 ],
-                                                                className="form-label small text-muted mb-1",
+                                                                className=form_label_small_muted,
                                                             ),
                                                             create_button(
-                                                                text="Calculate Metrics",
+                                                                text=calculate_metrics_label,
                                                                 id="calculate-metrics-button",
                                                                 variant="primary",
-                                                                icon_class="fas fa-calculator",
+                                                                icon_class=calculate_metrics_icon_class,
                                                                 className="w-100",
                                                                 size="md",
                                                             ),
@@ -300,10 +328,9 @@ def create_settings_panel_expanded(id_suffix: str = "") -> html.Div:
                                                                 color="#0d6efd",
                                                                 children=html.Div(
                                                                     id="calculate-metrics-status",
-                                                                    className="text-center text-muted small mt-2",
-                                                                    style={
-                                                                        "minHeight": "40px"
-                                                                    },  # Fixed height for consistent loading position
+                                                                    className=status_text_class,
+                                                                    style=min_height_40,
+                                                                    # Fixed loading area
                                                                     children="",
                                                                 ),
                                                             ),
@@ -324,7 +351,7 @@ def create_settings_panel_expanded(id_suffix: str = "") -> html.Div:
                                             html.Div(
                                                 [
                                                     html.I(
-                                                        className="fas fa-exchange-alt me-2 text-success"
+                                                        className=import_export_icon_class
                                                     ),
                                                     html.Span(
                                                         "Import / Export",
@@ -338,45 +365,35 @@ def create_settings_panel_expanded(id_suffix: str = "") -> html.Div:
                                                         style={"marginLeft": "0.25rem"},
                                                     ),
                                                 ],
-                                                className="d-flex align-items-center mb-2",
+                                                className=align_items_center_mb2,
                                             ),
                                             # Import - more compact
                                             html.Div(
                                                 [
                                                     html.Label(
                                                         "Import Data",
-                                                        className="form-label small text-muted mb-1",
+                                                        className=form_label_small_muted,
                                                     ),
                                                     dcc.Upload(
                                                         id="upload-data",
                                                         children=html.Div(
                                                             [
                                                                 html.I(
-                                                                    className="fas fa-cloud-upload-alt fa-lg mb-1 text-primary"
+                                                                    className=import_upload_icon_class
                                                                 ),
                                                                 html.P(
-                                                                    "Drop file or click",
-                                                                    className="mb-0 small",
+                                                                    drop_file_text,
+                                                                    className=small_text_class,
                                                                 ),
                                                                 html.Small(
                                                                     "JSON/CSV",
                                                                     className="text-muted",
-                                                                    style={
-                                                                        "fontSize": "0.75rem"
-                                                                    },
+                                                                    style=font_size_small,
                                                                 ),
                                                             ],
-                                                            className="text-center py-2",
+                                                            className=upload_text_center_class,
                                                         ),
-                                                        style={
-                                                            "width": "100%",
-                                                            "borderWidth": "2px",
-                                                            "borderStyle": "dashed",
-                                                            "borderRadius": "8px",
-                                                            "borderColor": "#dee2e6",
-                                                            "backgroundColor": "#f8f9fa",
-                                                            "cursor": "pointer",
-                                                        },
+                                                        style=upload_dropzone_style,
                                                         multiple=False,
                                                     ),
                                                 ],
@@ -387,7 +404,7 @@ def create_settings_panel_expanded(id_suffix: str = "") -> html.Div:
                                                 [
                                                     html.Label(
                                                         "Export Data",
-                                                        className="form-label small text-muted mb-1",
+                                                        className=form_label_small_muted,
                                                     ),
                                                     create_button(
                                                         text="Export Data",

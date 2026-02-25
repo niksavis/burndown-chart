@@ -27,7 +27,6 @@ select = ["E", "F", "I", "B", "UP"]
 "ui/metric_cards.py" = ["E501"]
 "ui/pert_components.py" = ["E501"]
 "ui/scope_metrics.py" = ["E501"]
-"ui/settings_panel.py" = ["E501"]
 
 [tool.ruff.format]
 quote-style = "double"
