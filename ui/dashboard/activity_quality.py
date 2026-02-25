@@ -121,13 +121,15 @@ def create_recent_activity_section(
                                 current_week_actual, forecast_value
                             )
                             logger.info(
-                                f"[Blending-RecentCompletions-Items] Actual: {current_week_actual:.1f}, "
+                                "[Blending-RecentCompletions-Items] "
+                                f"Actual: {current_week_actual:.1f}, "
                                 f"Forecast: {forecast_value:.1f}, "
                                 f"Blended: {items_blend_metadata['blended']:.1f}"
                             )
                     except Exception as e:
                         logger.warning(
-                            f"Failed to calculate items forecast for recent completions blending: {e}"
+                            "Failed to calculate items forecast for "
+                            f"recent completions blending: {e}"
                         )
 
             # Calculate points blend metadata
@@ -162,14 +164,98 @@ def create_recent_activity_section(
                                     current_week_actual_pts, forecast_value_pts
                                 )
                                 logger.info(
-                                    f"[Blending-RecentCompletions-Points] Actual: {current_week_actual_pts:.1f}, "
+                                    "[Blending-RecentCompletions-Points] "
+                                    f"Actual: {current_week_actual_pts:.1f}, "
                                     f"Forecast: {forecast_value_pts:.1f}, "
                                     f"Blended: {points_blend_metadata['blended']:.1f}"
                                 )
                         except Exception as e:
                             logger.warning(
-                                f"Failed to calculate points forecast for recent completions blending: {e}"
+                                "Failed to calculate points forecast for "
+                                f"recent completions blending: {e}"
                             )
+
+    items_has_trend = len(items_sparkline_values) >= 2
+    items_is_growing = (
+        items_has_trend and items_sparkline_values[-1] > items_sparkline_values[0]
+    )
+    if items_is_growing:
+        items_arrow_direction = "up"
+        items_arrow_color = "#28a745"
+        items_throughput_label = "Growing"
+    elif items_has_trend:
+        items_arrow_direction = "down"
+        items_arrow_color = "#dc3545"
+        items_throughput_label = "Declining"
+    else:
+        items_arrow_direction = "right"
+        items_arrow_color = "#6c757d"
+        items_throughput_label = "Stable"
+    items_arrow_class = f"fas fa-arrow-{items_arrow_direction} me-1"
+
+    points_has_trend = len(points_sparkline_values) >= 2
+    points_is_growing = (
+        points_has_trend and points_sparkline_values[-1] > points_sparkline_values[0]
+    )
+    if points_is_growing:
+        points_arrow_direction = "up"
+        points_arrow_color = "#28a745"
+        points_throughput_label = "Growing"
+    elif points_has_trend:
+        points_arrow_direction = "down"
+        points_arrow_color = "#dc3545"
+        points_throughput_label = "Declining"
+    else:
+        points_arrow_direction = "right"
+        points_arrow_color = "#6c757d"
+        points_throughput_label = "Stable"
+    points_arrow_class = f"fas fa-arrow-{points_arrow_direction} me-1"
+
+    items_completed_tooltip = (
+        f"Total items completed in the last {recent_window} weeks. "
+        "This metric shows recent delivery throughput regardless "
+        "of the data points filter. Breakdown shows Week 1 "
+        "(oldest) to Week 4 (newest)."
+    )
+    avg_items_tooltip = (
+        f"Average items completed per week over the last {recent_window} weeks. "
+        "Indicates current team velocity. Progressive blending is "
+        "applied to the current week to smooth Monday reliability drops."
+    )
+    points_completed_tooltip = (
+        f"Total story points completed in the last {recent_window} weeks. "
+        "This metric shows recent delivery throughput in terms of "
+        "story points. Breakdown shows Week 1 (oldest) to Week 4 (newest)."
+    )
+    avg_points_tooltip = (
+        f"Average story points completed per week over the last {recent_window} weeks. "
+        "Indicates current team velocity in terms of story points. "
+        "Progressive blending is applied to the current week to smooth "
+        "Monday reliability drops."
+    )
+    points_disabled_message = (
+        "Points tracking is disabled. Enable Points Tracking in "
+        "Parameters panel to view story points metrics."
+    )
+    points_disabled_items_tooltip = (
+        "Enable Points Tracking in Parameters panel and configure the "
+        "points field in JIRA Configuration to view this metric. "
+        "When disabled, use Items Completed for throughput tracking."
+    )
+    points_disabled_avg_tooltip = (
+        "Enable Points Tracking in Parameters panel and configure the "
+        "points field in JIRA Configuration to view this metric. "
+        "When disabled, use Items/Week Avg for velocity tracking."
+    )
+    no_points_message = (
+        "No story points data available. Configure story points field "
+        "in Settings or complete items with point estimates."
+    )
+    no_points_tooltip = (
+        f"No story points data available for the last {recent_window} weeks. "
+        "Configure story points field in Settings or complete items "
+        "with point estimates."
+    )
 
     # Create metric cards for Recent Completions
     items_cards = [
@@ -179,7 +265,7 @@ def create_recent_activity_section(
                 "value": total_items_completed,
                 "unit": "items",
                 "_n_weeks": recent_window,
-                "tooltip": f"Total items completed in the last {recent_window} weeks. This metric shows recent delivery throughput regardless of the data points filter. Breakdown shows Week 1 (oldest) to Week 4 (newest).",
+                "tooltip": items_completed_tooltip,
                 "error_state": "success",
                 "total_issue_count": 0,
             },
@@ -195,7 +281,6 @@ def create_recent_activity_section(
                                 ),
                                 html.Span(
                                     "Past 4 Weeks (oldest → newest)",
-                                    className="fw-bold",
                                     style={"fontSize": "0.85rem"},
                                 ),
                             ],
@@ -208,7 +293,8 @@ def create_recent_activity_section(
                                             f"Week {4 - i}: ", className="text-muted"
                                         ),
                                         html.Small(
-                                            f"{int(items_sparkline_values[-(i + 1)])} items",
+                                            f"{int(items_sparkline_values[-(i + 1)])}",
+                                            " items",
                                             className="fw-bold",
                                         ),
                                     ],
@@ -230,19 +316,11 @@ def create_recent_activity_section(
                         html.Div(
                             [
                                 html.I(
-                                    className=f"fas fa-arrow-{'up' if len(items_sparkline_values) >= 2 and items_sparkline_values[-1] > items_sparkline_values[0] else 'down' if len(items_sparkline_values) >= 2 else 'right'} me-1",
-                                    style={
-                                        "color": "#28a745"
-                                        if len(items_sparkline_values) >= 2
-                                        and items_sparkline_values[-1]
-                                        > items_sparkline_values[0]
-                                        else "#dc3545"
-                                        if len(items_sparkline_values) >= 2
-                                        else "#6c757d"
-                                    },
+                                    className=items_arrow_class,
+                                    style={"color": items_arrow_color},
                                 ),
                                 html.Small(
-                                    f"{'Growing' if len(items_sparkline_values) >= 2 and items_sparkline_values[-1] > items_sparkline_values[0] else 'Declining' if len(items_sparkline_values) >= 2 else 'Stable'} throughput",
+                                    f"{items_throughput_label} throughput",
                                     className="text-muted fst-italic",
                                 ),
                             ],
@@ -263,14 +341,15 @@ def create_recent_activity_section(
                 "value": avg_items_weekly,
                 "unit": "items/week",
                 "_n_weeks": recent_window,
-                "tooltip": f"Average items completed per week over the last {recent_window} weeks. Indicates current team velocity. Progressive blending is applied to the current week to smooth Monday reliability drops.",
+                "tooltip": avg_items_tooltip,
                 "error_state": "success",
                 "total_issue_count": 0,
                 "weekly_values": items_sparkline_values,
                 "weekly_labels": [
                     f"W{i + 1}" for i in range(len(items_sparkline_values))
                 ],
-                "blend_metadata": items_blend_metadata,  # Progressive blending (bd-a1vn)
+                "blend_metadata": items_blend_metadata,
+                # Progressive blending (bd-a1vn)
             },
             show_details_button=False,
         ),
@@ -286,7 +365,7 @@ def create_recent_activity_section(
                     "value": total_points_completed,
                     "unit": "points",
                     "_n_weeks": recent_window,
-                    "tooltip": f"Total story points completed in the last {recent_window} weeks. This metric shows recent delivery throughput in terms of story points. Breakdown shows Week 1 (oldest) to Week 4 (newest).",
+                    "tooltip": points_completed_tooltip,
                     "error_state": "success",
                     "total_issue_count": 0,
                 },
@@ -316,7 +395,11 @@ def create_recent_activity_section(
                                                 className="text-muted",
                                             ),
                                             html.Small(
-                                                f"{points_sparkline_values[-(i + 1)]:.1f} pts",
+                                                f"{
+                                                    points_sparkline_values[
+                                                        -i - 1
+                                                    ]:.1f}",
+                                                " pts",
                                                 className="fw-bold",
                                             ),
                                         ],
@@ -324,7 +407,9 @@ def create_recent_activity_section(
                                         style={"fontSize": "0.8rem"},
                                     )
                                     for i in range(
-                                        min(4, len(points_sparkline_values)) - 1, -1, -1
+                                        min(4, len(points_sparkline_values)) - 1,
+                                        -1,
+                                        -1,
                                     )
                                 ],
                                 className="small",
@@ -338,19 +423,11 @@ def create_recent_activity_section(
                             html.Div(
                                 [
                                     html.I(
-                                        className=f"fas fa-arrow-{'up' if len(points_sparkline_values) >= 2 and points_sparkline_values[-1] > points_sparkline_values[0] else 'down' if len(points_sparkline_values) >= 2 else 'right'} me-1",
-                                        style={
-                                            "color": "#28a745"
-                                            if len(points_sparkline_values) >= 2
-                                            and points_sparkline_values[-1]
-                                            > points_sparkline_values[0]
-                                            else "#dc3545"
-                                            if len(points_sparkline_values) >= 2
-                                            else "#6c757d"
-                                        },
+                                        className=points_arrow_class,
+                                        style={"color": points_arrow_color},
                                     ),
                                     html.Small(
-                                        f"{'Growing' if len(points_sparkline_values) >= 2 and points_sparkline_values[-1] > points_sparkline_values[0] else 'Declining' if len(points_sparkline_values) >= 2 else 'Stable'} throughput",
+                                        f"{points_throughput_label} throughput",
                                         className="text-muted fst-italic",
                                     ),
                                 ],
@@ -371,14 +448,15 @@ def create_recent_activity_section(
                     "value": avg_points_weekly,
                     "unit": "points/week",
                     "_n_weeks": recent_window,
-                    "tooltip": f"Average story points completed per week over the last {recent_window} weeks. Indicates current team velocity in terms of story points. Progressive blending is applied to the current week to smooth Monday reliability drops.",
+                    "tooltip": avg_points_tooltip,
                     "error_state": "success",
                     "total_issue_count": 0,
                     "weekly_values": points_sparkline_values,
                     "weekly_labels": [
                         f"W{i + 1}" for i in range(len(points_sparkline_values))
                     ],
-                    "blend_metadata": points_blend_metadata,  # Progressive blending (bd-a1vn)
+                    "blend_metadata": points_blend_metadata,
+                    # Progressive blending (bd-a1vn)
                 },
                 show_details_button=False,
             ),
@@ -392,8 +470,8 @@ def create_recent_activity_section(
                     "value": None,
                     "unit": "",
                     "error_state": "points_tracking_disabled",
-                    "error_message": "Points tracking is disabled. Enable Points Tracking in Parameters panel to view story points metrics.",
-                    "tooltip": "Enable Points Tracking in Parameters panel and configure the points field in JIRA Configuration to view this metric. When disabled, use Items Completed for throughput tracking.",
+                    "error_message": points_disabled_message,
+                    "tooltip": points_disabled_items_tooltip,
                     "total_issue_count": 0,
                 }
             ),
@@ -404,8 +482,8 @@ def create_recent_activity_section(
                     "value": None,
                     "unit": "",
                     "error_state": "points_tracking_disabled",
-                    "error_message": "Points tracking is disabled. Enable Points Tracking in Parameters panel to view story points metrics.",
-                    "tooltip": "Enable Points Tracking in Parameters panel and configure the points field in JIRA Configuration to view this metric. When disabled, use Items/Week Avg for velocity tracking.",
+                    "error_message": points_disabled_message,
+                    "tooltip": points_disabled_avg_tooltip,
                     "total_issue_count": 0,
                 }
             ),
@@ -419,8 +497,12 @@ def create_recent_activity_section(
                     "value": None,
                     "unit": "",
                     "error_state": "no_data",
-                    "error_message": "No story points data available. Configure story points field in Settings or complete items with point estimates.",
-                    "tooltip": f"No story points completed in the last {recent_window} weeks. This may indicate that story points are not configured or no items with point estimates have been completed.",
+                    "error_message": no_points_message,
+                    "tooltip": (
+                        f"No story points completed in the last {recent_window} weeks. "
+                        "This may indicate that story points are not configured "
+                        "or no items with point estimates have been completed."
+                    ),
                     "total_issue_count": 0,
                 }
             ),
@@ -431,8 +513,8 @@ def create_recent_activity_section(
                     "value": None,
                     "unit": "",
                     "error_state": "no_data",
-                    "error_message": "No story points data available. Configure story points field in Settings or complete items with point estimates.",
-                    "tooltip": f"No story points data available for the last {recent_window} weeks. Configure story points field in Settings or complete items with point estimates.",
+                    "error_message": no_points_message,
+                    "tooltip": no_points_tooltip,
                     "total_issue_count": 0,
                 }
             ),
@@ -521,6 +603,21 @@ def create_quality_scope_section(
             date_range = "tracked period"
             weeks_count = len(statistics_df)
 
+        scope_new_work_tooltip = (
+            "New work as % of initial baseline. "
+            f"Created {total_created:,} items of {baseline_items:,} baseline "
+            f"during {date_range} ({weeks_count} weeks). "
+            "Healthy: <15%, Warning: 15-35%, Critical: >35%. "
+            f"Your value: {scope_change_rate:.1f}%"
+        )
+        scope_creation_completion_tooltip = (
+            "Work creation vs completion rate. "
+            f"Added {total_created:,} items, completed {total_completed:,} "
+            f"during {date_range}. <100% = shrinking backlog, "
+            ">100% = growing backlog. "
+            f"Your value: {scope_growth_rate:.1f}%"
+        )
+
         scope_metrics.extend(
             [
                 {
@@ -528,14 +625,14 @@ def create_quality_scope_section(
                     "value": f"{scope_change_rate:.1f}%",
                     "color": "rgb(20, 168, 150)",  # Teal - distinct from items blue
                     "icon": "fa-chart-area",
-                    "tooltip": f"New work as % of initial baseline. Created {total_created:,} items of {baseline_items:,} baseline during {date_range} ({weeks_count} weeks). Healthy: <15%, Warning: 15-35%, Critical: >35%. Your value: {scope_change_rate:.1f}%",
+                    "tooltip": scope_new_work_tooltip,
                 },
                 {
                     "label": "Creation vs Completion Rate",
                     "value": f"{scope_growth_rate:.1f}%",
                     "color": "#6610f2",
                     "icon": "fa-chart-line",
-                    "tooltip": f"Work creation vs completion rate. Added {total_created:,} items, completed {total_completed:,} during {date_range}. <100% = shrinking backlog, >100% = growing backlog. Your value: {scope_growth_rate:.1f}%",
+                    "tooltip": scope_creation_completion_tooltip,
                 },
             ]
         )
@@ -577,6 +674,115 @@ def create_quality_scope_section(
             {"label": "Trend Stability", "value": "N/A", "color": "#6c757d"},
         ]
 
+    scope_card_tooltip = (
+        "Track scope changes and backlog growth. Shows ratio of new items "
+        "added vs completed, helping identify scope creep early. "
+        "Healthy projects maintain balance between scope growth "
+        "and completion rate."
+    )
+    scope_footer_text = (
+        "Tracks new items added vs completed • "
+        "Monitors backlog growth over project lifecycle"
+    )
+    quality_card_tooltip = (
+        "Measures delivery predictability and consistency. "
+        "High values (80%+) indicate stable, reliable team performance. "
+        "Use these metrics to assess forecast accuracy "
+        "and process maturity."
+    )
+    quality_velocity_tooltip = (
+        "Measures how consistent velocity is week-over-week. "
+        "Calculated as 100% - coefficient of variation. "
+        "Higher values (80%+) indicate predictable delivery pace, "
+        "making forecasts more reliable."
+    )
+    quality_trend_tooltip = (
+        "Measures velocity change between recent and historical periods. "
+        "High values (80%+) indicate stable trends. "
+        "Low values suggest significant velocity shifts "
+        "requiring investigation."
+    )
+    quality_footer_text = (
+        "Consistency + stability metrics • "
+        "High values (80%+) enable reliable forecasting"
+    )
+    metric_heading_style = {
+        "fontSize": "0.85rem",
+        "display": "flex",
+        "alignItems": "center",
+        "justifyContent": "center",
+    }
+    metric_label_gap_style = {"marginRight": "4px"}
+    metric_value_base_style = {"fontWeight": "bold"}
+    section_footer_class = "text-center bg-light border-top py-2"
+
+    def _render_scope_metric(metric: dict[str, Any]) -> html.Div:
+        tooltip_id = f"scope-{metric['label'].lower().replace(' ', '-')}"
+        icon_class = f"fas {metric.get('icon', 'fa-info-circle')} me-2"
+        icon_style = {"color": metric["color"], "fontSize": "1.2rem"}
+        value_style = {**metric_value_base_style, "color": metric["color"]}
+        tooltip = (
+            create_info_tooltip(metric.get("tooltip", ""), tooltip_id)
+            if metric.get("tooltip")
+            else None
+        )
+
+        return html.Div(
+            [
+                html.Div(
+                    [
+                        html.I(className=icon_class, style=icon_style),
+                        metric["label"],
+                        html.Span(" ", style=metric_label_gap_style),
+                        tooltip,
+                    ],
+                    className="text-muted",
+                    style=metric_heading_style,
+                ),
+                html.Div(
+                    metric["value"],
+                    className="h3 mb-0",
+                    style=value_style,
+                ),
+            ],
+            className="text-center p-2",
+        )
+
+    def _render_quality_metric(metric: dict[str, Any]) -> html.Div:
+        tooltip = None
+        if metric["label"] == "Velocity Consistency":
+            tooltip = create_info_tooltip(
+                quality_velocity_tooltip,
+                "quality-velocity-consistency",
+            )
+        elif metric["label"] == "Trend Stability":
+            tooltip = create_info_tooltip(
+                quality_trend_tooltip,
+                "quality-trend-stability",
+            )
+
+        value_style = {**metric_value_base_style, "color": metric["color"]}
+
+        return html.Div(
+            [
+                html.Div(
+                    [
+                        metric["label"],
+                        html.Span(" ", style=metric_label_gap_style),
+                        tooltip,
+                    ],
+                    className="text-muted",
+                    style=metric_heading_style,
+                ),
+                html.Div(
+                    metric["value"],
+                    className="h3 mb-0",
+                    style=value_style,
+                ),
+            ],
+            className="text-center p-2",
+        )
+
     return html.Div(
         [
             html.H5(
@@ -596,66 +802,14 @@ def create_quality_scope_section(
                                 [
                                     create_metric_card_header(
                                         title="Scope Management",
-                                        tooltip_text="Track scope changes and backlog growth. Shows ratio of new items added vs completed, helping identify scope creep early. Healthy projects maintain balance between scope growth and completion rate.",
+                                        tooltip_text=scope_card_tooltip,
                                         tooltip_id="scope-management-card",
                                     ),
                                     dbc.CardBody(
                                         [
                                             html.Div(
                                                 [
-                                                    html.Div(
-                                                        [
-                                                            html.Div(
-                                                                [
-                                                                    html.I(
-                                                                        className=f"fas {metric.get('icon', 'fa-info-circle')} me-2",
-                                                                        style={
-                                                                            "color": metric[
-                                                                                "color"
-                                                                            ],
-                                                                            "fontSize": "1.2rem",
-                                                                        },
-                                                                    ),
-                                                                    metric["label"],
-                                                                    html.Span(
-                                                                        " ",
-                                                                        style={
-                                                                            "marginRight": "4px"
-                                                                        },
-                                                                    ),
-                                                                    create_info_tooltip(
-                                                                        metric.get(
-                                                                            "tooltip",
-                                                                            "",
-                                                                        ),
-                                                                        f"scope-{metric['label'].lower().replace(' ', '-')}",
-                                                                    )
-                                                                    if metric.get(
-                                                                        "tooltip"
-                                                                    )
-                                                                    else None,
-                                                                ],
-                                                                className="text-muted",
-                                                                style={
-                                                                    "fontSize": "0.85rem",
-                                                                    "display": "flex",
-                                                                    "alignItems": "center",
-                                                                    "justifyContent": "center",
-                                                                },
-                                                            ),
-                                                            html.Div(
-                                                                metric["value"],
-                                                                className="h3 mb-0",
-                                                                style={
-                                                                    "fontWeight": "bold",
-                                                                    "color": metric[
-                                                                        "color"
-                                                                    ],
-                                                                },
-                                                            ),
-                                                        ],
-                                                        className="text-center p-2",
-                                                    )
+                                                    _render_scope_metric(metric)
                                                     for metric in scope_metrics
                                                 ]
                                             )
@@ -672,11 +826,11 @@ def create_quality_scope_section(
                                                 html.I(
                                                     className="fas fa-chart-line me-1"
                                                 ),
-                                                "Tracks new items added vs completed • Monitors backlog growth over project lifecycle",
+                                                scope_footer_text,
                                             ],
                                             className="text-muted",
                                         ),
-                                        className="text-center bg-light border-top py-2",
+                                        className=section_footer_class,
                                     ),
                                 ],
                                 id="scope-management-card",
@@ -693,59 +847,14 @@ def create_quality_scope_section(
                                 [
                                     create_metric_card_header(
                                         title="Quality Indicators",
-                                        tooltip_text="Measures delivery predictability and consistency. High values (80%+) indicate stable, reliable team performance. Use these metrics to assess forecast accuracy and process maturity.",
+                                        tooltip_text=quality_card_tooltip,
                                         tooltip_id="quality-indicators-card",
                                     ),
                                     dbc.CardBody(
                                         [
                                             html.Div(
                                                 [
-                                                    html.Div(
-                                                        [
-                                                            html.Div(
-                                                                [
-                                                                    metric["label"],
-                                                                    html.Span(
-                                                                        " ",
-                                                                        style={
-                                                                            "marginRight": "4px"
-                                                                        },
-                                                                    ),
-                                                                    create_info_tooltip(
-                                                                        "Measures how consistent velocity is week-over-week. Calculated as 100% - coefficient of variation. Higher values (80%+) indicate predictable delivery pace, making forecasts more reliable.",
-                                                                        "quality-velocity-consistency",
-                                                                    )
-                                                                    if metric["label"]
-                                                                    == "Velocity Consistency"
-                                                                    else create_info_tooltip(
-                                                                        "Measures velocity change between recent and historical periods. High values (80%+) indicate stable trends. Low values suggest significant velocity shifts requiring investigation.",
-                                                                        "quality-trend-stability",
-                                                                    )
-                                                                    if metric["label"]
-                                                                    == "Trend Stability"
-                                                                    else None,
-                                                                ],
-                                                                className="text-muted",
-                                                                style={
-                                                                    "fontSize": "0.85rem",
-                                                                    "display": "flex",
-                                                                    "alignItems": "center",
-                                                                    "justifyContent": "center",
-                                                                },
-                                                            ),
-                                                            html.Div(
-                                                                metric["value"],
-                                                                className="h3 mb-0",
-                                                                style={
-                                                                    "fontWeight": "bold",
-                                                                    "color": metric[
-                                                                        "color"
-                                                                    ],
-                                                                },
-                                                            ),
-                                                        ],
-                                                        className="text-center p-2",
-                                                    )
+                                                    _render_quality_metric(metric)
                                                     for metric in quality_metrics
                                                 ]
                                             )
@@ -757,11 +866,11 @@ def create_quality_scope_section(
                                                 html.I(
                                                     className="fas fa-gauge-high me-1"
                                                 ),
-                                                "Consistency + stability metrics • High values (80%+) enable reliable forecasting",
+                                                quality_footer_text,
                                             ],
                                             className="text-muted",
                                         ),
-                                        className="text-center bg-light border-top py-2",
+                                        className=section_footer_class,
                                     ),
                                 ],
                                 id="quality-indicators-card",
