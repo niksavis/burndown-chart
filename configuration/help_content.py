@@ -10,7 +10,8 @@ Content is organized by category to match the original help text structure.
 # FORECAST HELP CONTENT - Comprehensive explanations for help pages
 FORECAST_HELP_DETAILED = {
     "pert_methodology": """
-        PERT (Program Evaluation and Review Technique) uses three-point estimation for probabilistic forecasting:
+        PERT (Program Evaluation and Review Technique) uses three-point estimation
+        for probabilistic forecasting:
         
         [Stats] **Formula Components:**
         • Optimistic (O): Best-case scenario from top velocity periods
@@ -19,15 +20,19 @@ FORECAST_HELP_DETAILED = {
         • Expected (E): Weighted average = (O + 4×ML + P) ÷ 6
         
         [Calc] **Mathematical Foundation:**
-        The formula weights the Most Likely estimate 4x more heavily than extreme scenarios,
+        The formula weights the Most Likely estimate 4x more heavily than
+        extreme scenarios,
         following beta distribution principles for realistic project estimation.
         
         [Trend] **Confidence Intervals (Statistical Percentiles):**
         • 50% (Median): The PERT forecast itself - 50% chance of completion by this date
-        • 80% (Good Confidence): PERT + 0.84 standard deviations - 80% chance of completion
-        • 95% (High Confidence): PERT + 1.65 standard deviations - 95% chance of completion
+                • 80% (Good Confidence): PERT + 0.84 standard deviations - 80% chance
+                    of completion
+                • 95% (High Confidence): PERT + 1.65 standard deviations - 95% chance
+                    of completion
         
-        Wider ranges indicate higher velocity uncertainty; narrower ranges show more predictable delivery.
+        Wider ranges indicate higher velocity uncertainty; narrower ranges show
+        more predictable delivery.
     """,
     "optimistic_forecast": """
         Best-case completion estimate based on your highest velocity periods.
@@ -59,24 +64,29 @@ FORECAST_HELP_DETAILED = {
         • Balances optimism with realism for statistically sound estimates
         • Reduces impact of outlier scenarios while acknowledging uncertainty
         
-        [Note] **Interpretation:** Most reliable single-point forecast for project planning.
+        [Note] **Interpretation:** Most reliable single-point forecast for
+        project planning.
     """,
     "three_point_estimation": """
-        Three-point estimation technique provides forecast ranges instead of single points.
+        Three-point estimation technique provides forecast ranges instead of
+        single points.
         
         [Tip] **Mathematical Advantage:**
         Single estimates ignore uncertainty; ranges acknowledge project variability.
         
         [Trend] **Confidence Calculation:**
-        Uncertainty bands calculated from variance between optimistic and pessimistic scenarios.
+        Uncertainty bands calculated from variance between optimistic and
+        pessimistic scenarios.
         Wider bands = higher uncertainty, narrower bands = more predictable outcomes.
         
         [Apply] **Practical Application:**
-        Use ranges for risk planning, resource allocation, and stakeholder communication.
+        Use ranges for risk planning, resource allocation, and stakeholder
+        communication.
         The expected value provides planning target while ranges show risk boundaries.
     """,
     "project_overview": """
-        Project Overview provides a comprehensive dashboard of your project's current state and progress metrics.
+        Project Overview provides a comprehensive dashboard of your project's
+        current state and progress metrics.
         
         [Stats] **Progress Tracking:**
         • Items Completion: Shows percentage of work items completed vs remaining
@@ -91,7 +101,8 @@ FORECAST_HELP_DETAILED = {
         
         [Trend] **Visual Indicators:**
         Progress bars provide immediate visual feedback on project completion status.
-        Different completion rates for items vs points can indicate scope or estimation changes.
+        Different completion rates for items vs points can indicate scope or
+        estimation changes.
         
         [Note] **Interpretation Guide:**
         Items and points completion percentages may differ due to:
@@ -100,7 +111,8 @@ FORECAST_HELP_DETAILED = {
         • Estimation refinements during development
     """,
     "forecast_graph_overview": """
-        Interactive forecast visualization showing project completion timeline with uncertainty ranges.
+        Interactive forecast visualization showing project completion timeline
+        with uncertainty ranges.
         
         [Trend] **Chart Elements:**
         • Historical Data: Solid lines showing actual completed work over time
@@ -127,14 +139,17 @@ FORECAST_HELP_DETAILED = {
         • Understand impact of scope changes on delivery dates
     """,
     "pert_analysis_detailed": """
-        Comprehensive PERT (Program Evaluation and Review Technique) analysis using statistical forecasting.
+        Comprehensive PERT (Program Evaluation and Review Technique) analysis
+        using statistical forecasting.
         
         [Calc] **Three-Point Calculation Method:**
         
         **Data Collection Process:**
         • Optimistic (O): Average of top 25% velocity periods from your historical data
-        • Most Likely (ML): Simple arithmetic mean of all recent data points (typically 8-12 weeks)
-        • Pessimistic (P): Average of bottom 25% velocity periods from your historical data
+                • Most Likely (ML): Simple arithmetic mean of all recent data points
+                    (typically 8-12 weeks)
+                • Pessimistic (P): Average of bottom 25% velocity periods from your
+                    historical data
         
         **Expected Value Formula:**
         ```
@@ -158,15 +173,19 @@ FORECAST_HELP_DETAILED = {
         With 50 remaining items: 50 ÷ 10.17 = ~5 weeks expected completion
         
         [Stats] **Statistical Foundation:**
-        • **Beta Distribution**: Mathematically models project uncertainty patterns naturally
-        • **4× Most Likely Weighting**: Statistically optimal balance (proven by decades of project data)
-        • **Confidence Intervals**: Calculated using coefficient of variation (CV = std/mean) applied to forecast
+                • **Beta Distribution**: Mathematically models project uncertainty
+                    patterns naturally
+                • **4× Most Likely Weighting**: Statistically optimal balance (proven
+                    by decades of project data)
+                • **Confidence Intervals**: Calculated using coefficient of variation
+                    (CV = std/mean) applied to forecast
           - 50th percentile: The PERT forecast (median)
           - 80th percentile: PERT + 0.84 × forecast_std
           - 95th percentile: PERT + 1.65 × forecast_std
         
         [Link] **Related Topics:**
-        See also: Weekly Velocity Calculation, Forecast Graph Overview, Input Parameters Guide
+        See also: Weekly Velocity Calculation, Forecast Graph Overview,
+        Input Parameters Guide
         
         [Tip] **Forecast Applications:**
         • Timeline Planning: Use Expected value for primary planning
@@ -182,7 +201,8 @@ FORECAST_HELP_DETAILED = {
         • Regular, complete data collection without gaps
     """,
     "input_parameters_guide": """
-        Input Parameters control forecast calculations and scope definitions for your project.
+        Input Parameters control forecast calculations and scope definitions
+        for your project.
         
         [Config] **Parameter Relationships:**
         
@@ -228,7 +248,8 @@ FORECAST_HELP_DETAILED = {
 # VELOCITY HELP CONTENT - Comprehensive explanations for help pages
 VELOCITY_HELP_DETAILED = {
     "weekly_velocity_calculation": """
-        Weekly velocity represents your team's average completion rate calculated over the last 10 weeks of data.
+        Weekly velocity represents your team's average completion rate
+        calculated over the last 10 weeks of data.
         
         [Stats] **Calculation Methods:**
         • Average Velocity: Simple arithmetic mean (sum ÷ count)
@@ -249,7 +270,8 @@ VELOCITY_HELP_DETAILED = {
         Visual indicators showing velocity change patterns over time.
         
         [Tip] **Trend Calculation:**
-        Percentage change = ((Current Period - Previous Period) ÷ Previous Period) × 100%
+        Percentage change = ((Current Period - Previous Period) ÷
+        Previous Period) × 100%
         
         [Stats] **Visual Meanings:**
         • [UP] Green Up Arrow: >5% improvement (acceleration)
@@ -258,11 +280,13 @@ VELOCITY_HELP_DETAILED = {
         
         [Note] **Interpretation Guide:**
         Consistent upward trends may indicate team learning or process improvements.
-        Consistent downward trends may indicate technical debt, scope creep, or team changes.
+        Consistent downward trends may indicate technical debt, scope creep,
+        or team changes.
         Stable trends indicate predictable delivery capacity.
     """,
     "data_quality_impact": """
-        Data quality and quantity directly affect forecast accuracy and confidence levels.
+        Data quality and quantity directly affect forecast accuracy and
+        confidence levels.
         
         [Trend] **Data Point Requirements:**
         • Minimum: 4-6 weeks for basic trends
@@ -280,7 +304,8 @@ VELOCITY_HELP_DETAILED = {
         Less data points = wider confidence intervals = higher uncertainty ranges
     """,
     "velocity_average_calculation": """
-        Average Velocity calculation using arithmetic mean for consistent baseline forecasting.
+        Average Velocity calculation using arithmetic mean for consistent
+        baseline forecasting.
         
         [Calc] **Mathematical Formula:**
         ```
@@ -307,7 +332,8 @@ VELOCITY_HELP_DETAILED = {
         
         [Stats] **Statistical Characteristics:**
         • **Equal Weighting**: Every week contributes equally to final calculation
-        • **Outlier Sensitivity**: Week 4 (18 items) and Week 3 (8 items) both pull the average 
+                • **Outlier Sensitivity**: Week 4 (18 items) and Week 3 (8 items)
+                    both pull the average
         • **Stability Indicator**: Consistent averages = predictable delivery capacity
         • **Trending Capability**: Shows velocity evolution over rolling time periods
         
@@ -329,13 +355,16 @@ VELOCITY_HELP_DETAILED = {
         
         [Config] **When to Use Average vs Median:**
         • **Choose Average** for stable teams with consistent delivery patterns
-        • **Choose Median** when dealing with frequent scope changes or capacity variations
+                • **Choose Median** when dealing with frequent scope changes or
+                    capacity variations
         
         [Link] **Related Topics:**
-        See also: Median Velocity Calculation, PERT Analysis Detailed, Velocity Trend Indicators
+        See also: Median Velocity Calculation, PERT Analysis Detailed,
+        Velocity Trend Indicators
     """,
     "velocity_median_calculation": """
-        Median Velocity calculation using middle value for outlier-resistant forecasting.
+        Median Velocity calculation using middle value for outlier-resistant
+        forecasting.
         
         [Calc] **Formula:**
         Median Velocity = Middle value when all weekly velocities are sorted
@@ -393,7 +422,8 @@ SCOPE_HELP_DETAILED = {
         • Scope Growth Rate: (250 ÷ 200) = 125% (adding faster than completing)
         
         [Tip] **Agile Context:**
-        Scope changes are normal in agile, representing discovery, feedback, and adaptation.
+        Scope changes are normal in agile, representing discovery, feedback,
+        and adaptation.
         
         [Trend] **Healthy Ranges:**
         • <20%: Stable scope
@@ -401,10 +431,12 @@ SCOPE_HELP_DETAILED = {
         • >50%: High volatility, review planning
     """,
     "adaptability_index": """
-        Adaptability Index measures how well your team balances scope changes with delivery consistency.
+        Adaptability Index measures how well your team balances scope changes
+        with delivery consistency.
         
         [Calc] **Calculation Method:**
-        Adaptability = 1 - (Standard Deviation of Weekly Scope Changes ÷ Mean Weekly Scope Changes)
+        Adaptability = 1 - (Standard Deviation of Weekly Scope Changes ÷
+        Mean Weekly Scope Changes)
         
         [Stats] **Interpretation Scale:**
         • 0.8-1.0: Highly adaptable (excellent scope management)
@@ -415,7 +447,8 @@ SCOPE_HELP_DETAILED = {
         [Tip] **Agile Context:**
         Low values (0.2-0.5) are NORMAL for responsive agile teams!
         This indicates healthy adaptation to changing requirements.
-        Very high values might suggest insufficient customer feedback or market responsiveness.
+        Very high values might suggest insufficient customer feedback or market
+        responsiveness.
         
         [Note] **Action Insights:**
         Use trends over time rather than absolute values for decision making.
@@ -549,7 +582,8 @@ CHART_HELP_DETAILED = {
         • Scope change indicators: Show requirement additions/removals
     """,
     "pert_forecast_methodology": """
-        PERT (Program Evaluation Review Technique) creates realistic forecasts using three-point estimation.
+        PERT (Program Evaluation Review Technique) creates realistic forecasts
+        using three-point estimation.
         
         [Calc] **Three-Point Estimation Process:**
         1. **Optimistic Scenario**: Best-case timeline from peak velocity periods
@@ -586,7 +620,8 @@ CHART_HELP_DETAILED = {
         • Regular, complete data collection practices
     """,
     "weekly_chart_methodology": """
-        Weekly velocity charts with predictive forecasting using weighted moving averages.
+        Weekly velocity charts with predictive forecasting using weighted
+        moving averages.
         
         [Stats] **Chart Components:**
         • Historical bars: Actual weekly completion rates
@@ -624,71 +659,259 @@ CHART_HELP_DETAILED = {
 
 # BUG ANALYSIS HELP CONTENT - Tooltips for bug metrics
 BUG_ANALYSIS_TOOLTIPS = {
-    "resolution_rate": "Percentage of closed bugs. ≥80% excellent, 70-79% good, <70% needs attention.",
+    "resolution_rate": (
+        "Percentage of closed bugs. ≥80% excellent, 70-79% good, <70% needs attention."
+    ),
     "open_bugs": "Current unresolved bug count. Green: 0, Teal: 1-5, Orange: >5 bugs.",
-    "expected_resolution": "Forecast weeks to clear bug backlog using last 8 weeks of data. Green: ≤2 weeks, Teal: 3-4 weeks, Yellow: >4 weeks.",
+    "expected_resolution": (
+        "Forecast weeks to clear bug backlog using last 8 weeks of data. Green: "
+        "≤2 weeks, Teal: 3-4 weeks, Yellow: >4 weeks."
+    ),
 }
 
 # DASHBOARD METRICS HELP CONTENT - Tooltips for main dashboard cards
 DASHBOARD_METRICS_TOOLTIPS = {
-    "completion_forecast": "Estimated project completion date using PERT three-point estimation. Based on optimistic, most likely, and pessimistic velocity scenarios from your historical data.",
-    "completion_forecast_detail": "This forecast uses your team's actual velocity data to predict when all remaining work will be completed. The calculation accounts for best-case, average, and worst-case scenarios to provide a realistic estimate with confidence ranges.",
-    "remaining_work": "Current backlog of incomplete work items and story points. Tracks both the number of items and their estimated effort to give you a complete picture of what's left to deliver.",
-    "remaining_items": "Number of work items (tasks, stories, bugs) not yet completed. This count helps track progress independently of estimation complexity.",
-    "remaining_points": "Total story points for all incomplete work. Represents the estimated effort remaining, which may differ from item count due to varying complexity.",
-    "velocity_trend": "Team's delivery rate over time, measured in items and points completed per week. Shows whether your team is accelerating, maintaining pace, or slowing down.",
-    "current_velocity": "Average items and points completed per week based on recent historical data. This is your team's current sustainable delivery pace used for forecasting.",
-    "pert_expected": "Weighted average of optimistic, most likely, and pessimistic forecasts using the formula: (O + 4×ML + P) ÷ 6. Provides the most statistically reliable single-point estimate.",
-    "confidence_range": "Uncertainty band around the forecast showing the range of possible completion dates. Wider ranges indicate higher unpredictability; narrower ranges show consistent velocity.",
-    "scope_growth": "New work added vs baseline or completed work. Tracks requirement evolution and impact on forecasts. Two views: growth from baseline and creation vs completion rate.",
-    "health_score": "Health score (0-100 points). Automatically adapts to available data sources: Dashboard (Delivery Performance 25%, Predictability 20%), Process Quality (DORA metrics 20%), Delivery Efficiency (Flow metrics 15%), Risk Indicators (Bug Analysis, Scope, Budget 25%). Weights dynamically adjust based on data availability, gracefully handling missing metrics. Note: scope change rate for health uses created divided by (remaining + completed) within the selected window, which differs from baseline-based scope tracking.",
+    "completion_forecast": (
+        "Estimated project completion date using PERT three-point estimation. Based "
+        "on optimistic, most likely, and pessimistic velocity scenarios from your "
+        "historical data."
+    ),
+    "completion_forecast_detail": (
+        "This forecast uses your team's actual velocity data to predict when all "
+        "remaining work will be completed. The calculation accounts for best-case, "
+        "average, and worst-case scenarios to provide a realistic estimate with "
+        "confidence ranges."
+    ),
+    "remaining_work": (
+        "Current backlog of incomplete work items and story points. Tracks both the "
+        "number of items and their estimated effort to give you a complete picture of "
+        "what's left to deliver."
+    ),
+    "remaining_items": (
+        "Number of work items (tasks, stories, bugs) not yet completed. This count "
+        "helps track progress independently of estimation complexity."
+    ),
+    "remaining_points": (
+        "Total story points for all incomplete work. Represents the estimated effort "
+        "remaining, which may differ from item count due to varying complexity."
+    ),
+    "velocity_trend": (
+        "Team's delivery rate over time, measured in items and points completed per "
+        "week. Shows whether your team is accelerating, maintaining pace, or slowing "
+        "down."
+    ),
+    "current_velocity": (
+        "Average items and points completed per week based on recent historical data. "
+        "This is your team's current sustainable delivery pace used for forecasting."
+    ),
+    "pert_expected": (
+        "Weighted average of optimistic, most likely, and pessimistic forecasts using "
+        "the formula: (O + 4×ML + P) ÷ 6. Provides the most statistically reliable "
+        "single-point estimate."
+    ),
+    "confidence_range": (
+        "Uncertainty band around the forecast showing the range of possible completion "
+        "dates. Wider ranges indicate higher unpredictability; narrower ranges show "
+        "consistent velocity."
+    ),
+    "scope_growth": (
+        "New work added vs baseline or completed work. Tracks requirement evolution "
+        "and impact on forecasts. Two views: growth from baseline and creation vs "
+        "completion rate."
+    ),
+    "health_score": (
+        "Health score (0-100 points). Automatically adapts to available data sources: "
+        "Dashboard (Delivery Performance 25%, Predictability 20%), Process Quality "
+        "(DORA metrics 20%), Delivery Efficiency (Flow metrics 15%), Risk Indicators "
+        "(Bug Analysis, Scope, Budget 25%). Weights dynamically adjust based on data "
+        "availability, gracefully handling missing metrics. Note: scope change rate "
+        "for health uses created divided by (remaining + completed) within the "
+        "selected window, which differs from baseline-based scope tracking."
+    ),
 }
 
 # PARAMETER INPUTS HELP CONTENT - Tooltips for parameter panel controls
 PARAMETER_INPUTS_TOOLTIPS = {
-    "pert_factor": "Forecast Range: Controls how many weeks to sample for best/worst case forecasts. Higher values (8-12) provide conservative estimates using sustained performance patterns. Lower values (3-6) reflect recent variability. Minimum 6 weeks of data recommended for reliability.",
-    "pert_factor_detail": "This parameter determines how many of your best and worst performing weeks are averaged to calculate optimistic and pessimistic scenarios. For example, with a value of 6, your forecast uses the average of your 6 best weeks as the optimistic case and your 6 worst weeks as the pessimistic case. The most likely scenario always uses the average of all available data. This approach provides data-driven forecasts based on your team's actual historical performance, which is more reliable than simple averages or gut feelings. Recommended: 20-30% of your total history (e.g., 6 weeks if you have 30 weeks of data).",
-    "deadline": "Target completion date for your project. Used to calculate timeline pressure and whether current velocity will meet the deadline. Shown as a vertical line on forecast charts.",
-    "deadline_detail": "Set your desired or committed project deadline. The forecast will compare this date against velocity-based predictions to show if you're on track, ahead, or behind schedule.",
-    "milestone": "Optional visual marker for any significant project date. Appears as a green vertical line on charts. Useful for sprint boundaries, phase gates, or external dependencies. Can be set to any future date.",
-    "estimated_items": "Number of work items that have effort estimates (story points, hours, etc.). Used to calculate average effort per item. If 0, the system will use historical averages. Manual changes will be overwritten by JIRA updates.",
-    "remaining_items": "Total number of currently open/unresolved work items. This is your current remaining scope. Used to calculate total remaining effort when combined with estimated points. Manual changes will be overwritten by JIRA updates.",
-    "estimated_points": "Total story points for items that have been estimated. Used with Estimated Items to calculate average points per item. Leave at 0 if story points are unavailable. Manual changes will be overwritten by JIRA updates.",
-    "remaining_points": "Auto-calculated total remaining effort. Formula: Estimated Points + (avg_points_per_item × unestimated_items), where avg = Estimated Points ÷ Estimated Items, and unestimated = Remaining Items - Estimated Items. Updates automatically when any input changes.",
-    "total_items": "Baseline Items (at window start): Total work items that needed to be completed at the start of your selected time window. This baseline is used for tracking progress and calculating completion percentage within the window. Currently Open = Baseline - Completed.",
-    "completed_items": "Number of work items finished within the selected time window. Used to calculate completion percentage and determine currently open work: Baseline Items - Completed Items.",
-    "total_points": "Baseline Points (at window start): Total story points that needed to be completed at the start of your selected time window. This baseline includes both estimated and extrapolated points for items without estimates. Currently Open = Baseline - Completed.",
-    "completed_points": "Story points for work items finished within the selected time window. Used to calculate effort-based completion percentage: Completed Points ÷ Baseline Points × 100%.",
-    "scope_buffer": "Optional reserve capacity for scope changes and unknowns. Adding a buffer (e.g., 10-20% of total scope) provides contingency for new requirements.",
-    "data_points": "Time Period: Number of historical weeks to include for baseline and velocity calculations. Minimum 4-6 weeks recommended; 8-12 weeks optimal for stable forecasts. This defines your analysis window.",
-    "data_points_detail": "More data points provide stability but may miss recent trends. Fewer points are more responsive to changes but can be volatile. Balance based on your project's stability.",
+    "pert_factor": (
+        "Forecast Range: Controls how many weeks to sample for best/worst case "
+        "forecasts. Higher values (8-12) provide conservative estimates using "
+        "sustained performance patterns. Lower values (3-6) reflect recent "
+        "variability. Minimum 6 weeks of data recommended for reliability."
+    ),
+    "pert_factor_detail": (
+        "This parameter determines how many of your best and worst performing weeks "
+        "are averaged to calculate optimistic and pessimistic scenarios. For "
+        "example, with a value of 6, your forecast uses the average of your 6 best "
+        "weeks as the optimistic case and your 6 worst weeks as the pessimistic "
+        "case. The most likely scenario always uses the average of all available "
+        "data. This approach provides data-driven forecasts based on your team's "
+        "actual historical performance, which is more reliable than simple averages "
+        "or gut feelings. Recommended: 20-30% of your total history (e.g., 6 weeks "
+        "if you have 30 weeks of data)."
+    ),
+    "deadline": (
+        "Target completion date for your project. Used to calculate timeline pressure "
+        "and whether current velocity will meet the deadline. Shown as a vertical "
+        "line on forecast charts."
+    ),
+    "deadline_detail": (
+        "Set your desired or committed project deadline. The forecast will compare "
+        "this date against velocity-based predictions to show if you're on track, "
+        "ahead, or behind schedule."
+    ),
+    "milestone": (
+        "Optional visual marker for any significant project date. Appears as a green "
+        "vertical line on charts. Useful for sprint boundaries, phase gates, or "
+        "external dependencies. Can be set to any future date."
+    ),
+    "estimated_items": (
+        "Number of work items that have effort estimates (story points, hours, "
+        "etc.). Used to calculate average effort per item. If 0, the system will "
+        "use historical averages. Manual changes will be overwritten by JIRA "
+        "updates."
+    ),
+    "remaining_items": (
+        "Total number of currently open/unresolved work items. This is your current "
+        "remaining scope. Used to calculate total remaining effort when combined with "
+        "estimated points. Manual changes will be overwritten by JIRA updates."
+    ),
+    "estimated_points": (
+        "Total story points for items that have been estimated. Used with Estimated "
+        "Items to calculate average points per item. Leave at 0 if story points are "
+        "unavailable. Manual changes will be overwritten by JIRA updates."
+    ),
+    "remaining_points": (
+        "Auto-calculated total remaining effort. Formula: Estimated Points + "
+        "(avg_points_per_item × unestimated_items), where avg = Estimated Points ÷ "
+        "Estimated Items, and unestimated = Remaining Items - Estimated Items. "
+        "Updates automatically when any input changes."
+    ),
+    "total_items": (
+        "Baseline Items (at window start): Total work items that needed to be "
+        "completed at the start of your selected time window. This baseline is used "
+        "for tracking progress and calculating completion percentage within the "
+        "window. Currently Open = Baseline - Completed."
+    ),
+    "completed_items": (
+        "Number of work items finished within the selected time window. Used to "
+        "calculate completion percentage and determine currently open work: Baseline "
+        "Items - Completed Items."
+    ),
+    "total_points": (
+        "Baseline Points (at window start): Total story points that needed to be "
+        "completed at the start of your selected time window. This baseline includes "
+        "both estimated and extrapolated points for items without estimates. "
+        "Currently Open = Baseline - Completed."
+    ),
+    "completed_points": (
+        "Story points for work items finished within the selected time window. Used "
+        "to calculate effort-based completion percentage: Completed Points ÷ Baseline "
+        "Points × 100%."
+    ),
+    "scope_buffer": (
+        "Optional reserve capacity for scope changes and unknowns. Adding a buffer "
+        "(e.g., 10-20% of total scope) provides contingency for new requirements."
+    ),
+    "data_points": (
+        "Time Period: Number of historical weeks to include for baseline and velocity "
+        "calculations. Minimum 4-6 weeks recommended; 8-12 weeks optimal for stable "
+        "forecasts. This defines your analysis window."
+    ),
+    "data_points_detail": (
+        "More data points provide stability but may miss recent trends. Fewer points "
+        "are more responsive to changes but can be volatile. Balance based on your "
+        "project's stability."
+    ),
 }
 
 # FLOW METRICS HELP CONTENT - Tooltips for Flow Framework metrics
 FLOW_METRICS_TOOLTIPS = {
-    "flow_velocity": "Completed items per week (average). Forecast uses last 4 weeks weighted [10%, 20%, 30%, 40%]. Current week uses progressive blending to avoid Monday drops (0-100% actual by day of week). Higher velocity = faster delivery.",
-    "flow_time": "Start-to-completion time (median of weekly medians). Forecast uses last 4 weeks weighted [10%, 20%, 30%, 40%]. Lower time = faster cycles.",
-    "flow_efficiency": "Active work time ÷ total time (average). Forecast uses last 4 weeks weighted [10%, 20%, 30%, 40%]. 25-40% is typical for healthy teams.",
-    "flow_load": "Current work in progress (WIP snapshot). Forecast uses last 4 weeks weighted [10%, 20%, 30%, 40%]. Lower WIP = better focus and faster delivery.",
-    "flow_distribution": "Breakdown of completed work by type: Features (new value), Defects (quality issues), Risk (security/compliance), and Tech Debt (maintenance). Aggregated totals across the selected period. Balanced distribution indicates healthy development practices.",
+    "flow_velocity": (
+        "Completed items per week (average). Forecast uses last 4 weeks weighted "
+        "[10%, 20%, 30%, 40%]. Current week uses progressive blending to avoid "
+        "Monday drops (0-100% actual by day of week). Higher velocity = faster "
+        "delivery."
+    ),
+    "flow_time": (
+        "Start-to-completion time (median of weekly medians). Forecast uses last 4 "
+        "weeks weighted [10%, 20%, 30%, 40%]. Lower time = faster cycles."
+    ),
+    "flow_efficiency": (
+        "Active work time ÷ total time (average). Forecast uses last 4 weeks "
+        "weighted [10%, 20%, 30%, 40%]. 25-40% is typical for healthy teams."
+    ),
+    "flow_load": (
+        "Current work in progress (WIP snapshot). Forecast uses last 4 weeks "
+        "weighted [10%, 20%, 30%, 40%]. Lower WIP = better focus and faster "
+        "delivery."
+    ),
+    "flow_distribution": (
+        "Breakdown of completed work by type: Features (new value), Defects "
+        "(quality issues), Risk (security/compliance), and Tech Debt (maintenance). "
+        "Aggregated totals across the selected period. Balanced distribution "
+        "indicates healthy development practices."
+    ),
 }
 
-# 4-WEEK FORECAST HELP CONTENT - Tooltips and detailed help for forecasting feature (Feature 009)
+# 4-WEEK FORECAST HELP CONTENT - Tooltips and detailed help
+# for forecasting feature (Feature 009)
 FORECAST_HELP_CONTENT = {
-    "forecast_overview": "4-week weighted forecast predicting next week's performance based on historical trends. Uses exponential weighting (1.0, 0.8, 0.6, 0.4) to emphasize recent data while considering longer patterns. Helps teams proactively address performance issues before they impact delivery.",
-    "forecast_value": "Predicted metric value for next week calculated using weighted average of last 4 weeks. Recent weeks contribute more weight than older weeks (Week 0: 100%, Week -1: 80%, Week -2: 60%, Week -3: 40%). Normalized by total weight for accurate prediction.",
-    "forecast_confidence": "Forecast reliability based on available historical data. High: 4 weeks (full weighting), Medium: 3 weeks (reduced accuracy), Low: 2 weeks (limited reliability). Forecasts require minimum 2 weeks of data; insufficient data shows 'Gathering data...'",
-    "trend_vs_forecast": "Compares current week's actual performance against forecast to show if team is on track. Positive deviation (↗) indicates exceeding forecast; negative (↘) below forecast; stable (→) on track within ±5%. Color coding: Green (favorable trend), Yellow (moderate deviation 5-15%), Red (significant deviation >15%).",
-    "monday_morning": "Special handling for week start when current value is zero. Shows 'Week starting...' message with neutral indicator instead of '-100% vs forecast'. Prevents false alarms at beginning of work week when no completions have occurred yet.",
-    "deviation_thresholds": "Performance deviation bands: On track (±5%), Moderate (5-15%), Significant (>15%). Direction interpretation depends on metric type: higher is better for velocity/efficiency, lower is better for lead time/MTTR. Bands help identify when intervention may be needed.",
-    "metric_snapshots": "Weekly historical data stored for forecast calculations. Automatically captured when metrics update. Includes metric value, ISO week number, and timestamp. Used for weighted average calculation and trend analysis. Stored in metrics_snapshots.json.",
-    "weighting_strategy": "Exponential decay weighting: Most recent week (1.0) → 3 weeks ago (0.4). Formula: weighted_sum = Σ(value × weight) / Σ(weights). Balances responsiveness to recent changes with stability from historical patterns. Configurable via FORECAST_CONFIG in metrics_config.py.",
+    "forecast_overview": (
+        "4-week weighted forecast predicting next week's performance based on "
+        "historical trends. Uses exponential weighting (1.0, 0.8, 0.6, 0.4) to "
+        "emphasize recent data while considering longer patterns. Helps teams "
+        "proactively address performance issues before they impact delivery."
+    ),
+    "forecast_value": (
+        "Predicted metric value for next week calculated using weighted average of "
+        "last 4 weeks. Recent weeks contribute more weight than older weeks (Week "
+        "0: 100%, Week -1: 80%, Week -2: 60%, Week -3: 40%). Normalized by total "
+        "weight for accurate prediction."
+    ),
+    "forecast_confidence": (
+        "Forecast reliability based on available historical data. High: 4 weeks "
+        "(full weighting), Medium: 3 weeks (reduced accuracy), Low: 2 weeks "
+        "(limited reliability). Forecasts require minimum 2 weeks of data; "
+        "insufficient data shows 'Gathering data...'"
+    ),
+    "trend_vs_forecast": (
+        "Compares current week's actual performance against forecast to show if team "
+        "is on track. Positive deviation (↗) indicates exceeding forecast; negative "
+        "(↘) below forecast; stable (→) on track within ±5%. Color coding: Green "
+        "(favorable trend), Yellow (moderate deviation 5-15%), Red (significant "
+        "deviation >15%)."
+    ),
+    "monday_morning": (
+        "Special handling for week start when current value is zero. Shows 'Week "
+        "starting...' message with neutral indicator instead of '-100% vs forecast'. "
+        "Prevents false alarms at beginning of work week when no completions have "
+        "occurred yet."
+    ),
+    "deviation_thresholds": (
+        "Performance deviation bands: On track (±5%), Moderate (5-15%), Significant "
+        "(>15%). Direction interpretation depends on metric type: higher is better "
+        "for velocity/efficiency, lower is better for lead time/MTTR. Bands help "
+        "identify when intervention may be needed."
+    ),
+    "metric_snapshots": (
+        "Weekly historical data stored for forecast calculations. Automatically "
+        "captured when metrics update. Includes metric value, ISO week number, and "
+        "timestamp. Used for weighted average calculation and trend analysis. Stored "
+        "in metrics_snapshots.json."
+    ),
+    "weighting_strategy": (
+        "Exponential decay weighting: Most recent week (1.0) → 3 weeks ago (0.4). "
+        "Formula: weighted_sum = Σ(value × weight) / Σ(weights). Balances "
+        "responsiveness to recent changes with stability from historical patterns. "
+        "Configurable via FORECAST_CONFIG in metrics_config.py."
+    ),
 }
 
 # FORECAST DETAILED HELP - Comprehensive explanations for help modal
 FORECAST_HELP_DETAILED = {
     "forecast_algorithm": """
-        4-Week Weighted Forecast provides actionable predictions for next week's performance.
+        4-Week Weighted Forecast provides actionable predictions for next week's
+        performance.
         
         [Stats] **Weighting Strategy:**
         Recent weeks are weighted more heavily using exponential decay:
@@ -741,7 +964,8 @@ FORECAST_HELP_DETAILED = {
         Trend vs Forecast Indicator compares actual performance against predictions.
         
         [Tip] **Purpose:**
-        Shows if your team is exceeding, meeting, or falling short of forecast expectations.
+        Shows if your team is exceeding, meeting, or falling short of forecast
+        expectations.
         
         [Calc] **Calculation:**
         ```python
@@ -918,26 +1142,88 @@ FORECAST_HELP_DETAILED = {
 
 # DORA METRICS HELP CONTENT - Tooltips for DORA metrics
 DORA_METRICS_TOOLTIPS = {
-    "deployment_frequency": "Production releases per week (average). Forecast uses last 4 weeks weighted [10%, 20%, 30%, 40%]. Elite: multiple/day, High: weekly.",
-    "lead_time_for_changes": "Commit-to-production time (median of weekly medians). Forecast uses last 4 weeks weighted [10%, 20%, 30%, 40%]. Elite: <1 day, High: <1 week.",
-    "change_failure_rate": "Failed deployments ÷ total deployments (overall rate). Forecast uses last 4 weeks weighted [10%, 20%, 30%, 40%]. Elite: <15%.",
-    "mean_time_to_recovery": "Incident-to-recovery time (median of weekly medians). Forecast uses last 4 weeks weighted [10%, 20%, 30%, 40%]. Elite: <1 hour.",
+    "deployment_frequency": (
+        "Production releases per week (average). Forecast uses last 4 weeks weighted "
+        "[10%, 20%, 30%, 40%]. Elite: multiple/day, High: weekly."
+    ),
+    "lead_time_for_changes": (
+        "Commit-to-production time (median of weekly medians). Forecast uses last 4 "
+        "weeks weighted [10%, 20%, 30%, 40%]. Elite: <1 day, High: <1 week."
+    ),
+    "change_failure_rate": (
+        "Failed deployments ÷ total deployments (overall rate). Forecast uses last 4 "
+        "weeks weighted [10%, 20%, 30%, 40%]. Elite: <15%."
+    ),
+    "mean_time_to_recovery": (
+        "Incident-to-recovery time (median of weekly medians). Forecast uses last 4 "
+        "weeks weighted [10%, 20%, 30%, 40%]. Elite: <1 hour."
+    ),
 }
 
 # SETTINGS PANEL HELP CONTENT - Tooltips for settings panel features
 SETTINGS_PANEL_TOOLTIPS = {
-    "jira_integration": "Connect to your JIRA instance to automatically import project data. Configure your JIRA server URL, authentication, and field mappings to sync work items, story points, and completion dates.",
-    "jira_config": "Configure JIRA connection settings including server URL, authentication credentials, and custom field mappings. Required before fetching data from JIRA. Click 'Configure JIRA' to open the setup modal.",
-    "jql_query": "JQL (JIRA Query Language) filters which issues to import. Use JIRA's powerful query syntax to target specific projects, issue types, sprints, or custom criteria. Example: 'project = MYPROJECT AND created >= startOfYear()'",
-    "jql_syntax": "JQL syntax allows complex queries: 'project = KEY' (project filter), 'status = Done' (status filter), 'created >= 2025-01-01' (date filter), 'AND/OR' (logical operators). Combine filters for precise data selection.",
-    "saved_queries": "Save frequently used JQL queries for quick access. Create multiple profiles for different projects, sprints, or reporting needs. Star a profile to make it the default query loaded on startup.",
-    "query_profiles": "Query profiles store JQL queries with descriptive names. Load saved profiles to quickly switch between different data views. Edit existing profiles to update queries or rename them. Delete profiles you no longer need.",
-    "fetch_data": "Import work items from JIRA using the configured connection and JQL query. Fetches issue keys, statuses, story points, creation dates, and completion dates. Updates scope metrics and velocity data automatically.",
-    "update_data": "Refresh project data from JIRA to get the latest work item statuses and metrics. Recommended frequency: daily for active projects, weekly for stable projects. Data is cached locally for offline viewing.",
-    "calculate_metrics": "Calculate Flow and DORA metrics from JIRA changelog data. Downloads status history if needed (~2 minutes), then computes Flow Time, Flow Efficiency, Lead Time, and Deployment Frequency. Run after updating JIRA data to refresh metrics with latest changes.",
-    "import_data": "Upload project data from JSON or CSV files saved previously. Useful for offline analysis, data migration, or working with historical snapshots. Supports both full project data and weekly statistics exports.",
-    "export_data": "Download complete project data as JSON for backup, sharing, or analysis in external tools. Includes all work items, statistics, settings, and JIRA cache. Preserves full project state for later restoration.",
-    "data_formats": "JSON format: Complete structured data with all metadata. CSV format: Simplified tabular data for spreadsheet analysis. Choose JSON for full backups, CSV for external reporting and data analysis.",
+    "jira_integration": (
+        "Connect to your JIRA instance to automatically import project data. "
+        "Configure your JIRA server URL, authentication, and field mappings to sync "
+        "work items, story points, and completion dates."
+    ),
+    "jira_config": (
+        "Configure JIRA connection settings including server URL, authentication "
+        "credentials, and custom field mappings. Required before fetching data from "
+        "JIRA. Click 'Configure JIRA' to open the setup modal."
+    ),
+    "jql_query": (
+        "JQL (JIRA Query Language) filters which issues to import. Use JIRA's "
+        "powerful query syntax to target specific projects, issue types, sprints, or "
+        "custom criteria. Example: 'project = MYPROJECT AND created >= "
+        "startOfYear()'"
+    ),
+    "jql_syntax": (
+        "JQL syntax allows complex queries: 'project = KEY' (project filter), "
+        "'status = Done' (status filter), 'created >= 2025-01-01' (date filter), "
+        "'AND/OR' (logical operators). Combine filters for precise data selection."
+    ),
+    "saved_queries": (
+        "Save frequently used JQL queries for quick access. Create multiple profiles "
+        "for different projects, sprints, or reporting needs. Star a profile to make "
+        "it the default query loaded on startup."
+    ),
+    "query_profiles": (
+        "Query profiles store JQL queries with descriptive names. Load saved profiles "
+        "to quickly switch between different data views. Edit existing profiles to "
+        "update queries or rename them. Delete profiles you no longer need."
+    ),
+    "fetch_data": (
+        "Import work items from JIRA using the configured connection and JQL query. "
+        "Fetches issue keys, statuses, story points, creation dates, and completion "
+        "dates. Updates scope metrics and velocity data automatically."
+    ),
+    "update_data": (
+        "Refresh project data from JIRA to get the latest work item statuses and "
+        "metrics. Recommended frequency: daily for active projects, weekly for "
+        "stable projects. Data is cached locally for offline viewing."
+    ),
+    "calculate_metrics": (
+        "Calculate Flow and DORA metrics from JIRA changelog data. Downloads status "
+        "history if needed (~2 minutes), then computes Flow Time, Flow Efficiency, "
+        "Lead Time, and Deployment Frequency. Run after updating JIRA data to "
+        "refresh metrics with latest changes."
+    ),
+    "import_data": (
+        "Upload project data from JSON or CSV files saved previously. Useful for "
+        "offline analysis, data migration, or working with historical snapshots. "
+        "Supports both full project data and weekly statistics exports."
+    ),
+    "export_data": (
+        "Download complete project data as JSON for backup, sharing, or analysis in "
+        "external tools. Includes all work items, statistics, settings, and JIRA "
+        "cache. Preserves full project state for later restoration."
+    ),
+    "data_formats": (
+        "JSON format: Complete structured data with all metadata. CSV format: "
+        "Simplified tabular data for spreadsheet analysis. Choose JSON for full "
+        "backups, CSV for external reporting and data analysis."
+    ),
 }
 
 # Combined comprehensive help content for easy access
@@ -953,5 +1239,6 @@ COMPREHENSIVE_HELP_CONTENT = {
     "flow_metrics": FLOW_METRICS_TOOLTIPS,
     "dora_metrics": DORA_METRICS_TOOLTIPS,
     "settings": SETTINGS_PANEL_TOOLTIPS,
-    "forecast_feature": FORECAST_HELP_CONTENT,  # Feature 009 - 4-week weighted forecasts
+    "forecast_feature": FORECAST_HELP_CONTENT,  # Feature 009
+    # 4-week weighted forecasts
 }
