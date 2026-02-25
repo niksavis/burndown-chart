@@ -76,7 +76,8 @@ def create_cost_per_item_card(
                 f"{variance_pct:.1f}% Less Efficient", color="danger", className="ms-2"
             )
 
-        # Calculate deviation percentage (negative = more efficient, positive = less efficient)
+        # Calculate deviation percentage
+        # (negative = more efficient, positive = less efficient)
         # Cap at ±50% for visual display
         deviation_pct = min(max(variance_pct, -50), 50)
         # Convert to 0-100 scale: -50% = 0, 0% = 50, +50% = 100
@@ -93,12 +94,20 @@ def create_cost_per_item_card(
                     html.Div(
                         [
                             html.Span(
-                                f"Budgeted: {currency_symbol}{budgeted_cost_per_item:.0f}/item @ {baseline_velocity:.2f} items/wk (baseline)",
+                                (
+                                    f"Budgeted: {currency_symbol}"
+                                    f"{budgeted_cost_per_item:.0f}/item @ "
+                                    f"{baseline_velocity:.2f} items/wk (baseline)"
+                                ),
                                 className="text-muted d-block mb-1 text-center",
                                 style={"fontSize": "0.85rem"},
                             ),
                             html.Span(
-                                f"Actual: {currency_symbol}{cost_per_item:.0f}/item @ {velocity:.2f} items/wk",
+                                (
+                                    "Actual: "
+                                    f"{currency_symbol}{cost_per_item:.0f}/item @ "
+                                    f"{velocity:.2f} items/wk"
+                                ),
                                 className="text-muted d-block mb-2 text-center",
                                 style={"fontSize": "0.85rem"},
                             ),
@@ -130,7 +139,10 @@ def create_cost_per_item_card(
                                         style={"fontSize": "0.65rem"},
                                     ),
                                 ],
-                                className="d-flex justify-content-between mb-1 position-relative",
+                                className=(
+                                    "d-flex justify-content-between "
+                                    "mb-1 position-relative"
+                                ),
                             ),
                             html.Div(
                                 [
@@ -140,7 +152,11 @@ def create_cost_per_item_card(
                                             "position": "absolute",
                                             "width": "100%",
                                             "height": "6px",
-                                            "background": "linear-gradient(to right, #198754 0%, #6c757d 50%, #dc3545 100%)",
+                                            "background": (
+                                                "linear-gradient(to right, "
+                                                "#198754 0%, #6c757d 50%, "
+                                                "#dc3545 100%)"
+                                            ),
                                             "borderRadius": "3px",
                                             "opacity": "0.3",
                                         },
@@ -209,7 +225,14 @@ def create_cost_per_item_card(
         "total_issue_count": 0,
         "_n_weeks": data_points_count,
         "details": details,
-        "tooltip": "Team cost divided by delivery velocity (items/week). Baseline velocity is captured from Recent Completions (Last 4 Weeks) when budget is configured and used as fixed reference. Actual velocity updates dynamically. Shows efficiency: lower cost per item = better. Variance shows if team is more/less efficient than baseline.",
+        "tooltip": (
+            "Team cost divided by delivery velocity (items/week). "
+            "Baseline velocity is captured from Recent Completions "
+            "(Last 4 Weeks) when budget is configured and used as "
+            "fixed reference. Actual velocity updates dynamically. "
+            "Shows efficiency: lower cost per item = better. "
+            "Variance shows if team is more/less efficient than baseline."
+        ),
     }
 
     return create_metric_card(
@@ -253,7 +276,10 @@ def create_cost_per_point_card(
             "performance_tier": "Not Configured",
             "performance_tier_color": "secondary",
             "error_state": "points_tracking_disabled",
-            "error_message": "Points tracking is disabled. Enable Points Tracking in Parameters panel to view story points metrics.",
+            "error_message": (
+                "Points tracking is disabled. Enable Points Tracking in "
+                "Parameters panel to view story points metrics."
+            ),
             "total_issue_count": 0,
             "_n_weeks": data_points_count,
             "details": {
@@ -273,7 +299,10 @@ def create_cost_per_point_card(
             "performance_tier": "No Data",
             "performance_tier_color": "secondary",
             "error_state": "no_data",
-            "error_message": "No story points data available. Configure story points field in Settings or complete items with point estimates.",
+            "error_message": (
+                "No story points data available. Configure story points "
+                "field in Settings or complete items with point estimates."
+            ),
             "total_issue_count": 0,
             "_n_weeks": data_points_count,
             "details": {"status": "No story points data available."},
@@ -316,7 +345,8 @@ def create_cost_per_point_card(
                 f"{variance_pct:.1f}% Less Efficient", color="danger", className="ms-2"
             )
 
-        # Calculate deviation percentage (negative = more efficient, positive = less efficient)
+        # Calculate deviation percentage
+        # (negative = more efficient, positive = less efficient)
         # Cap at ±50% for visual display
         deviation_pct = min(max(variance_pct, -50), 50)
         # Convert to 0-100 scale: -50% = 0, 0% = 50, +50% = 100
@@ -333,12 +363,21 @@ def create_cost_per_point_card(
                     html.Div(
                         [
                             html.Span(
-                                f"Budgeted: {currency_symbol}{budgeted_cost_per_point:.0f}/pt @ {baseline_velocity_points:.2f} points/wk (baseline)",
+                                (
+                                    f"Budgeted: {currency_symbol}"
+                                    f"{budgeted_cost_per_point:.0f}/pt @ "
+                                    f"{baseline_velocity_points:.2f} points/wk "
+                                    "(baseline)"
+                                ),
                                 className="text-muted d-block mb-1 text-center",
                                 style={"fontSize": "0.85rem"},
                             ),
                             html.Span(
-                                f"Actual: {currency_symbol}{cost_per_point:.0f}/pt @ {velocity_points:.2f} points/wk",
+                                (
+                                    "Actual: "
+                                    f"{currency_symbol}{cost_per_point:.0f}/pt @ "
+                                    f"{velocity_points:.2f} points/wk"
+                                ),
                                 className="text-muted d-block mb-2 text-center",
                                 style={"fontSize": "0.85rem"},
                             ),
@@ -370,7 +409,10 @@ def create_cost_per_point_card(
                                         style={"fontSize": "0.65rem"},
                                     ),
                                 ],
-                                className="d-flex justify-content-between mb-1 position-relative",
+                                className=(
+                                    "d-flex justify-content-between "
+                                    "mb-1 position-relative"
+                                ),
                             ),
                             html.Div(
                                 [
@@ -380,7 +422,11 @@ def create_cost_per_point_card(
                                             "position": "absolute",
                                             "width": "100%",
                                             "height": "6px",
-                                            "background": "linear-gradient(to right, #198754 0%, #6c757d 50%, #dc3545 100%)",
+                                            "background": (
+                                                "linear-gradient(to right, "
+                                                "#198754 0%, #6c757d 50%, "
+                                                "#dc3545 100%)"
+                                            ),
                                             "borderRadius": "3px",
                                             "opacity": "0.3",
                                         },
@@ -449,7 +495,14 @@ def create_cost_per_point_card(
         "total_issue_count": 0,
         "_n_weeks": data_points_count,
         "details": details,
-        "tooltip": "Team cost divided by story point velocity (points/week). Baseline velocity is captured from Recent Completions (Last 4 Weeks) when budget is configured and used as fixed reference. Actual velocity updates dynamically. Shows efficiency: lower cost per point = better. Variance shows if team is more/less efficient than baseline.",
+        "tooltip": (
+            "Team cost divided by story point velocity (points/week). "
+            "Baseline velocity is captured from Recent Completions "
+            "(Last 4 Weeks) when budget is configured and used as fixed "
+            "reference. Actual velocity updates dynamically. "
+            "Shows efficiency: lower cost per point = better. "
+            "Variance shows if team is more/less efficient than baseline."
+        ),
     }
 
     return create_metric_card(
@@ -550,7 +603,9 @@ def create_budget_forecast_card(
                                     },
                                 ),
                             ],
-                            className="d-flex justify-content-between align-items-center mb-1",
+                            className=(
+                                "d-flex justify-content-between align-items-center mb-1"
+                            ),
                         ),
                         dbc.Progress(
                             value=min(consumed_pct, 100),
@@ -616,7 +671,10 @@ def create_budget_forecast_card(
                             style={"fontSize": "0.85rem"},
                         ),
                         html.Span(
-                            f" ({currency_symbol}{confidence_low:,.0f}-{currency_symbol}{confidence_high:,.0f})",
+                            (
+                                f" ({currency_symbol}{confidence_low:,.0f}-"
+                                f"{currency_symbol}{confidence_high:,.0f})"
+                            ),
                             className="text-muted",
                             style={"fontSize": "0.75rem"},
                         ),
@@ -637,7 +695,11 @@ def create_budget_forecast_card(
         "total_issue_count": 0,
         "_n_weeks": data_points_count,
         "details": {},
-        "tooltip": "Total budget allocation with consumption status. Shows consumed vs remaining budget with PERT-based forecast. Health zones indicate spending pace relative to timeline.",
+        "tooltip": (
+            "Total budget allocation with consumption status. Shows consumed "
+            "vs remaining budget with PERT-based forecast. Health zones "
+            "indicate spending pace relative to timeline."
+        ),
     }
 
     return create_metric_card(
