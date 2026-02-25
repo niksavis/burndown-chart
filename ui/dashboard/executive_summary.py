@@ -46,15 +46,20 @@ def create_executive_summary_section(
 ) -> dbc.Card:
     """Create executive summary section with key project health indicators.
 
-    The Data Points slider affects historical metrics but not current remaining work:
+        The Data Points slider affects historical metrics
+        but not current remaining work:
     - Remaining (items/points): Always shows current not-yet-done work (fixed)
-    - Completed (items/points): Shows work completed in the selected window (changes with slider)
+        - Completed (items/points): Shows work completed in the selected window
+            (changes with slider)
     - Total: Remaining + Completed (changes with slider as Completed changes)
 
     Args:
         statistics_df: DataFrame containing project statistics
-        forecast_data: Dictionary containing forecast data (velocity_cv, schedule_variance_days, completion_date)
-        settings: Dictionary containing project settings (total_items, total_points, deadline, show_points, extended_metrics, budget_data)
+        forecast_data: Dictionary containing forecast data
+            (velocity_cv, schedule_variance_days, completion_date)
+        settings: Dictionary containing project settings
+            (total_items, total_points, deadline, show_points,
+            extended_metrics, budget_data)
         avg_weekly_items: Average weekly items completed
 
     Returns:
@@ -82,10 +87,45 @@ def create_executive_summary_section(
     points_percentage = (
         safe_divide(completed_points, total_points) * 100 if total_points > 0 else 0
     )
+    points_enabled = settings.get("show_points", True)
+    points_available = total_points > 0 and points_enabled
+    forecast_basis = "story points" if points_enabled else "items"
+    forecast_title_text = (
+        "PERT-weighted forecast based on "
+        f"{forecast_basis} velocity "
+        "(matches Burndown and Report)"
+    )
+
+    metric_value_style_items = {
+        "fontSize": "1.5rem",
+        "fontWeight": "bold",
+        "color": COLOR_PALETTE["items"],
+    }
+    metric_value_style_points = {
+        "fontSize": "1.5rem",
+        "fontWeight": "bold",
+        "color": COLOR_PALETTE["points"],
+    }
+    metric_label_style = {"fontSize": "0.9rem"}
+    metric_label_muted_style = {"fontSize": "0.9rem", "color": "#6c757d"}
+    secondary_panel_title_style = {"fontWeight": "600", "color": "#6c757d"}
+    deadline_icon_class = "fas fa-calendar-alt me-1"
+    forecast_icon_class = "fas fa-chart-line me-1"
+    points_disabled_icon_class = "fas fa-toggle-off fa-2x text-secondary mb-2"
+    points_no_data_icon_class = "fas fa-database fa-2x text-secondary mb-2"
+    points_disabled_help = (
+        "Points tracking is disabled. Enable Points Tracking in Parameters panel "
+        "to view story points metrics."
+    )
+    points_no_data_help = (
+        "No story points data available. Configure story points field in Settings "
+        "or complete items with point estimates."
+    )
 
     # DEBUG: Log completion calculation
     logger.info(
-        f"[APP COMPLETION] completed_items={completed_items}, remaining_items={remaining_items}, "
+        f"[APP COMPLETION] completed_items={completed_items}, "
+        f"remaining_items={remaining_items}, "
         f"total_items={total_items}, completion_pct={completion_percentage:.2f}%"
     )
 
@@ -148,25 +188,28 @@ def create_executive_summary_section(
 
     health_metrics = {
         "completion_percentage": completion_percentage,
-        "current_velocity_items": avg_weekly_items,  # Items per week from filtered statistics
+        "current_velocity_items": avg_weekly_items,
         "velocity_cv": velocity_cv,
         "schedule_variance_days": schedule_variance,
         "scope_change_rate": scope_change_rate,
         "trend_direction": trend_direction,
         "recent_velocity_change": recent_velocity_change,
-        "completion_confidence": completion_confidence,  # Calculated from schedule variance
+        "completion_confidence": completion_confidence,
     }
 
     # DEBUG: Log health metrics to trace 18% vs 13% discrepancy
     logger.info(
         f"[HEALTH CALC] Input metrics: velocity_cv={velocity_cv:.2f}, "
-        f"schedule_variance={schedule_variance:.2f}, scope_change_rate={scope_change_rate:.2f}, "
-        f"trend_direction={trend_direction}, recent_velocity_change={recent_velocity_change:.2f}, "
+        f"schedule_variance={schedule_variance:.2f}, "
+        f"scope_change_rate={scope_change_rate:.2f}, "
+        f"trend_direction={trend_direction}, "
+        f"recent_velocity_change={recent_velocity_change:.2f}, "
         f"statistics_rows={len(statistics_df)}"
     )
 
     # Extract extended metrics from additional_context (calculated in callback)
-    # These are optional - if not available, uses dashboard-only mode with adaptive weighting
+    # These are optional. If unavailable,
+    # dashboard-only mode uses adaptive weighting.
     extended_metrics = settings.get("extended_metrics", {})
 
     dora_metrics = extended_metrics.get("dora")
@@ -281,7 +324,7 @@ def create_executive_summary_section(
                                                 html.Div(
                                                     [
                                                         html.I(
-                                                            className="fas fa-calendar-alt me-1",
+                                                            className=deadline_icon_class,
                                                             style={
                                                                 "fontSize": "0.8rem"
                                                             },
@@ -304,7 +347,7 @@ def create_executive_summary_section(
                                                 html.Div(
                                                     [
                                                         html.I(
-                                                            className="fas fa-chart-line me-1",
+                                                            className=forecast_icon_class,
                                                             style={
                                                                 "fontSize": "0.9rem"
                                                             },
@@ -312,7 +355,7 @@ def create_executive_summary_section(
                                                         html.Span(
                                                             "Forecast: ",
                                                             style={"fontWeight": "600"},
-                                                            title=f"PERT-weighted forecast based on {'story points' if settings.get('show_points', True) else 'items'} velocity (matches Burndown and Report)",
+                                                            title=forecast_title_text,
                                                         ),
                                                         html.Span(
                                                             forecast_data.get(
@@ -329,7 +372,10 @@ def create_executive_summary_section(
                                             ],
                                         ),
                                     ],
-                                    className="text-center d-flex flex-column align-items-center",
+                                    className=(
+                                        "text-center d-flex flex-column "
+                                        "align-items-center"
+                                    ),
                                     style={
                                         "padding": "20px 15px",
                                         "borderRight": "3px solid #ced4da",
@@ -374,20 +420,12 @@ def create_executive_summary_section(
                                                             html.Div(
                                                                 f"{completed_items:,}",
                                                                 className="mt-3 mb-1",
-                                                                style={
-                                                                    "fontSize": "1.5rem",
-                                                                    "fontWeight": "bold",
-                                                                    "color": COLOR_PALETTE[
-                                                                        "items"
-                                                                    ],
-                                                                },
+                                                                style=metric_value_style_items,
                                                             ),
                                                             html.Div(
                                                                 "Completed",
                                                                 className="text-muted",
-                                                                style={
-                                                                    "fontSize": "0.9rem"
-                                                                },
+                                                                style=metric_label_style,
                                                             ),
                                                         ],
                                                         className="text-center",
@@ -406,20 +444,12 @@ def create_executive_summary_section(
                                                             html.Div(
                                                                 f"{remaining_items:,}",
                                                                 className="mt-3 mb-1",
-                                                                style={
-                                                                    "fontSize": "1.5rem",
-                                                                    "fontWeight": "bold",
-                                                                    "color": COLOR_PALETTE[
-                                                                        "items"
-                                                                    ],
-                                                                },
+                                                                style=metric_value_style_items,
                                                             ),
                                                             html.Div(
                                                                 "Remaining",
                                                                 className="text-muted",
-                                                                style={
-                                                                    "fontSize": "0.9rem"
-                                                                },
+                                                                style=metric_label_style,
                                                             ),
                                                         ],
                                                         className="text-center",
@@ -501,20 +531,12 @@ def create_executive_summary_section(
                                                             html.Div(
                                                                 f"{completed_points:,.1f}",
                                                                 className="mt-3 mb-1",
-                                                                style={
-                                                                    "fontSize": "1.5rem",
-                                                                    "fontWeight": "bold",
-                                                                    "color": COLOR_PALETTE[
-                                                                        "points"
-                                                                    ],
-                                                                },
+                                                                style=metric_value_style_points,
                                                             ),
                                                             html.Div(
                                                                 "Completed",
                                                                 className="text-muted",
-                                                                style={
-                                                                    "fontSize": "0.9rem"
-                                                                },
+                                                                style=metric_label_style,
                                                             ),
                                                         ],
                                                         className="text-center",
@@ -532,20 +554,11 @@ def create_executive_summary_section(
                                                             html.Div(
                                                                 f"{remaining_points:,.1f}",
                                                                 className="mt-3 mb-1",
-                                                                style={
-                                                                    "fontSize": "1.5rem",
-                                                                    "fontWeight": "bold",
-                                                                    "color": COLOR_PALETTE[
-                                                                        "points"
-                                                                    ],
-                                                                },
+                                                                style=metric_value_style_points,
                                                             ),
                                                             html.Div(
                                                                 "Remaining",
-                                                                style={
-                                                                    "fontSize": "0.9rem",
-                                                                    "color": "#6c757d",
-                                                                },
+                                                                style=metric_label_muted_style,
                                                             ),
                                                         ],
                                                         className="text-center",
@@ -554,27 +567,21 @@ def create_executive_summary_section(
                                                 ),
                                             ],
                                         )
-                                        if (
-                                            total_points > 0
-                                            and settings.get("show_points", True)
-                                        )
+                                        if points_available
                                         # Case 2: Points tracking disabled
                                         else (
                                             html.Div(
                                                 [
                                                     html.I(
-                                                        className="fas fa-toggle-off fa-2x text-secondary mb-2"
+                                                        className=points_disabled_icon_class
                                                     ),
                                                     html.Div(
                                                         "Points Tracking Disabled",
                                                         className="h5 mb-2",
-                                                        style={
-                                                            "fontWeight": "600",
-                                                            "color": "#6c757d",
-                                                        },
+                                                        style=secondary_panel_title_style,
                                                     ),
                                                     html.Small(
-                                                        "Points tracking is disabled. Enable Points Tracking in Parameters panel to view story points metrics.",
+                                                        points_disabled_help,
                                                         className="text-muted",
                                                         style={"fontSize": "0.75rem"},
                                                     ),
@@ -584,23 +591,19 @@ def create_executive_summary_section(
                                                     "padding": "20px 10px",
                                                 },
                                             )
-                                            if not settings.get("show_points", True)
-                                            # Case 3: Points tracking enabled but no data
+                                            if not points_enabled
                                             else html.Div(
                                                 [
                                                     html.I(
-                                                        className="fas fa-database fa-2x text-secondary mb-2"
+                                                        className=points_no_data_icon_class
                                                     ),
                                                     html.Div(
                                                         "No Points Data",
                                                         className="h5 mb-2",
-                                                        style={
-                                                            "fontWeight": "600",
-                                                            "color": "#6c757d",
-                                                        },
+                                                        style=secondary_panel_title_style,
                                                     ),
                                                     html.Small(
-                                                        "No story points data available. Configure story points field in Settings or complete items with point estimates.",
+                                                        points_no_data_help,
                                                         className="text-muted",
                                                         style={"fontSize": "0.75rem"},
                                                     ),
@@ -618,8 +621,7 @@ def create_executive_summary_section(
                                                 "margin": "10px auto",
                                             },
                                         )
-                                        if total_points > 0
-                                        and settings.get("show_points", True)
+                                        if points_available
                                         else None,
                                         html.Div(
                                             [
@@ -640,8 +642,7 @@ def create_executive_summary_section(
                                                 "color": "#495057",
                                             },
                                         )
-                                        if total_points > 0
-                                        and settings.get("show_points", True)
+                                        if points_available
                                         else None,
                                     ],
                                     className="d-flex flex-column",
