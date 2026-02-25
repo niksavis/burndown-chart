@@ -76,17 +76,29 @@ def _get_profile_creation_docs(user_level: str) -> dict[str, Any]:
             "sections": [
                 {
                     "title": "What is a Profile?",
-                    "content": "A profile is like a workspace that contains all settings for analyzing a specific JIRA project or team. You can have multiple profiles for different projects.",
+                    "content": (
+                        "A profile is like a workspace that contains all settings "
+                        "for analyzing a specific JIRA project or team. You can "
+                        "have multiple profiles for different projects."
+                    ),
                     "level": "essential",
                 },
                 {
                     "title": "Choosing a Name",
-                    "content": "Pick a descriptive name like 'Sprint Analysis 2025' or 'Team Alpha Dashboard'. This helps you identify the right profile when you have multiple projects.",
+                    "content": (
+                        "Pick a descriptive name like 'Sprint Analysis 2025' or "
+                        "'Team Alpha Dashboard'. This helps you identify the "
+                        "right profile when you have multiple projects."
+                    ),
                     "level": "essential",
                 },
                 {
                     "title": "Next Steps",
-                    "content": "After creating your profile, you'll connect it to JIRA, configure any special fields, and create queries to analyze your data.",
+                    "content": (
+                        "After creating your profile, you'll connect it to JIRA, "
+                        "configure any special fields, and create queries to "
+                        "analyze your data."
+                    ),
                     "level": "essential",
                 },
             ],
@@ -113,12 +125,17 @@ def _get_profile_creation_docs(user_level: str) -> dict[str, Any]:
             "sections": [
                 {
                     "title": "Profile Architecture",
-                    "content": "Profiles provide data isolation with dedicated cache directories and independent JIRA configurations.",
+                    "content": (
+                        "Profiles provide data isolation with dedicated cache "
+                        "directories and independent JIRA configurations."
+                    ),
                     "level": "advanced",
                 },
                 {
                     "title": "Bulk Operations",
-                    "content": "Import/export profiles for team sharing and backup purposes.",
+                    "content": (
+                        "Import/export profiles for team sharing and backup purposes."
+                    ),
                     "level": "advanced",
                 },
             ],
@@ -142,32 +159,50 @@ def _get_jira_connection_docs(
         "sections": [
             {
                 "title": "JIRA URL",
-                "content": "Enter your complete JIRA URL. For Atlassian Cloud, this is usually https://your-company.atlassian.net. For JIRA Server, use your organization's JIRA URL.",
+                "content": (
+                    "Enter your complete JIRA URL. For Atlassian Cloud, this is "
+                    "usually https://your-company.atlassian.net. For JIRA "
+                    "Server, use your organization's JIRA URL."
+                ),
                 "level": "essential",
             },
             {
                 "title": "API Token Security",
-                "content": "API tokens are safer than passwords and can be revoked if needed. Generate one at: Atlassian Account Settings → Security → API tokens.",
+                "content": (
+                    "API tokens are safer than passwords and can be revoked if "
+                    "needed. Generate one at: Atlassian Account Settings → "
+                    "Security → API tokens."
+                ),
                 "level": "essential",
             },
             {
                 "title": "Testing Connection",
-                "content": "Always test your connection before proceeding. This verifies your credentials and checks API access.",
+                "content": (
+                    "Always test your connection before proceeding. This verifies "
+                    "your credentials and checks API access."
+                ),
                 "level": "essential",
             },
         ],
         "troubleshooting": [
             {
                 "problem": "Connection timeout or unreachable",
-                "solution": "Verify URL is correct and accessible. Check network/VPN settings.",
+                "solution": (
+                    "Verify URL is correct and accessible. Check network/VPN settings."
+                ),
             },
             {
                 "problem": "401 Unauthorized error",
-                "solution": "Check email address and API token. Generate a fresh token if needed.",
+                "solution": (
+                    "Check email address and API token. Generate a fresh token "
+                    "if needed."
+                ),
             },
             {
                 "problem": "403 Forbidden error",
-                "solution": "Your account may lack necessary permissions. Contact JIRA admin.",
+                "solution": (
+                    "Your account may lack necessary permissions. Contact JIRA admin."
+                ),
             },
         ],
     }
@@ -177,7 +212,10 @@ def _get_jira_connection_docs(
         base_docs["sections"].append(
             {
                 "title": "API Version Selection",
-                "content": "JIRA REST API v2 is recommended for stability. v3 offers newer features but may have compatibility issues.",
+                "content": (
+                    "JIRA REST API v2 is recommended for stability. v3 offers "
+                    "newer features but may have compatibility issues."
+                ),
                 "level": "advanced",
             }
         )
@@ -195,17 +233,28 @@ def _get_field_mapping_docs(
         "sections": [
             {
                 "title": "Why Map Fields?",
-                "content": "Field mapping enables advanced metrics like DORA (DevOps Research & Assessment) and Flow metrics by telling the system which JIRA fields contain specific data.",
+                "content": (
+                    "Field mapping enables advanced metrics like DORA (DevOps "
+                    "Research & Assessment) and Flow metrics by telling the "
+                    "system which JIRA fields contain specific data."
+                ),
                 "level": "essential",
             },
             {
                 "title": "Finding Custom Field IDs",
-                "content": "View any JIRA issue, right-click → View Source, and search for 'customfield_'. The format is always customfield_XXXXX where X is a number.",
+                "content": (
+                    "View any JIRA issue, right-click → View Source, and search "
+                    "for 'customfield_'. The format is always customfield_XXXXX "
+                    "where X is a number."
+                ),
                 "level": "essential",
             },
             {
                 "title": "Optional vs Required",
-                "content": "Field mapping is entirely optional. You can skip this step and still get basic burndown charts and velocity metrics.",
+                "content": (
+                    "Field mapping is entirely optional. You can skip this step "
+                    "and still get basic burndown charts and velocity metrics."
+                ),
                 "level": "essential",
             },
         ],
@@ -221,7 +270,10 @@ def _get_field_mapping_docs(
                 "description": "Links issues to epics",
             },
         ],
-        "field_finder_tip": "Look for fields in JIRA Admin → Issues → Custom Fields, or examine issue view source code.",
+        "field_finder_tip": (
+            "Look for fields in JIRA Admin → Issues → Custom Fields, or "
+            "examine issue view source code."
+        ),
     }
 
 
@@ -237,12 +289,18 @@ def _get_query_creation_docs(
         "sections": [
             {
                 "title": "What is JQL?",
-                "content": "JIRA Query Language (JQL) lets you search for issues using structured queries. Think of it like SQL for JIRA data.",
+                "content": (
+                    "JIRA Query Language (JQL) lets you search for issues using "
+                    "structured queries. Think of it like SQL for JIRA data."
+                ),
                 "level": "essential",
             },
             {
                 "title": "Basic Query Structure",
-                "content": "Queries follow the pattern: project = PROJECT_KEY AND field = value ORDER BY created DESC",
+                "content": (
+                    "Queries follow the pattern: project = PROJECT_KEY AND field "
+                    "= value ORDER BY created DESC"
+                ),
                 "level": "essential",
             },
         ],
@@ -259,7 +317,9 @@ def _get_query_creation_docs(
             },
             {
                 "name": "In Progress Items",
-                "jql": "project = YOUR_PROJECT AND status IN ('In Progress', 'In Review')",
+                "jql": (
+                    "project = YOUR_PROJECT AND status IN ('In Progress', 'In Review')"
+                ),
                 "description": "Currently active work items",
             },
         ],
@@ -274,7 +334,11 @@ def _get_query_creation_docs(
     if not jira_connected:
         docs["prerequisites"] = {
             "title": "[!] JIRA Connection Required",
-            "content": "You need to configure JIRA connection before creating queries. The system needs to validate query syntax against your JIRA instance.",
+            "content": (
+                "You need to configure JIRA connection before creating queries. "
+                "The system needs to validate query syntax against your JIRA "
+                "instance."
+            ),
             "action": "Complete JIRA configuration first",
         }
 
@@ -289,7 +353,10 @@ def _get_default_docs() -> dict[str, Any]:
         "sections": [
             {
                 "title": "Getting Started",
-                "content": "Follow each setup step in order to configure your JIRA analysis dashboard.",
+                "content": (
+                    "Follow each setup step in order to configure your JIRA "
+                    "analysis dashboard."
+                ),
                 "level": "essential",
             }
         ],
@@ -384,7 +451,10 @@ def get_tooltip_content(
         },
         "api-token-input": {
             "title": "API Token",
-            "content": "Secure token for API access. Generate at: Account Settings → Security → API tokens",
+            "content": (
+                "Secure token for API access. Generate at: Account Settings → "
+                "Security → API tokens"
+            ),
             "warning": "Keep this token secret - it provides full account access",
         },
         "points-field-input": {
@@ -438,7 +508,10 @@ def get_guided_tour_steps(setup_status: dict[str, Any]) -> list[dict[str, Any]]:
             {
                 "target": "#api-token-input",
                 "title": "Add API Token",
-                "content": "Generate this in Atlassian Account Settings → Security → API tokens",
+                "content": (
+                    "Generate this in Atlassian Account Settings → Security → "
+                    "API tokens"
+                ),
                 "position": "bottom",
             },
             {
@@ -458,7 +531,9 @@ def get_guided_tour_steps(setup_status: dict[str, Any]) -> list[dict[str, Any]]:
             {
                 "target": "#jql-input",
                 "title": "JQL Query",
-                "content": "Use JQL to filter issues (start with: project = YOUR_PROJECT)",
+                "content": (
+                    "Use JQL to filter issues (start with: project = YOUR_PROJECT)"
+                ),
                 "position": "bottom",
             },
         ],

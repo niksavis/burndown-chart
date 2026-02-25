@@ -37,7 +37,8 @@ def fetch_jira_issues_with_changelog(
 
     Args:
         config: Configuration dictionary with API endpoint, JQL query, token, etc.
-        issue_keys: Optional list of specific issue keys to fetch (for targeted fetching)
+        issue_keys: Optional list of specific issue keys to fetch (for targeted
+        fetching)
         max_results: Page size for each API call (default: from config or 100)
         progress_callback: Optional callback function(message: str) for progress updates
 
@@ -102,8 +103,10 @@ def fetch_jira_issues_with_changelog(
         progress_interval = 50
 
         while True:
-            # Use POST method with body parameters to avoid HTTP 414 "Request-URI Too Long" errors
-            # POST /search is read-only (same as GET) - documented by Atlassian for complex queries
+            # Use POST method with body parameters to avoid HTTP 414 "Request-URI Too
+            # Long" errors
+            # POST /search is read-only (same as GET) - documented by Atlassian for
+            # complex queries
             # Convert fields string to list for proper JSON formatting
             fields_list = [f.strip() for f in fields.split(",")]
 
@@ -132,7 +135,9 @@ def fetch_jira_issues_with_changelog(
                 )
                 if is_cancelled:
                     logger.info(
-                        f"[JIRA] Changelog fetch cancelled by user after {len(all_issues)} issues"
+                        f"[JIRA] Changelog fetch cancelled by user after {
+                            len(all_issues)
+                        } issues"
                     )
                     TaskProgress.fail_task("update_data", "Operation cancelled by user")
                     return False, []
@@ -152,7 +157,9 @@ def fetch_jira_issues_with_changelog(
             if progress_callback:
                 if total_issues:
                     progress_callback(
-                        f"📥 Downloading changelog: {len(all_issues)}/{total_issues} issues"
+                        f"📥 Downloading changelog: {len(all_issues)}/{
+                            total_issues
+                        } issues"
                     )
                 else:
                     progress_callback(
@@ -193,11 +200,13 @@ def fetch_jira_issues_with_changelog(
             if total_issues is None:
                 total_issues = data.get("total", 0)
                 logger.info(
-                    f"[JIRA] Query matched {total_issues} issues, fetching with changelog"
+                    f"[JIRA] Query matched {total_issues} issues, "
+                    "fetching with changelog"
                 )
                 if progress_callback:
                     progress_callback(
-                        f"📥 Downloading changelog for {total_issues} issues (page 1/{(total_issues + page_size - 1) // page_size})..."
+                        f"📥 Downloading changelog for {total_issues} issues "
+                        f"(page 1/{(total_issues + page_size - 1) // page_size})..."
                     )
 
             # Add this page's issues to our collection
@@ -212,14 +221,16 @@ def fetch_jira_issues_with_changelog(
                     f"({len(all_issues)}/{total_issues} issues)..."
                 )
 
-            # Terminal/log progress: Log every 50 issues to show progress without flooding logs
+            # Terminal/log progress: Log every 50 issues to show progress without
+            # flooding logs
             issues_fetched = len(all_issues)
             if issues_fetched - last_progress_log >= progress_interval:
                 percent_complete = (
                     (issues_fetched / total_issues * 100) if total_issues > 0 else 0
                 )
                 logger.info(
-                    f"[JIRA] Changelog download progress: {issues_fetched}/{total_issues} issues "
+                    f"[JIRA] Changelog download progress: "
+                    f"{issues_fetched}/{total_issues} issues "
                     f"({percent_complete:.0f}%) - Page {current_page}/{total_pages}"
                 )
                 last_progress_log = issues_fetched
@@ -230,7 +241,9 @@ def fetch_jira_issues_with_changelog(
                 or start_at + len(issues_in_page) >= total_issues
             ):
                 logger.info(
-                    f"[JIRA] Changelog fetch complete: {len(all_issues)}/{total_issues} issues"
+                    f"[JIRA] Changelog fetch complete: {len(all_issues)}/{
+                        total_issues
+                    } issues"
                 )
                 break
 
@@ -299,11 +312,17 @@ def _build_changelog_jql(config: dict) -> str:
             logger.debug(f"[JIRA] Filtering completed issues: {statuses_str}")
         else:
             # Fallback: Use common completion statuses
-            jql = f'({base_jql}) AND status IN ("Done", "Resolved", "Closed"){order_by_clause}'
+            jql = (
+                f'({base_jql}) AND status IN ("Done", "Resolved", "Closed")'
+                f"{order_by_clause}"
+            )
             logger.warning("[JIRA] No completion statuses in config, using defaults")
     except Exception as e:
         logger.warning(f"[JIRA] Failed to load completion statuses: {e}")
-        jql = f'({base_jql}) AND status IN ("Done", "Resolved", "Closed"){order_by_clause}'
+        jql = (
+            f'({base_jql}) AND status IN ("Done", "Resolved", "Closed")'
+            f"{order_by_clause}"
+        )
 
     return jql
 
@@ -342,11 +361,17 @@ def _build_fields_string(config: dict) -> str:
     from data.jira.field_utils import extract_jira_field_id as _extract_jira_field_id
 
     # Fields to fetch (same as regular fetch + changelog)
-    # NOTE: fixVersions is critical for DORA Lead Time calculation (matching dev issues to operational tasks)
-    # NOTE: project is critical for filtering DevOps vs Development projects in DORA metrics
-    base_fields = "key,summary,project,created,updated,resolutiondate,status,issuetype,assignee,priority,resolution,labels,components,fixVersions"
+    # NOTE: fixVersions is critical for DORA Lead Time calculation (matching dev issues
+    # to operational tasks)
+    # NOTE: project is critical for filtering DevOps vs Development projects in DORA
+    # metrics
+    base_fields = (
+        "key,summary,project,created,updated,resolutiondate,status,"
+        "issuetype,assignee,priority,resolution,labels,components,fixVersions"
+    )
 
-    # Add parent field if configured (either standard 'parent' or Epic Link custom field)
+    # Add parent field if configured (either standard 'parent' or Epic Link custom
+    # field)
     parent_field = (
         config.get("field_mappings", {}).get("general", {}).get("parent_field")
     )
@@ -361,7 +386,8 @@ def _build_fields_string(config: dict) -> str:
 
     # Add field mappings for DORA and Flow metrics
     # field_mappings has structure: {"dora": {"field_name": "field_id"}, "flow": {...}}
-    # CRITICAL: Strip =Value filter syntax (e.g., "customfield_11309=PROD" -> "customfield_11309")
+    # CRITICAL: Strip =Value filter syntax (e.g., "customfield_11309=PROD" ->
+    # "customfield_11309")
     field_mappings = config.get("field_mappings", {})
     for _category, mappings in field_mappings.items():
         if isinstance(mappings, dict):
@@ -429,34 +455,41 @@ def _fetch_with_retry(
                 )
                 if progress_callback:
                     progress_callback(
-                        f"[!] Timeout, retrying... (attempt {retry_count}/{max_retries})"
+                        "[!] Timeout, retrying... "
+                        f"(attempt {retry_count}/{max_retries})"
                     )
             else:
                 logger.error(
-                    f"[JIRA] Fetch failed at {start_at} after {max_retries} retries: {e}"
+                    f"[JIRA] Fetch failed at {start_at} "
+                    f"after {max_retries} retries: {e}"
                 )
                 # Return partial results instead of complete failure
                 logger.warning(
-                    f"[JIRA] Returning partial results: {len(all_issues)}/{total_issues or 'unknown'}"
+                    f"[JIRA] Returning partial results: "
+                    f"{len(all_issues)}/{total_issues or 'unknown'}"
                 )
                 return None
         except requests.exceptions.RequestException as e:
             retry_count += 1
             if retry_count < max_retries:
                 logger.warning(
-                    f"[JIRA] Network error at {start_at}, retry {retry_count}/{max_retries}: {e}"
+                    f"[JIRA] Network error at {start_at}, "
+                    f"retry {retry_count}/{max_retries}: {e}"
                 )
                 if progress_callback:
                     progress_callback(
-                        f"[!] Network error, retrying... (attempt {retry_count}/{max_retries})"
+                        "[!] Network error, retrying... "
+                        f"(attempt {retry_count}/{max_retries})"
                     )
             else:
                 logger.error(
-                    f"[JIRA] Fetch failed at {start_at} after {max_retries} retries: {e}"
+                    f"[JIRA] Fetch failed at {start_at} "
+                    f"after {max_retries} retries: {e}"
                 )
                 # Return partial results instead of complete failure
                 logger.warning(
-                    f"[JIRA] Returning partial results: {len(all_issues)}/{total_issues or 'unknown'}"
+                    f"[JIRA] Returning partial results: "
+                    f"{len(all_issues)}/{total_issues or 'unknown'}"
                 )
                 return None
 
@@ -498,7 +531,8 @@ def fetch_changelog_on_demand(
     issue_keys: list[str] | None = None,
 ) -> tuple[bool, str]:
     """
-    Fetch changelog data separately for Flow Time and DORA metrics with incremental saving.
+    Fetch changelog data separately for Flow Time and DORA metrics with incremental
+    saving.
 
     OPTIMIZATION: Only fetches changelog for issues NOT already in cache.
     This dramatically improves performance on subsequent "Update Data" operations.
@@ -555,7 +589,9 @@ def fetch_changelog_on_demand(
                 if entry.get("issue_key")
             )
             logger.info(
-                f"[Database] Loaded {len(cached_issue_keys)} unique issues with changelog from database"
+                f"[Database] Loaded {
+                    len(cached_issue_keys)
+                } unique issues with changelog from database"
             )
         except Exception as e:
             logger.warning(f"[Database] Could not load existing changelog: {e}")
@@ -566,11 +602,15 @@ def fetch_changelog_on_demand(
         if issue_keys:
             issues_needing_changelog = sorted(set(issue_keys))
             logger.info(
-                f"[JIRA] Changelog refresh: targeting {len(issues_needing_changelog)} issues"
+                f"[JIRA] Changelog refresh: targeting {
+                    len(issues_needing_changelog)
+                } issues"
             )
             if progress_callback:
                 progress_callback(
-                    f"Targeted changelog refresh: {len(issues_needing_changelog)} issues"
+                    f"Targeted changelog refresh: {
+                        len(issues_needing_changelog)
+                    } issues"
                 )
         else:
             try:
@@ -591,12 +631,16 @@ def fetch_changelog_on_demand(
 
                 logger.info(
                     f"[JIRA] Changelog analysis: {len(all_issue_keys)} total, "
-                    f"{len(cached_issue_keys)} cached, {len(issues_needing_changelog)} need fetch"
+                    f"{len(cached_issue_keys)} cached, {
+                        len(issues_needing_changelog)
+                    } need fetch"
                 )
 
                 if issues_needing_changelog:
                     logger.info(
-                        f"[Database] Optimized fetch: Only {len(issues_needing_changelog)} new issues"
+                        f"[Database] Optimized fetch: Only {
+                            len(issues_needing_changelog)
+                        } new issues"
                     )
                     if progress_callback:
                         progress_callback(
@@ -609,16 +653,21 @@ def fetch_changelog_on_demand(
                     )
                     if progress_callback:
                         progress_callback(
-                            f"[OK] All {len(cached_issue_keys)} issues already cached - skipping download"
+                            f"[OK] All {
+                                len(cached_issue_keys)
+                            } issues already cached - skipping download"
                         )
                     return (
                         True,
-                        f"[OK] Changelog already cached for all {len(cached_issue_keys)} issues",
+                        f"[OK] Changelog already cached for all {
+                            len(cached_issue_keys)
+                        } issues",
                     )
 
             except Exception as e:
                 logger.warning(
-                    f"[Database] Could not analyze issues from database: {e}, fetching all changelog"
+                    "[Database] Could not analyze issues from database: "
+                    f"{e}, fetching all changelog"
                 )
                 issues_needing_changelog = None
 
@@ -638,7 +687,8 @@ def fetch_changelog_on_demand(
                 total_histories_before = 0
                 total_histories_after = 0
                 issues_processed = 0
-                changelog_entries_batch = []  # Collect entries for batch database insert
+                # Collect entries for batch database insert
+                changelog_entries_batch = []
 
                 for issue in issues_with_changelog:
                     issue_key = issue.get("key", "")
@@ -650,12 +700,15 @@ def fetch_changelog_on_demand(
                     total_histories_before += len(histories)
 
                     # Filter to ONLY histories that contain tracked field changes
-                    # TRACKED FIELDS: status (for Flow metrics), sprint field ID (for Sprint Tracker)
-                    # Note: Sprint is a custom field (typically customfield_10020) that varies by instance
+                    # TRACKED FIELDS: status (for Flow metrics), sprint field ID (for
+                    # Sprint Tracker)
+                    # Note: Sprint is a custom field (typically customfield_10020) that
+                    # varies by instance
                     tracked_fields = ["status"]  # Always track status
 
                     # Add sprint field if detected (from field mappings)
-                    # CRITICAL: JIRA uses field display name in changelog, not custom field ID
+                    # CRITICAL: JIRA uses field display name in changelog, not custom
+                    # field ID
                     # E.g., changelog has "Sprint", not "customfield_10005"
                     sprint_field_id = (
                         config.get("field_mappings", {})
@@ -670,17 +723,21 @@ def fetch_changelog_on_demand(
                             "Sprint"
                         )  # Track display name (JIRA default)
                         logger.info(
-                            f"[JIRA] Tracking sprint field: {sprint_field_id} and 'Sprint'"
+                            f"[JIRA] Tracking sprint field: "
+                            f"{sprint_field_id} and 'Sprint'"
                         )
 
-                    # DEBUG: Log unique field names from first issue to diagnose sprint field mismatch
+                    # DEBUG: Log unique field names from first issue to diagnose sprint
+                    # field mismatch
                     if issues_processed == 0 and histories:
                         unique_fields = set()
                         for hist in histories[:5]:  # Check first 5 histories
                             for item in hist.get("items", []):
                                 unique_fields.add(item.get("field"))
                         logger.info(
-                            f"[JIRA] Sample changelog field names for {issue_key}: {sorted(unique_fields)}"
+                            f"[JIRA] Sample changelog field names for {issue_key}: {
+                                sorted(unique_fields)
+                            }"
                         )
 
                     filtered_histories = []
@@ -717,10 +774,12 @@ def fetch_changelog_on_demand(
 
                     total_histories_after += len(filtered_histories)
 
-                    # CRITICAL: Include ALL fields needed for DORA, Flow, and Sprint metrics
+                    # CRITICAL: Include ALL fields needed for DORA, Flow, and Sprint
+                    # metrics
                     # - project: Filter Development vs DevOps projects
                     # - fixVersions: Match dev issues with operational tasks
-                    # - status: Filter completed/deployed issues, track state transitions
+                    # - status: Filter completed/deployed issues, track state
+                    # transitions
                     # - sprint: Track sprint assignment changes (Sprint Tracker feature)
                     # - issuetype: Filter "Operational Task" issues
                     # - created: Used in some calculations
@@ -734,7 +793,8 @@ def fetch_changelog_on_demand(
                             field_name = item.get("field")
                             field_id = item.get("fieldId")
 
-                            # Use fieldId if it matches tracked fields (for custom fields like sprint)
+                            # Use fieldId if it matches tracked fields (for custom
+                            # fields like sprint)
                             # Otherwise use field name (for standard fields like status)
                             if field_id and field_id in tracked_fields:
                                 final_field_name = field_id
@@ -757,14 +817,17 @@ def fetch_changelog_on_demand(
 
                     issues_processed += 1
 
-                    # LOG PROGRESS: Every 50 issues to show activity without impacting performance
+                    # LOG PROGRESS: Every 50 issues to show activity without impacting
+                    # performance
                     if issues_processed > 0 and issues_processed % 50 == 0:
                         logger.info(
-                            f"[JIRA] Processing changelog: {issues_processed}/{len(issues_with_changelog)} issues"
+                            f"[JIRA] Processing changelog: {issues_processed}/"
+                            f"{len(issues_with_changelog)} issues"
                         )
                         if progress_callback:
                             progress_callback(
-                                f"Processing changelog: {issues_processed}/{len(issues_with_changelog)} issues"
+                                f"Processing changelog: {issues_processed}/"
+                                f"{len(issues_with_changelog)} issues"
                             )
 
                 # Final save: Save to DATABASE only
@@ -786,7 +849,6 @@ def fetch_changelog_on_demand(
 
                 # Save all collected changelog entries to database in single batch
                 try:
-
                     backend = get_backend()
                     utc_now = datetime.now(UTC)
                     expires_at = utc_now + timedelta(hours=24)
@@ -801,14 +863,20 @@ def fetch_changelog_on_demand(
                         )
 
                         logger.info(
-                            f"[Database] Saved {len(changelog_entries_batch)} changelog entries to database for {profile_id}/{query_id}"
+                            f"[Database] Saved {
+                                len(changelog_entries_batch)
+                            } changelog entries to database for {profile_id}/{query_id}"
                         )
                         logger.info(
-                            f"[Database] Optimized changelog: {total_histories_before} → {total_histories_after} histories ({reduction_pct:.1f}% reduction)"
+                            f"[Database] Optimized changelog: {
+                                total_histories_before
+                            } → {total_histories_after} histories ({
+                                reduction_pct:.1f}% reduction)"
                         )
                     else:
                         logger.info(
-                            "[Database] No changelog entries to save (no status changes found)"
+                            "[Database] No changelog entries to save "
+                            "(no status changes found)"
                         )
 
                 except Exception as db_error:
@@ -825,12 +893,16 @@ def fetch_changelog_on_demand(
 
                 if progress_callback:
                     progress_callback(
-                        f"[OK] Changelog complete: {newly_fetched} fetched, {previously_cached} cached, {total_cached} total"
+                        f"[OK] Changelog complete: {newly_fetched} fetched, "
+                        f"{previously_cached} cached, {total_cached} total"
                     )
 
                 return (
                     True,
-                    f"[OK] Changelog: {newly_fetched} newly fetched + {previously_cached} already cached = {total_cached} total issues (saved {reduction_pct:.0f}% size)",
+                    f"[OK] Changelog: {newly_fetched} newly fetched + {
+                        previously_cached
+                    } already cached = {total_cached} total issues (saved {
+                        reduction_pct:.0f}% size)",
                 )
             except Exception as e:
                 logger.warning(f"[Cache] Failed to save changelog data: {e}")

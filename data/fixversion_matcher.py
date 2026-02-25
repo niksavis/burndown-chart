@@ -75,7 +75,9 @@ def extract_fixversion_ids(issue: dict) -> set:
         return {fv.get("id") for fv in fixversions if fv.get("id")}
     except Exception as e:
         logger.error(
-            f"Error extracting fixVersion IDs for issue {issue.get('key', 'UNKNOWN')}: {e}"
+            f"Error extracting fixVersion IDs for issue {issue.get('key', 'UNKNOWN')}: {
+                e
+            }"
         )
         return set()
 
@@ -109,7 +111,9 @@ def extract_fixversion_names(issue: dict) -> set:
         return normalized_names
     except Exception as e:
         logger.error(
-            f"Error extracting fixVersion names for issue {issue.get('key', 'UNKNOWN')}: {e}"
+            f"Error extracting fixVersion names for issue {
+                issue.get('key', 'UNKNOWN')
+            }: {e}"
         )
         return set()
 
@@ -184,7 +188,9 @@ def get_fallback_release_date(issue: dict) -> date | None:
 
     except Exception as e:
         logger.error(
-            f"Error getting fallback release date for issue {issue.get('key', 'UNKNOWN')}: {e}"
+            f"Error getting fallback release date for issue {
+                issue.get('key', 'UNKNOWN')
+            }: {e}"
         )
         return None
 
@@ -209,7 +215,8 @@ def find_matching_operational_tasks(
     Args:
         dev_issue: Development issue dictionary
         operational_tasks: List of operational task dictionaries
-        match_by: Matching strategy - "id", "name", or "auto" (try ID first, fallback to name)
+        match_by: Matching strategy - "id", "name", or "auto" (try ID first, fallback to
+        name)
 
     Returns:
         List of tuples: (operational_task, match_method)
@@ -222,7 +229,9 @@ def find_matching_operational_tasks(
 
         if not dev_fixversion_ids and not dev_fixversion_names:
             logger.debug(
-                f"Development issue {dev_issue.get('key', 'UNKNOWN')} has no fixVersions"
+                f"Development issue {
+                    dev_issue.get('key', 'UNKNOWN')
+                } has no fixVersions"
             )
             return []
 
@@ -237,7 +246,8 @@ def find_matching_operational_tasks(
                 if dev_fixversion_ids & op_fixversion_ids:  # Set intersection
                     matching_tasks.append((op_task, "id"))
                     logger.debug(
-                        f"fixVersion ID match: {dev_issue.get('key')} <-> {op_task.get('key')} "
+                        f"fixVersion ID match: {dev_issue.get('key')} "
+                        f"<-> {op_task.get('key')} "
                         f"(IDs: {dev_fixversion_ids & op_fixversion_ids})"
                     )
                     continue  # Found ID match, skip name matching
@@ -247,13 +257,15 @@ def find_matching_operational_tasks(
                 if dev_fixversion_names & op_fixversion_names:  # Set intersection
                     matching_tasks.append((op_task, "name"))
                     logger.debug(
-                        f"fixVersion name match: {dev_issue.get('key')} <-> {op_task.get('key')} "
+                        f"fixVersion name match: {dev_issue.get('key')} "
+                        f"<-> {op_task.get('key')} "
                         f"(Names: {dev_fixversion_names & op_fixversion_names})"
                     )
                     # Log warning if matched by name in "auto" mode
                     if match_by == "auto":
                         logger.warning(
-                            f"fixVersion matched by name for {dev_issue.get('key')} <-> {op_task.get('key')} "
+                            f"fixVersion matched by name for "
+                            f"{dev_issue.get('key')} <-> {op_task.get('key')} "
                             f"(consider verifying ID alignment)"
                         )
 
@@ -261,7 +273,9 @@ def find_matching_operational_tasks(
 
     except Exception as e:
         logger.error(
-            f"Error finding matching operational tasks for issue {dev_issue.get('key', 'UNKNOWN')}: {e}"
+            f"Error finding matching operational tasks for issue {
+                dev_issue.get('key', 'UNKNOWN')
+            }: {e}"
         )
         return []
 
@@ -274,7 +288,8 @@ def get_deployment_date_from_operational_task(
     """
     Get deployment date from operational task's fixVersion.releaseDate.
 
-    If multiple fixVersions match, returns EARLIEST releaseDate that's not in the future.
+    If multiple fixVersions match, returns EARLIEST releaseDate that's not in the
+    future.
 
     Args:
         op_task: Operational task dictionary
@@ -299,7 +314,8 @@ def get_deployment_date_from_operational_task(
                     matching_fixversions.append(fv)
                 # Or if name matches (fallback) - MUST normalize name for comparison
                 elif matching_fixversion_names and fv_name:
-                    # Normalize: lowercase, spaces/hyphens to underscores (same as extract_fixversion_names)
+                    # Normalize: lowercase, spaces/hyphens to underscores (same as
+                    # extract_fixversion_names)
                     normalized_name = (
                         fv_name.lower().replace(" ", "_").replace("-", "_")
                     )
@@ -310,7 +326,9 @@ def get_deployment_date_from_operational_task(
 
         if not matching_fixversions:
             logger.debug(
-                f"Operational task {op_task.get('key', 'UNKNOWN')} has no matching fixVersions"
+                f"Operational task {
+                    op_task.get('key', 'UNKNOWN')
+                } has no matching fixVersions"
             )
             return None
 
@@ -319,7 +337,9 @@ def get_deployment_date_from_operational_task(
 
         if earliest_date:
             logger.debug(
-                f"Operational task {op_task.get('key', 'UNKNOWN')}: Earliest deployment date = {earliest_date}"
+                f"Operational task {
+                    op_task.get('key', 'UNKNOWN')
+                }: Earliest deployment date = {earliest_date}"
             )
             return earliest_date
 
@@ -327,19 +347,24 @@ def get_deployment_date_from_operational_task(
         fallback_date = get_fallback_release_date(op_task)
         if fallback_date:
             logger.info(
-                f"Operational task {op_task.get('key', 'UNKNOWN')}: No releaseDate, using resolutiondate = {fallback_date}"
+                f"Operational task {
+                    op_task.get('key', 'UNKNOWN')
+                }: No releaseDate, using resolutiondate = {fallback_date}"
             )
             return fallback_date
 
         logger.warning(
-            f"Operational task {op_task.get('key', 'UNKNOWN')}: No valid deployment date found "
+            f"Operational task {op_task.get('key', 'UNKNOWN')}: "
+            "No valid deployment date found "
             f"(no releaseDate or resolutiondate)"
         )
         return None
 
     except Exception as e:
         logger.error(
-            f"Error getting deployment date from operational task {op_task.get('key', 'UNKNOWN')}: {e}"
+            f"Error getting deployment date from operational task {
+                op_task.get('key', 'UNKNOWN')
+            }: {e}"
         )
         return None
 
@@ -358,7 +383,8 @@ def get_relevant_deployment_date(
     Args:
         dev_issue: Development issue dictionary
         operational_tasks: List of operational task dictionaries
-        deployment_ready_time: When the code was ready for deployment (e.g., "In Deployment" status)
+        deployment_ready_time: When the code was ready for deployment (e.g., "In
+        Deployment" status)
 
     Returns:
         Tuple of (deployment_date, operational_task, match_method) or None if no match
@@ -368,19 +394,24 @@ def get_relevant_deployment_date(
     """
     dev_key = dev_issue.get("key", "UNKNOWN")
     logger.info(
-        f"[RELEVANT_DEPLOY] {dev_key}: Starting search, ready_time={deployment_ready_time}"
+        f"[RELEVANT_DEPLOY] {dev_key}: Starting search, "
+        f"ready_time={deployment_ready_time}"
     )
 
     try:
         # Find all matching operational tasks
         matching_tasks = find_matching_operational_tasks(dev_issue, operational_tasks)
         logger.info(
-            f"[RELEVANT_DEPLOY] {dev_key}: Found {len(matching_tasks)} matching operational tasks"
+            f"[RELEVANT_DEPLOY] {dev_key}: Found {
+                len(matching_tasks)
+            } matching operational tasks"
         )
 
         if not matching_tasks:
             logger.debug(
-                f"Development issue {dev_issue.get('key', 'UNKNOWN')}: No matching operational tasks found"
+                f"Development issue {
+                    dev_issue.get('key', 'UNKNOWN')
+                }: No matching operational tasks found"
             )
             return None
 
@@ -392,7 +423,9 @@ def get_relevant_deployment_date(
             dev_fixversion_names = extract_fixversion_names(dev_issue)
 
             logger.info(
-                f"[RELEVANT_DEPLOY] {dev_key}: Getting deployment date from {op_task.get('key')}, match_method={match_method}"
+                f"[RELEVANT_DEPLOY] {dev_key}: Getting deployment date from {
+                    op_task.get('key')
+                }, match_method={match_method}"
             )
 
             deployment_date = get_deployment_date_from_operational_task(
@@ -406,7 +439,9 @@ def get_relevant_deployment_date(
             )
 
             logger.info(
-                f"[RELEVANT_DEPLOY] {dev_key}: Deployment date from {op_task.get('key')} = {deployment_date}"
+                f"[RELEVANT_DEPLOY] {dev_key}: Deployment date from {
+                    op_task.get('key')
+                } = {deployment_date}"
             )
 
             if deployment_date:
@@ -414,7 +449,9 @@ def get_relevant_deployment_date(
 
         if not deployment_dates:
             logger.warning(
-                f"[RELEVANT_DEPLOY] {dev_key}: [X] Found {len(matching_tasks)} matching operational tasks, but NONE have valid deployment dates!"
+                f"[RELEVANT_DEPLOY] {dev_key}: [X] Found {
+                    len(matching_tasks)
+                } matching operational tasks, but NONE have valid deployment dates!"
             )
             return None
 
@@ -422,31 +459,42 @@ def get_relevant_deployment_date(
         if deployment_ready_time:
             ready_date = deployment_ready_time.date()
             logger.info(
-                f"[RELEVANT_DEPLOY] {dev_key}: Ready date = {ready_date}, checking {len(deployment_dates)} deployment dates"
+                f"[RELEVANT_DEPLOY] {dev_key}: Ready date = {ready_date}, checking {
+                    len(deployment_dates)
+                } deployment dates"
             )
 
             for dep_date, op_task, _method in deployment_dates:
                 logger.info(
-                    f"[RELEVANT_DEPLOY] {dev_key}:   - {op_task.get('key')}: deployment={dep_date}, after_ready={dep_date >= ready_date}"
+                    f"[RELEVANT_DEPLOY] {dev_key}:   - {
+                        op_task.get('key')
+                    }: deployment={dep_date}, after_ready={dep_date >= ready_date}"
                 )
 
             after_ready = [d for d in deployment_dates if d[0] >= ready_date]
             logger.info(
-                f"[RELEVANT_DEPLOY] {dev_key}: {len(after_ready)} deployments after ready time"
+                f"[RELEVANT_DEPLOY] {dev_key}: {
+                    len(after_ready)
+                } deployments after ready time"
             )
 
             if after_ready:
                 # Return the earliest deployment after ready time (closest to ready)
                 relevant = min(after_ready, key=lambda x: x[0])
                 logger.warning(
-                    f"[RELEVANT_DEPLOY] {dev_key}: [OK] USING deployment = {relevant[0]} from {relevant[1].get('key')} "
+                    f"[RELEVANT_DEPLOY] {dev_key}: [OK] USING deployment = {
+                        relevant[0]
+                    } from {relevant[1].get('key')} "
                     f"(after ready time {ready_date}, matched by {relevant[2]})"
                 )
                 return relevant
             else:
-                # No deployments after ready time - this is suspicious but return earliest anyway
+                # No deployments after ready time - this is suspicious but return
+                # earliest anyway
                 logger.warning(
-                    f"[RELEVANT_DEPLOY] {dev_key}: [X] All {len(deployment_dates)} deployments are BEFORE ready time {ready_date}. "
+                    f"[RELEVANT_DEPLOY] {dev_key}: [X] All {
+                        len(deployment_dates)
+                    } deployments are BEFORE ready time {ready_date}. "
                     f"Using earliest anyway."
                 )
 
@@ -454,14 +502,18 @@ def get_relevant_deployment_date(
         earliest = min(deployment_dates, key=lambda x: x[0])
         logger.debug(
             f"Development issue {dev_issue.get('key', 'UNKNOWN')}: "
-            f"Earliest deployment = {earliest[0]} from {earliest[1].get('key')} (matched by {earliest[2]})"
+            f"Earliest deployment = {earliest[0]} from {
+                earliest[1].get('key')
+            } (matched by {earliest[2]})"
         )
 
         return earliest
 
     except Exception as e:
         logger.error(
-            f"Error getting relevant deployment date for issue {dev_issue.get('key', 'UNKNOWN')}: {e}"
+            f"Error getting relevant deployment date for issue {
+                dev_issue.get('key', 'UNKNOWN')
+            }: {e}"
         )
         return None
 
@@ -471,7 +523,8 @@ def get_earliest_deployment_date(
     operational_tasks: list[dict],
 ) -> tuple[date, dict, str] | None:
     """
-    Get the EARLIEST deployment date for a development issue from matching operational tasks.
+    Get the EARLIEST deployment date for a development issue from matching operational
+    tasks.
 
     DEPRECATED: Use get_relevant_deployment_date() for Lead Time calculations instead.
     This function is kept for backward compatibility with MTTR calculations.
@@ -492,7 +545,9 @@ def get_earliest_deployment_date(
 
         if not matching_tasks:
             logger.debug(
-                f"Development issue {dev_issue.get('key', 'UNKNOWN')}: No matching operational tasks found"
+                f"Development issue {
+                    dev_issue.get('key', 'UNKNOWN')
+                }: No matching operational tasks found"
             )
             return None
 
@@ -519,7 +574,9 @@ def get_earliest_deployment_date(
         if not deployment_dates:
             logger.debug(
                 f"Development issue {dev_issue.get('key', 'UNKNOWN')}: "
-                f"Found {len(matching_tasks)} matching operational tasks, but none have valid deployment dates"
+                f"Found {
+                    len(matching_tasks)
+                } matching operational tasks, but none have valid deployment dates"
             )
             return None
 
@@ -527,14 +584,18 @@ def get_earliest_deployment_date(
         earliest = min(deployment_dates, key=lambda x: x[0])
         logger.debug(
             f"Development issue {dev_issue.get('key', 'UNKNOWN')}: "
-            f"Earliest deployment = {earliest[0]} from {earliest[1].get('key')} (matched by {earliest[2]})"
+            f"Earliest deployment = {earliest[0]} from {
+                earliest[1].get('key')
+            } (matched by {earliest[2]})"
         )
 
         return earliest
 
     except Exception as e:
         logger.error(
-            f"Error getting earliest deployment date for issue {dev_issue.get('key', 'UNKNOWN')}: {e}"
+            f"Error getting earliest deployment date for issue {
+                dev_issue.get('key', 'UNKNOWN')
+            }: {e}"
         )
         return None
 
@@ -576,7 +637,9 @@ def filter_operational_tasks_by_fixversion(
                 filtered_tasks.append(op_task)
 
         logger.info(
-            f"Filtered operational tasks: {len(filtered_tasks)} of {len(operational_tasks)} "
+            f"Filtered operational tasks: {len(filtered_tasks)} of {
+                len(operational_tasks)
+            } "
             f"match development issue fixVersions"
         )
 
@@ -614,7 +677,11 @@ def build_fixversion_release_map(
         Only includes fixVersions with valid releaseDates.
 
     Example:
-        >>> op_tasks = [{"fields": {"fixVersions": [{"name": "v1.0", "releaseDate": "2025-01-15"}]}}]
+        >>> op_tasks = [{
+        ...     "fields": {
+        ...         "fixVersions": [{"name": "v1.0", "releaseDate": "2025-01-15"}]
+        ...     }
+        ... }]
         >>> build_fixversion_release_map(op_tasks)
         {"v1.0": datetime(2025, 1, 15, 0, 0)}
     """
@@ -652,7 +719,8 @@ def build_fixversion_release_map(
 
             try:
                 release_date = datetime.fromisoformat(release_date_str)
-                # Keep earliest releaseDate if multiple Operational Tasks have same fixVersion
+                # Keep earliest releaseDate if multiple Operational Tasks have same
+                # fixVersion
                 if fv_name not in release_map or release_date < release_map[fv_name]:
                     release_map[fv_name] = release_date
             except (ValueError, TypeError) as e:

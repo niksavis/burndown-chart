@@ -1,7 +1,8 @@
 """
 JIRA Metadata Fetching and Auto-Detection
 
-This module provides functions to fetch JIRA metadata (projects, issue types, statuses, field options)
+This module provides functions to fetch JIRA metadata
+(projects, issue types, statuses, field options)
 and auto-detect optimal configuration based on the JIRA instance setup.
 
 Designed for the comprehensive mappings configuration UI to enable generic JIRA support.
@@ -218,9 +219,11 @@ class JiraMetadataFetcher:
             return self._field_options_cache[field_id]
 
         # Try field configuration endpoints first
-        # Strategy: Try multiple JIRA REST API endpoints to get ALL possible field values
+        # Strategy: Try multiple JIRA REST API endpoints to get ALL possible field
+        # values
         try:
-            # Try 1: Get field configuration contexts and their options (with pagination)
+            # Try 1: Get field configuration contexts and their options (with
+            # pagination)
             url = (
                 f"{self.jira_url}/rest/api/{self.api_version}/field/{field_id}/context"
             )
@@ -247,7 +250,9 @@ class JiraMetadataFetcher:
                         has_more = True
 
                         while has_more:
-                            options_url = f"{self.jira_url}/rest/api/{self.api_version}/field/{field_id}/context/{context_id}/option"
+                            options_url = f"{self.jira_url}/rest/api/{
+                                self.api_version
+                            }/field/{field_id}/context/{context_id}/option"
                             params = {"startAt": start_at, "maxResults": max_results}
                             options_response = requests.get(
                                 options_url,
@@ -263,7 +268,9 @@ class JiraMetadataFetcher:
                                 is_last = options_data.get("isLast", True)
 
                                 logger.info(
-                                    f"[JIRA] Context {context_id}: Retrieved {len(options)} options (startAt={start_at}, total={total})"
+                                    f"[JIRA] Context {context_id}: Retrieved {
+                                        len(options)
+                                    } options (startAt={start_at}, total={total})"
                                 )
 
                                 for option in options:
@@ -271,12 +278,15 @@ class JiraMetadataFetcher:
                                     is_disabled = option.get("disabled", False)
 
                                     if option_value:
-                                        # Include ALL options (both enabled and disabled)
-                                        # Users may want to map to disabled values if they exist in historical data
+                                        # Include ALL options
+                                        # (both enabled and disabled)
+                                        # Users may want to map to disabled values if
+                                        # they exist in historical data
                                         all_options.add(option_value)
                                         if is_disabled:
                                             logger.info(
-                                                f"[JIRA]   - Disabled option: {option_value}"
+                                                "[JIRA]   - Disabled option: "
+                                                f"{option_value}"
                                             )
 
                                 # Check if there are more results
@@ -286,7 +296,9 @@ class JiraMetadataFetcher:
                                     start_at += len(options)
                             else:
                                 logger.warning(
-                                    f"[JIRA] Failed to fetch options for context {context_id}: {options_response.status_code}"
+                                    f"[JIRA] Failed to fetch options for context {
+                                        context_id
+                                    }: {options_response.status_code}"
                                 )
                                 has_more = False
 
@@ -294,7 +306,9 @@ class JiraMetadataFetcher:
                     values = sorted(all_options)
                     self._field_options_cache[field_id] = values
                     logger.info(
-                        f"[JIRA] Fetched {len(values)} total options for field {field_id} from all contexts: {values}"
+                        f"[JIRA] Fetched {len(values)} total options for field {
+                            field_id
+                        } from all contexts: {values}"
                     )
                     return values
 
@@ -330,16 +344,22 @@ class JiraMetadataFetcher:
                     if values:
                         self._field_options_cache[field_id] = values
                         logger.info(
-                            f"[JIRA] Fetched {len(values)} options for field {field_id} from schema: {values}"
+                            f"[JIRA] Fetched {len(values)} options for field {
+                                field_id
+                            } from schema: {values}"
                         )
                         return values
                 else:
                     logger.debug(
-                        f"[JIRA] No allowedValues in schema for {field_id} (type: {custom_data})"
+                        f"[JIRA] No allowedValues in schema for {field_id} "
+                        f"(type: {custom_data})"
                     )
 
             # Try 3: Legacy customFieldOption endpoint (for older JIRA versions)
-            url = f"{self.jira_url}/rest/api/{self.api_version}/customFieldOption/{field_id}"
+            url = (
+                f"{self.jira_url}/rest/api/{self.api_version}/"
+                f"customFieldOption/{field_id}"
+            )
             response = requests.get(url, headers=self.headers, timeout=10)
 
             if response.status_code == 200:
@@ -355,7 +375,9 @@ class JiraMetadataFetcher:
                 if values:
                     self._field_options_cache[field_id] = values
                     logger.info(
-                        f"[JIRA] Fetched {len(values)} options for field {field_id} from legacy endpoint"
+                        f"[JIRA] Fetched {len(values)} options for field {
+                            field_id
+                        } from legacy endpoint"
                     )
                     return values
 
@@ -375,7 +397,9 @@ class JiraMetadataFetcher:
 
                 issues = cache_data.get("issues", [])
                 logger.info(
-                    f"[JIRA] Found {len(issues)} cached issues, extracting {field_id} values"
+                    f"[JIRA] Found {len(issues)} cached issues, extracting {
+                        field_id
+                    } values"
                 )
 
                 unique_values = set()
@@ -409,7 +433,9 @@ class JiraMetadataFetcher:
                     values = sorted(unique_values)
                     self._field_options_cache[field_id] = values
                     logger.info(
-                        f"[JIRA] Extracted {len(values)} unique values from cache: {values}"
+                        f"[JIRA] Extracted {len(values)} unique values from cache: {
+                            values
+                        }"
                     )
                     return values
                 else:
@@ -422,7 +448,8 @@ class JiraMetadataFetcher:
 
         # Fallback 2: Extract from live issues via JQL (scoped to development projects)
         logger.info(
-            f"[JIRA] Fetching {field_id} values via JQL query (sampling up to 1000 issues from development projects)"
+            f"[JIRA] Fetching {field_id} values via JQL query "
+            "(sampling up to 1000 issues from development projects)"
         )
         try:
             values = self._fetch_field_values_from_issues(
@@ -432,7 +459,9 @@ class JiraMetadataFetcher:
             if values:
                 self._field_options_cache[field_id] = values
                 logger.info(
-                    f"[JIRA] Extracted {len(values)} unique values from issues: {values}"
+                    f"[JIRA] Extracted {len(values)} unique values from issues: {
+                        values
+                    }"
                 )
                 return values
             else:
@@ -463,10 +492,12 @@ class JiraMetadataFetcher:
             from data.persistence import load_app_settings
 
             logger.info(
-                f"[JIRA] Attempting to fetch field values from issues: {field_id} (scoped={scoped})"
+                f"[JIRA] Attempting to fetch field values from issues: "
+                f"{field_id} (scoped={scoped})"
             )
 
-            # Get field name for JQL query (some JIRA instances require field name, not ID)
+            # Get field name for JQL query (some JIRA instances require field name,
+            # not ID)
             field_name = None
             if self._fields_cache:
                 for field in self._fields_cache:
@@ -518,14 +549,18 @@ class JiraMetadataFetcher:
                 url, headers=self.headers, params=params, timeout=30
             )
 
-            # If JQL with IS NOT EMPTY fails, try simpler query (just fetch recent issues)
+            # If JQL with IS NOT EMPTY fails, try simpler query (just fetch recent
+            # issues)
             if response.status_code != 200:
                 logger.warning(
-                    f"[JIRA] JQL with IS NOT EMPTY failed ({response.status_code}), trying simpler query"
+                    f"[JIRA] JQL with IS NOT EMPTY failed ({
+                        response.status_code
+                    }), trying simpler query"
                 )
                 # Fallback: get recent issues from development projects if configured
                 settings = load_app_settings()
-                # development_projects can be at root level or under project_classification
+                # development_projects can be at root level or under
+                # project_classification
                 dev_projects = settings.get("development_projects", [])
                 if not dev_projects:
                     dev_projects = settings.get("project_classification", {}).get(
@@ -540,7 +575,8 @@ class JiraMetadataFetcher:
                     # No projects configured - try unscoped query (all recent issues)
                     simple_jql = "ORDER BY created DESC"
                     logger.info(
-                        "[JIRA] No development projects configured, trying unscoped fallback JQL"
+                        "[JIRA] No development projects configured, "
+                        "trying unscoped fallback JQL"
                     )
 
                 params["jql"] = simple_jql
@@ -550,7 +586,9 @@ class JiraMetadataFetcher:
 
             if response.status_code != 200:
                 logger.warning(
-                    f"[JIRA] Issue search failed for {field_id} ({field_name}): {response.status_code}"
+                    f"[JIRA] Issue search failed for {field_id} ({field_name}): {
+                        response.status_code
+                    }"
                 )
                 return []
 
@@ -598,7 +636,9 @@ class JiraMetadataFetcher:
             # Sort and return as list
             sorted_values = sorted(unique_values)
             logger.info(
-                f"[JIRA] Found {len(sorted_values)} unique values for {field_id}: {sorted_values}"
+                f"[JIRA] Found {len(sorted_values)} unique values for {field_id}: {
+                    sorted_values
+                }"
             )
             return sorted_values
 

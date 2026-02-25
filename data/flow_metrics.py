@@ -31,10 +31,12 @@ logger = logging.getLogger(__name__)
 def _get_completed_date_field():
     """Get the completed_date field mapping with backwards compatibility.
 
-    Checks general mappings first (new location), falls back to flow mappings (old location).
+    Checks general mappings first (new location), then falls back to flow
+    mappings (old location).
 
     Returns:
-        str: Field name to use for completion date (e.g., "resolutiondate" or "resolved")
+        str: Field name to use for completion date (e.g., "resolutiondate"
+            or "resolved")
     """
     from data.persistence import load_app_settings
 
@@ -154,7 +156,8 @@ def _extract_datetime_from_field_mapping(
                     return history.get("created")
         return None
 
-    # Handle simple and nested field paths (e.g., "resolutiondate" or "resolved.resolutiondate")
+    # Handle simple and nested field paths (e.g., "resolutiondate" or
+    # "resolved.resolutiondate")
     fields = issue.get("fields", {})
     if "." in field_mapping:
         # Nested field like "resolved.resolutiondate" (Apache JIRA)
@@ -206,13 +209,17 @@ def _is_issue_completed(
     changelog: list | None = None,
     flow_end_statuses: list[str] | None = None,
 ) -> bool:
-    """Check if issue is completed by checking if completed_date field has a value OR if it transitioned to a flow_end_status.
+    """Check whether an issue is completed.
+
+    Completion is true if completed_date field has a value OR if it
+    transitioned to a flow_end_status.
 
     Args:
         issue: JIRA issue dictionary
         completed_date_field: Field mapping for completion date
         changelog: Optional changelog history
-        flow_end_statuses: List of statuses that indicate completion (e.g., ["Done", "Closed"])
+        flow_end_statuses: List of statuses that indicate completion
+            (e.g., ["Done", "Closed"])
 
     Returns:
         True if issue has a completion date OR has transitioned to a flow_end_status
@@ -224,7 +231,8 @@ def _is_issue_completed(
     if completed_date is not None:
         return True
 
-    # If no completed_date field but we have flow_end_statuses, check changelog for transition
+    # If no completed_date field but we have flow_end_statuses, check
+    # changelog for transition
     if flow_end_statuses and changelog:
         completion_timestamp = _find_first_transition_to_statuses(
             changelog, flow_end_statuses
@@ -239,7 +247,8 @@ def _is_issue_in_progress(issue: dict[str, Any], wip_statuses: list[str]) -> boo
     """Check if issue is currently in progress based on WIP statuses.
 
     Args:
-        issue: JIRA issue dictionary (supports both JIRA API format and flat database format)
+        issue: JIRA issue dictionary (supports both JIRA API format and flat
+            database format)
         wip_statuses: List of status names that indicate WIP
 
     Returns:
@@ -255,7 +264,8 @@ def _is_issue_in_progress(issue: dict[str, Any], wip_statuses: list[str]) -> boo
     issue_key = issue.get("key") or issue.get("issue_key", "unknown")
     is_wip = status in wip_statuses
     logger.debug(
-        f"[WIP Check] {issue_key}: status='{status}', is_wip={is_wip}, wip_statuses={wip_statuses[:3]}..."
+        f"[WIP Check] {issue_key}: status='{status}', is_wip={is_wip}, "
+        f"wip_statuses={wip_statuses[:3]}..."
     )
 
     return is_wip
@@ -269,7 +279,8 @@ def _get_work_type_for_issue(
     Uses the same logic as metrics_calculator.py lines 651-716.
 
     Args:
-        issue: JIRA issue dictionary (supports both JIRA API format and flat database format)
+        issue: JIRA issue dictionary (supports both JIRA API format and flat
+            database format)
         flow_mappings: Flow field mappings
         flow_type_mappings: Work type classification mappings
 
@@ -399,7 +410,8 @@ def calculate_flow_velocity(
 
     Args:
         issues: List of JIRA issues (must include changelog)
-        time_period_days: Time period for velocity calculation (default: 7 days = 1 week)
+        time_period_days: Time period for velocity calculation
+            (default: 7 days = 1 week)
         previous_period_value: Previous period velocity for trend calculation
 
     Returns:
@@ -425,7 +437,9 @@ def calculate_flow_velocity(
         Velocity: 12.5 items/week
     """
     logger.info(
-        f"Calculating flow velocity for {len(issues)} issues over {time_period_days} days"
+        f"Calculating flow velocity for {len(issues)} issues over {
+            time_period_days
+        } days"
     )
 
     # Load field mappings
@@ -436,7 +450,8 @@ def calculate_flow_velocity(
     flow_type_mappings = settings.get("flow_type_mappings", {})
     flow_end_statuses = project_classification.get("flow_end_statuses", [])
 
-    # Get completed_date field (checks general mappings, falls back to flow for compatibility)
+    # Get completed_date field (checks general mappings, falls back to flow
+    # for compatibility)
     completed_date_field = _get_completed_date_field()
 
     # Extract completion status and work type from issues
@@ -561,7 +576,8 @@ def calculate_flow_time(
 
     logger.info(
         f"[Flow Time] Configuration loaded: flow_start_statuses={flow_start_statuses}, "
-        f"flow_end_statuses={flow_end_statuses}, completed_date_field={completed_date_field}"
+        f"flow_end_statuses={flow_end_statuses}, "
+        f"completed_date_field={completed_date_field}"
     )
 
     # Validate required configuration
@@ -615,7 +631,8 @@ def calculate_flow_time(
         if issues_checked <= 3:  # Log first 3 issues for debugging
             logger.info(
                 f"[Flow Time] Issue {issue_key}: status={current_status}, "
-                f"{completed_date_field}={completed_date_value}, is_completed={is_completed}, "
+                f"{completed_date_field}={completed_date_value}, "
+                f"is_completed={is_completed}, "
                 f"has_changelog={len(changelog) > 0}"
             )
 
@@ -658,7 +675,9 @@ def calculate_flow_time(
 
         except (ValueError, TypeError, AttributeError) as e:
             logger.debug(
-                f"Could not parse timestamps for issue {issue.get('key', 'unknown')}: {e}"
+                f"Could not parse timestamps for issue {issue.get('key', 'unknown')}: {
+                    e
+                }"
             )
             continue
 
@@ -688,7 +707,9 @@ def calculate_flow_time(
     trend = _calculate_trend(median_flow_time, previous_period_value)
 
     logger.info(
-        f"Flow Time: {median_flow_time:.1f} days median ({len(cycle_times)} issues analyzed)"
+        f"Flow Time: {median_flow_time:.1f} days median ({
+            len(cycle_times)
+        } issues analyzed)"
     )
 
     return {
@@ -751,7 +772,8 @@ def _calculate_time_in_statuses(
                     if duration_hours > 0:
                         total_hours += duration_hours
                         logger.debug(
-                            f"[FlowEfficiency] {issue_key}: {current_status} period: {duration_hours:.2f}h"
+                            f"[FlowEfficiency] {issue_key}: {current_status} period: {
+                                duration_hours:.2f}h"
                         )
                 except (ValueError, TypeError) as e:
                     logger.debug(f"[FlowEfficiency] {issue_key}: Parse error: {e}")
@@ -763,14 +785,14 @@ def _calculate_time_in_statuses(
     # If we're still in a tracked status, calculate time up to now
     if current_status in status_list and current_start:
         try:
-
             now = datetime.now(UTC)
             start_time = datetime.fromisoformat(current_start.replace("Z", "+00:00"))
             duration_hours = (now - start_time).total_seconds() / 3600
             if duration_hours > 0:
                 total_hours += duration_hours
                 logger.debug(
-                    f"[FlowEfficiency] {issue_key}: Still in {current_status}: {duration_hours:.2f}h"
+                    f"[FlowEfficiency] {issue_key}: Still in {current_status}: {
+                        duration_hours:.2f}h"
                 )
         except (ValueError, TypeError) as e:
             logger.debug(f"[FlowEfficiency] {issue_key}: Final period parse error: {e}")
@@ -810,7 +832,9 @@ def calculate_flow_efficiency(
         }
     """
     logger.info(
-        f"Calculating flow efficiency for {len(issues)} issues over {time_period_days} days"
+        f"Calculating flow efficiency for {len(issues)} issues over {
+            time_period_days
+        } days"
     )
 
     # Load field mappings
@@ -853,7 +877,8 @@ def calculate_flow_efficiency(
         total_time = _calculate_time_in_statuses(changelog, wip_statuses, issue_key)
 
         logger.debug(
-            f"[FlowEfficiency] {issue_key}: active={active_time:.2f}h, total={total_time:.2f}h"
+            f"[FlowEfficiency] {issue_key}: active={active_time:.2f}h, total={
+                total_time:.2f}h"
         )
 
         if total_time > 0:
@@ -880,7 +905,9 @@ def calculate_flow_efficiency(
     trend = _calculate_trend(average_efficiency, previous_period_value)
 
     logger.info(
-        f"Flow Efficiency: {average_efficiency:.1f}% average ({len(efficiency_values)} issues analyzed)"
+        f"Flow Efficiency: {average_efficiency:.1f}% average ({
+            len(efficiency_values)
+        } issues analyzed)"
     )
 
     return {
@@ -998,7 +1025,9 @@ def calculate_flow_distribution(
         }
     """
     logger.info(
-        f"Calculating flow distribution for {len(issues)} issues over {time_period_days} days"
+        f"Calculating flow distribution for {len(issues)} issues over {
+            time_period_days
+        } days"
     )
 
     # Load field mappings
@@ -1011,7 +1040,8 @@ def calculate_flow_distribution(
     completed_date_field = _get_completed_date_field()
 
     logger.info(
-        f"Flow Distribution: flow_end_statuses={flow_end_statuses}, completed_date_field={completed_date_field}"
+        f"Flow Distribution: flow_end_statuses={flow_end_statuses}, "
+        f"completed_date_field={completed_date_field}"
     )
     logger.info(f"Flow Distribution: flow_type_mappings={flow_type_mappings}")
 
@@ -1051,7 +1081,9 @@ def calculate_flow_distribution(
                 )
 
     logger.info(
-        f"Flow Distribution: Found {completed_count} completed issues out of {len(issues)} total"
+        f"Flow Distribution: Found {completed_count} completed issues out of {
+            len(issues)
+        } total"
     )
     logger.info(f"Flow Distribution: distribution_counts={distribution_counts}")
 

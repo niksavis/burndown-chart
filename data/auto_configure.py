@@ -82,7 +82,8 @@ def generate_smart_defaults(
                         ...
                     },
                     "general": {
-                        "completed_date": "resolutiondate",  # OR "resolved" for Apache JIRA/JIRA Server
+                        # OR "resolved" for Apache JIRA/JIRA Server
+                        "completed_date": "resolutiondate",
                         "created_date": "created",
                         "updated_date": "updated",
                     },
@@ -103,7 +104,8 @@ def generate_smart_defaults(
     auto_detected = metadata.get("auto_detected", {})
 
     # Initialize defaults structure
-    # Type: Dict can contain nested dicts (field_mappings), lists (project_classification), or strings (points_field)
+    # Type: Dict can contain nested dicts (field_mappings), lists
+    # (project_classification), or strings (points_field)
     defaults: dict[str, Any] = {
         "project_classification": {
             "flow_end_statuses": [],
@@ -137,7 +139,9 @@ def generate_smart_defaults(
     )
 
     logger.info(
-        f"[AutoConfigure] Mapped {len(flow_end_statuses)} completion, {len(active_statuses)} active, {len(wip_statuses)} WIP statuses"
+        f"[AutoConfigure] Mapped {len(flow_end_statuses)} completion, {
+            len(active_statuses)
+        } active, {len(wip_statuses)} WIP statuses"
     )
 
     # 2. Map issue types to flow categories AND extract DevOps types
@@ -152,14 +156,21 @@ def generate_smart_defaults(
     # Use DevOps task types from semantic analysis (for DORA Deployment Frequency)
     defaults["project_classification"]["devops_task_types"] = devops_task_types
     logger.info(
-        f"[AutoConfigure] DevOps task types (DORA Deployment Frequency): {devops_task_types}"
+        "[AutoConfigure] DevOps task types "
+        f"(DORA Deployment Frequency): {devops_task_types}"
     )
 
     logger.info(
-        f"[AutoConfigure] Mapped issue types: Feature={len(flow_type_mappings['Feature'])}, Defect={len(flow_type_mappings['Defect'])}, TechnicalDebt={len(flow_type_mappings['Technical Debt'])}"
+        f"[AutoConfigure] Mapped issue types: Feature={
+            len(flow_type_mappings['Feature'])
+        }, Defect={len(flow_type_mappings['Defect'])}, TechnicalDebt={
+            len(flow_type_mappings['Technical Debt'])
+        }"
     )
     logger.info(
-        f"[AutoConfigure] Incident types (bug_types): {defaults['project_classification']['bug_types']}"
+        f"[AutoConfigure] Incident types (bug_types): {
+            defaults['project_classification']['bug_types']
+        }"
     )
 
     # 3. Extract projects from JQL query (if provided)
@@ -169,7 +180,9 @@ def generate_smart_defaults(
             development_projects
         )
         logger.info(
-            f"[AutoConfigure] Extracted {len(development_projects)} projects from JQL: {development_projects}"
+            f"[AutoConfigure] Extracted {len(development_projects)} projects from JQL: {
+                development_projects
+            }"
         )
     else:
         logger.info(
@@ -194,7 +207,8 @@ def generate_smart_defaults(
     # === DORA METRICS: Use namespace syntax for changelog-based extraction ===
     dora_mappings = {
         # Deployment Date: When work was deployed (completion status transition)
-        # Namespace: status:Done.DateTime - extracts timestamp when status changed to Done
+        # Namespace: status:Done.DateTime - extracts timestamp when status changed
+        # to Done
         "deployment_date": f"status:{completion_status}.DateTime",
         # Code Commit Date: When development started (flow start status transition)
         # Namespace: status:In Progress.DateTime - extracts timestamp when work began
@@ -225,7 +239,8 @@ def generate_smart_defaults(
         "updated_date": "updated",
     }
 
-    # === FLOW METRICS: Use standard fields (status lists are in project_classification) ===
+    # === FLOW METRICS: Use standard fields
+    # (status lists are in project_classification) ===
     flow_mappings = {
         # Flow Item Type: Issue type classification
         # Standard field - always available in JIRA
@@ -233,7 +248,8 @@ def generate_smart_defaults(
         # Status: Current status (for WIP calculations)
         # Standard field - always available
         "status": "status",
-        # NOTE: completed_date moved to general_mappings (used by velocity, budget, flow metrics)
+        # NOTE: completed_date moved to general_mappings (used by velocity,
+        # budget, flow metrics)
     }
 
     logger.info(
@@ -245,7 +261,9 @@ def generate_smart_defaults(
     # These are fields that may have dedicated custom fields in some JIRA instances
     if issues:
         logger.info(
-            f"[AutoConfigure] Analyzing {len(issues)} issues for custom field detection (optional enhancements)"
+            f"[AutoConfigure] Analyzing {
+                len(issues)
+            } issues for custom field detection (optional enhancements)"
         )
         field_detections = detect_fields_from_issues(issues, metadata)
 
@@ -267,7 +285,8 @@ def generate_smart_defaults(
             if detection_key in field_detections:
                 dora_mappings[field_name] = field_detections[detection_key]
                 logger.info(
-                    f"[AutoConfigure] Found custom {field_name} field - using {field_detections[detection_key]}"
+                    f"[AutoConfigure] Found custom {field_name} field - "
+                    f"using {field_detections[detection_key]}"
                 )
 
         # Add detected custom fields for Flow metrics (optional enhancements)
@@ -279,7 +298,8 @@ def generate_smart_defaults(
             if detection_key in field_detections:
                 flow_mappings[field_name] = field_detections[detection_key]
                 logger.info(
-                    f"[AutoConfigure] Found custom {field_name} field - using {field_detections[detection_key]}"
+                    f"[AutoConfigure] Found custom {field_name} field - "
+                    f"using {field_detections[detection_key]}"
                 )
 
         # Store points field for Estimate mapping (General Fields)
@@ -287,7 +307,9 @@ def generate_smart_defaults(
             defaults["points_field"] = field_detections["points_field"]
             general_mappings["estimate"] = field_detections["points_field"]
             logger.info(
-                f"[AutoConfigure] Detected points field: {field_detections['points_field']}"
+                f"[AutoConfigure] Detected points field: {
+                    field_detections['points_field']
+                }"
             )
 
         # Extract field values for dropdowns (effort_category, affected_environment)
@@ -299,7 +321,8 @@ def generate_smart_defaults(
             )
     else:
         logger.info(
-            "[AutoConfigure] No custom field detection (no issues provided). Using namespace syntax only."
+            "[AutoConfigure] No custom field detection "
+            "(no issues provided). Using namespace syntax only."
         )
 
     # Always store field_mappings (standard fields + any detected custom overrides)
@@ -310,7 +333,9 @@ def generate_smart_defaults(
 
     logger.info(
         f"[AutoConfigure] Field mappings configured: "
-        f"{len(general_mappings)} General fields, {len(dora_mappings)} DORA fields, {len(flow_mappings)} Flow fields"
+        f"{len(general_mappings)} General fields, {len(dora_mappings)} DORA fields, {
+            len(flow_mappings)
+        } Flow fields"
     )
 
     return defaults
@@ -393,7 +418,9 @@ def _select_flow_start_statuses(wip_statuses: list[str]) -> list[str]:
         matching = [s for s in wip_statuses if keyword in s.lower()]
         if matching:
             logger.info(
-                f"[AutoConfigure] Selected flow start status: {matching[0]} (matched '{keyword}')"
+                f"[AutoConfigure] Selected flow start status: {matching[0]} (matched '{
+                    keyword
+                }')"
             )
             return [matching[0]]
 
@@ -643,7 +670,8 @@ def _map_issue_types(
                 mappings["Technical Debt"].append(devops_type)
                 categorized.add(devops_type)
                 logger.info(
-                    f"[AutoConfigure] Auto-detected '{devops_type}' → DevOps (DORA) + Technical Debt (Flow)"
+                    f"[AutoConfigure] Auto-detected '{devops_type}' → "
+                    "DevOps (DORA) + Technical Debt (Flow)"
                 )
 
         # 1. Defects (highest priority - production issues)
@@ -685,18 +713,21 @@ def _map_issue_types(
 
         # Score each category based on semantic meaning
         logger.debug(
-            f"[AutoConfigure] Analyzing issue type: '{type_name}' (lowercase: '{type_lower}')"
+            f"[AutoConfigure] Analyzing issue type: '{type_name}' "
+            f"(lowercase: '{type_lower}')"
         )
         category = _semantic_categorize_issue_type(type_lower)
 
-        # Handle DevOps types specially - they populate both DevOps list and Technical Debt
+        # Handle DevOps types specially - they populate both DevOps list and
+        # Technical Debt
         if category == "DevOps":
             devops_types.append(type_name)
             # DevOps tasks also count as Technical Debt for Flow metrics
             mappings["Technical Debt"].append(type_name)
             categorized.add(type_name)
             logger.info(
-                f"[AutoConfigure] '{type_name}' → DevOps (DORA Deployment Frequency) + Technical Debt (Flow)"
+                f"[AutoConfigure] '{type_name}' → DevOps "
+                "(DORA Deployment Frequency) + Technical Debt (Flow)"
             )
         else:
             # Regular Flow categories (mutually exclusive)
@@ -713,7 +744,8 @@ def _map_issue_types(
                 )
             elif category == "Technical Debt":
                 logger.info(
-                    f"[AutoConfigure] '{type_name}' → Technical Debt (maintenance/improvement)"
+                    f"[AutoConfigure] '{type_name}' → Technical Debt "
+                    "(maintenance/improvement)"
                 )
 
     # Log final distribution
@@ -726,12 +758,15 @@ def _map_issue_types(
         f"DevOps={len(devops_types)}"
     )
 
-    # Log details if DevOps types are empty (helps diagnose projects without deployment types)
+    # Log details if DevOps types are empty (helps diagnose projects without
+    # deployment types)
     if len(devops_types) == 0:
         logger.info(
-            "[AutoConfigure] No DevOps task types detected. This is normal if the project "
-            "doesn't use dedicated issue types for deployments (e.g., deployments tracked "
-            "via different mechanisms like git tags, CI/CD pipelines, or status transitions)."
+            "[AutoConfigure] No DevOps task types detected. "
+            "This is normal if the project doesn't use dedicated issue "
+            "types for deployments (e.g., deployments tracked via "
+            "different mechanisms like git tags, CI/CD pipelines, or "
+            "status transitions)."
         )
     else:
         logger.info(f"[AutoConfigure] DevOps task types found: {devops_types}")
@@ -776,7 +811,8 @@ def _extract_field_values(
                 v for v in effort_values if v
             )  # Remove empty strings
             logger.info(
-                f"[AutoConfigure] Extracted {len(field_values['effort_category'])} effort category values"
+                f"[AutoConfigure] Extracted "
+                f"{len(field_values['effort_category'])} effort category values"
             )
 
     # Extract target_environment values (for production identifiers)
@@ -815,7 +851,8 @@ def _extract_field_values(
         if env_values:
             field_values["target_environment"] = sorted(v for v in env_values if v)
             logger.info(
-                f"[AutoConfigure] Extracted {len(field_values['target_environment'])} environment values"
+                f"[AutoConfigure] Extracted "
+                f"{len(field_values['target_environment'])} environment values"
             )
 
     return field_values
