@@ -69,7 +69,8 @@ def get_affected_weeks_from_changed_issues(changed_keys: list[str]) -> set[str]:
                     affected_weeks.add(week_label)
                 except Exception as e:
                     logger.debug(
-                        f"[Delta Calculate] Could not parse created date for {issue_key}: {e}"
+                        "[Delta Calculate] Could not parse created date for "
+                        f"{issue_key}: {e}"
                     )
 
             # Check resolved date (nested or flat)
@@ -83,7 +84,8 @@ def get_affected_weeks_from_changed_issues(changed_keys: list[str]) -> set[str]:
                     affected_weeks.add(week_label)
                 except Exception as e:
                     logger.debug(
-                        f"[Delta Calculate] Could not parse resolved date for {issue_key}: {e}"
+                        "[Delta Calculate] Could not parse resolved date for "
+                        f"{issue_key}: {e}"
                     )
 
             # TODO: Also check changelog entries for status transitions
@@ -91,11 +93,13 @@ def get_affected_weeks_from_changed_issues(changed_keys: list[str]) -> set[str]:
 
         if affected_weeks:
             logger.info(
-                f"[Delta Calculate] {len(changed_keys)} changed issues affect {len(affected_weeks)} weeks: {sorted(affected_weeks)}"
+                f"[Delta Calculate] {len(changed_keys)} changed issues affect "
+                f"{len(affected_weeks)} weeks: {sorted(affected_weeks)}"
             )
         else:
             logger.info(
-                f"[Delta Calculate] {len(changed_keys)} changed issues found but no affected weeks detected"
+                f"[Delta Calculate] {len(changed_keys)} changed issues found "
+                "but no affected weeks detected"
             )
 
         return affected_weeks
@@ -228,8 +232,10 @@ def try_delta_fetch(
             return False, [], [], []
 
         # Build delta JQL with updated filter
-        # Add 1 second to last_updated to avoid precision issues (JIRA only supports minute precision)
-        # This ensures we don't miss issues updated in the same second, but also don't re-fetch everything
+        # Add 1 second to last_updated to avoid precision issues
+        # (JIRA only supports minute precision).
+        # This ensures we don't miss issues updated in the same second,
+        # but also don't re-fetch everything.
         cache_dt = datetime.fromisoformat(last_updated.replace("Z", "+00:00"))
         # Add 1 second to ensure we don't re-fetch issues from the exact same timestamp
         query_dt = cache_dt + timedelta(seconds=1)
@@ -239,7 +245,8 @@ def try_delta_fetch(
         delta_jql = f"({jql}) AND updated >= '{jira_timestamp}'"
 
         logger.info(
-            f"[Delta] Fetching issues updated since {jira_timestamp} (cache time: {cache_dt.strftime('%Y-%m-%d %H:%M:%S')} UTC + 1s)"
+            f"[Delta] Fetching issues updated since {jira_timestamp} "
+            f"(cache time: {cache_dt.strftime('%Y-%m-%d %H:%M:%S')} UTC + 1s)"
         )
 
         # Fetch delta issues using direct API call
@@ -254,9 +261,14 @@ def try_delta_fetch(
         fields = config.get("fields", "")
         if not fields:
             # Use base fields
-            base_fields = "key,summary,project,created,updated,resolutiondate,status,issuetype,assignee,priority,resolution,labels,components,fixVersions"
+            base_fields = (
+                "key,summary,project,created,updated,resolutiondate,status,"
+                "issuetype,assignee,priority,resolution,labels,components,"
+                "fixVersions"
+            )
 
-            # Add parent field if configured (either standard 'parent' or Epic Link custom field)
+            # Add parent field if configured (either standard 'parent'
+            # or Epic Link custom field).
             parent_field = (
                 config.get("field_mappings", {}).get("general", {}).get("parent_field")
             )
@@ -281,7 +293,8 @@ def try_delta_fetch(
 
         if response.status_code != 200:
             logger.warning(
-                f"[Delta] Fetch failed with status {response.status_code}: {response.text[:200]}"
+                f"[Delta] Fetch failed with status {response.status_code}: "
+                f"{response.text[:200]}"
             )
             return False, [], [], []
 
@@ -289,13 +302,15 @@ def try_delta_fetch(
         delta_issues = result.get("issues", [])
 
         logger.info(
-            f"[Delta] Fetched {len(delta_issues)} changed issues (query: updated >= '{jira_timestamp}')"
+            f"[Delta] Fetched {len(delta_issues)} changed issues "
+            f"(query: updated >= '{jira_timestamp}')"
         )
 
         # If delta is too large (>20% of cache), fall back to full fetch
         if len(delta_issues) > len(cached_data) * 0.2:
             logger.info(
-                f"[Delta] Too many changes ({len(delta_issues)} > 20% of {len(cached_data)}), full fetch recommended"
+                f"[Delta] Too many changes ({len(delta_issues)} > 20% of "
+                f"{len(cached_data)}), full fetch recommended"
             )
             return False, [], [], []
 
@@ -324,7 +339,8 @@ def try_delta_fetch(
 
         elapsed_time = time.time() - start_time
         logger.info(
-            f"[Delta] Merge complete: {len(merged_issues)} total issues ({len(delta_issues)} updated) in {elapsed_time:.2f}s"
+            f"[Delta] Merge complete: {len(merged_issues)} total issues "
+            f"({len(delta_issues)} updated) in {elapsed_time:.2f}s"
         )
 
         return True, merged_issues, changed_keys, delta_issues

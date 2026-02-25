@@ -34,7 +34,10 @@ logger = logging.getLogger(__name__)
 
 
 class DependencyError(Exception):
-    """Raised when dependency chain is not satisfied (e.g., JIRA not configured before query creation)."""
+    """Raised when dependency chain is not satisfied.
+
+    Example: JIRA not configured before query creation.
+    """
 
     pass
 
@@ -62,7 +65,8 @@ def get_active_query_id() -> str | None:
     Get the currently active query ID.
 
     Returns:
-        Optional[str]: Active query ID (e.g., "main", "bugs", "12w") or None if no active query
+        Optional[str]: Active query ID (e.g., "main", "bugs", "12w")
+            or None if no active query
 
     Raises:
         ValueError: If app state not accessible
@@ -166,8 +170,18 @@ def list_queries_for_profile(profile_id: str | None = None) -> list[dict]:
     Example:
         >>> list_queries_for_profile("kafka")
         [
-            {"id": "main", "name": "All Issues", "jql": "project = KAFKA", "is_active": True},
-            {"id": "bugs", "name": "Bugs Only", "jql": "project = KAFKA AND type = Bug", "is_active": False},
+            {
+                "id": "main",
+                "name": "All Issues",
+                "jql": "project = KAFKA",
+                "is_active": True,
+            },
+            {
+                "id": "bugs",
+                "name": "Bugs Only",
+                "jql": "project = KAFKA AND type = Bug",
+                "is_active": False,
+            },
         ]
     """
     backend = get_backend()
@@ -235,7 +249,8 @@ def get_query_dropdown_options(profile_id: str | None = None) -> list[dict]:
     # Build dropdown options
     options = [{"label": "→ Create New Query", "value": "__create_new__"}]
 
-    # Fetch timestamps for ALL queries in a SINGLE database query (performance optimization)
+    # Fetch timestamps for ALL queries in a SINGLE database query
+    # (performance optimization).
     timestamp_map = {}
     try:
         from pathlib import Path
@@ -257,7 +272,8 @@ def get_query_dropdown_options(profile_id: str | None = None) -> list[dict]:
             rows = cursor.fetchall()
             timestamp_map = {row[0]: row[1] for row in rows}
             logger.info(
-                f"[DROPDOWN] Fetched timestamps for {len(timestamp_map)} queries in single query"
+                f"[DROPDOWN] Fetched timestamps for {len(timestamp_map)} "
+                "queries in single query"
             )
     except Exception as e:
         logger.error(
@@ -271,7 +287,8 @@ def get_query_dropdown_options(profile_id: str | None = None) -> list[dict]:
         query_id = query.get("id", "")
 
         logger.info(
-            f"[DROPDOWN] Processing query: id={query_id}, name='{label}', is_active={query.get('is_active', False)}"
+            f"[DROPDOWN] Processing query: id={query_id}, name='{label}', "
+            f"is_active={query.get('is_active', False)}"
         )
 
         # Add [Active] postfix
@@ -314,7 +331,11 @@ def create_query(profile_id: str, name: str, jql: str, description: str = "") ->
         - Adds query metadata
 
     Example:
-        >>> query_id = create_query("p_abc123", "High Priority Bugs!", "project = KAFKA AND priority = High")
+        >>> query_id = create_query(
+        ...     "p_abc123",
+        ...     "High Priority Bugs!",
+        ...     "project = KAFKA AND priority = High",
+        ... )
         >>> assert query_id.startswith("q_") and len(query_id) == 14
     """
     backend = get_backend()
@@ -337,7 +358,8 @@ def create_query(profile_id: str, name: str, jql: str, description: str = "") ->
     if not field_mappings:
         logger.warning(
             f"[Query] Field mappings not configured in profile '{profile_id}' - "
-            "metrics may be limited. Configure field mappings for full DORA/Flow metrics."
+            "metrics may be limited. Configure field mappings for full "
+            "DORA/Flow metrics."
         )
 
     # Generate unique query ID using UUID
@@ -376,7 +398,8 @@ def update_query(
         query_id: Query to update
         name: New display name (optional, keeps existing if None)
         jql: New JQL query string (optional, keeps existing if None)
-        description: New description (optional, keeps existing if None - NOTE: not yet persisted in database)
+        description: New description (optional, keeps existing if None -
+            NOTE: not yet persisted in database)
 
     Returns:
         bool: True if update successful
@@ -445,19 +468,24 @@ def delete_query(profile_id: str, query_id: str, allow_cascade: bool = False) ->
     Args:
         profile_id: Profile containing the query
         query_id: Query to delete
-        allow_cascade: If True, allow deletion even if it's the last query or active query
-                       (used during profile cascade deletion). Default: False for safety.
+        allow_cascade: If True, allow deletion even if it's the last query
+            or active query (used during profile cascade deletion).
+            Default: False for safety.
 
     Raises:
-        ValueError: If query doesn't exist or is the only query in profile (unless allow_cascade=True)
-        PermissionError: If query is currently active (must switch first, unless allow_cascade=True)
+        ValueError: If query doesn't exist or is the only query in profile
+            (unless allow_cascade=True)
+        PermissionError: If query is currently active (must switch first,
+            unless allow_cascade=True)
 
     Side Effects:
         - Deletes query from database (CASCADE DELETE handled by backend)
 
     Example:
         >>> delete_query("kafka", "old-query")  # Normal deletion with safety checks
-        >>> delete_query("kafka", "main", allow_cascade=True)  # Cascade deletion (no safety checks)
+        >>> delete_query(
+        ...     "kafka", "main", allow_cascade=True
+        ... )  # Cascade deletion (no safety checks)
     """
     backend = get_backend()
 
@@ -467,7 +495,8 @@ def delete_query(profile_id: str, query_id: str, allow_cascade: bool = False) ->
             active_query_id = get_active_query_id()
             if query_id == active_query_id:
                 raise PermissionError(
-                    f"Cannot delete active query '{query_id}'. Switch to another query first."
+                    f"Cannot delete active query '{query_id}'. "
+                    "Switch to another query first."
                 )
         except ValueError:
             pass  # No active query, safe to delete

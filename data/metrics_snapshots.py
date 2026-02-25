@@ -1,7 +1,8 @@
 """
 Metrics Snapshot Storage
 
-Stores historical weekly snapshots of metrics that can't be reconstructed from JIRA data alone.
+Stores historical weekly snapshots of metrics that can't be reconstructed
+from JIRA data alone.
 Primarily used for Flow Load (WIP) which is a point-in-time measurement.
 
 Storage Format: JSON file with weekly snapshots
@@ -84,7 +85,8 @@ def load_snapshots() -> dict[str, dict[str, Any]]:
             return _snapshots_cache
 
         # Load from database - get_metrics_snapshots returns list of dicts
-        # Each dict is a ROW with: snapshot_date, metric_category, metric_name, metric_value, etc.
+        # Each dict is a ROW with: snapshot_date, metric_category,
+        # metric_name, metric_value, etc.
         # Need to reconstruct the nested structure: {week_label: {metric_name: {...}}}
         snapshots = {}
         for metric_type in ["dora", "flow", "custom"]:
@@ -192,7 +194,8 @@ def save_snapshots(snapshots: dict[str, dict[str, Any]]) -> bool:
 
         # Save each week's snapshots
         for week, metrics in snapshots.items():
-            # Convert week label (e.g., "2025-44" or "2025-W44") to snapshot_date (YYYY-MM-DD)
+            # Convert week label (e.g., "2025-44" or "2025-W44") to
+            # snapshot_date (YYYY-MM-DD)
             # Use Monday of the week as the snapshot date
             year, week_num = parse_year_week_label(week)
             week_start = get_week_start_date(year, week_num)
@@ -261,7 +264,8 @@ def save_metric_snapshot(
     Args:
         week_label: ISO week label (e.g., "2025-44")
         metric_name: Name of the metric (e.g., "flow_load", "deployment_frequency")
-        metric_data: Metric data to store (should NOT include timestamp - added automatically)
+        metric_data: Metric data to store (should NOT include timestamp -
+            added automatically)
 
     Returns:
         True if successful, False otherwise
@@ -322,7 +326,8 @@ class batch_write_mode:
     Context manager for batch writing multiple metrics snapshots.
 
     Accumulates all save_metric_snapshot() calls in memory and writes once on exit.
-    Dramatically improves performance when saving many metrics (e.g., 52 weeks × 8 metrics).
+    Dramatically improves performance when saving many metrics
+    (e.g., 52 weeks × 8 metrics).
 
     Example:
         >>> with batch_write_mode():
@@ -362,12 +367,14 @@ class batch_write_mode:
                     logger.info(f"[Batch] Flushing {num_weeks} weeks to disk...")
                     save_snapshots(_batch_snapshots)
                     logger.info(
-                        f"[Batch] Batch write complete: {num_weeks} weeks saved in single write"
+                        f"[Batch] Batch write complete: {num_weeks} weeks "
+                        "saved in single write"
                     )
                 else:
                     # Exception occurred - discard changes
                     logger.warning(
-                        f"[Batch] Exception occurred, discarding batched changes: {exc_val}"
+                        "[Batch] Exception occurred, discarding batched "
+                        f"changes: {exc_val}"
                     )
             finally:
                 # Always reset batch mode
@@ -436,22 +443,30 @@ def get_last_n_weeks_values(
     with calculate_forecast() function.
 
     Args:
-        metric_key: Metric name (e.g., "flow_velocity", "flow_load", "dora_lead_time")
-        value_key: Key to extract from metric data (e.g., "completed_count", "wip_count", "median_hours")
+        metric_key: Metric name (e.g., "flow_velocity", "flow_load",
+            "dora_lead_time")
+        value_key: Key to extract from metric data
+            (e.g., "completed_count", "wip_count", "median_hours")
         n_weeks: Number of weeks to retrieve (default: 4)
-        current_week: Optional current week to exclude (if calculating forecast for current week)
+        current_week: Optional current week to exclude
+            (if calculating forecast for current week)
 
     Returns:
-        List of values in chronological order (oldest to newest), excluding weeks with no data
+        List of values in chronological order (oldest to newest),
+        excluding weeks with no data
         Empty list if insufficient historical data
 
     Example:
         >>> # Get last 4 weeks of Flow Velocity for forecast
-        >>> values = get_last_n_weeks_values("flow_velocity", "completed_count", n_weeks=4)
+        >>> values = get_last_n_weeks_values(
+        ...     "flow_velocity", "completed_count", n_weeks=4
+        ... )
         >>> [10, 12, 15, 18]  # Oldest to newest
 
         >>> # Get last 4 weeks of Flow Load (excluding current week)
-        >>> values = get_last_n_weeks_values("flow_load", "wip_count", n_weeks=4, current_week="2025-44")
+        >>> values = get_last_n_weeks_values(
+        ...     "flow_load", "wip_count", n_weeks=4, current_week="2025-44"
+        ... )
         >>> [12, 15, 14, 13]  # W-4, W-3, W-2, W-1 (excludes W-0)
     """
     snapshots = load_snapshots()
@@ -604,7 +619,8 @@ def save_flow_efficiency_snapshot(week_label: str, data: dict[str, Any]) -> bool
 
     Args:
         week_label: ISO week label (e.g., "2025-44")
-        data: Flow Efficiency data containing overall_pct, avg_active_days, avg_waiting_days
+        data: Flow Efficiency data containing overall_pct,
+            avg_active_days, avg_waiting_days
 
     Returns:
         True if successful, False otherwise
@@ -649,7 +665,10 @@ def has_metric_snapshot(week_label: str, metric_name: str) -> bool:
 
     Example:
         >>> if not has_metric_snapshot("2025-44", "flow_time"):
-        ...     print("No Flow Time data for this week. Click 'Refresh Metrics' to calculate.")
+        ...     print(
+        ...         "No Flow Time data for this week. Click "
+        ...         "'Refresh Metrics' to calculate."
+        ...     )
     """
     return get_metric_snapshot(week_label, metric_name) is not None
 
@@ -663,7 +682,10 @@ def get_available_weeks() -> list[str]:
 
     Example:
         >>> weeks = get_available_weeks()
-        >>> print(f"Metrics available for {len(weeks)} weeks: {weeks[0]} to {weeks[-1]}")
+        >>> print(
+        ...     f"Metrics available for {len(weeks)} weeks: "
+        ...     f"{weeks[0]} to {weeks[-1]}"
+        ... )
     """
     snapshots = load_snapshots()
     return sorted(snapshots.keys(), reverse=True)
@@ -742,7 +764,8 @@ def save_metric_snapshot_with_forecast(
         )
         return True  # Metric saved, just no forecast
 
-    # Get last 4 weeks of historical values (excluding current week for historical weeks)
+    # Get last 4 weeks of historical values
+    # (excluding current week for historical weeks)
     historical_values = get_last_n_weeks_values(
         metric_key=metric_name,
         value_key=value_key,

@@ -165,7 +165,9 @@ def _create_summary_statistics(
 
     if not statistics or len(statistics) == 0:
         logger.warning(
-            f"No statistics data available for AI prompt (got {type(statistics)} with length {len(statistics) if statistics else 0})"
+            "No statistics data available for AI prompt "
+            f"(got {type(statistics)} with length "
+            f"{len(statistics) if statistics else 0})"
         )
         return summary
 
@@ -271,7 +273,8 @@ def _aggregate_statistics(statistics: list[dict], weeks: int) -> dict[str, Any]:
     if "date" not in df.columns and "stat_date" not in df.columns:
         available_columns = ", ".join(df.columns.tolist())
         logger.error(
-            f"Statistics DataFrame missing date column. Available columns: {available_columns}"
+            "Statistics DataFrame missing date column. "
+            f"Available columns: {available_columns}"
         )
         return {"error": f"Missing date column. Found: {available_columns}"}
 
@@ -390,18 +393,21 @@ def _format_ai_prompt(summary: dict[str, Any], time_period_weeks: int) -> str:
 ## Project Scope & Progress
 
 **Current State** (lifetime totals):
-- Progress: {scope.get("completion_pct", 0):.1f}% complete ({scope.get("completed_items", 0)}/{scope.get("total_items", 0)} items)
+- Progress: {scope.get("completion_pct", 0):.1f}% complete
+    ({scope.get("completed_items", 0)}/{scope.get("total_items", 0)} items)
 - Remaining: {scope.get("remaining_items", 0)} items"""
 
         # Add points if project uses them
         if "total_points" in scope:
             scope_section += f"""
-- Story Points: {scope.get("points_completion_pct", 0):.1f}% complete ({scope.get("completed_points", 0)}/{scope.get("total_points", 0)} points)"""
+- Story Points: {scope.get("points_completion_pct", 0):.1f}% complete
+    ({scope.get("completed_points", 0)}/{scope.get("total_points", 0)} points)"""
 
         # Add forecast
         if "estimated_weeks_remaining" in scope:
             scope_section += f"""
-- Projected Completion: ~{scope.get("estimated_weeks_remaining", 0):.1f} weeks at current velocity"""
+- Projected Completion: ~{scope.get("estimated_weeks_remaining", 0):.1f} weeks
+    at current velocity"""
 
         scope_section += "\n\n---\n"
 
@@ -429,14 +435,17 @@ def _format_ai_prompt(summary: dict[str, Any], time_period_weeks: int) -> str:
 
     prompt = f"""# Agile Project Analysis Request
 
-You are an expert agile project manager analyzing project health and forecasting outcomes. Provide data-driven insights with specific, actionable recommendations.
+You are an expert agile project manager analyzing project health and
+forecasting outcomes. Provide data-driven insights with specific,
+actionable recommendations.
 
 ## Project Data ({time_period_weeks}-week analysis window)
 
 **Velocity Metrics**:
 - Average: {velocity_items:.1f} items/week
 - Trend: {velocity_trend}
-- Consistency: {consistency_label} ({variability_label} variability, CV: {velocity_cv:.1f}%)
+- Consistency: {consistency_label} ({variability_label} variability,
+  CV: {velocity_cv:.1f}%)
 - Total completed: {metrics.get("total_completed_items", 0)} items (in analysis window)
 
 **Scope Dynamics**:
@@ -458,7 +467,8 @@ Provide a comprehensive project assessment covering:
 
 ### 2. Velocity & Performance Analysis
 - Evaluate velocity trend and what's driving it
-- Assess velocity consistency ({consistency_label}, with {variability_label} variability: CV {velocity_cv:.1f}%)
+- Assess velocity consistency ({consistency_label}, with
+    {variability_label} variability: CV {velocity_cv:.1f}%)
 - Identify patterns or anomalies in delivery performance
 - Compare recent performance to historical baseline
 
@@ -503,7 +513,8 @@ For each recommendation, specify:
 - Effort: Low/Medium/High estimate
 
 ### 7. Key Questions for Stakeholders
-Identify 2-3 critical questions that require leadership discussion or clarification to improve accuracy of analysis.
+Identify 2-3 critical questions that require leadership discussion or
+clarification to improve accuracy of analysis.
 
 ---
 
@@ -511,15 +522,20 @@ Identify 2-3 critical questions that require leadership discussion or clarificat
 
 **Be Data-Driven**: Ground all insights in the provided metrics. Avoid generic advice.
 
-**Be Specific**: Use actual numbers from the data (e.g., "velocity declined 15% in last 4 weeks" not "velocity is declining").
+**Be Specific**: Use actual numbers from the data
+(e.g., "velocity declined 15% in last 4 weeks"
+not "velocity is declining").
 
-**Be Actionable**: Every recommendation should be implementable within the specified timeframe.
+**Be Actionable**: Every recommendation should be implementable within
+the specified timeframe.
 
-**Consider Context**: Acknowledge that metrics don't tell the whole story. Flag where additional context would improve analysis.
+**Consider Context**: Acknowledge that metrics don't tell the whole story.
+Flag where additional context would improve analysis.
 
 **Prioritize Ruthlessly**: Focus on the 20% of actions that will deliver 80% of impact.
 
-**Use Agile Terminology**: Reference sprints, iterations, backlogs, ceremonies as appropriate for agile teams.
+**Use Agile Terminology**: Reference sprints, iterations, backlogs,
+ceremonies as appropriate for agile teams.
 
 ---
 

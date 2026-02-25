@@ -1,7 +1,8 @@
 """
 JSON-to-SQLite migration orchestrator.
 
-Handles automatic migration from legacy JSON file structure to normalized SQLite database.
+Handles automatic migration from legacy JSON file structure
+to normalized SQLite database.
 Runs once on first app launch when JSON profiles exist but database doesn't.
 
 Migration Flow:
@@ -228,11 +229,13 @@ def migrate_profile(
                             )
                             stats["issues"] += len(issues)
                             logger.info(
-                                f"Migrated {len(issues)} issues for {profile_id}/{query_id}"
+                                f"Migrated {len(issues)} issues for "
+                                f"{profile_id}/{query_id}"
                             )
                     except Exception as e:
                         logger.warning(
-                            f"Failed to migrate JIRA cache for {profile_id}/{query_id}: {e}"
+                            f"Failed to migrate JIRA cache for "
+                            f"{profile_id}/{query_id}: {e}"
                         )
 
                 # Step 4: Migrate project data (statistics + scope)
@@ -251,7 +254,8 @@ def migrate_profile(
                             )
                             stats["statistics"] += len(project_data["statistics"])
 
-                        # Migrate scope - check both "project_scope" (v2.0) and "scope" (legacy)
+                        # Migrate scope - check both "project_scope" (v2.0)
+                        # and "scope" (legacy)
                         scope_data = project_data.get(
                             "project_scope"
                         ) or project_data.get("scope")
@@ -264,13 +268,15 @@ def migrate_profile(
                         )
                     except Exception as e:
                         logger.warning(
-                            f"Failed to migrate project data for {profile_id}/{query_id}: {e}"
+                            f"Failed to migrate project data for "
+                            f"{profile_id}/{query_id}: {e}"
                         )
 
                 # Step 5: Migrate metrics snapshots (DORA/Flow metrics)
                 metrics_path = query_dir / "metrics_snapshots.json"
                 logger.info(
-                    f"Checking for metrics file: {metrics_path}, exists={metrics_path.exists()}"
+                    f"Checking for metrics file: {metrics_path}, "
+                    f"exists={metrics_path.exists()}"
                 )
                 if metrics_path.exists():
                     try:
@@ -279,7 +285,8 @@ def migrate_profile(
                             metrics_snapshots = json.load(f)
 
                         logger.info(
-                            f"Loaded {len(metrics_snapshots)} weeks of metrics from file"
+                            f"Loaded {len(metrics_snapshots)} weeks of "
+                            "metrics from file"
                         )
 
                         if metrics_snapshots:
@@ -304,11 +311,14 @@ def migrate_profile(
                                     metric_value = None
 
                                     if isinstance(metric_data, dict):
-                                        # Try common value field names in order of preference
+                                        # Try common value field names
+                                        # in order of preference
                                         value_fields = [
                                             "value",  # Generic
-                                            "completed_count",  # Flow velocity, Flow time
-                                            "deployment_count",  # DORA deployment frequency
+                                            "completed_count",  # Flow velocity,
+                                            # Flow time
+                                            "deployment_count",  # DORA
+                                            # deployment frequency
                                             "median_days",  # Flow time
                                             "median_hours",  # Lead time, MTTR
                                             "avg_days",  # Flow time
@@ -342,7 +352,8 @@ def migrate_profile(
                                     else:
                                         metric_category = "custom"
 
-                                    # Create metric record with FULL original data in calculation_metadata
+                                    # Create metric record with FULL original
+                                    # data in calculation_metadata
                                     metric_record = {
                                         "snapshot_date": snapshot_date,
                                         "metric_category": metric_category,
@@ -350,7 +361,8 @@ def migrate_profile(
                                         "metric_value": metric_value,
                                         "metric_unit": metric_data.get("unit", ""),
                                         "excluded_issue_count": 0,
-                                        "calculation_metadata": metric_data,  # Store FULL dict
+                                        "calculation_metadata": metric_data,
+                                        # Store FULL dict
                                     }
 
                                     metric_list.append(metric_record)
@@ -365,11 +377,13 @@ def migrate_profile(
                                     )
 
                             logger.info(
-                                f"Migrated {stats.get('metrics', 0)} metrics for {profile_id}/{query_id}"
+                                f"Migrated {stats.get('metrics', 0)} metrics "
+                                f"for {profile_id}/{query_id}"
                             )
                     except Exception as e:
                         logger.warning(
-                            f"Failed to migrate metrics for {profile_id}/{query_id}: {e}"
+                            f"Failed to migrate metrics for "
+                            f"{profile_id}/{query_id}: {e}"
                         )
 
         logger.info(f"Profile {profile_id} migration complete: {stats}")
@@ -651,7 +665,8 @@ def cleanup_json_files(profiles_path: Path = DEFAULT_PROFILES_PATH) -> None:
             skipped_count += 1
 
         logger.info(
-            f"Cleanup complete: removed {removed_count} items, kept {skipped_count} database files"
+            f"Cleanup complete: removed {removed_count} items, kept "
+            f"{skipped_count} database files"
         )
 
     except Exception as e:

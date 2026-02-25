@@ -5,9 +5,11 @@ This module provides path abstraction for profile-based data organization.
 It manages the two-level hierarchy: Profile → Query.
 
 Architecture:
-- Profiles: Named workspaces with shared settings (PERT factor, deadline, data_points_count)
+- Profiles: Named workspaces with shared settings
+    (PERT factor, deadline, data_points_count)
 - Queries: Named JQL queries within a profile, each with dedicated cache
-- Backward Compatibility: Default profile "default" maps to current root-level behavior
+- Backward Compatibility: Default profile "default" maps to
+    current root-level behavior
 
 Directory Structure:
     profiles/
@@ -231,7 +233,8 @@ def get_active_query_workspace() -> Path:
     Get the workspace directory for the currently active query.
 
     Returns:
-        Path: Absolute path to active query directory (e.g., profiles/default/queries/main/)
+        Path: Absolute path to active query directory
+            (e.g., profiles/default/queries/main/)
 
     Raises:
         ValueError: If database not found or active_query_id invalid
@@ -316,7 +319,8 @@ def get_jira_cache_path(profile_id: str, query_id: str) -> Path:
         query_id: Query identifier
 
     Returns:
-        Path: Absolute path to jira_cache.json (e.g., profiles/kafka/queries/bugs/jira_cache.json)
+        Path: Absolute path to jira_cache.json
+            (e.g., profiles/kafka/queries/bugs/jira_cache.json)
 
     Example:
         >>> cache_path = get_jira_cache_path("kafka", "main")  # For exports only
@@ -522,8 +526,12 @@ def get_active_profile_and_query_display_names() -> dict:
     Get display names for currently active profile and query via repository pattern.
 
     Returns:
-        dict: Dictionary with profile_name and query_name (or None if not in profiles mode)
-            Example: {"profile_name": "Apache Kafka", "query_name": "Development Sprint"}
+        dict: Dictionary with profile_name and query_name
+            (or None if not in profiles mode)
+            Example: {
+                "profile_name": "Apache Kafka",
+                "query_name": "Development Sprint",
+            }
 
     Example:
         >>> names = get_active_profile_and_query_display_names()
@@ -696,7 +704,8 @@ def switch_profile(profile_id: str) -> None:
         backend.set_app_state("active_query_id", "")
 
     logger.info(
-        f"[Profiles] Switched to profile: {profile.get('name', profile_id)} ({profile_id})"
+        f"[Profiles] Switched to profile: {profile.get('name', profile_id)} "
+        f"({profile_id})"
     )
 
 
@@ -738,13 +747,15 @@ def delete_profile(profile_id: str) -> None:
         other_profile = next((p for p in all_profiles if p["id"] != profile_id), None)
         if other_profile:
             logger.info(
-                f"[Profiles] Auto-switching from '{profile_id}' to '{other_profile['id']}' before deletion"
+                f"[Profiles] Auto-switching from '{profile_id}' to "
+                f"'{other_profile['id']}' before deletion"
             )
             switch_profile(other_profile["id"])
         else:
             # Last profile - set active to None (empty string in database)
             logger.info(
-                f"[Profiles] Deleting last profile '{profile_id}' - clearing active_profile_id"
+                f"[Profiles] Deleting last profile '{profile_id}' - "
+                "clearing active_profile_id"
             )
             backend.set_app_state("active_profile_id", "")
 
@@ -837,11 +848,14 @@ def duplicate_profile(
         str: New profile ID
 
     Raises:
-        ValueError: If source profile doesn't exist, name is invalid/duplicate, or max profiles reached
+        ValueError: If source profile doesn't exist,
+            name is invalid/duplicate, or max profiles reached
         OSError: If database operations fail
 
     Example:
-        >>> new_id = duplicate_profile("p_abc123", "Production Copy", "Backup of production")
+        >>> new_id = duplicate_profile(
+        ...     "p_abc123", "Production Copy", "Backup of production"
+        ... )
         >>> # Creates complete copy with new ID and timestamps
     """
     from data.persistence.factory import get_backend
@@ -906,11 +920,14 @@ def duplicate_profile(
 
             new_query_ids.append(new_query_id)
             logger.debug(
-                f"[Profiles] Duplicated query '{source_query['id']}' to '{new_query_id}'"
+                f"[Profiles] Duplicated query '{source_query['id']}' "
+                f"to '{new_query_id}'"
             )
 
         logger.info(
-            f"[Profiles] Duplicated profile '{source_profile_id}' to '{new_name}' ({new_profile_id}) with {len(new_query_ids)} queries"
+            f"[Profiles] Duplicated profile '{source_profile_id}' to "
+            f"'{new_name}' ({new_profile_id}) with {len(new_query_ids)} "
+            "queries"
         )
         return new_profile_id
 
@@ -1095,10 +1112,13 @@ def migrate_root_to_default_profile() -> None:
     One-time migration: Move root-level data to default profile structure.
 
     Migrates:
-        - app_settings.json → profiles/default/profile.json (forecast_settings, jira_config, field_mappings)
+                - app_settings.json → profiles/default/profile.json
+                    (forecast_settings, jira_config, field_mappings)
         - jira_cache.json → profiles/default/queries/main/jira_cache.json
-        - jira_changelog_cache.json → profiles/default/queries/main/jira_changelog_cache.json
-        - project_data.json → profiles/default/queries/main/query.json (extracts JQL from project_data)
+                - jira_changelog_cache.json →
+                    profiles/default/queries/main/jira_changelog_cache.json
+                - project_data.json → profiles/default/queries/main/query.json
+                    (extracts JQL from project_data)
 
     Creates:
         - profiles/profiles.json with default profile and main query active

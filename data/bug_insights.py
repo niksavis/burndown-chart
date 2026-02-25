@@ -54,17 +54,26 @@ def generate_quality_insights(
     levels. Insights are prioritized by severity and limited to top 10.
 
     Args:
-        metrics: Bug metrics summary (total_bugs, open_bugs, closed_bugs, resolution_rate)
+        metrics: Bug metrics summary
+            (total_bugs, open_bugs, closed_bugs, resolution_rate)
         statistics: Weekly bug statistics (bugs_created, bugs_resolved per week)
         thresholds: Optional custom thresholds for insight rules
 
     Returns:
-        List of quality insight dictionaries, sorted by severity (critical → warning → info)
+        List of quality insight dictionaries, sorted by severity
+        (critical → warning → info)
         Each insight has: type, severity, message, actionable_recommendation
 
     Example:
-        >>> metrics = {"total_bugs": 50, "open_bugs": 10, "closed_bugs": 40, "resolution_rate": 0.80}
-        >>> statistics = [{"week_start": "2025-01-01", "bugs_created": 5, "bugs_resolved": 7}]
+        >>> metrics = {
+        ...     "total_bugs": 50,
+        ...     "open_bugs": 10,
+        ...     "closed_bugs": 40,
+        ...     "resolution_rate": 0.80,
+        ... }
+        >>> statistics = [
+        ...     {"week_start": "2025-01-01", "bugs_created": 5, "bugs_resolved": 7}
+        ... ]
         >>> insights = generate_quality_insights(metrics, statistics)
     """
     if thresholds is None:
@@ -128,8 +137,14 @@ def check_low_resolution_rate(metrics: dict, thresholds: dict) -> dict | None:
             "type": InsightType.RESOLUTION_RATE,
             "severity": InsightSeverity.CRITICAL,
             "title": "Critical Resolution Rate",
-            "message": f"Critical: resolution rate of {resolution_rate:.0%} requires immediate attention",
-            "actionable_recommendation": "Prioritize bug resolution - consider dedicating sprint capacity to reduce backlog",
+            "message": (
+                f"Critical: resolution rate of {resolution_rate:.0%} requires "
+                "immediate attention"
+            ),
+            "actionable_recommendation": (
+                "Prioritize bug resolution - consider dedicating sprint "
+                "capacity to reduce backlog"
+            ),
         }
     elif resolution_rate < min_threshold:
         return {
@@ -137,8 +152,13 @@ def check_low_resolution_rate(metrics: dict, thresholds: dict) -> dict | None:
             "type": InsightType.RESOLUTION_RATE,
             "severity": InsightSeverity.HIGH,
             "title": "Low Resolution Rate",
-            "message": f"Resolution rate of {resolution_rate:.0%} below {min_threshold:.0%} target",
-            "actionable_recommendation": "Increase focus on bug resolution to prevent backlog growth",
+            "message": (
+                f"Resolution rate of {resolution_rate:.0%} below "
+                f"{min_threshold:.0%} target"
+            ),
+            "actionable_recommendation": (
+                "Increase focus on bug resolution to prevent backlog growth"
+            ),
         }
 
     return None
@@ -178,8 +198,14 @@ def check_increasing_bug_trend(
             return {
                 "type": InsightType.BUG_TREND,
                 "severity": InsightSeverity.HIGH,
-                "message": f"Increasing bug trend: creation exceeds resolution for {consecutive_count} consecutive weeks",
-                "actionable_recommendation": "Review bug prevention practices - consider root cause analysis and quality gates",
+                "message": (
+                    "Increasing bug trend: creation exceeds resolution for "
+                    f"{consecutive_count} consecutive weeks"
+                ),
+                "actionable_recommendation": (
+                    "Review bug prevention practices - consider root cause "
+                    "analysis and quality gates"
+                ),
             }
 
     return None
@@ -209,7 +235,9 @@ def check_positive_trend(statistics: list[dict]) -> dict | None:
             "type": InsightType.POSITIVE_TREND,
             "severity": InsightSeverity.LOW,
             "message": "Excellent: Bug resolution exceeds creation consistently",
-            "actionable_recommendation": "Continue current quality practices - backlog is decreasing",
+            "actionable_recommendation": (
+                "Continue current quality practices - backlog is decreasing"
+            ),
         }
 
     return None
@@ -244,7 +272,9 @@ def check_stable_quality(statistics: list[dict], thresholds: dict) -> dict | Non
             "type": InsightType.STABLE_QUALITY,
             "severity": InsightSeverity.LOW,
             "message": "Stable quality: Bug creation and resolution are balanced",
-            "actionable_recommendation": "Maintain current practices - quality is under control",
+            "actionable_recommendation": (
+                "Maintain current practices - quality is under control"
+            ),
         }
 
     return None
@@ -266,7 +296,10 @@ def check_no_open_bugs(metrics: dict) -> dict | None:
             "type": InsightType.NO_OPEN_BUGS,
             "severity": InsightSeverity.LOW,
             "message": "Perfect: No open bugs - all bugs resolved!",
-            "actionable_recommendation": "Excellent work - maintain proactive bug prevention and resolution",
+            "actionable_recommendation": (
+                "Excellent work - maintain proactive bug prevention and "
+                "resolution"
+            ),
         }
 
     return None
@@ -295,14 +328,20 @@ def check_high_bug_capacity(metrics: dict, thresholds: dict) -> dict | None:
             "type": InsightType.HIGH_BUG_CAPACITY,
             "severity": InsightSeverity.CRITICAL,
             "message": f"Critical: Bugs consuming {capacity:.0%} of team capacity",
-            "actionable_recommendation": "Immediate action required - reallocate resources to reduce bug backlog and improve quality processes",
+            "actionable_recommendation": (
+                "Immediate action required - reallocate resources to reduce "
+                "bug backlog and improve quality processes"
+            ),
         }
     elif capacity >= warning_threshold:
         return {
             "type": InsightType.HIGH_BUG_CAPACITY,
             "severity": InsightSeverity.HIGH,
             "message": f"High bug capacity: {capacity:.0%} of capacity spent on bugs",
-            "actionable_recommendation": "Monitor closely - consider investing in bug prevention and automated testing",
+            "actionable_recommendation": (
+                "Monitor closely - consider investing in bug prevention and "
+                "automated testing"
+            ),
         }
 
     return None
@@ -330,15 +369,24 @@ def check_long_resolution_time(metrics: dict, thresholds: dict) -> dict | None:
         return {
             "type": InsightType.LONG_RESOLUTION_TIME,
             "severity": InsightSeverity.CRITICAL,
-            "message": f"Critical: Bugs taking {avg_days:.1f} days to resolve on average",
-            "actionable_recommendation": "Immediate action - review bug triage process and ensure bugs are prioritized appropriately",
+            "message": (
+                f"Critical: Bugs taking {avg_days:.1f} days to resolve on "
+                "average"
+            ),
+            "actionable_recommendation": (
+                "Immediate action - review bug triage process and ensure "
+                "bugs are prioritized appropriately"
+            ),
         }
     elif avg_days >= warning_threshold:
         return {
             "type": InsightType.LONG_RESOLUTION_TIME,
             "severity": InsightSeverity.HIGH,
             "message": f"Slow resolution: Average {avg_days:.1f} days to close bugs",
-            "actionable_recommendation": "Consider dedicating more resources to bug resolution or improving development workflow",
+            "actionable_recommendation": (
+                "Consider dedicating more resources to bug resolution or "
+                "improving development workflow"
+            ),
         }
 
     return None

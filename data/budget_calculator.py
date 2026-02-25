@@ -166,7 +166,8 @@ def get_budget_at_week(
                 budget["budget_total_eur"] += row[2] or 0.0
 
             logger.info(
-                f"Calculated budget for {profile_id}/{query_id} at {week_label}: {budget['budget_total_eur']:.2f}"
+                f"Calculated budget for {profile_id}/{query_id} at "
+                f"{week_label}: {budget['budget_total_eur']:.2f}"
             )
             return budget
 
@@ -181,7 +182,8 @@ def calculate_budget_consumed(
     """
     Calculate budget consumption percentage using current budget from budget_settings.
 
-    NOTE: budget_settings always contains the CURRENT budget after revisions are applied.
+    NOTE: budget_settings always contains the CURRENT budget after
+    revisions are applied.
     We do NOT replay revisions here - that would double-count deltas.
 
     Args:
@@ -194,14 +196,17 @@ def calculate_budget_consumed(
         Tuple of (consumed_eur, budget_total_eur, percentage)
 
     Example:
-        >>> consumed, total, pct = calculate_budget_consumed("profile", "query", "2025-W44")
+        >>> consumed, total, pct = calculate_budget_consumed(
+        ...     "profile", "query", "2025-W44"
+        ... )
         >>> print(f"{pct:.1f}% consumed")
         75.5% consumed
     """
     from data.database import get_db_connection
 
     try:
-        # Load budget directly from budget_settings (already contains current budget after revisions)
+        # Load budget directly from budget_settings
+        # (already contains current budget after revisions).
         conn_context = (
             get_db_connection() if db_path is None else get_db_connection(db_path)
         )
@@ -351,7 +356,8 @@ def calculate_cost_breakdown_by_type(
                 "percentage": percentage,
             }
             logger.info(
-                f"[COST BREAKDOWN] {flow_type}: {count} items, €{cost:.2f} ({percentage:.1f}%)"
+                f"[COST BREAKDOWN] {flow_type}: {count} items, "
+                f"€{cost:.2f} ({percentage:.1f}%)"
             )
 
         return breakdown
@@ -403,7 +409,8 @@ def calculate_runway(
         remaining = total - consumed
 
         # Get last N weeks for burn rate calculation
-        # Use last 4 weeks for weighted average (not data_points_count which could be larger)
+        # Use last 4 weeks for weighted average
+        # (not data_points_count which could be larger).
         weeks_for_burn = min(data_points_count, 4)
         weights = [0.1, 0.2, 0.3, 0.4][:weeks_for_burn]
         weeks = get_last_n_weeks(weeks_for_burn)
@@ -449,8 +456,9 @@ def calculate_runway(
         if not weekly_costs or all(c == 0 for c in weekly_costs):
             return 0.0, 0.0
 
-        weighted_burn_rate = sum(w * c for w, c in zip(weights, weekly_costs, strict=False)) / sum(
-            weights
+        weighted_burn_rate = (
+            sum(w * c for w, c in zip(weights, weekly_costs, strict=False))
+            / sum(weights)
         )
 
         if weighted_burn_rate > 0:
@@ -617,8 +625,9 @@ def calculate_weekly_cost_breakdowns(
     """
     Calculate cost breakdown by work type for each week in data_points_count window.
 
-    Uses metric snapshots to get weekly distribution data, respecting data_points_count
-    filter. Returns weekly breakdowns and corresponding week labels for sparkline charts.
+    Uses metric snapshots to get weekly distribution data,
+    respecting data_points_count filter.
+    Returns weekly breakdowns and corresponding week labels for sparkline charts.
 
     Args:
         profile_id: Profile identifier
@@ -633,7 +642,9 @@ def calculate_weekly_cost_breakdowns(
         - weekly_labels: List of ISO week labels corresponding to breakdowns
 
     Example:
-        >>> breakdowns, labels = calculate_weekly_cost_breakdowns("profile", "query", "2025-W44", 4)
+        >>> breakdowns, labels = calculate_weekly_cost_breakdowns(
+        ...     "profile", "query", "2025-W44", 4
+        ... )
         >>> print(labels)
         ['2025-W41', '2025-W42', '2025-W43', '2025-W44']
         >>> print(breakdowns[0]['Feature'])
@@ -704,7 +715,8 @@ def calculate_weekly_cost_breakdowns(
             weekly_breakdowns.append(breakdown)
 
         logger.info(
-            f"[WEEKLY COST BREAKDOWN] Calculated {len(weekly_breakdowns)} weekly breakdowns "
+            "[WEEKLY COST BREAKDOWN] Calculated "
+            f"{len(weekly_breakdowns)} weekly breakdowns "
             f"for {data_points_count} weeks (cost_per_item={cost_per_item:.2f})"
         )
 
@@ -816,7 +828,10 @@ def get_budget_baseline_vs_actual(
         with conn_context as conn:
             cursor = conn.cursor()
             cursor.execute(
-                "SELECT created_at FROM budget_settings WHERE profile_id = ? AND query_id = ?",
+                (
+                    "SELECT created_at FROM budget_settings "
+                    "WHERE profile_id = ? AND query_id = ?"
+                ),
                 (profile_id, query_id),
             )
             result = cursor.fetchone()
@@ -973,22 +988,29 @@ def get_budget_baseline_vs_actual(
         if abs(runway_vs_baseline_weeks) > 2:
             if runway_vs_baseline_weeks > 0:
                 insights.append(
-                    f"Budget will last {runway_vs_baseline_weeks:.1f} weeks longer than allocated"
+                    f"Budget will last {runway_vs_baseline_weeks:.1f} weeks "
+                    "longer than allocated"
                 )
             else:
                 insights.append(
-                    f"Budget will run out {abs(runway_vs_baseline_weeks):.1f} weeks before allocated end"
+                    f"Budget will run out "
+                    f"{abs(runway_vs_baseline_weeks):.1f} weeks before "
+                    "allocated end"
                 )
 
         if abs(projected_surplus_eur) > budget["budget_total_eur"] * 0.1:
             surplus_pct = projected_surplus_eur / budget["budget_total_eur"] * 100.0
             if projected_surplus_eur > 0:
                 insights.append(
-                    f"Projected surplus of {budget['currency_symbol']}{abs(projected_surplus_eur):,.0f} ({abs(surplus_pct):.1f}%)"
+                    f"Projected surplus of {budget['currency_symbol']}"
+                    f"{abs(projected_surplus_eur):,.0f} "
+                    f"({abs(surplus_pct):.1f}%)"
                 )
             else:
                 insights.append(
-                    f"Projected deficit of {budget['currency_symbol']}{abs(projected_surplus_eur):,.0f} ({abs(surplus_pct):.1f}%)"
+                    f"Projected deficit of {budget['currency_symbol']}"
+                    f"{abs(projected_surplus_eur):,.0f} "
+                    f"({abs(surplus_pct):.1f}%)"
                 )
 
         if velocity_items > assumed_baseline_velocity:
@@ -998,7 +1020,9 @@ def get_budget_baseline_vs_actual(
                 * 100.0
             )
             insights.append(
-                f"Higher velocity ({velocity_items:.1f} vs {assumed_baseline_velocity:.1f}, +{velocity_improvement:.0f}%) driving cost efficiency"
+                f"Higher velocity ({velocity_items:.1f} vs "
+                f"{assumed_baseline_velocity:.1f}, "
+                f"+{velocity_improvement:.0f}%) driving cost efficiency"
             )
 
         # Prepare return dict
@@ -1056,11 +1080,14 @@ def get_budget_baseline_vs_actual(
             if abs(runway_weeks - pert_forecast_weeks) > 4:
                 if runway_weeks > pert_forecast_weeks:
                     insights.append(
-                        f"Budget runway exceeds forecast by {(runway_weeks - pert_forecast_weeks):.1f} weeks"
+                        "Budget runway exceeds forecast by "
+                        f"{(runway_weeks - pert_forecast_weeks):.1f} weeks"
                     )
                 else:
                     insights.append(
-                        f"Budget will run out {abs(runway_weeks - pert_forecast_weeks):.1f} weeks before forecast completion"
+                        "Budget will run out "
+                        f"{abs(runway_weeks - pert_forecast_weeks):.1f} weeks "
+                        "before forecast completion"
                     )
 
         return result
