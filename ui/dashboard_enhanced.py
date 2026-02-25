@@ -84,12 +84,14 @@ def _calculate_confidence_intervals(
     """
     Calculate forecast confidence intervals using statistical distribution.
 
-    IMPORTANT: These are TRUE STATISTICAL CONFIDENCE INTERVALS based on velocity variance,
-    NOT the optimistic/pessimistic dates from the burndown chart (which use best/worst N weeks).
+    IMPORTANT: These are TRUE STATISTICAL CONFIDENCE INTERVALS based on
+    velocity variance, NOT the optimistic/pessimistic dates from the
+    burndown chart (which use best/worst N weeks).
 
     Mathematical Basis:
     - Uses normal distribution approximation
-    - Calculates coefficient of variation (CV = std_dev / mean) to measure velocity uncertainty
+        - Calculates coefficient of variation (CV = std_dev / mean)
+            to measure velocity uncertainty
     - Applies standard statistical confidence levels (percentiles)
 
     Confidence Interval Calculations (One-Sided Percentiles):
@@ -155,7 +157,8 @@ def _calculate_deadline_probability(
     Mathematical Basis:
     - Assumes velocity follows a normal (bell curve) distribution
     - Uses standard deviation of historical velocity to estimate forecast uncertainty
-    - Calculates Z-score: how many standard deviations the deadline is from expected completion
+        - Calculates Z-score: how many standard deviations the deadline is
+            from expected completion
     - Converts Z-score to probability using cumulative distribution function (CDF)
 
     Calculation Steps:
@@ -498,7 +501,10 @@ def _create_forecast_card(
                                     },
                                 ),
                                 dbc.Tooltip(
-                                    "Statistical probability ranges for completion dates. Based on velocity variance using normal distribution (50th and 95th percentiles).",
+                                    "Statistical probability ranges for "
+                                    "completion dates. Based on velocity "
+                                    "variance using normal distribution "
+                                    "(50th and 95th percentiles).",
                                     target=f"ci-section-info-{card_id or 'default'}",
                                     placement="top",
                                     trigger="click",
@@ -513,7 +519,9 @@ def _create_forecast_card(
                                     [
                                         "50%: ",
                                         html.I(
-                                            className="fas fa-info-circle ms-1 text-info",
+                                            className=(
+                                                "fas fa-info-circle ms-1 text-info"
+                                            ),
                                             id=f"ci-50-info-{card_id or 'default'}",
                                             style={
                                                 "fontSize": "0.75rem",
@@ -525,7 +533,9 @@ def _create_forecast_card(
                                     style={"fontSize": "0.875rem"},
                                 ),
                                 dbc.Tooltip(
-                                    "50th percentile (median): 50% probability of completion by this date. This is the PERT forecast.",
+                                    "50th percentile (median): 50% "
+                                    "probability of completion by this date. "
+                                    "This is the PERT forecast.",
                                     target=f"ci-50-info-{card_id or 'default'}",
                                     placement="top",
                                     trigger="click",
@@ -545,7 +555,9 @@ def _create_forecast_card(
                                     [
                                         "95%: ",
                                         html.I(
-                                            className="fas fa-info-circle ms-1 text-info",
+                                            className=(
+                                                "fas fa-info-circle ms-1 text-info"
+                                            ),
                                             id=f"ci-95-info-{card_id or 'default'}",
                                             style={
                                                 "fontSize": "0.75rem",
@@ -557,7 +569,9 @@ def _create_forecast_card(
                                     style={"fontSize": "0.875rem"},
                                 ),
                                 dbc.Tooltip(
-                                    "95th percentile (high confidence): 95% probability of completion by this date. Safe estimate with 1.65σ buffer.",
+                                    "95th percentile (high confidence): 95% "
+                                    "probability of completion by this date. "
+                                    "Safe estimate with 1.65σ buffer.",
                                     target=f"ci-95-info-{card_id or 'default'}",
                                     placement="top",
                                     trigger="click",
@@ -941,7 +955,10 @@ def _create_capacity_card(
                 html.Div(
                     (
                         html.Div(
-                            f"Need +{velocity_increase:.0f}% velocity or {scope_reduction:.0f} fewer items",
+                            (
+                                f"Need +{velocity_increase:.0f}% velocity "
+                                f"or {scope_reduction:.0f} fewer items"
+                            ),
                             className="text-center",
                             style={
                                 "fontSize": "0.875rem",
@@ -1001,7 +1018,8 @@ def create_enhanced_dashboard(
     - Cleaner, more focused presentation
     """
     # Use last statistics date as forecast starting point (aligns with report)
-    # Statistics are weekly-based (Mondays), so forecast should start from last data point
+    # Statistics are weekly-based (Mondays),
+    # so forecast should start from last data point
     # NOT datetime.now() which could be any day of the week
     current_date = (
         statistics_df["date"].iloc[-1] if not statistics_df.empty else datetime.now()
@@ -1019,6 +1037,11 @@ def create_enhanced_dashboard(
     remaining_items = max(0, total_items - completed_items)
     remaining_points = max(0, total_points - completed_points) if show_points else 0
     actual_total_items = completed_items + remaining_items
+    progress_pct_text = (
+        f"{completed_items / actual_total_items:.0%}"
+        if actual_total_items > 0
+        else "0%"
+    )
 
     # Calculate velocity statistics
     items_stats = _calculate_velocity_statistics(statistics_df, "items")
@@ -1116,7 +1139,8 @@ def create_enhanced_dashboard(
         capacity_gap_percent,
     )
 
-    # COMPACT: Single-line overview bar with key metrics - REDESIGNED for better mobile support
+    # COMPACT: Single-line overview bar with key metrics
+    # REDESIGNED for better mobile support
     overview_bar = dbc.Card(
         dbc.CardBody(
             [
@@ -1202,9 +1226,7 @@ def create_enhanced_dashboard(
                                                     style={"fontSize": "0.8rem"},
                                                 ),
                                                 html.Span(
-                                                    f" • {(completed_items / actual_total_items * 100):.0f}%"
-                                                    if actual_total_items > 0
-                                                    else " • 0%",
+                                                    f" • {progress_pct_text}",
                                                     style={
                                                         "fontSize": "0.8rem",
                                                         "fontWeight": "600",
@@ -1324,7 +1346,9 @@ def create_enhanced_dashboard(
                             style={"minWidth": "90px"},
                         ),
                     ],
-                    className="d-flex align-items-center flex-wrap justify-content-start",
+                    className=(
+                        "d-flex align-items-center flex-wrap justify-content-start"
+                    ),
                     style={"gap": "0.25rem"},
                 ),
                 # Divider line (on mobile)
@@ -1349,7 +1373,13 @@ def create_enhanced_dashboard(
                                 else "rgba(255, 193, 7, 0.2)"
                                 if f["status"] == "warning"
                                 else "rgba(220, 53, 69, 0.15)",
-                                "border": f"1.5px solid {'#28a745' if f['status'] == 'good' else '#d39e00' if f['status'] == 'warning' else '#dc3545'}",
+                                "border": (
+                                    "1.5px solid #28a745"
+                                    if f["status"] == "good"
+                                    else "1.5px solid #d39e00"
+                                    if f["status"] == "warning"
+                                    else "1.5px solid #dc3545"
+                                ),
                                 "color": "#28a745"
                                 if f["status"] == "good"
                                 else "#856404"  # Much darker yellow for readability
@@ -1363,7 +1393,11 @@ def create_enhanced_dashboard(
                         )
                         for f in health["factors"]
                     ],
-                    className="d-flex flex-wrap align-items-center justify-content-center justify-content-md-start pt-2 pt-md-0 mt-md-0",
+                    className=(
+                        "d-flex flex-wrap align-items-center "
+                        "justify-content-center justify-content-md-start "
+                        "pt-2 pt-md-0 mt-md-0"
+                    ),
                     style={"gap": "0.2rem"},
                 ),
             ],
@@ -1626,7 +1660,8 @@ def create_enhanced_dashboard(
                 html.Small(
                     [
                         html.I(className="fas fa-info-circle me-1 text-info"),
-                        "PERT forecasts use 3-point estimation with confidence intervals.",
+                        "PERT forecasts use 3-point estimation with "
+                        "confidence intervals.",
                     ],
                     className="text-muted",
                     style={"fontSize": "0.75rem"},
