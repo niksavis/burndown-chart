@@ -57,7 +57,8 @@ def update_project_scope(scope_data):
         # If we have no statistics but source is manual, this might be a new query
         # Safe to proceed with save since we're only updating project_scope
         logger.debug(
-            "[Cache] update_project_scope: No statistics but source=manual, proceeding with scope update"
+            "[Cache] update_project_scope: No statistics but source=manual, "
+            "proceeding with scope update"
         )
 
     unified_data["project_scope"].update(scope_data)
