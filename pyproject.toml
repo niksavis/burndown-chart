@@ -16,7 +16,6 @@ extend-exclude = [
 select = ["E", "F", "I", "B", "UP"]
 
 [tool.ruff.lint.per-file-ignores]
-"callbacks/**/*.py" = ["E501"]
 "configuration/help_content.py" = ["E501"]
 "configuration/settings.py" = ["E501"]
 "data/**/*.py" = ["E501"]
