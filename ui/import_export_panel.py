@@ -31,7 +31,10 @@ def create_import_export_panel():
                                         html.Div(
                                             [
                                                 html.I(
-                                                    className="fas fa-cloud-upload-alt fa-lg mb-1 text-primary"
+                                                    className=(
+                                                        "fas fa-cloud-upload-alt "
+                                                        "fa-lg mb-1 text-primary"
+                                                    )
                                                 ),
                                                 html.P(
                                                     "Drop file or click",
@@ -91,7 +94,7 @@ def create_import_export_panel():
 
 
 def _create_import_export_tab():
-    """Create simplified Import/Export tab - just JSON data with project_data and metrics."""
+    """Create simplified Import/Export tab with JSON data and metrics."""
     return html.Div(
         [
             # Import Section
@@ -164,11 +167,15 @@ def _create_import_export_tab():
                         id="export-mode-radio",
                         options=[
                             {
-                                "label": "Configuration Only (settings and queries, no data)",
+                                "label": (
+                                    "Configuration Only (settings and queries, no data)"
+                                ),
                                 "value": "CONFIG_ONLY",
                             },
                             {
-                                "label": "Full Profile with Data (includes cached JIRA data)",
+                                "label": (
+                                    "Full Profile with Data (includes cached JIRA data)"
+                                ),
                                 "value": "FULL_DATA",
                             },
                         ],
@@ -184,7 +191,7 @@ def _create_import_export_tab():
                 [
                     dbc.Checkbox(
                         id="include-token-checkbox",
-                        label="Include JIRA Token (⚠️ Security Risk)",
+                        label="Include JIRA Token (WARNING: Security Risk)",
                         value=False,  # Default unchecked
                         style={"fontSize": "0.875rem"},
                     ),
@@ -247,10 +254,12 @@ def _create_import_export_tab():
                             html.Ul(
                                 [
                                     html.Li(
-                                        "Allow anyone with the file to access your JIRA instance"
+                                        "Allow anyone with the file "
+                                        "to access your JIRA instance"
                                     ),
                                     html.Li(
-                                        "Expose your credentials if file is shared or leaked"
+                                        "Expose your credentials if file "
+                                        "is shared or leaked"
                                     ),
                                     html.Li(
                                         "Grant full API access until token is revoked"
@@ -265,7 +274,8 @@ def _create_import_export_tab():
                                     ),
                                     html.Li("You will not share this file with others"),
                                     html.Li(
-                                        "You understand how to revoke the token if needed"
+                                        "You understand how to revoke "
+                                        "the token if needed"
                                     ),
                                 ]
                             ),
@@ -309,14 +319,16 @@ def _create_import_export_tab():
                                     {
                                         "label": [
                                             html.Strong("Merge: "),
-                                            "Combine configurations and preserve local JIRA credentials",
+                                            "Combine configurations and "
+                                            "preserve local JIRA credentials",
                                         ],
                                         "value": "merge",
                                     },
                                     {
                                         "label": [
                                             html.Strong("Overwrite: "),
-                                            "Replace existing profile completely (⚠️ local credentials will be lost)",
+                                            "Replace existing profile completely "
+                                            "(WARNING: local credentials will be lost)",
                                         ],
                                         "value": "overwrite",
                                     },
@@ -331,7 +343,8 @@ def _create_import_export_tab():
                                 value="merge",  # Smart default: preserve credentials
                                 className="mb-3",
                             ),
-                            # New name input field (shown only when "Rename" is selected)
+                            # New name input field
+                            # shown only when "Rename" is selected
                             html.Div(
                                 [
                                     dbc.Label(
@@ -345,7 +358,8 @@ def _create_import_export_tab():
                                         className="mb-2",
                                     ),
                                     html.Small(
-                                        "Leave empty to auto-generate name with timestamp",
+                                        "Leave empty to auto-generate name "
+                                        "with timestamp",
                                         className="text-muted",
                                     ),
                                 ],
@@ -359,7 +373,8 @@ def _create_import_export_tab():
                                         className="fas fa-info-circle me-2 text-info"
                                     ),
                                     html.Small(
-                                        "Merge is recommended for config imports to preserve your JIRA token",
+                                        "Merge is recommended for config imports "
+                                        "to preserve your JIRA token",
                                         className="text-muted",
                                     ),
                                 ],
@@ -393,7 +408,7 @@ def _create_import_export_tab():
 
 
 def _create_reports_tab():
-    """Create simplified Reports tab - uses Data Points slider value from Parameters panel."""
+    """Create simplified Reports tab using Data Points slider value."""
     return html.Div(
         [
             # Report Section Header
@@ -479,7 +494,8 @@ def _create_ai_prompt_tab():
                 className="d-flex align-items-center mb-2",
             ),
             html.P(
-                "Generate privacy-safe prompt for AI analysis (works with any AI agent)",
+                "Generate privacy-safe prompt for AI analysis "
+                "(works with any AI agent)",
                 className="text-muted small mb-2",
                 style={"fontSize": "0.8rem"},
             ),
@@ -504,7 +520,8 @@ def _create_ai_prompt_tab():
                 [
                     html.I(className="fas fa-shield-alt me-2"),
                     html.Span(
-                        "All customer-identifying data is automatically sanitized before prompt generation.",
+                        "All customer-identifying data is automatically "
+                        "sanitized before prompt generation.",
                         style={"fontSize": "0.85rem"},
                     ),
                 ],
@@ -553,7 +570,8 @@ def create_import_export_flyout(is_open: bool = False):
                         # Tabs row with collapse button
                         html.Div(
                             [
-                                # Collapse button (positioned absolutely, so order doesn't matter)
+                                # Collapse button (positioned absolutely,
+                                # so order does not depend on order here)
                                 create_panel_collapse_button("import-export-collapse"),
                                 # Tabbed interface matching Settings panel
                                 dbc.Tabs(
