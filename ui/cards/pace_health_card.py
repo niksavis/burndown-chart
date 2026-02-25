@@ -74,8 +74,17 @@ def create_pace_health_card(
     else:
         overall_health = items_health
 
+    items_percent = (current_items / required_items * 100) if required_items > 0 else 0
+    items_display_text = f"{current_items:.2f} of {required_items:.2f} items/week"
+
+    points_ratio = (current_points or 0) / (required_points or 1) * 100
+    points_display_text = (
+        f"{current_points or 0:.2f} of {required_points or 0:.2f} points/week"
+    )
+
     logger.info(
-        f"Pace health card: Items {items_health['status']} ({items_health['ratio']:.2%}), "
+        "Pace health card: "
+        f"Items {items_health['status']} ({items_health['ratio']:.2%}), "
         f"Overall: {overall_health['status']}"
     )
 
@@ -85,8 +94,10 @@ def create_pace_health_card(
             create_metric_card_header(
                 title="Required Pace",
                 tooltip_text=(
-                    "Shows your current velocity vs. required velocity to meet the deadline. "
-                    "Progress bars indicate velocity achievement percentage (current / required). "
+                    "Shows your current velocity vs. required velocity "
+                    "to meet the deadline. "
+                    "Progress bars indicate velocity achievement "
+                    "percentage (current / required). "
                     "Green: on track | Yellow: at risk | Red: behind schedule."
                 ),
                 tooltip_id="pace-health-card",
@@ -120,7 +131,7 @@ def create_pace_health_card(
                                     html.Div(
                                         [
                                             html.Span(
-                                                f"{current_items:.2f} of {required_items:.2f} items/week",
+                                                items_display_text,
                                                 className="text-muted",
                                                 style={
                                                     "fontSize": "0.85rem",
@@ -140,15 +151,18 @@ def create_pace_health_card(
                                                 },
                                             ),
                                         ],
-                                        className="d-flex justify-content-between align-items-center mb-2",
+                                        className=(
+                                            "d-flex justify-content-between "
+                                            "align-items-center mb-2"
+                                        ),
                                     ),
                                     # Progress bar
                                     html.Div(
                                         html.Div(
-                                            f"{(current_items / required_items * 100) if required_items > 0 else 0:.1f}%",
+                                            f"{items_percent:.1f}%",
                                             className="progress-bar",
                                             style={
-                                                "width": f"{min((current_items / required_items * 100) if required_items > 0 else 0, 100)}%",
+                                                "width": f"{min(items_percent, 100)}%",
                                                 "backgroundColor": items_health[
                                                     "color"
                                                 ],
@@ -194,7 +208,7 @@ def create_pace_health_card(
                                     html.Div(
                                         [
                                             html.Span(
-                                                f"{current_points or 0:.2f} of {required_points or 0:.2f} points/week",
+                                                points_display_text,
                                                 className="text-muted",
                                                 style={
                                                     "fontSize": "0.85rem",
@@ -214,15 +228,18 @@ def create_pace_health_card(
                                                 },
                                             ),
                                         ],
-                                        className="d-flex justify-content-between align-items-center mb-2",
+                                        className=(
+                                            "d-flex justify-content-between "
+                                            "align-items-center mb-2"
+                                        ),
                                     ),
                                     # Progress bar
                                     html.Div(
                                         html.Div(
-                                            f"{((current_points or 0) / (required_points or 1) * 100):.1f}%",
+                                            f"{points_ratio:.1f}%",
                                             className="progress-bar",
                                             style={
-                                                "width": f"{min(((current_points or 0) / (required_points or 1) * 100), 100)}%",
+                                                "width": f"{min(points_ratio, 100)}%",
                                                 "backgroundColor": points_health[
                                                     "color"
                                                 ],
@@ -244,7 +261,10 @@ def create_pace_health_card(
                                 html.Div(
                                     [
                                         html.I(
-                                            className="fas fa-toggle-off fa-2x text-secondary mb-2"
+                                            className=(
+                                                "fas fa-toggle-off fa-2x "
+                                                "text-secondary mb-2"
+                                            )
                                         ),
                                         html.Div(
                                             "Points Tracking Disabled",
@@ -255,7 +275,9 @@ def create_pace_health_card(
                                             },
                                         ),
                                         html.Small(
-                                            "Points tracking is disabled. Enable Points Tracking in Parameters panel to view story points metrics.",
+                                            "Points tracking is disabled. "
+                                            "Enable Points Tracking in Parameters "
+                                            "panel to view story points metrics.",
                                             className="text-muted",
                                             style={"fontSize": "0.75rem"},
                                         ),
@@ -267,7 +289,10 @@ def create_pace_health_card(
                                 else html.Div(
                                     [
                                         html.I(
-                                            className="fas fa-database fa-2x text-secondary mb-2"
+                                            className=(
+                                                "fas fa-database fa-2x "
+                                                "text-secondary mb-2"
+                                            )
                                         ),
                                         html.Div(
                                             "No Points Data",
@@ -278,7 +303,9 @@ def create_pace_health_card(
                                             },
                                         ),
                                         html.Small(
-                                            "No story points data available. Configure story points field in Settings or complete items with point estimates.",
+                                            "No story points data available. "
+                                            "Configure story points field in Settings "
+                                            "or complete items with point estimates.",
                                             className="text-muted",
                                             style={"fontSize": "0.75rem"},
                                         ),

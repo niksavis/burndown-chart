@@ -83,6 +83,12 @@ def create_budget_utilization_card(
         allocated_weeks = baseline_data["baseline"]["time_allocated_weeks"]
         elapsed_pct = baseline_data["actual"]["elapsed_pct"]
         variance_pct = baseline_data["variance"]["utilization_vs_pace_pct"]
+        pace_summary_text = (
+            f"Budget pace is {abs(variance_pct):.1f}% "
+            f"{'ahead' if variance_pct > 0 else 'behind'} time"
+            if abs(variance_pct) >= 2
+            else "Budget and time are aligned"
+        )
 
         # Determine pace status with clear zones
         if variance_pct < -10:
@@ -215,12 +221,13 @@ def create_budget_utilization_card(
                                         },
                                     ),
                                 ],
-                                className="d-flex align-items-center justify-content-center mb-1",
+                                className=(
+                                    "d-flex align-items-center "
+                                    "justify-content-center mb-1"
+                                ),
                             ),
                             html.Small(
-                                f"Budget pace is {abs(variance_pct):.1f}% {'ahead' if variance_pct > 0 else 'behind'} time"
-                                if abs(variance_pct) >= 2
-                                else "Budget and time are aligned",
+                                pace_summary_text,
                                 className="text-muted d-block text-center",
                                 style={"fontSize": "0.75rem"},
                             ),
@@ -241,7 +248,13 @@ def create_budget_utilization_card(
         "total_issue_count": 0,
         "_n_weeks": data_points_count,
         "details": details,
-        "tooltip": "Shows budget consumption rate vs time elapsed. Compares actual spending pace against planned pace. Healthy (<70%): Spending slower than time passing. Warning (70-95%): Pace matches time. Critical (>95%): Burning budget faster than expected.",
+        "tooltip": (
+            "Shows budget consumption rate vs time elapsed. "
+            "Compares actual spending pace against planned pace. "
+            "Healthy (<70%): Spending slower than time passing. "
+            "Warning (70-95%): Pace matches time. "
+            "Critical (>95%): Burning budget faster than expected."
+        ),
     }
 
     return create_metric_card(
@@ -378,7 +391,10 @@ def create_weekly_burn_rate_card(
                                         style={"fontSize": "0.65rem"},
                                     ),
                                 ],
-                                className="d-flex justify-content-between mb-1 position-relative",
+                                className=(
+                                    "d-flex justify-content-between "
+                                    "mb-1 position-relative"
+                                ),
                             ),
                             html.Div(
                                 [
@@ -388,7 +404,11 @@ def create_weekly_burn_rate_card(
                                             "position": "absolute",
                                             "width": "100%",
                                             "height": "6px",
-                                            "background": "linear-gradient(to right, #198754 0%, #6c757d 50%, #dc3545 100%)",
+                                            "background": (
+                                                "linear-gradient(to right, "
+                                                "#198754 0%, #6c757d 50%, "
+                                                "#dc3545 100%)"
+                                            ),
                                             "borderRadius": "3px",
                                             "opacity": "0.3",
                                         },
@@ -441,12 +461,17 @@ def create_weekly_burn_rate_card(
                             ),
                             variance_badge,
                         ],
-                        className="d-flex align-items-center justify-content-center mb-2",
+                        className=(
+                            "d-flex align-items-center justify-content-center mb-2"
+                        ),
                     ),
                     html.Div(
                         [
                             html.Span(
-                                f"Projected Impact: {currency_symbol}{abs(projected_impact):,.0f}",
+                                (
+                                    "Projected Impact: "
+                                    f"{currency_symbol}{abs(projected_impact):,.0f}"
+                                ),
                                 className="text-muted",
                                 style={"fontSize": "0.85rem"},
                             ),
@@ -474,7 +499,13 @@ def create_weekly_burn_rate_card(
         "total_issue_count": 0,
         "_n_weeks": data_points_count,
         "details": details,
-        "tooltip": "Average weekly spending rate calculated from actual costs divided by elapsed time. Compares actual burn rate against budgeted weekly cost. Green: Under budget. Yellow: On target (±10%). Red: Over budget. Includes projected total savings/overrun.",
+        "tooltip": (
+            "Average weekly spending rate calculated from actual costs "
+            "divided by elapsed time. Compares actual burn rate against "
+            "budgeted weekly cost. Green: Under budget. "
+            "Yellow: On target (±10%). Red: Over budget. "
+            "Includes projected total savings/overrun."
+        ),
     }
 
     return create_metric_card(
@@ -519,7 +550,8 @@ def create_budget_runway_card(
             "_n_weeks": data_points_count,
             "details": {
                 "status": "Waiting for work completion to calculate burn rate. "
-                "Budget runway is calculated from ACTUAL completed items, not just team cost."
+                "Budget runway is calculated from ACTUAL completed items, "
+                "not just team cost."
             },
         }
         return create_metric_card(metric_data, card_id, show_details_button=False)
@@ -532,11 +564,14 @@ def create_budget_runway_card(
             "unit": "weeks over budget",
             "performance_tier": "Over Budget",
             "performance_tier_color": "red",
-            "error_state": "success",  # Must be "success" to render as metric card, not error card
+            "error_state": "success",
             "total_issue_count": 0,
             "_n_weeks": data_points_count,
             "details": {
-                "status": "Budget exceeded. Immediate action required: Review scope, increase budget, or reduce team costs."
+                "status": (
+                    "Budget exceeded. Immediate action required: "
+                    "Review scope, increase budget, or reduce team costs."
+                )
             },
         }
         return create_metric_card(metric_data, card_id, show_details_button=False)
@@ -635,7 +670,10 @@ def create_budget_runway_card(
                                         style={"fontSize": "0.65rem"},
                                     ),
                                 ],
-                                className="d-flex justify-content-between mb-1 position-relative",
+                                className=(
+                                    "d-flex justify-content-between "
+                                    "mb-1 position-relative"
+                                ),
                             ),
                             html.Div(
                                 [
@@ -645,7 +683,11 @@ def create_budget_runway_card(
                                             "position": "absolute",
                                             "width": "100%",
                                             "height": "6px",
-                                            "background": "linear-gradient(to right, #dc3545 0%, #6c757d 50%, #198754 100%)",
+                                            "background": (
+                                                "linear-gradient(to right, "
+                                                "#dc3545 0%, #6c757d 50%, "
+                                                "#198754 100%)"
+                                            ),
                                             "borderRadius": "3px",
                                             "opacity": "0.3",
                                         },
@@ -698,7 +740,9 @@ def create_budget_runway_card(
                             ),
                             extension_badge,
                         ],
-                        className="d-flex align-items-center justify-content-center mb-2",
+                        className=(
+                            "d-flex align-items-center justify-content-center mb-2"
+                        ),
                     ),
                     html.Div(
                         [
@@ -733,7 +777,13 @@ def create_budget_runway_card(
         "total_issue_count": 0,
         "_n_weeks": data_points_count,
         "details": details,
-        "tooltip": "How long the budget will last at current burn rate. Calculated as remaining budget divided by weekly burn rate. Green: Runway exceeds allocation. Yellow: Close to baseline. Red: Running out faster than planned. Shows extension/shortfall vs allocated time and forecast.",
+        "tooltip": (
+            "How long the budget will last at current burn rate. "
+            "Calculated as remaining budget divided by weekly burn rate. "
+            "Green: Runway exceeds allocation. Yellow: Close to baseline. "
+            "Red: Running out faster than planned. "
+            "Shows extension/shortfall vs allocated time and forecast."
+        ),
     }
 
     return create_metric_card(
