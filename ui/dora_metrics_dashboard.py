@@ -4,7 +4,8 @@ Provides the user interface for viewing DORA (DevOps Research and Assessment) me
 Displays all four DORA metrics with performance tier indicators and error states.
 
 Uses Data Points slider from settings panel to control historical data display.
-Metrics calculated per ISO week (Monday-Sunday), showing current week + N-1 historical weeks.
+Metrics calculated per ISO week (Monday-Sunday),
+showing current week + N-1 historical weeks.
 """
 
 from typing import Any
@@ -58,6 +59,32 @@ def create_dora_dashboard() -> dbc.Container:
     else:
         initial_content = [create_metrics_skeleton()]
 
+    overview_body_class = "pt-3 px-3 pb-0"
+    overview_info_class = "text-muted small mb-3 mt-3"
+    metric_desc_class = "text-muted small mb-0"
+    metrics_blurb_class = "mb-0 text-muted small"
+    dora_intro_text = (
+        "DORA (DevOps Research and Assessment) metrics measure "
+        "software delivery and operational performance:"
+    )
+    deploy_icon_class = "fas fa-rocket text-primary me-2"
+    lead_time_icon_class = "fas fa-clock text-success me-2"
+    failure_rate_icon_class = "fas fa-exclamation-triangle text-warning me-2"
+    mttr_icon_class = "fas fa-wrench text-danger me-2"
+    deploy_label = "Deployment Frequency"
+    lead_time_label = "Lead Time for Changes"
+    failure_rate_label = "Change Failure Rate"
+    mttr_label = "Mean Time to Recovery"
+    deploy_desc = "How often you deploy to production"
+    lead_time_desc = "Time from commit to production"
+    failure_rate_desc = "% of deployments causing incidents"
+    mttr_desc = "Time to restore service after incident"
+    chart_bar_icon_class = "fas fa-chart-bar me-2"
+    tiers_text = "Metrics show performance tiers (Elite, High, Medium, Low) based on "
+    mapping_text = (
+        ". Data is mapped from your JIRA projects using configurable field mappings."
+    )
+
     return dbc.Container(
         [
             # Store for tracking if user has seen welcome banner (uses localStorage)
@@ -79,7 +106,7 @@ def create_dora_dashboard() -> dbc.Container:
                                     children=[],  # Will be populated by callback
                                 ),
                             ],
-                            className="pt-3 px-3 pb-0",  # Top and side padding, no bottom padding
+                            className=overview_body_class,
                         ),
                         className="mb-3 overview-section",
                         style={
@@ -98,7 +125,7 @@ def create_dora_dashboard() -> dbc.Container:
                             html.Strong("Data Points slider"),
                             " controls weeks displayed.",
                         ],
-                        className="text-muted small mb-3 mt-3",  # Equal top and bottom margin
+                        className=overview_info_class,
                     ),
                 ],
                 style={
@@ -108,7 +135,7 @@ def create_dora_dashboard() -> dbc.Container:
             # Metrics cards grid (no loading wrapper - skeleton provides loading state)
             html.Div(
                 id="dora-metrics-cards-container",
-                children=initial_content,  # Show banner or skeleton based on data availability
+                children=initial_content,
             ),
             # Information and help section (only shown when metrics are available)
             html.Div(
@@ -132,8 +159,7 @@ def create_dora_dashboard() -> dbc.Container:
                                             dbc.CardBody(
                                                 [
                                                     html.P(
-                                                        "DORA (DevOps Research and Assessment) metrics measure software "
-                                                        "delivery and operational performance:",
+                                                        dora_intro_text,
                                                         className="mb-3",
                                                     ),
                                                     dbc.Row(
@@ -143,17 +169,17 @@ def create_dora_dashboard() -> dbc.Container:
                                                                     html.Div(
                                                                         [
                                                                             html.I(
-                                                                                className="fas fa-rocket text-primary me-2"
+                                                                                className=deploy_icon_class
                                                                             ),
                                                                             html.Strong(
-                                                                                "Deployment Frequency"
+                                                                                deploy_label
                                                                             ),
                                                                         ],
                                                                         className="mb-1",
                                                                     ),
                                                                     html.P(
-                                                                        "How often you deploy to production",
-                                                                        className="text-muted small mb-0",
+                                                                        deploy_desc,
+                                                                        className=metric_desc_class,
                                                                     ),
                                                                 ],
                                                                 md=6,
@@ -164,17 +190,17 @@ def create_dora_dashboard() -> dbc.Container:
                                                                     html.Div(
                                                                         [
                                                                             html.I(
-                                                                                className="fas fa-clock text-success me-2"
+                                                                                className=lead_time_icon_class
                                                                             ),
                                                                             html.Strong(
-                                                                                "Lead Time for Changes"
+                                                                                lead_time_label
                                                                             ),
                                                                         ],
                                                                         className="mb-1",
                                                                     ),
                                                                     html.P(
-                                                                        "Time from commit to production",
-                                                                        className="text-muted small mb-0",
+                                                                        lead_time_desc,
+                                                                        className=metric_desc_class,
                                                                     ),
                                                                 ],
                                                                 md=6,
@@ -189,17 +215,17 @@ def create_dora_dashboard() -> dbc.Container:
                                                                     html.Div(
                                                                         [
                                                                             html.I(
-                                                                                className="fas fa-exclamation-triangle text-warning me-2"
+                                                                                className=failure_rate_icon_class
                                                                             ),
                                                                             html.Strong(
-                                                                                "Change Failure Rate"
+                                                                                failure_rate_label
                                                                             ),
                                                                         ],
                                                                         className="mb-1",
                                                                     ),
                                                                     html.P(
-                                                                        "% of deployments causing incidents",
-                                                                        className="text-muted small mb-0",
+                                                                        failure_rate_desc,
+                                                                        className=metric_desc_class,
                                                                     ),
                                                                 ],
                                                                 md=6,
@@ -210,17 +236,17 @@ def create_dora_dashboard() -> dbc.Container:
                                                                     html.Div(
                                                                         [
                                                                             html.I(
-                                                                                className="fas fa-wrench text-danger me-2"
+                                                                                className=mttr_icon_class
                                                                             ),
                                                                             html.Strong(
-                                                                                "Mean Time to Recovery"
+                                                                                mttr_label
                                                                             ),
                                                                         ],
                                                                         className="mb-1",
                                                                     ),
                                                                     html.P(
-                                                                        "Time to restore service after incident",
-                                                                        className="text-muted small mb-0",
+                                                                        mttr_desc,
+                                                                        className=metric_desc_class,
                                                                     ),
                                                                 ],
                                                                 md=6,
@@ -232,18 +258,18 @@ def create_dora_dashboard() -> dbc.Container:
                                                     html.P(
                                                         [
                                                             html.I(
-                                                                className="fas fa-chart-bar me-2"
+                                                                className=chart_bar_icon_class
                                                             ),
-                                                            "Metrics show performance tiers (Elite, High, Medium, Low) based on ",
+                                                            tiers_text,
                                                             html.A(
                                                                 "DORA research",
                                                                 href="https://dora.dev/",
                                                                 target="_blank",
                                                                 className="text-decoration-none",
                                                             ),
-                                                            ". Data is mapped from your JIRA projects using configurable field mappings.",
+                                                            mapping_text,
                                                         ],
-                                                        className="mb-0 text-muted small",
+                                                        className=metrics_blurb_class,
                                                     ),
                                                 ]
                                             ),
