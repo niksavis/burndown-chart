@@ -54,7 +54,8 @@ def filter_out_parent_types(
 
     for issue in issues:
         try:
-            # Extract issue type - handle both nested (JIRA API) and flat (database) formats
+            # Extract issue type - handle both nested (JIRA API)
+            # and flat (database) formats
             if "fields" in issue and isinstance(issue.get("fields"), dict):
                 # Nested format (JIRA API): issue.fields.issuetype.name
                 issue_type = issue["fields"]["issuetype"]["name"]
@@ -77,7 +78,8 @@ def filter_out_parent_types(
         except (KeyError, TypeError) as e:
             # Log error but don't fail - include issue if we can't determine type
             logger.warning(
-                f"[ParentFilter] Could not determine issue type for {issue.get('key', 'UNKNOWN')}: {e}"
+                "[ParentFilter] Could not determine issue type for "
+                f"{issue.get('key', 'UNKNOWN')}: {e}"
             )
             filtered_issues.append(issue)
 

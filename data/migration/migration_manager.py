@@ -111,7 +111,8 @@ def check_migration_needed() -> tuple[bool, dict[str, int]]:
             or stats_count == 0
         ):
             logger.info(
-                f"Database incomplete but found {sum(file_counts.values())} JSON files - migration needed"
+                "Database incomplete but found "
+                f"{sum(file_counts.values())} JSON files - migration needed"
             )
             logger.debug(
                 f"DB counts - profiles:{profiles_count}, queries:{queries_count}, "
@@ -294,7 +295,8 @@ def cleanup_json_files_after_migration() -> bool:
             logger.info("Removed task_progress.json")
 
         logger.info(
-            f"Cleanup complete: removed {files_deleted} JSON files and {dirs_deleted} queries directories"
+            "Cleanup complete: removed "
+            f"{files_deleted} JSON files and {dirs_deleted} queries directories"
         )
         logger.info(f"Backup preserved at: {backup_dir}")
         logger.info("All data now in database: profiles/burndown.db")

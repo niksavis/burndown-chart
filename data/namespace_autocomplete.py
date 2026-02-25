@@ -41,8 +41,16 @@ class NamespaceAutocompleteProvider:
             >>> suggestions = provider.get_suggestions("Dev")
             >>> suggestions
             [
-                {'label': 'DevOps - DevOps Team', 'value': 'DevOps', 'description': 'DevOps Team'},
-                {'label': 'Development - Development', 'value': 'Development', 'description': 'Development'}
+                {
+                    'label': 'DevOps - DevOps Team',
+                    'value': 'DevOps',
+                    'description': 'DevOps Team',
+                },
+                {
+                    'label': 'Development - Development',
+                    'value': 'Development',
+                    'description': 'Development',
+                }
             ]
         """
         if cursor_position is None:
