@@ -121,7 +121,9 @@ def create_field_mapping_modal() -> dbc.Modal:
                                         html.I(
                                             className="fas fa-exclamation-triangle me-2"
                                         ),
-                                        "Auto-Configure will overwrite your current configuration with automatically detected values from JIRA.",
+                                        "Auto-Configure will overwrite your "
+                                        "current configuration with automatically "
+                                        "detected values from JIRA.",
                                     ],
                                     className="mb-3",
                                 ),
@@ -190,7 +192,8 @@ def create_field_mapping_modal() -> dbc.Modal:
                                         className="text-primary mb-2",
                                     ),
                                     html.P(
-                                        "Fetching fields, projects, and statuses from JIRA.",
+                                        "Fetching fields, projects, and "
+                                        "statuses from JIRA.",
                                         className="text-muted small",
                                     ),
                                 ],
@@ -198,7 +201,11 @@ def create_field_mapping_modal() -> dbc.Modal:
                             ),
                         ],
                         id="metadata-loading-overlay",
-                        className="position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center",
+                        className=(
+                            "position-absolute top-0 start-0 w-100 h-100 "
+                            "d-flex align-items-center "
+                            "justify-content-center"
+                        ),
                         style={
                             "zIndex": 1000,
                             "visibility": "hidden",
@@ -209,7 +216,8 @@ def create_field_mapping_modal() -> dbc.Modal:
                     ),
                     # Status messages
                     html.Div(id="field-mapping-status"),
-                    # Hidden stores (jira-metadata-store moved to app level in layout.py)
+                    # Hidden stores
+                    # (jira-metadata-store moved to app level in layout.py)
                     dcc.Store(id="field-mapping-save-success", data=None),
                     dcc.Store(
                         id="namespace-autocomplete-data",
@@ -239,7 +247,8 @@ def create_field_mapping_modal() -> dbc.Modal:
                         id="fetched-field-values-store",
                         storage_type="memory",
                         data={},
-                    ),  # Cache for dynamically fetched field values (effort_category, affected_environment)
+                    ),  # Cache for dynamically fetched field values
+                    # (effort_category, affected_environment)
                     dcc.Store(
                         id="field-fetch-trigger",
                         storage_type="memory",
@@ -250,7 +259,8 @@ def create_field_mapping_modal() -> dbc.Modal:
             ),
             dbc.ModalFooter(
                 [
-                    # Standard web pattern: Close on left (safe exit), actions grouped on right
+                    # Standard web pattern:
+                    # Close on left (safe exit), actions grouped on right
                     dbc.Button(
                         "Close",
                         id="field-mapping-cancel-button",
@@ -352,12 +362,88 @@ def create_field_mapping_form(
         )
         field_options.extend(custom_fields)
 
-    # Add current mapped field IDs to options if not already present (ensures they display)
+    # Add current mapped field IDs to options
+    # if not already present (ensures they display)
     existing_field_ids = {
         opt["value"]
         for opt in field_options
         if opt.get("value") and not opt.get("disabled")
     }
+
+    dora_deployment_date_help = (
+        "When deployment occurred | REQUIRED for Deployment Frequency | "
+        "Use: fixVersions OR customfield_XXXXX (datetime)"
+    )
+    dora_deployment_success_help = (
+        "Filter failed deployments | OPTIONAL - if empty, assumes all successful "
+        "| Type: checkbox/select"
+    )
+    dora_commit_date_help = (
+        "When code was committed | OPTIONAL for Lead Time for Changes | Type: datetime"
+    )
+    dora_incident_detected_help = (
+        "When production issue found | REQUIRED for MTTR | "
+        "Typical field: created | Type: datetime"
+    )
+    dora_incident_resolved_help = (
+        "When fix deployed | REQUIRED for MTTR | Options: resolutiondate "
+        "(team fix time) or fixVersions (deployment to production)"
+    )
+    dora_change_failure_help = (
+        "Deployment failure indicator | REQUIRED for CFR | "
+        "Syntax: field=Value | Example: customfield_12708=Yes"
+    )
+    dora_affected_environment_help = (
+        "Production bugs filter | REQUIRED for MTTR | Syntax: field=Value "
+        "or field=Value1|Value2 | Example: customfield_11309=PROD"
+    )
+    dora_target_environment_help = (
+        "Deployment target filter | OPTIONAL | Syntax: field=Value "
+        "| Example: customfield_11309=PROD|Production"
+    )
+    dora_severity_help = (
+        "Incident priority/severity | OPTIONAL for impact analysis "
+        "| Typical field: priority | Type: select"
+    )
+
+    general_completed_date_help = (
+        "When issue was completed/resolved | REQUIRED for Velocity, Budget, "
+        "Flow Velocity | Supports nested fields: field.subfield | Type: datetime"
+    )
+    general_created_date_help = (
+        "When issue was created | REQUIRED for Scope Tracking, Created Items "
+        "| Standard field: created | Type: datetime"
+    )
+    general_updated_date_help = (
+        "When issue was last modified | OPTIONAL for Delta Calculations "
+        "| Standard field: updated | Type: datetime"
+    )
+    general_estimate_help = (
+        "Story points or effort estimate | OPTIONAL for points tracking | Type: number"
+    )
+    general_sprint_help = (
+        "Sprint field for Agile/Scrum boards | OPTIONAL for Sprint Tracker "
+        "| Typically customfield_10020 | Type: array"
+    )
+    general_parent_help = (
+        "Parent epic/feature field | OPTIONAL for Active Work Timeline | "
+        "Modern JIRA: parent (standard) | Legacy JIRA: customfield_10006 "
+        "or customfield_10014 (Epic Link) | Type: any "
+        "(object, string, or custom)"
+    )
+
+    flow_item_type_help = (
+        "Work category | REQUIRED for Flow Distribution | "
+        "Typical field: issuetype | Type: select"
+    )
+    flow_status_help = (
+        "Current work status | REQUIRED for Flow Load and Flow State "
+        "| Typical field: status | Type: select"
+    )
+    flow_effort_category_help = (
+        "Secondary work classification | OPTIONAL for enhanced Flow Distribution "
+        "| Type: select"
+    )
 
     # Collect all currently mapped field IDs from all field mapping sections
     all_current_field_ids = set()
@@ -399,62 +485,63 @@ def create_field_mapping_form(
                 "deployment_date",
                 "Deployment Date",
                 "datetime",
-                "When deployment occurred | REQUIRED for Deployment Frequency | Use: fixVersions OR customfield_XXXXX (datetime)",
+                dora_deployment_date_help,
             ),
             (
                 "deployment_successful",
                 "Deployment Successful",
                 "checkbox",
-                "Filter failed deployments | OPTIONAL - if empty, assumes all successful | Type: checkbox/select",
+                dora_deployment_success_help,
             ),
             (
                 "code_commit_date",
                 "Code Commit Date",
                 "datetime",
-                "When code was committed | OPTIONAL for Lead Time for Changes | Type: datetime",
+                dora_commit_date_help,
             ),
             (
                 "incident_detected_at",
                 "Incident Detected At",
                 "datetime",
-                "When production issue found | REQUIRED for MTTR | Typical field: created | Type: datetime",
+                dora_incident_detected_help,
             ),
             (
                 "incident_resolved_at",
                 "Incident Resolved At",
                 "datetime",
-                "When fix deployed | REQUIRED for MTTR | Options: resolutiondate (team fix time) or fixVersions (deployment to production)",
+                dora_incident_resolved_help,
             ),
             (
                 "change_failure",
                 "Change Failure",
                 "select",
-                "Deployment failure indicator | REQUIRED for CFR | Syntax: field=Value | Example: customfield_12708=Yes",
+                dora_change_failure_help,
             ),
             (
                 "affected_environment",
                 "Affected Environment",
                 "select",
-                "Production bugs filter | REQUIRED for MTTR | Syntax: field=Value or field=Value1|Value2 | Example: customfield_11309=PROD",
+                dora_affected_environment_help,
             ),
             (
                 "target_environment",
                 "Target Environment",
                 "select",
-                "Deployment target filter | OPTIONAL | Syntax: field=Value | Example: customfield_11309=PROD|Production",
+                dora_target_environment_help,
             ),
             (
                 "severity_level",
                 "Severity Level",
                 "select",
-                "Incident priority/severity | OPTIONAL for impact analysis | Typical field: priority | Type: select",
+                dora_severity_help,
             ),
         ],
         field_options,
         current_mappings.get("field_mappings", {}).get("dora", {}),  # type: ignore
     )
 
-    # General fields used across all features (velocity, budget, flow metrics, bug analysis)
+    # General fields used across all features
+    # (velocity, budget, flow metrics, bug analysis)
     general_section = create_metric_section(
         "General Fields",
         "general",
@@ -463,37 +550,37 @@ def create_field_mapping_form(
                 "completed_date",
                 "Completion Date",
                 "datetime",
-                "When issue was completed/resolved | REQUIRED for Velocity, Budget, Flow Velocity | Supports nested fields: field.subfield | Type: datetime",
+                general_completed_date_help,
             ),
             (
                 "created_date",
                 "Creation Date",
                 "datetime",
-                "When issue was created | REQUIRED for Scope Tracking, Created Items | Standard field: created | Type: datetime",
+                general_created_date_help,
             ),
             (
                 "updated_date",
                 "Updated Date",
                 "datetime",
-                "When issue was last modified | OPTIONAL for Delta Calculations | Standard field: updated | Type: datetime",
+                general_updated_date_help,
             ),
             (
                 "estimate",
                 "Estimate",
                 "number",
-                "Story points or effort estimate | OPTIONAL for points tracking | Type: number",
+                general_estimate_help,
             ),
             (
                 "sprint_field",
                 "Sprint",
                 "array",
-                "Sprint field for Agile/Scrum boards | OPTIONAL for Sprint Tracker | Typically customfield_10020 | Type: array",
+                general_sprint_help,
             ),
             (
                 "parent_field",
                 "Parent/Epic Link",
                 "any",
-                "Parent epic/feature field | OPTIONAL for Active Work Timeline | Modern JIRA: parent (standard) | Legacy JIRA: customfield_10006 or customfield_10014 (Epic Link) | Type: any (object, string, or custom)",
+                general_parent_help,
             ),
         ],
         field_options,
@@ -509,24 +596,25 @@ def create_field_mapping_form(
                 "flow_item_type",
                 "Flow Item Type",
                 "select",
-                "Work category | REQUIRED for Flow Distribution | Typical field: issuetype | Type: select",
+                flow_item_type_help,
             ),
             (
                 "status",
                 "Status",
                 "select",
-                "Current work status | REQUIRED for Flow Load and Flow State | Typical field: status | Type: select",
+                flow_status_help,
             ),
             (
                 "effort_category",
                 "Effort Category",
                 "select",
-                "Secondary work classification | OPTIONAL for enhanced Flow Distribution | Type: select",
+                flow_effort_category_help,
             ),
             # NOTE: work_started_date is obsolete.
             # Flow Time now uses flow_start_statuses and flow_end_statuses lists
             # from Project Classification to find status transitions in changelog.
-            # NOTE: completed_date moved to General Fields section (used by multiple features)
+            # NOTE: completed_date moved to General Fields section
+            # (used by multiple features)
         ],
         field_options,
         current_mappings.get("field_mappings", {}).get("flow", {}),  # type: ignore
@@ -572,7 +660,8 @@ def create_metric_section(
     for field_id, label, _required_type, help_text in fields:
         raw_value = current_mappings.get(field_id, "")
 
-        # Handle case where value is a dict (parsed SourceRule) - extract original string
+        # Handle case where value is a dict (parsed SourceRule)
+        # and extract original string
         # This can happen if old data was parsed before save
         if isinstance(raw_value, dict):
             # Try to reconstruct namespace string from SourceRule
@@ -594,7 +683,8 @@ def create_metric_section(
         # All filtering happens in browser via namespace_autocomplete_clientside.js
         # No server round-trips = no focus loss
         #
-        # NOTE: We use dcc.Input but read values via clientside JS (collectNamespaceValues)
+        # NOTE: We use dcc.Input but read values via clientside JS
+        # (collectNamespaceValues)
         # which reads directly from DOM. This avoids React state sync issues when
         # JavaScript modifies the input value during autocomplete selection.
         field_input = html.Div(
@@ -651,7 +741,8 @@ def create_metric_section(
                 dbc.Col(
                     [
                         field_input,
-                        # Validation message placeholder (pattern-matching ID for callback)
+                        # Validation message placeholder
+                        # (pattern-matching ID for callback)
                         html.Div(
                             id={
                                 "type": "field-validation-message",
@@ -713,7 +804,8 @@ def create_field_mapping_success_alert() -> dbc.Alert:
     return dbc.Alert(
         [
             html.I(className="fas fa-check-circle me-2"),
-            "Field mappings saved successfully! Metrics will recalculate using new mappings.",
+            "Field mappings saved successfully! "
+            "Metrics will recalculate using new mappings.",
         ],
         color="success",
         dismissable=True,
