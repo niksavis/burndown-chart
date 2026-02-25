@@ -8,9 +8,11 @@ This module calculates scope change metrics for agile projects. Understanding th
 terminology is critical for correct calculations:
 
 **Initial Scope (Baseline)**
-- Definition: The original project scope at the earliest data point, BEFORE any scope changes
+- Definition: The original project scope at the earliest data point,
+  BEFORE any scope changes
 - Calculation: completed_items + remaining_items (at project start)
-- Example: If project starts with 100 items (50 completed, 50 remaining), initial_scope = 100
+- Example: If project starts with 100 items (50 completed, 50 remaining),
+  initial_scope = 100
 - Usage: This is the denominator for scope change rate calculations
 
 **Current Total Scope**
@@ -49,7 +51,7 @@ scope_change_rate = calculate_scope_change_rate(df, initial_items, initial_point
 [X] WRONG:
 ```python
 # Do NOT include created items in baseline
-current_total = initial_items + df['created_items'].sum()  # This is current total, not baseline
+current_total = initial_items + df['created_items'].sum()  # Current total, not baseline
 scope_change_rate = calculate_scope_change_rate(df, current_total, ...)  # WRONG!
 ```
 
@@ -84,12 +86,15 @@ def calculate_scope_change_rate(
     IMPORTANT: baseline_items and baseline_points should represent the ORIGINAL scope
     at project start, NOT the current total scope (which includes created items).
 
-    In agile projects, this tracks the rate of scope change rather than implying negative "creep".
+    In agile projects, this tracks the rate of scope change rather than
+    implying negative "creep".
 
     Args:
-        df: DataFrame with project statistics (must include created_items, created_points columns)
+        df: DataFrame with project statistics
+            (must include created_items, created_points columns)
         baseline_items: Initial scope in items (at project start, before scope changes)
-        baseline_points: Initial scope in points (at project start, before scope changes)
+        baseline_points: Initial scope in points
+            (at project start, before scope changes)
         data_points_count: Optional parameter to limit data to most recent N data points
 
     Returns:
@@ -209,7 +214,8 @@ def calculate_total_project_scope(
     - If 20 items were later created, current total scope = 120, but baseline stays 100
 
     Args:
-        df: DataFrame with project statistics including completed_items and completed_points
+        df: DataFrame with project statistics
+            including completed_items and completed_points
         remaining_items: Number of remaining items at the measurement point
         remaining_points: Number of remaining points at the measurement point
 
@@ -351,7 +357,8 @@ def calculate_scope_stability_index(
     Args:
         df: DataFrame with project statistics
         baseline_items: Initial scope in items (at project start, before scope changes)
-        baseline_points: Initial scope in points (at project start, before scope changes)
+        baseline_points: Initial scope in points
+            (at project start, before scope changes)
         data_points_count: Optional parameter to limit data to most recent N data points
 
     Returns:
@@ -440,11 +447,25 @@ def check_scope_change_threshold(
 
             # Add throughput insight
             if items_throughput_concern and points_throughput_concern:
-                message += f" Scope is growing {scope_change_rate['throughput_ratio']['items']}x faster than items completion and {scope_change_rate['throughput_ratio']['points']}x faster than points completion."
+                message += (
+                    " Scope is growing "
+                    f"{scope_change_rate['throughput_ratio']['items']}x faster "
+                    "than items completion and "
+                    f"{scope_change_rate['throughput_ratio']['points']}x faster "
+                    "than points completion."
+                )
             elif items_throughput_concern:
-                message += f" Scope is growing {scope_change_rate['throughput_ratio']['items']}x faster than items completion."
+                message += (
+                    " Scope is growing "
+                    f"{scope_change_rate['throughput_ratio']['items']}x faster "
+                    "than items completion."
+                )
             elif points_throughput_concern:
-                message += f" Scope is growing {scope_change_rate['throughput_ratio']['points']}x faster than points completion."
+                message += (
+                    " Scope is growing "
+                    f"{scope_change_rate['throughput_ratio']['points']}x faster "
+                    "than points completion."
+                )
 
     return {"status": status, "message": message}
 

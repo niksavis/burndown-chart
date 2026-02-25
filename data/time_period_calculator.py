@@ -292,7 +292,8 @@ def get_recent_weeks(num_weeks: int, include_partial_current: bool = True) -> li
 
     Example:
         >>> get_recent_weeks(4)
-        ['2025-W41', '2025-W42', '2025-W43', '2025-W44']  # Last 4 weeks including current
+        ['2025-W41', '2025-W42', '2025-W43', '2025-W44']
+        # Last 4 weeks including current
     """
     if num_weeks <= 0:
         logger.warning(f"get_recent_weeks called with invalid num_weeks: {num_weeks}")
@@ -346,7 +347,8 @@ def filter_by_week_range(
             date_value = item.get(date_field)
             if not date_value:
                 logger.debug(
-                    f"Item missing date field '{date_field}': {item.get('key', 'unknown')}"
+                    "Item missing date field "
+                    f"'{date_field}': {item.get('key', 'unknown')}"
                 )
                 continue
 
@@ -356,7 +358,8 @@ def filter_by_week_range(
                     dt = datetime.fromisoformat(date_value.replace("Z", "+00:00"))
                 except ValueError:
                     logger.warning(
-                        f"Failed to parse date '{date_value}' for item {item.get('key', 'unknown')}"
+                        f"Failed to parse date '{date_value}' "
+                        f"for item {item.get('key', 'unknown')}"
                     )
                     continue
             elif isinstance(date_value, datetime):
@@ -365,7 +368,8 @@ def filter_by_week_range(
                 dt = datetime.combine(date_value, datetime.min.time())
             else:
                 logger.warning(
-                    f"Unsupported date type {type(date_value)} for item {item.get('key', 'unknown')}"
+                    "Unsupported date type "
+                    f"{type(date_value)} for item {item.get('key', 'unknown')}"
                 )
                 continue
 
@@ -375,7 +379,8 @@ def filter_by_week_range(
                 filtered_items.append(item)
 
         logger.info(
-            f"Filtered {len(items)} items to {len(filtered_items)} items in {len(week_labels)} weeks"
+            f"Filtered {len(items)} items to {len(filtered_items)} items "
+            f"in {len(week_labels)} weeks"
         )
         return filtered_items
 
@@ -413,7 +418,8 @@ def group_by_week(items: list[dict], date_field: str) -> dict[str, list[dict]]:
             date_value = item.get(date_field)
             if not date_value:
                 logger.debug(
-                    f"Item missing date field '{date_field}': {item.get('key', 'unknown')}"
+                    "Item missing date field "
+                    f"'{date_field}': {item.get('key', 'unknown')}"
                 )
                 continue
 
@@ -423,7 +429,8 @@ def group_by_week(items: list[dict], date_field: str) -> dict[str, list[dict]]:
                     dt = datetime.fromisoformat(date_value.replace("Z", "+00:00"))
                 except ValueError:
                     logger.warning(
-                        f"Failed to parse date '{date_value}' for item {item.get('key', 'unknown')}"
+                        f"Failed to parse date '{date_value}' "
+                        f"for item {item.get('key', 'unknown')}"
                     )
                     continue
             elif isinstance(date_value, datetime):
@@ -432,7 +439,8 @@ def group_by_week(items: list[dict], date_field: str) -> dict[str, list[dict]]:
                 dt = datetime.combine(date_value, datetime.min.time())
             else:
                 logger.warning(
-                    f"Unsupported date type {type(date_value)} for item {item.get('key', 'unknown')}"
+                    "Unsupported date type "
+                    f"{type(date_value)} for item {item.get('key', 'unknown')}"
                 )
                 continue
 

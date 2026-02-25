@@ -15,9 +15,12 @@ def calculate_metrics_for_last_n_weeks(
     have enough data points.
 
     Args:
-        n_weeks: Number of weeks to calculate (default: 12) - ignored if custom_weeks provided
-        progress_callback: Optional callback function(message: str) for progress updates
-        custom_weeks: Optional list of (week_label, monday, sunday) tuples based on actual data range
+        n_weeks: Number of weeks to calculate (default: 12) - ignored if
+            custom_weeks provided
+        progress_callback: Optional callback function(message: str) for
+            progress updates
+        custom_weeks: Optional list of (week_label, monday, sunday) tuples
+            based on actual data range
 
     Returns:
         Tuple of (success: bool, summary_message: str)
@@ -32,7 +35,8 @@ def calculate_metrics_for_last_n_weeks(
             weeks = custom_weeks
             n_weeks = len(weeks)
             logger.info(
-                f"Calculating metrics for {n_weeks} custom weeks (based on actual data range)"
+                f"Calculating metrics for {n_weeks} custom weeks "
+                "(based on actual data range)"
             )
         else:
             # Get week labels for last N weeks from today
@@ -43,29 +47,37 @@ def calculate_metrics_for_last_n_weeks(
         failed_weeks = []
         skipped_weeks = []
 
-        # Note: Legacy delta optimization removed - database timestamps provide sufficient tracking
+        # Note: Legacy delta optimization removed - database timestamps
+        # provide sufficient tracking
 
         # Use batch write mode to accumulate all changes and write once
         # Import TaskProgress once before loop for progress updates
         from data.task_progress import TaskProgress
 
-        # Calculate progress update interval: every 5 weeks or every 2%, whichever is more frequent
-        # This balances UI smoothness with reduced database writes (80% reduction for large datasets)
+        # Calculate progress update interval: every 5 weeks or every 2%,
+        # whichever is more frequent.
+        # This balances UI smoothness with reduced database writes
+        # (80% reduction for large datasets).
         progress_update_interval = min(
             5, max(1, n_weeks // 50)
         )  # Update every 2% or every 5 weeks
         logger.info(
-            f"Progress will update every {progress_update_interval} week(s) (~{100 * progress_update_interval / max(n_weeks, 1):.1f}% increments)"
+            f"Progress will update every {progress_update_interval} week(s) "
+            f"(~{100 * progress_update_interval / max(n_weeks, 1):.1f}% increments)"
         )
 
-        # CRITICAL: Changelog is ALWAYS fetched by scope_sync BEFORE metrics calculation
-        # No need to fetch it again here - just use what's already in the database
-        # Removed redundant changelog check/fetch to prevent double-fetching (burndown-chart-5lk8)
+        # CRITICAL: Changelog is ALWAYS fetched by scope_sync BEFORE
+        # metrics calculation.
+        # No need to fetch it again here - just use what's already in the
+        # database.
+        # Removed redundant changelog check/fetch to prevent
+        # double-fetching (burndown-chart-5lk8).
 
         with batch_write_mode():
             week_number = 0
             for week_label, monday, sunday in weeks:
-                # Use ISO week format (YYYY-Wxx) consistently - DO NOT normalize/strip the 'W'
+                # Use ISO week format (YYYY-Wxx) consistently - DO NOT
+                # normalize/strip the 'W'.
                 # This ensures saved data keys match what loaders expect
 
                 logger.info(f"Processing week {week_label} ({monday} to {sunday})")
@@ -80,23 +92,27 @@ def calculate_metrics_for_last_n_weeks(
                     )
                     if is_cancelled:
                         logger.info(
-                            f"[Metrics] Calculation cancelled by user at week {week_number}/{n_weeks}"
+                            "[Metrics] Calculation cancelled by user at week "
+                            f"{week_number}/{n_weeks}"
                         )
                         TaskProgress.fail_task(
                             "update_data", "Operation cancelled by user"
                         )
                         return (
                             False,
-                            f"Cancelled after calculating {week_number - 1}/{n_weeks} weeks",
+                            "Cancelled after calculating "
+                            f"{week_number - 1}/{n_weeks} weeks",
                         )
                 except Exception as e:
                     logger.warning(
-                        f"[Progress] Failed to check cancellation for week {week_label}: {e}"
+                        "[Progress] Failed to check cancellation for week "
+                        f"{week_label}: {e}"
                     )
 
                 if progress_callback:
                     progress_callback(
-                        f"[Date] Calculating metrics for week {week_label} ({monday} to {sunday})..."
+                        f"[Date] Calculating metrics for week {week_label} "
+                        f"({monday} to {sunday})..."
                     )
 
                 success, message = calculate_and_save_weekly_metrics(
@@ -106,7 +122,8 @@ def calculate_metrics_for_last_n_weeks(
 
                 # Report calculation progress AFTER week is calculated (not before)
                 # This ensures 100% means "all work done", not "starting last week"
-                # Only update at intervals to reduce database writes (Phase 1 optimization)
+                # Only update at intervals to reduce database writes
+                # (Phase 1 optimization)
                 should_update_progress = (
                     week_number % progress_update_interval == 0
                     or week_number == n_weeks  # Always update on completion
@@ -122,14 +139,18 @@ def calculate_metrics_for_last_n_weeks(
                             message=f"Week {week_label}",
                         )
                         logger.info(
-                            f"[Progress] Calculation progress: {week_number}/{n_weeks} weeks ({week_number / n_weeks * 100:.0f}%)"
+                            "[Progress] Calculation progress: "
+                            f"{week_number}/{n_weeks} weeks "
+                            f"({week_number / n_weeks * 100:.0f}%)"
                         )
                     except Exception as e:
                         logger.warning(
-                            f"[Progress] Failed to update progress for week {week_label}: {e}"
+                            "[Progress] Failed to update progress for week "
+                            f"{week_label}: {e}"
                         )
 
-                # Yield control to allow other Dash callbacks (like progress bar polling) to execute
+                # Yield control to allow other Dash callbacks
+                # (like progress bar polling) to execute.
                 # This prevents the long-running calculation from blocking the UI
                 import time
 
@@ -146,18 +167,28 @@ def calculate_metrics_for_last_n_weeks(
 
         # Summary
         if skipped_weeks:
-            summary = f"[Delta] Calculated {len(successful_weeks)} weeks, skipped {len(skipped_weeks)} unaffected weeks"
+            summary = (
+                f"[Delta] Calculated {len(successful_weeks)} weeks, "
+                f"skipped {len(skipped_weeks)} unaffected weeks"
+            )
             if failed_weeks:
                 summary += f", {len(failed_weeks)} failures"
             logger.info(summary)
         elif failed_weeks:
-            summary = f"[!] Calculated metrics for {len(successful_weeks)}/{n_weeks} weeks. Failures:\n"
+            summary = (
+                f"[!] Calculated metrics for {len(successful_weeks)}/"
+                f"{n_weeks} weeks. Failures:\n"
+            )
             for week, msg in failed_weeks[:3]:  # Show first 3 failures
                 summary += f"  {week}: {msg[:100]}...\n"
             logger.info(summary)
         else:
             if successful_weeks:
-                summary = f"[OK] Successfully calculated metrics for all {n_weeks} weeks ({successful_weeks[0]} to {successful_weeks[-1]})"
+                summary = (
+                    "[OK] Successfully calculated metrics for all "
+                    f"{n_weeks} weeks ({successful_weeks[0]} "
+                    f"to {successful_weeks[-1]})"
+                )
             else:
                 summary = (
                     f"[OK] All {n_weeks} weeks up-to-date (no recalculation needed)"

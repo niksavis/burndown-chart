@@ -7,7 +7,8 @@ Supports User Story 4: Unified Software Architecture with Clear Separation.
 State Container Naming Conventions:
 ====================================
 
-The application uses the following standardized dcc.Store components for state management:
+The application uses the following standardized dcc.Store components
+for state management:
 
 1. **settings-store** (storage_type='local')
    - Purpose: User preferences and application settings
@@ -392,7 +393,9 @@ def update_parameter_panel_state(
 
     Example:
         >>> state = initialize_parameter_panel_state()
-        >>> new_state = update_parameter_panel_state(state, is_open=True, user_preference=True)
+        >>> new_state = update_parameter_panel_state(
+        ...     state, is_open=True, user_preference=True
+        ... )
         >>> new_state['is_open']
         True
     """

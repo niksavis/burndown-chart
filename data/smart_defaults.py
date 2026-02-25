@@ -140,9 +140,16 @@ def _get_generic_query_suggestions() -> dict[str, str]:
     """Get generic query suggestions when profile context not available."""
     return {
         "basic": "project = YOUR_PROJECT ORDER BY created DESC",
-        "recent_work": "project = YOUR_PROJECT AND created >= -30d ORDER BY created DESC",
-        "active_work": "project = YOUR_PROJECT AND status NOT IN (Done, Closed) ORDER BY priority DESC",
-        "completed_work": "project = YOUR_PROJECT AND status = Done ORDER BY updated DESC",
+        "recent_work": (
+            "project = YOUR_PROJECT AND created >= -30d ORDER BY created DESC"
+        ),
+        "active_work": (
+            "project = YOUR_PROJECT "
+            "AND status NOT IN (Done, Closed) ORDER BY priority DESC"
+        ),
+        "completed_work": (
+            "project = YOUR_PROJECT AND status = Done ORDER BY updated DESC"
+        ),
     }
 
 
@@ -382,7 +389,9 @@ def get_next_recommended_action(
         return {
             "action": "configure_fields",
             "title": "Map JIRA Fields",
-            "description": "Optional: Enable DORA and Flow metrics by mapping custom fields",
+            "description": (
+                "Optional: Enable DORA and Flow metrics by mapping custom fields"
+            ),
             "priority": "low",
         }
 

@@ -93,19 +93,22 @@ def get_first_status_transition_timestamp(
                         created_timestamp.replace("Z", "+00:00")
                     )
                     logger.debug(
-                        f"Issue {issue.get('key', 'UNKNOWN')}: First '{target_status}' at {timestamp}"
+                        f"Issue {issue.get('key', 'UNKNOWN')}: "
+                        f"First '{target_status}' at {timestamp}"
                     )
                     return timestamp
 
         # Never reached target status
         logger.debug(
-            f"Issue {issue.get('key', 'UNKNOWN')}: Never reached status '{target_status}'"
+            f"Issue {issue.get('key', 'UNKNOWN')}: "
+            f"Never reached status '{target_status}'"
         )
         return None
 
     except Exception as e:
         logger.error(
-            f"Error extracting status transition timestamp for issue {issue.get('key', 'UNKNOWN')}: {e}"
+            "Error extracting status transition timestamp "
+            f"for issue {issue.get('key', 'UNKNOWN')}: {e}"
         )
         return None
 
@@ -170,7 +173,8 @@ def get_first_status_transition_from_list(
                         created_timestamp.replace("Z", "+00:00")
                     )
                     logger.debug(
-                        f"Issue {issue.get('key', 'UNKNOWN')}: First completion status '{to_status}' at {timestamp}"
+                        f"Issue {issue.get('key', 'UNKNOWN')}: "
+                        f"First completion status '{to_status}' at {timestamp}"
                     )
                     return to_status, timestamp
 
@@ -179,7 +183,8 @@ def get_first_status_transition_from_list(
 
     except Exception as e:
         logger.error(
-            f"Error extracting status transition from list for issue {issue.get('key', 'UNKNOWN')}: {e}"
+            "Error extracting status transition from list "
+            f"for issue {issue.get('key', 'UNKNOWN')}: {e}"
         )
         return None
 
@@ -196,7 +201,8 @@ def calculate_time_in_status(
 
     Args:
         issue: JIRA issue dictionary with expanded changelog
-        target_statuses: List of status names to track (e.g., ["In Progress", "In Review", "Testing"])
+        target_statuses: List of status names to track
+            (e.g., ["In Progress", "In Review", "Testing"])
         case_sensitive: Whether to match status names case-sensitively (default: False)
 
     Returns:
@@ -257,7 +263,8 @@ def calculate_time_in_status(
                     hours = time_diff.total_seconds() / 3600
                     total_time_hours += hours
                     logger.debug(
-                        f"Issue {issue.get('key', 'UNKNOWN')}: Spent {hours:.2f}h in '{from_status}'"
+                        f"Issue {issue.get('key', 'UNKNOWN')}: "
+                        f"Spent {hours:.2f}h in '{from_status}'"
                     )
 
                 # If entering a target status, start tracking
@@ -274,14 +281,16 @@ def calculate_time_in_status(
             hours = time_diff.total_seconds() / 3600
             total_time_hours += hours
             logger.debug(
-                f"Issue {issue.get('key', 'UNKNOWN')}: Currently in '{current_status}' for {hours:.2f}h"
+                f"Issue {issue.get('key', 'UNKNOWN')}: "
+                f"Currently in '{current_status}' for {hours:.2f}h"
             )
 
         return total_time_hours
 
     except Exception as e:
         logger.error(
-            f"Error calculating time in status for issue {issue.get('key', 'UNKNOWN')}: {e}"
+            "Error calculating time in status "
+            f"for issue {issue.get('key', 'UNKNOWN')}: {e}"
         )
         return 0.0
 
@@ -303,14 +312,17 @@ def calculate_flow_time(
     Args:
         issue: JIRA issue dictionary with expanded changelog
         start_statuses: Statuses that mark start of flow (e.g., ["In Progress"])
-        flow_end_statuses: Statuses that mark completion (e.g., ["Done", "Resolved", "Closed"])
-        active_statuses: Optional list of active statuses for active-time-only calculation
+        flow_end_statuses: Statuses that mark completion
+            (e.g., ["Done", "Resolved", "Closed"])
+        active_statuses: Optional list of active statuses
+            for active-time-only calculation
         case_sensitive: Whether to match status names case-sensitively (default: False)
 
     Returns:
         Dictionary with flow time metrics:
         {
-            "total_flow_time_hours": float or None,  # Total time from start to completion
+            "total_flow_time_hours": float or None,
+            # Total time from start to completion
             "active_time_hours": float or None,       # Time in active statuses only
             "flow_efficiency_percent": float or None, # (active_time / total_time) * 100
             "start_timestamp": datetime or None,      # When flow started
@@ -326,7 +338,8 @@ def calculate_flow_time(
         if not start_result:
             # Issue never entered flow
             logger.debug(
-                f"Issue {issue.get('key', 'UNKNOWN')}: Never entered start statuses {start_statuses}"
+                f"Issue {issue.get('key', 'UNKNOWN')}: "
+                f"Never entered start statuses {start_statuses}"
             )
             return {
                 "total_flow_time_hours": None,
@@ -346,7 +359,8 @@ def calculate_flow_time(
         if not completion_result:
             # Issue not yet completed
             logger.debug(
-                f"Issue {issue.get('key', 'UNKNOWN')}: Started flow but not yet completed"
+                f"Issue {issue.get('key', 'UNKNOWN')}: "
+                "Started flow but not yet completed"
             )
             return {
                 "total_flow_time_hours": None,
@@ -385,18 +399,26 @@ def calculate_flow_time(
                 # - Changelog data anomalies create impossible time calculations
                 if flow_efficiency_percent > 100:
                     logger.warning(
-                        f"Issue {issue.get('key', 'UNKNOWN')}: Flow Efficiency capped at 100% "
-                        f"(calculated {flow_efficiency_percent:.1f}% from {active_time_hours:.2f}h active / "
-                        f"{total_flow_time_hours:.2f}h total). This indicates workflow backtracking or data anomalies."
+                        f"Issue {issue.get('key', 'UNKNOWN')}: "
+                        "Flow Efficiency capped at 100% "
+                        f"(calculated {flow_efficiency_percent:.1f}% from "
+                        f"{active_time_hours:.2f}h active / "
+                        f"{total_flow_time_hours:.2f}h total). "
+                        "This indicates workflow backtracking "
+                        "or data anomalies."
                     )
                     flow_efficiency_percent = 100.0
 
         logger.debug(
-            f"Issue {issue.get('key', 'UNKNOWN')}: Flow Time = {total_flow_time_hours:.2f}h, "
+            f"Issue {issue.get('key', 'UNKNOWN')}: "
+            f"Flow Time = {total_flow_time_hours:.2f}h, "
             f"Active Time = {active_time_hours:.2f}h, "
             f"Efficiency = {flow_efficiency_percent:.1f}%"
             if active_time_hours and flow_efficiency_percent
-            else f"Issue {issue.get('key', 'UNKNOWN')}: Flow Time = {total_flow_time_hours:.2f}h"
+            else (
+                f"Issue {issue.get('key', 'UNKNOWN')}: "
+                f"Flow Time = {total_flow_time_hours:.2f}h"
+            )
         )
 
         return {
@@ -528,7 +550,9 @@ def get_status_at_point_in_time(
         if not changelog:
             # No changelog: assume current status
             logger.debug(
-                f"Issue {issue.get('key', 'UNKNOWN')}: No changelog, using current status '{current_status_name}'"
+                f"Issue {issue.get('key', 'UNKNOWN')}: "
+                "No changelog, using current status "
+                f"'{current_status_name}'"
             )
             return current_status_name
 
@@ -536,7 +560,9 @@ def get_status_at_point_in_time(
         if not histories:
             # No history entries: assume current status
             logger.debug(
-                f"Issue {issue.get('key', 'UNKNOWN')}: No history entries, using current status '{current_status_name}'"
+                f"Issue {issue.get('key', 'UNKNOWN')}: "
+                "No history entries, using current status "
+                f"'{current_status_name}'"
             )
             return current_status_name
 
@@ -572,19 +598,24 @@ def get_status_at_point_in_time(
         # If we found a status change before target time, use it
         if last_status_before_target:
             logger.debug(
-                f"Issue {issue.get('key', 'UNKNOWN')}: Status at {target_time.date()} was '{last_status_before_target}' (from changelog)"
+                f"Issue {issue.get('key', 'UNKNOWN')}: "
+                f"Status at {target_time.date()} was "
+                f"'{last_status_before_target}' (from changelog)"
             )
             return last_status_before_target
 
         # No status changes before target time: use current status
         # (issue was created before target_time but never changed status)
         logger.debug(
-            f"Issue {issue.get('key', 'UNKNOWN')}: No status changes before {target_time.date()}, using current status '{current_status_name}'"
+            f"Issue {issue.get('key', 'UNKNOWN')}: "
+            f"No status changes before {target_time.date()}, "
+            f"using current status '{current_status_name}'"
         )
         return current_status_name
 
     except Exception as e:
         logger.error(
-            f"Error determining status at point in time for issue {issue.get('key', 'UNKNOWN')}: {e}"
+            "Error determining status at point in time "
+            f"for issue {issue.get('key', 'UNKNOWN')}: {e}"
         )
         return None

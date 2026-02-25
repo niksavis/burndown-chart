@@ -445,7 +445,8 @@ def check_for_updates() -> UpdateProgress:
     with guidance on how to update.
 
     Returns:
-        UpdateProgress with state AVAILABLE, UP_TO_DATE, MANUAL_UPDATE_REQUIRED, or ERROR
+        UpdateProgress with state AVAILABLE, UP_TO_DATE,
+            MANUAL_UPDATE_REQUIRED, or ERROR
 
     Note:
         This function should be called from a background thread to avoid blocking
@@ -800,7 +801,10 @@ def download_update(progress: UpdateProgress) -> UpdateProgress:
                 },
             )
             progress.state = UpdateState.ERROR
-            progress.error_message = f"Download incomplete: expected {total_size} bytes, got {downloaded_size}"
+            progress.error_message = (
+                "Download incomplete: "
+                f"expected {total_size} bytes, got {downloaded_size}"
+            )
             return progress
 
         logger.info(

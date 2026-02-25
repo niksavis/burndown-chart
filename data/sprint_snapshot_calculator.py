@@ -184,13 +184,15 @@ def calculate_daily_sprint_snapshots(
             if total_count == 0:
                 logger.info(f"Sample issue structure - Keys: {list(issue.keys())[:15]}")
                 logger.info(
-                    f"Issue has 'points' column: {'points' in issue}, value: {issue.get('points')}"
+                    "Issue has 'points' column: "
+                    f"{'points' in issue}, value: {issue.get('points')}"
                 )
                 if "custom_fields" in issue:
                     cf = issue.get("custom_fields", {})
-                    logger.info(
-                        f"Sample custom_fields keys: {list(cf.keys())[:5] if isinstance(cf, dict) else 'not a dict'}"
+                    sample_cf_keys = (
+                        list(cf.keys())[:5] if isinstance(cf, dict) else "not a dict"
                     )
+                    logger.info(f"Sample custom_fields keys: {sample_cf_keys}")
 
             # Update totals
             total_count += 1
@@ -234,7 +236,8 @@ def get_status_at_timestamp(
         changelog: Issue's changelog entries (sorted chronologically)
 
     Returns:
-        Status name at the given timestamp, or current status if timestamp is after all changes
+        Status name at the given timestamp,
+            or current status if timestamp is after all changes
     """
     if not changelog:
         # No changelog, return current status

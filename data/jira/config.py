@@ -39,10 +39,12 @@ CACHE_EXPIRATION_HOURS = 24  # Cache expires after 24 hours
 
 def get_jira_config(settings_jql_query: str | None = None) -> dict:
     """
-    Load JIRA configuration with priority hierarchy: jira_config → Environment → Default.
+    Load JIRA configuration with priority hierarchy:
+    jira_config → Environment → Default.
 
     This function reads from the jira_config structure in profile.json (managed via
-    the JIRA Configuration modal). Falls back to environment variables if config not found.
+    the JIRA Configuration modal). Falls back to environment variables
+    if config not found.
 
     Args:
         settings_jql_query: JQL query parameter (highest priority for JQL only)
@@ -318,23 +320,32 @@ def test_jira_connection(base_url: str, token: str, api_version: str = "v2") -> 
 
                 # Log the actual error for debugging
                 logger.warning(
-                    f"[JIRA] API {api_version_name} not available (status {search_response.status_code})"
+                    f"[JIRA] API {api_version_name} not available "
+                    f"(status {search_response.status_code})"
                 )
                 try:
                     error_data = search_response.json()
                     logger.warning(f"[JIRA] Search endpoint error: {error_data}")
                 except Exception:
                     logger.warning(
-                        f"[JIRA] Search endpoint returned {search_response.status_code} without JSON body"
+                        "[JIRA] Search endpoint returned "
+                        f"{search_response.status_code} without JSON body"
                     )
 
                 return {
                     "success": False,
-                    "message": f"Server connected but API {api_version_name} not available",
+                    "message": (
+                        f"Server connected but API {api_version_name} not available"
+                    ),
                     "timestamp": timestamp,
                     "response_time_ms": response_time_ms,
                     "error_code": "api_version_mismatch",
-                    "error_details": f"Your JIRA server does not support REST API {api_version_name}. The search endpoint returned {search_response.status_code}. Try switching to API {opposite_version} in the configuration.",
+                    "error_details": (
+                        "Your JIRA server does not support REST API "
+                        f"{api_version_name}. The search endpoint returned "
+                        f"{search_response.status_code}. Try switching "
+                        f"to API {opposite_version} in the configuration."
+                    ),
                 }
 
             # If search works, return full success (only accept 200 OK with valid JSON)
@@ -345,11 +356,14 @@ def test_jira_connection(base_url: str, token: str, api_version: str = "v2") -> 
                     # Verify it has expected structure
                     if "issues" in search_data or "total" in search_data:
                         logger.info(
-                            f"[JIRA] API {api_version} verified (status 200, valid JSON)"
+                            f"[JIRA] API {api_version} verified "
+                            "(status 200, valid JSON)"
                         )
                         return {
                             "success": True,
-                            "message": f"Connection successful (API {api_version} verified)",
+                            "message": (
+                                f"Connection successful (API {api_version} verified)"
+                            ),
                             "timestamp": timestamp,
                             "response_time_ms": response_time_ms,
                             "server_info": {
@@ -363,15 +377,19 @@ def test_jira_connection(base_url: str, token: str, api_version: str = "v2") -> 
                     else:
                         # Got JSON but wrong structure
                         logger.warning(
-                            f"[JIRA] API {api_version} returned JSON with unexpected structure: {list(search_data.keys())}"
+                            f"[JIRA] API {api_version} returned JSON "
+                            "with unexpected structure: "
+                            f"{list(search_data.keys())}"
                         )
                 except ValueError as json_error:
                     # Status 200 but body is not JSON - API version doesn't work
                     logger.warning(
-                        f"[JIRA] API {api_version} returned 200 but invalid JSON: {json_error}"
+                        f"[JIRA] API {api_version} returned 200 "
+                        f"but invalid JSON: {json_error}"
                     )
                     logger.warning(
-                        f"[JIRA] Response body (first 200 chars): {search_response.text[:200]}"
+                        "[JIRA] Response body (first 200 chars): "
+                        f"{search_response.text[:200]}"
                     )
 
                 # If we get here, API returns 200 but doesn't work properly
@@ -379,11 +397,18 @@ def test_jira_connection(base_url: str, token: str, api_version: str = "v2") -> 
                 opposite_version = "v2" if api_version == "v3" else "v3"
                 return {
                     "success": False,
-                    "message": f"Server connected but API {api_version_name} not available",
+                    "message": (
+                        f"Server connected but API {api_version_name} not available"
+                    ),
                     "timestamp": timestamp,
                     "response_time_ms": response_time_ms,
                     "error_code": "api_version_mismatch",
-                    "error_details": f"Your JIRA server does not properly support REST API {api_version_name} (returned 200 but invalid response). Try switching to API {opposite_version} in the configuration.",
+                    "error_details": (
+                        "Your JIRA server does not properly support REST API "
+                        f"{api_version_name} (returned 200 but invalid "
+                        f"response). Try switching to API "
+                        f"{opposite_version} in the configuration."
+                    ),
                 }
 
             # Search endpoint returned any other error - treat as API version issue
@@ -391,16 +416,24 @@ def test_jira_connection(base_url: str, token: str, api_version: str = "v2") -> 
             opposite_version = "v2" if api_version == "v3" else "v3"
 
             logger.warning(
-                f"[JIRA] API {api_version_name} not available (unexpected status {search_response.status_code})"
+                f"[JIRA] API {api_version_name} not available "
+                f"(unexpected status {search_response.status_code})"
             )
 
             return {
                 "success": False,
-                "message": f"Server connected but API {api_version_name} not available",
+                "message": (
+                    f"Server connected but API {api_version_name} not available"
+                ),
                 "timestamp": timestamp,
                 "response_time_ms": response_time_ms,
                 "error_code": "api_version_mismatch",
-                "error_details": f"Your JIRA server does not support REST API {api_version_name}. The search endpoint returned {search_response.status_code}. Try switching to API {opposite_version} in the configuration.",
+                "error_details": (
+                    "Your JIRA server does not support REST API "
+                    f"{api_version_name}. The search endpoint returned "
+                    f"{search_response.status_code}. Try switching to API "
+                    f"{opposite_version} in the configuration."
+                ),
             }
 
         elif response.status_code == 401:
@@ -410,7 +443,10 @@ def test_jira_connection(base_url: str, token: str, api_version: str = "v2") -> 
                 "timestamp": timestamp,
                 "response_time_ms": response_time_ms,
                 "error_code": "authentication_failed",
-                "error_details": "401 Unauthorized: Invalid or expired token. Please verify your personal access token in JIRA settings.",
+                "error_details": (
+                    "401 Unauthorized: Invalid or expired token. "
+                    "Please verify your personal access token in JIRA settings."
+                ),
             }
 
         elif response.status_code == 403:
@@ -420,7 +456,10 @@ def test_jira_connection(base_url: str, token: str, api_version: str = "v2") -> 
                 "timestamp": timestamp,
                 "response_time_ms": response_time_ms,
                 "error_code": "authentication_failed",
-                "error_details": "403 Forbidden: Token does not have sufficient permissions to access JIRA API.",
+                "error_details": (
+                    "403 Forbidden: Token does not have sufficient "
+                    "permissions to access JIRA API."
+                ),
             }
 
         elif response.status_code == 404:
@@ -430,7 +469,10 @@ def test_jira_connection(base_url: str, token: str, api_version: str = "v2") -> 
                 "timestamp": timestamp,
                 "response_time_ms": response_time_ms,
                 "error_code": "server_unreachable",
-                "error_details": "404 Not Found: The JIRA server could not be found at this URL. Please verify the base URL is correct.",
+                "error_details": (
+                    "404 Not Found: The JIRA server could not be found "
+                    "at this URL. Please verify the base URL is correct."
+                ),
             }
 
         else:
@@ -452,7 +494,10 @@ def test_jira_connection(base_url: str, token: str, api_version: str = "v2") -> 
             "timestamp": timestamp,
             "response_time_ms": None,
             "error_code": "connection_timeout",
-            "error_details": "Request timed out after 10 seconds. Check network connection, firewall settings, or VPN.",
+            "error_details": (
+                "Request timed out after 10 seconds. "
+                "Check network connection, firewall settings, or VPN."
+            ),
         }
 
     except requests.exceptions.ConnectionError as e:
@@ -462,7 +507,10 @@ def test_jira_connection(base_url: str, token: str, api_version: str = "v2") -> 
             "timestamp": timestamp,
             "response_time_ms": None,
             "error_code": "server_unreachable",
-            "error_details": f"Connection error: {str(e)}. Check if the URL is correct and the server is accessible.",
+            "error_details": (
+                f"Connection error: {str(e)}. "
+                "Check if the URL is correct and the server is accessible."
+            ),
         }
 
     except requests.exceptions.RequestException as e:

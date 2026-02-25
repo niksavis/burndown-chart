@@ -143,7 +143,8 @@ def compute_cumulative_values(
     df["cumulative_completed_items"] = df["completed_items"].cumsum()
     df["cumulative_completed_points"] = df["completed_points"].cumsum()
 
-    # Calculate remaining at each point = Current remaining + Work completed in time window
+    # Calculate remaining at each point = Current remaining +
+    # work completed in time window
     # This gives us the burndown: starting scope minus progress
     df["cum_items"] = total_items + df["cumulative_completed_items"]
     df["cum_points"] = total_points + df["cumulative_completed_points"]
@@ -161,7 +162,8 @@ def calculate_velocity_from_dataframe(
     when data is sparse or has gaps.
 
     **Why This Matters:**
-    - Date range method: 2 weeks of data across 10-week span = items/10 (WRONG - deflates velocity)
+        - Date range method: 2 weeks of data across 10-week span = items/10
+            (WRONG - deflates velocity)
     - Actual weeks method: 2 weeks of data = items/2 (CORRECT - accurate velocity)
 
     **Example:**
@@ -254,7 +256,8 @@ def calculate_rates(
     PERT METHODOLOGY ADAPTATION FOR AGILE TEAMS
     ===========================================
 
-    This implementation adapts traditional PERT (Program Evaluation and Review Technique)
+    This implementation adapts traditional PERT
+    (Program Evaluation and Review Technique)
     to agile contexts by using **historical velocity data** instead of expert estimates:
 
     **Traditional PERT:**
@@ -308,14 +311,16 @@ def calculate_rates(
     - Auto-adjusted to max 1/3 of available data to prevent overfitting
 
     Args:
-        grouped: DataFrame with weekly aggregated data (completed_items, completed_points)
+        grouped: DataFrame with weekly aggregated data
+            (completed_items, completed_points)
         total_items: Total number of items remaining to complete
         total_points: Total number of points remaining to complete
         pert_factor: Number of weeks to sample for best/worst case (confidence window)
         show_points: Whether points tracking is enabled (default: True)
         performance_settings: Dictionary with performance optimization settings
             - forecast_max_days: Maximum forecast horizon (default: 730 days)
-            - pessimistic_multiplier_cap: Max ratio of pessimistic to optimistic (default: 5)
+                        - pessimistic_multiplier_cap: Max ratio of pessimistic to
+                            optimistic (default: 5)
 
     Returns:
         Tuple of calculated values (all in days):
@@ -326,8 +331,11 @@ def calculate_rates(
         >>> grouped = pd.DataFrame({
         ...     'completed_items': [5, 7, 4, 6, 8, 5, 9, 7, 3, 10]
         ... })
-        >>> rates = calculate_rates(grouped, total_items=50, total_points=250, pert_factor=3)
-        >>> # Returns PERT forecast considering best 3, worst 3, and average of all weeks
+        >>> rates = calculate_rates(
+        ...     grouped, total_items=50, total_points=250, pert_factor=3
+        ... )
+        >>> # Returns PERT forecast considering best 3, worst 3,
+        >>> # and average of all weeks
     """
     # Set default performance settings if not provided
     if performance_settings is None:
@@ -348,9 +356,12 @@ def calculate_rates(
         return 0, 0, 0, 0, 0, 0
 
     # CRITICAL: Filter out zero-value weeks before any calculations
-    # Zero weeks (often from _fill_missing_weeks) should never influence rate calculations
-    # as they would artificially lower pessimistic rates and extend forecasts unrealistically
-    # Filter separately for items and points to support projects with only one tracking type
+    # Zero weeks (often from _fill_missing_weeks) should never influence
+    # rate calculations.
+    # They would otherwise lower pessimistic rates and extend
+    # forecasts unrealistically.
+    # Filter separately for items and points to support projects
+    # with only one tracking type.
     grouped_items_filtered = grouped[grouped["completed_items"] > 0].copy()
     grouped_points_filtered = grouped[grouped["completed_points"] > 0].copy()
 
@@ -380,7 +391,8 @@ def calculate_rates(
             pessimistic_items_rate = most_likely_items_rate
         else:
             # Normal case with sufficient data (4+ weeks)
-            # CRITICAL: Ensure valid_pert_factor is integer for .nlargest()/.nsmallest() operations
+            # CRITICAL: Ensure valid_pert_factor is integer for
+            # .nlargest()/.nsmallest() operations.
             valid_pert_factor = int(min(pert_factor, max(1, valid_items_count // 3)))
             valid_pert_factor = max(valid_pert_factor, 1)
 
@@ -421,7 +433,8 @@ def calculate_rates(
             optimistic_points_rate = most_likely_points_rate
             pessimistic_points_rate = most_likely_points_rate
         else:
-            # CRITICAL: Ensure valid_pert_factor is integer for .nlargest()/.nsmallest() operations
+            # CRITICAL: Ensure valid_pert_factor is integer for
+            # .nlargest()/.nsmallest() operations.
             valid_pert_factor = int(min(pert_factor, max(1, valid_points_count // 3)))
             valid_pert_factor = max(valid_pert_factor, 1)
 
@@ -481,7 +494,8 @@ def calculate_rates(
 
     # Apply standard PERT formula: (Optimistic + 4×Most_Likely + Pessimistic) / 6
     # The factor "4" is fixed in PERT methodology (NOT user-adjustable)
-    # This weights the most likely scenario at 66.7%, with optimistic and pessimistic at 16.7% each
+    # This weights the most likely scenario at 66.7%,
+    # with optimistic and pessimistic at 16.7% each.
     pert_time_items = (
         optimistic_time_items + 4 * most_likely_time_items + pessimistic_time_items
     ) / 6
@@ -498,24 +512,35 @@ def calculate_rates(
         f"valid_data_weeks={len(grouped_items_filtered) if has_items_data else 0}"
     )
     logger.info(
-        f"[PERT CALC] Rates - Items: opt={optimistic_items_rate:.4f}, likely={most_likely_items_rate:.4f}, pes={pessimistic_items_rate:.4f}"
+        "[PERT CALC] Rates - Items: "
+        f"opt={optimistic_items_rate:.4f}, "
+        f"likely={most_likely_items_rate:.4f}, "
+        f"pes={pessimistic_items_rate:.4f}"
     )
     logger.info(
-        f"[PERT CALC] Rates - Points: opt={optimistic_points_rate:.4f}, likely={most_likely_points_rate:.4f}, pes={pessimistic_points_rate:.4f}"
+        "[PERT CALC] Rates - Points: "
+        f"opt={optimistic_points_rate:.4f}, "
+        f"likely={most_likely_points_rate:.4f}, "
+        f"pes={pessimistic_points_rate:.4f}"
     )
     logger.info(
-        f"[PERT CALC] Results: pert_time_items={pert_time_items:.2f}, pert_time_points={pert_time_points:.2f}"
+        "[PERT CALC] Results: "
+        f"pert_time_items={pert_time_items:.2f}, "
+        f"pert_time_points={pert_time_points:.2f}"
     )
 
     # Cap estimated time to reasonable maximum to prevent performance issues
     # Use configurable maximum from performance settings
     #
     # RATIONALE FOR 730-DAY (2-YEAR) DEFAULT CAP:
-    # 1. Agile Forecasting Validity: Historical velocity patterns become unreliable beyond 6-12 months
-    # 2. Team/Technology Changes: Most agile teams experience significant changes within 2 years
+    # 1. Agile Forecasting Validity: Historical velocity patterns become
+    #    unreliable beyond 6-12 months.
+    # 2. Team/Technology Changes: Most agile teams experience
+    #    significant changes within 2 years.
     # 3. Requirements Evolution: Project scope and priorities often shift substantially
     # 4. Chart Performance: Very long forecasts create rendering performance issues
-    # 5. Actionable Timeframes: Forecasts beyond 2 years are rarely actionable for agile teams
+    # 5. Actionable Timeframes: Forecasts beyond 2 years are
+    #    rarely actionable for agile teams.
     #
     # Can be increased via settings, but 10-year absolute maximum enforced downstream
     # to prevent extreme performance degradation
@@ -527,13 +552,15 @@ def calculate_rates(
     # cap it to avoid extreme chart scaling issues
     #
     # RATIONALE FOR 5X PESSIMISTIC MULTIPLIER CAP:
-    # 1. Velocity Variance Analysis: Typical agile teams show CV (coefficient of variation) of 0.2-0.5
+    # 1. Velocity Variance Analysis: Typical agile teams show
+    #    CV (coefficient of variation) of 0.2-0.5.
     #    - CV = 0.2: velocity varies ±20%, pessimistic ~1.5-2x optimistic
     #    - CV = 0.4: velocity varies ±40%, pessimistic ~2-3x optimistic
     #    - CV = 0.6: velocity varies ±60%, pessimistic ~3-4x optimistic
     # 2. Statistical Outliers: CV > 1.0 (100% variance) suggests data quality issues or
     #    extreme outliers that shouldn't drive forecasts
-    # 3. Chart Usability: Pessimistic forecasts >5x optimistic create unusable chart scales
+    # 3. Chart Usability: Pessimistic forecasts >5x optimistic create
+    #    unusable chart scales.
     # 4. Predictability: If pessimistic is >5x optimistic, the team's velocity is too
     #    unstable for reliable forecasting - recommend improving process consistency
     #
@@ -607,17 +634,21 @@ def daily_forecast(
     #
     # RATIONALE FOR 10-YEAR (3653-DAY) ABSOLUTE MAXIMUM:
     # 1. **Performance Protection**: Prevents app from becoming unresponsive when users
-    #    accidentally configure extreme scenarios (e.g., 1 item/year velocity = 160+ year forecast)
+    #    accidentally configure extreme scenarios
+    #    (e.g., 1 item/year velocity = 160+ year forecast).
     # 2. **Reality Check**: Any software forecast beyond 10 years is meaningless given:
     #    - Technology evolution cycles (3-5 years)
     #    - Team/organization changes
     #    - Product pivots and market shifts
     #    - Methodology improvements
-    # 3. **Chart Usability**: Time axes beyond 10 years create unusable date labels and zoom ranges
-    # 4. **Data Validity**: Historical velocity data becomes irrelevant for such long horizons
+    # 3. **Chart Usability**: Time axes beyond 10 years create
+    #    unusable date labels and zoom ranges.
+    # 4. **Data Validity**: Historical velocity data becomes
+    #    irrelevant for such long horizons.
     # 5. **Industry Standards**: Most agile/project management tools cap at 1-5 years
     #
-    # This is a HARD LIMIT that cannot be overridden to prevent denial-of-service scenarios
+    # This is a HARD LIMIT that cannot be overridden to prevent
+    # denial-of-service scenarios.
     # where bad data causes infinite-length chart rendering attempts
     today = datetime.now()
     absolute_max_date = today + timedelta(
@@ -688,7 +719,8 @@ def daily_forecast_burnup(
     max_points: int = 150,
 ):
     """
-    Generate a daily burnup forecast from current completed work to target scope with adaptive sampling.
+    Generate a daily burnup forecast from current completed work
+    to target scope with adaptive sampling.
 
     Args:
         current: Current completed value (starting point)
@@ -780,8 +812,11 @@ def daily_forecast_burnup(
     logger = logging.getLogger(__name__)
     if dates:
         logger.info(
-            f"[BURNUP FORECAST] start={start_date.strftime('%Y-%m-%d')}, end={dates[-1].strftime('%Y-%m-%d')}, "
-            f"days={(dates[-1] - start_date).days}, target={target_scope:.1f}, daily_rate={daily_rate:.4f}, "
+            "[BURNUP FORECAST] "
+            f"start={start_date.strftime('%Y-%m-%d')}, "
+            f"end={dates[-1].strftime('%Y-%m-%d')}, "
+            f"days={(dates[-1] - start_date).days}, "
+            f"target={target_scope:.1f}, daily_rate={daily_rate:.4f}, "
             f"sample_interval={sample_interval}, points_generated={len(dates)}"
         )
 
@@ -800,11 +835,13 @@ def calculate_weekly_averages(
     where Dashboard shows different values than Flow Velocity for the same data.
 
     Args:
-        statistics_data: List of dictionaries containing statistics data (FALLBACK for points only)
+        statistics_data: List of dictionaries containing statistics data
+            (FALLBACK for points only)
         data_points_count: Number of weeks to include (None = use all data)
 
     Returns:
-        Tuple of (avg_weekly_items, avg_weekly_points, med_weekly_items, med_weekly_points)
+        Tuple of (avg_weekly_items, avg_weekly_points,
+        med_weekly_items, med_weekly_points)
     """
     import logging
 
@@ -875,7 +912,8 @@ def calculate_weekly_averages(
                         )
                     except Exception as e:
                         logger.warning(
-                            f"Failed to calculate velocity forecast in processing.py: {e}"
+                            "Failed to calculate velocity forecast in "
+                            f"processing.py: {e}"
                         )
 
                 # Apply blending if we have a valid forecast
@@ -888,7 +926,8 @@ def calculate_weekly_averages(
                     velocity_items[-1] = blended_value
 
                     logger.info(
-                        f"[Blending-Dashboard] Flow Velocity - Actual: {current_week_actual:.1f}, "
+                        "[Blending-Dashboard] Flow Velocity - "
+                        f"Actual: {current_week_actual:.1f}, "
                         f"Forecast: {forecast_value:.1f}, Blended: {blended_value:.1f}"
                     )
 
@@ -906,7 +945,8 @@ def calculate_weekly_averages(
                     f"avg={avg_items:.2f}, median={median_items:.2f}"
                 )
 
-                # Fallback to statistics for points (Flow doesn't track points separately)
+                # Fallback to statistics for points
+                # (Flow doesn't track points separately)
                 df = pd.DataFrame(statistics_data)
                 if not df.empty and "completed_points" in df.columns:
                     # Apply same week filtering to statistics for points
@@ -926,12 +966,14 @@ def calculate_weekly_averages(
                 return avg_items, avg_points, median_items, median_points
             else:
                 logger.warning(
-                    f"[VELOCITY] No metric snapshots found for {len(week_labels)} weeks, "
+                    "[VELOCITY] No metric snapshots found for "
+                    f"{len(week_labels)} weeks, "
                     f"falling back to statistics"
                 )
     except Exception as e:
         logger.warning(
-            f"[VELOCITY] Failed to load metric snapshots: {e}, falling back to statistics"
+            "[VELOCITY] Failed to load metric snapshots: "
+            f"{e}, falling back to statistics"
         )
 
     # FALLBACK: Use statistics data (old behavior when snapshots unavailable)
@@ -956,7 +998,8 @@ def calculate_weekly_averages(
                 df_temp = df_temp.dropna(subset=[date_col])
                 df_temp = df_temp.sort_values(date_col, ascending=True)
 
-                # CRITICAL FIX: Cap data_points_count to available weeks to prevent over-filtering
+                # CRITICAL FIX: Cap data_points_count to available weeks
+                # to prevent over-filtering.
                 # When slider > available weeks, all data should be used (not filtered)
                 actual_weeks_available = len(df_temp)
                 effective_data_points = min(data_points_count, actual_weeks_available)
@@ -968,7 +1011,8 @@ def calculate_weekly_averages(
                     df_temp = df_temp[df_temp[date_col] > cutoff_date]
                     logger.info(
                         f"[VELOCITY] Filtered to {effective_data_points} weeks "
-                        f"(requested {data_points_count}, available {actual_weeks_available})"
+                        f"(requested {data_points_count}, "
+                        f"available {actual_weeks_available})"
                     )
                 else:
                     # Using all available data - no filtering needed
@@ -1010,7 +1054,8 @@ def calculate_weekly_averages(
     df["week"] = df["date"].dt.isocalendar().week  # type: ignore[attr-defined]
     df["year"] = df["date"].dt.year  # type: ignore[attr-defined]
 
-    # Use vectorized string formatting instead of apply() to avoid DataFrame return issues
+    # Use vectorized string formatting instead of apply()
+    # to avoid DataFrame return issues.
     # This is faster and more reliable than lambda with axis=1
     df["year_week"] = (
         df["year"].astype(str) + "-W" + df["week"].astype(str).str.zfill(2)
@@ -1034,7 +1079,7 @@ def calculate_weekly_averages(
     # When data_points_count is specified, we already filtered the input data,
     # so use all the filtered weekly data
     if data_points_count is not None:
-        recent_data = weekly_df  # Use all weeks from the filtered input (respects user's data window)
+        recent_data = weekly_df
     else:
         # Legacy behavior: limit to last 10 weeks when no filtering specified
         recent_data = weekly_df.tail(10)
@@ -1044,7 +1089,9 @@ def calculate_weekly_averages(
 
     logger = logging.getLogger(__name__)
     logger.debug(
-        f"[APP VELOCITY] weeks in recent_data: {len(recent_data)}, items per week: {recent_data['items'].tolist()}, points per week: {recent_data['points'].tolist()}"
+        f"[APP VELOCITY] weeks in recent_data: {len(recent_data)}, "
+        f"items per week: {recent_data['items'].tolist()}, "
+        f"points per week: {recent_data['points'].tolist()}"
     )
 
     avg_weekly_items = recent_data["items"].mean()
@@ -1055,7 +1102,8 @@ def calculate_weekly_averages(
     ].median()  # Always round up to 2 decimal places (as float, not int)
 
     logger.debug(
-        f"[APP VELOCITY] median items={med_weekly_items}, median points={med_weekly_points}"
+        f"[APP VELOCITY] median items={med_weekly_items}, "
+        f"median points={med_weekly_points}"
     )
 
     def round_up_2(x):
@@ -1182,11 +1230,13 @@ def generate_weekly_forecast(
         # Special handling for very small datasets
         if valid_data_count <= 3:
             # With very few data points, just use the mean for all estimates
-            # This prevents crashes when pert_factor is 3 but we only have 1-3 data points
+            # This prevents crashes when pert_factor is 3 but we only
+            # have 1-3 data points.
             most_likely_items = weekly_df["items"].mean()
             most_likely_points = weekly_df["points"].mean()
 
-            # Use the same values for optimistic and pessimistic to avoid erratic forecasts
+            # Use the same values for optimistic and pessimistic
+            # to avoid erratic forecasts.
             # with tiny datasets
             optimistic_items = most_likely_items * 1.2  # Slightly optimistic
             pessimistic_items = max(
@@ -1199,7 +1249,8 @@ def generate_weekly_forecast(
             )  # Slightly pessimistic but positive
         else:
             # Adjust PERT factor to be at most 1/3 of available data for stable results
-            # CRITICAL: Ensure valid_pert_factor is integer for .nlargest()/.nsmallest() operations
+            # CRITICAL: Ensure valid_pert_factor is integer for
+            # .nlargest()/.nsmallest() operations.
             valid_pert_factor = int(min(pert_factor, max(1, valid_data_count // 3)))
             valid_pert_factor = max(valid_pert_factor, 1)  # Ensure at least 1
 
@@ -1214,7 +1265,8 @@ def generate_weekly_forecast(
             if len(non_zero_items) >= valid_pert_factor:
                 pessimistic_items = non_zero_items.nsmallest(valid_pert_factor).mean()
             else:
-                # If we don't have enough non-zero values, use min value or a percentage of most_likely
+                # If we don't have enough non-zero values, use min value
+                # or a percentage of most_likely.
                 pessimistic_items = (
                     non_zero_items.min()
                     if len(non_zero_items) > 0
@@ -1229,7 +1281,8 @@ def generate_weekly_forecast(
             if len(non_zero_points) >= valid_pert_factor:
                 pessimistic_points = non_zero_points.nsmallest(valid_pert_factor).mean()
             else:
-                # If we don't have enough non-zero values, use min value or a percentage of most_likely
+                # If we don't have enough non-zero values, use min value
+                # or a percentage of most_likely.
                 pessimistic_points = (
                     non_zero_points.min()
                     if len(non_zero_points) > 0
@@ -1242,7 +1295,8 @@ def generate_weekly_forecast(
         # Generate the next week forecast date (ensuring proper progression)
         next_date = last_date + timedelta(weeks=1)
 
-        # Format date for display using ISO week format (2026-W07) to match historical data
+        # Format date for display using ISO week format (2026-W07)
+        # to match historical data.
         # Protect against NaT values
         if pd.notna(next_date):
             year, week, _ = next_date.isocalendar()
@@ -1269,17 +1323,17 @@ def generate_weekly_forecast(
                 "most_likely_value": most_likely_items,
                 "optimistic_value": optimistic_items,
                 "pessimistic_value": pessimistic_items,
-                "next_date": next_date,  # Include the actual date object for proper date progression
+                "next_date": next_date,
             },
             "points": {
                 "dates": [formatted_date],
                 "most_likely": most_likely_points_forecast,
-                "optimistic": optimistic_points_forecast,  # Fixed: use optimistic_points_forecast instead of most_likely_points_forecast
+                "optimistic": optimistic_points_forecast,
                 "pessimistic": pessimistic_points_forecast,
                 "most_likely_value": most_likely_points,
                 "optimistic_value": optimistic_points,
                 "pessimistic_value": pessimistic_points,
-                "next_date": next_date,  # Include the actual date object for proper date progression
+                "next_date": next_date,
             },
         }
     else:
@@ -1310,7 +1364,8 @@ def calculate_performance_trend(
 
     Args:
         statistics_data: List of dictionaries containing statistics data
-        metric: The metric to calculate trend for ("completed_items" or "completed_points")
+        metric: The metric to calculate trend for
+            ("completed_items" or "completed_points")
         weeks_to_compare: Number of weeks to use for trend calculation
         data_points_count: Optional parameter to limit data to most recent N data points
 
@@ -1570,14 +1625,21 @@ def calculate_dashboard_metrics(statistics: list, settings: dict) -> dict:
     forecast, velocity, remaining work, and trend analysis.
 
     Args:
-        statistics: List of statistics dictionaries with date, completed_items, completed_points
+        statistics: List of statistics dictionaries with date,
+            completed_items, completed_points
         settings: Settings dictionary with pert_factor, deadline, scope values
 
     Returns:
         dict: DashboardMetrics with all computed values (see data-model.md Section 3.1)
 
     Example:
-        >>> stats = [{"date": "2025-01-01", "completed_items": 5, "completed_points": 25}]
+        >>> stats = [
+        ...     {
+        ...         "date": "2025-01-01",
+        ...         "completed_items": 5,
+        ...         "completed_points": 25,
+        ...     }
+        ... ]
         >>> settings = {"pert_factor": 1.5, "deadline": "2025-12-31"}
         >>> metrics = calculate_dashboard_metrics(stats, settings)
         >>> print(metrics['days_to_completion'])

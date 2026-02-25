@@ -15,7 +15,8 @@ STATISTICS_COLUMNS = [
     "completed_items",  # Number of items completed on that date
     "completed_points",  # Number of points completed on that date
     "created_items",  # Number of items created on that date (for scope change tracking)
-    "created_points",  # Number of points created on that date (for scope change tracking)
+    "created_points",  # Number of points created on that date
+    # (for scope change tracking)
 ]
 
 #######################################################################
@@ -38,9 +39,11 @@ DEFAULT_SETTINGS = {
     # Scope change settings
     "scope_change_threshold": 20,  # Default threshold for scope change alerts (%)
     "track_scope_changes": True,  # Whether to track scope changes
-    "scope_change_throughput_threshold": 1.2,  # Alert when scope grows 20% faster than throughput
+    "scope_change_throughput_threshold": 1.2,
+    # Alert when scope grows 20% faster than throughput
     # Performance optimization settings
-    "forecast_max_days": 3653,  # Maximum forecast horizon in days (10 years absolute cap)
+    "forecast_max_days": 3653,
+    # Maximum forecast horizon in days (10 years absolute cap)
     "forecast_max_points": 150,  # Maximum data points per forecast line
     "pessimistic_multiplier_cap": 5,  # Max ratio of pessimistic to optimistic forecast
 }

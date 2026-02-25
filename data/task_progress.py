@@ -85,7 +85,8 @@ class TaskProgress:
 
             cancelled = state.get("cancelled", False)
             logger.debug(
-                f"[TaskProgress] is_task_cancelled: cancelled={cancelled}, state={state}"
+                "[TaskProgress] is_task_cancelled: "
+                f"cancelled={cancelled}, state={state}"
             )
             return cancelled
         except Exception as e:
@@ -110,14 +111,16 @@ class TaskProgress:
             state["cancel_time"] = datetime.now().isoformat()
 
             logger.info(
-                f"[TaskProgress] Setting cancelled=True for task: {state.get('task_name')}"
+                "[TaskProgress] Setting cancelled=True for task: "
+                f"{state.get('task_name')}"
             )
             logger.debug(f"[TaskProgress] State before write: {state}")
 
             backend.save_task_state(state)
 
             logger.info(
-                f"[TaskProgress] Cancellation flag written to database for task: {state.get('task_name')}"
+                "[TaskProgress] Cancellation flag written to database for task: "
+                f"{state.get('task_name')}"
             )
             return True
         except Exception as e:
@@ -174,7 +177,8 @@ class TaskProgress:
         is_running, existing_task_name = TaskProgress.is_task_running()
         if is_running:
             logger.warning(
-                f"Cannot start '{task_name}' - task already running: {existing_task_name}"
+                f"Cannot start '{task_name}' - "
+                f"task already running: {existing_task_name}"
             )
             return False
 
@@ -239,7 +243,8 @@ class TaskProgress:
         Args:
             task_id: Task identifier
             message: Success message to display
-            **metadata: Additional data to store (e.g., report_file for report generation)
+            **metadata: Additional data to store
+                (e.g., report_file for report generation)
         """
         try:
             backend = _get_backend()
@@ -251,15 +256,18 @@ class TaskProgress:
 
             # CRITICAL: Only mark complete if actually done
             # Do NOT complete if still in fetch phase with incomplete progress
-            # This validation only applies to tasks with fetch/calculate phases (e.g., update_data)
+            # This validation only applies to tasks with fetch/calculate phases
+            # (e.g., update_data)
             phase = state.get("phase")
             fetch_progress = state.get("fetch_progress", {})
             fetch_percent = fetch_progress.get("percent", 0)
 
             if phase == "fetch" and fetch_percent < 100:
                 logger.warning(
-                    f"Attempted to complete task {task_id} while fetch still in progress "
-                    f"(phase={phase}, progress={fetch_percent:.1f}%). Ignoring completion request."
+                    "Attempted to complete task "
+                    f"{task_id} while fetch still in progress "
+                    f"(phase={phase}, progress={fetch_percent:.1f}%). "
+                    "Ignoring completion request."
                 )
                 return
 
@@ -278,7 +286,9 @@ class TaskProgress:
                 # Add metadata (e.g., report_file) to report_progress
                 state["report_progress"].update(metadata)
                 logger.info(
-                    f"Task {task_id} completing with report_progress: {state['report_progress']}"
+                    "Task "
+                    f"{task_id} completing with report_progress: "
+                    f"{state['report_progress']}"
                 )
             else:
                 # For other tasks (update_data), use root level fields
@@ -296,7 +306,8 @@ class TaskProgress:
             backend.save_task_state(state)
 
             logger.info(
-                f"Task completed: {task_id} (phase={phase}, report_file={state.get('report_file')})"
+                f"Task completed: {task_id} "
+                f"(phase={phase}, report_file={state.get('report_file')})"
             )
         except Exception as e:
             logger.error(f"Failed to mark task complete: {e}")
@@ -325,7 +336,8 @@ class TaskProgress:
 
             if elapsed > timedelta(minutes=TASK_TIMEOUT_MINUTES):
                 logger.warning(
-                    f"Task {state['task_id']} timed out after {elapsed.total_seconds():.0f}s"
+                    "Task "
+                    f"{state['task_id']} timed out after {elapsed.total_seconds():.0f}s"
                 )
                 # Clear stale state
                 backend.clear_task_state()
@@ -378,7 +390,8 @@ class TaskProgress:
 
             if state is None:
                 logger.warning(
-                    f"Task progress state not found for {task_id}, cannot update progress"
+                    "Task progress state not found for "
+                    f"{task_id}, cannot update progress"
                 )
                 return
 
@@ -402,7 +415,8 @@ class TaskProgress:
             }
             state["phase"] = phase
 
-            # CRITICAL: Ensure ui_state is preserved and defaults to operation_in_progress=True
+            # CRITICAL: Ensure ui_state is preserved and defaults to
+            # operation_in_progress=True
             # This prevents buttons from flipping during long calculations
             if "ui_state" not in state:
                 state["ui_state"] = {"operation_in_progress": True}
@@ -427,7 +441,8 @@ class TaskProgress:
 
             if state is None:
                 logger.warning(
-                    f"Task progress state not found for {task_id}, cannot start postprocess"
+                    "Task progress state not found for "
+                    f"{task_id}, cannot start postprocess"
                 )
                 return
 

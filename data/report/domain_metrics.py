@@ -112,7 +112,8 @@ def calculate_bug_metrics(
         # Get bug type mappings
         bug_types = settings.get("bug_types", {})
         logger.info(
-            f"[REPORT BUG] Processing {len(jira_issues)} JIRA issues with bug_types={bug_types}"
+            f"[REPORT BUG] Processing {len(jira_issues)} JIRA issues "
+            f"with bug_types={bug_types}"
         )
 
         # Calculate date range
@@ -174,8 +175,10 @@ def calculate_bug_metrics(
         open_bugs = bug_summary.get("open_bugs", 0)
         if open_bugs > 0 and weekly_stats:
             try:
-                # Use min(8, weeks_count) to match app behavior but respect shorter periods
-                # 8 weeks is optimal for trend analysis, but use less if data window is smaller
+                # Use min(8, weeks_count) to match app behavior
+                # but respect shorter periods
+                # 8 weeks is optimal for trend analysis,
+                # but use less if data window is smaller
                 forecast_weeks = min(8, weeks_count)
                 forecast = forecast_bug_resolution(
                     open_bugs=open_bugs,
@@ -268,16 +271,21 @@ def calculate_scope_metrics(
         f"[SCOPE BASELINE] Current: {current_items} items, {current_points:.2f} points"
     )
     logger.debug(
-        f"[SCOPE BASELINE] Total completed in period: {total_completed_items} items, {total_completed_points:.2f} points"
+        "[SCOPE BASELINE] Total completed in period: "
+        f"{total_completed_items} items, {total_completed_points:.2f} points"
     )
     logger.debug(
-        f"[SCOPE BASELINE] Total created in period: {total_created_items} items, {total_created_points:.2f} points"
+        "[SCOPE BASELINE] Total created in period: "
+        f"{total_created_items} items, {total_created_points:.2f} points"
     )
     logger.debug(
-        f"[SCOPE BASELINE] Calculated initial: {initial_items} items, {initial_points:.2f} points"
+        "[SCOPE BASELINE] Calculated initial: "
+        f"{initial_items} items, {initial_points:.2f} points"
     )
 
-    # Calculate net change: Current - Initial = (Current) - (Current + Completed - Created) = Created - Completed
+    # Calculate net change:
+    # Current - Initial = (Current) - (Current + Completed - Created)
+    # = Created - Completed
     items_change = current_items - initial_items
     points_change = current_points - initial_points
 
@@ -325,7 +333,8 @@ def calculate_flow_metrics(
     Args:
         snapshots: Filtered weekly snapshots (NOT USED - we read directly from cache)
         weeks_count: Number of weeks to load from snapshots
-        week_labels: Pre-filtered week labels to use (ensures consistency with statistics filtering)
+        week_labels: Pre-filtered week labels to use
+            (ensures consistency with statistics filtering)
 
     Returns:
         Dictionary with Flow metrics matching app display
@@ -408,7 +417,8 @@ def calculate_flow_metrics(
             flow_load_snapshot = get_metric_snapshot(week, "flow_load")
             if flow_load_snapshot:
                 logger.info(
-                    f"Using WIP from {week} (current {current_week_label} not available)"
+                    "Using WIP from "
+                    f"{week} (current {current_week_label} not available)"
                 )
                 break
     wip_count = flow_load_snapshot.get("wip_count", 0) if flow_load_snapshot else 0
@@ -462,7 +472,8 @@ def calculate_flow_metrics(
 
     logger.info(
         f"Flow metrics loaded: Velocity={avg_velocity:.2f} items/week, "
-        f"Flow Time={median_flow_time:.2f}d, Efficiency={avg_efficiency:.2f}%, WIP={wip_count}"
+        "Flow Time="
+        f"{median_flow_time:.2f}d, Efficiency={avg_efficiency:.2f}%, WIP={wip_count}"
     )
 
     # Check if there's any meaningful data (not all zeros)
@@ -505,7 +516,8 @@ def calculate_dora_metrics(profile_id: str, weeks_count: int) -> dict[str, Any]:
     callbacks/dora_flow_metrics.py to ensure identical calculations.
 
     Args:
-        profile_id: Active profile ID for cache access (not currently used by load function)
+        profile_id: Active profile ID for cache access
+            (not currently used by load function)
         weeks_count: Number of weeks to load from cache
 
     Returns:
@@ -560,7 +572,8 @@ def calculate_dora_metrics(profile_id: str, weeks_count: int) -> dict[str, Any]:
         (deployment_freq > 0)  # At least one deployment
         or (lead_time_days is not None and lead_time_days > 0)  # Lead time exists
         or (mttr_days is not None and mttr_days > 0)  # MTTR exists
-        # CFR can be legitimately 0% (no failures), so we check if deployment count exists
+        # CFR can be legitimately 0% (no failures),
+        # so we check if deployment count exists
         or (deployment_freq_tasks > 0)  # Has tasks for CFR calculation
     )
 
@@ -574,7 +587,8 @@ def calculate_dora_metrics(profile_id: str, weeks_count: int) -> dict[str, Any]:
         "deployment_frequency_tasks": deployment_freq_tasks,  # Tasks per week
         "lead_time": lead_time_days
         or 0,  # CRITICAL: Map to 'lead_time' for health calculator (app uses this key)
-        "lead_time_days": lead_time_days,  # Days (None if no data) - keep for report charts
+        "lead_time_days": lead_time_days,  # Days (None if no data)
+        # Keep for report charts
         "lead_time_hours": lead_time_hours,  # Hours (None if no data)
         "change_failure_rate": change_failure_rate,  # Percentage
         "mttr_hours": mttr_hours

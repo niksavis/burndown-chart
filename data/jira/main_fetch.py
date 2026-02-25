@@ -24,7 +24,8 @@ def fetch_jira_issues(
     config: dict, max_results: int | None = None, force_refresh: bool = False
 ) -> tuple[bool, list[dict]]:
     """
-    Execute JQL query and return ALL issues using pagination with incremental fetch optimization.
+    Execute JQL query and return ALL issues using pagination with
+    incremental fetch optimization.
 
     TWO-PHASE FETCH OPTIMIZATION (NEW):
     - If DevOps projects configured, automatically uses two-phase fetch
@@ -88,11 +89,18 @@ def fetch_jira_issues(
             logger.debug(f"[JIRA] Using caller-specified fields: {fields}")
         else:
             # Base fields: always fetch these standard fields
-            # CRITICAL: Include 'project' to enable filtering DevOps vs Development projects
-            # Include summary, assignee, priority, resolution, labels, components for Sprint Tracker and Portfolio view
-            base_fields = "key,summary,project,created,updated,resolutiondate,status,issuetype,assignee,priority,resolution,labels,components,fixVersions"
+            # CRITICAL: Include 'project' to enable filtering
+            # DevOps vs Development projects
+            # Include summary, assignee, priority, resolution,
+            # labels, components for Sprint Tracker and Portfolio view
+            base_fields = (
+                "key,summary,project,created,updated,resolutiondate,status,"
+                "issuetype,assignee,priority,resolution,labels,components,"
+                "fixVersions"
+            )
 
-            # Add parent field if configured (either standard 'parent' or Epic Link custom field)
+            # Add parent field if configured
+            # (either standard 'parent' or Epic Link custom field)
             parent_field = (
                 config.get("field_mappings", {}).get("general", {}).get("parent_field")
             )
@@ -108,14 +116,18 @@ def fetch_jira_issues(
                 additional_fields.append(config["story_points_field"])
 
             # Add field mappings for DORA and Flow metrics
-            # field_mappings has structure: {"dora": {"field_name": "field_id"}, "flow": {...}}
-            # CRITICAL: Strip =Value filter syntax (e.g., "customfield_11309=PROD" -> "customfield_11309")
-            # The =Value part is our internal filter syntax, JIRA API doesn't understand it
+            # field_mappings has structure:
+            # {"dora": {"field_name": "field_id"}, "flow": {...}}
+            # CRITICAL: Strip =Value filter syntax
+            # (e.g., "customfield_11309=PROD" -> "customfield_11309")
+            # The =Value part is our internal filter syntax,
+            # JIRA API doesn't understand it
             field_mappings = config.get("field_mappings", {})
             for _category, mappings in field_mappings.items():
                 if isinstance(mappings, dict):
                     for _field_name, field_id in mappings.items():
-                        # Extract clean field ID (strips =Value filter, skips changelog syntax)
+                        # Extract clean field ID
+                        # (strips =Value filter, skips changelog syntax)
                         clean_field_id = extract_jira_field_id(field_id)
                         if clean_field_id and clean_field_id not in base_fields:
                             additional_fields.append(clean_field_id)
@@ -140,7 +152,8 @@ def fetch_jira_issues(
         # ===== T051: INCREMENTAL FETCH OPTIMIZATION =====
         # Check if data has changed before doing expensive full fetch
 
-        # Initialize backend and cache keys BEFORE conditional checks (fix unbound variable errors)
+        # Initialize backend and cache keys BEFORE conditional checks
+        # (fix unbound variable errors)
         from data.persistence.factory import get_backend
 
         backend = get_backend()
@@ -190,9 +203,7 @@ def fetch_jira_issues(
                                 first_issue["fetched_at"]
                             )
                             if cache_timestamp and cache_timestamp.tzinfo is None:
-                                cache_timestamp = cache_timestamp.replace(
-                                    tzinfo=UTC
-                                )
+                                cache_timestamp = cache_timestamp.replace(tzinfo=UTC)
 
                         if cache_timestamp:
                             now_utc = datetime.now(UTC)
@@ -204,11 +215,13 @@ def fetch_jira_issues(
                                 cached_data = db_issues
                                 is_valid = True
                                 logger.info(
-                                    f"[JIRA] Cache valid: {len(cached_data)} issues ({age_hours:.1f}h old)"
+                                    f"[JIRA] Cache valid: {len(cached_data)} "
+                                    f"issues ({age_hours:.1f}h old)"
                                 )
                             else:
                                 logger.debug(
-                                    f"[JIRA] Cache expired: {age_hours:.1f}h old (max: {CACHE_EXPIRATION_HOURS}h)"
+                                    f"[JIRA] Cache expired: {age_hours:.1f}h old "
+                                    f"(max: {CACHE_EXPIRATION_HOURS}h)"
                                 )
                         else:
                             logger.warning(
@@ -216,7 +229,8 @@ def fetch_jira_issues(
                             )
                     else:
                         logger.info(
-                            "[JIRA] No issues found in database - will perform full fetch"
+                            "[JIRA] No issues found in database - "
+                            "will perform full fetch"
                         )
                 except Exception as e:
                     logger.warning(f"[JIRA] Database cache read error: {e}")
@@ -227,15 +241,18 @@ def fetch_jira_issues(
 
         if is_valid and cached_data:
             logger.info(
-                f"[JIRA] Cache valid, checking for changes ({len(cached_data)} cached issues)"
+                f"[JIRA] Cache valid, checking for changes "
+                f"({len(cached_data)} cached issues)"
             )
 
             # CRITICAL: When two-phase fetch is active, skip count check
-            # The count check uses user's JQL (dev issues only), but two-phase fetches dev+devops
+            # The count check uses user's JQL (dev issues only),
+            # but two-phase fetches dev+devops
             # This causes false "count mismatch" and unnecessary full fetches
             if use_two_phase:
                 logger.info(
-                    "[JIRA] Two-phase fetch active, skipping count check, trying delta fetch"
+                    "[JIRA] Two-phase fetch active, skipping count check, "
+                    "trying delta fetch"
                 )
                 delta_success, merged_issues, changed_keys, delta_issues = (
                     try_delta_fetch(jql, config, cached_data, api_endpoint, start_time)
@@ -275,10 +292,13 @@ def fetch_jira_issues(
                     cached_count = len(cached_data)
                     count_diff = abs(current_count - cached_count)
 
-                    # If count differs by more than 5%, likely deletions or major changes
+                    # If count differs by more than 5%,
+                    # likely deletions or major changes
                     if count_diff > max(cached_count * 0.05, 5):
                         logger.info(
-                            f"[JIRA] Significant count change: {cached_count} -> {current_count} ({count_diff} diff), full fetch"
+                            "[JIRA] Significant count change: "
+                            f"{cached_count} -> {current_count} "
+                            f"({count_diff} diff), full fetch"
                         )
                     elif current_count == cached_count:
                         # Try delta fetch - only get issues updated since last cache
@@ -317,7 +337,8 @@ def fetch_jira_issues(
                         # Small count difference, might be few new/deleted issues
                         # Try delta fetch first
                         logger.info(
-                            f"[JIRA] Small count change: {cached_count} -> {current_count}, trying delta fetch"
+                            f"[JIRA] Small count change: {cached_count} "
+                            f"-> {current_count}, trying delta fetch"
                         )
                         delta_success, merged_issues, changed_keys, delta_issues = (
                             try_delta_fetch(
@@ -342,7 +363,8 @@ def fetch_jira_issues(
                             return True, merged_issues
                         # Delta fetch failed, fall through to full fetch
                 else:
-                    # Count check failed - but we can still try delta fetch with cached data
+                    # Count check failed - but we can still try
+                    # delta fetch with cached data
                     logger.warning(
                         "[JIRA] Count check failed, trying delta fetch anyway"
                     )
@@ -381,12 +403,14 @@ def fetch_jira_issues(
                         return True, merged_issues
                     # Delta fetch also failed, fall through to full fetch
                     logger.warning(
-                        "[JIRA] Count check and delta fetch failed, proceeding with full fetch"
+                        "[JIRA] Count check and delta fetch failed, "
+                        "proceeding with full fetch"
                     )
         else:
             if not is_valid:
                 logger.warning(
-                    f"[JIRA] Cache invalid (is_valid={is_valid}, has_data={cached_data is not None}), fetching from API"
+                    f"[JIRA] Cache invalid (is_valid={is_valid}, "
+                    f"has_data={cached_data is not None}), fetching from API"
                 )
             else:
                 logger.info("[JIRA] Cache miss, fetching from API")
@@ -595,7 +619,8 @@ def fetch_jira_issues(
                 )  # Limit reached
             ):
                 logger.info(
-                    f"[JIRA] Pagination complete: {len(all_issues)}/{total_issues} fetched"
+                    "[JIRA] Pagination complete: "
+                    f"{len(all_issues)}/{total_issues} fetched"
                 )
                 break
 

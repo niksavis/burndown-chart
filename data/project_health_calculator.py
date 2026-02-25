@@ -149,14 +149,16 @@ def calculate_comprehensive_project_health(
 
     if total_weight > 0 and abs(total_weight - 100) > 0.01:
         # When dimensions are missing, adjust max_weights proportionally
-        # This allows remaining dimensions to reach 100% total while maintaining relative importance
+        # This allows remaining dimensions to reach 100% total
+        # while maintaining relative importance
         available_dims = [name for name, d in dimensions.items() if d["weight"] > 0]
         missing_weight = 100.0 - sum(
             dimensions[name]["max_weight"] for name in available_dims
         )
 
         if missing_weight > 0.01:
-            # Redistribute missing weight proportionally to available dimensions' max_weights
+            # Redistribute missing weight proportionally
+            # to available dimensions' max_weights
             available_max_total = sum(
                 dimensions[name]["max_weight"] for name in available_dims
             )
@@ -167,7 +169,8 @@ def calculate_comprehensive_project_health(
                     missing_weight * proportion
                 )
             logger.debug(
-                f"[HEALTH] Adjusted max_weights due to {len(dimensions) - len(available_dims)} missing dimensions"
+                "[HEALTH] Adjusted max_weights due to "
+                f"{len(dimensions) - len(available_dims)} missing dimensions"
             )
 
         # Now scale to 100% respecting adjusted caps
@@ -218,7 +221,8 @@ def calculate_comprehensive_project_health(
 
     # Calculate weighted score: sum(score × weight/100)
     overall_score = sum(d["score"] * d["weight"] / 100 for d in dimensions.values())
-    # Use round() instead of int() for consistency with display formatting (.0f rounds to nearest)
+    # Use round() instead of int() for consistency with display formatting
+    # (.0f rounds to nearest)
     overall_score = round(max(0, min(100, overall_score)))
 
     # Log results
@@ -277,7 +281,8 @@ def _calculate_delivery_dimension(
         score += progress_score
         weight += 10  # 10% weight contribution
         logger.info(
-            f"[Delivery] Progress: completion={completion_pct:.2f}%, score={progress_score:.1f}/30 pts"
+            f"[Delivery] Progress: completion={completion_pct:.2f}%, "
+            f"score={progress_score:.1f}/30 pts"
         )
 
     # Signal 2: Velocity Trend (35 points)
@@ -295,7 +300,8 @@ def _calculate_delivery_dimension(
         score += trend_score
         weight += 10  # 10% weight contribution
         logger.info(
-            f"[Delivery] Trend: direction={trend_direction}, change={recent_change:.1f}%, score={trend_score:.1f}/35 pts"
+            f"[Delivery] Trend: direction={trend_direction}, "
+            f"change={recent_change:.1f}%, score={trend_score:.1f}/35 pts"
         )
 
     # Signal 3: Throughput Rate (35 points)
@@ -308,7 +314,9 @@ def _calculate_delivery_dimension(
         score += throughput_score
         weight += 5  # 5% weight contribution
         logger.info(
-            f"[Delivery] Throughput (flow): velocity={flow_velocity:.2f}, factor={throughput_factor:.3f}, score={throughput_score:.1f}/35 pts"
+            f"[Delivery] Throughput (flow): velocity={flow_velocity:.2f}, "
+            f"factor={throughput_factor:.3f}, "
+            f"score={throughput_score:.1f}/35 pts"
         )
     elif dashboard_metrics:
         velocity_items = dashboard_metrics.get("current_velocity_items", 0)
@@ -317,7 +325,9 @@ def _calculate_delivery_dimension(
         score += throughput_score
         weight += 5  # 5% weight contribution
         logger.info(
-            f"[Delivery] Throughput (dash): velocity={velocity_items:.2f}, factor={throughput_factor:.3f}, score={throughput_score:.1f}/35 pts"
+            f"[Delivery] Throughput (dash): velocity={velocity_items:.2f}, "
+            f"factor={throughput_factor:.3f}, "
+            f"score={throughput_score:.1f}/35 pts"
         )
 
     # Normalize to 0-100 scale
@@ -328,7 +338,8 @@ def _calculate_delivery_dimension(
         weight = 0
 
     logger.info(
-        f"[Delivery] TOTAL: raw_score={score:.1f}/{max_points}, normalized={normalized_score:.1f}/100, weight={weight}%"
+        f"[Delivery] TOTAL: raw_score={score:.1f}/{max_points}, "
+        f"normalized={normalized_score:.1f}/100, weight={weight}%"
     )
     return normalized_score, weight
 
@@ -358,7 +369,8 @@ def _calculate_predictability_dimension(
         score += consistency_score
         weight += 12  # 12% weight contribution
         logger.debug(
-            f"[Predictability] Consistency (CV={velocity_cv:.1f}%): {consistency_score:.1f}/50 pts"
+            f"[Predictability] Consistency (CV={velocity_cv:.1f}%): "
+            f"{consistency_score:.1f}/50 pts"
         )
 
     # Signal 2: Schedule Adherence (30 points)
@@ -417,11 +429,14 @@ def _calculate_quality_dimension(
         score += resolution_score
         weight += 8  # 8% weight contribution
         logger.info(
-            f"[Quality] Bug Resolution: rate={resolution_rate:.2f}%, score={resolution_score:.1f}/30 pts"
+            f"[Quality] Bug Resolution: rate={resolution_rate:.2f}%, "
+            f"score={resolution_score:.1f}/30 pts"
         )
     else:
         logger.info(
-            f"[Quality] Bug Resolution: SKIPPED (bug_metrics={'available' if bug_metrics else 'None'}, has_data={bug_metrics.get('has_data') if bug_metrics else 'N/A'})"
+            "[Quality] Bug Resolution: SKIPPED "
+            f"(bug_metrics={'available' if bug_metrics else 'None'}, "
+            f"has_data={bug_metrics.get('has_data') if bug_metrics else 'N/A'})"
         )
 
     # Signal 2: Change Failure Rate (25 points)
@@ -434,7 +449,9 @@ def _calculate_quality_dimension(
         logger.info(f"[Quality] CFR: rate={cfr:.2f}%, score={cfr_score:.1f}/25 pts")
     else:
         logger.info(
-            f"[Quality] CFR: SKIPPED (dora_metrics={'available' if dora_metrics else 'None'}, has_data={dora_metrics.get('has_data') if dora_metrics else 'N/A'})"
+            "[Quality] CFR: SKIPPED "
+            f"(dora_metrics={'available' if dora_metrics else 'None'}, "
+            f"has_data={dora_metrics.get('has_data') if dora_metrics else 'N/A'})"
         )
 
     # Signal 3: MTTR (20 points)
@@ -457,7 +474,8 @@ def _calculate_quality_dimension(
             logger.info("[Quality] MTTR: SKIPPED (mttr_hours=0 or None)")
     else:
         logger.info(
-            f"[Quality] MTTR: SKIPPED (dora_metrics={'available' if dora_metrics else 'None'})"
+            "[Quality] MTTR: SKIPPED "
+            f"(dora_metrics={'available' if dora_metrics else 'None'})"
         )
 
     # Signal 4: Bug Density/Age (25 points)
@@ -467,7 +485,8 @@ def _calculate_quality_dimension(
         # Inverted: 0% = 15pts, 20% = 7.5pts, 40%+ = 0pts
         density_score = max(0, 15 * (1 - min(capacity_consumed / 0.4, 1)))
 
-        # Sub-signal 4b: Average bug age (age of OPEN bugs, not resolution time of closed bugs)
+        # Sub-signal 4b: Average bug age
+        # (age of OPEN bugs, not resolution time of closed bugs)
         avg_age = bug_metrics.get("avg_age_days", 0)
 
         # Logarithmic: <3days = 10pts, 7days = 7pts, 30days+ = 0pts
@@ -482,11 +501,14 @@ def _calculate_quality_dimension(
         score += bug_health_score
         weight += 3  # 3% weight contribution
         logger.info(
-            f"[Quality] Bug Health: capacity={capacity_consumed:.2f}, avg_age={avg_age:.1f}d, density_score={density_score:.1f}, age_score={age_score:.1f}, total={bug_health_score:.1f}/25 pts"
+            f"[Quality] Bug Health: capacity={capacity_consumed:.2f}, "
+            f"avg_age={avg_age:.1f}d, density_score={density_score:.1f}, "
+            f"age_score={age_score:.1f}, total={bug_health_score:.1f}/25 pts"
         )
     else:
         logger.info(
-            f"[Quality] Bug Health: SKIPPED (bug_metrics={'available' if bug_metrics else 'None'})"
+            "[Quality] Bug Health: SKIPPED "
+            f"(bug_metrics={'available' if bug_metrics else 'None'})"
         )
 
     # Normalize to 0-100
@@ -589,7 +611,8 @@ def _calculate_sustainability_dimension(
         score += scope_score
         weight += 6  # 6% weight contribution
         logger.info(
-            f"[Sustainability] Scope (context={context_factor}, change_rate={scope_change_rate:.1f}%): {scope_score:.1f}/40 pts"
+            f"[Sustainability] Scope (context={context_factor}, "
+            f"change_rate={scope_change_rate:.1f}%): {scope_score:.1f}/40 pts"
         )
 
     # Signal 2: WIP Management (35 points)
@@ -614,7 +637,8 @@ def _calculate_sustainability_dimension(
         score += wip_score
         weight += 3  # 3% weight contribution
         logger.info(
-            f"[Sustainability] WIP (wip={wip}, velocity={velocity:.2f}, ratio={wip_ratio:.2f}): {wip_score:.1f}/35 pts"
+            f"[Sustainability] WIP (wip={wip}, velocity={velocity:.2f}, "
+            f"ratio={wip_ratio:.2f}): {wip_score:.1f}/35 pts"
         )
 
     # Signal 3: Flow Distribution Balance (25 points)
@@ -636,7 +660,10 @@ def _calculate_sustainability_dimension(
             score += distribution_score
             weight += 1  # 1% weight contribution
             logger.info(
-                f"[Sustainability] Distribution (feature={feature_pct:.0f}%, defect={defect_pct:.0f}%, tech_debt={tech_debt_pct:.0f}%): {distribution_score:.1f}/25 pts"
+                f"[Sustainability] Distribution "
+                f"(feature={feature_pct:.0f}%, defect={defect_pct:.0f}%, "
+                f"tech_debt={tech_debt_pct:.0f}%): "
+                f"{distribution_score:.1f}/25 pts"
             )
 
     # Normalize to 0-100

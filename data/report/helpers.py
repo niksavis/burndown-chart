@@ -75,7 +75,8 @@ def calculate_budget_metrics(
         query_id: Query identifier
         weeks_count: Number of weeks in analysis period
         velocity_items: Items velocity for cost_per_item calculation (from dashboard)
-        velocity_points: Story points velocity for cost_per_point calculation (from dashboard)
+        velocity_points: Story points velocity for
+            cost_per_point calculation (from dashboard)
 
     Returns:
         Dictionary with budget metrics and weekly tracking data including cost breakdown
@@ -127,13 +128,15 @@ def calculate_budget_metrics(
             profile_id, query_id, current_week
         )
 
-        # Get variance metrics for health calculator (includes burn_rate_variance_pct, etc.)
+        # Get variance metrics for health calculator
+        # (includes burn_rate_variance_pct, etc.)
         baseline_vs_actual = get_budget_baseline_vs_actual(
             profile_id, query_id, current_week, data_points_count=weeks_count
         )
         variance_metrics = baseline_vs_actual.get("variance", {})
 
-        # Use velocity from dashboard (already calculated in report) for accurate cost per item/point
+        # Use velocity from dashboard (already calculated in report)
+        # for accurate cost per item/point
         # This ensures consistency with the velocity shown in the dashboard section
         cost_per_item = cost_per_week / velocity_items if velocity_items > 0 else 0
         cost_per_point = cost_per_week / velocity_points if velocity_points > 0 else 0

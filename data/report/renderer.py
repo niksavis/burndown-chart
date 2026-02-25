@@ -153,7 +153,8 @@ def parse_week_label(week_label: str) -> datetime:
         Datetime for the Monday of that ISO week
     """
     try:
-        # Use ISO 8601 week date format: %G (ISO year), %V (ISO week), %u (ISO weekday where 1=Monday)
+        # Use ISO 8601 week date format:
+        # %G (ISO year), %V (ISO week), %u (ISO weekday where 1=Monday)
         return datetime.strptime(week_label + "-1", "%G-W%V-%u")
     except ValueError:
         # Fallback to current date if parsing fails
@@ -179,7 +180,8 @@ def update_report_progress(percent: int, message: str) -> None:
         if state.get("task_id") != "generate_report":
             return
 
-        # Update report_progress object (consistent with fetch_progress/calculate_progress)
+        # Update report_progress object
+        # (consistent with fetch_progress/calculate_progress)
         state["report_progress"] = {"percent": percent, "message": message}
 
         with open(progress_file, "w", encoding="utf-8") as f:

@@ -102,10 +102,16 @@ def sync_jira_scope_and_data(
         if not validate_cache_file(max_size_mb=config["cache_max_size_mb"]):
             return False, "Cache file validation failed", {}
 
-        # Calculate current fields that would be requested (MUST match fetch_jira_issues logic)
-        base_fields = "key,summary,project,created,updated,resolutiondate,status,issuetype,assignee,priority,resolution,labels,components,fixVersions"
+        # Calculate current fields that would be requested
+        # (MUST match fetch_jira_issues logic)
+        base_fields = (
+            "key,summary,project,created,updated,resolutiondate,status,"
+            "issuetype,assignee,priority,resolution,labels,components,"
+            "fixVersions"
+        )
 
-        # Add parent field if configured (either standard 'parent' or Epic Link custom field)
+        # Add parent field if configured
+        # (either standard 'parent' or Epic Link custom field)
         parent_field = (
             config.get("field_mappings", {}).get("general", {}).get("parent_field")
         )
@@ -120,13 +126,16 @@ def sync_jira_scope_and_data(
             additional_fields.append(points_field)
 
         # Add field mappings for DORA and Flow metrics
-        # field_mappings has structure: {"dora": {"field_name": "field_id"}, "flow": {...}}
-        # CRITICAL: Strip =Value filter syntax (e.g., "customfield_11309=PROD" -> "customfield_11309")
+        # field_mappings has structure:
+        # {"dora": {"field_name": "field_id"}, "flow": {...}}
+        # CRITICAL: Strip =Value filter syntax
+        # (e.g., "customfield_11309=PROD" -> "customfield_11309")
         field_mappings = config.get("field_mappings", {})
         for _category, mappings in field_mappings.items():
             if isinstance(mappings, dict):
                 for _field_name, field_id in mappings.items():
-                    # Extract clean field ID (strips =Value filter, skips changelog syntax)
+                    # Extract clean field ID
+                    # (strips =Value filter, skips changelog syntax)
                     clean_field_id = extract_jira_field_id(field_id)
                     if clean_field_id and clean_field_id not in base_fields:
                         additional_fields.append(clean_field_id)
@@ -166,39 +175,46 @@ def sync_jira_scope_and_data(
 
                         # Execute all deletions in one transaction
                         cursor.execute(
-                            "DELETE FROM jira_issues WHERE profile_id = ? AND query_id = ?",
+                            "DELETE FROM jira_issues "
+                            "WHERE profile_id = ? AND query_id = ?",
                             (active_profile_id, active_query_id),
                         )
                         deleted_count = cursor.rowcount
 
                         cursor.execute(
-                            "DELETE FROM project_statistics WHERE profile_id = ? AND query_id = ?",
+                            "DELETE FROM project_statistics "
+                            "WHERE profile_id = ? AND query_id = ?",
                             (active_profile_id, active_query_id),
                         )
                         stats_deleted = cursor.rowcount
 
-                        # Note: jira_cache table removed - cache metadata derived from jira_issues
+                        # Note: jira_cache table removed - cache metadata
+                        # derived from jira_issues
 
                         cursor.execute(
-                            "DELETE FROM jira_changelog_entries WHERE profile_id = ? AND query_id = ?",
+                            "DELETE FROM jira_changelog_entries "
+                            "WHERE profile_id = ? AND query_id = ?",
                             (active_profile_id, active_query_id),
                         )
                         changelog_deleted = cursor.rowcount
 
                         cursor.execute(
-                            "DELETE FROM metrics_data_points WHERE profile_id = ? AND query_id = ?",
+                            "DELETE FROM metrics_data_points "
+                            "WHERE profile_id = ? AND query_id = ?",
                             (active_profile_id, active_query_id),
                         )
                         metrics_deleted = cursor.rowcount
 
                         cursor.execute(
-                            "DELETE FROM project_scope WHERE profile_id = ? AND query_id = ?",
+                            "DELETE FROM project_scope "
+                            "WHERE profile_id = ? AND query_id = ?",
                             (active_profile_id, active_query_id),
                         )
                         scope_deleted = cursor.rowcount
 
                         cursor.execute(
-                            "DELETE FROM task_progress WHERE profile_id = ? AND query_id = ?",
+                            "DELETE FROM task_progress "
+                            "WHERE profile_id = ? AND query_id = ?",
                             (active_profile_id, active_query_id),
                         )
                         task_deleted = cursor.rowcount
@@ -207,9 +223,11 @@ def sync_jira_scope_and_data(
                         conn.commit()
 
                         logger.info(
-                            f"[JIRA] Force refresh atomically deleted: {deleted_count} issues, "
+                            "[JIRA] Force refresh atomically deleted: "
+                            f"{deleted_count} issues, "
                             f"{stats_deleted} statistics, "
-                            f"{changelog_deleted} changelog entries, {metrics_deleted} metrics, "
+                            f"{changelog_deleted} changelog entries, "
+                            f"{metrics_deleted} metrics, "
                             f"{scope_deleted} scope, {task_deleted} tasks from database"
                         )
 
@@ -231,10 +249,13 @@ def sync_jira_scope_and_data(
 
         logger.info(f"[JIRA] Fetch complete: {len(issues)} issues")
 
-        # PARENT FETCH: Get parent issues referenced by children for display (NOT counted in metrics)
-        # Parents are stored in database but filtered from calculations using parent_filter.py
+        # PARENT FETCH: Get parent issues referenced by children for display
+        # (NOT counted in metrics)
+        # Parents are stored in database but filtered from calculations
+        # using parent_filter.py
         # DEPRECATED: Parent types now included in main query via query_builder.py
-        # This code kept for backward compatibility when parent_issue_types not configured.
+        # This code kept for backward compatibility when
+        # parent_issue_types not configured.
         try:
             logger.info("[PARENT] Starting parent fetch...")
             from data.jira.query_builder import extract_parent_types_from_config
@@ -247,25 +268,30 @@ def sync_jira_scope_and_data(
                 from data.jira.epic_fetch import fetch_epics_for_display
 
                 logger.info(
-                    f"[PARENT] Calling fetch_epics_for_display (legacy) with {len(issues)} issues"
+                    "[PARENT] Calling fetch_epics_for_display "
+                    f"(legacy) with {len(issues)} issues"
                 )
                 parents = fetch_epics_for_display(issues, config)
                 if parents:
                     logger.info(
-                        f"[PARENT] Fetched {len(parents)} parent issues for display (legacy path)"
+                        f"[PARENT] Fetched {len(parents)} parent issues "
+                        "for display (legacy path)"
                     )
                     # Add parents to issues list - they'll be stored in database
-                    # CRITICAL: All calculation code must use parent_filter.py to filter them out
+                    # CRITICAL: All calculation code must use
+                    # parent_filter.py to filter them out
                     issues.extend(parents)
                     logger.info(
-                        f"[PARENT] Extended issues list to {len(issues)} total (includes {len(parents)} parents)"
+                        f"[PARENT] Extended issues list to {len(issues)} "
+                        f"total (includes {len(parents)} parents)"
                     )
                 else:
                     logger.info("[PARENT] No parent issues to fetch (legacy)")
             else:
                 # New behavior: Parent types already included in main query
                 logger.info(
-                    f"[PARENT] Skipping separate parent fetch - {len(parent_types)} parent "
+                    "[PARENT] Skipping separate parent fetch - "
+                    f"{len(parent_types)} parent "
                     f"type(s) already included in main query: {', '.join(parent_types)}"
                 )
         except Exception as e:
@@ -313,9 +339,13 @@ def sync_jira_scope_and_data(
                 # These correspond to all tabs in Configure JIRA Mappings modal:
                 # - Projects tab: development_projects, devops_projects
                 # - Fields tab: field_mappings (dora, flow, general namespaces)
-                # - Types tab: flow_type_mappings, devops_task_types, bug_types, story_types, task_types
-                # - Status tab: flow_start_statuses, wip_statuses, flow_end_statuses, active_statuses
-                # - Environment tab: production_environment_values, affected_environment_values, target_environment_values
+                # - Types tab: flow_type_mappings, devops_task_types,
+                #   bug_types, story_types, task_types
+                # - Status tab: flow_start_statuses, wip_statuses,
+                #   flow_end_statuses, active_statuses
+                # - Environment tab: production_environment_values,
+                #   affected_environment_values,
+                #   target_environment_values
                 relevant_settings = {
                     # Projects tab
                     "development_projects": current_settings.get(
@@ -363,7 +393,8 @@ def sync_jira_scope_and_data(
                 if last_hash and last_hash == current_hash:
                     # No data changes AND no settings changes - can skip
                     logger.info(
-                        "[JIRA] Delta fetch found no changes and settings unchanged, skipping metrics"
+                        "[JIRA] Delta fetch found no changes and "
+                        "settings unchanged, skipping metrics"
                     )
                     return (
                         True,
@@ -376,7 +407,8 @@ def sync_jira_scope_and_data(
                 else:
                     # Settings changed - must recalculate metrics
                     logger.info(
-                        "[JIRA] No new data but settings changed - will recalculate metrics"
+                        "[JIRA] No new data but settings changed - "
+                        "will recalculate metrics"
                     )
                     # Store the new hash for next time
                     backend.set_app_state(settings_hash_key, current_hash)
@@ -386,7 +418,8 @@ def sync_jira_scope_and_data(
         invalidate_changelog_cache()
 
         # CRITICAL FIX: Save issues to database BEFORE fetching changelog
-        # fetch_changelog_on_demand() reads from database to determine which issues need changelog
+        # fetch_changelog_on_demand() reads from database to determine
+        # which issues need changelog
         # If we haven't saved issues yet, it will see 0 issues and skip the fetch
         logger.info("[JIRA] Saving issues to database before changelog fetch...")
 
@@ -416,7 +449,8 @@ def sync_jira_scope_and_data(
                     expires_at=expires_at,
                 )
                 logger.info(
-                    f"[JIRA] ✓ Saved {len(issues)} issues to database before changelog fetch"
+                    f"[JIRA] Saved {len(issues)} issues to database "
+                    "before changelog fetch"
                 )
             else:
                 logger.warning("[JIRA] No active profile/query, cannot save issues")
@@ -484,8 +518,10 @@ def sync_jira_scope_and_data(
         except Exception:
             pass
 
-        # CRITICAL: Filter out parent issues dynamically based on parent field mapping
-        # Parents stored for display (Active Work Timeline) but excluded from ALL calculations
+        # CRITICAL: Filter out parent issues dynamically
+        # based on parent field mapping
+        # Parents stored for display (Active Work Timeline)
+        # but excluded from ALL calculations
         # Don't hardcode "Epic" - use parent field to detect what keys are parents
         parent_field = (
             config.get("field_mappings", {}).get("general", {}).get("parent_field")
@@ -495,13 +531,15 @@ def sync_jira_scope_and_data(
 
             issues = filter_parent_issues(issues, parent_field, log_prefix="JIRA SYNC")
 
-        # CRITICAL: Filter to only configured development project issues for burndown/velocity/statistics
+        # CRITICAL: Filter to only configured development project issues
+        # for burndown/velocity/statistics
         # DevOps issues are ONLY used for DORA metrics metadata extraction
         development_projects = config.get("development_projects", [])
         devops_projects = config.get("devops_projects", [])
 
         logger.info(
-            f"[JIRA] Project filtering config: development={development_projects or 'NONE'}, "
+            "[JIRA] Project filtering config: "
+            f"development={development_projects or 'NONE'}, "
             f"devops={devops_projects or 'NONE'}"
         )
 
@@ -516,16 +554,23 @@ def sync_jira_scope_and_data(
 
             if filtered_count > 0:
                 logger.info(
-                    f"[JIRA] Filtered to {len(issues_for_metrics)} development project issues (excluded {filtered_count})"
+                    f"[JIRA] Filtered to {len(issues_for_metrics)} "
+                    "development project issues "
+                    f"(excluded {filtered_count})"
                 )
             else:
                 logger.info(
-                    f"[JIRA] No issues filtered - all {len(issues_for_metrics)} issues match development projects"
+                    f"[JIRA] No issues filtered - all "
+                    f"{len(issues_for_metrics)} issues match "
+                    "development projects"
                 )
         else:
             # No project classification configured, use all issues
             logger.warning(
-                f"[JIRA] NO PROJECT FILTERING: Using all {len(issues)} issues (configure development_projects in JIRA Mappings → Projects tab)"
+                "[JIRA] NO PROJECT FILTERING: "
+                f"Using all {len(issues)} issues "
+                "(configure development_projects "
+                "in JIRA Mappings -> Projects tab)"
             )
             issues_for_metrics = issues
 
@@ -543,29 +588,34 @@ def sync_jira_scope_and_data(
 
             if parent_filtered_count > 0:
                 logger.info(
-                    f"[JIRA] Excluded {parent_filtered_count} parent issue(s) from metrics "
+                    f"[JIRA] Excluded {parent_filtered_count} "
+                    "parent issue(s) from metrics "
                     f"(types: {', '.join(parent_types)})"
                 )
 
-        # Calculate JIRA-based project scope (using ONLY development project issues, excluding parents)
+        # Calculate JIRA-based project scope
+        # (using ONLY development project issues, excluding parents)
         # Only use story_points_field if it's configured and not empty
         points_field_raw = config.get("story_points_field", "")
         # Defensive: Ensure points_field is a string, not a dict
         if isinstance(points_field_raw, dict):
             logger.warning(
-                f"[JIRA] story_points_field is a dict, using empty string: {points_field_raw}"
+                "[JIRA] story_points_field is a dict, "
+                f"using empty string: {points_field_raw}"
             )
             points_field = ""
         elif isinstance(points_field_raw, str):
             points_field = points_field_raw.strip()
         else:
             logger.warning(
-                f"[JIRA] story_points_field has unexpected type {type(points_field_raw)}, using empty string"
+                "[JIRA] story_points_field has unexpected type "
+                f"{type(points_field_raw)}, using empty string"
             )
             points_field = ""
 
         if not points_field:
-            # When no points field is configured, pass empty string instead of defaulting to "votes"
+            # When no points field is configured, pass empty string instead
+            # of defaulting to "votes"
             points_field = ""
         scope_data = calculate_jira_project_scope(
             issues_for_metrics, points_field, config

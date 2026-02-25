@@ -93,7 +93,8 @@ def get_active_sprint_from_issues(
     if active_sprint_name and active_sprint_data:
         logger.info(
             f"Determined active sprint: {active_sprint_name} ({max_count} issues), "
-            f"dates: {active_sprint_data['start_date']} to {active_sprint_data['end_date']}"
+            "dates: "
+            f"{active_sprint_data['start_date']} to {active_sprint_data['end_date']}"
         )
         return {
             "name": active_sprint_name,
@@ -116,7 +117,8 @@ def get_sprint_dates(
         sprint_field: Sprint custom field ID
 
     Returns:
-        Dict with {"start_date": str, "end_date": str, "state": str} or None if sprint not found
+        Dict with {"start_date": str, "end_date": str, "state": str}
+            or None if sprint not found
         Dates are ISO strings from JIRA sprint object
         State is "ACTIVE", "CLOSED", or "FUTURE"
     """
@@ -143,7 +145,8 @@ def get_sprint_dates(
 
                 if start_date and end_date:
                     logger.info(
-                        f"Found dates for {sprint_name}: {start_date} to {end_date}, state: {state}"
+                        "Found dates for "
+                        f"{sprint_name}: {start_date} to {end_date}, state: {state}"
                     )
                     return {
                         "start_date": start_date,
@@ -229,7 +232,9 @@ def get_sprint_snapshots(
             continue
 
         # Parse sprint name from JIRA sprint format
-        # Format: "com.atlassian.greenhopper.service.sprint.Sprint@14b3c[id=23,name=Sprint 23,...]"
+        # Format:
+        # "com.atlassian.greenhopper.service.sprint."
+        # "Sprint@14b3c[id=23,name=Sprint 23,...]"
         old_sprint = _parse_sprint_name(old_value)
         new_sprint = _parse_sprint_name(new_value)
 
@@ -361,7 +366,9 @@ def _parse_sprint_name(sprint_value: str | None) -> str | None:
     """Parse sprint name from JIRA sprint field value.
 
     JIRA returns sprint in different formats:
-    1. Serialized object: "com.atlassian.greenhopper.service.sprint.Sprint@14b3c[id=23,name=Sprint 23,...]"
+     1. Serialized object:
+        "com.atlassian.greenhopper.service.sprint."
+        "Sprint@14b3c[id=23,name=Sprint 23,...]"
     2. Simple name: "Gravity Sprint 256"
     3. Multiple sprints: "Gravity Sprint 254, Gravity Sprint 255, Gravity Sprint 256"
 
@@ -392,7 +399,8 @@ def _parse_sprint_name(sprint_value: str | None) -> str | None:
             except ValueError:
                 pass
 
-    # Handle comma-separated multiple sprints (e.g., "Sprint 254, Sprint 255, Sprint 256")
+    # Handle comma-separated multiple sprints
+    # (e.g., "Sprint 254, Sprint 255, Sprint 256")
     # Return the LAST sprint as it's typically the active/current one
     if "," in sprint_value:
         sprints = [s.strip() for s in sprint_value.split(",")]
@@ -408,14 +416,16 @@ def _parse_sprint_object(sprint_value: str) -> dict | None:
     JIRA returns serialized sprint objects like:
     "com.atlassian.greenhopper.service.sprint.Sprint@44f88702[activatedDate=<null>,
     autoStartStop=false,completeDate=<null>,endDate=2026-02-24T19:19:00.000+01:00,
-    goal=<null>,id=50477,name=Gravity Sprint 257,startDate=2026-02-10T09:00:00.000+01:00,
+    goal=<null>,id=50477,name=Gravity Sprint 257,
+    startDate=2026-02-10T09:00:00.000+01:00,
     state=FUTURE,...]"
 
     Args:
         sprint_value: Serialized JIRA sprint object string
 
     Returns:
-        Dict with {"name": str, "state": str, "start_date": str, "end_date": str} or None
+        Dict with {"name": str, "state": str, "start_date": str, "end_date": str}
+            or None
         State is one of: "ACTIVE", "FUTURE", "CLOSED"
         Dates are ISO strings or None if <null>
     """
@@ -475,8 +485,12 @@ def detect_sprint_changes(
             "Sprint 23": {
                 "added": [{"issue_key": "PROJ-1", "timestamp": "...", "from": null}],
                 "removed": [{"issue_key": "PROJ-2", "timestamp": "...", "to": null}],
-                "moved_in": [{"issue_key": "PROJ-3", "timestamp": "...", "from": "Sprint 22"}],
-                "moved_out": [{"issue_key": "PROJ-4", "timestamp": "...", "to": "Sprint 24"}]
+                "moved_in": [
+                    {"issue_key": "PROJ-3", "timestamp": "...", "from": "Sprint 22"}
+                ],
+                "moved_out": [
+                    {"issue_key": "PROJ-4", "timestamp": "...", "to": "Sprint 24"}
+                ]
             }
         }
     """
@@ -591,8 +605,10 @@ def calculate_sprint_progress(
 
     Args:
         sprint_snapshot: Sprint snapshot from get_sprint_snapshots()
-        flow_end_statuses: List of statuses considered "done" (default: ["Done", "Closed"])
-        flow_wip_statuses: List of statuses considered "in progress" (default: ["In Progress"])
+        flow_end_statuses: List of statuses considered "done"
+            (default: ["Done", "Closed"])
+        flow_wip_statuses: List of statuses considered "in progress"
+            (default: ["In Progress"])
 
     Returns:
         Progress metrics:
@@ -826,7 +842,8 @@ def calculate_issue_status_timeline(
                 )
             except (ValueError, AttributeError):
                 logger.warning(
-                    f"Invalid next date format for {issue_key}: {next_change_date_str}, using now"
+                    "Invalid next date format for "
+                    f"{issue_key}: {next_change_date_str}, using now"
                 )
                 end_time = datetime.now(UTC)
         else:
