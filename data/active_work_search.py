@@ -173,7 +173,8 @@ def parse_search_query(query: str) -> dict[str, Any]:
     """Parse search query into expression tree.
 
     Args:
-        query: Search query like "(labels:backend;frontend | assignee:jack) & issuetype:bug"
+        query: Search query like
+            "(labels:backend;frontend | assignee:jack) & issuetype:bug"
 
     Returns:
         Dict containing parsed expression under "_expr"
