@@ -105,14 +105,16 @@ def load_report_data(profile_id: str, weeks: int) -> dict[str, Any]:
     week_labels = set(reversed(week_labels_list))  # Convert to set for fast lookup
 
     logger.info(
-        f"[REPORT FILTER] Filtering to last {weeks} weeks from {reference_date.strftime('%Y-%m-%d')}: {sorted(week_labels)}"
+        f"[REPORT FILTER] Filtering to last {weeks} weeks from "
+        f"{reference_date.strftime('%Y-%m-%d')}: {sorted(week_labels)}"
     )
 
     # Filter using week labels (SAME AS UI)
     if "week_label" in df_all.columns:
         df_filtered = df_all[df_all["week_label"].isin(week_labels)]
         logger.info(
-            f"[REPORT FILTER] Filtered to {len(df_filtered)} rows using week_label matching (requested {weeks} weeks)"
+            f"[REPORT FILTER] Filtered to {len(df_filtered)} rows using "
+            f"week_label matching (requested {weeks} weeks)"
         )
     else:
         # Should not happen - week_label is backfilled by persistence layer
@@ -129,7 +131,8 @@ def load_report_data(profile_id: str, weeks: int) -> dict[str, Any]:
     # Convert back to list of dicts
     filtered_stats = df_filtered.to_dict("records")
 
-    # Filter snapshots to time period using week labels (exclude current incomplete week)
+    # Filter snapshots to time period using week labels (exclude current
+    # incomplete week)
     filtered_snapshots = {}
     if all_snapshots:
         for week_label_key, snapshot_data in all_snapshots.items():
@@ -137,21 +140,32 @@ def load_report_data(profile_id: str, weeks: int) -> dict[str, Any]:
             if week_label_key in week_labels and week_label_key != current_week:
                 filtered_snapshots[week_label_key] = snapshot_data
         logger.info(
-            f"[REPORT FILTER] Filtered snapshots: {len(filtered_snapshots)} weeks (excluded current week {current_week})"
+            f"[REPORT FILTER] Filtered snapshots: {len(filtered_snapshots)} "
+            f"weeks (excluded current week {current_week})"
         )
 
     # Use REQUESTED weeks, not snapshot count
-    # The velocity calculation groups statistics by ISO week, so it doesn't need to match snapshot count
-    # CRITICAL: This must match the user's selected data window in the app (data_points_count)
+    # The velocity calculation groups statistics by ISO week, so it doesn't
+    # need to match snapshot count
+    # CRITICAL: This must match the user's selected data window in the app
+    # (data_points_count)
     weeks_count = weeks
+    reference_date_display = (
+        reference_date.strftime("%Y-%m-%d")
+        if isinstance(reference_date, datetime)
+        else str(reference_date)
+    )
 
     # Log comprehensive filtering summary
     logger.info(
         f"[REPORT DATA] Loaded data summary:\n"
         f"  - Total statistics: {len(all_stats)}\n"
-        f"  - Filtered statistics: {len(filtered_stats)} (requested {weeks_count} weeks)\n"
+        f"  - Filtered statistics: {len(filtered_stats)} "
+        f"(requested {weeks_count} weeks)\n"
         f"  - Snapshot weeks: {len(filtered_snapshots)}\n"
-        f"  - Reference date: {reference_date.strftime('%Y-%m-%d') if isinstance(reference_date, datetime) else reference_date}\n"
+        "  - Reference date: "
+        f"{reference_date_display}"
+        "\n"
         f"  - Week labels included: {sorted(week_labels)}"
     )
 
@@ -160,7 +174,8 @@ def load_report_data(profile_id: str, weeks: int) -> dict[str, Any]:
         completed_items_sum = sum(s.get("completed_items", 0) for s in filtered_stats)
         completed_points_sum = sum(s.get("completed_points", 0) for s in filtered_stats)
         logger.info(
-            f"[REPORT DATA] Filtered data summary: {completed_items_sum} items, {completed_points_sum:.1f} points completed"
+            f"[REPORT DATA] Filtered data summary: {completed_items_sum} items, "
+            f"{completed_points_sum:.1f} points completed"
         )
 
     return {

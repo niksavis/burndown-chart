@@ -16,7 +16,8 @@ def filter_bug_issues(
     """Filter issues to include only bugs based on type mappings.
 
     Args:
-        issues: List of JIRA issues (supports both JIRA API format and normalized database format)
+        issues: List of JIRA issues
+            (supports both JIRA API format and normalized database format)
         bug_type_mappings: Dict mapping JIRA type names to "bug" category
         date_from: Optional start date filter (filters by created_date)
         date_to: Optional end date filter (filters by created_date)
@@ -29,7 +30,8 @@ def filter_bug_issues(
     filtered_bugs = []
 
     for issue in issues:
-        # Extract issue type name - handle both JIRA API format and normalized database format
+        # Extract issue type name - handle both JIRA API format
+        # and normalized database format
         # JIRA API format: {"fields": {"issuetype": {"name": "Bug"}}}
         # Database format: {"issue_type": "Bug"}
         if "fields" in issue:
@@ -86,7 +88,8 @@ def calculate_bug_statistics(
         bug_issues: List of filtered bug issues from repository layer
         date_from: Start date of analysis period
         date_to: End date of analysis period
-        story_points_field: Deprecated - kept for backward compatibility, uses normalized 'points' field
+        story_points_field: Deprecated - kept for backward compatibility,
+            uses normalized 'points' field
 
     Returns:
         List of weekly bug statistics dictionaries
@@ -117,7 +120,8 @@ def calculate_bug_statistics(
     for year in range(year_start, year_end + 1):
         start = week_start if year == year_start else 1
         # FIX: Determine actual number of weeks in the year (52 or 53)
-        # ISO 8601: Week 53 only exists in years that start on Thursday or leap years starting on Wednesday
+        # ISO 8601: Week 53 only exists in years that start on Thursday
+        # or leap years starting on Wednesday
         # Most years have 52 weeks, some have 53
         max_week_in_year = get_max_iso_week_for_year(year)
         end = min(week_end if year == year_end else max_week_in_year, max_week_in_year)
@@ -209,12 +213,15 @@ def calculate_bug_metrics_summary(
     """Calculate overall bug metrics summary.
 
     Args:
-        all_bug_issues: List of all bug issues (for current state metrics like open bugs count)
-        timeline_filtered_bugs: List of bugs filtered by timeline (for historical metrics like resolution rate)
+        all_bug_issues: List of all bug issues (for current state metrics like
+            open bugs count)
+        timeline_filtered_bugs: List of bugs filtered by timeline (for
+            historical metrics like resolution rate)
         weekly_stats: List of weekly bug statistics
         date_from: Start date for timeline filter (for display purposes)
         date_to: End date for timeline filter (for display purposes)
-        all_project_issues: List of ALL project issues (bugs + non-bugs) for capacity calculation
+        all_project_issues: List of ALL project issues (bugs + non-bugs) for
+            capacity calculation
 
     Returns:
         Bug metrics summary dictionary with resolution rate, trends, etc.
@@ -243,7 +250,8 @@ def calculate_bug_metrics_summary(
     for issue in all_bug_issues:
         # Handle both JIRA API format and database format
         if "fields" in issue:
-            # JIRA API format: {"fields": {"resolutiondate": "...", "customfield_10016": ...}}
+            # JIRA API format:
+            # {"fields": {"resolutiondate": "...", "customfield_10016": ...}}
             fields = issue.get("fields", {})
             resolution_date = fields.get("resolutiondate")
             points = fields.get("customfield_10016") or 0
@@ -274,7 +282,8 @@ def calculate_bug_metrics_summary(
 
     logger = logging.getLogger(__name__)
     logger.info(
-        f"[BUG CALC] Open bugs: count={open_bugs}, ages={len(open_bug_ages)}, avg_age={avg_age_days:.1f}d"
+        f"[BUG CALC] Open bugs: count={open_bugs}, ages={len(open_bug_ages)}, "
+        f"avg_age={avg_age_days:.1f}d"
     )
 
     # Count historical metrics from timeline-filtered bugs
@@ -328,7 +337,8 @@ def calculate_bug_metrics_summary(
     resolution_rate = closed_bugs / total_bugs if total_bugs > 0 else 0.0
 
     logger.info(
-        f"[BUG CALC] Resolution rate: {closed_bugs}/{total_bugs} = {resolution_rate:.4f} ({resolution_rate * 100:.2f}%)"
+        f"[BUG CALC] Resolution rate: {closed_bugs}/{total_bugs} = "
+        f"{resolution_rate:.4f} ({resolution_rate * 100:.2f}%)"
     )
 
     # DEBUG: Log resolution rate calculation
@@ -337,7 +347,8 @@ def calculate_bug_metrics_summary(
     logger = logging.getLogger(__name__)
     logger.info(
         f"[BUG CALC] Resolution rate: closed={closed_bugs}, total={total_bugs}, "
-        f"rate={resolution_rate * 100:.2f}%, all_bugs={len(all_bug_issues)}, timeline_bugs={len(timeline_filtered_bugs)}"
+        f"rate={resolution_rate * 100:.2f}%, all_bugs={len(all_bug_issues)}, "
+        f"timeline_bugs={len(timeline_filtered_bugs)}"
     )
 
     # Calculate average resolution time
@@ -600,9 +611,7 @@ def calculate_standard_deviation(values: list[float]) -> float:
     return variance**0.5
 
 
-def calculate_future_date(
-    weeks_ahead: int, base_date: datetime | None = None
-) -> str:
+def calculate_future_date(weeks_ahead: int, base_date: datetime | None = None) -> str:
     """Calculate a future date given weeks ahead.
 
     Args:

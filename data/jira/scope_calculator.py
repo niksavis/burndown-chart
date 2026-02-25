@@ -35,7 +35,8 @@ def calculate_jira_project_scope(
         - remaining_points: Story points for remaining issues (sum of all remaining)
         - estimated_items: Number of remaining issues WITH point values
         - estimated_points: Story points only from issues WITH point values
-        - remaining_total_points: Calculated total remaining points (estimated + extrapolated)
+                - remaining_total_points: Calculated total remaining points (estimated
+                    + extrapolated)
         - status_breakdown: Detailed breakdown by status
         - points_field_available: Whether meaningful point data was found
     """
@@ -57,12 +58,15 @@ def calculate_jira_project_scope(
 
     logger.info(f"[SCOPE] Starting calculation for {len(issues_data)} issues")
     logger.info(
-        f"[SCOPE] Points tracking: {'enabled' if points_field_available else 'disabled'} (field: {points_field if points_field_available else 'not configured'})"
+        "[SCOPE] Points tracking: "
+        f"{'enabled' if points_field_available else 'disabled'} "
+        f"(field: {points_field if points_field_available else 'not configured'})"
     )
 
     for issue in issues_data:
         try:
-            # Extract issue data - handle both nested (JIRA API) and flat (database) formats
+            # Extract issue data - handle both nested (JIRA API) and flat
+            # (database) formats
             if "fields" in issue and isinstance(issue.get("fields"), dict):
                 # Nested format (JIRA API)
                 status_name = issue["fields"]["status"]["name"]
@@ -114,10 +118,12 @@ def calculate_jira_project_scope(
     total_points = completed_points + remaining_points
 
     logger.info(
-        f"[SCOPE] Calculation complete - Total: {total_items}, Completed: {completed_items}, Remaining: {remaining_items}"
+        f"[SCOPE] Calculation complete - Total: {total_items}, "
+        f"Completed: {completed_items}, Remaining: {remaining_items}"
     )
     logger.info(
-        f"[SCOPE] Points - Total: {total_points}, Completed: {completed_points}, Remaining: {remaining_points}"
+        f"[SCOPE] Points - Total: {total_points}, Completed: {completed_points}, "
+        f"Remaining: {remaining_points}"
     )
 
     # Calculate remaining_total_points using the specified formula
@@ -142,7 +148,8 @@ def calculate_jira_project_scope(
         "remaining_points": remaining_points,  # Sum of all remaining item points
         "estimated_items": estimated_items,  # Items with actual point values
         "estimated_points": estimated_points,  # Sum of points from estimated items
-        "remaining_total_points": remaining_total_points,  # Calculated total remaining points
+        "remaining_total_points": remaining_total_points,  # Calculated total
+        # remaining points
         "points_field_available": points_field_available,  # Flag for UI
         "status_breakdown": status_breakdown,
         "calculation_metadata": {
@@ -158,7 +165,8 @@ def calculate_jira_project_scope(
     }
 
     logger.info(
-        f"[Stats] JIRA Scope Calculated: {completed_items}/{total_items} items completed, "
+        f"[Stats] JIRA Scope Calculated: {completed_items}/{total_items} "
+        f"items completed, "
         f"{completed_points}/{total_points} points completed"
     )
 
@@ -233,7 +241,8 @@ def _extract_story_points(fields: dict[str, Any], points_field: str) -> int:
             return int(vote_count) if vote_count is not None else 0
 
         elif points_field.startswith("customfield_"):
-            # Custom field - check custom_fields dict first (flat format), then root level (nested format)
+            # Custom field - check custom_fields dict first (flat format), then
+            # root level (nested format)
             value = None
             if "custom_fields" in fields and isinstance(
                 fields.get("custom_fields"), dict
@@ -304,9 +313,9 @@ def _issue_has_real_points(fields: dict[str, Any], points_field: str) -> bool:
     """
     Check if a specific issue has real point values (non-null story points).
 
-    Business Logic: An item is "estimated" ONLY if the story points field has a non-null value.
-    Items with null story points are considered "not estimated" even if they get default
-    points in calculations for extrapolation purposes.
+    Business Logic: An item is "estimated" ONLY if the story points field has a
+    non-null value. Items with null story points are considered "not estimated"
+    even if they get default points in calculations for extrapolation purposes.
 
     Args:
         fields: JIRA issue fields dictionary
@@ -329,7 +338,8 @@ def _issue_has_real_points(fields: dict[str, Any], points_field: str) -> bool:
             vote_count = votes_data.get("votes", 0)
             return vote_count > 0  # Only positive votes count as "estimated"
         elif points_field.startswith("customfield_"):
-            # Check custom_fields dict first (flat format), then root level (nested format)
+            # Check custom_fields dict first (flat format), then root level
+            # (nested format)
             value = None
             if "custom_fields" in fields and isinstance(
                 fields.get("custom_fields"), dict

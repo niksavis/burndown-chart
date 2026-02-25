@@ -56,14 +56,19 @@ def load_unified_project_data() -> dict[str, Any]:
             data["statistics"] = statistics
 
         logger.info(
-            f"[Cache] Loaded unified data from database for {active_profile_id}/{active_query_id}: {len(statistics)} stats"
+            "[Cache] Loaded unified data from database for "
+            f"{active_profile_id}/{active_query_id}: {len(statistics)} stats"
         )
         if statistics:
             logger.info(
-                f"[Cache] First stat: date={statistics[0].get('date')}, items={statistics[0].get('remaining_items')}, points={statistics[0].get('remaining_total_points')}"
+                f"[Cache] First stat: date={statistics[0].get('date')}, "
+                f"items={statistics[0].get('remaining_items')}, "
+                f"points={statistics[0].get('remaining_total_points')}"
             )
             logger.info(
-                f"[Cache] Last stat: date={statistics[-1].get('date')}, items={statistics[-1].get('remaining_items')}, points={statistics[-1].get('remaining_total_points')}"
+                f"[Cache] Last stat: date={statistics[-1].get('date')}, "
+                f"items={statistics[-1].get('remaining_items')}, "
+                f"points={statistics[-1].get('remaining_total_points')}"
             )
         return data
 
@@ -108,9 +113,11 @@ def save_unified_project_data(data: dict[str, Any]) -> None:
                     if "stat_date" not in stat_data or not stat_data["stat_date"]:
                         stat_data["stat_date"] = stat_data["date"]
 
-                # CRITICAL FIX: Normalize stat_date to YYYY-MM-DD format to prevent duplicates
-                # Issue: Dates with timestamps (YYYY-MM-DD-HHMMSS) vs plain dates (YYYY-MM-DD)
-                # created duplicate database entries because ON CONFLICT only works with exact string match
+                # CRITICAL FIX: Normalize stat_date to YYYY-MM-DD format to
+                # prevent duplicates
+                # Issue: Dates with timestamps (YYYY-MM-DD-HHMMSS) vs plain
+                # dates (YYYY-MM-DD) created duplicate database entries because
+                # ON CONFLICT only works with exact string match
                 if stat_data.get("stat_date"):
                     try:
                         # Parse date in any format and normalize to YYYY-MM-DD
@@ -121,12 +128,14 @@ def save_unified_project_data(data: dict[str, Any]) -> None:
                             stat_data["stat_date"] = parsed_date.strftime("%Y-%m-%d")
                         else:
                             logger.warning(
-                                f"[Cache] Could not parse date: {stat_data['stat_date']}"
+                                "[Cache] Could not parse date: "
+                                f"{stat_data['stat_date']}"
                             )
                             continue
                     except Exception as e:
                         logger.warning(
-                            f"[Cache] Error normalizing date {stat_data.get('stat_date')}: {e}"
+                            "[Cache] Error normalizing date "
+                            f"{stat_data.get('stat_date')}: {e}"
                         )
                         continue
 

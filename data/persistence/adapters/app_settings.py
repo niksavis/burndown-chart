@@ -65,7 +65,8 @@ def save_app_settings(
         flow_start_statuses: List of flow start status names
         wip_statuses: List of WIP status names
         flow_type_mappings: Dict with Flow type classifications (Feature, Defect, etc.)
-        cache_metadata: Dict with cache tracking info (last_cache_key, last_cache_timestamp, cache_config_hash)
+        cache_metadata: Dict with cache tracking info (last_cache_key,
+            last_cache_timestamp, cache_config_hash)
     """
     # Lazy import to avoid circular dependency
     from configuration.settings import DEFAULT_DATA_POINTS_COUNT, DEFAULT_PERT_FACTOR
@@ -126,7 +127,8 @@ def save_app_settings(
     try:
         existing_settings = load_app_settings()
         logger.debug(
-            f"[Config] Loading existing settings. Keys: {list(existing_settings.keys())}"
+            "[Config] Loading existing settings. Keys: "
+            f"{list(existing_settings.keys())}"
         )
 
         # Keys to preserve from existing settings (if not explicitly provided)
@@ -205,7 +207,8 @@ def save_app_settings(
                         "pert_factor", DEFAULT_PERT_FACTOR
                     ),
                 ),
-                # Use 'in' check for deadline/milestone to allow explicit None (clearing the value)
+                # Use 'in' check for deadline/milestone to allow explicit None
+                # (clearing the value)
                 "deadline": settings["deadline"]
                 if "deadline" in settings
                 else existing_profile.get("forecast_settings", {}).get("deadline"),
@@ -294,13 +297,16 @@ def save_app_settings(
             f"[Config] Settings saved to database. Profile: {profile_data['name']}"
         )
         logger.debug(
-            f"[Config] Saved forecast_settings: pert_factor={profile_data['forecast_settings'].get('pert_factor')}, "
+            "[Config] Saved forecast_settings: "
+            f"pert_factor={profile_data['forecast_settings'].get('pert_factor')}, "
             f"deadline={profile_data['forecast_settings'].get('deadline')}, "
-            f"data_points_count={profile_data['forecast_settings'].get('data_points_count')}, "
+            "data_points_count="
+            f"{profile_data['forecast_settings'].get('data_points_count')}, "
             f"milestone={profile_data['forecast_settings'].get('milestone')}"
         )
         logger.debug(
-            f"[Config] Saved UI settings: show_milestone={profile_data.get('show_milestone')}, "
+            "[Config] Saved UI settings: "
+            f"show_milestone={profile_data.get('show_milestone')}, "
             f"show_points={profile_data.get('show_points')}"
         )
     except Exception as e:
@@ -360,7 +366,8 @@ def load_app_settings() -> dict[str, Any]:
 
         logger.info(f"[Config] Settings loaded via backend for profile {active_id}")
 
-        # Transform backend data to legacy app_settings format for backward compatibility
+        # Transform backend data to legacy app_settings format for backward
+        # compatibility
         settings = {
             "pert_factor": profile_data.get("forecast_settings", {}).get(
                 "pert_factor", DEFAULT_PERT_FACTOR
@@ -424,13 +431,15 @@ def load_app_settings() -> dict[str, Any]:
                 settings[key] = default_value
 
         logger.debug(
-            f"[Config] Loaded forecast_settings: pert_factor={settings.get('pert_factor')}, "
+            "[Config] Loaded forecast_settings: "
+            f"pert_factor={settings.get('pert_factor')}, "
             f"deadline={settings.get('deadline')}, "
             f"data_points_count={settings.get('data_points_count')}, "
             f"milestone={settings.get('milestone')}"
         )
         logger.debug(
-            f"[Config] Loaded UI settings: show_milestone={settings.get('show_milestone')}, "
+            "[Config] Loaded UI settings: "
+            f"show_milestone={settings.get('show_milestone')}, "
             f"show_points={settings.get('show_points')}"
         )
 

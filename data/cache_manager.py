@@ -228,7 +228,8 @@ def load_cache_with_validation(
         cache_key: MD5 hash identifying this cache
         config_hash: Hash of current configuration
         max_age_hours: Maximum age in hours before cache expires (default: 24)
-        cache_dir: Directory containing cache files (unused, kept for backwards compatibility)
+        cache_dir: Directory containing cache files (unused, kept for
+            backwards compatibility)
         profile_id: Optional profile ID (auto-fetched if not provided)
         query_id: Optional query ID (auto-fetched if not provided)
 
@@ -266,13 +267,16 @@ def load_cache_with_validation(
                         or "metadata" not in cache_response
                     ):
                         logger.warning(
-                            f"Database cache invalid: missing issues or metadata ({cache_key})"
+                            "Database cache invalid: missing issues or metadata "
+                            f"({cache_key})"
                         )
                     else:
                         metadata = cache_response["metadata"]
 
-                        # Check config hash (skip if empty - cache_key already validates config)
-                        # Note: After jira_cache table removal, config_hash is not stored
+                        # Check config hash (skip if empty - cache_key already
+                        # validates config)
+                        # Note: After jira_cache table removal,
+                        # config_hash is not stored
                         # but cache_key matching already ensures config matches
                         cached_config_hash = metadata.get("config_hash", "")
                         if cached_config_hash and cached_config_hash != config_hash:
@@ -297,12 +301,16 @@ def load_cache_with_validation(
                                 if age_hours <= max_age_hours:
                                     # Cache is valid
                                     logger.info(
-                                        f"Database cache hit: loaded {len(cache_response['issues'])} items ({age_hours:.1f}h old)"
+                                        "Database cache hit: loaded "
+                                        f"{len(cache_response['issues'])} items "
+                                        f"({age_hours:.1f}h old)"
                                     )
                                     return True, cache_response["issues"]
                                 else:
                                     logger.debug(
-                                        f"Database cache expired: {age_hours:.1f}h old (max: {max_age_hours}h) ({cache_key})"
+                                        f"Database cache expired: {age_hours:.1f}h "
+                                        f"old (max: {max_age_hours}h) "
+                                        f"({cache_key})"
                                     )
                 else:
                     logger.debug(f"Database cache miss: no record found ({cache_key})")
@@ -385,7 +393,8 @@ def save_cache(
 
     # If we reach here, cache save failed (no backend or no profile/query IDs)
     logger.warning(
-        f"Cache not saved: database backend unavailable or no active profile/query ({cache_key})"
+        "Cache not saved: database backend unavailable or no active "
+        f"profile/query ({cache_key})"
     )
 
 
@@ -403,7 +412,8 @@ def invalidate_cache(cache_key: str, cache_dir: str = "cache") -> None:
         cache_dir: Directory containing cache files (unused)
     """
     logger.debug(
-        f"invalidate_cache called but deprecated - cache managed by database ({cache_key})"
+        "invalidate_cache called but deprecated - cache managed by database "
+        f"({cache_key})"
     )
 
 

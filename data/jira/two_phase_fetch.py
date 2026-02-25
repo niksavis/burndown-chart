@@ -78,7 +78,8 @@ def extract_fixversions_from_issues(issues: list[dict]) -> list[str]:
 
     result = sorted(list(fixversion_names))
     logger.info(
-        f"[TWO-PHASE] Extracted {len(result)} unique fixVersions from {len(issues)} development issues"
+        f"[TWO-PHASE] Extracted {len(result)} unique fixVersions from "
+        f"{len(issues)} development issues"
     )
 
     return result
@@ -120,7 +121,8 @@ def build_devops_jql(
     if not fixversion_names or len(fixversion_names) == 0:
         # No fixVersions found in development projects
         logger.warning(
-            "[TWO-PHASE] No fixVersions found in development issues - DevOps fetch will return no results"
+            "[TWO-PHASE] No fixVersions found in development issues - "
+            "DevOps fetch will return no results"
         )
         fixversion_clause = "fixVersion in ()"  # Empty IN clause (no results)
     elif len(fixversion_names) == 1:
@@ -129,7 +131,8 @@ def build_devops_jql(
         # JIRA has ~1000 limit for IN clause, but we'll warn if it's large
         if len(fixversion_names) > 500:
             logger.warning(
-                f"[TWO-PHASE] Large fixVersion filter ({len(fixversion_names)} versions) "
+                "[TWO-PHASE] Large fixVersion filter "
+                f"({len(fixversion_names)} versions) "
                 "- query may be slow"
             )
 
@@ -210,7 +213,8 @@ def fetch_jira_issues_two_phase(
             return False, []
 
         logger.info(
-            f"[TWO-PHASE] Phase 1 complete: {len(dev_issues)} development issues fetched"
+            f"[TWO-PHASE] Phase 1 complete: {len(dev_issues)} development "
+            "issues fetched"
         )
 
         # ===== PHASE 2: Extract fixVersions =====
@@ -218,14 +222,16 @@ def fetch_jira_issues_two_phase(
 
         if not fixversion_names or len(fixversion_names) == 0:
             logger.warning(
-                "[TWO-PHASE] No fixVersions found in development issues - skipping DevOps fetch"
+                "[TWO-PHASE] No fixVersions found in development issues - "
+                "skipping DevOps fetch"
             )
             logger.info(
                 "[TWO-PHASE] Returning only development issues (no DevOps linkage)"
             )
             elapsed_time = time.time() - start_time
             logger.info(
-                f"[TWO-PHASE] Fetch complete: {len(dev_issues)} issues in {elapsed_time:.2f}s"
+                f"[TWO-PHASE] Fetch complete: {len(dev_issues)} issues in "
+                f"{elapsed_time:.2f}s"
             )
             return True, dev_issues
 
@@ -250,7 +256,8 @@ def fetch_jira_issues_two_phase(
             )
             elapsed_time = time.time() - start_time
             logger.info(
-                f"[TWO-PHASE] Fetch complete: {len(dev_issues)} issues in {elapsed_time:.2f}s"
+                f"[TWO-PHASE] Fetch complete: {len(dev_issues)} issues in "
+                f"{elapsed_time:.2f}s"
             )
             return True, dev_issues
 
@@ -265,7 +272,8 @@ def fetch_jira_issues_two_phase(
         elapsed_time = time.time() - start_time
         logger.info(
             f"[TWO-PHASE] Fetch complete: {len(merged_issues)} total issues "
-            f"({len(dev_issues)} dev + {len(devops_issues)} devops) in {elapsed_time:.2f}s"
+            f"({len(dev_issues)} dev + {len(devops_issues)} devops) in "
+            f"{elapsed_time:.2f}s"
         )
 
         # Log performance improvement estimate
