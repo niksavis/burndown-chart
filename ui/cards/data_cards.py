@@ -61,7 +61,12 @@ def create_statistics_data_card(current_statistics) -> dbc.Card:
     # Card header with title and tooltip
     header_content = create_card_header_with_tooltip(
         title="Weekly Progress Data",
-        tooltip_text="Weekly tracking of completed and newly created work items and story points. Each Monday date represents work done during that week (Monday through Sunday). This data drives all velocity calculations and forecasting.",
+        tooltip_text=(
+            "Weekly tracking of completed and newly created work items "
+            "and story points. Each Monday date represents work done "
+            "during that week (Monday through Sunday). This data drives "
+            "all velocity calculations and forecasting."
+        ),
         tooltip_id="statistics-data",
     )
 
@@ -105,7 +110,8 @@ def create_statistics_data_card(current_statistics) -> dbc.Card:
 
     def generate_column_alignments(dataframe):
         """
-        Generate a dictionary of optimal column alignments for all columns in a DataFrame.
+        Generate a dictionary of optimal column alignments
+        for all columns in a DataFrame.
         """
         alignments = {}
         for column in dataframe.columns:
@@ -123,6 +129,8 @@ def create_statistics_data_card(current_statistics) -> dbc.Card:
         # Use vertical rhythm system for consistent table spacing
         cell_padding_v = "0.5rem"
         cell_padding_h = "0.75rem"
+        border_color = NEUTRAL_COLORS.get("gray-400", "#ced4da")
+        font_family = "system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif"
 
         style_dict = {
             "style_table": {
@@ -137,11 +145,11 @@ def create_statistics_data_card(current_statistics) -> dbc.Card:
                 "fontWeight": "bold",
                 "textAlign": "center",
                 "padding": f"{cell_padding_v} {cell_padding_h}",
-                "borderBottom": f"2px solid {NEUTRAL_COLORS.get('gray-400', '#ced4da')}",
+                "borderBottom": f"2px solid {border_color}",
             },
             "style_cell": {
                 "padding": f"{cell_padding_v} {cell_padding_h}",
-                "fontFamily": "system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif",
+                "fontFamily": font_family,
                 "textAlign": "left",
                 "whiteSpace": "normal",
                 "height": "auto",
@@ -172,12 +180,18 @@ def create_statistics_data_card(current_statistics) -> dbc.Card:
                 # Ensure text wraps on small screens
                 {
                     "selector": ".dash-cell-value",
-                    "rule": "white-space: normal !important; word-break: break-word !important;",
+                    "rule": (
+                        "white-space: normal !important; "
+                        "word-break: break-word !important;"
+                    ),
                 },
                 # Improve filter icon appearance
                 {
                     "selector": ".dash-filter",
-                    "rule": "padding: 2px 5px; border-radius: 3px; background-color: rgba(0, 0, 0, 0.05);",
+                    "rule": (
+                        "padding: 2px 5px; border-radius: 3px; "
+                        "background-color: rgba(0, 0, 0, 0.05);"
+                    ),
                 },
                 # Hide case-sensitive toggle (simplify filtering UI)
                 {"selector": ".dash-filter--case", "rule": "display: none;"},
@@ -194,7 +208,10 @@ def create_statistics_data_card(current_statistics) -> dbc.Card:
                 # Add better focus indication for keyboard navigation
                 {
                     "selector": ".dash-cell-value:focus",
-                    "rule": "outline: none !important; box-shadow: inset 0 0 0 2px #0d6efd !important;",
+                    "rule": (
+                        "outline: none !important; "
+                        "box-shadow: inset 0 0 0 2px #0d6efd !important;"
+                    ),
                 },
             ]
 
@@ -217,7 +234,8 @@ def create_statistics_data_card(current_statistics) -> dbc.Card:
         priority_columns=None,
     ):
         """
-        Create a data table with standardized styling and enhanced mobile responsiveness.
+        Create a data table with standardized styling
+        and enhanced mobile responsiveness.
         """
         # Get base styling
         table_style = create_standardized_table_style(
@@ -287,7 +305,9 @@ def create_statistics_data_card(current_statistics) -> dbc.Card:
                 "page_count": None,
             }
         else:
-            pagination_settings = {}  # Create the table with enhanced styling and responsive features
+            pagination_settings = {}
+
+        # Create the table with enhanced styling and responsive features
         return dash_table.DataTable(
             id=id,
             data=data,
@@ -370,7 +390,9 @@ def create_statistics_data_card(current_statistics) -> dbc.Card:
             html.Small(
                 [
                     html.I(className="fas fa-info-circle me-1 text-info"),
-                    "Enter weekly data for work completed and created. Each Monday date represents work done during that full week (Monday through Sunday, inclusive).",
+                    "Enter weekly data for work completed and created. "
+                    "Each Monday date represents work done during that full "
+                    "week (Monday through Sunday, inclusive).",
                 ],
                 className="text-muted",
             ),
@@ -378,7 +400,9 @@ def create_statistics_data_card(current_statistics) -> dbc.Card:
                 [
                     html.I(className="fas fa-calendar-week me-1 text-info"),
                     html.Strong("Weekly Timeboxes: "),
-                    "Monday date = work completed/created from that Monday through the following Sunday (7-day period, inclusive). Use the ",
+                    "Monday date = work completed/created from that Monday "
+                    "through the following Sunday (7-day period, inclusive). "
+                    "Use the ",
                     html.Code("Add Row"),
                     " button to add new weekly entries.",
                 ],
@@ -388,7 +412,9 @@ def create_statistics_data_card(current_statistics) -> dbc.Card:
                 [
                     html.I(className="fas fa-plus-circle me-1 text-info"),
                     html.Strong("Scope Tracking: "),
-                    "Include both completed work (finished items/points) and created work (new items/points added to backlog) to track scope changes.",
+                    "Include both completed work (finished items/points) "
+                    "and created work (new items/points added to backlog) "
+                    "to track scope changes.",
                 ],
                 className="text-muted d-block mt-1",
             ),
@@ -410,7 +436,8 @@ def create_statistics_data_card(current_statistics) -> dbc.Card:
                     html.Strong("Update Data"),
                     " will overwrite all edits with fresh JIRA data, and ",
                     html.Strong("Force Refresh"),
-                    " will delete all data and reload from JIRA. Save important manual changes elsewhere before updating.",
+                    " will delete all data and reload from JIRA. "
+                    "Save important manual changes elsewhere before updating.",
                 ],
                 className="d-block mt-2 p-2",
                 style={
@@ -456,13 +483,19 @@ def create_statistics_data_card(current_statistics) -> dbc.Card:
                                             html.Strong(
                                                 [
                                                     html.I(
-                                                        className="fas fa-calendar-week me-1 text-primary"
+                                                        className=(
+                                                            "fas fa-calendar-week "
+                                                            "me-1 text-primary"
+                                                        )
                                                     ),
                                                     "Week Start (Monday):",
                                                 ]
                                             ),
                                             html.Span(
-                                                " Data collection date (weekly snapshots). Each Monday represents work done during that full week (Monday-Sunday).",
+                                                " Data collection date "
+                                                "(weekly snapshots). Each Monday "
+                                                "represents work done during that "
+                                                "full week (Monday-Sunday).",
                                                 className="ms-1",
                                             ),
                                             create_info_tooltip(
@@ -478,13 +511,18 @@ def create_statistics_data_card(current_statistics) -> dbc.Card:
                                             html.Strong(
                                                 [
                                                     html.I(
-                                                        className="fas fa-check-circle me-1 text-success"
+                                                        className=(
+                                                            "fas fa-check-circle "
+                                                            "me-1 text-success"
+                                                        )
                                                     ),
                                                     "Items Done This Week:",
                                                 ]
                                             ),
                                             html.Span(
-                                                " Number of work items (stories, tasks, tickets) completed during this weekly period.",
+                                                " Number of work items "
+                                                "(stories, tasks, tickets) "
+                                                "completed during this weekly period.",
                                                 className="ms-1",
                                             ),
                                             create_info_tooltip(
@@ -502,13 +540,17 @@ def create_statistics_data_card(current_statistics) -> dbc.Card:
                                             html.Strong(
                                                 [
                                                     html.I(
-                                                        className="fas fa-star me-1 text-warning"
+                                                        className=(
+                                                            "fas fa-star "
+                                                            "me-1 text-warning"
+                                                        )
                                                     ),
                                                     "Points Done This Week:",
                                                 ]
                                             ),
                                             html.Span(
-                                                " Story points or effort units completed during this weekly period.",
+                                                " Story points or effort units "
+                                                "completed during this weekly period.",
                                                 className="ms-1",
                                             ),
                                             create_info_tooltip(
@@ -526,13 +568,18 @@ def create_statistics_data_card(current_statistics) -> dbc.Card:
                                             html.Strong(
                                                 [
                                                     html.I(
-                                                        className="fas fa-plus-circle me-1 text-info"
+                                                        className=(
+                                                            "fas fa-plus-circle "
+                                                            "me-1 text-info"
+                                                        )
                                                     ),
                                                     "New Items Added:",
                                                 ]
                                             ),
                                             html.Span(
-                                                " Number of new work items added to the project during this period (scope growth).",
+                                                " Number of new work items added "
+                                                "to the project during this period "
+                                                "(scope growth).",
                                                 className="ms-1",
                                             ),
                                             create_info_tooltip(
@@ -548,13 +595,18 @@ def create_statistics_data_card(current_statistics) -> dbc.Card:
                                             html.Strong(
                                                 [
                                                     html.I(
-                                                        className="fas fa-plus-square me-1 text-secondary"
+                                                        className=(
+                                                            "fas fa-plus-square "
+                                                            "me-1 text-secondary"
+                                                        )
                                                     ),
                                                     "New Points Added:",
                                                 ]
                                             ),
                                             html.Span(
-                                                " Story points for new work items added during this period (scope change impact).",
+                                                " Story points for new work items "
+                                                "added during this period (scope "
+                                                "change impact).",
                                                 className="ms-1",
                                             ),
                                             create_info_tooltip(
@@ -601,7 +653,9 @@ def create_statistics_data_card(current_statistics) -> dbc.Card:
                             icon_class="fas fa-plus",
                         ),
                         dbc.Tooltip(
-                            "Adds a new weekly entry with Monday date 7 days after the most recent entry. Enter work completed and created during that week (Monday-Sunday).",
+                            "Adds a new weekly entry with Monday date 7 days "
+                            "after the most recent entry. Enter work completed "
+                            "and created during that week (Monday-Sunday).",
                             target="add-row-button",
                             placement="top",
                             trigger="click",
