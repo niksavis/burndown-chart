@@ -11,7 +11,8 @@ def embed_report_dependencies() -> dict:
     Read and prepare CSS/JS dependencies for embedding in HTML reports.
 
     Returns:
-        dict with keys: 'bootstrap_css', 'chartjs', 'chartjs_annotation', 'fontawesome_css'
+        dict with keys: 'bootstrap_css', 'chartjs', 'chartjs_annotation',
+        'fontawesome_css'
     """
     # Handle PyInstaller frozen executable path
     if getattr(sys, "frozen", False) and hasattr(sys, "_MEIPASS"):

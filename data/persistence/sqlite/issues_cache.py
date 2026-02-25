@@ -196,7 +196,8 @@ class IssuesCacheMixin:
 
             total = issues_deleted + changelog_deleted
             logger.info(
-                f"Cleaned up {total} expired cache entries ({issues_deleted} issues, {changelog_deleted} changelog)"
+                f"Cleaned up {total} expired cache entries "
+                f"({issues_deleted} issues, {changelog_deleted} changelog)"
             )
             return total
         except Exception as e:

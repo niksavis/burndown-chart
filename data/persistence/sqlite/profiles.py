@@ -128,7 +128,8 @@ class ProfilesMixin:
             with get_db_connection(self.db_path) as conn:
                 cursor = conn.cursor()
                 cursor.execute(
-                    "SELECT id, name, description, created_at, last_used FROM profiles ORDER BY last_used DESC"
+                    "SELECT id, name, description, created_at, last_used "
+                    "FROM profiles ORDER BY last_used DESC"
                 )
                 results = cursor.fetchall()
                 return [dict(row) for row in results]
