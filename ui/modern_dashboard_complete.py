@@ -2,7 +2,8 @@
 Modern Dashboard UI Module - Complete Enhanced Version
 
 This is the COMPLETE working version with:
-- All metrics from old dashboard (Project Overview, Completion Forecast, Weekly Velocity)
+- All metrics from old dashboard
+    (Project Overview, Completion Forecast, Weekly Velocity)
 - Enhanced features: sparklines, collapsible details, progress bars
 - All forecast methods: PERT, Average, Median
 - Subtle animations
@@ -289,7 +290,8 @@ def create_modern_dashboard_content(
     - Trend indicators
     """
     # Use last statistics date as forecast starting point (aligns with report)
-    # Statistics are weekly-based (Mondays), so forecast should start from last data point
+    # Statistics are weekly-based (Mondays),
+    # so forecast should start from last data point.
     # NOT datetime.now() which could be any day of the week
     current_date = (
         statistics_df["date"].iloc[-1] if not statistics_df.empty else datetime.now()
@@ -308,6 +310,14 @@ def create_modern_dashboard_content(
     remaining_points = max(0, total_points - completed_points) if show_points else 0
     actual_total_items = completed_items + remaining_items
     actual_total_points = completed_points + remaining_points if show_points else 0
+    items_progress_text = (
+        f"{completed_items:,} of {actual_total_items:,} items "
+        f"({remaining_items:,} remaining)"
+    )
+    points_progress_text = (
+        f"{completed_points:,.1f} of {actual_total_points:,.1f} points "
+        f"({remaining_points:,.1f} remaining)"
+    )
 
     # PERT forecast dates
     items_pert_date = current_date + timedelta(days=pert_time_items)
@@ -407,7 +417,7 @@ def create_modern_dashboard_content(
                                     COLOR_PALETTE["items"],
                                 ),
                                 html.Small(
-                                    f"{completed_items:,} of {actual_total_items:,} items ({remaining_items:,} remaining)",
+                                    items_progress_text,
                                     className="text-muted d-block mt-1",
                                 ),
                             ],
@@ -426,7 +436,7 @@ def create_modern_dashboard_content(
                                     "Points tracking disabled", className="text-muted"
                                 ),
                                 html.Small(
-                                    f"{completed_points:,.1f} of {actual_total_points:,.1f} points ({remaining_points:,.1f} remaining)",
+                                    points_progress_text,
                                     className="text-muted d-block mt-1",
                                 )
                                 if show_points
@@ -466,6 +476,12 @@ def create_modern_dashboard_content(
     )
 
     # Metric Cards Row
+    items_trend_text = f"{abs(items_trend['percent']):.0f}% {items_trend['direction']}"
+    points_trend_text = (
+        f"{abs(points_trend['percent']):.0f}% {points_trend['direction']}"
+        if points_trend
+        else "—"
+    )
     cards = dbc.Row(
         [
             # Items Forecast Card
@@ -553,7 +569,7 @@ def create_modern_dashboard_content(
                             "value": html.Span(
                                 [
                                     html.I(className=f"fas {items_trend['icon']} me-1"),
-                                    f"{abs(items_trend['percent']):.0f}% {items_trend['direction']}",
+                                    items_trend_text,
                                 ],
                                 style={"color": items_trend["color"]},
                             ),
@@ -591,7 +607,7 @@ def create_modern_dashboard_content(
                                     html.I(
                                         className=f"fas {points_trend['icon']} me-1"
                                     ),
-                                    f"{abs(points_trend['percent']):.0f}% {points_trend['direction']}",
+                                    points_trend_text,
                                 ],
                                 style={"color": points_trend["color"]},
                             )
@@ -644,7 +660,8 @@ def create_modern_dashboard_content(
                 html.Small(
                     [
                         html.I(className="fas fa-info-circle me-1 text-info"),
-                        "Dashboard shows PERT (optimistic + likely + pessimistic), Average, and Median forecasts. ",
+                        "Dashboard shows PERT (optimistic + likely + pessimistic), ",
+                        "Average, and Median forecasts. ",
                         "Sparklines show 10-week velocity trends.",
                     ],
                     className="text-muted fst-italic",

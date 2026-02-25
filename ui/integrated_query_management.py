@@ -76,7 +76,10 @@ def create_integrated_query_management() -> dbc.Card:
                             create_jql_editor(
                                 editor_id="integrated-jql-editor",
                                 initial_value="",
-                                placeholder="Enter JQL query (e.g., project = KAFKA AND status = Done ORDER BY created DESC)",
+                                placeholder=(
+                                    "Enter JQL query (e.g., project = KAFKA "
+                                    "AND status = Done ORDER BY created DESC)"
+                                ),
                                 rows=5,
                             ),
                             # Performance tip about DevOps projects
@@ -88,13 +91,22 @@ def create_integrated_query_management() -> dbc.Card:
                                         className="text-success",
                                     ),
                                     html.Span(
-                                        "For faster queries, query only development projects here. "
-                                        "Configure DevOps projects in Field Mappings → Environment → DevOps Projects, "
-                                        "and they'll be fetched automatically with optimized filtering.",
+                                        (
+                                            "For faster queries, query only "
+                                            "development projects here. "
+                                            "Configure DevOps projects in "
+                                            "Field Mappings → Environment → "
+                                            "DevOps Projects, and they'll be "
+                                            "fetched automatically with "
+                                            "optimized filtering."
+                                        ),
                                         className="text-muted",
                                     ),
                                 ],
-                                className="alert alert-success border-success mt-2 mb-2 py-2 px-3",
+                                className=(
+                                    "alert alert-success border-success "
+                                    "mt-2 mb-2 py-2 px-3"
+                                ),
                                 style={"fontSize": "0.875rem"},
                             ),
                             # Keyboard shortcuts hint
@@ -144,13 +156,16 @@ def create_integrated_query_management() -> dbc.Card:
                                                 id="integrated-query-selector",
                                                 options=[],
                                                 value=None,
-                                                placeholder="Select a saved query to load...",
+                                                placeholder=(
+                                                    "Select a saved query to load..."
+                                                ),
                                                 clearable=False,
                                                 searchable=True,
                                                 className="mb-2",
                                             ),
                                             html.Small(
-                                                "Select a query to load its JQL into the editor above",
+                                                "Select a query to load its "
+                                                "JQL into the editor above",
                                                 className="text-muted",
                                             ),
                                         ],
@@ -172,7 +187,8 @@ def create_integrated_query_management() -> dbc.Card:
                                                 outline=True,
                                                 size="md",
                                                 className="w-100",
-                                                disabled=True,  # Enabled when query loaded
+                                                disabled=True,
+                                                # Enabled when query loaded
                                             ),
                                         ],
                                         xs=12,
@@ -235,7 +251,9 @@ def create_integrated_query_management() -> dbc.Card:
                             html.Small(
                                 [
                                     html.I(
-                                        className="fas fa-check-circle text-success me-1"
+                                        className=(
+                                            "fas fa-check-circle text-success me-1"
+                                        )
                                     ),
                                     "Last saved: ",
                                     html.Span(id="query-last-saved-time"),
