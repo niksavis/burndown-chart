@@ -57,7 +57,8 @@ def _create_current_budget_card_content(
                 className="mb-3",
             ),
             html.P(
-                "No budget configured yet. Configure your budget below to start tracking costs.",
+                "No budget configured yet. Configure your budget below "
+                "to start tracking costs.",
                 className="text-muted small mb-0",
             ),
         ]
@@ -500,7 +501,10 @@ def _create_advanced_options_collapse() -> html.Div:
                 ],
                 id="budget-danger-zone-toggle",
                 color="link",
-                className="d-flex align-items-center w-100 text-start p-0 text-decoration-none text-danger mb-2",
+                className=(
+                    "d-flex align-items-center w-100 text-start p-0 "
+                    "text-decoration-none text-danger mb-2"
+                ),
                 style={"border": "none"},
             ),
             dbc.Collapse(
@@ -512,7 +516,8 @@ def _create_advanced_options_collapse() -> html.Div:
                                 dbc.Col(
                                     [
                                         html.P(
-                                            "Delete all budget revision history and reset baseline.",
+                                            "Delete all budget revision "
+                                            "history and reset baseline.",
                                             className="text-muted small mb-2",
                                             style={"fontSize": "0.75rem"},
                                         ),
@@ -535,7 +540,8 @@ def _create_advanced_options_collapse() -> html.Div:
                                 dbc.Col(
                                     [
                                         html.P(
-                                            "Completely remove budget configuration and all data.",
+                                            "Completely remove budget "
+                                            "configuration and all data.",
                                             className="text-muted small mb-2",
                                             style={"fontSize": "0.75rem"},
                                         ),
@@ -617,7 +623,8 @@ def create_budget_settings_card() -> html.Div:
                 className="mb-2",
             ),
             html.Hr(className="my-3"),
-            # Main Budget Configuration Row - Time Allocated, Team Cost, Effective Date, Reason
+            # Main Budget Configuration Row
+            # Time Allocated, Team Cost, Effective Date, Reason
             dbc.Row(
                 [
                     # Time Allocated (col 1)
@@ -869,7 +876,10 @@ def create_budget_settings_card() -> html.Div:
                             ),
                             html.Span(
                                 id="budget-baseline-velocity-display",
-                                children="Will be captured from Recent Completions (Last 4 Weeks) when you save",
+                                children=(
+                                    "Will be captured from Recent Completions "
+                                    "(Last 4 Weeks) when you save"
+                                ),
                                 className="text-info fw-bold",
                                 style={"fontSize": "0.85rem"},
                             ),
@@ -907,7 +917,8 @@ def create_budget_settings_card() -> html.Div:
                     dbc.ModalBody(
                         [
                             html.P(
-                                "Are you sure you want to clear all budget revision history?",
+                                "Are you sure you want to clear all "
+                                "budget revision history?",
                                 className="mb-3",
                             ),
                             # Data Loss Warning
@@ -916,7 +927,9 @@ def create_budget_settings_card() -> html.Div:
                                     html.Div(
                                         [
                                             html.I(
-                                                className="fas fa-exclamation-triangle me-2"
+                                                className=(
+                                                    "fas fa-exclamation-triangle me-2"
+                                                )
                                             ),
                                             html.Strong(
                                                 "This will permanently delete:"
@@ -999,7 +1012,8 @@ def create_budget_settings_card() -> html.Div:
                     dbc.ModalBody(
                         [
                             html.P(
-                                "Are you sure you want to delete the entire budget configuration?",
+                                "Are you sure you want to delete the entire "
+                                "budget configuration?",
                                 className="mb-3",
                             ),
                             # Data Loss Warning
@@ -1008,7 +1022,9 @@ def create_budget_settings_card() -> html.Div:
                                     html.Div(
                                         [
                                             html.I(
-                                                className="fas fa-exclamation-triangle me-2"
+                                                className=(
+                                                    "fas fa-exclamation-triangle me-2"
+                                                )
                                             ),
                                             html.Strong(
                                                 "This will permanently delete:"
@@ -1019,7 +1035,8 @@ def create_budget_settings_card() -> html.Div:
                                     html.Ul(
                                         [
                                             html.Li(
-                                                "Budget configuration (time allocated, team cost, total)"
+                                                "Budget configuration "
+                                                "(time allocated, team cost, total)"
                                             ),
                                             html.Li("All budget revision history"),
                                             html.Li("Historical change tracking"),

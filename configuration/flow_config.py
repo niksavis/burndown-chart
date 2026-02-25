@@ -50,16 +50,19 @@ FLOW_EFFICIENCY_THRESHOLDS = {
 
 # Required field mappings for each Flow metric
 # NOTE: Most Flow metrics use status lists from project_classification:
-# - flow_start_statuses: Statuses that indicate work started (e.g., In Progress, In Review)
-# - flow_end_statuses: Statuses that indicate work completed (e.g., Done, Resolved, Closed)
-# - active_statuses: Statuses where active work happens (e.g., In Progress, In Review, Testing)
+# - flow_start_statuses: Statuses indicating work started
+#   (e.g., In Progress, In Review)
+# - flow_end_statuses: Statuses indicating work completed
+#   (e.g., Done, Resolved, Closed)
+# - active_statuses: Statuses where active work happens
+#   (e.g., In Progress, In Review, Testing)
 # - wip_statuses: All work-in-progress statuses including waiting states
 REQUIRED_FLOW_FIELDS = {
     "flow_velocity": [
         "flow_item_type"
     ],  # Uses flow_end_statuses from project_classification
-    "flow_time": [],  # Uses flow_start_statuses and flow_end_statuses from project_classification
-    "flow_efficiency": [],  # Uses active_statuses and wip_statuses from project_classification
+    "flow_time": [],  # Uses flow_start_statuses and flow_end_statuses
+    "flow_efficiency": [],  # Uses active_statuses and wip_statuses
     "flow_load": ["status"],  # Uses wip_statuses from project_classification
     "flow_distribution": [
         "flow_item_type"
@@ -111,7 +114,9 @@ def validate_flow_distribution(distribution: dict[str, float]) -> dict:
         }
 
     Example:
-        >>> validate_flow_distribution({"Feature": 60, "Defect": 30, "Risk": 5, "Technical_Debt": 5})
+        >>> validate_flow_distribution(
+        ...     {"Feature": 60, "Defect": 30, "Risk": 5, "Technical_Debt": 5}
+        ... )
         {
             "is_valid": True,
             "total_percentage": 100,
@@ -141,14 +146,17 @@ def validate_flow_distribution(distribution: dict[str, float]) -> dict:
 
         if percentage < min_pct:
             warnings.append(
-                f"{work_type}: {percentage:.1f}% is below recommended minimum of {min_pct}%"
+                f"{work_type}: {percentage:.1f}% is below "
+                f"recommended minimum of {min_pct}%"
             )
             recommendations.append(
-                f"Consider increasing {work_type} allocation ({recommended['description']})"
+                f"Consider increasing {work_type} allocation "
+                f"({recommended['description']})"
             )
         elif percentage > max_pct:
             warnings.append(
-                f"{work_type}: {percentage:.1f}% exceeds recommended maximum of {max_pct}%"
+                f"{work_type}: {percentage:.1f}% exceeds "
+                f"recommended maximum of {max_pct}%"
             )
             recommendations.append(
                 f"Consider reducing {work_type} allocation to balance portfolio"
@@ -190,19 +198,29 @@ def get_flow_efficiency_status(efficiency_percentage: float) -> dict:
         return {
             "status": "healthy",
             "color": "success",
-            "message": f"Flow efficiency is within healthy range ({thresholds['healthy_min']}-{thresholds['healthy_max']}%)",
+            "message": (
+                "Flow efficiency is within healthy range "
+                f"({thresholds['healthy_min']}-{thresholds['healthy_max']}%)"
+            ),
         }
     elif efficiency_percentage < thresholds["warning_threshold"]:
         return {
             "status": "critical",
             "color": "danger",
-            "message": f"Flow efficiency is critically low (<{thresholds['warning_threshold']}%). High waiting time detected.",
+            "message": (
+                "Flow efficiency is critically low "
+                f"(<{thresholds['warning_threshold']}%). "
+                "High waiting time detected."
+            ),
         }
     else:
         return {
             "status": "warning",
             "color": "warning",
-            "message": f"Flow efficiency is outside recommended range ({thresholds['healthy_min']}-{thresholds['healthy_max']}%)",
+            "message": (
+                "Flow efficiency is outside recommended range "
+                f"({thresholds['healthy_min']}-{thresholds['healthy_max']}%)"
+            ),
         }
 
 
