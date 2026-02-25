@@ -16,7 +16,8 @@ class InstallationContext:
     Installation context information for the application.
 
     Attributes:
-        is_frozen: True if running as PyInstaller executable, False if running from source
+        is_frozen: True if running as PyInstaller executable,
+            False if running from source
         executable_dir: Directory containing the executable or main script
         database_path: Full path to the SQLite database file
         logs_path: Directory for log files
