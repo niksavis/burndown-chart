@@ -116,14 +116,20 @@ def _create_budget_section(
     # Budget exhaustion alert banner (conditional)
     alert_banner = html.Div()
     if exhaustion_alert.get("show"):
+        weeks_until = exhaustion_alert.get("weeks_until", 0)
+        exhaustion_week = exhaustion_alert.get("exhaustion_week", "N/A")
+        runway_weeks = budget_data.get("runway_weeks", 0)
+        pert_forecast_weeks = budget_data.get("pert_forecast_weeks", 0)
+        burn_rate = budget_data.get("burn_rate", 0)
+        weekly_burn_text = f"Weekly burn rate: {currency_symbol}{burn_rate:,.2f}/week"
         alert_banner = dbc.Alert(
             [
                 html.Div(
                     [
                         html.I(className="fas fa-exclamation-triangle me-2"),
                         html.Strong("Budget Risk: "),
-                        f"Projected to exhaust {exhaustion_alert.get('weeks_until', 0)} weeks "
-                        f"before forecast completion (Week {exhaustion_alert.get('exhaustion_week', 'N/A')})",
+                        f"Projected to exhaust {weeks_until} weeks "
+                        f"before forecast completion (Week {exhaustion_week})",
                     ]
                 ),
                 dbc.Collapse(
@@ -132,19 +138,16 @@ def _create_budget_section(
                         html.P("Budget burn rate trends indicate insufficient runway:"),
                         html.Ul(
                             [
+                                html.Li(f"Current runway: {runway_weeks:.1f} weeks"),
                                 html.Li(
-                                    f"Current runway: {budget_data.get('runway_weeks', 0):.1f} weeks"
+                                    f"PERT forecast: {pert_forecast_weeks:.1f} weeks"
                                 ),
-                                html.Li(
-                                    f"PERT forecast: {budget_data.get('pert_forecast_weeks', 0):.1f} weeks"
-                                ),
-                                html.Li(
-                                    f"Weekly burn rate: {currency_symbol}{budget_data.get('burn_rate', 0):,.2f}/week"
-                                ),
+                                html.Li(weekly_burn_text),
                             ]
                         ),
                         html.P(
-                            "Consider: Additional funding, scope reduction, or schedule adjustment."
+                            "Consider: Additional funding, scope reduction, "
+                            "or schedule adjustment."
                         ),
                     ],
                     id="budget-alert-detail-collapse",

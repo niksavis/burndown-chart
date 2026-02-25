@@ -1,8 +1,10 @@
 """
-Accordion-based Settings Panel with Progressive Disclosure
+Accordion-based Settings Panel with Progressive Disclosure.
 
-New settings panel implementation for Feature 011: Profile-First Dependency Architecture.
-Uses 5-section accordion with dependency indicators showing which sections are enabled.
+New settings panel implementation for Feature 011:
+Profile-First Dependency Architecture.
+Uses 5-section accordion with dependency indicators showing
+which sections are enabled.
 
 Sections:
 1. Profile Settings (ALWAYS ENABLED)
@@ -135,7 +137,10 @@ def create_query_management_card() -> html.Div:
                     ),
                     create_jql_editor(
                         editor_id="query-jql-editor",
-                        initial_value="project = EXAMPLE AND created >= -12w ORDER BY created DESC",
+                        initial_value=(
+                            "project = EXAMPLE AND created >= -12w "
+                            "ORDER BY created DESC"
+                        ),
                         placeholder="project = EXAMPLE AND created >= -12w",
                         rows=4,
                     ),
@@ -145,7 +150,8 @@ def create_query_management_card() -> html.Div:
                             html.I(className="fas fa-info-circle text-info me-2"),
                             html.Span(
                                 "Tip: Query development projects only. "
-                                "Configure DevOps projects in Field Mappings for optimized fetching.",
+                                "Configure DevOps projects in Field "
+                                "Mappings for optimized fetching.",
                                 className="small text-muted",
                             ),
                         ],
@@ -228,7 +234,8 @@ def create_data_operations_card() -> html.Div:
                     ),
                     # Hidden store for force refresh functionality (long-press)
                     dcc.Store(id="force-refresh-store", data=False),
-                    # Progress bar (hidden when not in use, fixed height to prevent layout shift)
+                    # Progress bar (hidden when not in use,
+                    # fixed height to prevent layout shift)
                     html.Div(
                         id="update-data-progress-container",
                         className="mb-2",
@@ -252,7 +259,7 @@ def create_data_operations_card() -> html.Div:
                     # Interval for polling progress
                     dcc.Interval(
                         id="progress-poll-interval",
-                        interval=250,  # Poll every 250ms (smoother updates, faster phase detection)
+                        interval=250,  # Poll every 250ms for smooth progress updates
                         disabled=True,  # Disabled by default
                     ),
                     # Status message (hidden - progress bar shows status now)
@@ -271,7 +278,10 @@ def create_data_operations_card() -> html.Div:
                                     ),
                                     "Use the ",
                                     html.Strong("Data"),
-                                    " button in the top bar to import/export project data.",
+                                    (
+                                        " button in the top bar "
+                                        "to import/export project data."
+                                    ),
                                 ],
                                 className="text-muted",
                             )
@@ -365,7 +375,8 @@ def create_accordion_settings_panel() -> html.Div:
             # Status indicators (updated by callback)
             html.Div(id="dependency-status-display", className="mt-3"),
             # Hidden components for backward compatibility with legacy callbacks
-            # NOTE: import-export-collapse is now in import_export_panel.py (real flyout)
+            # NOTE: import-export-collapse now lives in
+            # import_export_panel.py (real flyout).
             # Hidden textarea for legacy jira-jql-query references in settings.py
             dcc.Textarea(id="jira-jql-query", value="", style={"display": "none"}),
         ],
