@@ -94,9 +94,14 @@ def _fetch_jira_paginated(
             # - Two-phase fetch filtering (extract from dev, use in DevOps query)
             # - Deployment Frequency (fixVersion.releaseDate)
             # - Lead Time for Changes (link dev issues to deployments via fixVersion)
-            base_fields = "key,summary,project,created,updated,resolutiondate,status,issuetype,assignee,priority,resolution,labels,components,fixVersions"
+            base_fields = (
+                "key,summary,project,created,updated,resolutiondate,status,"
+                "issuetype,assignee,priority,resolution,labels,components,"
+                "fixVersions"
+            )
 
-            # Add parent field if configured (either standard 'parent' or Epic Link custom field)
+            # Add parent field if configured
+            # (either standard 'parent' or Epic Link custom field)
             parent_field = (
                 config.get("field_mappings", {}).get("general", {}).get("parent_field")
             )

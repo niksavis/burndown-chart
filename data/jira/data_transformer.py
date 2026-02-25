@@ -1,7 +1,8 @@
 """
 JIRA Data Transformation Module
 
-Transforms JIRA API responses into CSV statistics format for burndown chart visualization.
+Transforms JIRA API responses into CSV statistics format for
+burndown chart visualization.
 """
 
 from datetime import datetime, timedelta
@@ -131,7 +132,8 @@ def jira_to_csv_format(issues: list[dict], config: dict) -> list[dict]:
             week_label = get_week_label(current_date)
 
             # Calculate remaining items/points as of this week's end date
-            # An issue is "remaining" if: created <= week_end AND (not resolved OR resolved > week_end)
+            # An issue is "remaining" if:
+            # created <= week_end AND (not resolved OR resolved > week_end)
             remaining_items_count = 0
             remaining_points_sum = 0
 

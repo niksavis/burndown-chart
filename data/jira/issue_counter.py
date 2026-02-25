@@ -4,7 +4,6 @@ JIRA Issue Counter
 Fast issue counting without fetching full data (incremental fetch optimization).
 """
 
-
 import requests
 
 from configuration import logger
@@ -49,11 +48,13 @@ def check_jira_issue_count(jql_query: str, config: dict) -> tuple[bool, int]:
             # Log JQL for debugging when count check fails
             jql_preview = jql_query[:100] + "..." if len(jql_query) > 100 else jql_query
             logger.warning(
-                f"[JIRA] Count check failed: HTTP {response.status_code} for JQL: {jql_preview}"
+                "[JIRA] Count check failed: "
+                f"HTTP {response.status_code} for JQL: {jql_preview}"
             )
             if response.status_code == 404:
                 logger.warning(
-                    "[JIRA] 404 error - API endpoint might be incorrect or JQL syntax invalid"
+                    "[JIRA] 404 error - API endpoint might be incorrect "
+                    "or JQL syntax invalid"
                 )
             return False, 0
 
