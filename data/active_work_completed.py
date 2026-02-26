@@ -12,7 +12,7 @@ import logging
 from collections import OrderedDict
 
 from data.iso_week_bucketing import bucket_issues_by_week, get_last_n_weeks
-from data.parent_filter import extract_parent_keys, filter_parent_issues
+from data.parent_filter import extract_parent_keys
 
 logger = logging.getLogger(__name__)
 
@@ -136,11 +136,17 @@ def get_completed_items_by_week(
         display_issues = week_issues
         epic_groups = []
         if parent_field:
+            # Use ALL issues to identify parent keys so that epics completed
+            # this week whose children were completed in prior weeks are still
+            # recognised as parents and excluded from the issue count.
+            all_parent_keys = extract_parent_keys(issues, parent_field)
+            # Week-scoped parent keys are kept for total_epics_linked (epics that
+            # have at least one child completed this week).
             parent_keys = extract_parent_keys(week_issues, parent_field)
-            closed_epic_keys = _get_closed_epic_keys(week_issues, parent_keys)
-            display_issues = filter_parent_issues(
-                week_issues, parent_field, log_prefix="COMPLETED ITEMS"
-            )
+            closed_epic_keys = _get_closed_epic_keys(week_issues, all_parent_keys)
+            display_issues = [
+                i for i in week_issues if i.get("issue_key") not in all_parent_keys
+            ]
             epic_groups = _group_issues_by_epic(display_issues, parent_field, issues)
 
         # Calculate totals
