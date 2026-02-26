@@ -19,7 +19,7 @@
 }
 
 /* Ensure field mapping dropdowns appear above modal backdrop */
-#field-mapping-modal div[class*="__menu"],
+#field-mapping-modal div[class*='__menu'],
 #field-mapping-modal .Select-menu-outer {
   z-index: 1070 !important; /* Higher than modal backdrop (1055) */
 }
@@ -31,6 +31,39 @@
   overflow: visible !important;
 }
 
+/* Fix dropdown stacking inside Types/Environment cards.
+   Global animation styles add transform: translateZ(0) to .card/.modal, which
+   creates stacking contexts and can cause open dropdown menus to render under
+   sibling cards. */
+#field-mapping-modal .modal,
+#field-mapping-modal .modal-dialog,
+#field-mapping-modal .modal-content,
+#field-mapping-modal .modal-body,
+#field-mapping-modal .tab-content,
+#field-mapping-modal .tab-pane,
+#field-mapping-modal .card,
+#field-mapping-modal .card-body,
+#field-mapping-modal .dash-dropdown,
+#field-mapping-modal .Select {
+  transform: none !important;
+}
+
+/* Ensure the active dropdown sits above neighboring components. */
+#field-mapping-modal .dash-dropdown,
+#field-mapping-modal .Select {
+  position: relative;
+}
+
+#field-mapping-modal .Select.is-open,
+#field-mapping-modal div[class*='__control--menu-is-open'] {
+  z-index: 1085 !important;
+}
+
+#field-mapping-modal .Select-menu-outer,
+#field-mapping-modal div[class*='__menu'] {
+  z-index: 1090 !important;
+}
+
 /* ===== FIELD MAPPING MODAL - CONSISTENT MONOSPACE STYLING ===== */
 /* Use monospace font for all technical inputs/dropdowns for visual uniformity */
 #field-mapping-modal input.form-control,
@@ -39,69 +72,69 @@
 #field-mapping-modal .Select-input input,
 #field-mapping-modal .Select-option,
 #field-mapping-modal .Select-menu-outer,
-#field-mapping-modal div[class*="__single-value"],
-#field-mapping-modal div[class*="__placeholder"],
-#field-mapping-modal div[class*="__input"] input,
-#field-mapping-modal div[class*="__option"],
-#field-mapping-modal div[class*="__multi-value__label"],
-#field-mapping-modal div[class*="__menu"],
-#field-mapping-modal div[class*="__menu-list"] {
-  font-family: "Courier New", Consolas, Monaco, monospace;
+#field-mapping-modal div[class*='__single-value'],
+#field-mapping-modal div[class*='__placeholder'],
+#field-mapping-modal div[class*='__input'] input,
+#field-mapping-modal div[class*='__option'],
+#field-mapping-modal div[class*='__multi-value__label'],
+#field-mapping-modal div[class*='__menu'],
+#field-mapping-modal div[class*='__menu-list'] {
+  font-family: 'Courier New', Consolas, Monaco, monospace;
   font-size: 0.9rem;
 }
 
 /* Dropdown menu styling */
-#field-mapping-modal div[class*="__menu"] {
+#field-mapping-modal div[class*='__menu'] {
   background-color: #fff;
   border: 2px solid #dee2e6;
   border-radius: 4px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
-#field-mapping-modal div[class*="__option"] {
+#field-mapping-modal div[class*='__option'] {
   padding: 8px 12px;
   cursor: pointer;
 }
 
-#field-mapping-modal div[class*="__option--is-focused"] {
+#field-mapping-modal div[class*='__option--is-focused'] {
   background-color: #e7f1ff;
 }
 
-#field-mapping-modal div[class*="__option--is-selected"] {
+#field-mapping-modal div[class*='__option--is-selected'] {
   background-color: #0d6efd;
   color: white;
 }
 
 /* Dropdown control styling to match namespace inputs */
-#field-mapping-modal div[class*="__control"] {
+#field-mapping-modal div[class*='__control'] {
   background-color: #f8f9fa;
   border: 2px solid #dee2e6;
   transition: all 0.2s ease;
 }
 
-#field-mapping-modal div[class*="__control"]:hover {
+#field-mapping-modal div[class*='__control']:hover {
   border-color: #adb5bd;
 }
 
-#field-mapping-modal div[class*="__control--is-focused"] {
+#field-mapping-modal div[class*='__control--is-focused'] {
   background-color: #fff;
   border-color: #0d6efd !important;
   box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.15) !important;
 }
 
 /* Multi-value tags (selected items) styling */
-#field-mapping-modal div[class*="__multi-value"] {
+#field-mapping-modal div[class*='__multi-value'] {
   background-color: #e7f1ff;
   border: 1px solid #0d6efd;
   border-radius: 4px;
 }
 
-#field-mapping-modal div[class*="__multi-value__label"] {
+#field-mapping-modal div[class*='__multi-value__label'] {
   color: #0d6efd;
   padding: 2px 6px;
 }
 
-#field-mapping-modal div[class*="__multi-value__remove"]:hover {
+#field-mapping-modal div[class*='__multi-value__remove']:hover {
   background-color: #0d6efd;
   color: white;
 }

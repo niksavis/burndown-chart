@@ -47,3 +47,28 @@
 .modal.show .modal-dialog {
   transform: scale(1);
 }
+
+/* ===== Modal Dropdown Stacking Fix =====
+   Prevent React-Select/Dash dropdown menus from rendering under sibling
+   cards/rows when opened inside modals. */
+.modal .card,
+.modal .card-body,
+.modal .dash-dropdown,
+.modal .Select {
+  transform: none !important;
+}
+
+.modal .dash-dropdown,
+.modal .Select {
+  position: relative;
+}
+
+.modal .Select.is-open,
+.modal div[class*='__control--menu-is-open'] {
+  z-index: 1085 !important;
+}
+
+.modal .Select-menu-outer,
+.modal div[class*='__menu'] {
+  z-index: 1090 !important;
+}
