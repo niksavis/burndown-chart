@@ -135,9 +135,7 @@ def fetch_jira_issues_with_changelog(
                 )
                 if is_cancelled:
                     logger.info(
-                        f"[JIRA] Changelog fetch cancelled by user after {
-                            len(all_issues)
-                        } issues"
+                        f"[JIRA] Changelog fetch cancelled by user after {len(all_issues)} issues"
                     )
                     TaskProgress.fail_task("update_data", "Operation cancelled by user")
                     return False, []
@@ -157,9 +155,7 @@ def fetch_jira_issues_with_changelog(
             if progress_callback:
                 if total_issues:
                     progress_callback(
-                        f"📥 Downloading changelog: {len(all_issues)}/{
-                            total_issues
-                        } issues"
+                        f"📥 Downloading changelog: {len(all_issues)}/{total_issues} issues"
                     )
                 else:
                     progress_callback(
@@ -241,9 +237,7 @@ def fetch_jira_issues_with_changelog(
                 or start_at + len(issues_in_page) >= total_issues
             ):
                 logger.info(
-                    f"[JIRA] Changelog fetch complete: {len(all_issues)}/{
-                        total_issues
-                    } issues"
+                    f"[JIRA] Changelog fetch complete: {len(all_issues)}/{total_issues} issues"
                 )
                 break
 
@@ -589,9 +583,7 @@ def fetch_changelog_on_demand(
                 if entry.get("issue_key")
             )
             logger.info(
-                f"[Database] Loaded {
-                    len(cached_issue_keys)
-                } unique issues with changelog from database"
+                f"[Database] Loaded {len(cached_issue_keys)} unique issues with changelog from database"
             )
         except Exception as e:
             logger.warning(f"[Database] Could not load existing changelog: {e}")
@@ -602,15 +594,11 @@ def fetch_changelog_on_demand(
         if issue_keys:
             issues_needing_changelog = sorted(set(issue_keys))
             logger.info(
-                f"[JIRA] Changelog refresh: targeting {
-                    len(issues_needing_changelog)
-                } issues"
+                f"[JIRA] Changelog refresh: targeting {len(issues_needing_changelog)} issues"
             )
             if progress_callback:
                 progress_callback(
-                    f"Targeted changelog refresh: {
-                        len(issues_needing_changelog)
-                    } issues"
+                    f"Targeted changelog refresh: {len(issues_needing_changelog)} issues"
                 )
         else:
             try:
@@ -631,16 +619,12 @@ def fetch_changelog_on_demand(
 
                 logger.info(
                     f"[JIRA] Changelog analysis: {len(all_issue_keys)} total, "
-                    f"{len(cached_issue_keys)} cached, {
-                        len(issues_needing_changelog)
-                    } need fetch"
+                    f"{len(cached_issue_keys)} cached, {len(issues_needing_changelog)} need fetch"
                 )
 
                 if issues_needing_changelog:
                     logger.info(
-                        f"[Database] Optimized fetch: Only {
-                            len(issues_needing_changelog)
-                        } new issues"
+                        f"[Database] Optimized fetch: Only {len(issues_needing_changelog)} new issues"
                     )
                     if progress_callback:
                         progress_callback(
@@ -653,15 +637,11 @@ def fetch_changelog_on_demand(
                     )
                     if progress_callback:
                         progress_callback(
-                            f"[OK] All {
-                                len(cached_issue_keys)
-                            } issues already cached - skipping download"
+                            f"[OK] All {len(cached_issue_keys)} issues already cached - skipping download"
                         )
                     return (
                         True,
-                        f"[OK] Changelog already cached for all {
-                            len(cached_issue_keys)
-                        } issues",
+                        f"[OK] Changelog already cached for all {len(cached_issue_keys)} issues",
                     )
 
             except Exception as e:
@@ -735,9 +715,7 @@ def fetch_changelog_on_demand(
                             for item in hist.get("items", []):
                                 unique_fields.add(item.get("field"))
                         logger.info(
-                            f"[JIRA] Sample changelog field names for {issue_key}: {
-                                sorted(unique_fields)
-                            }"
+                            f"[JIRA] Sample changelog field names for {issue_key}: {sorted(unique_fields)}"
                         )
 
                     filtered_histories = []
@@ -863,15 +841,10 @@ def fetch_changelog_on_demand(
                         )
 
                         logger.info(
-                            f"[Database] Saved {
-                                len(changelog_entries_batch)
-                            } changelog entries to database for {profile_id}/{query_id}"
+                            f"[Database] Saved {len(changelog_entries_batch)} changelog entries to database for {profile_id}/{query_id}"
                         )
                         logger.info(
-                            f"[Database] Optimized changelog: {
-                                total_histories_before
-                            } → {total_histories_after} histories ({
-                                reduction_pct:.1f}% reduction)"
+                            f"[Database] Optimized changelog: {total_histories_before} → {total_histories_after} histories ({reduction_pct:.1f}% reduction)"
                         )
                     else:
                         logger.info(
@@ -899,10 +872,7 @@ def fetch_changelog_on_demand(
 
                 return (
                     True,
-                    f"[OK] Changelog: {newly_fetched} newly fetched + {
-                        previously_cached
-                    } already cached = {total_cached} total issues (saved {
-                        reduction_pct:.0f}% size)",
+                    f"[OK] Changelog: {newly_fetched} newly fetched + {previously_cached} already cached = {total_cached} total issues (saved {reduction_pct:.0f}% size)",
                 )
             except Exception as e:
                 logger.warning(f"[Cache] Failed to save changelog data: {e}")
