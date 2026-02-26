@@ -8,7 +8,7 @@ on:
 
 jobs:
   lint:
-    name: Ruff, Djlint, Pre-commit
+    name: Pre-commit (Ruff, Djlint, Prettier, Markdownlint)
     runs-on: windows-latest
 
     steps:
@@ -19,30 +19,22 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.13'
-          cache: 'pip'
 
-      - name: Install dev dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements-dev.txt
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install pre-commit
+        run: pip install pre-commit
         shell: pwsh
 
-      - name: Ruff check
-        run: |
-          ruff check .
-        shell: pwsh
-
-      - name: Ruff format check
-        run: |
-          ruff format --check .
-        shell: pwsh
-
-      - name: Djlint check
-        run: |
-          djlint --check report_assets/**/*.html
-        shell: pwsh
+      - name: Cache pre-commit environments
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pre-commit
+          key: pre-commit-${{ hashFiles('.pre-commit-config.yaml') }}
 
       - name: Pre-commit run (all files)
-        run: |
-          pre-commit run --all-files
+        run: pre-commit run --all-files
         shell: pwsh
