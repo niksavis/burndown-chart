@@ -505,9 +505,14 @@ def _detect_points_field(issues: list[dict], field_defs: dict[str, dict]) -> str
     best_candidate = max(candidates.items(), key=lambda x: x[1]["score"])
 
     logger.info(
-        f"[FieldDetector] Points field candidates: {[(k, v['score'], v['name']) for k, v in sorted(candidates.items(), key=lambda x: (
-                    x[1]['score']
-                ), reverse=True)[:3]]}"
+        f"[FieldDetector] Points field candidates: {
+            [
+                (k, v['score'], v['name'])
+                for k, v in sorted(
+                    candidates.items(), key=lambda x: x[1]['score'], reverse=True
+                )[:3]
+            ]
+        }"
     )
 
     # Return if score is confident enough
