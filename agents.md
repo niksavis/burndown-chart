@@ -21,6 +21,7 @@ Do not duplicate policy text here. Keep this file concise and operational.
 
 For non-trivial implementation tasks, external agents should follow the orchestration policy in `.github/copilot-instructions.md`:
 
+0. **CONTEXT7 (always)**: Before any code generation, library/API question, setup, or configuration task — call `resolve-library-id` then `query-docs`. Do not answer from memory. Route to `context7-expert` for version migration or upgrade-impact analysis.
 1. Route to specialized subagents first.
 2. Run read-only discovery in parallel only when independent.
 3. Run edits/tests/validation in sequence.

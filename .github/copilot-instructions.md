@@ -35,13 +35,14 @@ When guidance conflicts, higher-precedence artifacts win.
 1. **VENV**: Before any Python command, activate the virtual environment in the same shell.
 2. **ZERO ERRORS**: `get_errors` must be clean after every change and before commit.
 3. **ARCH GUIDES FIRST**: Consult docs/architecture before any code edit.
-4. **LAYERING**: callbacks/ routes only; data/ holds logic; ui/ renders; visualization/ charts.
-5. **NO CUSTOMER DATA**: Never commit real names, domains, IDs, or credentials.
-6. **TEST ISOLATION**: Use tempfile.TemporaryDirectory() in tests.
-7. **NO EMOJI**: Avoid emoji in code/logs/comments. Exception: emoji are allowed in documentation files (`.md`) only.
-8. **TERMINAL STATE**: Each terminal run is isolated; activation does not persist.
-9. **SELF-HEALING DOC**: If this file is wrong, inform → propose → update.
-10. **COMMITS**: Conventional commit + bead ID required.
+4. **CONTEXT7**: For any code generation, library/API question, setup, or configuration task — auto-invoke `resolve-library-id` then `query-docs` before implementation. Do not answer from memory. Route to `context7-expert` for version migration, deprecation, or upgrade-impact analysis.
+5. **LAYERING**: callbacks/ routes only; data/ holds logic; ui/ renders; visualization/ charts.
+6. **NO CUSTOMER DATA**: Never commit real names, domains, IDs, or credentials.
+7. **TEST ISOLATION**: Use tempfile.TemporaryDirectory() in tests.
+8. **NO EMOJI**: Avoid emoji in code/logs/comments. Exception: emoji are allowed in documentation files (`.md`) only.
+9. **TERMINAL STATE**: Each terminal run is isolated; activation does not persist.
+10. **SELF-HEALING DOC**: If this file is wrong, inform → propose → update.
+11. **COMMITS**: Conventional commit + bead ID required.
 
 ## Venv Rule (Formal)
 
