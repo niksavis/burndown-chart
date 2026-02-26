@@ -9,6 +9,7 @@
 ## 🎯 When to Use This Guide
 
 **Triggers for refactoring**:
+
 - Codebase has accumulated TODOs older than 6 months
 - Code search returns false positives from dead code
 - New developers confused by commented-out alternatives
@@ -16,6 +17,7 @@
 - Functions exist with no callers (confirmed via search)
 
 **Before starting**:
+
 - ✅ All tests passing on main branch
 - ✅ No active feature branches with merge conflicts
 - ✅ Team aware of refactoring work (avoid parallel changes)
@@ -53,15 +55,15 @@ Get-Content dead_code_report.txt | Select-String -Pattern "unused function"
 # For each function, check if it's used anywhere
 function Test-FunctionUsage {
     param([string]$FunctionName, [string]$SourceFile)
-    
+
     $directCalls = Select-String -Path "*.py" -Pattern "\\b$FunctionName\\(" -Recurse
     $imports = Select-String -Path "*.py" -Pattern "import.*\\b$FunctionName\\b" -Recurse
     $moduleRefs = Select-String -Path "*.py" -Pattern "\\.$FunctionName\\b" -Recurse
-    
-    $totalMatches = ($directCalls | Measure-Object).Count + 
-                    ($imports | Measure-Object).Count + 
+
+    $totalMatches = ($directCalls | Measure-Object).Count +
+                    ($imports | Measure-Object).Count +
                     ($moduleRefs | Measure-Object).Count
-    
+
     if ($totalMatches -eq 0 -or ($totalMatches -eq 1 -and $directCalls[0].Path -eq $SourceFile)) {
         Write-Host "UNUSED: $FunctionName in $SourceFile" -ForegroundColor Yellow
         return $false
@@ -238,6 +240,7 @@ When performing refactoring tasks:
 6. **Ask for confirmation**: If uncertain about whether code is used (dynamic imports, reflection, etc.), ask the human before removing
 
 **Common pitfalls for AI agents**:
+
 - ❌ Removing code based on simple text search (misses dynamic imports, getattr, **import**)
 - ❌ Batch removing multiple functions in one commit (hard to rollback specific changes)
 - ❌ Forgetting to check test files for references
@@ -245,6 +248,7 @@ When performing refactoring tasks:
 - ❌ Removing code just because it has TODO comments (the TODO might be valid)
 
 **Best practices for AI agents**:
+
 - ✅ Use AST parsing to understand code structure, not just text search
 - ✅ Check for indirect usage via decorators, metaclasses, dynamic registration
 - ✅ Verify callback registration patterns in Dash apps (see layered architecture principle)
@@ -279,6 +283,7 @@ Write-Host "Refactoring impact: $linesRemoved lines removed, $functionsRemoved f
 ```
 
 **Target improvements**:
+
 - Reduce codebase by 5-10% (lines of code)
 - Zero unused imports (ruff check passes clean)
 - Zero TODOs older than 6 months
@@ -294,4 +299,4 @@ Write-Host "Refactoring impact: $linesRemoved lines removed, $functionsRemoved f
 
 ---
 
-*Document Version: 1.0 | Last Updated: December 2025*
+_Document Version: 1.0 | Last Updated: December 2025_

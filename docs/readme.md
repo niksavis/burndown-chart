@@ -24,15 +24,18 @@ Documentation for project managers, team leads, and users who want to understand
 ### Understanding Metrics
 
 **Dashboard Metrics** (Project Tracking):
+
 - **[Dashboard Metrics Guide](dashboard_metrics.md)** - Health score, completion forecast, velocity, remaining work
 - **[Project Health Formula](health_formula.md)** - Comprehensive 6-dimensional health assessment (20+ signals)
 
 **Process Performance Metrics**:
+
 - **[DORA Metrics Guide](dora_metrics.md)** - DevOps performance: deployment frequency, lead time, change failure rate, MTTR
 - **[Flow Metrics Guide](flow_metrics.md)** - Work process health: velocity, flow time, efficiency, WIP, distribution
 - **[Budget Metrics Guide](budget_metrics.md)** - Financial tracking: budget consumption, burn rate, runway, cost per item
 
 **Advanced Topics**:
+
 - **[Metrics Correlation Guide](metrics_correlation_guide.md)** - How metrics relate to each other and validation rules
 - **[Bug Analysis Metrics Guide](bug_analysis_metrics.md)** - Quality trends and defect investment
 - **[JQL Editor Guide](jql_editor.md)** - Syntax highlighting and character count behavior
@@ -66,6 +69,7 @@ Documentation for developers extending the application, implementing new metrics
 ### Architecture Reference
 
 For detailed implementation guides, see:
+
 - **Field mapping implementation**: `data/field_mapper.py`, `data/field_detector.py`
 - **Metrics calculators**: `data/dora_calculator.py`, `data/flow_calculator.py`, `data/health_calculator.py`
 - **Database schema**: `data/database.py` (12 tables: profiles, queries, jira_issues, project_statistics, etc.)
@@ -91,4 +95,4 @@ For detailed implementation guides, see:
 
 ---
 
-*Document Version: 2.0 | Last Updated: January 2026*
+_Document Version: 2.0 | Last Updated: January 2026_

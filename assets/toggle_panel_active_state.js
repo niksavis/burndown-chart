@@ -18,81 +18,73 @@ window.dash_clientside = Object.assign({}, window.dash_clientside, {
      */
     updateBackdropState: function (parameterOpen, settingsOpen, dataOpen) {
       // Return class based on whether any panel is open
-      return parameterOpen || settingsOpen || dataOpen
-        ? "panel-backdrop active"
-        : "panel-backdrop";
+      return parameterOpen || settingsOpen || dataOpen ? 'panel-backdrop active' : 'panel-backdrop';
     },
 
     /**
      * Toggle active class on parameter panel button.
      */
     toggleParameterButton: function (is_open, currentClassName) {
-      const button = document.getElementById("btn-expand-parameters");
+      const button = document.getElementById('btn-expand-parameters');
       if (button) {
         if (is_open) {
-          button.title = "Close Parameters";
+          button.title = 'Close Parameters';
         } else {
-          button.title = "Expand Parameters";
+          button.title = 'Expand Parameters';
         }
       }
 
       // Update className by adding/removing 'active'
-      if (!currentClassName) currentClassName = "";
-      const classes = currentClassName
-        .split(" ")
-        .filter((c) => c && c !== "active");
+      if (!currentClassName) currentClassName = '';
+      const classes = currentClassName.split(' ').filter((c) => c && c !== 'active');
       if (is_open) {
-        classes.push("active");
+        classes.push('active');
       }
-      return classes.join(" ");
+      return classes.join(' ');
     },
 
     /**
      * Toggle active class on settings panel button.
      */
     toggleSettingsButton: function (is_open, currentClassName) {
-      const button = document.getElementById("settings-button");
+      const button = document.getElementById('settings-button');
       if (button) {
         if (is_open) {
-          button.title = "Close Settings";
+          button.title = 'Close Settings';
         } else {
-          button.title = "Expand Settings";
+          button.title = 'Expand Settings';
         }
       }
 
       // Update className by adding/removing 'active'
-      if (!currentClassName) currentClassName = "";
-      const classes = currentClassName
-        .split(" ")
-        .filter((c) => c && c !== "active");
+      if (!currentClassName) currentClassName = '';
+      const classes = currentClassName.split(' ').filter((c) => c && c !== 'active');
       if (is_open) {
-        classes.push("active");
+        classes.push('active');
       }
-      return classes.join(" ");
+      return classes.join(' ');
     },
 
     /**
      * Toggle active class on data panel button.
      */
     toggleDataButton: function (is_open, currentClassName) {
-      const button = document.getElementById("toggle-import-export-panel");
+      const button = document.getElementById('toggle-import-export-panel');
       if (button) {
         if (is_open) {
-          button.title = "Close Data";
+          button.title = 'Close Data';
         } else {
-          button.title = "Expand Data";
+          button.title = 'Expand Data';
         }
       }
 
       // Update className by adding/removing 'active'
-      if (!currentClassName) currentClassName = "";
-      const classes = currentClassName
-        .split(" ")
-        .filter((c) => c && c !== "active");
+      if (!currentClassName) currentClassName = '';
+      const classes = currentClassName.split(' ').filter((c) => c && c !== 'active');
       if (is_open) {
-        classes.push("active");
+        classes.push('active');
       }
-      return classes.join(" ");
+      return classes.join(' ');
     },
   },
 });

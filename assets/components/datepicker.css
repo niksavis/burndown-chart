@@ -123,7 +123,7 @@
 }
 
 /* Ensure both date pickers work properly */
-.DateInput_input[id="date"] {
+.DateInput_input[id='date'] {
   /* This addresses the duplicate ID issue */
   pointer-events: auto;
 }
@@ -226,7 +226,7 @@
 /* Fix Dash Select dropdown menu z-index to appear above settings panel */
 .Select-menu-outer,
 .VirtualizedSelectOption,
-div[class*="__menu"] {
+div[class*='__menu'] {
   z-index: 1065 !important; /* Higher than modals and date pickers */
 }
 

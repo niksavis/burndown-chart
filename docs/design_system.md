@@ -1,6 +1,7 @@
 # Design System Documentation
 
 **Purpose**: Comprehensive design system documentation for the Burndown Chart application. This system provides:
+
 - **Consistency**: Unified visual language across all UI components
 - **Maintainability**: Single source of truth for design decisions via CSS variables
 - **Scalability**: Reusable tokens and patterns that grow with the application
@@ -46,6 +47,7 @@
 ### What are Design Tokens?
 
 Design tokens are CSS custom properties that store design decisions (colors, spacing, typography) in a centralized location. This provides:
+
 - **Single source of truth**: Change once, update everywhere
 - **Consistency**: Impossible to use arbitrary values
 - **Maintainability**: Easy global theme changes
@@ -60,8 +62,8 @@ All design tokens are defined in the `:root` pseudo-class, making them globally 
 ```css
 :root {
   --color-brand-500: #3b82f6; /* Main brand color */
-  --space-2: 1rem;             /* 16px spacing */
-  --text-base: 1rem;           /* 16px body text */
+  --space-2: 1rem; /* 16px spacing */
+  --text-base: 1rem; /* 16px body text */
 }
 ```
 
@@ -189,12 +191,14 @@ The application uses a three-tier color system:
 ### Color Usage Guidelines
 
 **DO**:
+
 - ✓ Use `var(--color-brand-500)` for all info icons
 - ✓ Use `var(--color-brand-600)` for checked/hover states
 - ✓ Use neutral colors for text hierarchy (900 → 700 → 500)
 - ✓ Use semantic colors for status indicators
 
 **DON'T**:
+
 - ✗ Never use hard-coded hex values (e.g., `#3b82f6`)
 - ✗ Never mix `text-info` and `text-muted` for the same icon type
 - ✗ Never use brand colors for body text (use neutrals)
@@ -207,14 +211,13 @@ The application uses a three-tier color system:
 ### Font Families
 
 ```css
---font-sans: "Manrope", "Segoe UI Variable Text", "Segoe UI", 
-             "Helvetica Neue", Arial, sans-serif;
+--font-sans: 'Manrope', 'Segoe UI Variable Text', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
 
---font-mono: ui-monospace, "SF Mono", "Cascadia Code", "Consolas", 
-             "Courier New", monospace;
+--font-mono: ui-monospace, 'SF Mono', 'Cascadia Code', 'Consolas', 'Courier New', monospace;
 ```
 
 **Usage**:
+
 - `--font-sans`: All UI text (default)
 - `--font-mono`: Code snippets, JQL queries, logs
 
@@ -329,12 +332,12 @@ All spacing follows an 8px baseline grid for visual rhythm and consistency.
 For Bootstrap compatibility:
 
 ```css
---spacing-xs: var(--space-1);   /* 8px */
---spacing-sm: var(--space-1);   /* 8px */
---spacing-md: var(--space-2);   /* 16px */
---spacing-lg: var(--space-3);   /* 24px */
---spacing-xl: var(--space-4);   /* 32px */
---spacing-xxl: var(--space-6);  /* 48px */
+--spacing-xs: var(--space-1); /* 8px */
+--spacing-sm: var(--space-1); /* 8px */
+--spacing-md: var(--space-2); /* 16px */
+--spacing-lg: var(--space-3); /* 24px */
+--spacing-xl: var(--space-4); /* 32px */
+--spacing-xxl: var(--space-6); /* 48px */
 ```
 
 ### Spacing Examples
@@ -553,7 +556,7 @@ def create_help_icon(
 
 | Parameter    | Type  | Default                | Description                                   |
 | ------------ | ----- | ---------------------- | --------------------------------------------- |
-| `tooltip_id` | `str` | *Required*             | Unique ID for the tooltip target              |
+| `tooltip_id` | `str` | _Required_             | Unique ID for the tooltip target              |
 | `position`   | `str` | `"inline"`             | Icon position: `inline`, `header`, `trailing` |
 | `icon_class` | `str` | `"fas fa-info-circle"` | FontAwesome icon class                        |
 | `color`      | `str` | `"#3b82f6"`            | Icon color (brand blue)                       |
@@ -623,12 +626,14 @@ Use Bootstrap utility classes for consistent icon sizing:
 ### Icon Color Guidelines
 
 **DO**:
+
 - ✓ Use `create_help_icon()` for all info/help icons
 - ✓ Use `text-info` class for brand blue icons
 - ✓ Use semantic classes: `text-success`, `text-warning`, `text-danger`
 - ✓ Use `var(--color-brand-500)` in inline styles
 
 **DON'T**:
+
 - ✗ Never use `text-muted` for info icons (gray is hard to see)
 - ✗ Never hard-code icon colors like `#17a2b8` (use variables)
 - ✗ Never mix icon color classes on the same icon type
@@ -657,7 +662,7 @@ dbc.Checkbox(
 
 ```css
 .form-check-input:checked {
-  background-color: var(--color-brand-600) !important;  /* #2563eb */
+  background-color: var(--color-brand-600) !important; /* #2563eb */
   border-color: var(--color-brand-600) !important;
 }
 ```
@@ -714,6 +719,7 @@ dbc.Input(
 ### Form Control Color Consistency
 
 **History**: Previously, form controls had inconsistent colors due to multiple Bootstrap CSS sources:
+
 - Standard Bootstrap: `#0d6efd` (bright blue)
 - Flatly theme: `#2c3e50` (navy blue)
 - Custom CSS: `#2563eb` (brand blue)
@@ -830,7 +836,7 @@ input:focus {
   padding: 16px 32px;
   background-color: #3b82f6;
   border-radius: 6px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   font-size: 16px;
 }
 ```
@@ -929,16 +935,17 @@ When making design system changes:
 ```markdown
 **Date**: 2026-02-13
 **Change**: Unified form control colors to brand blue
-**Rationale**: 
+**Rationale**:
+
 - Resolved inconsistent colors across checkboxes, radios, sliders
 - Enforces DRY principle (single source of truth)
 - Improved visual consistency across application
-**Files Modified**:
+  **Files Modified**:
 - assets/core/color-consistency.css (created)
 - ui/budget_settings_card.py (4 icon classes)
 - ui/tooltip_utils.py (default color parameter)
 - ui/style_constants.py (HELP_ICON constant)
-**Breaking Changes**: None (visual only)
+  **Breaking Changes**: None (visual only)
 ```
 
 ### Testing Checklist
@@ -968,11 +975,13 @@ When modifying design tokens:
 ### KISS and DRY Principles
 
 **KISS (Keep It Simple, Stupid)**:
+
 - Use existing design tokens instead of creating new ones
 - Follow established patterns (e.g., `create_help_icon()`)
 - Don't over-engineer simple components
 
 **DRY (Don't Repeat Yourself)**:
+
 - Never duplicate color values - use CSS variables
 - Reuse helper functions across modules
 - Centralize constants in `style_constants.py`

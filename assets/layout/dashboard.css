@@ -39,7 +39,7 @@
 }
 
 /* NO negative margins - causes overflow! */
-.dashboard-enhanced .card-body > div[style*="backgroundColor"] {
+.dashboard-enhanced .card-body > div[style*='backgroundColor'] {
   margin-left: 0 !important;
   margin-right: 0 !important;
   padding: 0.5rem !important;

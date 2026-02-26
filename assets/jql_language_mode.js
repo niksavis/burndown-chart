@@ -28,93 +28,89 @@
  */
 
 (function () {
-  "use strict";
+  'use strict';
 
   // Skip if already registered with CodeMirror
-  if (
-    typeof CodeMirror !== "undefined" &&
-    CodeMirror.modes &&
-    CodeMirror.modes.jql
-  ) {
+  if (typeof CodeMirror !== 'undefined' && CodeMirror.modes && CodeMirror.modes.jql) {
     return;
   }
 
   // JQL Keywords (case-insensitive matching)
   const JQL_KEYWORDS = new Set([
     // Logical operators
-    "AND",
-    "OR",
-    "NOT",
+    'AND',
+    'OR',
+    'NOT',
 
     // Comparison operators (word-based)
-    "IN",
-    "NOT IN",
-    "IS",
-    "IS NOT",
-    "WAS",
-    "WAS IN",
-    "WAS NOT IN",
-    "EMPTY",
-    "NULL",
+    'IN',
+    'NOT IN',
+    'IS',
+    'IS NOT',
+    'WAS',
+    'WAS IN',
+    'WAS NOT IN',
+    'EMPTY',
+    'NULL',
 
     // Sorting
-    "ORDER BY",
-    "ORDER",
-    "BY",
-    "ASC",
-    "DESC",
+    'ORDER BY',
+    'ORDER',
+    'BY',
+    'ASC',
+    'DESC',
 
     // Change tracking
-    "CHANGED",
-    "AFTER",
-    "BEFORE",
-    "DURING",
-    "ON",
-    "FROM",
-    "TO",
-    "CHANGED FROM",
-    "CHANGED TO",
+    'CHANGED',
+    'AFTER',
+    'BEFORE',
+    'DURING',
+    'ON',
+    'FROM',
+    'TO',
+    'CHANGED FROM',
+    'CHANGED TO',
 
     // Additional keywords
-    "BETWEEN",
-    "OF",
+    'BETWEEN',
+    'OF',
   ]);
 
   // Standard JQL Functions
   const JQL_FUNCTIONS = new Set([
-    "currentUser",
-    "currentLogin",
-    "membersOf",
-    "now",
-    "startOfDay",
-    "endOfDay",
-    "startOfWeek",
-    "endOfWeek",
-    "startOfMonth",
-    "endOfMonth",
-    "startOfYear",
-    "endOfYear",
+    'currentUser',
+    'currentLogin',
+    'membersOf',
+    'now',
+    'startOfDay',
+    'endOfDay',
+    'startOfWeek',
+    'endOfWeek',
+    'startOfMonth',
+    'endOfMonth',
+    'startOfYear',
+    'endOfYear',
   ]);
 
   // ScriptRunner Functions (User Story 2 - T028)
   // Top 15 most commonly used ScriptRunner extension functions
   const SCRIPTRUNNER_FUNCTIONS = new Set([
-    "linkedIssuesOf",
-    "issuesInEpics",
-    "subtasksOf",
-    "parentsOf",
-    "epicsOf",
-    "hasLinks",
-    "hasComments",
-    "hasAttachments",
-    "lastUpdated",
-    "expression",
-    "dateCompare",
-    "aggregateExpression",
-    "issueFieldMatch",
-    "linkedIssuesOfRecursive",
-    "workLogged",
-    "issueFunction", // Special keyword that can be used standalone
+    'linkedIssuesOf',
+    'issuesInEpics',
+    'subtasksOf',
+    'parentsOf',
+    'epicsOf',
+    'hasLinks',
+    'hasComments',
+    'hasAttachments',
+    'lastUpdated',
+    'expression',
+    'dateCompare',
+    'aggregateExpression',
+    'issueFieldMatch',
+    'linkedIssuesOfRecursive',
+    'workLogged',
+    'issueFunction', // Special keyword that can be used standalone
   ]);
 
   /**
@@ -161,7 +157,7 @@
         state.inString = true;
         state.stringDelimiter = stream.peek();
         stream.next();
-        return "jql-string";
+        return 'jql-string';
       }
 
       // Handle operators (single or multi-character)
@@ -170,7 +166,7 @@
       }
 
       // Handle special characters (parentheses, commas)
-      if ("(),".indexOf(stream.peek()) !== -1) {
+      if ('(),'.indexOf(stream.peek()) !== -1) {
         stream.next();
         return null; // Don't highlight special chars
       }
@@ -197,7 +193,7 @@
         const ch = stream.next();
 
         // Handle escape sequences
-        if (ch === "\\") {
+        if (ch === '\\') {
           stream.next(); // Skip escaped character
           continue;
         }
@@ -206,14 +202,14 @@
         if (ch === delimiter) {
           state.inString = false;
           state.stringDelimiter = null;
-          return "jql-string";
+          return 'jql-string';
         }
       }
 
       // Reached end of line without closing quote
       // Keep state.inString = true to continue on next line
       // But mark as error if this is truly unclosed (User Story 3)
-      return "jql-string";
+      return 'jql-string';
     },
 
     /**
@@ -229,7 +225,7 @@
         stream.next();
       }
 
-      return "jql-operator";
+      return 'jql-operator';
     },
 
     /**
@@ -256,35 +252,35 @@
       // T030: Check ScriptRunner functions FIRST (before keywords)
       // This prevents "issueFunction" from being treated as generic keyword
       if (SCRIPTRUNNER_FUNCTIONS.has(word)) {
-        return "jql-scriptrunner";
+        return 'jql-scriptrunner';
       }
 
       // Check if next character is opening parenthesis (function call)
       stream.eatSpace();
-      if (stream.peek() === "(") {
+      if (stream.peek() === '(') {
         // Check if it's a standard JQL function
         if (JQL_FUNCTIONS.has(word)) {
-          return "jql-function";
+          return 'jql-function';
         }
 
         // Unknown function - treat as field name
-        return "jql-field";
+        return 'jql-field';
       }
 
       // Check if it's a keyword (case-insensitive)
       if (JQL_KEYWORDS.has(wordUpper)) {
-        return "jql-keyword";
+        return 'jql-keyword';
       }
 
       // Default to field name
-      return "jql-field";
+      return 'jql-field';
     },
 
     /**
      * Check if character is part of an operator.
      */
     isOperatorChar: function (ch) {
-      return ch && "=!<>~".indexOf(ch) !== -1;
+      return ch && '=!<>~'.indexOf(ch) !== -1;
     },
 
     /**
@@ -298,13 +294,13 @@
   };
 
   // Export for use in jql_editor_init.js
-  if (typeof window !== "undefined") {
+  if (typeof window !== 'undefined') {
     window.jqlLanguageMode = jqlLanguageMode;
   }
 
   // Register with CodeMirror 5 if available
-  if (typeof CodeMirror !== "undefined" && CodeMirror.defineMode) {
-    CodeMirror.defineMode("jql", function (config, parserConfig) {
+  if (typeof CodeMirror !== 'undefined' && CodeMirror.defineMode) {
+    CodeMirror.defineMode('jql', function (config, parserConfig) {
       return jqlLanguageMode;
     });
   }

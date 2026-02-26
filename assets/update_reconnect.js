@@ -11,7 +11,7 @@
  */
 
 (function () {
-  "use strict";
+  'use strict';
 
   // Configuration
   const POLL_INTERVAL_MS = 2000; // 2 seconds
@@ -35,8 +35,8 @@
   function showReconnectingOverlay() {
     if (overlayElement) return; // Already showing
 
-    overlayElement = document.createElement("div");
-    overlayElement.id = "reconnect-overlay";
+    overlayElement = document.createElement('div');
+    overlayElement.id = 'reconnect-overlay';
     overlayElement.style.cssText = `
       position: fixed;
       top: 0;
@@ -72,14 +72,14 @@
     `;
 
     document.body.appendChild(overlayElement);
-    console.log("[update_reconnect] Reconnecting overlay shown");
+    console.log('[update_reconnect] Reconnecting overlay shown');
   }
 
   /**
    * Update status message in overlay
    */
   function updateOverlayStatus(message) {
-    const statusElement = document.getElementById("reconnect-status");
+    const statusElement = document.getElementById('reconnect-status');
     if (statusElement) {
       statusElement.textContent = message;
     }
@@ -92,7 +92,7 @@
     if (overlayElement) {
       overlayElement.remove();
       overlayElement = null;
-      console.log("[update_reconnect] Reconnecting overlay hidden");
+      console.log('[update_reconnect] Reconnecting overlay hidden');
     }
   }
 
@@ -100,45 +100,41 @@
    * Show success toast after update completes
    */
   function showUpdateSuccessToast(version) {
-    console.log(
-      "[update_reconnect] Showing update success toast for version",
-      version,
-    );
+    console.log('[update_reconnect] Showing update success toast for version', version);
 
     // Wait for toast blocker to be removed (if active)
     const showToast = () => {
       // Create toast element directly in the notifications container
-      const notificationsContainer =
-        document.getElementById("app-notifications");
+      const notificationsContainer = document.getElementById('app-notifications');
       if (!notificationsContainer) {
-        console.warn("[update_reconnect] Notifications container not found");
+        console.warn('[update_reconnect] Notifications container not found');
         return;
       }
 
       // CRITICAL: Clear any existing toasts before showing success toast
       // This prevents duplicate/stale toasts from Dash callbacks firing on reconnect
-      const existingToasts = notificationsContainer.querySelectorAll(".toast");
+      const existingToasts = notificationsContainer.querySelectorAll('.toast');
       if (existingToasts.length > 0) {
         console.warn(
-          `[update_reconnect] Clearing ${existingToasts.length} existing toast(s) before showing success`,
+          `[update_reconnect] Clearing ${existingToasts.length} existing toast(s) before showing success`
         );
         existingToasts.forEach((toast) => {
-          const header = toast.querySelector(".toast-header strong");
-          const body = toast.querySelector(".toast-body");
-          console.log("[update_reconnect] Removing toast:", {
-            header: header ? header.textContent : "unknown",
-            body: body ? body.textContent.substring(0, 50) : "unknown",
+          const header = toast.querySelector('.toast-header strong');
+          const body = toast.querySelector('.toast-body');
+          console.log('[update_reconnect] Removing toast:', {
+            header: header ? header.textContent : 'unknown',
+            body: body ? body.textContent.substring(0, 50) : 'unknown',
           });
           toast.remove();
         });
       }
 
       // Create toast HTML (matching Dash Bootstrap Components style)
-      const toastElement = document.createElement("div");
-      toastElement.className = "fade toast show app-toast";
-      toastElement.setAttribute("role", "alert");
-      toastElement.setAttribute("aria-live", "assertive");
-      toastElement.setAttribute("aria-atomic", "true");
+      const toastElement = document.createElement('div');
+      toastElement.className = 'fade toast show app-toast';
+      toastElement.setAttribute('role', 'alert');
+      toastElement.setAttribute('aria-live', 'assertive');
+      toastElement.setAttribute('aria-atomic', 'true');
       toastElement.innerHTML = `
       <div class="toast-header">
         <i class="fas fa-check-circle text-success me-2" style="font-size: 1.2rem;"></i>
@@ -163,29 +159,23 @@
           return;
         }
 
-        toastElement.classList.remove("show");
+        toastElement.classList.remove('show');
         setTimeout(() => {
           toastElement.remove();
         }, 300); // Wait for fade animation
       }, 5000);
 
-      if (
-        window.update_reconnect_helpers &&
-        window.update_reconnect_helpers.attach_toast_dismiss
-      ) {
-        window.update_reconnect_helpers.attach_toast_dismiss(
-          toastElement,
-          autoDismissId,
-        );
+      if (window.update_reconnect_helpers && window.update_reconnect_helpers.attach_toast_dismiss) {
+        window.update_reconnect_helpers.attach_toast_dismiss(toastElement, autoDismissId);
       }
 
-      console.log("[update_reconnect] Success toast displayed");
+      console.log('[update_reconnect] Success toast displayed');
     };
 
     // If toast blocker is active, wait for it to be removed
     if (toastBlocker) {
       console.log(
-        "[update_reconnect] Waiting for toast blocker to be removed before showing success toast",
+        '[update_reconnect] Waiting for toast blocker to be removed before showing success toast'
       );
       const checkBlocker = setInterval(() => {
         if (!toastBlocker) {
@@ -203,83 +193,70 @@
    */
   function pollServer() {
     pollAttempts++;
-    console.log(
-      `[update_reconnect] Polling server (attempt ${pollAttempts}/${MAX_POLL_ATTEMPTS})`,
-    );
+    console.log(`[update_reconnect] Polling server (attempt ${pollAttempts}/${MAX_POLL_ATTEMPTS})`);
 
-    updateOverlayStatus(
-      `Checking server status... (${pollAttempts}/${MAX_POLL_ATTEMPTS})`,
-    );
+    updateOverlayStatus(`Checking server status... (${pollAttempts}/${MAX_POLL_ATTEMPTS})`);
 
     // Try to fetch the root page
-    fetch("/", {
-      method: "HEAD",
-      cache: "no-cache",
+    fetch('/', {
+      method: 'HEAD',
+      cache: 'no-cache',
       headers: {
-        "Cache-Control": "no-cache",
-        Pragma: "no-cache",
+        'Cache-Control': 'no-cache',
+        Pragma: 'no-cache',
       },
     })
       .then((response) => {
         if (response.ok) {
-          console.log("[update_reconnect] Server is back online");
+          console.log('[update_reconnect] Server is back online');
 
           // Server back - proceed with reconnect
           clearInterval(pollIntervalId);
           pollIntervalId = null;
 
-          updateOverlayStatus("Server is back! Finalizing...");
+          updateOverlayStatus('Server is back! Finalizing...');
 
           // If this was an update flow, fetch new version and update UI
           if (isUpdateFlow) {
-            console.log(
-              "[update_reconnect] Update flow detected - fetching new version",
-            );
+            console.log('[update_reconnect] Update flow detected - fetching new version');
 
             // Fetch new version from API
-            fetch("/api/version", {
-              cache: "no-cache",
+            fetch('/api/version', {
+              cache: 'no-cache',
               headers: {
-                "Cache-Control": "no-cache",
-                Pragma: "no-cache",
+                'Cache-Control': 'no-cache',
+                Pragma: 'no-cache',
               },
             })
               .then((versionResponse) => versionResponse.json())
               .then((versionData) => {
-                console.log(
-                  "[update_reconnect] New version:",
-                  versionData.version,
-                );
+                console.log('[update_reconnect] New version:', versionData.version);
 
                 // CRITICAL: Clear any toasts BEFORE removing overlay
                 // This prevents Dash callbacks from showing toasts during reconnect
-                const notificationsContainer =
-                  document.getElementById("app-notifications");
+                const notificationsContainer = document.getElementById('app-notifications');
                 if (notificationsContainer) {
-                  const existingToasts =
-                    notificationsContainer.querySelectorAll(".toast");
+                  const existingToasts = notificationsContainer.querySelectorAll('.toast');
                   if (existingToasts.length > 0) {
                     console.log(
-                      `[update_reconnect] Pre-clearing ${existingToasts.length} toast(s) before overlay removal`,
+                      `[update_reconnect] Pre-clearing ${existingToasts.length} toast(s) before overlay removal`
                     );
                     existingToasts.forEach((toast) => toast.remove());
                   }
 
                   // Install toast blocker to prevent Dash from adding toasts during critical window
-                  console.log(
-                    "[update_reconnect] Installing toast blocker for 2 seconds",
-                  );
+                  console.log('[update_reconnect] Installing toast blocker for 2 seconds');
                   toastBlocker = new MutationObserver((mutations) => {
                     mutations.forEach((mutation) => {
                       mutation.addedNodes.forEach((node) => {
                         if (
                           node.nodeType === 1 &&
                           node.classList &&
-                          node.classList.contains("toast")
+                          node.classList.contains('toast')
                         ) {
                           console.warn(
-                            "[update_reconnect] Blocking unwanted toast during update reconnect",
-                            node,
+                            '[update_reconnect] Blocking unwanted toast during update reconnect',
+                            node
                           );
                           node.remove();
                         }
@@ -295,7 +272,7 @@
                     if (toastBlocker) {
                       toastBlocker.disconnect();
                       toastBlocker = null;
-                      console.log("[update_reconnect] Toast blocker removed");
+                      console.log('[update_reconnect] Toast blocker removed');
                     }
                   }, 2000);
                 }
@@ -308,15 +285,12 @@
                 // which reliably shows toast + updates footer after Dash initializes
                 // This eliminates race conditions between JS DOM manipulation and Dash re-rendering
                 console.log(
-                  "[update_reconnect] Update complete - forcing page reload to show success",
+                  '[update_reconnect] Update complete - forcing page reload to show success'
                 );
                 window.location.reload();
               })
               .catch((error) => {
-                console.error(
-                  "[update_reconnect] Failed to fetch version:",
-                  error,
-                );
+                console.error('[update_reconnect] Failed to fetch version:', error);
                 // Fallback: just hide overlay and reload
                 hideReconnectingOverlay();
                 setTimeout(() => {
@@ -326,31 +300,24 @@
           } else {
             // Normal reconnect (not update) - just hide overlay
             // Dash will automatically reconnect and refresh components
-            console.log("[update_reconnect] Normal reconnect - hiding overlay");
+            console.log('[update_reconnect] Normal reconnect - hiding overlay');
             hideReconnectingOverlay();
           }
         } else {
-          console.log(
-            `[update_reconnect] Server responded with status ${response.status}`,
-          );
+          console.log(`[update_reconnect] Server responded with status ${response.status}`);
         }
       })
       .catch((error) => {
-        console.log(
-          "[update_reconnect] Server not available yet:",
-          error.message,
-        );
+        console.log('[update_reconnect] Server not available yet:', error.message);
 
         // Check if max attempts reached
         if (pollAttempts >= MAX_POLL_ATTEMPTS) {
-          console.error(
-            "[update_reconnect] Max poll attempts reached - giving up",
-          );
+          console.error('[update_reconnect] Max poll attempts reached - giving up');
           clearInterval(pollIntervalId);
           pollIntervalId = null;
 
           updateOverlayStatus(
-            "Could not reconnect to server. Please refresh the page manually or restart the application.",
+            'Could not reconnect to server. Please refresh the page manually or restart the application.'
           );
         }
       });
@@ -362,11 +329,7 @@
   function startReconnecting(isUpdate = false) {
     if (isReconnecting) return; // Already reconnecting
 
-    console.log(
-      "[update_reconnect] Starting reconnection process (isUpdate:",
-      isUpdate,
-      ")",
-    );
+    console.log('[update_reconnect] Starting reconnection process (isUpdate:', isUpdate, ')');
     isReconnecting = true;
     isUpdateFlow = isUpdate; // Track if this is an update
     pollAttempts = 0;
@@ -377,18 +340,14 @@
     // This prevents race condition where server is still alive
     if (isUpdate) {
       waitingForDisconnect = true;
-      updateOverlayStatus("Waiting for update to start...");
+      updateOverlayStatus('Waiting for update to start...');
 
-      console.log(
-        "[update_reconnect] Update flow - waiting for disconnect signal before polling",
-      );
+      console.log('[update_reconnect] Update flow - waiting for disconnect signal before polling');
 
       // Safety timeout: If disconnect doesn't happen in 10s, start polling anyway
       disconnectTimeoutId = setTimeout(() => {
         if (waitingForDisconnect) {
-          console.warn(
-            "[update_reconnect] Disconnect timeout - starting polling anyway",
-          );
+          console.warn('[update_reconnect] Disconnect timeout - starting polling anyway');
           waitingForDisconnect = false;
           beginPolling();
         }
@@ -405,8 +364,8 @@
    * Begin polling for server availability
    */
   function beginPolling() {
-    console.log("[update_reconnect] Beginning server polling");
-    updateOverlayStatus("Checking server status...");
+    console.log('[update_reconnect] Beginning server polling');
+    updateOverlayStatus('Checking server status...');
 
     // Start polling after initial delay
     setTimeout(() => {
@@ -422,13 +381,11 @@
    * Handle websocket close event
    */
   function handleWebSocketClose() {
-    console.log("[update_reconnect] Dash websocket closed");
+    console.log('[update_reconnect] Dash websocket closed');
 
     // If we were waiting for disconnect (update flow), start polling now!
     if (waitingForDisconnect) {
-      console.log(
-        "[update_reconnect] Disconnect detected during update - starting polling now",
-      );
+      console.log('[update_reconnect] Disconnect detected during update - starting polling now');
       waitingForDisconnect = false;
 
       // Clear safety timeout
@@ -451,13 +408,13 @@
   function handleFetchError(error) {
     // Only handle connection errors during reconnect phase
     if (isReconnecting) {
-      console.log("[update_reconnect] Fetch error during reconnect:", error);
+      console.log('[update_reconnect] Fetch error during reconnect:', error);
       return;
     }
 
     // Check if it's a network error indicating server is down
-    if (error instanceof TypeError && error.message.includes("fetch")) {
-      console.log("[update_reconnect] Network fetch error detected");
+    if (error instanceof TypeError && error.message.includes('fetch')) {
+      console.log('[update_reconnect] Network fetch error detected');
       startReconnecting();
     }
   }
@@ -470,10 +427,8 @@
     // We need to hook into the global error handlers
 
     // Monitor for websocket disconnections
-    if (typeof io !== "undefined") {
-      console.log(
-        "[update_reconnect] Socket.IO detected, monitoring connection",
-      );
+    if (typeof io !== 'undefined') {
+      console.log('[update_reconnect] Socket.IO detected, monitoring connection');
 
       // Get Dash socket instance (may not be immediately available)
       const checkSocket = setInterval(() => {
@@ -481,19 +436,17 @@
         if (socket) {
           clearInterval(checkSocket);
 
-          socket.on("disconnect", (reason) => {
+          socket.on('disconnect', (reason) => {
             console.log(`[update_reconnect] Socket.IO disconnected: ${reason}`);
 
             // Only trigger reconnect for unexpected disconnections
             // (not user-initiated or normal navigation)
-            if (reason === "transport close" || reason === "transport error") {
+            if (reason === 'transport close' || reason === 'transport error') {
               handleWebSocketClose();
             }
           });
 
-          console.log(
-            "[update_reconnect] Socket.IO disconnect handler registered",
-          );
+          console.log('[update_reconnect] Socket.IO disconnect handler registered');
         }
       }, 100);
 
@@ -510,7 +463,7 @@
       });
     };
 
-    console.log("[update_reconnect] Fetch error monitoring enabled");
+    console.log('[update_reconnect] Fetch error monitoring enabled');
   }
 
   /**
@@ -518,47 +471,39 @@
    */
   function init() {
     // Wait for DOM to be ready
-    if (document.readyState === "loading") {
-      document.addEventListener("DOMContentLoaded", init);
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', init);
       return;
     }
 
-    console.log("[update_reconnect] Initializing auto-reconnect handler");
+    console.log('[update_reconnect] Initializing auto-reconnect handler');
 
     // Check if this is a post-update restart (flag persisted in database)
-    fetch("/api/version", {
-      cache: "no-cache",
+    fetch('/api/version', {
+      cache: 'no-cache',
       headers: {
-        "Cache-Control": "no-cache",
-        Pragma: "no-cache",
+        'Cache-Control': 'no-cache',
+        Pragma: 'no-cache',
       },
     })
       .then((response) => response.json())
       .then((versionData) => {
-        const version =
-          versionData && versionData.version ? versionData.version : "unknown";
+        const version = versionData && versionData.version ? versionData.version : 'unknown';
         const postUpdate = Boolean(versionData && versionData.post_update);
         console.log(
-          `[update_reconnect] Version check: version=${version}, post_update=${postUpdate}`,
+          `[update_reconnect] Version check: version=${version}, post_update=${postUpdate}`
         );
 
         // If post_update flag is set, this is a post-update restart
         if (versionData.post_update) {
-          console.log(
-            "[update_reconnect] Post-update restart detected - showing success toast",
-          );
+          console.log('[update_reconnect] Post-update restart detected - showing success toast');
           isUpdateFlow = true; // Mark as update flow (prevents reload)
 
           // Update footer version (defense in depth - server already rendered correct version)
-          const footerVersionElement = document.getElementById(
-            "footer-version-text",
-          );
+          const footerVersionElement = document.getElementById('footer-version-text');
           if (footerVersionElement) {
-            footerVersionElement.textContent = "v" + versionData.version;
-            console.log(
-              "[update_reconnect] Footer version confirmed:",
-              versionData.version,
-            );
+            footerVersionElement.textContent = 'v' + versionData.version;
+            console.log('[update_reconnect] Footer version confirmed:', versionData.version);
           }
 
           // Show success toast immediately (app already restarted, no blocker needed)
@@ -568,41 +513,30 @@
           }, 1000);
 
           // Clear the flag so it doesn't show again
-          fetch("/api/clear-post-update", {
-            method: "POST",
-            cache: "no-cache",
+          fetch('/api/clear-post-update', {
+            method: 'POST',
+            cache: 'no-cache',
           })
             .then((response) => response.json())
             .then((result) => {
               if (result.success) {
-                console.log(
-                  "[update_reconnect] Post-update flag cleared successfully",
-                );
+                console.log('[update_reconnect] Post-update flag cleared successfully');
               } else {
-                console.warn(
-                  "[update_reconnect] Failed to clear post-update flag:",
-                  result.error,
-                );
+                console.warn('[update_reconnect] Failed to clear post-update flag:', result.error);
               }
             })
             .catch((error) => {
-              console.error(
-                "[update_reconnect] Error clearing post-update flag:",
-                error,
-              );
+              console.error('[update_reconnect] Error clearing post-update flag:', error);
             });
         }
       })
       .catch((error) => {
-        console.warn(
-          "[update_reconnect] Failed to check version/post-update status:",
-          error,
-        );
+        console.warn('[update_reconnect] Failed to check version/post-update status:', error);
       });
 
     // Listen for custom event from update button callback
-    window.addEventListener("trigger-update-overlay", function () {
-      console.log("[update_reconnect] Received trigger-update-overlay event");
+    window.addEventListener('trigger-update-overlay', function () {
+      console.log('[update_reconnect] Received trigger-update-overlay event');
       startReconnecting(true); // true = this is an update flow
     });
 

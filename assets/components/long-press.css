@@ -15,7 +15,7 @@
 
 /* Progress fill using ::before pseudo-element */
 .long-press-button::before {
-  content: "";
+  content: '';
   position: absolute;
   top: 0;
   left: 0;

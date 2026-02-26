@@ -14,18 +14,14 @@ window.dash_clientside.clientside.setupLongPress = function () {
   const maxAttempts = 10;
 
   function tryInitialize() {
-    const button = document.getElementById("update-data-unified");
+    const button = document.getElementById('update-data-unified');
     if (!button) {
       attempts++;
       if (attempts < maxAttempts) {
         // Retry with exponential backoff: 100ms, 200ms, 400ms, 800ms, etc.
         setTimeout(tryInitialize, 100 * Math.pow(2, Math.min(attempts - 1, 4)));
       } else {
-        console.warn(
-          "Update Data button not found after",
-          maxAttempts,
-          "attempts",
-        );
+        console.warn('Update Data button not found after', maxAttempts, 'attempts');
       }
       return;
     }
@@ -38,8 +34,8 @@ window.dash_clientside.clientside.setupLongPress = function () {
     let isReadyForForceRefresh = false;
     let processingForceRefresh = false;
     let allowNextClick = false;
-    const originalText = "Update Data";
-    const forceRefreshText = "Force Refresh";
+    const originalText = 'Update Data';
+    const forceRefreshText = 'Force Refresh';
     const LONG_PRESS_DURATION = 2000; // 2 seconds
 
     // Get text span inside button
@@ -50,7 +46,7 @@ window.dash_clientside.clientside.setupLongPress = function () {
 
       // First, try to find a span element
       for (let child of children) {
-        if (child.nodeType === Node.ELEMENT_NODE && child.tagName === "SPAN") {
+        if (child.nodeType === Node.ELEMENT_NODE && child.tagName === 'SPAN') {
           return child;
         }
       }
@@ -72,16 +68,16 @@ window.dash_clientside.clientside.setupLongPress = function () {
 
       startTime = Date.now();
       isReadyForForceRefresh = false;
-      button.classList.add("long-press-active");
+      button.classList.add('long-press-active');
 
       // Initialize progress width to 0%
-      button.style.setProperty("--progress-width", "0%");
+      button.style.setProperty('--progress-width', '0%');
 
       // Update progress animation by changing CSS custom property
       progressInterval = setInterval(function () {
         const elapsed = Date.now() - startTime;
         const progress = Math.min((elapsed / LONG_PRESS_DURATION) * 100, 100);
-        button.style.setProperty("--progress-width", progress + "%");
+        button.style.setProperty('--progress-width', progress + '%');
       }, 16); // ~60fps
 
       // After 3s: Change text to indicate ready for force refresh
@@ -98,11 +94,11 @@ window.dash_clientside.clientside.setupLongPress = function () {
     function handleRelease(e) {
       // If force refresh is ready, trigger it
       if (isReadyForForceRefresh) {
-        console.log("🔄 Force refresh activated!");
+        console.log('🔄 Force refresh activated!');
 
         // Store flag globally BEFORE allowing the click to propagate
         window._forceRefreshPending = true;
-        console.log("✅ Set global _forceRefreshPending flag");
+        console.log('✅ Set global _forceRefreshPending flag');
 
         // Don't prevent the event - let it propagate naturally
         // This ensures clientside callbacks see the flag before server callbacks execute
@@ -129,11 +125,11 @@ window.dash_clientside.clientside.setupLongPress = function () {
         progressInterval = null;
       }
 
-      button.classList.remove("long-press-active");
+      button.classList.remove('long-press-active');
       isReadyForForceRefresh = false;
 
       // Reset progress width
-      button.style.setProperty("--progress-width", "0%");
+      button.style.setProperty('--progress-width', '0%');
 
       // Reset text
       const textElement = getButtonTextElement();
@@ -143,16 +139,16 @@ window.dash_clientside.clientside.setupLongPress = function () {
     }
 
     // Event listeners for mouse
-    button.addEventListener("mousedown", startPress);
-    button.addEventListener("mouseup", handleRelease);
-    button.addEventListener("mouseleave", cancelPress);
+    button.addEventListener('mousedown', startPress);
+    button.addEventListener('mouseup', handleRelease);
+    button.addEventListener('mouseleave', cancelPress);
 
     // Event listeners for touch (mobile)
-    button.addEventListener("touchstart", startPress, { passive: false });
-    button.addEventListener("touchend", handleRelease);
-    button.addEventListener("touchcancel", cancelPress);
+    button.addEventListener('touchstart', startPress, { passive: false });
+    button.addEventListener('touchend', handleRelease);
+    button.addEventListener('touchcancel', cancelPress);
 
-    console.log("Long-press force refresh initialized");
+    console.log('Long-press force refresh initialized');
   }
 
   // Start trying to initialize
@@ -162,8 +158,8 @@ window.dash_clientside.clientside.setupLongPress = function () {
 };
 
 // Initialize on page load
-if (document.readyState === "loading") {
-  document.addEventListener("DOMContentLoaded", function () {
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', function () {
     if (window.dash_clientside && window.dash_clientside.clientside) {
       window.dash_clientside.clientside.setupLongPress();
     }
@@ -182,14 +178,12 @@ window.dash_clientside = Object.assign({}, window.dash_clientside, {
     updateStore: function (n_clicks) {
       // Check if force refresh is pending
       if (window._forceRefreshPending) {
-        console.log(
-          "✅ Clientside callback: Force refresh detected, returning TRUE",
-        );
+        console.log('✅ Clientside callback: Force refresh detected, returning TRUE');
         // Clear flag immediately after reading to prevent interference with next click
         window._forceRefreshPending = false;
         return true;
       }
-      console.log("✅ Clientside callback: Normal click, returning FALSE");
+      console.log('✅ Clientside callback: Normal click, returning FALSE');
       return false;
     },
   },

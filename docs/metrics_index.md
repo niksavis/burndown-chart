@@ -13,9 +13,11 @@ This is your starting point for understanding how the application measures proje
 The application tracks four categories of metrics, each documented in its own focused guide:
 
 ### 1. [Project Dashboard Metrics](./dashboard_metrics.md) ⭐ **START HERE**
+
 **Best for**: Project managers, stakeholders tracking delivery progress
 
 Covers the **Project Dashboard** tab metrics:
+
 - **[Project Health Score](./health_formula.md)** - Comprehensive multi-dimensional assessment using 20+ signals
 - **Completion Forecast** - When the project will finish based on current velocity
 - **Current Velocity** - Team throughput (items/week or points/week)
@@ -28,9 +30,11 @@ Covers the **Project Dashboard** tab metrics:
 ---
 
 ### 2. [DORA Metrics](./dora_metrics.md)
+
 **Best for**: Engineering teams optimizing deployment and incident response
 
 Covers the **DORA & Flow Metrics** tab - DORA section:
+
 - **Deployment Frequency** - How often you ship to production
 - **Lead Time for Changes** - Time from code ready to deployed
 - **Change Failure Rate** - Percentage of deployments that fail
@@ -41,9 +45,11 @@ Covers the **DORA & Flow Metrics** tab - DORA section:
 ---
 
 ### 3. [Flow Metrics](./flow_metrics.md)
+
 **Best for**: Teams optimizing work process and managing WIP
 
 Covers the **DORA & Flow Metrics** tab - Flow section:
+
 - **Flow Velocity** - Work completed per week (by type: Feature/Defect/Tech Debt/Risk)
 - **Flow Time** - Cycle time from start to completion
 - **Flow Efficiency** - Active work time vs. waiting time percentage
@@ -57,9 +63,11 @@ Covers the **DORA & Flow Metrics** tab - Flow section:
 ---
 
 ### 4. [Budget Metrics](./budget_metrics.md)
+
 **Best for**: Project managers and finance stakeholders tracking project costs
 
 Covers financial tracking and budget management:
+
 - **Total Budget** - Project financial envelope
 - **Budget Consumed** - Spending based on completed work
 - **Burn Rate** - Average weekly spending rate
@@ -72,9 +80,11 @@ Covers financial tracking and budget management:
 ---
 
 ### 5. [Bug Analysis Metrics](./bug_analysis_metrics.md)
+
 **Best for**: Teams monitoring quality trends and defect investment
 
 Covers the **Bug Analysis** tab:
+
 - Bug volume, open vs closed, resolution rate
 - Weekly creation and closure trends
 - Defect investment in story points
@@ -83,9 +93,11 @@ Covers the **Bug Analysis** tab:
 ---
 
 ### 6. [Metrics Correlation Guide](./metrics_correlation_guide.md)
+
 **Best for**: Teams validating metric configurations and understanding relationships
 
 Covers metric relationships and validation:
+
 - **Expected Correlations** - Lead Time vs Flow Time, MTTR vs Lead Time, etc.
 - **Little's Law** - WIP, Velocity, and Flow Time mathematical relationship
 - **Validation Rules** - How to verify your metrics are configured correctly
@@ -101,16 +113,19 @@ Covers metric relationships and validation:
 **New to metrics?** Follow this progression:
 
 ### Week 1: Establish Baselines
+
 1. Read [Dashboard Metrics](./dashboard_metrics.md) to understand project forecasting
 2. Track **Current Velocity** and **Remaining Work** for 2+ weeks
 3. Focus on consistency over optimization
 
 ### Week 2-4: Add Process Insights
+
 4. Read [Flow Metrics](./flow_metrics.md) to understand work process
 5. Track **Flow Load (WIP)** - single biggest lever for speed improvements
 6. Measure **Flow Time** to establish cycle time baseline
 
 ### Beyond Week 4: Optimize Delivery
+
 7. Read [DORA Metrics](./dora_metrics.md) to measure deployment maturity
 8. Start with **Deployment Frequency** and **Change Failure Rate**
 9. Add **Lead Time** and **MTTR** as deployment process matures
@@ -122,11 +137,12 @@ Covers metric relationships and validation:
 ## 📖 Shared Concepts
 
 ### Metric Relationships
+
 All metrics interconnect - improving one often improves others:
 
 ```
-Reduce WIP (Flow Load) 
-  → Faster Flow Time 
+Reduce WIP (Flow Load)
+  → Faster Flow Time
   → Faster Lead Time (DORA)
   → More Deployment Frequency (DORA)
   → Better project forecasts (Dashboard)
@@ -135,17 +151,20 @@ Reduce WIP (Flow Load)
 **Key insight**: Flow Load (WIP) is your primary control lever.
 
 ### Performance Tiers
+
 Most metrics use tier-based performance indicators:
 
 - **Elite** (Green): Top 10% of teams (DORA research)
 - **High** (Blue): Top 25% of teams
-- **Medium** (Yellow): Top 50% of teams  
+- **Medium** (Yellow): Top 50% of teams
 - **Low** (Red): Bottom 50%, needs improvement
 
 ### Weekly Calculations
+
 All metrics are calculated weekly (Monday-Sunday, ISO 8601 standard) and cached for performance.
 
 **Aggregation Methods**: Metrics displayed on cards use different statistical methods:
+
 - **Median of weekly medians**: Lead Time, MTTR, Flow Time (robust to outliers)
 - **Average**: Deployment Frequency, Velocity, Efficiency (natural for rates)
 - **Overall rate**: Change Failure Rate (true percentage across all deployments)
@@ -154,6 +173,7 @@ All metrics are calculated weekly (Monday-Sunday, ISO 8601 standard) and cached 
 See card footers for aggregation method and time period (e.g., "Median of weekly medians • 1,234 issues • 12 weeks").
 
 ### Common Pitfalls
+
 - ❌ Gaming metrics (e.g., deploying tiny changes to boost frequency)
 - ❌ Comparing across teams (context matters)
 - ❌ Setting arbitrary targets without business rationale
@@ -166,21 +186,25 @@ Full details in each metric guide.
 ## 🔍 Finding Specific Information
 
 ### "How do I calculate...?"
+
 - Dashboard forecasts → [Dashboard Metrics](./dashboard_metrics.md) - Calculation Details sections
 - DORA metrics → [DORA Metrics](./dora_metrics.md) - individual metric sections
 - Flow metrics → [Flow Metrics](./flow_metrics.md) - individual metric sections
 
 ### "What does this number mean?"
+
 - Health scores & colors → [Dashboard Metrics](./dashboard_metrics.md) - Project Health Score
 - Performance tiers (Elite/High/etc.) → [DORA Metrics](./dora_metrics.md) - Performance Tier Thresholds
 - WIP health zones → [Flow Metrics](./flow_metrics.md) - Flow Load (WIP)
 
 ### "How do I improve...?"
+
 - Project completion date → [Dashboard Metrics](./dashboard_metrics.md) - Action Guides
 - Deployment frequency → [DORA Metrics](./dora_metrics.md) - Deployment Frequency - Common Issues
 - Cycle time → [Flow Metrics](./flow_metrics.md) - Flow Time - Action Guides
 
 ### "Something seems wrong..."
+
 - Statistical limitations → [Dashboard Metrics](./dashboard_metrics.md) - Statistical Limitations section
 - Edge cases → Check "Gotchas" sections in each guide
 - Calculation verification → "Documentation Verification" sections show code verification dates
@@ -190,6 +214,7 @@ Full details in each metric guide.
 ## 📝 Document Navigation Tips
 
 Each guide includes:
+
 - **Table of Contents** - Jump to specific metrics
 - **Quick Reference** - Summary tables for fast lookups
 - **Calculation Details** - Mathematical formulas with examples
@@ -206,6 +231,7 @@ Each guide includes:
 **Last Major Update**: November 2025 (split from monolithic 2,000-line file)
 
 **Verification Status**:
+
 - ✅ **Dashboard Metrics**: Verified against code, velocity calculation fix documented
 - ✅ **DORA Metrics**: Verified against `data/dora_calculator.py` implementations
 - ✅ **Flow Metrics**: Verified against `data/flow_calculator.py` implementations
@@ -218,6 +244,7 @@ Each guide includes:
 ## 📧 Questions or Issues?
 
 If you find discrepancies between documentation and actual behavior:
+
 1. Check "Statistical Limitations" section in [Dashboard Metrics](./dashboard_metrics.md)
 2. Check "Documentation Verification Status" in relevant guide
 3. File an issue with: metric name, expected behavior, actual behavior, screenshot
@@ -226,4 +253,4 @@ If you find discrepancies between documentation and actual behavior:
 
 ---
 
-*Document Version: 2.0 | Last Updated: January 2026*
+_Document Version: 2.0 | Last Updated: January 2026_

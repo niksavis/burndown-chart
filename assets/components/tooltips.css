@@ -89,7 +89,7 @@
 }
 
 .tooltip-indicator::after {
-  content: "?";
+  content: '?';
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -120,7 +120,7 @@
 }
 
 .form-help-indicator::after {
-  content: "?";
+  content: '?';
   position: absolute;
   right: 10px;
   top: 50%;

@@ -16,15 +16,11 @@
 }
 
 .cm-jql-string {
-  color: var(
-    --color-success
-  ); /* Green for string literals ("Done", 'TEST', etc.) */
+  color: var(--color-success); /* Green for string literals ("Done", 'TEST', etc.) */
 }
 
 .cm-jql-operator {
-  color: var(
-    --color-gray-600
-  ); /* Gray for operators (=, !=, ~, !~, <, >, <=, >=) */
+  color: var(--color-gray-600); /* Gray for operators (=, !=, ~, !~, <, >, <=, >=) */
 }
 
 .cm-jql-function {
@@ -46,9 +42,7 @@
 }
 
 .cm-jql-field {
-  color: var(
-    --color-gray-900
-  ); /* Dark gray for field names (project, status, assignee, etc.) */
+  color: var(--color-gray-900); /* Dark gray for field names (project, status, assignee, etc.) */
 }
 
 .cm-jql-error {
@@ -63,7 +57,7 @@
   border-radius: 4px;
   padding: 8px;
   min-height: 40px;
-  font-family: "Monaco", "Menlo", "Ubuntu Mono", "Consolas", monospace;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', monospace;
   font-size: 14px;
   line-height: 1.5;
   background-color: var(--color-white);

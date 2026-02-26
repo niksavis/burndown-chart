@@ -19,13 +19,10 @@ window.dash_clientside.namespace_autocomplete = {
    * Output: namespace-autocomplete-data store
    */
   buildAutocompleteData: function (metadata) {
-    console.log(
-      "[Autocomplete] buildAutocompleteData CALLED with:",
-      metadata ? "data" : "null",
-    );
+    console.log('[Autocomplete] buildAutocompleteData CALLED with:', metadata ? 'data' : 'null');
 
     if (!metadata || metadata.error) {
-      console.log("[Autocomplete] No metadata or error, returning empty");
+      console.log('[Autocomplete] No metadata or error, returning empty');
       window._namespaceAutocompleteData = {
         fields: [],
         projects: [],
@@ -37,27 +34,27 @@ window.dash_clientside.namespace_autocomplete = {
     const result = {
       // Fields with type info for validation
       fields: (metadata.fields || []).map((f) => ({
-        id: f.id || f.field_id || "",
-        name: f.name || f.id || "",
-        type: f.type || f.schema?.type || f.field_type || "unknown",
-        searchText: ((f.name || "") + " " + (f.id || "")).toLowerCase(),
+        id: f.id || f.field_id || '',
+        name: f.name || f.id || '',
+        type: f.type || f.schema?.type || f.field_type || 'unknown',
+        searchText: ((f.name || '') + ' ' + (f.id || '')).toLowerCase(),
       })),
       // Projects for namespace prefix
       projects: (metadata.projects || []).map((p) => ({
-        key: p.key || "",
-        name: p.name || "",
-        searchText: ((p.key || "") + " " + (p.name || "")).toLowerCase(),
+        key: p.key || '',
+        name: p.name || '',
+        searchText: ((p.key || '') + ' ' + (p.name || '')).toLowerCase(),
       })),
       // Statuses for changelog syntax
       statuses: (metadata.statuses || []).map((s) => ({
-        name: s.name || "",
-        category: s.statusCategory?.name || "",
-        searchText: (s.name || "").toLowerCase(),
+        name: s.name || '',
+        category: s.statusCategory?.name || '',
+        searchText: (s.name || '').toLowerCase(),
       })),
       // Issue types
       issueTypes: (metadata.issue_types || []).map((t) => ({
-        name: t.name || "",
-        searchText: (t.name || "").toLowerCase(),
+        name: t.name || '',
+        searchText: (t.name || '').toLowerCase(),
       })),
     };
 
@@ -65,13 +62,13 @@ window.dash_clientside.namespace_autocomplete = {
     window._namespaceAutocompleteData = result;
 
     console.log(
-      "[Autocomplete] Built dataset:",
+      '[Autocomplete] Built dataset:',
       result.fields.length,
-      "fields,",
+      'fields,',
       result.projects.length,
-      "projects,",
+      'projects,',
       result.statuses.length,
-      "statuses",
+      'statuses'
     );
 
     return result;
@@ -88,83 +85,78 @@ window.dash_clientside.namespace_autocomplete = {
    * Input: input value, autocomplete data, metric, field
    * Output: Validation message HTML string
    */
-  validateNamespaceInput: function (
-    inputValue,
-    autocompleteData,
-    metric,
-    field,
-  ) {
+  validateNamespaceInput: function (inputValue, autocompleteData, metric, field) {
     // Expected field type CATEGORIES for each metric variable
     // Using categories instead of exact types because JIRA has many type variants
     const FIELD_TYPE_CATEGORIES = {
       // DORA Metrics - datetime fields
-      deployment_date: "datetime",
-      code_commit_date: "datetime",
-      incident_detected_at: "datetime",
-      incident_resolved_at: "datetime",
+      deployment_date: 'datetime',
+      code_commit_date: 'datetime',
+      incident_detected_at: 'datetime',
+      incident_resolved_at: 'datetime',
       // General fields
-      completed_date: "datetime",
-      created_date: "datetime",
-      updated_date: "datetime",
+      completed_date: 'datetime',
+      created_date: 'datetime',
+      updated_date: 'datetime',
       // DORA Metrics - boolean/option fields
-      deployment_successful: "option",
-      change_failure: "option",
+      deployment_successful: 'option',
+      change_failure: 'option',
       // DORA Metrics - selection fields
-      affected_environment: "option",
-      target_environment: "option",
-      severity_level: "option",
+      affected_environment: 'option',
+      target_environment: 'option',
+      severity_level: 'option',
       // Flow Metrics
-      flow_item_type: "option", // issuetype, select, etc.
-      status: "option",
-      work_started_date: "datetime",
-      work_completed_date: "datetime",
-      effort_category: "option",
-      estimate: "number",
+      flow_item_type: 'option', // issuetype, select, etc.
+      status: 'option',
+      work_started_date: 'datetime',
+      work_completed_date: 'datetime',
+      effort_category: 'option',
+      estimate: 'number',
       // Sprint Tracker
-      sprint_field: "option", // Sprint field (array type) for Sprint Tracker
+      sprint_field: 'option', // Sprint field (array type) for Sprint Tracker
       // Active Work Timeline
-      parent_field: "any", // Parent/Epic Link field (can be object, string, or custom type)
+      parent_field: 'any', // Parent/Epic Link field (can be object, string, or custom type)
     };
 
     // Map JIRA field types to categories
     // This handles the many variants JIRA uses
     const TYPE_TO_CATEGORY = {
       // Datetime types
-      datetime: "datetime",
-      date: "datetime",
-      datepicker: "datetime",
+      datetime: 'datetime',
+      date: 'datetime',
+      datepicker: 'datetime',
       // Option/selection types
-      select: "option",
-      option: "option",
-      issuetype: "option",
-      priority: "option",
-      status: "option",
-      resolution: "option",
-      component: "option",
-      version: "option",
-      user: "option",
-      project: "option",
-      issuelinks: "option",
-      checkbox: "option",
-      radiobuttons: "option",
-      cascadingselect: "option",
-      multiselect: "option",
-      labels: "option",
+      select: 'option',
+      option: 'option',
+      issuetype: 'option',
+      priority: 'option',
+      status: 'option',
+      resolution: 'option',
+      component: 'option',
+      version: 'option',
+      user: 'option',
+      project: 'option',
+      issuelinks: 'option',
+      checkbox: 'option',
+      radiobuttons: 'option',
+      cascadingselect: 'option',
+      multiselect: 'option',
+      labels: 'option',
       // Number types
-      number: "number",
-      float: "number",
-      integer: "number",
+      number: 'number',
+      float: 'number',
+      integer: 'number',
       // Text types
-      string: "text",
-      text: "text",
-      textarea: "text",
-      url: "text",
+      string: 'text',
+      text: 'text',
+      textarea: 'text',
+      url: 'text',
       // Array types (usually work as option)
-      array: "option",
+      array: 'option',
     };
 
     if (!inputValue || !inputValue.trim()) {
-      return ""; // No input, no validation needed
+      return ''; // No input, no validation needed
     }
 
     if (!autocompleteData || !autocompleteData.fields) {
@@ -177,10 +169,8 @@ window.dash_clientside.namespace_autocomplete = {
     // Check for complete changelog syntax with extractor FIRST
     // Format: field:value.DateTime or Project.field:value.DateTime
     const hasChangelogExtractor =
-      value.includes(":") &&
-      (value.endsWith(".DateTime") ||
-        value.endsWith(".Occurred") ||
-        value.endsWith(".Duration"));
+      value.includes(':') &&
+      (value.endsWith('.DateTime') || value.endsWith('.Occurred') || value.endsWith('.Duration'));
 
     if (hasChangelogExtractor) {
       // This is valid changelog syntax that extracts datetime
@@ -192,61 +182,59 @@ window.dash_clientside.namespace_autocomplete = {
     let fieldId = value;
 
     // Handle value filter syntax first (field=Value or field=Value1|Value2)
-    if (fieldId.includes("=")) {
-      fieldId = fieldId.split("=")[0];
+    if (fieldId.includes('=')) {
+      fieldId = fieldId.split('=')[0];
     }
 
-    if (value.includes(".")) {
-      const parts = value.split(".");
+    if (value.includes('.')) {
+      const parts = value.split('.');
       fieldId = parts[parts.length - 1]; // Last part is usually field ID
       // Handle special extractors
-      if (
-        ["DateTime", "Occurred", "FirstValue", "LastValue"].includes(fieldId)
-      ) {
+      if (['DateTime', 'Occurred', 'FirstValue', 'LastValue'].includes(fieldId)) {
         fieldId = parts[parts.length - 2]; // Go one level up
       }
       // Handle value filter in last part
-      if (fieldId.includes("=")) {
-        fieldId = fieldId.split("=")[0];
+      if (fieldId.includes('=')) {
+        fieldId = fieldId.split('=')[0];
       }
     }
-    if (value.includes(":")) {
+    if (value.includes(':')) {
       // Changelog syntax - first part before colon is the field
-      const colonParts = value.split(":");
+      const colonParts = value.split(':');
       fieldId = colonParts[0];
-      if (fieldId.includes(".")) {
-        fieldId = fieldId.split(".").pop(); // Get field after project prefix
+      if (fieldId.includes('.')) {
+        fieldId = fieldId.split('.').pop(); // Get field after project prefix
       }
     }
 
     // Find field in metadata
     const fieldInfo = autocompleteData.fields.find(
-      (f) => f.id === fieldId || f.name.toLowerCase() === fieldId.toLowerCase(),
+      (f) => f.id === fieldId || f.name.toLowerCase() === fieldId.toLowerCase()
     );
 
     if (!fieldInfo) {
       // Field not found - could be custom syntax or built-in field
-      if (value.includes(":")) {
+      if (value.includes(':')) {
         // Changelog syntax - assume it's valid datetime extraction
         return `<small class="text-success"><i class="fas fa-check-circle me-1"></i>Changelog syntax (extracts datetime)</small>`;
       }
       // Could be a built-in field like "created", "updated", etc.
       const builtInDateFields = [
-        "created",
-        "updated",
-        "resolutiondate",
-        "duedate",
-        "lastViewed",
-        "fixversions", // Array field but extracts releaseDate automatically
+        'created',
+        'updated',
+        'resolutiondate',
+        'duedate',
+        'lastViewed',
+        'fixversions', // Array field but extracts releaseDate automatically
       ];
       const builtInOptionFields = [
-        "status",
-        "issuetype",
-        "priority",
-        "resolution",
-        "assignee",
-        "reporter",
-        "project",
+        'status',
+        'issuetype',
+        'priority',
+        'resolution',
+        'assignee',
+        'reporter',
+        'project',
       ];
       if (builtInDateFields.some((f) => fieldId.toLowerCase().includes(f))) {
         return `<small class="text-success"><i class="fas fa-check-circle me-1"></i>Built-in date field</small>`;
@@ -257,8 +245,8 @@ window.dash_clientside.namespace_autocomplete = {
       return `<small class="text-warning"><i class="fas fa-question-circle me-1"></i>Field "${fieldId}" not in metadata (may still work)</small>`;
     }
 
-    const actualType = (fieldInfo.type || "unknown").toLowerCase();
-    const actualCategory = TYPE_TO_CATEGORY[actualType] || "unknown";
+    const actualType = (fieldInfo.type || 'unknown').toLowerCase();
+    const actualCategory = TYPE_TO_CATEGORY[actualType] || 'unknown';
 
     // If we don't have expected type for this field, just show info
     if (!expectedCategory) {
@@ -266,30 +254,27 @@ window.dash_clientside.namespace_autocomplete = {
     }
 
     // Special case: "any" type means field can be anything
-    if (expectedCategory === "any") {
+    if (expectedCategory === 'any') {
       return `<small class="text-success"><i class="fas fa-check-circle me-1"></i>Field: ${fieldInfo.name} (${actualType})</small>`;
     }
 
     // Check category match
     if (actualCategory === expectedCategory) {
       // Add note about value filter if used
-      if (value.includes("=")) {
-        const filterValue = value.split("=")[1];
+      if (value.includes('=')) {
+        const filterValue = value.split('=')[1];
         return `<small class="text-success"><i class="fas fa-check-circle me-1"></i>${fieldInfo.name} with value filter "${filterValue}"</small>`;
       }
       return `<small class="text-success"><i class="fas fa-check-circle me-1"></i>${fieldInfo.name} (${actualType})</small>`;
     }
 
     // Special case: fixVersions for datetime requirement - explain it's valid
-    if (
-      fieldId.toLowerCase() === "fixversions" &&
-      expectedCategory === "datetime"
-    ) {
+    if (fieldId.toLowerCase() === 'fixversions' && expectedCategory === 'datetime') {
       return `<small class="text-success"><i class="fas fa-check-circle me-1"></i>fixVersions is valid (uses releaseDate automatically)</small>`;
     }
 
     // Special case: option field for datetime requirement - suggest changelog syntax
-    if (actualCategory === "option" && expectedCategory === "datetime") {
+    if (actualCategory === 'option' && expectedCategory === 'datetime') {
       return `<small class="text-warning"><i class="fas fa-lightbulb me-1"></i>${fieldInfo.name} is ${actualType}. Use changelog syntax: ${fieldId}:VALUE.DateTime</small>`;
     }
 
@@ -317,46 +302,40 @@ window.dash_clientside.namespace_autocomplete = {
     const trimmed = value.trim();
 
     // Valid extractors (case-sensitive, exact match required)
-    const VALID_EXTRACTORS = [
-      "DateTime",
-      "Occurred",
-      "Duration",
-      "FirstValue",
-      "LastValue",
-    ];
+    const VALID_EXTRACTORS = ['DateTime', 'Occurred', 'Duration', 'FirstValue', 'LastValue'];
 
     // Built-in JIRA fields that don't need metadata lookup
     const BUILT_IN_FIELDS = [
-      "created",
-      "updated",
-      "resolutiondate",
-      "duedate",
-      "lastviewed",
-      "status",
-      "issuetype",
-      "priority",
-      "resolution",
-      "assignee",
-      "reporter",
-      "project",
-      "summary",
-      "description",
-      "labels",
-      "components",
-      "fixversions",
-      "versions",
-      "creator",
-      "environment",
-      "key",
-      "id",
+      'created',
+      'updated',
+      'resolutiondate',
+      'duedate',
+      'lastviewed',
+      'status',
+      'issuetype',
+      'priority',
+      'resolution',
+      'assignee',
+      'reporter',
+      'project',
+      'summary',
+      'description',
+      'labels',
+      'components',
+      'fixversions',
+      'versions',
+      'creator',
+      'environment',
+      'key',
+      'id',
     ];
 
     // Check for obvious incomplete syntax
-    if (trimmed.endsWith(":")) {
+    if (trimmed.endsWith(':')) {
       return 'Incomplete - add a value after ":"';
     }
-    if (trimmed.endsWith(".")) {
-      return "Incomplete - select an extractor or field";
+    if (trimmed.endsWith('.')) {
+      return 'Incomplete - select an extractor or field';
     }
 
     // Parse the namespace syntax into components
@@ -367,14 +346,14 @@ window.dash_clientside.namespace_autocomplete = {
 
     // Step 1: Check for extractor at the end (e.g., .DateTime)
     for (const ext of VALID_EXTRACTORS) {
-      if (trimmed.endsWith("." + ext)) {
+      if (trimmed.endsWith('.' + ext)) {
         extractor = ext;
         break;
       }
     }
 
     // Check for partial/wrong-case extractor
-    const lastDotIndex = trimmed.lastIndexOf(".");
+    const lastDotIndex = trimmed.lastIndexOf('.');
     if (lastDotIndex > 0 && !extractor) {
       const lastPart = trimmed.substring(lastDotIndex + 1);
       for (const ext of VALID_EXTRACTORS) {
@@ -399,7 +378,7 @@ window.dash_clientside.namespace_autocomplete = {
       : trimmed;
 
     // Step 2: Check for changelog syntax (field:value)
-    const colonIndex = workingStr.indexOf(":");
+    const colonIndex = workingStr.indexOf(':');
     if (colonIndex > 0) {
       changelogValue = workingStr.substring(colonIndex + 1);
       workingStr = workingStr.substring(0, colonIndex);
@@ -413,7 +392,7 @@ window.dash_clientside.namespace_autocomplete = {
     // Step 2b: Check for value filter syntax (field=Value or field=Value1|Value2)
     // This is used for fields like change_failure where you want to match specific values
     let valueFilter = null;
-    const equalsIndex = workingStr.indexOf("=");
+    const equalsIndex = workingStr.indexOf('=');
     if (equalsIndex > 0) {
       valueFilter = workingStr.substring(equalsIndex + 1);
       workingStr = workingStr.substring(0, equalsIndex);
@@ -425,7 +404,7 @@ window.dash_clientside.namespace_autocomplete = {
     }
 
     // Step 3: Check for project prefix (PROJECT.field)
-    const dotIndex = workingStr.indexOf(".");
+    const dotIndex = workingStr.indexOf('.');
     if (dotIndex > 0) {
       projectPrefix = workingStr.substring(0, dotIndex);
       fieldPart = workingStr.substring(dotIndex + 1);
@@ -436,21 +415,21 @@ window.dash_clientside.namespace_autocomplete = {
     // Now validate each component
 
     // Validate project prefix
-    if (projectPrefix && projectPrefix !== "*") {
+    if (projectPrefix && projectPrefix !== '*') {
       if (!autocompleteData?.projects) {
         return `Cannot validate project "${projectPrefix}" - metadata not loaded`;
       }
       const validProject = autocompleteData.projects.find(
         (p) =>
           p.key === projectPrefix || // Exact match for project key
-          p.key.toUpperCase() === projectPrefix.toUpperCase(), // Case-insensitive for keys
+          p.key.toUpperCase() === projectPrefix.toUpperCase() // Case-insensitive for keys
       );
       if (!validProject) {
         // Check for partial match
         const partialMatches = autocompleteData.projects.filter(
           (p) =>
             p.key.toUpperCase().startsWith(projectPrefix.toUpperCase()) ||
-            p.name.toLowerCase().startsWith(projectPrefix.toLowerCase()),
+            p.name.toLowerCase().startsWith(projectPrefix.toLowerCase())
         );
         if (partialMatches.length > 0) {
           return `Unknown project "${projectPrefix}" - did you mean "${partialMatches[0].key}"?`;
@@ -461,7 +440,7 @@ window.dash_clientside.namespace_autocomplete = {
 
     // Validate field part
     if (!fieldPart) {
-      return "Missing field name";
+      return 'Missing field name';
     }
 
     const fieldLower = fieldPart.toLowerCase();
@@ -480,7 +459,7 @@ window.dash_clientside.namespace_autocomplete = {
           f.id === fieldPart || // Exact ID match
           f.id.toLowerCase() === fieldLower || // Case-insensitive ID
           f.name === fieldPart || // Exact name match
-          f.name.toLowerCase() === fieldLower, // Case-insensitive name
+          f.name.toLowerCase() === fieldLower // Case-insensitive name
       );
       if (fieldInfo) {
         fieldValid = true;
@@ -497,8 +476,7 @@ window.dash_clientside.namespace_autocomplete = {
       if (autocompleteData?.fields) {
         const partialMatches = autocompleteData.fields.filter(
           (f) =>
-            f.id.toLowerCase().startsWith(fieldLower) ||
-            f.name.toLowerCase().startsWith(fieldLower),
+            f.id.toLowerCase().startsWith(fieldLower) || f.name.toLowerCase().startsWith(fieldLower)
         );
         if (partialMatches.length > 0) {
           return `Unknown field "${fieldPart}" - did you mean "${partialMatches[0].name}" (${partialMatches[0].id})?`;
@@ -510,19 +488,19 @@ window.dash_clientside.namespace_autocomplete = {
     // Validate changelog value (status, issuetype, etc.)
     if (changelogValue) {
       // For status field, validate against known statuses
-      if (fieldLower === "status") {
+      if (fieldLower === 'status') {
         if (!autocompleteData?.statuses) {
           return `Cannot validate status "${changelogValue}" - metadata not loaded`;
         }
         const validStatus = autocompleteData.statuses.find(
           (s) =>
             s.name === changelogValue || // Exact match
-            s.name.toLowerCase() === changelogValue.toLowerCase(), // Case-insensitive
+            s.name.toLowerCase() === changelogValue.toLowerCase() // Case-insensitive
         );
         if (!validStatus) {
           // Check for partial match
           const partialMatches = autocompleteData.statuses.filter((s) =>
-            s.name.toLowerCase().startsWith(changelogValue.toLowerCase()),
+            s.name.toLowerCase().startsWith(changelogValue.toLowerCase())
           );
           if (partialMatches.length > 0) {
             return `Unknown status "${changelogValue}" - did you mean "${partialMatches[0].name}"?`;
@@ -531,9 +509,7 @@ window.dash_clientside.namespace_autocomplete = {
           const similarMatches = autocompleteData.statuses.filter(
             (s) =>
               s.name.toLowerCase().includes(changelogValue.toLowerCase()) ||
-              changelogValue
-                .toLowerCase()
-                .includes(s.name.toLowerCase().substring(0, 3)),
+              changelogValue.toLowerCase().includes(s.name.toLowerCase().substring(0, 3))
           );
           if (similarMatches.length > 0) {
             return `Unknown status "${changelogValue}" - similar: "${similarMatches[0].name}"`;
@@ -543,18 +519,16 @@ window.dash_clientside.namespace_autocomplete = {
       }
 
       // For issuetype field, validate against known issue types
-      if (fieldLower === "issuetype") {
+      if (fieldLower === 'issuetype') {
         if (!autocompleteData?.issueTypes) {
           return `Cannot validate issue type "${changelogValue}" - metadata not loaded`;
         }
         const validType = autocompleteData.issueTypes.find(
-          (t) =>
-            t.name === changelogValue ||
-            t.name.toLowerCase() === changelogValue.toLowerCase(),
+          (t) => t.name === changelogValue || t.name.toLowerCase() === changelogValue.toLowerCase()
         );
         if (!validType) {
           const partialMatches = autocompleteData.issueTypes.filter((t) =>
-            t.name.toLowerCase().startsWith(changelogValue.toLowerCase()),
+            t.name.toLowerCase().startsWith(changelogValue.toLowerCase())
           );
           if (partialMatches.length > 0) {
             return `Unknown issue type "${changelogValue}" - did you mean "${partialMatches[0].name}"?`;
@@ -564,16 +538,15 @@ window.dash_clientside.namespace_autocomplete = {
       }
 
       // For priority field, validate against known priorities
-      if (fieldLower === "priority") {
+      if (fieldLower === 'priority') {
         if (autocompleteData?.priorities) {
           const validPriority = autocompleteData.priorities.find(
             (p) =>
-              p.name === changelogValue ||
-              p.name.toLowerCase() === changelogValue.toLowerCase(),
+              p.name === changelogValue || p.name.toLowerCase() === changelogValue.toLowerCase()
           );
           if (!validPriority) {
             const partialMatches = autocompleteData.priorities.filter((p) =>
-              p.name.toLowerCase().startsWith(changelogValue.toLowerCase()),
+              p.name.toLowerCase().startsWith(changelogValue.toLowerCase())
             );
             if (partialMatches.length > 0) {
               return `Unknown priority "${changelogValue}" - did you mean "${partialMatches[0].name}"?`;
@@ -585,16 +558,15 @@ window.dash_clientside.namespace_autocomplete = {
       }
 
       // For resolution field, validate against known resolutions
-      if (fieldLower === "resolution") {
+      if (fieldLower === 'resolution') {
         if (autocompleteData?.resolutions) {
           const validResolution = autocompleteData.resolutions.find(
             (r) =>
-              r.name === changelogValue ||
-              r.name.toLowerCase() === changelogValue.toLowerCase(),
+              r.name === changelogValue || r.name.toLowerCase() === changelogValue.toLowerCase()
           );
           if (!validResolution) {
             const partialMatches = autocompleteData.resolutions.filter((r) =>
-              r.name.toLowerCase().startsWith(changelogValue.toLowerCase()),
+              r.name.toLowerCase().startsWith(changelogValue.toLowerCase())
             );
             if (partialMatches.length > 0) {
               return `Unknown resolution "${changelogValue}" - did you mean "${partialMatches[0].name}"?`;
@@ -627,39 +599,35 @@ window.dash_clientside.namespace_autocomplete = {
   collectNamespaceValues: function (saveClicks, validateClicks, activeTab) {
     // Determine which input triggered this callback
     const ctx = window.dash_clientside.callback_context;
-    let trigger = "unknown";
+    let trigger = 'unknown';
     if (ctx && ctx.triggered && ctx.triggered.length > 0) {
-      const triggeredId = ctx.triggered[0].prop_id.split(".")[0];
-      if (triggeredId === "field-mapping-save-button") {
-        trigger = "save";
-      } else if (triggeredId === "validate-mappings-button") {
-        trigger = "validate";
-      } else if (triggeredId === "mappings-tabs") {
-        trigger = "tab_switch";
+      const triggeredId = ctx.triggered[0].prop_id.split('.')[0];
+      if (triggeredId === 'field-mapping-save-button') {
+        trigger = 'save';
+      } else if (triggeredId === 'validate-mappings-button') {
+        trigger = 'validate';
+      } else if (triggeredId === 'mappings-tabs') {
+        trigger = 'tab_switch';
       }
     }
 
     // For tab switches, only collect if we're leaving the Fields tab
     // (inputs must exist in DOM to be collected)
-    const inputs = document.querySelectorAll(
-      '.namespace-input-container input[type="text"]',
-    );
+    const inputs = document.querySelectorAll('.namespace-input-container input[type="text"]');
 
     // If no namespace inputs found (not on Fields tab or modal closed)
     // - For tab switches: skip (nothing to preserve)
     // - For save/validate: continue with empty values (validate other tabs)
     if (inputs.length === 0) {
-      if (trigger === "tab_switch") {
-        console.log(
-          "[Autocomplete] No namespace inputs found, skipping tab switch collection",
-        );
+      if (trigger === 'tab_switch') {
+        console.log('[Autocomplete] No namespace inputs found, skipping tab switch collection');
         return window.dash_clientside.no_update;
       }
       // For save/validate, continue with empty field values
       // so other tabs (Status, Project, Issue Types) can still be validated
       console.log(
-        "[Autocomplete] No namespace inputs found, continuing with empty field values for " +
-          trigger,
+        '[Autocomplete] No namespace inputs found, continuing with empty field values for ' +
+          trigger
       );
     }
 
@@ -673,19 +641,18 @@ window.dash_clientside.namespace_autocomplete = {
         const idStr = input.id;
         const idObj = JSON.parse(idStr);
 
-        if (idObj.type === "namespace-field-input") {
+        if (idObj.type === 'namespace-field-input') {
           const metric = idObj.metric;
           const field = idObj.field;
-          const value = input.value ? input.value.trim() : "";
+          const value = input.value ? input.value.trim() : '';
 
           if (value) {
             // Only validate on save or validate triggers (not tab switches)
-            if (trigger === "save" || trigger === "validate") {
-              const error =
-                window.dash_clientside.namespace_autocomplete.isValidForSave(
-                  value,
-                  autocompleteData,
-                );
+            if (trigger === 'save' || trigger === 'validate') {
+              const error = window.dash_clientside.namespace_autocomplete.isValidForSave(
+                value,
+                autocompleteData
+              );
               if (error) {
                 validationErrors.push({
                   metric: metric,
@@ -694,24 +661,22 @@ window.dash_clientside.namespace_autocomplete = {
                   error: error,
                 });
                 // Highlight the invalid input
-                input.classList.add("is-invalid");
+                input.classList.add('is-invalid');
                 // Find or create error message element
-                let errorEl =
-                  input.parentElement.querySelector(".invalid-feedback");
+                let errorEl = input.parentElement.querySelector('.invalid-feedback');
                 if (!errorEl) {
-                  errorEl = document.createElement("div");
-                  errorEl.className = "invalid-feedback";
+                  errorEl = document.createElement('div');
+                  errorEl.className = 'invalid-feedback';
                   input.parentElement.appendChild(errorEl);
                 }
                 errorEl.textContent = error;
-                errorEl.style.display = "block";
+                errorEl.style.display = 'block';
               } else {
                 // Valid - remove any error styling
-                input.classList.remove("is-invalid");
-                const errorEl =
-                  input.parentElement.querySelector(".invalid-feedback");
+                input.classList.remove('is-invalid');
+                const errorEl = input.parentElement.querySelector('.invalid-feedback');
                 if (errorEl) {
-                  errorEl.style.display = "none";
+                  errorEl.style.display = 'none';
                 }
               }
             }
@@ -720,12 +685,7 @@ window.dash_clientside.namespace_autocomplete = {
               values[metric] = {};
             }
             values[metric][field] = value;
-            console.log(
-              "[Autocomplete] Collected:",
-              metric + "." + field,
-              "=",
-              value,
-            );
+            console.log('[Autocomplete] Collected:', metric + '.' + field, '=', value);
           }
         }
       } catch (e) {
@@ -734,10 +694,10 @@ window.dash_clientside.namespace_autocomplete = {
     });
 
     console.log(
-      "[Autocomplete] Collected namespace values (trigger=" + trigger + "):",
+      '[Autocomplete] Collected namespace values (trigger=' + trigger + '):',
       values,
-      "errors:",
-      validationErrors,
+      'errors:',
+      validationErrors
     );
 
     return {
@@ -757,31 +717,31 @@ window.dash_clientside.namespace_autocomplete = {
   filterSuggestions: function (inputValue, autocompleteData, triggerCount) {
     // Return empty if no input or no data
     if (!inputValue || !autocompleteData || !autocompleteData.fields) {
-      return "";
+      return '';
     }
 
     const query = inputValue.toLowerCase().trim();
     if (query.length < 1) {
-      return "";
+      return '';
     }
 
     const suggestions = [];
     const maxResults = 15;
 
     // Determine what type of suggestions to show based on input pattern
-    const parts = inputValue.split(".");
+    const parts = inputValue.split('.');
 
-    if (parts.length === 1 && !inputValue.includes(":")) {
+    if (parts.length === 1 && !inputValue.includes(':')) {
       // User is typing the first part - could be project or field
       // Show projects first, then fields
 
       // Add wildcard option
-      if ("*".startsWith(query) || query === "") {
+      if ('*'.startsWith(query) || query === '') {
         suggestions.push({
-          label: "* (All Projects)",
-          value: "*.",
-          description: "Match from any project",
-          type: "project",
+          label: '* (All Projects)',
+          value: '*.',
+          description: 'Match from any project',
+          type: 'project',
         });
       }
 
@@ -790,9 +750,9 @@ window.dash_clientside.namespace_autocomplete = {
         if (p.searchText.includes(query) && suggestions.length < maxResults) {
           suggestions.push({
             label: p.key,
-            value: p.key + ".",
+            value: p.key + '.',
             description: p.name,
-            type: "project",
+            type: 'project',
           });
         }
       });
@@ -803,8 +763,8 @@ window.dash_clientside.namespace_autocomplete = {
           suggestions.push({
             label: f.name,
             value: f.id,
-            description: f.id + " (" + f.type + ")",
-            type: "field",
+            description: f.id + ' (' + f.type + ')',
+            type: 'field',
             fieldType: f.type,
           });
         }
@@ -812,18 +772,15 @@ window.dash_clientside.namespace_autocomplete = {
     } else if (parts.length >= 2) {
       // User has typed "Project." or "*.field" - suggest fields
       const fieldQuery = parts[parts.length - 1].toLowerCase();
-      const prefix = parts.slice(0, -1).join(".") + ".";
+      const prefix = parts.slice(0, -1).join('.') + '.';
 
       autocompleteData.fields.forEach((f) => {
-        if (
-          f.searchText.includes(fieldQuery) &&
-          suggestions.length < maxResults
-        ) {
+        if (f.searchText.includes(fieldQuery) && suggestions.length < maxResults) {
           suggestions.push({
             label: f.name,
             value: prefix + f.id,
-            description: f.id + " (" + f.type + ")",
-            type: "field",
+            description: f.id + ' (' + f.type + ')',
+            type: 'field',
             fieldType: f.type,
           });
         }
@@ -831,42 +788,39 @@ window.dash_clientside.namespace_autocomplete = {
     }
 
     // Also check for changelog syntax (Status:value)
-    if (inputValue.includes(":")) {
-      const colonParts = inputValue.split(":");
+    if (inputValue.includes(':')) {
+      const colonParts = inputValue.split(':');
       const afterColon = colonParts[colonParts.length - 1];
 
       // Check if user is typing extractor after changelog value (e.g., "Status:Done.")
-      if (afterColon.includes(".")) {
+      if (afterColon.includes('.')) {
         // User typed "Status:Done." - suggest extractors
-        const dotParts = afterColon.split(".");
+        const dotParts = afterColon.split('.');
         const extractorQuery = dotParts[dotParts.length - 1].toLowerCase();
-        const baseValue = colonParts[0] + ":" + dotParts[0];
+        const baseValue = colonParts[0] + ':' + dotParts[0];
 
         const extractors = [
           {
-            name: "DateTime",
-            description: "Extract timestamp when this transition occurred",
+            name: 'DateTime',
+            description: 'Extract timestamp when this transition occurred',
           },
           {
-            name: "Occurred",
-            description: "Boolean: true if this transition ever happened",
+            name: 'Occurred',
+            description: 'Boolean: true if this transition ever happened',
           },
           {
-            name: "Duration",
-            description: "Time spent in this state (future)",
+            name: 'Duration',
+            description: 'Time spent in this state (future)',
           },
         ];
 
         extractors.forEach((e) => {
-          if (
-            e.name.toLowerCase().startsWith(extractorQuery) &&
-            suggestions.length < maxResults
-          ) {
+          if (e.name.toLowerCase().startsWith(extractorQuery) && suggestions.length < maxResults) {
             suggestions.push({
               label: e.name,
-              value: baseValue + "." + e.name,
+              value: baseValue + '.' + e.name,
               description: e.description,
-              type: "extractor",
+              type: 'extractor',
             });
           }
         });
@@ -875,18 +829,13 @@ window.dash_clientside.namespace_autocomplete = {
         const statusQuery = afterColon.toLowerCase();
 
         autocompleteData.statuses.forEach((s) => {
-          if (
-            s.searchText.includes(statusQuery) &&
-            suggestions.length < maxResults
-          ) {
+          if (s.searchText.includes(statusQuery) && suggestions.length < maxResults) {
             suggestions.push({
               label: s.name,
-              value: colonParts[0] + ":" + s.name,
+              value: colonParts[0] + ':' + s.name,
               description:
-                "Status: " +
-                (s.category || "Unknown") +
-                " (add .DateTime for timestamp)",
-              type: "status",
+                'Status: ' + (s.category || 'Unknown') + ' (add .DateTime for timestamp)',
+              type: 'status',
             });
           }
         });
@@ -894,22 +843,22 @@ window.dash_clientside.namespace_autocomplete = {
     }
 
     if (suggestions.length === 0) {
-      return "";
+      return '';
     }
 
     // Build HTML for suggestions dropdown
     let html = '<div class="list-group">';
     suggestions.forEach((s, idx) => {
       const typeIcon =
-        s.type === "project"
-          ? "📁"
-          : s.type === "field"
-            ? "📋"
-            : s.type === "status"
-              ? "🔄"
-              : s.type === "extractor"
-                ? "⏱️"
-                : "📄";
+        s.type === 'project'
+          ? '📁'
+          : s.type === 'field'
+            ? '📋'
+            : s.type === 'status'
+              ? '🔄'
+              : s.type === 'extractor'
+                ? '⏱️'
+                : '📄';
       html += `
                 <button type="button" 
                         class="list-group-item list-group-item-action py-2" 
@@ -922,19 +871,15 @@ window.dash_clientside.namespace_autocomplete = {
                         </div>
                         ${
                           s.fieldType
-                            ? `<span class="badge bg-secondary">${escapeHtml(
-                                s.fieldType,
-                              )}</span>`
-                            : ""
+                            ? `<span class="badge bg-secondary">${escapeHtml(s.fieldType)}</span>`
+                            : ''
                         }
                     </div>
-                    <small class="text-muted">${escapeHtml(
-                      s.description,
-                    )}</small>
+                    <small class="text-muted">${escapeHtml(s.description)}</small>
                 </button>
             `;
     });
-    html += "</div>";
+    html += '</div>';
 
     return html;
   },
@@ -944,8 +889,8 @@ window.dash_clientside.namespace_autocomplete = {
  * Escape HTML to prevent XSS
  */
 function escapeHtml(text) {
-  if (!text) return "";
-  const div = document.createElement("div");
+  if (!text) return '';
+  const div = document.createElement('div');
   div.textContent = text;
   return div.innerHTML;
 }
@@ -954,7 +899,7 @@ function escapeHtml(text) {
  * Initialize autocomplete behavior for namespace inputs
  * Handles keyboard navigation and selection
  */
-document.addEventListener("DOMContentLoaded", function () {
+document.addEventListener('DOMContentLoaded', function () {
   initNamespaceAutocomplete();
   watchMetadataStore();
 });
@@ -976,10 +921,10 @@ observer.observe(document.body, { childList: true, subtree: true });
  * Watch for metadata store changes and build autocomplete data
  */
 function watchMetadataStore() {
-  const metadataStore = document.getElementById("jira-metadata-store");
+  const metadataStore = document.getElementById('jira-metadata-store');
   if (!metadataStore || metadataStore.dataset.watching) return;
 
-  metadataStore.dataset.watching = "true";
+  metadataStore.dataset.watching = 'true';
 
   // Try to build data immediately if store has content
   tryBuildFromMetadata();
@@ -995,7 +940,7 @@ function watchMetadataStore() {
     subtree: true,
   });
 
-  console.log("[Autocomplete] Watching metadata store for changes");
+  console.log('[Autocomplete] Watching metadata store for changes');
 }
 
 /**
@@ -1010,18 +955,16 @@ function tryBuildFromMetadata() {
     return; // Already have data
   }
 
-  const metadataStore = document.getElementById("jira-metadata-store");
+  const metadataStore = document.getElementById('jira-metadata-store');
   if (!metadataStore) return;
 
   try {
     const rawData = metadataStore.textContent || metadataStore.innerText;
-    if (rawData && rawData.trim() && rawData !== "null") {
+    if (rawData && rawData.trim() && rawData !== 'null') {
       const metadata = JSON.parse(rawData);
       if (metadata && !metadata.error && metadata.fields) {
-        window.dash_clientside.namespace_autocomplete.buildAutocompleteData(
-          metadata,
-        );
-        console.log("[Autocomplete] Built data from metadata store on change");
+        window.dash_clientside.namespace_autocomplete.buildAutocompleteData(metadata);
+        console.log('[Autocomplete] Built data from metadata store on change');
       }
     }
   } catch (e) {
@@ -1031,103 +974,47 @@ function tryBuildFromMetadata() {
 
 function initNamespaceAutocomplete() {
   // Find all namespace input containers
-  document
-    .querySelectorAll(".namespace-input-container")
-    .forEach((container) => {
-      if (container.dataset.initialized) return;
-      container.dataset.initialized = "true";
+  document.querySelectorAll('.namespace-input-container').forEach((container) => {
+    if (container.dataset.initialized) return;
+    container.dataset.initialized = 'true';
 
-      const input = container.querySelector("input");
-      const dropdown = container.querySelector(
-        ".namespace-suggestions-dropdown",
-      );
+    const input = container.querySelector('input');
+    const dropdown = container.querySelector('.namespace-suggestions-dropdown');
 
-      if (!input || !dropdown) return;
+    if (!input || !dropdown) return;
 
-      // Find validation message container (sibling of input container)
-      let validationContainer = null;
-      try {
-        const idStr = input.id;
-        const idObj = JSON.parse(idStr);
-        if (idObj.type === "namespace-field-input") {
-          // Dash serializes pattern-matched IDs with keys in alphabetical order
-          // So we need to match that: field, metric, type
-          const validationId = JSON.stringify({
-            field: idObj.field,
-            metric: idObj.metric,
-            type: "field-validation-message",
-          });
-          validationContainer = document.querySelector(
-            `[id='${validationId}']`,
-          );
-          console.log(
-            "[Autocomplete] Looking for validation container:",
-            validationId,
-            "found:",
-            !!validationContainer,
-          );
-        }
-      } catch (e) {
-        console.log("[Autocomplete] Error finding validation container:", e);
+    // Find validation message container (sibling of input container)
+    let validationContainer = null;
+    try {
+      const idStr = input.id;
+      const idObj = JSON.parse(idStr);
+      if (idObj.type === 'namespace-field-input') {
+        // Dash serializes pattern-matched IDs with keys in alphabetical order
+        // So we need to match that: field, metric, type
+        const validationId = JSON.stringify({
+          field: idObj.field,
+          metric: idObj.metric,
+          type: 'field-validation-message',
+        });
+        validationContainer = document.querySelector(`[id='${validationId}']`);
+        console.log(
+          '[Autocomplete] Looking for validation container:',
+          validationId,
+          'found:',
+          !!validationContainer
+        );
       }
+    } catch (e) {
+      console.log('[Autocomplete] Error finding validation container:', e);
+    }
 
-      let selectedIndex = -1;
+    let selectedIndex = -1;
 
-      // Debounced validation
-      let validationTimeout = null;
-      function runValidation() {
-        if (validationTimeout) clearTimeout(validationTimeout);
-        validationTimeout = setTimeout(() => {
-          if (validationContainer && window._namespaceAutocompleteData) {
-            try {
-              const idObj = JSON.parse(input.id);
-              const validationHtml =
-                window.dash_clientside.namespace_autocomplete.validateNamespaceInput(
-                  input.value,
-                  window._namespaceAutocompleteData,
-                  idObj.metric,
-                  idObj.field,
-                );
-              validationContainer.innerHTML = validationHtml;
-            } catch (e) {
-              console.log("[Autocomplete] Validation error:", e);
-            }
-          }
-        }, 300); // 300ms debounce
-      }
-
-      // Handle input changes - filter suggestions and validate
-      input.addEventListener("input", function (e) {
-        // Skip if this is a programmatic update from selectItem
-        if (input.dataset.programmaticUpdate === "true") {
-          console.log("[Autocomplete] Skipping update - programmatic change");
-          return;
-        }
-        selectedIndex = -1;
-        updateSuggestions(input.value, dropdown, input);
-        runValidation();
-
-        // Clear any save validation error when user starts typing
-        // 1. Clear the global status message
-        const statusDiv = document.getElementById("field-mapping-status");
-        if (statusDiv && statusDiv.innerHTML.trim()) {
-          statusDiv.innerHTML = "";
-          console.log("[Autocomplete] Cleared validation status on input");
-        }
-
-        // 2. Clear the inline validation error on this specific input
-        input.classList.remove("is-invalid");
-        const errorEl = input.parentElement.querySelector(".invalid-feedback");
-        if (errorEl) {
-          errorEl.style.display = "none";
-          errorEl.textContent = "";
-        }
-      });
-
-      // Also validate on blur (when user finishes typing)
-      input.addEventListener("blur", function (e) {
-        // Run validation immediately on blur
-        if (validationTimeout) clearTimeout(validationTimeout);
+    // Debounced validation
+    let validationTimeout = null;
+    function runValidation() {
+      if (validationTimeout) clearTimeout(validationTimeout);
+      validationTimeout = setTimeout(() => {
         if (validationContainer && window._namespaceAutocompleteData) {
           try {
             const idObj = JSON.parse(input.id);
@@ -1136,166 +1023,211 @@ function initNamespaceAutocomplete() {
                 input.value,
                 window._namespaceAutocompleteData,
                 idObj.metric,
-                idObj.field,
+                idObj.field
               );
             validationContainer.innerHTML = validationHtml;
           } catch (e) {
-            console.log("[Autocomplete] Validation error on blur:", e);
+            console.log('[Autocomplete] Validation error:', e);
           }
         }
-      });
+      }, 300); // 300ms debounce
+    }
 
-      // Run initial validation if input has value
-      if (input.value && input.value.trim()) {
-        setTimeout(runValidation, 500); // Delay to let metadata load
+    // Handle input changes - filter suggestions and validate
+    input.addEventListener('input', function (e) {
+      // Skip if this is a programmatic update from selectItem
+      if (input.dataset.programmaticUpdate === 'true') {
+        console.log('[Autocomplete] Skipping update - programmatic change');
+        return;
+      }
+      selectedIndex = -1;
+      updateSuggestions(input.value, dropdown, input);
+      runValidation();
+
+      // Clear any save validation error when user starts typing
+      // 1. Clear the global status message
+      const statusDiv = document.getElementById('field-mapping-status');
+      if (statusDiv && statusDiv.innerHTML.trim()) {
+        statusDiv.innerHTML = '';
+        console.log('[Autocomplete] Cleared validation status on input');
       }
 
-      // Handle keyboard navigation
-      input.addEventListener("keydown", function (e) {
-        const items = dropdown.querySelectorAll(".list-group-item");
-        if (items.length === 0) return;
-
-        switch (e.key) {
-          case "ArrowDown":
-            e.preventDefault();
-            selectedIndex = Math.min(selectedIndex + 1, items.length - 1);
-            updateSelection(items, selectedIndex);
-            break;
-          case "ArrowUp":
-            e.preventDefault();
-            selectedIndex = Math.max(selectedIndex - 1, 0);
-            updateSelection(items, selectedIndex);
-            break;
-          case "Enter":
-          case "Tab":
-            if (selectedIndex >= 0 && selectedIndex < items.length) {
-              e.preventDefault();
-              selectItem(input, items[selectedIndex], dropdown);
-            }
-            break;
-          case "Escape":
-            hideDropdown(dropdown, input);
-            selectedIndex = -1;
-            break;
-        }
-      });
-
-      // Handle click on suggestions
-      dropdown.addEventListener("click", function (e) {
-        const item = e.target.closest(".list-group-item");
-        if (item) {
-          e.preventDefault();
-          selectItem(input, item, dropdown);
-        }
-      });
-
-      // Prevent dropdown clicks from stealing focus
-      dropdown.addEventListener("mousedown", function (e) {
-        e.preventDefault();
-      });
-
-      // Track the last programmatically selected value
-      // This helps us restore it if React tries to revert
-      let lastSelectedValue = null;
-      let selectionTimestamp = 0;
-
-      // Store reference to selectItem wrapper that tracks selection
-      const originalSelectItem = selectItem;
-      const wrappedSelectItem = function (inp, itm, dd) {
-        const val = itm.dataset.value;
-        if (val) {
-          lastSelectedValue = val;
-          selectionTimestamp = Date.now();
-        }
-        originalSelectItem(inp, itm, dd);
-      };
-
-      // Override click handler to use wrapped selectItem
-      dropdown.removeEventListener("click", dropdown._clickHandler);
-      dropdown._clickHandler = function (e) {
-        const item = e.target.closest(".list-group-item");
-        if (item) {
-          e.preventDefault();
-          wrappedSelectItem(input, item, dropdown);
-        }
-      };
-      dropdown.addEventListener("click", dropdown._clickHandler);
-
-      // Protect against React reverting the value on blur
-      // If value changes within 500ms of selection, restore it
-      input.addEventListener("blur", function () {
-        const timeSinceSelection = Date.now() - selectionTimestamp;
-        if (lastSelectedValue && timeSinceSelection < 500) {
-          // React might try to revert - schedule a check
-          setTimeout(() => {
-            if (
-              input.value !== lastSelectedValue &&
-              timeSinceSelection < 1000
-            ) {
-              console.log(
-                "[Autocomplete] Restoring reverted value:",
-                lastSelectedValue,
-                "current:",
-                input.value,
-              );
-              const nativeInputValueSetter = Object.getOwnPropertyDescriptor(
-                window.HTMLInputElement.prototype,
-                "value",
-              ).set;
-              nativeInputValueSetter.call(input, lastSelectedValue);
-              input.dispatchEvent(new Event("input", { bubbles: true }));
-            }
-          }, 50);
-        }
-      });
-
-      // Clear selection tracking after a delay
-      setInterval(() => {
-        if (Date.now() - selectionTimestamp > 2000) {
-          lastSelectedValue = null;
-        }
-      }, 1000);
-
-      // Hide dropdown on blur (after a short delay to allow clicks)
-      input.addEventListener("blur", function () {
-        setTimeout(() => {
-          if (!container.contains(document.activeElement)) {
-            hideDropdown(dropdown, input);
-            selectedIndex = -1;
-          }
-        }, 200);
-      });
-
-      // Show suggestions on focus if input has value (but not after programmatic selection)
-      input.addEventListener("focus", function () {
-        // Don't reopen dropdown if we just completed a selection
-        if (input.dataset.programmaticUpdate === "true") {
-          console.log(
-            "[Autocomplete] Skipping focus suggestions - programmatic update",
-          );
-          return;
-        }
-        if (input.value.trim().length > 0) {
-          updateSuggestions(input.value, dropdown, input);
-        }
-      });
-
-      // Reposition dropdown on scroll/resize (only if visible)
-      const repositionDropdown = () => {
-        if (
-          dropdown.innerHTML &&
-          dropdown.innerHTML.trim() &&
-          dropdown.parentElement === document.body
-        ) {
-          positionDropdown(dropdown, input);
-        }
-      };
-
-      window.addEventListener("scroll", repositionDropdown, true); // Use capture to catch all scrolls
-      window.addEventListener("resize", repositionDropdown);
-
-      console.log("[Autocomplete] Initialized container for:", input.id);
+      // 2. Clear the inline validation error on this specific input
+      input.classList.remove('is-invalid');
+      const errorEl = input.parentElement.querySelector('.invalid-feedback');
+      if (errorEl) {
+        errorEl.style.display = 'none';
+        errorEl.textContent = '';
+      }
     });
+
+    // Also validate on blur (when user finishes typing)
+    input.addEventListener('blur', function (e) {
+      // Run validation immediately on blur
+      if (validationTimeout) clearTimeout(validationTimeout);
+      if (validationContainer && window._namespaceAutocompleteData) {
+        try {
+          const idObj = JSON.parse(input.id);
+          const validationHtml =
+            window.dash_clientside.namespace_autocomplete.validateNamespaceInput(
+              input.value,
+              window._namespaceAutocompleteData,
+              idObj.metric,
+              idObj.field
+            );
+          validationContainer.innerHTML = validationHtml;
+        } catch (e) {
+          console.log('[Autocomplete] Validation error on blur:', e);
+        }
+      }
+    });
+
+    // Run initial validation if input has value
+    if (input.value && input.value.trim()) {
+      setTimeout(runValidation, 500); // Delay to let metadata load
+    }
+
+    // Handle keyboard navigation
+    input.addEventListener('keydown', function (e) {
+      const items = dropdown.querySelectorAll('.list-group-item');
+      if (items.length === 0) return;
+
+      switch (e.key) {
+        case 'ArrowDown':
+          e.preventDefault();
+          selectedIndex = Math.min(selectedIndex + 1, items.length - 1);
+          updateSelection(items, selectedIndex);
+          break;
+        case 'ArrowUp':
+          e.preventDefault();
+          selectedIndex = Math.max(selectedIndex - 1, 0);
+          updateSelection(items, selectedIndex);
+          break;
+        case 'Enter':
+        case 'Tab':
+          if (selectedIndex >= 0 && selectedIndex < items.length) {
+            e.preventDefault();
+            selectItem(input, items[selectedIndex], dropdown);
+          }
+          break;
+        case 'Escape':
+          hideDropdown(dropdown, input);
+          selectedIndex = -1;
+          break;
+      }
+    });
+
+    // Handle click on suggestions
+    dropdown.addEventListener('click', function (e) {
+      const item = e.target.closest('.list-group-item');
+      if (item) {
+        e.preventDefault();
+        selectItem(input, item, dropdown);
+      }
+    });
+
+    // Prevent dropdown clicks from stealing focus
+    dropdown.addEventListener('mousedown', function (e) {
+      e.preventDefault();
+    });
+
+    // Track the last programmatically selected value
+    // This helps us restore it if React tries to revert
+    let lastSelectedValue = null;
+    let selectionTimestamp = 0;
+
+    // Store reference to selectItem wrapper that tracks selection
+    const originalSelectItem = selectItem;
+    const wrappedSelectItem = function (inp, itm, dd) {
+      const val = itm.dataset.value;
+      if (val) {
+        lastSelectedValue = val;
+        selectionTimestamp = Date.now();
+      }
+      originalSelectItem(inp, itm, dd);
+    };
+
+    // Override click handler to use wrapped selectItem
+    dropdown.removeEventListener('click', dropdown._clickHandler);
+    dropdown._clickHandler = function (e) {
+      const item = e.target.closest('.list-group-item');
+      if (item) {
+        e.preventDefault();
+        wrappedSelectItem(input, item, dropdown);
+      }
+    };
+    dropdown.addEventListener('click', dropdown._clickHandler);
+
+    // Protect against React reverting the value on blur
+    // If value changes within 500ms of selection, restore it
+    input.addEventListener('blur', function () {
+      const timeSinceSelection = Date.now() - selectionTimestamp;
+      if (lastSelectedValue && timeSinceSelection < 500) {
+        // React might try to revert - schedule a check
+        setTimeout(() => {
+          if (input.value !== lastSelectedValue && timeSinceSelection < 1000) {
+            console.log(
+              '[Autocomplete] Restoring reverted value:',
+              lastSelectedValue,
+              'current:',
+              input.value
+            );
+            const nativeInputValueSetter = Object.getOwnPropertyDescriptor(
+              window.HTMLInputElement.prototype,
+              'value'
+            ).set;
+            nativeInputValueSetter.call(input, lastSelectedValue);
+            input.dispatchEvent(new Event('input', { bubbles: true }));
+          }
+        }, 50);
+      }
+    });
+
+    // Clear selection tracking after a delay
+    setInterval(() => {
+      if (Date.now() - selectionTimestamp > 2000) {
+        lastSelectedValue = null;
+      }
+    }, 1000);
+
+    // Hide dropdown on blur (after a short delay to allow clicks)
+    input.addEventListener('blur', function () {
+      setTimeout(() => {
+        if (!container.contains(document.activeElement)) {
+          hideDropdown(dropdown, input);
+          selectedIndex = -1;
+        }
+      }, 200);
+    });
+
+    // Show suggestions on focus if input has value (but not after programmatic selection)
+    input.addEventListener('focus', function () {
+      // Don't reopen dropdown if we just completed a selection
+      if (input.dataset.programmaticUpdate === 'true') {
+        console.log('[Autocomplete] Skipping focus suggestions - programmatic update');
+        return;
+      }
+      if (input.value.trim().length > 0) {
+        updateSuggestions(input.value, dropdown, input);
+      }
+    });
+
+    // Reposition dropdown on scroll/resize (only if visible)
+    const repositionDropdown = () => {
+      if (
+        dropdown.innerHTML &&
+        dropdown.innerHTML.trim() &&
+        dropdown.parentElement === document.body
+      ) {
+        positionDropdown(dropdown, input);
+      }
+    };
+
+    window.addEventListener('scroll', repositionDropdown, true); // Use capture to catch all scrolls
+    window.addEventListener('resize', repositionDropdown);
+
+    console.log('[Autocomplete] Initialized container for:', input.id);
+  });
 }
 
 /**
@@ -1306,12 +1238,8 @@ function updateSuggestions(inputValue, dropdown, input) {
   let autocompleteData = window._namespaceAutocompleteData;
 
   // If not available, try to build it from jira-metadata-store
-  if (
-    !autocompleteData ||
-    !autocompleteData.fields ||
-    autocompleteData.fields.length === 0
-  ) {
-    const metadataStore = document.getElementById("jira-metadata-store");
+  if (!autocompleteData || !autocompleteData.fields || autocompleteData.fields.length === 0) {
+    const metadataStore = document.getElementById('jira-metadata-store');
     if (metadataStore) {
       try {
         // Dash stores keep data in a specific format - try to extract it
@@ -1321,27 +1249,18 @@ function updateSuggestions(inputValue, dropdown, input) {
           if (metadata && !metadata.error) {
             // Build autocomplete data from metadata
             autocompleteData =
-              window.dash_clientside.namespace_autocomplete.buildAutocompleteData(
-                metadata,
-              );
-            console.log("[Autocomplete] Built data from metadata store");
+              window.dash_clientside.namespace_autocomplete.buildAutocompleteData(metadata);
+            console.log('[Autocomplete] Built data from metadata store');
           }
         }
       } catch (e) {
-        console.log(
-          "[Autocomplete] Could not parse metadata store:",
-          e.message,
-        );
+        console.log('[Autocomplete] Could not parse metadata store:', e.message);
       }
     }
   }
 
-  if (
-    !autocompleteData ||
-    !autocompleteData.fields ||
-    autocompleteData.fields.length === 0
-  ) {
-    console.log("[Autocomplete] No autocomplete data available yet");
+  if (!autocompleteData || !autocompleteData.fields || autocompleteData.fields.length === 0) {
+    console.log('[Autocomplete] No autocomplete data available yet');
     return;
   }
 
@@ -1349,7 +1268,7 @@ function updateSuggestions(inputValue, dropdown, input) {
   const html = window.dash_clientside.namespace_autocomplete.filterSuggestions(
     inputValue,
     autocompleteData,
-    0, // trigger count (unused, for callback signature)
+    0 // trigger count (unused, for callback signature)
   );
 
   dropdown.innerHTML = html;
@@ -1376,11 +1295,11 @@ function positionDropdown(dropdown, input) {
 
   // Position using fixed coordinates relative to the input
   const rect = input.getBoundingClientRect();
-  dropdown.style.position = "fixed";
+  dropdown.style.position = 'fixed';
   dropdown.style.top = `${rect.bottom + 2}px`;
   dropdown.style.left = `${rect.left}px`;
   dropdown.style.width = `${rect.width}px`;
-  dropdown.style.zIndex = "1200";
+  dropdown.style.zIndex = '1200';
 }
 
 /**
@@ -1389,7 +1308,7 @@ function positionDropdown(dropdown, input) {
 function hideDropdown(dropdown, input) {
   if (!dropdown || !input) return;
 
-  dropdown.innerHTML = "";
+  dropdown.innerHTML = '';
 
   // Move back to original container if it was moved to body
   if (dropdown.parentElement === document.body) {
@@ -1400,10 +1319,10 @@ function hideDropdown(dropdown, input) {
 function updateSelection(items, selectedIndex) {
   items.forEach((item, idx) => {
     if (idx === selectedIndex) {
-      item.classList.add("active");
-      item.scrollIntoView({ block: "nearest" });
+      item.classList.add('active');
+      item.scrollIntoView({ block: 'nearest' });
     } else {
-      item.classList.remove("active");
+      item.classList.remove('active');
     }
   });
 }
@@ -1411,15 +1330,10 @@ function updateSelection(items, selectedIndex) {
 function selectItem(input, item, dropdown) {
   const value = item.dataset.value;
   if (value) {
-    console.log(
-      "[Autocomplete] Selecting:",
-      value,
-      "current input:",
-      input.value,
-    );
+    console.log('[Autocomplete] Selecting:', value, 'current input:', input.value);
 
     // Set flag BEFORE any value changes to prevent input handler from reopening dropdown
-    input.dataset.programmaticUpdate = "true";
+    input.dataset.programmaticUpdate = 'true';
 
     // Clear dropdown FIRST to prevent any race conditions
     hideDropdown(dropdown, input);
@@ -1431,7 +1345,7 @@ function selectItem(input, item, dropdown) {
       // Get the native value setter
       const nativeInputValueSetter = Object.getOwnPropertyDescriptor(
         window.HTMLInputElement.prototype,
-        "value",
+        'value'
       ).set;
 
       // Set the value using native setter
@@ -1439,16 +1353,16 @@ function selectItem(input, item, dropdown) {
 
       // Create and dispatch an input event that React will recognize
       // Using InputEvent with inputType helps React recognize it as user input
-      const inputEvent = new InputEvent("input", {
+      const inputEvent = new InputEvent('input', {
         bubbles: true,
         cancelable: true,
-        inputType: "insertText",
+        inputType: 'insertText',
         data: value,
       });
       input.dispatchEvent(inputEvent);
 
       // Also dispatch change event for completeness
-      const changeEvent = new Event("change", { bubbles: true });
+      const changeEvent = new Event('change', { bubbles: true });
       input.dispatchEvent(changeEvent);
 
       // Force a blur and refocus to ensure React processes the change
@@ -1459,11 +1373,11 @@ function selectItem(input, item, dropdown) {
       // Small delay before refocus to let React process
       setTimeout(() => {
         // Keep flag set during refocus to prevent dropdown reopening
-        input.dataset.programmaticUpdate = "true";
+        input.dataset.programmaticUpdate = 'true';
 
         // Set value again after blur in case React reset it
         nativeInputValueSetter.call(input, value);
-        input.dispatchEvent(new Event("input", { bubbles: true }));
+        input.dispatchEvent(new Event('input', { bubbles: true }));
 
         // Refocus
         input.focus();
@@ -1471,7 +1385,7 @@ function selectItem(input, item, dropdown) {
         // Move cursor to end
         input.setSelectionRange(value.length, value.length);
 
-        console.log("[Autocomplete] Selection complete, value:", input.value);
+        console.log('[Autocomplete] Selection complete, value:', input.value);
 
         // Clear flag after everything is done
         setTimeout(() => {
@@ -1479,7 +1393,7 @@ function selectItem(input, item, dropdown) {
         }, 100);
       }, 10);
     } catch (e) {
-      console.warn("[Autocomplete] Event dispatch failed:", e);
+      console.warn('[Autocomplete] Event dispatch failed:', e);
       // Last resort fallback
       input.value = value;
       delete input.dataset.programmaticUpdate;
@@ -1494,7 +1408,7 @@ function selectItem(input, item, dropdown) {
           const idObj = JSON.parse(inputId);
           if (idObj.metric && idObj.field) {
             const validationContainer = document.getElementById(
-              `validation-${idObj.metric}-${idObj.field}`,
+              `validation-${idObj.metric}-${idObj.field}`
             );
             if (validationContainer && window._autocompleteData) {
               const validationResult =
@@ -1502,13 +1416,10 @@ function selectItem(input, item, dropdown) {
                   value,
                   window._autocompleteData,
                   idObj.metric,
-                  idObj.field,
+                  idObj.field
                 );
               validationContainer.innerHTML = validationResult;
-              console.log(
-                "[Autocomplete] Validation after select for",
-                inputId,
-              );
+              console.log('[Autocomplete] Validation after select for', inputId);
             }
           }
         } catch (e) {
@@ -1517,16 +1428,14 @@ function selectItem(input, item, dropdown) {
           if (match) {
             const metric = match[1];
             const field = match[2];
-            const validationContainer = document.getElementById(
-              `validation-${metric}-${field}`,
-            );
+            const validationContainer = document.getElementById(`validation-${metric}-${field}`);
             if (validationContainer && window._autocompleteData) {
               const validationResult =
                 window.dash_clientside.namespace_autocomplete.validateNamespaceInput(
                   value,
                   window._autocompleteData,
                   metric,
-                  field,
+                  field
                 );
               validationContainer.innerHTML = validationResult;
             }

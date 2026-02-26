@@ -40,7 +40,7 @@
 /* Ensure rows and columns containing metric cards allow overflow for hover effects */
 .row:has(.metric-card),
 .col:has(.metric-card),
-[class*="col-"]:has(.metric-card) {
+[class*='col-']:has(.metric-card) {
   overflow: visible !important;
 }
 

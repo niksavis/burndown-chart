@@ -74,12 +74,8 @@
   --color-gray-900: var(--color-neutral-900);
 
   /* === Typography === */
-  --font-sans:
-    "Manrope", "Segoe UI Variable Text", "Segoe UI", "Helvetica Neue", Arial,
-    sans-serif;
-  --font-mono:
-    ui-monospace, "SF Mono", "Cascadia Code", "Consolas", "Courier New",
-    monospace;
+  --font-sans: 'Manrope', 'Segoe UI Variable Text', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+  --font-mono: ui-monospace, 'SF Mono', 'Cascadia Code', 'Consolas', 'Courier New', monospace;
 
   /* Type scale */
   --text-xs: 0.75rem; /* 12px - Fine print */
@@ -135,8 +131,7 @@
   --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.07), 0 2px 4px rgba(0, 0, 0, 0.06);
   --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1), 0 4px 6px rgba(0, 0, 0, 0.05);
   --shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.15), 0 10px 10px rgba(0, 0, 0, 0.04);
-  --shadow-card:
-    0 12px 30px rgba(15, 23, 42, 0.08), 0 2px 8px rgba(15, 23, 42, 0.05);
+  --shadow-card: 0 12px 30px rgba(15, 23, 42, 0.08), 0 2px 8px rgba(15, 23, 42, 0.05);
 
   /* === Border Radius === */
   --radius-sm: 0.25rem; /* 4px */

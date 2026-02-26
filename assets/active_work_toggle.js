@@ -4,15 +4,15 @@
   }
   window.activeWorkToggleAllInitialized = true;
 
-  document.addEventListener("click", function handleActiveWorkToggle(event) {
-    var button = event.target.closest("#active-work-toggle-all");
+  document.addEventListener('click', function handleActiveWorkToggle(event) {
+    var button = event.target.closest('#active-work-toggle-all');
     if (!button) {
       return;
     }
 
-    var container = document.getElementById("active-work-timeline-tab-content");
+    var container = document.getElementById('active-work-timeline-tab-content');
     var scope = container || document;
-    var details = scope.querySelectorAll("details.active-work-epic-card");
+    var details = scope.querySelectorAll('details.active-work-epic-card');
     if (!details.length) {
       return;
     }
@@ -23,25 +23,25 @@
 
     Array.prototype.forEach.call(details, function (item) {
       if (shouldExpand) {
-        item.setAttribute("open", "");
+        item.setAttribute('open', '');
         item.open = true;
       } else {
-        item.removeAttribute("open");
+        item.removeAttribute('open');
         item.open = false;
       }
     });
 
-    var label = button.querySelector("#active-work-toggle-label");
+    var label = button.querySelector('#active-work-toggle-label');
     if (label) {
-      label.textContent = shouldExpand ? "Collapse all" : "Expand all";
+      label.textContent = shouldExpand ? 'Collapse all' : 'Expand all';
     }
 
-    button.setAttribute("aria-expanded", shouldExpand ? "true" : "false");
+    button.setAttribute('aria-expanded', shouldExpand ? 'true' : 'false');
 
-    var icon = button.querySelector("i");
+    var icon = button.querySelector('i');
     if (icon) {
-      icon.classList.toggle("fa-compress-arrows-alt", shouldExpand);
-      icon.classList.toggle("fa-expand-arrows-alt", !shouldExpand);
+      icon.classList.toggle('fa-compress-arrows-alt', shouldExpand);
+      icon.classList.toggle('fa-expand-arrows-alt', !shouldExpand);
     }
   });
 })();

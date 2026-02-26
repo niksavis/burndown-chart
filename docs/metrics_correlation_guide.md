@@ -84,7 +84,8 @@ This means correctly configured metrics should show **positive correlations** fo
 
 **Rule**: Lead Time should always be **greater than or equal to** Flow Time for the same work items.
 
-**Why**: 
+**Why**:
+
 - **Flow Time** ends when work status changes to "Done"
 - **Lead Time** ends when the fix is actually **deployed to production**
 - There's always some wait time between "Done" and "Deployed"
@@ -97,6 +98,7 @@ Lead Time:     [In Progress] ─────────────────
 ```
 
 **⚠️ Warning**: If Lead Time < Flow Time, check:
+
 - `code_commit_date` field mapping (should be work start, e.g., `status:In Progress.DateTime`)
 - `deployment_date` field mapping (should be `fixVersions`)
 - Whether changelog is being fetched correctly
@@ -108,6 +110,7 @@ Lead Time:     [In Progress] ─────────────────
 **Rule**: MTTR should typically be **greater than or equal to** Lead Time for bug fixes.
 
 **Why**:
+
 - **MTTR** starts when bug is **created** (before any work begins)
 - **Lead Time** starts when work **actually begins** (In Progress)
 - MTTR includes triage, prioritization, and assignment time
@@ -121,6 +124,7 @@ MTTR:          [Created] ──► [Triaged] ──► [In Progress] ──► [
 **Exception**: If bugs are immediately worked on (no triage delay), MTTR ≈ Lead Time.
 
 **⚠️ Warning**: If MTTR << Lead Time consistently:
+
 - Check `incident_detected_at` is set to `created`
 - Verify `incident_resolved_at` uses the same endpoint as Lead Time
 
@@ -131,11 +135,13 @@ MTTR:          [Created] ──► [Triaged] ──► [In Progress] ──► [
 **Rule**: These metrics should be **positively correlated** but NOT equal.
 
 **Why**:
+
 - **Flow Velocity**: Items completed per week (individual tickets)
 - **Deployment Frequency**: Releases per week (bundled deployments)
 - Multiple completed items are often bundled into one release
 
 **Healthy Patterns**:
+
 - High Velocity + High Deployment Frequency = Continuous delivery ✅
 - High Velocity + Low Deployment Frequency = Release bottleneck ⚠️
 - Low Velocity + High Deployment Frequency = Deploying trivial changes ⚠️
@@ -150,6 +156,7 @@ MTTR:          [Created] ──► [Triaged] ──► [In Progress] ──► [
 **Rule**: Flow Time increases proportionally with WIP (at constant throughput).
 
 **Formula (Little's Law)**:
+
 ```
 Flow Time = WIP ÷ Throughput
 
@@ -159,6 +166,7 @@ Where:
 ```
 
 **Example**:
+
 ```
 WIP = 10 items
 Velocity = 5 items/week
@@ -167,6 +175,7 @@ Expected Flow Time = 10 ÷ 5 = 2 weeks
 ```
 
 **Implications**:
+
 - To reduce Flow Time → Reduce WIP or increase Velocity
 - If Flow Time doesn't follow this pattern → Check status mappings
 
@@ -183,8 +192,8 @@ Expected Flow Time = 10 ÷ 5 = 2 weeks
 
 **Team Performance Patterns**:
 
-| CFR  | MTTR | Interpretation                                     |
-| ---- | ---- | -------------------------------------------------- |
+| CFR  | MTTR | Interpretation                                      |
+| ---- | ---- | --------------------------------------------------- |
 | Low  | Low  | Elite team - prevents failures AND recovers fast ✅ |
 | Low  | High | Good prevention, poor incident response ⚠️          |
 | High | Low  | Poor quality, but fast recovery 🔄                  |
@@ -197,16 +206,19 @@ Expected Flow Time = 10 ÷ 5 = 2 weeks
 **Rule**: Flow Efficiency should always be **between 0% and 100%**.
 
 **Typical Ranges**:
+
 - **Elite teams**: 25-40%
 - **Average teams**: 15-25%
 - **Struggling teams**: <15%
 
 **⚠️ Warning Signs**:
+
 - **>100%**: Calculation error or status mapping issue
 - **>50%**: Unusually high - verify active_statuses configuration
 - **<5%**: Excessive wait time or blocked work
 
 **Why Not 100%?**: Even the best teams have:
+
 - Code review wait time
 - Testing queue time
 - Deployment scheduling delays
@@ -220,15 +232,18 @@ Expected Flow Time = 10 ÷ 5 = 2 weeks
 Metrics use **progressive blending** for the current week to eliminate Monday reliability drops:
 
 **Affected Metrics**:
+
 - Flow Velocity, Flow Time
 - Deployment Frequency, Lead Time for Changes, MTTR
 
 **How It Works**:
+
 - **Formula**: `blended = (actual × weight) + (forecast × (1 - weight))`
 - **Weights** (Linear Progression: weight = days_completed / 5): Monday=0%, Tuesday=20%, Wednesday=40%, Thursday=60%, Friday=80%, Saturday-Sunday=100%
 - **Result**: Smooth progression from forecast (Monday) to actual (Saturday)
 
 **Impact on Validation**:
+
 - ✅ Correlations remain valid (blending doesn't change relationships)
 - ✅ Monday-Friday show blended values with 📊 indicator
 - ✅ Saturday-Sunday show pure actual values
@@ -314,11 +329,13 @@ Use these rules to verify your metrics are correctly configured:
 
 **Symptoms**: Lead Time metric shows error or 0
 **Likely Causes**:
+
 1. `code_commit_date` not mapped to changelog field (e.g., `status:In Progress.DateTime`)
 2. Issues don't have changelog (missing `expand=changelog` in JIRA query)
 3. Issues never transitioned to the configured start status
 
 **Fix**: Verify:
+
 ```json
 "code_commit_date": "status:In Progress.DateTime"
 ```
@@ -327,6 +344,7 @@ Use these rules to verify your metrics are correctly configured:
 
 **Symptoms**: MTTR shows no data but you know bugs exist
 **Likely Causes**:
+
 1. `affected_environment` filter not matching (e.g., `=PROD` but bugs have `=Production`)
 2. `incident_resolved_at` set to `fixVersions` but bugs don't have fixVersions
 3. Bug types not configured in `bug_types` list
@@ -337,6 +355,7 @@ Use these rules to verify your metrics are correctly configured:
 
 **Symptoms**: Flow Time is greater than Lead Time
 **Likely Causes**:
+
 1. Different issues being measured (Flow uses all issues, Lead Time uses deployed only)
 2. `flow_end_statuses` doesn't match actual "Done" status names
 3. Changelog missing for some issues
@@ -347,6 +366,7 @@ Use these rules to verify your metrics are correctly configured:
 
 **Symptoms**: Efficiency shows impossible percentage
 **Likely Causes**:
+
 1. `active_statuses` contains statuses not in `wip_statuses`
 2. Status names don't match exactly (case sensitivity)
 3. Duplicate status transitions in changelog
@@ -357,6 +377,7 @@ Use these rules to verify your metrics are correctly configured:
 
 **Symptoms**: Change Failure Rate is always 0%
 **Likely Causes**:
+
 1. `change_failure` field not mapped correctly
 2. Field value filter doesn't match (e.g., `=Yes` but field has `=TRUE`)
 3. No operational tasks have the failure flag set
@@ -457,4 +478,4 @@ Example:
 
 ---
 
-*Document Version: 1.0 | Last Updated: December 2025*
+_Document Version: 1.0 | Last Updated: December 2025_

@@ -26,13 +26,13 @@
  */
 
 (function () {
-  "use strict";
+  'use strict';
 
   /**
    * Ensure JQL mode is registered with the active CodeMirror instance.
    */
   function ensureJqlModeRegistered() {
-    if (typeof CodeMirror === "undefined" || !CodeMirror.defineMode) {
+    if (typeof CodeMirror === 'undefined' || !CodeMirror.defineMode) {
       return;
     }
 
@@ -40,8 +40,8 @@
       return;
     }
 
-    if (typeof window !== "undefined" && window.jqlLanguageMode) {
-      CodeMirror.defineMode("jql", function () {
+    if (typeof window !== 'undefined' && window.jqlLanguageMode) {
+      CodeMirror.defineMode('jql', function () {
         return window.jqlLanguageMode;
       });
     }
@@ -51,15 +51,15 @@
    * Check if JQL mode is registered with CodeMirror
    */
   function isJqlModeAvailable() {
-    if (typeof CodeMirror === "undefined") {
+    if (typeof CodeMirror === 'undefined') {
       return false;
     }
 
     ensureJqlModeRegistered();
 
     try {
-      const testMode = CodeMirror.getMode({}, "jql");
-      return testMode && testMode.name === "jql";
+      const testMode = CodeMirror.getMode({}, 'jql');
+      return testMode && testMode.name === 'jql';
     } catch (e) {
       return false;
     }
@@ -70,10 +70,10 @@
    */
   function initializeNativeEditors() {
     const codeMirrorAvailable =
-      typeof CodeMirror !== "undefined" && typeof CodeMirror === "function";
+      typeof CodeMirror !== 'undefined' && typeof CodeMirror === 'function';
 
     if (!codeMirrorAvailable) {
-      console.error("[Native JQL] CodeMirror not loaded");
+      console.error('[Native JQL] CodeMirror not loaded');
       return;
     }
 
@@ -81,11 +81,11 @@
     const jqlModeAvailable = isJqlModeAvailable();
 
     if (!jqlModeAvailable) {
-      console.warn("[Native JQL] JQL mode not loaded - using plain text");
+      console.warn('[Native JQL] JQL mode not loaded - using plain text');
     }
 
     // Find all native editor containers
-    const containers = document.querySelectorAll(".jql-codemirror-container");
+    const containers = document.querySelectorAll('.jql-codemirror-container');
 
     if (containers.length === 0) {
       return;
@@ -99,10 +99,9 @@
         return;
       }
 
-      const editorId = container.getAttribute("data-editor-id");
-      const initialValue = container.getAttribute("data-initial-value") || "";
-      const placeholder =
-        container.getAttribute("data-placeholder") || "Enter JQL query...";
+      const editorId = container.getAttribute('data-editor-id');
+      const initialValue = container.getAttribute('data-initial-value') || '';
+      const placeholder = container.getAttribute('data-placeholder') || 'Enter JQL query...';
 
       // Find hidden input
       const hiddenInput = document.getElementById(editorId);
@@ -117,17 +116,17 @@
       console.log(
         `[Native JQL] Creating editor for ${editorId} with value: "${actualInitialValue.substring(
           0,
-          50,
-        )}..."`,
+          50
+        )}..."`
       );
 
       // Create native CodeMirror
       const editor = CodeMirror(container, {
         value: actualInitialValue,
-        mode: jqlModeAvailable ? "jql" : "text/plain",
+        mode: jqlModeAvailable ? 'jql' : 'text/plain',
         lineNumbers: false,
         lineWrapping: true,
-        theme: "default",
+        theme: 'default',
         placeholder: placeholder,
         indentWithTabs: false,
         indentUnit: 2,
@@ -145,10 +144,8 @@
       // CRITICAL: Check if container is visible, if not, mark for refresh
       const isVisible = container.offsetParent !== null;
       if (!isVisible) {
-        console.log(
-          `[Native JQL] ${editorId} initialized in hidden tab, will refresh on tab show`,
-        );
-        container.setAttribute("data-needs-refresh", "true");
+        console.log(`[Native JQL] ${editorId} initialized in hidden tab, will refresh on tab show`);
+        container.setAttribute('data-needs-refresh', 'true');
       }
 
       // Refresh editor to fix display (fixes hidden tab issue)
@@ -157,12 +154,12 @@
       }, 1);
 
       // Sync CodeMirror → hidden input
-      editor.on("change", function () {
+      editor.on('change', function () {
         const value = editor.getValue();
         if (hiddenInput.value !== value) {
           hiddenInput.value = value;
           // Trigger change event for Dash
-          const event = new Event("input", { bubbles: true });
+          const event = new Event('input', { bubbles: true });
           hiddenInput.dispatchEvent(event);
         }
       });
@@ -170,23 +167,20 @@
       // Sync hidden input → CodeMirror (for Dash updates)
       // Use the correct prototype based on element type
       const elementPrototype =
-        hiddenInput.tagName === "TEXTAREA"
+        hiddenInput.tagName === 'TEXTAREA'
           ? HTMLTextAreaElement.prototype
           : HTMLInputElement.prototype;
 
-      const originalDescriptor = Object.getOwnPropertyDescriptor(
-        elementPrototype,
-        "value",
-      );
+      const originalDescriptor = Object.getOwnPropertyDescriptor(elementPrototype, 'value');
 
-      Object.defineProperty(hiddenInput, "value", {
+      Object.defineProperty(hiddenInput, 'value', {
         get: function () {
           return originalDescriptor.get.call(this);
         },
         set: function (val) {
           originalDescriptor.set.call(this, val);
           if (editor && editor.getValue() !== val) {
-            editor.setValue(val || "");
+            editor.setValue(val || '');
           }
         },
       });
@@ -194,14 +188,14 @@
       console.log(
         `[Native JQL] Initialized ${editorId} with ${
           actualInitialValue.length
-        } chars: "${actualInitialValue.substring(0, 50)}..."`,
+        } chars: "${actualInitialValue.substring(0, 50)}..."`
       );
     });
   }
 
   // Initialize on DOMContentLoaded
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", initializeNativeEditors);
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initializeNativeEditors);
   } else {
     initializeNativeEditors();
   }
@@ -211,14 +205,14 @@
   const maxRetries = 10;
   const retryInterval = setInterval(function () {
     const uninitializedContainers = Array.from(
-      document.querySelectorAll(".jql-codemirror-container"),
+      document.querySelectorAll('.jql-codemirror-container')
     ).filter((c) => !c._cmEditor);
 
     if (uninitializedContainers.length > 0) {
       console.log(
         `[Native JQL] Retry ${retryCount + 1}: Found ${
           uninitializedContainers.length
-        } uninitialized container(s)`,
+        } uninitialized container(s)`
       );
       initializeNativeEditors();
     }
@@ -226,7 +220,7 @@
     retryCount++;
     if (retryCount >= maxRetries) {
       clearInterval(retryInterval);
-      console.log("[Native JQL] Stopped retry polling");
+      console.log('[Native JQL] Stopped retry polling');
     }
   }, 500);
 
@@ -237,15 +231,10 @@
       mutation.addedNodes.forEach(function (node) {
         if (node.nodeType === 1) {
           // Element node
-          if (
-            node.classList &&
-            node.classList.contains("jql-codemirror-container")
-          ) {
+          if (node.classList && node.classList.contains('jql-codemirror-container')) {
             shouldReinit = true;
           } else if (node.querySelectorAll) {
-            const containers = node.querySelectorAll(
-              ".jql-codemirror-container",
-            );
+            const containers = node.querySelectorAll('.jql-codemirror-container');
             if (containers.length > 0) {
               shouldReinit = true;
             }
@@ -255,7 +244,7 @@
     });
 
     if (shouldReinit) {
-      console.log("[Native JQL] New containers detected, reinitializing...");
+      console.log('[Native JQL] New containers detected, reinitializing...');
       setTimeout(initializeNativeEditors, 50);
     }
   });
@@ -267,7 +256,7 @@
       subtree: true,
     });
   } else {
-    document.addEventListener("DOMContentLoaded", function () {
+    document.addEventListener('DOMContentLoaded', function () {
       observer.observe(document.body, {
         childList: true,
         subtree: true,
@@ -277,48 +266,47 @@
 
   // Refresh CodeMirror when tabs change (multiple event strategies)
   // Strategy 1: Bootstrap native event
-  document.addEventListener("shown.bs.tab", function (event) {
-    console.log("[Native JQL] Bootstrap tab shown event");
+  document.addEventListener('shown.bs.tab', function (event) {
+    console.log('[Native JQL] Bootstrap tab shown event');
     refreshAllEditors();
   });
 
   // Strategy 2: Click on tab navigation (Dash Bootstrap Components)
-  document.addEventListener("click", function (event) {
+  document.addEventListener('click', function (event) {
     const target = event.target;
     // Check if click is on Queries tab
     if (
       target &&
-      (target.textContent?.includes("Queries") ||
+      (target.textContent?.includes('Queries') ||
         target.closest('[tab_id="queries-tab"]') ||
-        (target.classList && target.classList.contains("nav-link")))
+        (target.classList && target.classList.contains('nav-link')))
     ) {
-      console.log("[Native JQL] Queries tab clicked, will refresh editors");
+      console.log('[Native JQL] Queries tab clicked, will refresh editors');
       setTimeout(refreshAllEditors, 150);
     }
   });
 
   // Helper function to refresh all editors
   function refreshAllEditors() {
-    console.log("[Native JQL] Refreshing all editors...");
+    console.log('[Native JQL] Refreshing all editors...');
 
     // First, try to initialize any uninitialized editors
     initializeNativeEditors();
 
     // Then refresh any existing editors
     setTimeout(function () {
-      const containers = document.querySelectorAll(".jql-codemirror-container");
+      const containers = document.querySelectorAll('.jql-codemirror-container');
       containers.forEach(function (container) {
         if (container._cmEditor) {
-          const needsRefresh =
-            container.getAttribute("data-needs-refresh") === "true";
+          const needsRefresh = container.getAttribute('data-needs-refresh') === 'true';
 
           if (needsRefresh) {
             console.log(
               `[Native JQL] Refreshing ${container.getAttribute(
-                "data-editor-id",
-              )} (was hidden on init)`,
+                'data-editor-id'
+              )} (was hidden on init)`
             );
-            container.removeAttribute("data-needs-refresh");
+            container.removeAttribute('data-needs-refresh');
           }
 
           container._cmEditor.refresh();
@@ -333,7 +321,7 @@
   }
 
   // Re-initialize on Dash page load (for dynamic content)
-  document.addEventListener("DOMContentLoaded", function () {
+  document.addEventListener('DOMContentLoaded', function () {
     if (window.dash_clientside) {
       window.dash_clientside = window.dash_clientside || {};
       window.dash_clientside.reinit_jql = function () {

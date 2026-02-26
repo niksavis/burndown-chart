@@ -70,8 +70,8 @@
     margin-bottom: 1.25rem !important;
   }
 
-  input[type="checkbox"],
-  input[type="radio"] {
+  input[type='checkbox'],
+  input[type='radio'] {
     width: 20px !important;
     height: 20px !important;
   }
@@ -108,7 +108,7 @@
     padding: 0.3rem !important;
   }
 
-  .page-number input[type="number"] {
+  .page-number input[type='number'] {
     max-width: 50px;
     padding: 0.3rem 0.5rem !important;
     height: 44px !important;

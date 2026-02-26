@@ -20,6 +20,7 @@ The application uses a **progressive disclosure** design - each step unlocks the
 6. **Data Update** - Fetch and analyze data
 
 **Related Guides**:
+
 - [JIRA Configuration Guide](jira_configuration.md)
 - [Profile Management Guide](profile_management.md)
 - [Query Management Guide](query_management.md)
@@ -32,12 +33,14 @@ The application uses a **progressive disclosure** design - each step unlocks the
 **What**: Profiles are workspaces that isolate settings for different projects or teams.
 
 **How**:
+
 1. Click **"Profile Settings"** in the left sidebar
 2. Enter profile name (e.g., "Apache Kafka", "Q1 Project")
 3. Add optional description
 4. Click **"Create Profile"**
 
 **Notes**:
+
 - First-time users must create their first profile manually (no default profile is created)
 - You can create multiple profiles for different projects
 - Switching profiles changes ALL settings (JIRA connection, queries, mappings)
@@ -49,6 +52,7 @@ The application uses a **progressive disclosure** design - each step unlocks the
 **What**: Connect to your JIRA instance to fetch issue data.
 
 **How**:
+
 1. Click **"JIRA Connection"** → **"Configure JIRA"**
 2. Enter your JIRA URL:
    - JIRA Cloud: `https://yourcompany.atlassian.net`
@@ -73,6 +77,7 @@ The application uses a **progressive disclosure** design - each step unlocks the
 **Note**: The Estimate Field (story points) is stored separately in JIRA configuration rather than in Field Mappings. This allows the app to normalize story points across all metrics without duplicating the configuration.
 
 **Troubleshooting**:
+
 - **401 Unauthorized**: Check token validity, regenerate if expired
 - **404 Not Found**: Verify JIRA URL, check API version (try `v2` for older servers)
 - **Network Error**: Check firewall, VPN, or proxy settings
@@ -86,6 +91,7 @@ The application uses a **progressive disclosure** design - each step unlocks the
 **How**:
 
 ### Option A: Auto-Configure (Recommended)
+
 1. Navigate to **"Field Mappings"** section
 2. Click **"Auto-Configure"** button
 3. Review detected mappings
@@ -96,6 +102,7 @@ The application uses a **progressive disclosure** design - each step unlocks the
 6. Click **"Save Mappings"**
 
 Auto-configure analyzes your last 100 issues to detect:
+
 - Deployment/resolution dates
 - Work types (Story, Bug, Task)
 - Status fields
@@ -106,6 +113,7 @@ Auto-configure analyzes your last 100 issues to detect:
 **Verified**: `auto_configure.py` initializes `development_projects` and `devops_projects` as empty lists and only populates `development_projects` if a JQL query is provided, but this is for internal defaults. User must explicitly configure both lists in the UI.
 
 ### Option B: Manual Configuration
+
 1. Navigate to **"Field Mappings"** section
 2. Navigate to **"Project"** tab first:
    - **Development Projects**: Enter comma-separated project keys (e.g., `PROJ, FEAT, APP`)
@@ -119,11 +127,13 @@ Auto-configure analyzes your last 100 issues to detect:
 ### Understanding Project Separation
 
 **Why Separate Development and DevOps Projects?**
+
 - **Development Projects**: Track feature development cycle time (coding → deployment)
 - **DevOps Projects**: Track infrastructure/deployment cycle time (request → implementation)
 - Separating them prevents mixing different workflows with different performance characteristics
 
 **What if I use the same project in both?**
+
 - ⚠️ **Metrics will be inflated**: The app counts deployments and incidents from BOTH project lists
 - ⚠️ **Double-counting risk**: If project `PROJ` is in both lists, its work is counted twice in DORA metrics
 - ✅ **Use case**: Small teams where development and DevOps work happens in same project - include ONLY in Development Projects
@@ -140,6 +150,7 @@ Auto-configure analyzes your last 100 issues to detect:
 | No infrastructure work        | `PROJ`               | _(leave empty)_ | DevOps metrics will show N/A or no data |
 
 **Namespace Syntax**: The app supports advanced field references:
+
 - `*.created` - Standard JIRA field (any project)
 - `customfield_10100` - Custom field ID
 - `customfield_11309=PROD` - Custom field with value filter (for environments)
@@ -158,12 +169,14 @@ See [Namespace Syntax Guide](namespace_syntax.md) for advanced patterns.
 The app uses **namespace syntax** to extract values from JIRA changelog history rather than relying solely on current field values. This enables precise timestamp tracking for status transitions and deployments.
 
 **Syntax Patterns**:
+
 - `*.created` - Standard JIRA field (asterisk means "any project")
 - `customfield_10100` - Direct custom field reference
 - `customfield_11309=PROD` - Custom field with value filter (e.g., production environment)
 - `*.Status:Deployed.DateTime` - **Changelog-based**: Timestamp when status changed to "Deployed"
 
 **Why Changelog-Based?**
+
 - Standard fields like `resolutiondate` only show when an issue closed, not when it was deployed
 - Namespace syntax `Status:Deployed.DateTime` extracts the exact moment status changed to "Deployed" from changelog
 - Enables accurate Lead Time and Deployment Frequency metrics without custom date fields
@@ -175,7 +188,9 @@ See [Namespace Syntax Guide](namespace_syntax.md) for advanced patterns and fiel
 ---
 
 #### Dashboard Metrics (Basic Project Tracking)
+
 **Minimal Setup**: Uses standard JIRA fields - no custom mappings required
+
 - ✅ Works with: `created`, `updated`, `status`, `issuetype`
 - 📊 Provides: Health score, velocity, remaining work, completion forecast
 
@@ -205,6 +220,7 @@ See [Namespace Syntax Guide](namespace_syntax.md) for advanced patterns and fiel
 ### Common Custom Field Patterns
 
 #### Story Points
+
 ```
 Field ID: customfield_10002
 Field Name: Story Points
@@ -213,6 +229,7 @@ Required In: Flow Metrics (optional)
 ```
 
 #### Environment (Production/SIT/DEV)
+
 ```
 Field ID: customfield_11309
 Field Name: Environment
@@ -223,6 +240,7 @@ Mapping Syntax: customfield_11309=PROD
 ```
 
 #### Deployment Failed (Change Failure)
+
 ```
 Field ID: customfield_12708
 Field Name: Deployment Failed?
@@ -233,6 +251,7 @@ Mapping Syntax: customfield_12708=Yes
 ```
 
 #### Effort/Work Type
+
 ```
 Field ID: customfield_10301
 Field Name: Effort Category
@@ -248,6 +267,7 @@ Required In: Flow Metrics (optional)
 **When**: Only if you want advanced DORA/Flow metrics and don't have existing custom fields
 
 **JIRA Cloud**:
+
 1. Go to **⚙️ Settings** → **Issues** → **Custom Fields**
 2. Click **"Create Custom Field"**
 3. Select field type:
@@ -260,12 +280,14 @@ Required In: Flow Metrics (optional)
 7. Note the field ID (e.g., `customfield_11309`)
 
 **JIRA Server/Data Center**:
+
 1. Go to **Administration** → **Issues** → **Custom Fields**
 2. Click **"Add Custom Field"**
 3. Follow same steps as JIRA Cloud
 4. Assign to appropriate project schemes
 
 **Field Naming Best Practices**:
+
 - Use descriptive names: "Deployment Environment" not "Env"
 - Be consistent across projects if using multiple
 - Document field purpose in field description
@@ -277,6 +299,7 @@ Required In: Flow Metrics (optional)
 **What**: Define which JIRA issues to track (equivalent to saved filter)
 
 **How**:
+
 1. Navigate to **"Query Management"** section
 2. Enter query name (e.g., "Apache Kafka Project", "Platform Team")
 3. Write JQL (JIRA Query Language):
@@ -292,23 +315,27 @@ Required In: Flow Metrics (optional)
 The application works best with **broad, time-agnostic queries** that capture all work items:
 
 ✅ **DO**: Query entire project(s) with issue type filters
+
 ```jql
 project IN (KAFKA, PLATFORM) AND issuetype IN (Story, Bug, Task)
 ```
 
 ❌ **DON'T**: Filter by sprint, time periods, or specific epics
+
 ```jql
 # Avoid - limits historical data for metrics
 project = KAFKA AND sprint = 42 AND created >= -30d
 ```
 
 **Why?**
+
 - App analyzes **full project history** for accurate velocity, lead time, and flow metrics
 - Time filters (sprint, created date) break historical trend analysis
 - Epic filters limit visibility into overall project flow
 - Flight Level 2 (operational work) includes Stories, Bugs, Tasks but excludes Epics (strategic) and Sub-tasks (technical breakdown)
 
 **Issue Type Filtering**:
+
 - ✅ **Include**: Story, Bug, Task (operational work items)
 - ❌ **Exclude**: Epic (strategic level), Sub-task (implementation detail)
 - Reason: Epics are too large for metrics, Sub-tasks double-count work
@@ -340,24 +367,28 @@ project IN (TEAM1-DEV, TEAM1-OPS, TEAM1-INFRA) AND issuetype IN (Story, Bug, Tas
 **How**:
 
 ### Deadline (Optional)
+
 1. Scroll to **"Deadline Settings"**
 2. Toggle **"Show Deadline on Chart"**
 3. Pick date from calendar
 4. Appears as vertical line on burndown chart
 
 ### Milestone (Optional)
+
 1. Scroll to **"Milestone Settings"**
 2. Toggle **"Show Milestone on Chart"**
 3. Pick date from calendar
 4. Appears as vertical line on burndown chart
 
 ### Data Points Slider
+
 1. Scroll to **"Visualization Settings"**
 2. Adjust **"Data Points for Forecast"** slider (3-24)
 3. Default: 12 weeks
 4. More points = longer forecast range, but requires more historical data
 
 ### Forecast Range (Advanced)
+
 1. Scroll to **"Forecast Settings"**
 2. Adjust **"Forecast Range"** slider (3-12 weeks)
 3. Default: 6 weeks
@@ -372,6 +403,7 @@ project IN (TEAM1-DEV, TEAM1-OPS, TEAM1-INFRA) AND issuetype IN (Story, Bug, Tas
 **What**: Fetch issues from JIRA and calculate metrics
 
 **How**:
+
 1. Click **"Update Data"** button (right sidebar)
 2. Wait for progress bar:
    - Fetching issues from JIRA
@@ -381,6 +413,7 @@ project IN (TEAM1-DEV, TEAM1-OPS, TEAM1-INFRA) AND issuetype IN (Story, Bug, Tas
 3. View results in **"Project Dashboard"** tab
 
 **First-Time Tips**:
+
 - First update takes longer (fetching changelog history)
 - Subsequent updates are faster (incremental)
 - Click **"Update Data"** whenever:
@@ -389,6 +422,7 @@ project IN (TEAM1-DEV, TEAM1-OPS, TEAM1-INFRA) AND issuetype IN (Story, Bug, Tas
   - JIRA data changes significantly
 
 **Troubleshooting**:
+
 - **"No data available"**: Check query returns issues (Test Query in Step 6)
 - **"DORA metrics unavailable"**: Verify field mappings (Step 3)
 - **Long load times**: Reduce query scope, check network connectivity
@@ -400,17 +434,20 @@ project IN (TEAM1-DEV, TEAM1-OPS, TEAM1-INFRA) AND issuetype IN (Story, Bug, Tas
 After data update completes, you should see:
 
 ### Project Dashboard Tab
+
 - **Burndown Chart**: Actual progress (orange), ideal line (blue), forecast (gray)
 - **Health Score**: 6-dimensional assessment (0-100 scale)
 - **Statistics Cards**: Velocity, remaining work, completion date
 - **Insights Panel**: Automated alerts for risks and trends
 
 ### DORA & Flow Metrics Tab
+
 - **DORA Cards**: Deployment frequency, lead time, change failure rate, MTTR
 - **Flow Cards**: Velocity, flow time, efficiency, WIP, distribution
 - **Charts**: Weekly trends over time
 
 **What to Look For**:
+
 - ✅ **Burndown slope decreasing** = Good progress
 - ⚠️ **Burndown slope flat** = Velocity issues
 - ❌ **Burndown slope increasing** = Scope creep
@@ -422,7 +459,9 @@ After data update completes, you should see:
 ## Typical Field Mapping Configurations
 
 ### Minimal Setup (Dashboard Metrics Only)
+
 **No custom fields needed** - uses standard JIRA fields:
+
 ```yaml
 # Auto-detected, no mapping required
 created: (standard field)
@@ -438,6 +477,7 @@ issuetype: (standard field)
 ### DORA Metrics Setup (Production Deployments)
 
 #### Scenario A: Using Changelog Only (No Custom Fields)
+
 ```yaml
 Deployment Date: *.Status:Deployed.DateTime
 Incident Start: created
@@ -448,6 +488,7 @@ Incident End: resolutiondate
 **Limitation**: Cannot filter by environment (counts all deployments)
 
 #### Scenario B: With Environment Filtering (Requires Custom Field)
+
 ```yaml
 Deployment Date: *.Status:Deployed.DateTime
 Target Environment: customfield_11309=PROD
@@ -458,6 +499,7 @@ Affected Environment: customfield_11309=PROD
 ```
 
 **Custom Fields Needed**:
+
 1. **Environment** (`customfield_11309`) - Select List (DEV, SIT, PROD)
 2. **Deployment Failed** (`customfield_12708`) - Checkbox (Yes/No)
 
@@ -468,6 +510,7 @@ Affected Environment: customfield_11309=PROD
 ### Flow Metrics Setup (Work Process)
 
 #### Scenario A: Using Issue Type Only (Minimal)
+
 ```yaml
 Work Item Type: issuetype
 Work Started Date: created
@@ -479,6 +522,7 @@ Status: status
 **Limitation**: Work distribution based on JIRA issue types only
 
 #### Scenario B: With Story Points and Custom Work Classification
+
 ```yaml
 Work Item Type: customfield_10301
 Work Started Date: *.Status:InProgress.DateTime
@@ -488,6 +532,7 @@ Estimate: customfield_10002
 ```
 
 **Custom Fields Needed**:
+
 1. **Story Points** (`customfield_10002`) - Number field
 2. **Effort Category** (`customfield_10301`) - Select List (Feature, Defect, Tech Debt, Risk)
 
@@ -498,12 +543,14 @@ Estimate: customfield_10002
 ### Full Setup (All Metrics)
 
 **Required Custom Fields**:
+
 1. **Story Points** (`customfield_10002`) - Number
 2. **Environment** (`customfield_11309`) - Select List (DEV, SIT, PROD)
 3. **Deployment Failed** (`customfield_12708`) - Checkbox
 4. **Effort Category** (`customfield_10301`) - Select List (Feature, Defect, Tech Debt, Risk)
 
 **Field Mappings**:
+
 ```yaml
 # DORA Metrics
 deployment_date: *.Status:Deployed.DateTime
@@ -528,24 +575,30 @@ estimate: customfield_10002
 ## Common First-Time Issues
 
 ### "JIRA Configuration Not Set Up"
+
 **Cause**: Trying to map fields before configuring JIRA connection  
 **Solution**: Complete Step 2 (JIRA Connection) first
 
 ### "No Issues Returned from Query"
+
 **Cause**: JQL query too restrictive or incorrect  
 **Solution**: Test JQL in JIRA first, verify project key and issue types exist
 
 ### "DORA Metrics Unavailable"
+
 **Cause**: Missing required field mappings  
 **Solution**: Map at least `deployment_date` and `incident_start/end` fields
 
 ### "Auto-Configure Doesn't Detect Custom Fields"
+
 **Cause**: Custom fields have generic names like "Custom Field 1"  
 **Solution**: Use descriptive field names in JIRA (e.g., "Deployment Environment")
 
 ### "Chart Shows No Data"
+
 **Cause**: Query returns 0 issues or issues have no completion dates  
-**Solution**: 
+**Solution**:
+
 - Verify query returns issues (Test Query)
 - Check issues have resolution dates
 - Expand date range in query

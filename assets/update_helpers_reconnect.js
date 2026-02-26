@@ -1,12 +1,12 @@
 (function () {
-  "use strict";
+  'use strict';
 
   const FADE_MS = 300;
 
   function removeToastElement(toastElement) {
     if (!toastElement) return;
 
-    toastElement.classList.remove("show");
+    toastElement.classList.remove('show');
     setTimeout(() => {
       if (toastElement.parentElement) {
         toastElement.remove();
@@ -17,11 +17,11 @@
   function attachToastDismiss(toastElement, autoDismissId) {
     if (!toastElement) return;
 
-    const closeButton = toastElement.querySelector(".btn-close");
+    const closeButton = toastElement.querySelector('.btn-close');
     if (!closeButton) return;
 
     closeButton.addEventListener(
-      "click",
+      'click',
       (event) => {
         event.preventDefault();
         if (autoDismissId) {
@@ -29,7 +29,7 @@
         }
         removeToastElement(toastElement);
       },
-      { once: true },
+      { once: true }
     );
   }
 

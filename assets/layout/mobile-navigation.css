@@ -47,7 +47,7 @@
   /* Add scroll indicators */
   .nav-tabs-modern::before,
   .nav-tabs-modern::after {
-    content: "";
+    content: '';
     position: absolute;
     top: 0;
     bottom: 0;
@@ -58,20 +58,12 @@
 
   .nav-tabs-modern::before {
     left: 0;
-    background: linear-gradient(
-      90deg,
-      rgba(255, 255, 255, 1) 0%,
-      rgba(255, 255, 255, 0) 100%
-    );
+    background: linear-gradient(90deg, rgba(255, 255, 255, 1) 0%, rgba(255, 255, 255, 0) 100%);
   }
 
   .nav-tabs-modern::after {
     right: 0;
-    background: linear-gradient(
-      270deg,
-      rgba(255, 255, 255, 1) 0%,
-      rgba(255, 255, 255, 0) 100%
-    );
+    background: linear-gradient(270deg, rgba(255, 255, 255, 1) 0%, rgba(255, 255, 255, 0) 100%);
   }
 }
 

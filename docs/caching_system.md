@@ -22,6 +22,7 @@ The Burndown app uses a SQLite database for persistent storage and caching. This
 **Note**: The `cache/` folder contains `cache.db`, which is created by Dash's diskcache library for background callback management. This is framework infrastructure and not part of the application data model.
 
 **Key Tables** (11 total):
+
 1. `app_state` - Application settings (key-value store)
 2. `profiles` - Profile configurations
 3. `queries` - Query definitions (JQL, name, timestamps)
@@ -35,6 +36,7 @@ The Burndown app uses a SQLite database for persistent storage and caching. This
 11. `task_progress` - Runtime task progress tracking
 
 **Why database storage**:
+
 - **Performance** - Indexed queries, no full-file parsing
 - **Scalability** - Handles 100k+ issues efficiently
 - **ACID guarantees** - Transactional consistency
@@ -43,6 +45,7 @@ The Burndown app uses a SQLite database for persistent storage and caching. This
 - **Space efficiency** - Normalized storage, no duplication
 
 **Database structure**:
+
 ```
 profiles/burndown.db (SQLite database)
 ├── profiles table
@@ -74,6 +77,7 @@ profiles/
 ```
 
 **Cache invalidation**:
+
 - JQL query changes → Delete rows from `jira_issues` table for that query
 - Time period changes → Recalculate statistics, keep raw issue data
 - Cache age exceeds 24 hours → Re-fetch from JIRA API
@@ -90,12 +94,14 @@ profiles/
 **What it does**: Provides cross-profile data reuse and background fetch optimization.
 
 **Why it exists**:
+
 - **Performance** - Fast lookup without knowing which profile/query is active
 - **Reuse** - If multiple profiles use same JQL query, data is shared
 - **Background optimization** - Quickly check if JIRA data changed without full fetch
 - **Field mapping independence** - Cache key excludes field mappings, allowing metric recalculation without re-fetching JIRA data
 
 **How cache keys work**:
+
 ```python
 # Cache key = MD5 hash of (JQL query + time period days)
 # Field mappings are NOT included in the hash
@@ -112,8 +118,9 @@ Example:
 ```
 
 **Why field mappings are excluded**:
+
 - JIRA data (issues, dates, statuses) doesn't change when field mappings change
-- Only the *interpretation* of that data changes
+- Only the _interpretation_ of that data changes
 - Re-fetching from JIRA would be wasteful when only processing config changed
 
 ---
@@ -156,6 +163,7 @@ Example:
 **Result**: Fast incremental update, only changed data fetched and processed.
 
 **Special cases**:
+
 - **0 changes**: Skip metrics calculation entirely
 - **>20% changed**: Fall back to full fetch (too many changes)
 - **JQL changed**: Treat as Force Refresh
@@ -217,17 +225,20 @@ Example:
 ### Profile Cache Invalidation
 
 **Triggers**:
+
 - JQL query modified (e.g., add filter, change project)
 - Time period changed (e.g., -12w → -8w)
 - User clicks "Force Refresh" (long-press Update Data button)
 - App version upgrade with cache format changes
 
 **Normal "Update Data" behavior**:
+
 - Cache NOT invalidated - uses delta fetch for changed issues only
 - Fetches issues with `updated >= last_cache_timestamp`
 - Merges changes into existing cache
 
-**What happens on Force Refresh**: 
+**What happens on Force Refresh**:
+
 - Old cache file deleted
 - Fresh data fetched from JIRA (all issues)
 - New cache file created
@@ -237,10 +248,12 @@ Example:
 ### Global Cache Invalidation
 
 **Triggers**:
+
 - Same as profile cache (JQL, time period, age, version)
 - Cache key changes due to query modification
 
 **What happens**:
+
 - Orphaned cache files remain in `cache/` folder
 - New cache file created with different hash
 - Old files can be manually deleted (safe to remove entire `cache/` folder)
@@ -250,12 +263,14 @@ Example:
 ## Performance Characteristics
 
 **Measured benefits**:
+
 - Cache hit: **95%+ faster** than JIRA API call (instant vs 2-5 seconds)
 - Cache key generation: **<0.001ms**
 - Cache validation: **~0.01ms** per check
 - Disk usage: **~2MB** for typical projects (negligible)
 
 **Test coverage**:
+
 - 35 cache-related tests
 - 100% pass rate
 - Tests cover: key generation, validation, save/load, invalidation, integration
@@ -270,7 +285,7 @@ Example:
 Profile: JIRA Cloud (jira.atlassian.com)
   Query: "All Issues" → jira_cache.json (200 issues)
 
-Profile: JIRA Server (jira.mycompany.com)  
+Profile: JIRA Server (jira.mycompany.com)
   Query: "All Issues" → jira_cache.json (500 issues)
 
 Result: Each profile has isolated cache, no conflicts.
@@ -334,16 +349,19 @@ Legacy cache/ folder:
 ### Code Locations
 
 **Database persistence**:
+
 - `data/persistence/sqlite_backend.py` - SQLite database backend
 - `data/database.py` - Database connection management
 - `data/migration/schema_manager.py` - Database schema and migrations
 
 **JIRA data operations**:
+
 - `data/jira_simple.py` - JIRA API integration, saves to database
 - Uses: `backend.save_issues(profile_id, query_id, issues)`
 - Uses: `backend.get_issues(profile_id, query_id)`
 
 **Legacy cache operations** (deprecated):
+
 - `data/jira_simple.py` lines 1461-1464, 1507-1510 (legacy JSON files)
 - `data/cache_manager.py` - Legacy cache validation (being phased out)
 
@@ -354,6 +372,7 @@ Legacy cache/ folder:
 **Complete 12-table schema** (from `data/migration/schema.py`):
 
 #### 1. app_state
+
 ```sql
 CREATE TABLE IF NOT EXISTS app_state (
     key TEXT PRIMARY KEY,
@@ -362,6 +381,7 @@ CREATE TABLE IF NOT EXISTS app_state (
 ```
 
 #### 2. profiles
+
 ```sql
 CREATE TABLE IF NOT EXISTS profiles (
     id TEXT PRIMARY KEY,
@@ -383,6 +403,7 @@ CREATE INDEX idx_profiles_name ON profiles(name);
 ```
 
 #### 3. queries
+
 ```sql
 CREATE TABLE IF NOT EXISTS queries (
     id TEXT NOT NULL,
@@ -400,6 +421,7 @@ CREATE INDEX idx_queries_name ON queries(profile_id, name);
 ```
 
 #### 4. jira_issues (normalized - replaces jira_cache.json)
+
 ```sql
 CREATE TABLE IF NOT EXISTS jira_issues (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -443,6 +465,7 @@ CREATE INDEX idx_jira_issues_cache ON jira_issues(cache_key);
 **Note**: Cache metadata (timestamp, config_hash) is derived from jira_issues table when needed, not stored separately.
 
 #### 5. jira_changelog_entries (normalized - replaces jira_changelog_cache.json)
+
 ```sql
 CREATE TABLE IF NOT EXISTS jira_changelog_entries (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -469,6 +492,7 @@ CREATE INDEX idx_changelog_expiry ON jira_changelog_entries(expires_at);
 ```
 
 #### 6. project_statistics (normalized - replaces project_data.json statistics array)
+
 ```sql
 CREATE TABLE IF NOT EXISTS project_statistics (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -497,6 +521,7 @@ CREATE INDEX idx_project_stats_week ON project_statistics(week_label);
 ```
 
 #### 7. project_scope
+
 ```sql
 CREATE TABLE IF NOT EXISTS project_scope (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -512,6 +537,7 @@ CREATE INDEX idx_project_scope_query ON project_scope(profile_id, query_id);
 ```
 
 #### 8. metrics_data_points (normalized - replaces metrics_snapshots.json)
+
 ```sql
 CREATE TABLE IF NOT EXISTS metrics_data_points (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -540,6 +566,7 @@ CREATE INDEX idx_metrics_value ON metrics_data_points(metric_name, metric_value)
 ```
 
 #### 9. budget_settings (query-level budget configuration)
+
 ```sql
 CREATE TABLE IF NOT EXISTS budget_settings (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -560,6 +587,7 @@ CREATE INDEX idx_budget_settings_profile_query ON budget_settings(profile_id, qu
 ```
 
 #### 10. budget_revisions (budget change event log)
+
 ```sql
 CREATE TABLE IF NOT EXISTS budget_revisions (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -581,6 +609,7 @@ CREATE INDEX idx_budget_revisions_week ON budget_revisions(profile_id, query_id,
 ```
 
 #### 11. task_progress
+
 ```sql
 CREATE TABLE IF NOT EXISTS task_progress (
     task_name TEXT PRIMARY KEY,
@@ -598,6 +627,7 @@ CREATE TABLE IF NOT EXISTS task_progress (
 ### Working with Database Cache
 
 **Loading cached data**:
+
 ```python
 from data.persistence.factory import get_backend
 
@@ -606,12 +636,14 @@ issues = backend.get_issues(profile_id, query_id, limit=10000)
 ```
 
 **Saving data to cache**:
+
 ```python
 backend.save_issues(profile_id, query_id, issues)
 backend.save_statistics(profile_id, query_id, statistics)
 ```
 
 **Invalidating cache**:
+
 ```python
 # Delete cached issues for a query
 backend.delete_issues(profile_id, query_id)
@@ -624,6 +656,7 @@ invalidate_all_cache()  # Clears database cache
 ### Migration from JSON to Database
 
 The app automatically migrates data from legacy JSON files to the database:
+
 1. On first run, checks for `jira_cache.json` files
 2. Imports data into SQLite database
 3. Marks JSON files as legacy (can be safely deleted)
@@ -644,6 +677,7 @@ See `data/migration/json_to_db_migrator.py` for migration logic.
 ## Summary
 
 **SQLite Database (current)**:
+
 - Single source of truth for all data
 - ACID transactions and data integrity
 - Indexed queries for fast retrieval
@@ -652,6 +686,7 @@ See `data/migration/json_to_db_migrator.py` for migration logic.
 - 10-100x faster than JSON file parsing for large datasets
 
 **Legacy JSON files (deprecated)**:
+
 - `jira_cache.json` - Replaced by `jira_issues` table
 - `jira_changelog_cache.json` - Replaced by `jira_changelog_entries` table
 - `project_data.json` - Replaced by `project_statistics` table
@@ -659,6 +694,7 @@ See `data/migration/json_to_db_migrator.py` for migration logic.
 - `cache/{hash}.json` - No longer used
 
 **Benefits of database storage**:
+
 - **Performance**: O(log n) indexed lookups vs O(n) file parsing
 - **Reliability**: Transactional consistency, no corruption risk
 - **Scalability**: Handles 100k+ issues efficiently
@@ -667,4 +703,4 @@ See `data/migration/json_to_db_migrator.py` for migration logic.
 
 ---
 
-*Document Version: 2.1 (Corrected Schema) | Last Updated: January 2026*
+_Document Version: 2.1 (Corrected Schema) | Last Updated: January 2026_

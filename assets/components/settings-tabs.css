@@ -19,9 +19,7 @@
 .parameter-panel-expanded,
 .import-export-panel-expanded {
   /* Very subtle blue tint - almost white */
-  background: var(
-    --color-surface-raised
-  ); /* Lighter than btn-outline-primary for subtlety */
+  background: var(--color-surface-raised); /* Lighter than btn-outline-primary for subtlety */
   border-radius: 6px;
   padding: 1rem;
   /* Enhanced shadow for clear visual separation from content below */
@@ -35,9 +33,7 @@
 .tabbed-settings-panel {
   padding: 0;
   /* Very subtle blue tint - almost white */
-  background: var(
-    --color-surface-raised
-  ); /* Lighter than btn-outline-primary for subtlety */
+  background: var(--color-surface-raised); /* Lighter than btn-outline-primary for subtlety */
   border-radius: 6px;
   overflow: hidden;
   /* Enhanced shadow for clear visual separation from content below */
@@ -51,9 +47,7 @@
 .settings-tabs {
   border-bottom: 2px solid var(--color-neutral-200);
   /* Very subtle blue tint - almost white */
-  background: var(
-    --color-surface
-  ); /* Lighter than btn-outline-primary for subtlety */
+  background: var(--color-surface); /* Lighter than btn-outline-primary for subtlety */
   margin: 0;
   padding: 0.25rem 0.5rem 0; /* Small top/side padding for breathing room */
 }
@@ -177,13 +171,13 @@
 /* Bootstrap grid must allow overflow */
 .tabbed-settings-panel .row,
 .tabbed-settings-panel .col,
-.tabbed-settings-panel [class*="col-"],
+.tabbed-settings-panel [class*='col-'],
 #settings-collapse .row,
 #settings-collapse .col,
-#settings-collapse [class*="col-"],
+#settings-collapse [class*='col-'],
 .settings-tab-content .row,
 .settings-tab-content .col,
-.settings-tab-content [class*="col-"] {
+.settings-tab-content [class*='col-'] {
   overflow: visible !important;
 }
 

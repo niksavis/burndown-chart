@@ -25,20 +25,12 @@
 }
 
 .btn-secondary {
-  background: linear-gradient(
-    180deg,
-    var(--color-neutral-500),
-    var(--color-neutral-600)
-  );
+  background: linear-gradient(180deg, var(--color-neutral-500), var(--color-neutral-600));
   border-color: var(--color-neutral-600);
 }
 
 .btn-secondary:hover {
-  background: linear-gradient(
-    180deg,
-    var(--color-neutral-600),
-    var(--color-neutral-700)
-  );
+  background: linear-gradient(180deg, var(--color-neutral-600), var(--color-neutral-700));
 }
 
 /* ===== Outline Button Variants ===== */

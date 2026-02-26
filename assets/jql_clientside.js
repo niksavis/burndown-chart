@@ -23,7 +23,7 @@ window.dash_clientside.jqlEditor = {
    */
   syncInputToStore: function (inputValue) {
     // PERFORMANCE FIX: Removed verbose logging that was slowing down input
-    return inputValue || "";
+    return inputValue || '';
   },
 
   /**
@@ -37,6 +37,6 @@ window.dash_clientside.jqlEditor = {
    */
   syncStoreToInput: function (storeValue) {
     // PERFORMANCE FIX: Removed verbose logging that was slowing down input
-    return storeValue || "";
+    return storeValue || '';
   },
 };

@@ -41,11 +41,7 @@
 /* Accent border on left side of modal header */
 .modal-header {
   border-bottom: 1px solid var(--color-gray-200);
-  background: linear-gradient(
-    to right,
-    var(--color-primary) 5px,
-    var(--color-white) 5px
-  );
+  background: linear-gradient(to right, var(--color-primary) 5px, var(--color-white) 5px);
   padding-left: calc(var(--spacing-md) + 8px);
   border-radius: 0.75rem 0.75rem 0 0;
 }

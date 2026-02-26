@@ -10,6 +10,7 @@ This document defines logging standards for the burndown-chart application to en
 ## Logging Levels
 
 ### ERROR
+
 **When**: Failures requiring investigation or preventing normal operation  
 **Format**: `[Module] Operation failed: reason (context)`  
 **Include**: Error details, relevant IDs, what was being attempted
@@ -25,6 +26,7 @@ logger.error(f"❌ Error saving unified project data: {e}")
 ```
 
 ### WARNING
+
 **When**: Recoverable issues, unexpected states, deprecated usage  
 **Format**: `[Module] Unexpected condition: what happened`  
 **Include**: What was expected vs what happened
@@ -40,6 +42,7 @@ logger.warning(f"Failed to check production environment on issue: {e}")
 ```
 
 ### INFO
+
 **When**: Significant state changes, major operations completed  
 **Format**: `[Module] Operation: outcome (metrics)`  
 **Include**: Counts, durations, success indicators
@@ -57,6 +60,7 @@ logger.info(f"CFR Debug: deployment_issues count = {deployment_count}")
 ```
 
 ### DEBUG
+
 **When**: Detailed troubleshooting information (disabled in production)  
 **Format**: `[Module] Detail: specific value or state`  
 **Include**: Internal state, intermediate values, flow tracking
@@ -73,6 +77,7 @@ logger.debug(f"Using {type(grouped_dict).__name__} as input")
 ## Message Format
 
 ### Structure
+
 ```
 [Module] Action: Result (context)
 ```
@@ -83,6 +88,7 @@ logger.debug(f"Using {type(grouped_dict).__name__} as input")
 - **Context**: Optional clarifying details
 
 ### Length
+
 - Target: 60-80 characters
 - Maximum: 100 characters
 - Use abbreviations when needed (e.g., "CFR" not "Change Failure Rate")
@@ -115,6 +121,7 @@ logger.error(f"[Metrics] Calculation failed: {metric_name} ({error_type})")
 The `SensitiveDataFilter` in `configuration/logging_config.py` automatically redacts:
 
 ✅ **Automatically filtered**:
+
 - API tokens: `"token": "abc123"` → `"token": "[REDACTED]"`
 - Passwords: `"password": "pass"` → `"password": "[REDACTED]"`
 - Bearer tokens: `Bearer xyz...` → `Bearer [REDACTED]`
@@ -182,7 +189,7 @@ Even with automatic filtering, developers must:
 - **Aggregates**: Counts, averages, percentages, durations
 - **Generic identifiers**: Cache keys (first 8 chars), hash values
 - **Structure info**: Field names, JSON keys, data types
-- **Placeholder data**: "example.com", "test-token-***", "user-***"
+- **Placeholder data**: "example.com", "test-token-**_", "user-_**"
 
 ### Data Sanitization Examples
 
@@ -372,6 +379,7 @@ When refactoring logging:
 When logging statements span multiple lines, add module prefix to clarify which component owns the log:
 
 ### ❌ Before (Ambiguous)
+
 ```python
 logger.info(
     f"Calculated deployment frequency: {value:.2f} deployments/month "
@@ -380,6 +388,7 @@ logger.info(
 ```
 
 ### ✅ After (Clear)
+
 ```python
 logger.info(
     f"[DORA] Deployment frequency: {value:.2f}/month "
@@ -443,4 +452,4 @@ Standard prefixes for consistency:
 
 ---
 
-*Document Version: 1.0 | Last Updated: December 2025*
+_Document Version: 1.0 | Last Updated: December 2025_

@@ -10,10 +10,10 @@ window.dash_clientside = Object.assign({}, window.dash_clientside, {
      * @returns {object} Style object to show/hide the rename section
      */
     toggleRenameInput: function (strategy) {
-      if (strategy === "rename") {
-        return { display: "block" };
+      if (strategy === 'rename') {
+        return { display: 'block' };
       }
-      return { display: "none" };
+      return { display: 'none' };
     },
   },
 });

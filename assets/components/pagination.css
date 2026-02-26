@@ -66,9 +66,7 @@
 .last-page[disabled] {
   cursor: not-allowed !important;
   opacity: 0.65 !important;
-  background-color: var(
-    --color-gray-100
-  ) !important; /* Keep background consistent */
+  background-color: var(--color-gray-100) !important; /* Keep background consistent */
   color: var(--color-gray-600) !important; /* Muted color */
   transform: none !important;
   box-shadow: none !important;
@@ -87,7 +85,7 @@
   min-width: 100px !important; /* Ensure enough space */
 }
 
-.page-number input[type="number"] {
+.page-number input[type='number'] {
   height: 36px !important; /* Match form controls */
   border: 1px solid var(--color-gray-300) !important;
   border-radius: 4px !important;
@@ -101,8 +99,8 @@
   appearance: textfield;
   -moz-appearance: textfield;
 }
-.page-number input[type="number"]::-webkit-outer-spin-button,
-.page-number input[type="number"]::-webkit-inner-spin-button {
+.page-number input[type='number']::-webkit-outer-spin-button,
+.page-number input[type='number']::-webkit-inner-spin-button {
   -webkit-appearance: none;
   margin: 0;
 }

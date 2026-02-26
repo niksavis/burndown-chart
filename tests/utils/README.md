@@ -30,6 +30,6 @@ def test_my_function():
 ## Guidelines
 
 1. **Never modify real config files** - Always use isolation utilities
-2. **Never make real API calls** - Always mock external services  
+2. **Never make real API calls** - Always mock external services
 3. **Clean up after tests** - Use context managers for automatic cleanup
 4. **Use temp directories** - For any file operations in tests

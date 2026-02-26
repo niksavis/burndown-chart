@@ -9,7 +9,7 @@
   font-family:
     system-ui,
     -apple-system,
-    "Segoe UI",
+    'Segoe UI',
     Roboto,
     sans-serif;
   /* Add overflow-x auto for responsiveness if not already handled by specific wrappers */
@@ -72,7 +72,7 @@ td.cell--editable:not(.cell-selected) .dash-cell-value {
 }
 
 td.cell--editable:not(.cell-selected) .dash-cell-value::after {
-  content: "";
+  content: '';
   position: absolute;
   right: 5px;
   top: 50%;

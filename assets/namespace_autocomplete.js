@@ -10,7 +10,7 @@
  */
 
 (function () {
-  "use strict";
+  'use strict';
 
   // Track active autocomplete state per input
   const autocompleteState = new Map();
@@ -20,7 +20,7 @@
    */
   function initAutocomplete(input) {
     if (!input || input.dataset.autocompleteInit) return;
-    input.dataset.autocompleteInit = "true";
+    input.dataset.autocompleteInit = 'true';
 
     const inputId = JSON.parse(input.id);
     const metric = inputId.metric;
@@ -28,16 +28,14 @@
 
     // Find the suggestions container
     const suggestionsId = JSON.stringify({
-      type: "namespace-suggestions",
+      type: 'namespace-suggestions',
       metric: metric,
       field: field,
     });
-    const suggestionsContainer = document.querySelector(
-      `[id='${suggestionsId}']`
-    );
+    const suggestionsContainer = document.querySelector(`[id='${suggestionsId}']`);
 
     if (!suggestionsContainer) {
-      console.warn("Suggestions container not found for", inputId);
+      console.warn('Suggestions container not found for', inputId);
       return;
     }
 
@@ -49,44 +47,41 @@
     });
 
     // Handle input events
-    input.addEventListener("input", (e) => {
+    input.addEventListener('input', (e) => {
       // Suggestions will be populated by Dash callback
       // We just need to handle navigation/selection
       resetSelection(input);
     });
 
     // Handle keydown for navigation
-    input.addEventListener("keydown", (e) => {
+    input.addEventListener('keydown', (e) => {
       const state = autocompleteState.get(input.id);
-      const items = suggestionsContainer.querySelectorAll(".list-group-item");
+      const items = suggestionsContainer.querySelectorAll('.list-group-item');
 
       if (items.length === 0) return;
 
       switch (e.key) {
-        case "ArrowDown":
+        case 'ArrowDown':
           e.preventDefault();
-          state.selectedIndex = Math.min(
-            state.selectedIndex + 1,
-            items.length - 1
-          );
+          state.selectedIndex = Math.min(state.selectedIndex + 1, items.length - 1);
           updateHighlight(items, state.selectedIndex);
           break;
 
-        case "ArrowUp":
+        case 'ArrowUp':
           e.preventDefault();
           state.selectedIndex = Math.max(state.selectedIndex - 1, 0);
           updateHighlight(items, state.selectedIndex);
           break;
 
-        case "Enter":
-        case "Tab":
+        case 'Enter':
+        case 'Tab':
           if (state.selectedIndex >= 0 && state.selectedIndex < items.length) {
             e.preventDefault();
             selectItem(input, items[state.selectedIndex], suggestionsContainer);
           }
           break;
 
-        case "Escape":
+        case 'Escape':
           e.preventDefault();
           hideSuggestions(suggestionsContainer);
           state.selectedIndex = -1;
@@ -95,8 +90,8 @@
     });
 
     // Handle click on suggestions
-    suggestionsContainer.addEventListener("click", (e) => {
-      const item = e.target.closest(".list-group-item");
+    suggestionsContainer.addEventListener('click', (e) => {
+      const item = e.target.closest('.list-group-item');
       if (item) {
         e.preventDefault();
         e.stopPropagation();
@@ -105,7 +100,7 @@
     });
 
     // Prevent blur when clicking suggestions
-    suggestionsContainer.addEventListener("mousedown", (e) => {
+    suggestionsContainer.addEventListener('mousedown', (e) => {
       e.preventDefault(); // Prevent input from losing focus
     });
   }
@@ -116,10 +111,10 @@
   function updateHighlight(items, selectedIndex) {
     items.forEach((item, idx) => {
       if (idx === selectedIndex) {
-        item.classList.add("active");
-        item.scrollIntoView({ block: "nearest" });
+        item.classList.add('active');
+        item.scrollIntoView({ block: 'nearest' });
       } else {
-        item.classList.remove("active");
+        item.classList.remove('active');
       }
     });
   }
@@ -139,22 +134,20 @@
    */
   function selectItem(input, item, suggestionsContainer) {
     // Find the hidden value div (sibling of the list item)
-    const wrapper = item.closest("div");
-    const valueDiv = wrapper
-      ? wrapper.querySelector('[id*="namespace-suggestion-value"]')
-      : null;
+    const wrapper = item.closest('div');
+    const valueDiv = wrapper ? wrapper.querySelector('[id*="namespace-suggestion-value"]') : null;
 
     if (valueDiv) {
       const value = valueDiv.textContent;
       input.value = value;
 
       // Trigger Dash callback by dispatching input event
-      input.dispatchEvent(new Event("input", { bubbles: true }));
+      input.dispatchEvent(new Event('input', { bubbles: true }));
 
       // Also trigger change for debounced inputs
-      input.dispatchEvent(new Event("change", { bubbles: true }));
+      input.dispatchEvent(new Event('change', { bubbles: true }));
 
-      console.log("[Autocomplete] Selected:", value);
+      console.log('[Autocomplete] Selected:', value);
     }
 
     // Hide suggestions
@@ -168,7 +161,7 @@
    * Hide suggestions dropdown
    */
   function hideSuggestions(container) {
-    container.innerHTML = "";
+    container.innerHTML = '';
   }
 
   /**
@@ -185,10 +178,7 @@
           inputs.forEach(initAutocomplete);
 
           // Also check if the node itself is an input
-          if (
-            node.matches &&
-            node.matches('input[id*="namespace-field-input"]')
-          ) {
+          if (node.matches && node.matches('input[id*="namespace-field-input"]')) {
             initAutocomplete(node);
           }
         }
@@ -203,16 +193,12 @@
   });
 
   // Initialize existing inputs on page load
-  document.addEventListener("DOMContentLoaded", () => {
-    document
-      .querySelectorAll('input[id*="namespace-field-input"]')
-      .forEach(initAutocomplete);
+  document.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('input[id*="namespace-field-input"]').forEach(initAutocomplete);
   });
 
   // Re-initialize when modal opens (Dash dynamic content)
   window.initNamespaceAutocomplete = function () {
-    document
-      .querySelectorAll('input[id*="namespace-field-input"]')
-      .forEach(initAutocomplete);
+    document.querySelectorAll('input[id*="namespace-field-input"]').forEach(initAutocomplete);
   };
 })();

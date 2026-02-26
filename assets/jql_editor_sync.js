@@ -13,7 +13,7 @@ window.dash_clientside = Object.assign({}, window.dash_clientside, {
      */
     sync_to_store: function (textarea_value) {
       // Simply return the textarea value to update the Store
-      return textarea_value || "";
+      return textarea_value || '';
     },
   },
 });

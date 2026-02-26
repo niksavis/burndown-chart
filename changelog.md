@@ -2,7 +2,7 @@
 
 ## v2.13.0
 
-*Released: 2026-02-18*
+_Released: 2026-02-18_
 
 ### Features
 
@@ -10,7 +10,7 @@
 
 ## v2.12.4
 
-*Released: 2026-02-16*
+_Released: 2026-02-16_
 
 ### Bug Fixes
 
@@ -23,7 +23,7 @@
 
 ## v2.12.2
 
-*Released: 2026-02-14*
+_Released: 2026-02-14_
 
 ### Improvements
 
@@ -39,7 +39,7 @@
 
 ## v2.12.1
 
-*Released: 2026-02-14*
+_Released: 2026-02-14_
 
 ### Features
 
@@ -63,7 +63,7 @@
 
 ## v2.12.0
 
-*Released: 2026-02-12*
+_Released: 2026-02-12_
 
 ### Features
 
@@ -87,7 +87,7 @@
 
 ## v2.11.0
 
-*Released: 2026-02-10*
+_Released: 2026-02-10_
 
 ### Features
 
@@ -111,7 +111,7 @@
 
 ## v2.10.0
 
-*Released: 2026-02-09*
+_Released: 2026-02-09_
 
 ### Features
 
@@ -132,7 +132,7 @@
 
 ## v2.9.3
 
-*Released: 2026-02-07*
+_Released: 2026-02-07_
 
 ### Improvements
 
@@ -147,7 +147,7 @@
 
 ## v2.9.2
 
-*Released: 2026-02-06*
+_Released: 2026-02-06_
 
 ### Improvements
 
@@ -155,7 +155,7 @@
 
 ## v2.9.1
 
-*Released: 2026-02-05*
+_Released: 2026-02-05_
 
 ### Features
 
@@ -176,7 +176,7 @@
 
 ## v2.9.0
 
-*Released: 2026-02-05*
+_Released: 2026-02-05_
 
 ### Features
 
@@ -203,7 +203,7 @@
 
 ## v2.8.0
 
-*Released: 2026-02-03*
+_Released: 2026-02-03_
 
 ### Features
 
@@ -234,7 +234,7 @@
 
 ## v2.7.20
 
-*Released: 2026-01-29*
+_Released: 2026-01-29_
 
 ### Features
 
@@ -246,7 +246,7 @@
 
 ## v2.7.19
 
-*Released: 2026-01-29*
+_Released: 2026-01-29_
 
 ### Features
 
@@ -262,7 +262,7 @@
 
 ## v2.7.18
 
-*Released: 2026-01-27*
+_Released: 2026-01-27_
 
 ### Bug Fixes
 
@@ -275,7 +275,7 @@
 
 ## v2.7.17
 
-*Released: 2026-01-27*
+_Released: 2026-01-27_
 
 ### Features
 
@@ -291,7 +291,7 @@
 
 ## v2.7.16
 
-*Released: 2026-01-26*
+_Released: 2026-01-26_
 
 ### Bug Fixes
 
@@ -299,7 +299,7 @@
 
 ## v2.7.15
 
-*Released: 2026-01-26*
+_Released: 2026-01-26_
 
 ### Bug Fixes
 
@@ -307,7 +307,7 @@
 
 ## v2.7.14
 
-*Released: 2026-01-26*
+_Released: 2026-01-26_
 
 ### Bug Fixes
 
@@ -315,7 +315,7 @@
 
 ## v2.7.13
 
-*Released: 2026-01-26*
+_Released: 2026-01-26_
 
 ### Bug Fixes
 
@@ -324,7 +324,7 @@
 
 ## v2.7.12
 
-*Released: 2026-01-26*
+_Released: 2026-01-26_
 
 ### Bug Fixes
 
@@ -332,7 +332,7 @@
 
 ## v2.7.11
 
-*Released: 2026-01-26*
+_Released: 2026-01-26_
 
 ### Bug Fixes
 
@@ -342,7 +342,7 @@
 
 ## v2.7.10
 
-*Released: 2026-01-26*
+_Released: 2026-01-26_
 
 ### Bug Fixes
 
@@ -350,7 +350,7 @@
 
 ## v2.7.9
 
-*Released: 2026-01-26*
+_Released: 2026-01-26_
 
 ### Bug Fixes
 
@@ -359,7 +359,7 @@
 
 ## v2.7.8
 
-*Released: 2026-01-26*
+_Released: 2026-01-26_
 
 ### Bug Fixes
 
@@ -371,7 +371,7 @@
 
 ## v2.7.7
 
-*Released: 2026-01-26*
+_Released: 2026-01-26_
 
 ### Bug Fixes
 
@@ -380,7 +380,7 @@
 
 ## v2.7.6
 
-*Released: 2026-01-26*
+_Released: 2026-01-26_
 
 ### Bug Fixes
 
@@ -388,7 +388,7 @@
 
 ## v2.7.5
 
-*Released: 2026-01-26*
+_Released: 2026-01-26_
 
 ### Bug Fixes
 
@@ -396,7 +396,7 @@
 
 ## v2.7.4
 
-*Released: 2026-01-26*
+_Released: 2026-01-26_
 
 ### Bug Fixes
 
@@ -404,7 +404,7 @@
 
 ## v2.7.3
 
-*Released: 2026-01-26*
+_Released: 2026-01-26_
 
 ### Features
 
@@ -418,7 +418,7 @@
 
 ## v2.7.2
 
-*Released: 2026-01-26*
+_Released: 2026-01-26_
 
 ### Bug Fixes
 
@@ -430,7 +430,7 @@
 
 ## v2.7.1
 
-*Released: 2026-01-26*
+_Released: 2026-01-26_
 
 ### Bug Fixes
 
@@ -444,7 +444,7 @@
 
 ## v2.7.0
 
-*Released: 2026-01-26*
+_Released: 2026-01-26_
 
 ### Features
 
@@ -472,7 +472,7 @@
 
 ## v2.6.5
 
-*Released: 2026-01-22*
+_Released: 2026-01-22_
 
 ### Bug Fixes
 
@@ -480,15 +480,15 @@
 
 ## v2.6.4
 
-*Released: 2026-01-19*
+_Released: 2026-01-19_
 
 ### Bug Fixes
 
-- **Silent Update Failures**: Fixed updates failing silently when stale temp directories from previous failed attempts blocked new extractions - now uses unique extraction directories with automatic cleanup, updater output logged to %TEMP%\burndown_chart_updater.log for debugging, consistent burndown_chart_* namespace prevents collisions with other applications
+- **Silent Update Failures**: Fixed updates failing silently when stale temp directories from previous failed attempts blocked new extractions - now uses unique extraction directories with automatic cleanup, updater output logged to %TEMP%\burndown*chart_updater.log for debugging, consistent burndown_chart*\* namespace prevents collisions with other applications
 
 ## v2.6.3
 
-*Released: 2026-01-19*
+_Released: 2026-01-19_
 
 ### Bug Fixes
 
@@ -497,7 +497,7 @@
 
 ## v2.6.2
 
-*Released: 2026-01-18*
+_Released: 2026-01-18_
 
 ### Bug Fixes
 
@@ -505,7 +505,7 @@
 
 ## v2.6.1
 
-*Released: 2026-01-17*
+_Released: 2026-01-17_
 
 ### Bug Fixes
 
@@ -513,7 +513,7 @@
 
 ## v2.6.0
 
-*Released: 2026-01-17*
+_Released: 2026-01-17_
 
 ### Features
 
@@ -532,7 +532,7 @@
 
 ## v2.5.4
 
-*Released: 2026-01-14*
+_Released: 2026-01-14_
 
 ### Features
 
@@ -548,7 +548,7 @@
 
 ## v2.5.0
 
-*Released: 2026-01-13*
+_Released: 2026-01-13_
 
 ### Features
 
@@ -570,12 +570,12 @@
 ### Other Changes
 
 - Enhanced DORA and Flow metrics with improved error state handling
-- Improved JIRA issue filtering for dashboard consistency  
+- Improved JIRA issue filtering for dashboard consistency
 - Better logging and statistics tracking throughout the application
 
 ## v2.4.4
 
-*Released: 2025-12-29*
+_Released: 2025-12-29_
 
 ### Features
 
@@ -583,7 +583,7 @@
 
 ## v2.4.3
 
-*Released: 2025-12-29*
+_Released: 2025-12-29_
 
 ### Bug Fixes
 
@@ -591,7 +591,7 @@
 
 ## v2.4.2
 
-*Released: 2025-12-29*
+_Released: 2025-12-29_
 
 ### Bug Fixes
 
@@ -599,7 +599,7 @@
 
 ## v2.4.1
 
-*Released: 2025-12-22*
+_Released: 2025-12-22_
 
 ### Features
 
@@ -607,7 +607,7 @@
 
 ## v2.4.0
 
-*Released: 2025-12-22*
+_Released: 2025-12-22_
 
 ### Features
 
@@ -617,7 +617,7 @@
 
 ## v2.3.0
 
-*Released: 2025-12-19*
+_Released: 2025-12-19_
 
 ### Features
 
@@ -626,7 +626,7 @@
 
 ## v2.2.2
 
-*Released: 2025-12-19*
+_Released: 2025-12-19_
 
 ### Features
 
@@ -639,7 +639,7 @@
 
 ## v2.2.1
 
-*Released: 2025-12-18*
+_Released: 2025-12-18_
 
 ### Features
 

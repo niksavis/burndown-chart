@@ -6,7 +6,7 @@
  */
 
 (function () {
-  "use strict";
+  'use strict';
 
   if (window.dash_clientside === undefined) {
     window.dash_clientside = {};
@@ -23,14 +23,14 @@
       if (!Array.isArray(timeline) || timeline.length === 0) {
         return {
           fields: [
-            "key",
-            "summary",
-            "assignee",
-            "issuetype",
-            "project",
-            "fixversion",
-            "labels",
-            "components",
+            'key',
+            'summary',
+            'assignee',
+            'issuetype',
+            'project',
+            'fixversion',
+            'labels',
+            'components',
           ],
           values: {
             key: [],
@@ -55,9 +55,7 @@
       };
 
       for (const epic of timeline) {
-        const issues = Array.isArray(epic?.child_issues)
-          ? epic.child_issues
-          : [];
+        const issues = Array.isArray(epic?.child_issues) ? epic.child_issues : [];
         for (const issue of issues) {
           addIfPresent(values.key, issue?.issue_key);
           addIfPresent(values.assignee, issue?.assignee);
@@ -68,23 +66,21 @@
           addMany(values.components, toValueList(issue?.components));
 
           const fixVersionsRaw =
-            issue?.fix_versions !== undefined
-              ? issue.fix_versions
-              : issue?.fixVersions;
+            issue?.fix_versions !== undefined ? issue.fix_versions : issue?.fixVersions;
           addMany(values.fixversion, toValueList(fixVersionsRaw));
         }
       }
 
       return {
         fields: [
-          "key",
-          "summary",
-          "assignee",
-          "issuetype",
-          "project",
-          "fixversion",
-          "labels",
-          "components",
+          'key',
+          'summary',
+          'assignee',
+          'issuetype',
+          'project',
+          'fixversion',
+          'labels',
+          'components',
         ],
         values: {
           key: toSortedArray(values.key),
@@ -132,18 +128,16 @@
     }
 
     if (Array.isArray(rawValue)) {
-      return rawValue
-        .map((entry) => normalizeDisplayValue(entry))
-        .filter((entry) => !!entry);
+      return rawValue.map((entry) => normalizeDisplayValue(entry)).filter((entry) => !!entry);
     }
 
-    if (typeof rawValue === "string") {
+    if (typeof rawValue === 'string') {
       const trimmed = rawValue.trim();
       if (!trimmed) {
         return [];
       }
 
-      if (trimmed.startsWith("[") || trimmed.startsWith("{")) {
+      if (trimmed.startsWith('[') || trimmed.startsWith('{')) {
         try {
           return toValueList(JSON.parse(trimmed));
         } catch (_error) {
@@ -151,7 +145,7 @@
         }
       }
 
-      if (trimmed.includes(",") || trimmed.includes(";")) {
+      if (trimmed.includes(',') || trimmed.includes(';')) {
         return trimmed
           .split(/[;,]/)
           .map((item) => item.trim())
@@ -167,23 +161,20 @@
 
   function normalizeDisplayValue(value) {
     if (value === null || value === undefined) {
-      return "";
+      return '';
     }
 
-    if (typeof value === "string") {
+    if (typeof value === 'string') {
       return value.trim();
     }
 
-    if (typeof value === "number" || typeof value === "boolean") {
+    if (typeof value === 'number' || typeof value === 'boolean') {
       return String(value);
     }
 
-    if (typeof value === "object") {
-      const candidate =
-        value.displayName || value.name || value.value || value.key || "";
-      return typeof candidate === "string"
-        ? candidate.trim()
-        : String(candidate);
+    if (typeof value === 'object') {
+      const candidate = value.displayName || value.name || value.value || value.key || '';
+      return typeof candidate === 'string' ? candidate.trim() : String(candidate);
     }
 
     return String(value).trim();

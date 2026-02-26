@@ -7,7 +7,7 @@
 }
 
 .active-work-search-input {
-  font-family: "Courier New", Consolas, monospace;
+  font-family: 'Courier New', Consolas, monospace;
   font-size: 14px;
   padding: 10px 14px;
   border: 1px solid #ced4da;
@@ -79,7 +79,7 @@
 }
 
 .autocomplete-text {
-  font-family: "Courier New", Consolas, monospace;
+  font-family: 'Courier New', Consolas, monospace;
   font-size: 13px;
   color: #212529;
 }
@@ -112,7 +112,7 @@
   background-color: #f8f9fa;
   padding: 2px 6px;
   border-radius: 3px;
-  font-family: "Courier New", Consolas, monospace;
+  font-family: 'Courier New', Consolas, monospace;
   font-size: 11px;
 }
 
@@ -124,7 +124,7 @@
 }
 
 .active-work-query-preview-line {
-  font-family: "Courier New", Consolas, monospace;
+  font-family: 'Courier New', Consolas, monospace;
   font-size: 14px;
   line-height: 1.4;
   word-break: break-word;

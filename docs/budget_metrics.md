@@ -10,6 +10,7 @@
 While traditional budgeting uses fixed cost-per-item estimates, Budget metrics adapt to **actual team performance** and support continuous adjustment without annual cycles.
 
 **The 7 Key Metrics**:
+
 1. **Total Budget** - Total financial envelope for the project
 2. **Budget Consumed** - Spending based on completed work
 3. **Burn Rate** - Average weekly spending rate
@@ -65,12 +66,14 @@ Budget metrics require configuration via **Settings → Budget tab**. All settin
 ### Budget Total Calculation Modes
 
 **Auto Mode (Recommended)**:
+
 ```
 Total Budget = Time Allocated × Team Cost
 Example: 12 weeks × €4,000/week = €48,000
 ```
 
 **Manual Mode**:
+
 ```
 Total Budget = User-specified amount
 Example: €60,000 (includes €48,000 team + €12,000 contractors)
@@ -111,6 +114,7 @@ Budget metrics implement the following lean/agile principles:
 **Key Concept**: Budget metrics calculate costs from **actual team performance** rather than fixed estimates.
 
 **Weekly Cost per Item**:
+
 ```
 Velocity = Items Completed This Week
 Cost per Item = Team Cost / Velocity
@@ -141,6 +145,7 @@ Total Consumed: €12,000
 ### Burn Rate and Runway
 
 **Burn Rate** = Average weekly consumption over project lifetime:
+
 ```
 Burn Rate = Budget Consumed / Weeks Elapsed
 
@@ -151,6 +156,7 @@ Example after 3 weeks:
 ```
 
 **Runway** = Weeks remaining at current burn rate:
+
 ```
 Runway = (Total Budget - Budget Consumed) / Burn Rate
 
@@ -182,6 +188,7 @@ CREATE TABLE budget_revisions (
 ```
 
 **Replay Logic**:
+
 ```python
 # Get budget state at specific week
 baseline = budget_settings  # Starting point
@@ -234,6 +241,7 @@ If Velocity ↓ → Cost per Item ↑ (less efficient)
 ```
 
 **Example**:
+
 - Week 1: 10 items completed → €400/item
 - Week 2: 12 items completed → €333/item (20% improvement)
 - Week 3: 8 items completed → €500/item (25% decline)
@@ -314,11 +322,13 @@ Budget metrics appear in the **Budget Section** when configured:
 ### Example 1: Basic Budget Setup (Auto Mode)
 
 **Configuration**:
+
 - Time Allocated: 12 weeks
 - Team Cost: €4,000/week
 - Mode: Auto-calculate
 
 **Results**:
+
 ```
 Total Budget = 12 × €4,000 = €48,000
 
@@ -333,12 +343,14 @@ After Week 1 (10 items completed):
 ### Example 2: Budget with Manual Override
 
 **Configuration**:
+
 - Time Allocated: 12 weeks
 - Team Cost: €4,000/week
 - Mode: Manual override
 - Total Budget: €60,000 (includes €12,000 contractors)
 
 **Results**:
+
 ```
 Total Budget = €60,000 (user-specified)
 
@@ -354,15 +366,18 @@ After Week 1 (10 items completed):
 ### Example 3: Mid-Project Budget Increase
 
 **Initial Configuration**:
+
 - Time Allocated: 12 weeks
 - Team Cost: €4,000/week
 - Total Budget: €48,000 (auto)
 
 **After 6 weeks** (scope increase):
+
 - Time Allocated: +4 weeks (12 → 16)
 - Revision Reason: "Additional features approved"
 
 **Results**:
+
 ```
 New Total Budget = 16 × €4,000 = €64,000
 
@@ -376,11 +391,13 @@ Runway: €40,000 / €4,000 = 10 weeks (correct)
 **Scenario**: View budget state at Week 3
 
 **Revision History**:
+
 - Week 1: Baseline (12 weeks, €4,000/week)
 - Week 5: +4 weeks time allocation
 - Week 8: +€1,000/week team cost
 
 **Budget at Week 3**:
+
 ```
 get_budget_at_week(profile_id, query_id, "2026-W03")
 Returns:
@@ -396,11 +413,13 @@ Returns:
 ### When to Use Auto vs Manual Budget
 
 **Use Auto Mode When**:
+
 - Budget covers team costs only
 - Simple project with predictable costs
 - Want automatic updates when time changes
 
 **Use Manual Mode When**:
+
 - Budget includes non-team costs (contractors, infrastructure)
 - Fixed budget constraint (cannot exceed total)
 - Budget determined by client/funding, not team cost
@@ -408,22 +427,26 @@ Returns:
 ### Budget Update Frequency
 
 **Recommended**:
+
 - Initial setup: Before project starts
 - Major changes: When scope/team/timeline changes significantly
 - Regular reviews: Monthly or per sprint
 
 **Avoid**:
+
 - Weekly micro-adjustments (creates noisy revision history)
 - Retroactive changes without effective dates (distorts historical view)
 
 ### Revision Reason Guidelines
 
 **Good Examples**:
+
 - "Additional funding approved for Phase 2 features"
 - "Team member added, increasing weekly cost"
 - "Project timeline extended by 4 weeks due to scope increase"
 
 **Bad Examples**:
+
 - "Update" (no context)
 - "Change" (what changed?)
 - "" (empty - always provide reason for audit trail)
@@ -431,11 +454,13 @@ Returns:
 ### Effective Date Usage
 
 **When to Use**:
+
 - Team member joined 2 weeks ago, updating budget now
 - Scope change decided last week, documenting today
 - Retroactive budget approval for past period
 
 **When NOT to Use**:
+
 - Future changes (budget should reflect current reality)
 - Correcting errors (delete revision instead, start fresh)
 
@@ -446,11 +471,13 @@ Returns:
 ### Issue: Budget Consumed Shows 0% Despite Work Completed
 
 **Possible Causes**:
+
 1. Budget not configured (Total Budget = 0)
 2. Velocity = 0 (no items completed)
 3. Statistics not calculated yet (run query first)
 
 **Solution**:
+
 - Verify budget configuration in Settings → Budget
 - Check Statistics panel for completed items
 - Ensure JIRA query has completion status mapping
@@ -458,11 +485,13 @@ Returns:
 ### Issue: Cost per Item Changes Dramatically Week-to-Week
 
 **Possible Causes**:
+
 1. Variable velocity (some weeks 5 items, others 15)
 2. Team cost changed mid-project
 3. Natural variation in work complexity
 
 **Solution**:
+
 - Expected behavior for velocity-driven costs
 - Review velocity trends in Flow Velocity card
 - Consider smoothing by looking at multi-week averages
@@ -470,11 +499,13 @@ Returns:
 ### Issue: Runway Calculation Seems Wrong
 
 **Possible Causes**:
+
 1. Burn rate includes early ramp-up weeks (low velocity)
 2. Recent budget increase not reflected in calculation
 3. Manual budget total lower than team cost × time
 
 **Solution**:
+
 - Burn rate averages all weeks (includes slow starts)
 - Verify revision effective dates are correct
 - Check manual budget vs auto-calculated amount
@@ -482,11 +513,13 @@ Returns:
 ### Issue: Budget Revision History Missing
 
 **Possible Causes**:
+
 1. Revision history deleted (danger zone action)
 2. Database connection issue
 3. Budget reconfigured (resets baseline)
 
 **Solution**:
+
 - Revision deletion is permanent (no undo)
 - Check logs for database errors
 - Reconfigure mode resets history (use Update mode instead)
@@ -570,6 +603,7 @@ User Query → JIRA Data → Statistics Calculation
 Budget metrics appear in generated reports when configured:
 
 **Included Metrics**:
+
 - Total Budget
 - Budget Consumed (amount and %)
 - Burn Rate
@@ -579,15 +613,16 @@ Budget metrics appear in generated reports when configured:
 - Cost Breakdown by Work Type
 
 **Report Structure**:
+
 ```html
 <section id="budget-overview">
-    <h2>Budget Overview</h2>
-    <div class="budget-summary">
-        <!-- Summary cards with key metrics -->
-    </div>
-    <div class="budget-details">
-        <!-- Detailed breakdown and trends -->
-    </div>
+  <h2>Budget Overview</h2>
+  <div class="budget-summary">
+    <!-- Summary cards with key metrics -->
+  </div>
+  <div class="budget-details">
+    <!-- Detailed breakdown and trends -->
+  </div>
 </section>
 ```
 
@@ -600,7 +635,7 @@ def _calculate_budget_metrics(profile_id: str, query_id: str) -> Dict:
     budget = get_budget_at_week(profile_id, query_id, latest_week)
     consumption = calculate_consumption(profile_id, query_id, latest_week)
     breakdown = calculate_cost_breakdown_by_type(profile_id, query_id)
-    
+
     return {
         "total_budget": budget["budget_total_eur"],
         "consumed": consumption["consumed_eur"],
@@ -634,11 +669,13 @@ If your project previously tracked budgets manually:
 ### Data Preservation
 
 **What's Preserved**:
+
 - All budget revision history (unless explicitly deleted)
 - Historical budget states via replay mechanism
 - Audit trail with revision reasons
 
 **What's Not Preserved**:
+
 - Deleted revision history (permanent deletion)
 - Budget configurations before system implementation
 - Manual calculations outside the system
@@ -658,6 +695,7 @@ If your project previously tracked budgets manually:
 ### Q: How accurate is the Runway calculation?
 
 **A**: Runway assumes current burn rate continues. It's a **forecast**, not a guarantee. Factors that affect accuracy:
+
 - Variable velocity (causes burn rate fluctuations)
 - Scope changes mid-project
 - Team composition changes
@@ -665,6 +703,7 @@ If your project previously tracked budgets manually:
 ### Q: Can I track multiple budgets (e.g., dev budget + infrastructure)?
 
 **A**: Not directly. Budget metrics track a single budget per project. Workaround:
+
 - Use Manual budget mode to include all costs in total
 - Track Cost per Item (reflects only team work)
 - Document in revision reasons which costs are included
@@ -672,6 +711,7 @@ If your project previously tracked budgets manually:
 ### Q: Why does Cost per Item change when velocity changes?
 
 **A**: This is **intended behavior** for velocity-driven budgeting:
+
 - High velocity week (12 items) → Lower cost per item (€333)
 - Low velocity week (8 items) → Higher cost per item (€500)
 - Team cost stays constant (€4,000/week)

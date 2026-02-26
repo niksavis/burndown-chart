@@ -57,15 +57,17 @@ See installation instructions below for setup details.
 2. **Extract** and navigate to the project folder in terminal
 
 3. **Install** - Create a virtual environment and install dependencies:
-   
+
    **Windows:**
+
    ```powershell
    python -m venv .venv
    .venv\Scripts\activate
    pip install -r requirements-dev.txt
    ```
-   
+
    **Mac/Linux:**
+
    ```bash
    python3 -m venv .venv
    source .venv/bin/activate
@@ -77,6 +79,7 @@ See installation instructions below for setup details.
 5. **Open** - Go to [http://127.0.0.1:8050](http://127.0.0.1:8050) in your browser
 
 **For developers:** Want to work with the latest code? Clone the `main` branch:
+
 ```bash
 git clone https://github.com/niksavis/burndown-chart.git
 cd burndown-chart
@@ -110,20 +113,25 @@ cd burndown-chart
 ## What You'll See
 
 ### Dashboard
+
 - **Completion Forecast**: Best/worst/likely dates based on velocity
 - **Health Score** (0-100): Green (>80) = on track, Yellow (60-79) = watch closely, Red (<60) = needs attention
 - **Velocity Chart**: Items completed per week with trend
 - **Burndown Chart**: Remaining work vs. time with confidence bands
 
 ### Flow Metrics
+
 Measures how work moves through your process:
+
 - **Velocity**: Items/week (stability indicator)
 - **Flow Time**: Start to done (cycle time)
 - **Efficiency**: Active work vs. waiting (25-40% is normal)
 - **Work Distribution**: Features vs. bugs vs. tech debt
 
-### DORA Metrics  
+### DORA Metrics
+
 Industry-standard DevOps performance:
+
 - **Deployment Frequency**: Releases per day/week
 - **Lead Time**: Commit to production (days)
 - **Change Failure Rate**: % of releases with issues
@@ -146,17 +154,20 @@ Industry-standard DevOps performance:
 ## Troubleshooting
 
 **Installation issues?**
+
 - Missing Python? [Download 3.13+](https://www.python.org/downloads/) and check "Add to PATH"
 - Missing packages? Activate environment first: `.venv\Scripts\activate` (Win) or `source .venv/bin/activate` (Mac)
 - Port 8050 taken? Run `python app.py --port 8060`
 
 **JIRA connection problems?**
+
 - Click **Fetch Metadata** to test connection
 - Regenerate token if expired (they do expire!)
 - Try public test first: `https://jira.atlassian.com` with query `project = JRASERVER`
 - Check query returns issues in JIRA web interface
 
 **No data showing?**
+
 - Run **Auto-Configure** in Settings → Configure JIRA Mappings
 - Check Status tab: Set "Done", "Closed" as completed statuses
 - For DORA: Check Environment tab for production identifiers
@@ -168,12 +179,14 @@ Industry-standard DevOps performance:
 
 **Data Storage:** Everything stored locally in SQLite database (`profiles/burndown.db`). No cloud, no external services.
 
-**JIRA Sync:** 
+**JIRA Sync:**
+
 - First sync: Downloads all issues matching your query (paginated, 100/page)
 - Subsequent syncs: Only downloads changed issues (delta updates)
 - Smart caching with 24-hour TTL
 
 **Security:**
+
 - API tokens stored locally only
 - No telemetry or tracking
 - Export excludes tokens by default

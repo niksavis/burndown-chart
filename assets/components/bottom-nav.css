@@ -48,20 +48,12 @@
 }
 
 .mobile-bottom-nav-item:hover {
-  background-color: color-mix(
-    in srgb,
-    var(--color-primary) 10%,
-    transparent
-  ) !important;
+  background-color: color-mix(in srgb, var(--color-primary) 10%, transparent) !important;
   transform: translateY(-2px) !important;
 }
 
 .mobile-bottom-nav-item.active {
-  background-color: color-mix(
-    in srgb,
-    var(--color-primary) 10%,
-    transparent
-  ) !important;
+  background-color: color-mix(in srgb, var(--color-primary) 10%, transparent) !important;
   color: var(--color-primary) !important;
   font-weight: 600 !important;
 }

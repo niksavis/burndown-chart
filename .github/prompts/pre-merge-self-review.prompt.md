@@ -1,6 +1,6 @@
 ---
-agent: "agent"
-description: "Run a strict self-review against burndown quality and safety rules"
+agent: 'agent'
+description: 'Run a strict self-review against burndown quality and safety rules'
 ---
 
 Perform a self-review for the current working tree before merge.

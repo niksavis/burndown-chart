@@ -24,6 +24,7 @@ The namespace syntax provides a human-readable way to reference JIRA fields acro
 ```
 
 **Components**:
+
 - **ProjectFilter**: Project key, `*` (wildcard), or multiple keys with `|`
 - **FieldName**: Standard field name or `customfield_XXXXX`
 - **Property**: Object property path (dot-separated)
@@ -132,11 +133,13 @@ DevOps|Platform|Mobile.resolutiondate # From any of three projects
 ### DORA Metrics Configuration
 
 **Deployment Frequency** - When issues are deployed:
+
 ```
 DevOps.Status:Deployed.DateTime
 ```
 
 **Lead Time for Changes** - Code commit to deployment:
+
 ```
 # Start: Code commit date (custom field)
 DevOps.customfield_10100
@@ -146,17 +149,19 @@ DevOps.Status:Deployed.DateTime
 ```
 
 **Change Failure Rate** - Track deployment and incident events:
+
 ```
 # Deployment events
 DevOps.Status:Deployed.Occurred
 
-# Incident events  
+# Incident events
 Ops.Status:Incident.Occurred
 ```
 
 ### Cross-Project Aggregation
 
 **Velocity Across Teams**:
+
 ```
 # Story points from multiple projects
 DevOps|Platform|Mobile.customfield_10016
@@ -166,6 +171,7 @@ DevOps|Platform|Mobile.resolutiondate
 ```
 
 **Release Planning**:
+
 ```
 # Next release date
 *.fixVersions.releaseDate
@@ -223,6 +229,7 @@ When configuring field mappings in the UI, autocomplete suggestions are provided
 ### Syntax Validation
 
 The parser validates:
+
 - Project keys follow JIRA format (uppercase letters, numbers, underscores)
 - Field names are valid identifiers or custom field IDs
 - Changelog operator `:` is followed by a valid value
@@ -266,4 +273,4 @@ These features may be added in future releases based on user demand.
 
 ---
 
-*Document Version: 1.0 | Last Updated: December 2025*
+_Document Version: 1.0 | Last Updated: December 2025_

@@ -31,7 +31,7 @@
 .accordion-settings-panel .card,
 .accordion-settings-panel .card-body,
 .accordion-settings-panel .row,
-.accordion-settings-panel [class*="col-"],
+.accordion-settings-panel [class*='col-'],
 .settings-panel-expanded {
   overflow: visible !important;
 }
@@ -50,9 +50,9 @@
 
 /* CRITICAL: ONLY the profile dropdown menu gets fixed positioning (via JavaScript) */
 /* Other dropdowns in accordion should use normal absolute positioning */
-.accordion div[class*="__menu"]:not(.profile-dropdown-fixed),
+.accordion div[class*='__menu']:not(.profile-dropdown-fixed),
 .accordion .Select-menu-outer:not(.profile-dropdown-fixed),
-#settings-accordion div[class*="__menu"]:not(.profile-dropdown-fixed),
+#settings-accordion div[class*='__menu']:not(.profile-dropdown-fixed),
 #settings-accordion .Select-menu-outer:not(.profile-dropdown-fixed) {
   z-index: 1080 !important; /* High but not extreme */
   position: absolute !important; /* Normal absolute for other dropdowns */

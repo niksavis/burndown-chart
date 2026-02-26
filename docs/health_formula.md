@@ -33,6 +33,7 @@ The project health formula represents a **state-of-the-art assessment** that lev
 | **Financial**      | 10%    | **Budget adherence**. Important but adaptive - projects can get more budget if delivering value. Lower weight reflects that budget follows value, not vice versa.          |
 
 **Key Research Sources**:
+
 - **DORA State of DevOps Reports** (2015-2024): Quality/efficiency correlation with performance
 - **Standish Group Chaos Reports** (1994-2024): Delivery/predictability as top success factors
 - **Lean Software Development** (Mary & Tom Poppendieck): Waste elimination, flow efficiency
@@ -492,8 +493,8 @@ else:
 
 ## Health Status Thresholds
 
-| Score Range | Status         | Color  | Interpretation                                   |
-| ----------- | -------------- | ------ | ------------------------------------------------ |
+| Score Range | Status          | Color  | Interpretation                                   |
+| ----------- | --------------- | ------ | ------------------------------------------------ |
 | 70-100      | **GOOD** 🟢     | Green  | Project healthy, on track                        |
 | 50-69       | **CAUTION** 🟡  | Yellow | Moderate risks, watch closely                    |
 | 30-49       | **AT RISK** 🟠  | Orange | Significant issues, action needed                |
@@ -563,8 +564,8 @@ Status: GOOD 🟢
 
 ## Implementation Status
 
-| Component              | Status        | Notes                                                  |
-| ---------------------- | ------------- | ------------------------------------------------------ |
+| Component              | Status         | Notes                                                  |
+| ---------------------- | -------------- | ------------------------------------------------------ |
 | **Core Calculator**    | ✅ Implemented | `data/project_health_calculator.py`                    |
 | **UI Integration**     | ✅ Implemented | `ui/dashboard.py`                                      |
 | **Adaptive Mode**      | ✅ Implemented | Automatic adjustment when extended metrics unavailable |
@@ -617,7 +618,7 @@ health_score = _calculate_project_health_score(
     budget_metrics=budget_metrics,  # ✓ Auto-populated when available
     scope_metrics=scope_metrics,
 )
-# Result: 
+# Result:
 # - If all metrics available → comprehensive multi-dimensional calculation
 # - If only dashboard → focuses on core dimensions with weight redistribution
 # - Graceful degradation for any combination of available metrics
