@@ -126,7 +126,9 @@ def generate_burndown_chart(
         y_adjust = base_y + (idx * spacing)
         dash_str = f"[{', '.join(map(str, dash))}]" if dash else "[]"
 
-        annotations[key] = f"""{{type: 'line',xMin: '{date_str}',xMax: '{date_str}',borderColor: '{border_color}',borderWidth: {width},borderDash: {dash_str},label: {{display: true,content: '{label}',position: 'start',yAdjust: {y_adjust},backgroundColor: '{border_color}',color: '{text_color}'}}}}"""
+        annotations[key] = (
+            f"""{{type: 'line',xMin: '{date_str}',xMax: '{date_str}',borderColor: '{border_color}',borderWidth: {width},borderDash: {dash_str},label: {{display: true,content: '{label}',position: 'start',yAdjust: {y_adjust},backgroundColor: '{border_color}',color: '{text_color}'}}}}"""
+        )
 
     annotations_js = ",\n                ".join(
         [f"{key}: {value}" for key, value in annotations.items()]

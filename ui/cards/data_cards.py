@@ -282,7 +282,10 @@ def create_statistics_data_card(current_statistics) -> dbc.Card:
                 # Show validation indicators for numeric columns
                 *[
                     {
-                        "if": { "column_id": col["id"], "filter_query": f"{{{col['id']}}} < 0", },
+                        "if": {
+                            "column_id": col["id"],
+                            "filter_query": f"{{{col['id']}}} < 0",
+                        },
                         "backgroundColor": "rgba(220, 53, 69, 0.1)",
                         "color": "#dc3545",
                     }
