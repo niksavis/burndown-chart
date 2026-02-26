@@ -11,6 +11,7 @@ repos:
     hooks:
       - id: djlint-jinja
         files: report_assets/.*\.(html|j2|jinja)$
+        types_or: [html, jinja]
         args: [--reformat]
 
   - repo: https://github.com/pre-commit/mirrors-prettier
