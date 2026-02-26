@@ -1,13 +1,16 @@
 ---
 name: 'Test Strategy'
 description: 'Designs and applies focused tests for changed behavior'
-model: GPT-5.3-Codex
+model:
+  - Claude Sonnet 4.6
+  - GPT-5.3-Codex
 tools:
   [
     'search/codebase',
     'search',
     'search/usages',
     'edit/editFiles',
+    'read/problems',
     'search/changes',
     'execute/runTask',
     'execute/runInTerminal',
@@ -15,6 +18,11 @@ tools:
     'read/terminalLastCommand',
     'read/terminalSelection',
   ]
+handoffs:
+  - label: 'Final Quality Gate'
+    agent: 'Repo Quality Guardian'
+    prompt: 'Run the final quality gate: verify get_errors clean, validate all test results, and confirm no boundary violations.'
+    send: false
 ---
 
 # Test Strategy Agent

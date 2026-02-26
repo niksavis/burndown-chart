@@ -1,28 +1,18 @@
 {
-  "name": "session-logger-lite",
-  "version": "1.0.0",
-  "hooks": [
-    {
-      "event": "sessionStart",
-      "run": {
-        "command": "pwsh",
-        "args": [
-          "-NoProfile",
-          "-Command",
-          "$logDir='logs/copilot'; New-Item -ItemType Directory -Path $logDir -Force | Out-Null; $event=[ordered]@{timestamp=(Get-Date).ToString('o'); event='session_start'; cwd=(Get-Location).Path}; $event | ConvertTo-Json -Compress | Add-Content -Path (Join-Path $logDir 'session.log'); Write-Host '[session-logger-lite] session start logged.'"
-        ]
+  "hooks": {
+    "SessionStart": [
+      {
+        "type": "command",
+        "command": "pwsh -NoProfile -Command \"$raw=[Console]::In.ReadToEnd(); $data=$raw | ConvertFrom-Json; $wsPath=if($data.cwd){$data.cwd}else{$PWD.Path}; $logDir=Join-Path $wsPath 'logs/copilot'; New-Item -ItemType Directory -Path $logDir -Force | Out-Null; $entry=[ordered]@{timestamp=(Get-Date).ToString('o'); event='session_start'; cwd=$wsPath}; $entry | ConvertTo-Json -Compress | Add-Content -Path (Join-Path $logDir 'session.log'); Write-Host '[session-logger-lite] session start logged.'\"",
+        "timeout": 15
       }
-    },
-    {
-      "event": "sessionEnd",
-      "run": {
-        "command": "pwsh",
-        "args": [
-          "-NoProfile",
-          "-Command",
-          "$logDir='logs/copilot'; New-Item -ItemType Directory -Path $logDir -Force | Out-Null; $event=[ordered]@{timestamp=(Get-Date).ToString('o'); event='session_end'}; $event | ConvertTo-Json -Compress | Add-Content -Path (Join-Path $logDir 'session.log'); Write-Host '[session-logger-lite] session end logged.'"
-        ]
+    ],
+    "Stop": [
+      {
+        "type": "command",
+        "command": "pwsh -NoProfile -Command \"$raw=[Console]::In.ReadToEnd(); $data=$raw | ConvertFrom-Json; $wsPath=if($data.cwd){$data.cwd}else{$PWD.Path}; $logDir=Join-Path $wsPath 'logs/copilot'; New-Item -ItemType Directory -Path $logDir -Force | Out-Null; $entry=[ordered]@{timestamp=(Get-Date).ToString('o'); event='session_end'}; $entry | ConvertTo-Json -Compress | Add-Content -Path (Join-Path $logDir 'session.log'); Write-Host '[session-logger-lite] session end logged.'\"",
+        "timeout": 15
       }
-    }
-  ]
+    ]
+  }
 }

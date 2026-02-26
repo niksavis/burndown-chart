@@ -62,29 +62,33 @@ When recurring or novel task patterns are discovered during implementation:
 
 ## Skills
 
-| Skill                                                  | Capability                                     | Best fit                             |
-| ------------------------------------------------------ | ---------------------------------------------- | ------------------------------------ |
-| `.github/skills/context7-retrieval-patterns/SKILL.md`  | Up-to-date external API/doc retrieval workflow | Version-sensitive external libraries |
-| `.github/skills/python-backend-quality/SKILL.md`       | Python backend quality and layered enforcement | General Python/backend changes       |
-| `.github/skills/sqlite-persistence-safety/SKILL.md`    | Safe SQLite and persistence changes            | `data/persistence/`, SQL, migrations |
-| `.github/skills/jira-integration-reliability/SKILL.md` | Reliable Jira fetch/cache/error handling       | Jira flows in `data/` + delegates    |
-| `.github/skills/plotly-visualization-quality/SKILL.md` | Chart correctness and render performance       | `visualization/` chart work          |
-| `.github/skills/release-management/SKILL.md`           | Release/changelog workflow safety              | Release prep and versioning          |
-| `.github/skills/frontend-javascript-quality/SKILL.md`  | Reliable JavaScript/clientside callbacks       | `assets/` JS/CSS changes             |
-| `.github/skills/updater-reliability/SKILL.md`          | Safe updater two-phase update flow             | `updater/` system changes            |
-| `.github/skills/refactor/SKILL.md`                     | Behavior-preserving refactoring workflow       | Large-file splits and cleanup tasks  |
+| Skill                                                  | Capability                                                    | Best fit                                |
+| ------------------------------------------------------ | ------------------------------------------------------------- | --------------------------------------- |
+| `.github/skills/context7-retrieval-patterns/SKILL.md`  | Up-to-date external API/doc retrieval workflow                | Version-sensitive external libraries    |
+| `.github/skills/python-backend-quality/SKILL.md`       | Python backend quality and layered enforcement                | General Python/backend changes          |
+| `.github/skills/sqlite-persistence-safety/SKILL.md`    | Safe SQLite and persistence changes                           | `data/persistence/`, SQL, migrations    |
+| `.github/skills/jira-integration-reliability/SKILL.md` | Reliable Jira fetch/cache/error handling                      | Jira flows in `data/` + delegates       |
+| `.github/skills/plotly-visualization-quality/SKILL.md` | Chart correctness and render performance                      | `visualization/` chart work             |
+| `.github/skills/release-management/SKILL.md`           | Release/changelog workflow safety                             | Release prep and versioning             |
+| `.github/skills/frontend-javascript-quality/SKILL.md`  | Reliable JavaScript/clientside callbacks                      | `assets/` JS/CSS changes                |
+| `.github/skills/updater-reliability/SKILL.md`          | Safe updater two-phase update flow                            | `updater/` system changes               |
+| `.github/skills/refactor/SKILL.md`                     | Behavior-preserving refactoring workflow                      | Large-file splits and cleanup tasks     |
+| `.github/skills/make-skill-template/SKILL.md`          | Skill scaffolding template (`disable-model-invocation: true`) | Creating new skills — invoke explicitly |
 
 ## Custom Agents (Subagents)
 
-| Agent                                           | Capability                                | Best fit                             |
-| ----------------------------------------------- | ----------------------------------------- | ------------------------------------ |
-| `.github/agents/beast-mode-agnostic.agent.md`   | High-autonomy execution + validation loop | Complex multi-step implementation    |
-| `.github/agents/context7-expert.agent.md`       | Context7 bootstrap and focused doc sync   | Tasks requiring current API truth    |
-| `.github/agents/refactor-execution.agent.md`    | Behavior-preserving refactor execution    | Refactor tasks with validation gates |
-| `.github/agents/repo-quality-guardian.agent.md` | Quality/safety gatekeeper                 | End-of-task review and enforcement   |
-| `.github/agents/layering-enforcer.agent.md`     | Boundary checks and corrections           | Multi-layer Python changes           |
-| `.github/agents/test-strategy.agent.md`         | Test planning and focused validation      | Behavior changes needing tests       |
-| `.github/agents/release-readiness.agent.md`     | Release checklist and changelog readiness | Pre-release validation               |
+| Agent                                           | Capability                                                                     | Best fit                                  |
+| ----------------------------------------------- | ------------------------------------------------------------------------------ | ----------------------------------------- |
+| `.github/agents/beast-mode-agnostic.agent.md`   | High-autonomy execution + validation loop                                      | Complex multi-step implementation         |
+| `.github/agents/context7-expert.agent.md`       | Context7 bootstrap and focused doc sync                                        | Tasks requiring current API truth         |
+| `.github/agents/refactor-execution.agent.md`    | Behavior-preserving refactor execution; handoffs to repo-quality-guardian      | Refactor tasks with validation gates      |
+| `.github/agents/repo-quality-guardian.agent.md` | Quality/safety gatekeeper; handoffs to test-strategy                           | End-of-task review and enforcement        |
+| `.github/agents/layering-enforcer.agent.md`     | Boundary checks and corrections                                                | Multi-layer Python changes                |
+| `.github/agents/test-strategy.agent.md`         | Test planning and focused validation; handoffs to repo-quality-guardian        | Behavior changes needing tests            |
+| `.github/agents/release-readiness.agent.md`     | Release checklist and changelog readiness                                      | Pre-release validation                    |
+| `.github/agents/github-actions-expert.agent.md` | CI/CD workflow generation and debugging                                        | GitHub Actions / CI pipeline changes      |
+| `.github/agents/critical-thinking.agent.md`     | Adversarial review and assumption challenge (`disable-model-invocation: true`) | Invoke explicitly for pre-commit critique |
+| `.github/agents/custom-agent-foundry.agent.md`  | Agent design and scaffolding (`disable-model-invocation: true`)                | Creating or updating custom agents/skills |
 
 ## Prompts
 
@@ -160,7 +164,7 @@ For any non-trivial task:
 ### Gaps resolved in current pass
 
 1. Hook schema consistency:
-   - All hook packs now use the executable `event/run` schema.
+   - All hook packs now use the VS Code 1.109+ schema: `type: command`, PascalCase event names (`SessionStart`, `UserPromptSubmit`, `Stop`). Input comes via stdin JSON (`$data.prompt`, `$data.cwd`, `$data.sessionId`).
 
 2. Missing strict variants:
    - Added strict counterparts for layering and release hygiene.

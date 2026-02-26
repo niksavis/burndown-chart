@@ -1,19 +1,27 @@
 ---
 name: 'Repo Quality Guardian'
 description: 'Focused enforcement of burndown-chart quality, architecture, and safety rules'
-model: GPT-5.3-Codex
+model:
+  - GPT-5.3-Codex
+  - Claude Sonnet 4.6
 tools:
-	[
-		'search/codebase',
-		'search',
-		'search/usages',
-		'search/changes',
-		'read/problems',
-		'execute/runInTerminal',
-		'execute/getTerminalOutput',
-		'read/terminalLastCommand',
-		'read/terminalSelection',
-	]
+  [
+    'search/codebase',
+    'search',
+    'search/usages',
+    'search/changes',
+    'edit/editFiles',
+    'read/problems',
+    'execute/runInTerminal',
+    'execute/getTerminalOutput',
+    'read/terminalLastCommand',
+    'read/terminalSelection',
+  ]
+handoffs:
+  - label: 'Write Tests'
+    agent: 'Test Strategy'
+    prompt: 'Write focused tests for the changed behavior validated above.'
+    send: false
 ---
 
 # Repo Quality Guardian Agent

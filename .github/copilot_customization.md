@@ -64,6 +64,7 @@ Apply artifacts in this order:
 - `.github/skills/updater-reliability/SKILL.md`
 - `.github/skills/release-management/SKILL.md`
 - `.github/skills/refactor/SKILL.md`
+- `.github/skills/make-skill-template/SKILL.md` (`disable-model-invocation: true` — invoke explicitly to scaffold new skills)
 
 ## Prompts
 
@@ -87,6 +88,12 @@ Apply artifacts in this order:
 - `.github/agents/release-readiness.agent.md`
 - `.github/agents/github-actions-expert.agent.md`
 - `.github/agents/critical-thinking.agent.md`
+
+## Agent Configuration Notes
+
+- All agents use dual-model arrays (Codex + Sonnet 4.6). Priority order reflects task fit: Codex-first for execution-heavy tasks, Sonnet-first for reasoning-heavy tasks.
+- `disable-model-invocation: true` is set on meta artifacts that should never be auto-spawned as subagents: `critical-thinking`, `custom-agent-foundry`, `make-skill-template`.
+- Handoff chain: `refactor-execution` → `repo-quality-guardian` → `test-strategy` → `repo-quality-guardian`.
 
 ## Hook Packs
 

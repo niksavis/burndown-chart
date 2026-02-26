@@ -1,6 +1,6 @@
 ---
-name: "jira-integration-reliability"
-description: "Implement reliable Jira data flow and error handling changes"
+name: jira-integration-reliability
+description: 'Implement reliable Jira data flow and error handling changes'
 ---
 
 # Skill: Jira Integration Reliability

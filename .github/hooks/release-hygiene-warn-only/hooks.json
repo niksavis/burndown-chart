@@ -1,39 +1,25 @@
 {
-  "name": "release-hygiene-warn-only",
-  "version": "1.0.0",
-  "hooks": [
-    {
-      "event": "sessionStart",
-      "run": {
-        "command": "pwsh",
-        "args": [
-          "-NoProfile",
-          "-Command",
-          "Write-Host '[release-hygiene] active: keep changelog user-focused and follow release workflow.'"
-        ]
+  "hooks": {
+    "SessionStart": [
+      {
+        "type": "command",
+        "command": "pwsh -NoProfile -Command \"Write-Host '[release-hygiene] active: keep changelog user-focused and follow release workflow.'\"",
+        "timeout": 5
       }
-    },
-    {
-      "event": "userPromptSubmitted",
-      "run": {
-        "command": "pwsh",
-        "args": [
-          "-NoProfile",
-          "-Command",
-          "Write-Host '[release-hygiene] reminder: activate venv in-command, use flat user-benefit bullets, and avoid sensitive data.'"
-        ]
+    ],
+    "UserPromptSubmit": [
+      {
+        "type": "command",
+        "command": "pwsh -NoProfile -Command \"Write-Host '[release-hygiene] reminder: activate venv in-command, use flat user-benefit bullets, and avoid sensitive data.'\"",
+        "timeout": 5
       }
-    },
-    {
-      "event": "sessionEnd",
-      "run": {
-        "command": "pwsh",
-        "args": [
-          "-NoProfile",
-          "-Command",
-          "Write-Host '[release-hygiene] session end: verify release checks and changelog quality status are reported.'"
-        ]
+    ],
+    "Stop": [
+      {
+        "type": "command",
+        "command": "pwsh -NoProfile -Command \"Write-Host '[release-hygiene] session end: verify release checks and changelog quality status are reported.'\"",
+        "timeout": 5
       }
-    }
-  ]
+    ]
+  }
 }

@@ -1,21 +1,24 @@
 ---
 name: 'GitHub Actions Expert'
 description: 'GitHub Actions specialist focused on secure CI/CD workflows, action pinning, OIDC authentication, permissions least privilege, and supply-chain security'
-model: GPT-5.3-Codex
+model:
+  - GPT-5.3-Codex
+  - Claude Sonnet 4.6
 tools:
-	[
-		'search/codebase',
-		'search',
-		'search/usages',
-		'search/changes',
-		'edit/editFiles',
-		'web/githubRepo',
-		'web/fetch',
-		'execute/runInTerminal',
-		'execute/getTerminalOutput',
-		'read/terminalLastCommand',
-		'read/terminalSelection',
-	]
+  [
+    'search/codebase',
+    'search',
+    'search/usages',
+    'search/changes',
+    'edit/editFiles',
+    'read/problems',
+    'web/githubRepo',
+    'web/fetch',
+    'execute/runInTerminal',
+    'execute/getTerminalOutput',
+    'read/terminalLastCommand',
+    'read/terminalSelection',
+  ]
 ---
 
 # GitHub Actions Expert Agent

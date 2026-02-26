@@ -1,12 +1,16 @@
 ---
 name: 'Release Readiness'
 description: 'Validates release hygiene, changelog quality, and workflow completeness'
-model: GPT-5.3-Codex
+model:
+  - GPT-5.3-Codex
+  - Claude Sonnet 4.6
 tools:
   [
     'search/codebase',
     'search',
     'search/changes',
+    'edit/editFiles',
+    'read/problems',
     'execute/runInTerminal',
     'execute/getTerminalOutput',
     'read/terminalLastCommand',

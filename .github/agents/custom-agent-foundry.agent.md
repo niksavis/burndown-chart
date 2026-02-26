@@ -1,7 +1,10 @@
 ---
 name: 'Custom Agent Foundry'
 description: 'Designs and scaffolds high-quality custom agents with correct tool selection and workflow boundaries'
-model: GPT-5.3-Codex
+model:
+  - GPT-5.3-Codex
+  - Claude Sonnet 4.6
+disable-model-invocation: true
 tools:
   [
     'search/codebase',

@@ -1,6 +1,6 @@
 ---
-name: "sqlite-persistence-safety"
-description: "Implement safe and maintainable SQLite persistence changes"
+name: sqlite-persistence-safety
+description: 'Implement safe and maintainable SQLite persistence changes'
 ---
 
 # Skill: SQLite Persistence Safety

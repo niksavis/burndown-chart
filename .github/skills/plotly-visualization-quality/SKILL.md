@@ -1,6 +1,6 @@
 ---
-name: "plotly-visualization-quality"
-description: "Improve chart correctness and rendering performance"
+name: plotly-visualization-quality
+description: 'Improve chart correctness and rendering performance'
 ---
 
 # Skill: Plotly Visualization Quality

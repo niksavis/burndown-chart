@@ -1,7 +1,9 @@
 ---
 name: 'Refactor Execution'
 description: 'Executes behavior-preserving refactors with layered-architecture, security, and validation gates'
-model: GPT-5.3-Codex
+model:
+  - GPT-5.3-Codex
+  - Claude Sonnet 4.6
 tools:
   [
     'search/codebase',
@@ -9,11 +11,17 @@ tools:
     'search/usages',
     'search/changes',
     'edit/editFiles',
+    'read/problems',
     'execute/runInTerminal',
     'execute/getTerminalOutput',
     'read/terminalLastCommand',
     'read/terminalSelection',
   ]
+handoffs:
+  - label: 'Review Quality'
+    agent: 'Repo Quality Guardian'
+    prompt: 'Review the refactored code for quality, architecture boundaries, and safety rules.'
+    send: false
 ---
 
 # Refactor Execution Agent

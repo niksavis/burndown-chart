@@ -1,6 +1,6 @@
 ---
-name: "python-backend-quality"
-description: "Improve quality and reliability of Python backend changes in burndown-chart"
+name: python-backend-quality
+description: 'Improve quality and reliability of Python backend changes in burndown-chart'
 ---
 
 # Skill: Python Backend Quality

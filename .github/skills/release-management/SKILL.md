@@ -1,6 +1,6 @@
 ---
-name: "release-management"
-description: "Execute release preparation and changelog updates safely"
+name: release-management
+description: 'Execute release preparation and changelog updates safely'
 ---
 
 # Skill: Release Management
