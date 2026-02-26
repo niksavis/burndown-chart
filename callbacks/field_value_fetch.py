@@ -17,7 +17,7 @@ from ui.toast_notifications import create_success_toast, create_warning_toast
 logger = logging.getLogger(__name__)
 
 
-def _extract_field_id(namespace_value: str) -> str | None:
+def _extract_field_id(namespace_value: str | None) -> str | None:
     """Extract clean field ID from namespace syntax.
 
     Examples:
@@ -94,6 +94,83 @@ def _fetch_field_values(field_id: str, jira_config: dict[str, Any]) -> list[str]
     except Exception as e:
         logger.error(f"[FieldValueFetch] Error fetching values for {field_id}: {e}")
         return []
+
+
+@callback(
+    Output("fetched-field-values-store", "data", allow_duplicate=True),
+    Input("field-mapping-modal", "is_open"),
+    prevent_initial_call=True,
+)
+def prefetch_field_values_on_modal_open(is_open: bool):
+    """Prefetch field values when the modal opens with already-configured fields.
+
+    Solves the chicken-and-egg problem on first-time configuration: if
+    effort_category or affected_environment fields are already saved in settings,
+    fetch their available values immediately so the Types/Environment tab dropdowns
+    are populated without requiring a prior 'Update Data' run.
+
+    This callback always runs AFTER toggle_field_mapping_modal (in modal_core.py)
+    because it depends on the is_open output of that callback.  The store is
+    therefore already cleared to {} before this callback fires.
+
+    Args:
+        is_open: Whether the field mapping modal is open
+
+    Returns:
+        Dict with pre-fetched field values, or no_update when closing
+    """
+    if not is_open:
+        return no_update
+
+    from data.persistence import load_app_settings, load_jira_configuration
+
+    settings = load_app_settings() or {}
+    jira_config = load_jira_configuration() or {}
+
+    if not jira_config.get("base_url"):
+        logger.debug("[FieldValueFetch] Skipping pre-fetch: JIRA URL not configured")
+        return no_update
+
+    field_mappings = settings.get("field_mappings", {}) or {}
+    effort_cat_raw = (field_mappings.get("flow") or {}).get("effort_category")
+    affected_env_raw = (field_mappings.get("dora") or {}).get("affected_environment")
+
+    if not effort_cat_raw and not affected_env_raw:
+        logger.debug(
+            "[FieldValueFetch] Skipping pre-fetch: "
+            "effort_category and affected_environment not configured"
+        )
+        return no_update
+
+    prefetched: dict = {}
+
+    effort_cat_id = _extract_field_id(effort_cat_raw)
+    if effort_cat_id:
+        values = _fetch_field_values(effort_cat_id, jira_config)
+        if values:
+            prefetched["effort_category"] = {
+                "field_id": effort_cat_id,
+                "values": values,
+            }
+            logger.info(
+                f"[FieldValueFetch] Pre-fetched {len(values)} effort categories "
+                f"for {effort_cat_id}"
+            )
+
+    affected_env_id = _extract_field_id(affected_env_raw)
+    if affected_env_id:
+        values = _fetch_field_values(affected_env_id, jira_config)
+        if values:
+            prefetched["affected_environment"] = {
+                "field_id": affected_env_id,
+                "values": values,
+            }
+            logger.info(
+                f"[FieldValueFetch] Pre-fetched {len(values)} environment values "
+                f"for {affected_env_id}"
+            )
+
+    return prefetched if prefetched else no_update
 
 
 @callback(
