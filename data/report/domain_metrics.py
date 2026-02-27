@@ -205,6 +205,28 @@ def calculate_bug_metrics(
         # Count closed bugs from timeline-filtered bugs
         closed_bugs = bug_summary.get("closed_bugs", 0)
 
+        # Bug health badge — consistent with DORA/Flow tier pattern
+        if resolution_rate_pct >= 75:
+            health_status = "Healthy"
+            health_color = "#198754"
+            health_icon = "fas fa-shield-alt"
+            health_desc = (
+                "Resolution rate is high — bugs are being resolved effectively"
+            )
+        elif resolution_rate_pct >= 50:
+            health_status = "Moderate"
+            health_color = "#fd7e14"
+            health_icon = "fas fa-exclamation-circle"
+            health_desc = "Resolution rate is moderate — monitor for backlog growth"
+        else:
+            health_status = "Critical"
+            health_color = "#dc3545"
+            health_icon = "fas fa-exclamation-triangle"
+            health_desc = (
+                "Low resolution rate — bug backlog may be growing"
+                " faster than it is resolved"
+            )
+
         return {
             "has_data": True,
             "open_bugs": bug_summary.get("open_bugs", 0),
@@ -226,6 +248,10 @@ def calculate_bug_metrics(
             "weekly_stats": weekly_stats,
             "date_from": date_from.strftime("%b %d, %Y"),
             "date_to": date_to.strftime("%b %d, %Y"),
+            "health_status": health_status,
+            "health_color": health_color,
+            "health_icon": health_icon,
+            "health_desc": health_desc,
         }
     except Exception as e:
         logger.error(f"Error calculating bug metrics: {e}", exc_info=True)
