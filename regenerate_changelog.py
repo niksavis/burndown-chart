@@ -306,17 +306,17 @@ def export_to_json(tags_data: list[dict], output_path: Path):
     output_path.write_text(
         json.dumps(tags_data, indent=2, default=str), encoding="utf-8"
     )
-    print(f"✓ Exported {len(tags_data)} tags to {output_path}")
-    print("\n📝 LLM Prompt Suggestion:")
-    print("─" * 60)
+    print(f"Exported {len(tags_data)} tags to {output_path}")
+    print("\nLLM Prompt Suggestion:")
+    print("-" * 60)
     print("Please review this changelog data and write user-friendly")
     print("summaries for each version. Focus on:")
-    print("  • What users can DO with new features")
-    print("  • Problems that bugs fixed")
-    print("  • Group related commits into cohesive narratives")
-    print("  • Use bold (**Feature**) for major features")
-    print("  • Avoid technical jargon")
-    print("─" * 60)
+    print("  - What users can DO with new features")
+    print("  - Problems that bugs fixed")
+    print("  - Group related commits into cohesive narratives")
+    print("  - Use bold (**Feature**) for major features")
+    print("  - Avoid technical jargon")
+    print("-" * 60)
 
 
 def main(export_json: bool = False, preview: bool = False):
@@ -352,7 +352,7 @@ def main(export_json: bool = False, preview: bool = False):
     # PREVIEW MODE: Show unreleased commits since last tag
     if preview:
         latest_tag = tags[0]
-        print(f"📋 Preview of unreleased commits since {latest_tag}:\n")
+        print(f"Preview of unreleased commits since {latest_tag}:\n")
 
         commits_result = subprocess.run(
             ["git", "log", f"{latest_tag}..HEAD", "--pretty=format:%s", "--no-merges"],
@@ -363,7 +363,7 @@ def main(export_json: bool = False, preview: bool = False):
         commits = [c for c in commits_result.stdout.strip().split("\n") if c]
 
         if not commits:
-            print("✓ No unreleased commits")
+            print("No unreleased commits")
             return
 
         # Group and categorize unreleased commits
@@ -400,7 +400,7 @@ def main(export_json: bool = False, preview: bool = False):
     new_tags = [tag for tag in tags if tag not in existing_versions]
 
     if not new_tags:
-        print("✓ No new tags to process - changelog is up to date")
+        print("No new tags to process - changelog is up to date")
         return
 
     print(f"Found {len(new_tags)} new tags to process: {', '.join(new_tags)}")
@@ -522,17 +522,16 @@ def main(export_json: bool = False, preview: bool = False):
 
         changelog_path.write_text(full_changelog, encoding="utf-8")
         print(
-            f"✓ Added {len(new_tags)} new changelog entries "
-            "(preserving existing content)"
+            f"Added {len(new_tags)} new changelog entries (preserving existing content)"
         )
         print(f"  New tags: {', '.join(new_tags)}")
-        print("\n⚠️  MANUAL REFINEMENT RECOMMENDED:")
+        print("\nMANUAL REFINEMENT RECOMMENDED:")
         print("  1. Review new entries for clarity and user-friendliness")
         print("  2. Add bold formatting (**Feature Name**) for major features")
         print("  3. Consolidate related items into cohesive narratives")
         print("  4. Polish language for non-technical users")
     else:
-        print("✓ No new entries to add - all tags already in changelog")
+        print("No new entries to add - all tags already in changelog")
 
 
 if __name__ == "__main__":
