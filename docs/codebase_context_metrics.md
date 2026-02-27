@@ -6,12 +6,12 @@ Purpose: provide lightweight context-sizing guidance for human and AI contributo
 
 | Category               | Files | Lines  | Tokens    |
 | ---------------------- | ----- | ------ | --------- |
-| **Total**              | 701   | 225.4K | **~1.9M** |
-| Code (Python + JS/CSS) | 453   | 160.8K | ~1.4M     |
-| Python (no tests)      | 370   | 148.2K | ~1.3M     |
+| **Total**              | 703   | 226.3K | **~1.9M** |
+| Code (Python + JS/CSS) | 454   | 161.5K | ~1.4M     |
+| Python (no tests)      | 371   | 148.9K | ~1.3M     |
 | Frontend (JS/CSS)      | 83    | 12.6K  | ~80.4K    |
-| Tests                  | 148   | 42.9K  | ~370.2K   |
-| Documentation (MD)     | 100   | 21.7K  | ~164.7K   |
+| Tests                  | 149   | 43.2K  | ~372.5K   |
+| Documentation (MD)     | 100   | 21.7K  | ~164.6K   |
 
 ## Agent Guidance
 
@@ -19,4 +19,4 @@ Purpose: provide lightweight context-sizing guidance for human and AI contributo
 - **Too large for context**: Use targeted `semantic_search`, avoid broad reads
 - **File size check**: Prefer reading <500 lines per file
 - **Module focus**: Target specific folders (data/, ui/, callbacks/, etc.)
-- **Test coverage**: 148 test files (19% of codebase)
+- **Test coverage**: 149 test files (19% of codebase)

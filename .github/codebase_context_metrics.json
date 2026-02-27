@@ -3,40 +3,40 @@
   "recommended_strategy": "strict-chunking",
   "metrics": {
     "total": {
-      "files": 701,
-      "lines": 225362,
-      "chars": 8039351,
-      "tokens": 1909162
+      "files": 703,
+      "lines": 226316,
+      "chars": 8075572,
+      "tokens": 1917788
     },
     "code": {
-      "files": 453,
-      "lines": 160763,
-      "chars": 5786851,
-      "tokens": 1374245
+      "files": 454,
+      "lines": 161486,
+      "chars": 5813731,
+      "tokens": 1380645
     },
     "docs": {
       "files": 100,
-      "lines": 21663,
-      "chars": 693727,
-      "tokens": 164744
+      "lines": 21660,
+      "chars": 693295,
+      "tokens": 164643
     },
     "tests": {
-      "files": 148,
-      "lines": 42936,
-      "chars": 1558773,
-      "tokens": 370173
+      "files": 149,
+      "lines": 43170,
+      "chars": 1568546,
+      "tokens": 372498
     },
     "python": {
-      "files": 370,
-      "lines": 148204,
-      "chars": 5448400,
-      "tokens": 1293870
+      "files": 371,
+      "lines": 148927,
+      "chars": 5475280,
+      "tokens": 1300270
     },
     "frontend": {
       "files": 83,
       "lines": 12559,
       "chars": 338451,
-      "tokens": 80374
+      "tokens": 80375
     }
   },
   "guidance": {
