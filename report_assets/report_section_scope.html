@@ -115,8 +115,37 @@
         </div>
       {% endif %}
     </div>
+    <!-- Scope Health Assessment -->
+    {% set scope_ratio = metrics.scope.items_ratio %}
+    {% if scope_ratio > 1.1 %}
+      {% set scope_status = "Growing" %}
+      {% set scope_color = "#dc3545" %}
+      {% set scope_icon = "fas fa-arrow-up" %}
+      {% set scope_desc = "More work is being added than completed" %}
+    {% elif scope_ratio < 0.9 %}
+      {% set scope_status = "Shrinking" %}
+      {% set scope_color = "#198754" %}
+      {% set scope_icon = "fas fa-arrow-down" %}
+      {% set scope_desc = "Completing work faster than new items are added" %}
+    {% else %}
+      {% set scope_status = "Stable" %}
+      {% set scope_color = "#0d6efd" %}
+      {% set scope_icon = "fas fa-minus" %}
+      {% set scope_desc = "Creation and completion rates are balanced" %}
+    {% endif %}
+    <div class="d-flex align-items-center gap-2 mb-3 mt-2">
+      <span style="background: {{ scope_color }};
+                   color: #fff;
+                   padding: 0.2rem 0.75rem;
+                   border-radius: 1rem;
+                   font-size: 0.85rem;
+                   font-weight: 600">
+        <i class="{{ scope_icon }} me-1"></i>Scope {{ scope_status }}
+      </span>
+      <span class="text-muted" style="font-size: 0.85rem">{{ scope_desc }}</span>
+    </div>
     <!-- Creation/Completion Ratios -->
-    <div class="velocity-cards mt-3">
+    <div class="velocity-cards mt-2">
       <div class="velocity-card" style="border-left-color: #0d6efd;">
         <div class="velocity-card-title">
           <i class="fas fa-plus-circle"></i> Creation vs Completion Rate (Items)
@@ -138,6 +167,18 @@
           </div>
         </div>
       {% endif %}
+      {% if metrics.scope.items_change > 0 and metrics.dashboard.velocity_items > 0 %}
+        {% set extra_weeks = (metrics.scope.items_change / metrics.dashboard.velocity_items) %}
+        <div class="velocity-card" style="border-left-color: #dc3545;">
+          <div class="velocity-card-title">
+            <i class="fas fa-clock"></i> Extra Work Added
+          </div>
+          <div class="velocity-card-value" style="color: #dc3545;">
+            {{ extra_weeks|dec1 }}
+            <span class="velocity-card-unit">weeks of additional work</span>
+          </div>
+        </div>
+      {% endif %}
     </div>
     <h4 class="mt-4 mb-3">
       <i class="fas fa-chart-bar"></i> Weekly Scope Changes
@@ -147,7 +188,7 @@
     </div>
     <p class="text-muted mt-2 mb-0">
       <i class="fas fa-info-circle me-1"></i>
-      <small>Weekly comparison of created vs completed items/points. Values above zero indicate scope growth.</small>
+      <small>Weekly created (red) vs completed (green) items. The dashed line shows net scope change per week: red points indicate scope growth, green points indicate net reduction.</small>
     </p>
   </div>
 {% endif %}
