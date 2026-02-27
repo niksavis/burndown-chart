@@ -1,5 +1,27 @@
 # Changelog
 
+## v2.14.0
+
+_Released: 2026-02-27_
+
+### Features
+
+- **Cross-domain Actionable Insights**: The insights engine now detects compound risk patterns that span multiple metric domains simultaneously — for example, flagging when unstable velocity and growing scope combine, when a tight budget runway meets a wide PERT uncertainty band, or when high flow WIP and long lead times occur together. Seven signals covering budget/velocity, flow, bug investment, and DORA correlations are evaluated in both the in-app Insights panel and generated reports
+- **Report Health Badges**: Bug analysis, scope changes, DORA, and flow sections in generated reports now display a colour-coded health badge (healthy / needs attention / critical) so the overall state of each domain is immediately visible without reading the full section
+- **Report Date Range Footer**: Generated reports now display the analysis period date range in the footer so the time window covered is always clear
+- **Scope Net Change Line**: The scope changes section in reports now includes a net change summary line alongside the health badge for faster interpretation
+
+### Bug Fixes
+
+- **Burndown Chart Projection**: The burndown chart in reports now renders the x-axis in correct chronological order and includes a forecast projection line extending to the deadline
+- **Weekly Breakdown Tooltip**: Chart tooltip and legend in the weekly breakdown section are now clean and consistent
+- **Required Velocity Alignment**: Required velocity in reports now matches the pace calculation used in the app
+- **Changelog preview on Windows**: `regenerate_changelog.py` no longer crashes with a `UnicodeEncodeError` on Windows terminals that use the cp1252 codec
+
+### Improvements
+
+- Report PDF/print layout includes page-break hints so multi-section reports paginate cleanly when printed or exported to PDF
+
 ## v2.13.1
 
 _Released: 2026-02-27_
