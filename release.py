@@ -23,9 +23,10 @@ Flow:
     6. Regenerate version_info.txt with new version
     7. Commit version_info.txt
     8. Update codebase context metrics artifacts
-    9. Create final release commit "Release vX.Y.Z" (tag points here)
-    10. Create git tag
-    11. Push everything to origin (main + tag)
+    9. Run pre-commit lint gate (auto-commit any formatter fixes)
+    10. Create final release commit "Release vX.Y.Z" (tag points here)
+    11. Create git tag
+    12. Push everything to origin (main + tag)
 
 Note: bump_version.py is now deprecated. Use this script for releases.
 """
@@ -345,6 +346,95 @@ def bump_version(bump_type: str) -> tuple[bool, str]:
         return False, ""
 
 
+def run_lint_gate() -> bool:
+    """Run pre-commit on all files and auto-commit any formatter fixes.
+
+    Runs pre-commit once.  If it exits non-zero because hooks reformatted
+    files, the changes are committed and pre-commit is re-run to confirm a
+    clean pass.  Any remaining failure aborts the release.
+
+    Returns:
+        True when the lint gate passes, False on unrecoverable failure.
+    """
+    print("\n" + "=" * 60)
+    print("Running Pre-commit Lint Gate")
+    print("=" * 60)
+
+    def _run_pre_commit() -> tuple[bool, str]:
+        """Execute pre-commit and return (passed, stdout)."""
+        try:
+            result = subprocess.run(
+                ["pre-commit", "run", "--all-files"],
+                capture_output=True,
+                text=True,
+                cwd=PROJECT_ROOT,
+            )
+            return result.returncode == 0, result.stdout + result.stderr
+        except FileNotFoundError:
+            return True, "[SKIP] pre-commit not found; skipping lint gate"
+
+    passed, output = _run_pre_commit()
+    if output:
+        print(output)
+
+    if passed:
+        print("[OK] Pre-commit lint gate passed")
+        return True
+
+    # Check whether the failure was purely auto-fixes (dirty working tree)
+    status_result = subprocess.run(
+        ["git", "status", "--porcelain"],
+        capture_output=True,
+        text=True,
+        cwd=PROJECT_ROOT,
+    )
+    modified_files = status_result.stdout.strip()
+
+    if not modified_files:
+        print(
+            "[FAILED] Pre-commit lint gate failed with no auto-fixable changes.",
+            file=sys.stderr,
+        )
+        print(output, file=sys.stderr)
+        return False
+
+    # Auto-fixes were applied — commit them and re-verify
+    print("[INFO] Pre-commit applied formatting fixes; committing and re-verifying...")
+
+    commit_ok, _ = run_command(
+        ["git", "add", "-A"],
+        "Stage formatter fixes",
+    )
+    if not commit_ok:
+        return False
+
+    commit_ok, _ = run_command(
+        [
+            "git",
+            "commit",
+            "-m",
+            "style(format): apply pre-commit formatters for release",
+        ],
+        "Commit formatter fixes",
+    )
+    if not commit_ok:
+        return False
+
+    # Second pass — must pass cleanly
+    passed, output = _run_pre_commit()
+    if output:
+        print(output)
+
+    if passed:
+        print("[OK] Pre-commit lint gate passed after auto-fix")
+        return True
+
+    print(
+        "[FAILED] Pre-commit lint gate still failing after auto-fix.", file=sys.stderr
+    )
+    return False
+
+
 def create_release_commit(version: str) -> bool:
     """Create a final release commit that the tag will point to.
 
@@ -468,17 +558,22 @@ def main():
         print("\n[FAILED] Codebase metrics update", file=sys.stderr)
         sys.exit(1)
 
-    # Step 4: Create final release commit (tag will point here)
+    # Step 4: Run pre-commit lint gate — catch formatter drift before tagging
+    if not run_lint_gate():
+        print("\n[FAILED] Pre-commit lint gate", file=sys.stderr)
+        sys.exit(1)
+
+    # Step 5: Create final release commit (tag will point here)
     if not create_release_commit(new_version):
         print("\n[FAILED] Release commit creation", file=sys.stderr)
         sys.exit(1)
 
-    # Step 5: Create tag pointing to release commit
+    # Step 6: Create tag pointing to release commit
     if not create_tag(new_version):
         print("\n[FAILED] Tag creation", file=sys.stderr)
         sys.exit(1)
 
-    # Step 6: Push to origin
+    # Step 7: Push to origin
     if not push_release(f"v{new_version}"):
         print("\n[FAILED] Push to origin", file=sys.stderr)
         sys.exit(1)

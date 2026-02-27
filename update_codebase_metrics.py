@@ -346,6 +346,31 @@ Purpose: provide lightweight context-sizing guidance for human and AI contributo
     return section
 
 
+def format_with_prettier(files: list[Path]) -> None:
+    """Run prettier on the given files if npx is available.
+
+    Silently skips when npx/prettier is not on PATH so the script remains
+    usable in environments without Node.js.
+    """
+    import shutil
+    import subprocess
+
+    if not shutil.which("npx"):
+        return
+
+    paths = [str(f) for f in files]
+    try:
+        subprocess.run(
+            ["npx", "--yes", "prettier", "--write", *paths],
+            capture_output=True,
+            check=True,
+            cwd=PROJECT_ROOT,
+        )
+    except subprocess.CalledProcessError:
+        # Non-fatal: files are still valid, just not prettier-formatted
+        print("[WARNING] prettier formatting skipped (npx call failed)")
+
+
 def write_metrics_files(metrics: dict[str, dict[str, int]], markdown_text: str) -> None:
     """Write dedicated markdown and JSON metrics artifacts."""
     CONTEXT_METRICS_MD.parent.mkdir(parents=True, exist_ok=True)
@@ -366,6 +391,9 @@ def write_metrics_files(metrics: dict[str, dict[str, int]], markdown_text: str) 
     CONTEXT_METRICS_JSON.write_text(
         json.dumps(payload, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
     )
+
+    # Format output files so they satisfy the prettier pre-commit hook
+    format_with_prettier([CONTEXT_METRICS_MD, CONTEXT_METRICS_JSON])
 
     print(f"[OK] Updated {CONTEXT_METRICS_MD.relative_to(PROJECT_ROOT)}")
     print(f"[OK] Updated {CONTEXT_METRICS_JSON.relative_to(PROJECT_ROOT)}")
