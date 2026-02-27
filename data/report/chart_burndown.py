@@ -3,6 +3,8 @@
 import json
 from datetime import datetime
 
+from data.velocity_projections import calculate_required_velocity
+
 
 def generate_burndown_chart(
     burndown_metrics: dict,
@@ -327,24 +329,29 @@ def generate_weekly_breakdown_chart(
             # If forecast generation fails, continue without forecasts
             pass
 
-    # Calculate required velocity if deadline provided
+    # Calculate required velocity using midnight-today (matches app calculation exactly)
     required_items = None
     required_points = None
     if deadline and remaining_items is not None and remaining_items > 0:
         try:
             deadline_date = datetime.strptime(deadline, "%Y-%m-%d")
-            # Use last week date as reference
-            last_week_str = weekly_data[-1]["date"]
-            # Parse the week string (format: "YYYY-WXX")
-            year, week = last_week_str.split("-W")
-            # Approximate the last date (end of that week)
-            last_date = datetime.strptime(f"{year}-W{week}-0", "%Y-W%W-%w")
-
-            weeks_remaining = max(1, (deadline_date - last_date).days / 7)
-            required_items = round(remaining_items / weeks_remaining, 1)
+            current_date = datetime.combine(datetime.now().date(), datetime.min.time())
+            raw = calculate_required_velocity(
+                remaining_items,
+                deadline_date,
+                current_date=current_date,
+                time_unit="week",
+            )
+            required_items = round(raw, 1) if raw != float("inf") else None
 
             if show_points and remaining_points is not None and remaining_points > 0:
-                required_points = round(remaining_points / weeks_remaining, 1)
+                raw_pts = calculate_required_velocity(
+                    remaining_points,
+                    deadline_date,
+                    current_date=current_date,
+                    time_unit="week",
+                )
+                required_points = round(raw_pts, 1) if raw_pts != float("inf") else None
         except (ValueError, ZeroDivisionError):
             pass  # Skip if date parsing fails
 
@@ -634,16 +641,19 @@ def generate_weekly_items_chart(
             except (KeyError, ValueError, IndexError):
                 pass
 
-    # Calculate required velocity
+    # Calculate required velocity using midnight-today (matches app calculation exactly)
     required_items = None
     if deadline and remaining_items is not None and remaining_items > 0:
         try:
             deadline_date = datetime.strptime(deadline, "%Y-%m-%d")
-            last_week_str = weekly_data[-1]["date"]
-            year, week = last_week_str.split("-W")
-            last_date = datetime.strptime(f"{year}-W{week}-0", "%Y-W%W-%w")
-            weeks_remaining = max(1, (deadline_date - last_date).days / 7)
-            required_items = round(remaining_items / weeks_remaining, 1)
+            current_date = datetime.combine(datetime.now().date(), datetime.min.time())
+            raw = calculate_required_velocity(
+                remaining_items,
+                deadline_date,
+                current_date=current_date,
+                time_unit="week",
+            )
+            required_items = round(raw, 1) if raw != float("inf") else None
         except (ValueError, ZeroDivisionError):
             pass
 
@@ -846,16 +856,19 @@ def generate_weekly_points_chart(
             except (KeyError, ValueError, IndexError):
                 pass
 
-    # Calculate required velocity
+    # Calculate required velocity using midnight-today (matches app calculation exactly)
     required_points = None
     if deadline and remaining_points is not None and remaining_points > 0:
         try:
             deadline_date = datetime.strptime(deadline, "%Y-%m-%d")
-            last_week_str = weekly_data[-1]["date"]
-            year, week = last_week_str.split("-W")
-            last_date = datetime.strptime(f"{year}-W{week}-0", "%Y-W%W-%w")
-            weeks_remaining = max(1, (deadline_date - last_date).days / 7)
-            required_points = round(remaining_points / weeks_remaining, 1)
+            current_date = datetime.combine(datetime.now().date(), datetime.min.time())
+            raw = calculate_required_velocity(
+                remaining_points,
+                deadline_date,
+                current_date=current_date,
+                time_unit="week",
+            )
+            required_points = round(raw, 1) if raw != float("inf") else None
         except (ValueError, ZeroDivisionError):
             pass
 
