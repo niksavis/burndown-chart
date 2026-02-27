@@ -72,10 +72,29 @@
       box-shadow: none;
       border: 1px solid #dee2e6;
       page-break-inside: avoid;
+      page-break-before: always;
+    }
+
+    /* First section on the page — no forced break before it */
+    .section:first-of-type {
+      page-break-before: auto;
     }
 
     .chart-container {
       page-break-inside: avoid;
+    }
+
+    /* Keep charts from splitting mid-render */
+    canvas {
+      page-break-inside: avoid;
+    }
+
+    /* Suppress box-shadow and border-radius for cleaner PDF output */
+    .dashboard-overview,
+    .velocity-card,
+    .metric-card {
+      box-shadow: none;
+      border: 1px solid #dee2e6;
     }
   }
 
