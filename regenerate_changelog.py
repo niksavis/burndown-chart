@@ -466,7 +466,7 @@ def main(export_json: bool = False, preview: bool = False):
 
         # Build section for this NEW tag
         new_entries += f"## {tag}\n\n"
-        new_entries += f"*Released: {tag_date}*\n\n"
+        new_entries += f"_Released: {tag_date}_\n\n"
 
         # Output categories in preferred order
         preferred_order = [

@@ -715,10 +715,8 @@ def _get_latest_release_notes() -> tuple[str, str, list[str]] | None:
                 version = line.replace("## ", "").strip()
                 in_version_section = True
             elif in_version_section:
-                if line.strip().startswith("*Released:"):
-                    date = (
-                        line.strip().replace("*Released:", "").replace("*", "").strip()
-                    )
+                if line.strip().lstrip("*_").startswith("Released:"):
+                    date = line.strip().strip("*_").replace("Released:", "").strip()
                 elif line.strip().startswith("- "):
                     # Extract feature/fix item
                     item = line.strip()[2:]  # Remove "- " prefix
@@ -851,8 +849,8 @@ def _read_and_parse_changelog() -> html.Div:
             items = []
 
             for line in section_lines:
-                if line.strip().startswith("*Released:"):
-                    date_text = line.strip().replace("*", "")
+                if line.strip().lstrip("*_").startswith("Released:"):
+                    date_text = line.strip().strip("*_")
                 elif line.strip().startswith("###"):
                     # Skip section headings - not currently displayed
                     continue

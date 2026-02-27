@@ -117,7 +117,7 @@ python regenerate_changelog.py --preview --json
 # Step 3: Copy LLM output to TOP of changelog.md
 # Format:
 #   ## v2.7.11
-#   *Released: 2026-01-26*
+#   _Released: 2026-01-26_
 #
 #   ### Features
 #   - **Major Feature**: Description inline with details
@@ -247,7 +247,7 @@ python regenerate_changelog.py --preview --json
 # Step 4: Add LLM output to TOP of changelog.md
 # Format:
 #   ## v2.7.11
-#   *Released: 2026-01-26*
+#   _Released: 2026-01-26_
 #
 #   ### Features
 #   - **Major Feature**: Complete description inline
