@@ -3,4 +3,9 @@
   <p class="mb-1">
     <strong>{{ profile_name }}</strong> - {{ query_name }} | Generated {{ generated_at }}
   </p>
+  {% if start_date and end_date %}
+    <p class="mb-0" style="font-size: 0.8rem; color: #6c757d">
+      Report period: {{ start_date }} to {{ end_date }} ({{ weeks_count }}w)
+    </p>
+  {% endif %}
 </div>
