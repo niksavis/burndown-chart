@@ -30,6 +30,7 @@ from data.recommendations.budget_signals import (
     build_budget_forecast_signals_from_pert,
     build_budget_health_signals,
 )
+from data.recommendations.correlation_signals import build_correlation_signals
 from data.recommendations.pace_signals import build_required_pace_signals
 from data.recommendations.scope_signals import build_scope_signals
 from data.recommendations.velocity_signals import (
@@ -45,6 +46,9 @@ def create_insights_section(
     budget_data: dict[str, Any] | None,
     pert_data: dict[str, Any] | None,
     deadline: str | None,
+    bug_metrics: dict[str, Any] | None = None,
+    flow_metrics: dict[str, Any] | None = None,
+    dora_metrics: dict[str, Any] | None = None,
 ) -> html.Div:
     """Create actionable insights section with comprehensive intelligence.
 
@@ -719,134 +723,26 @@ def create_insights_section(
         except Exception:
             pass
 
-    # === NEW INSIGHTS: Multi-Metric Correlations ===
-    if not statistics_df.empty and budget_data:
-        try:
-            velocity_cv = (
-                (
-                    statistics_df["completed_items"].std()
-                    / statistics_df["completed_items"].mean()
-                    * 100
-                )
-                if statistics_df["completed_items"].mean() > 0
-                else 0
-            )
-
-            # H1: High Variance + Scope Growth (CRITICAL)
-            if (
-                velocity_cv > 40
-                and "created_items" in statistics_df.columns
-                and statistics_df["created_items"].sum()
-                > statistics_df["completed_items"].sum() * 0.2
-            ):
-                insights.append(
-                    {
-                        "severity": "danger",
-                        "message": (
-                            "Unstable Delivery + Scope Creep - High velocity "
-                            f"variation ({velocity_cv:.2f}%) combined with "
-                            "increasing scope creates critical delivery risk"
-                        ),
-                        "recommendation": (
-                            "Dual intervention required: (1) Stabilize velocity "
-                            "through consistent team capacity, better story "
-                            "sizing, and reduced context switching, "
-                            "(2) Implement strict change control to prevent "
-                            "scope additions until delivery stabilizes. "
-                            "Consider freezing new features until "
-                            "predictability improves."
-                        ),
-                    }
-                )
-
-            # H2: Low Runway + High Forecast Uncertainty (CRITICAL)
-            if pert_data:
-                import math
-
-                runway_weeks = budget_data.get("runway_weeks", 0)
-                pert_optimistic_days = pert_data.get("pert_optimistic_days", 0)
-                pert_pessimistic_days = pert_data.get("pert_pessimistic_days", 0)
-
-                if (
-                    not math.isinf(runway_weeks)
-                    and runway_weeks > 0
-                    and runway_weeks < 6
-                    and pert_optimistic_days > 0
-                    and pert_pessimistic_days > 0
-                    and (pert_pessimistic_days - pert_optimistic_days) / 7.0 > 4
-                ):
-                    insights.append(
-                        {
-                            "severity": "danger",
-                            "message": (
-                                "Budget Risk + Forecast Uncertainty - Limited "
-                                f"budget ({runway_weeks:.2f} weeks) combined "
-                                "with unpredictable delivery creates critical "
-                                "planning risk"
-                            ),
-                            "recommendation": (
-                                "Urgently stabilize project: (1) Define and "
-                                "commit to minimum viable scope that fits "
-                                "budget, (2) Increase forecast accuracy by "
-                                "breaking stories into smaller pieces and "
-                                "reducing WIP, (3) Secure budget contingency or "
-                                "prepare for partial delivery. Risk of budget "
-                                "overrun or incomplete delivery is high."
-                            ),
-                        }
-                    )
-
-            # H3: Accelerating Velocity + Budget Surplus (OPPORTUNITY)
-            mid_point = len(statistics_df) // 2
-            if mid_point > 0 and pert_data:
-                import math
-
-                recent_velocity = statistics_df.iloc[mid_point:][
-                    "completed_items"
-                ].mean()
-                historical_velocity = statistics_df.iloc[:mid_point][
-                    "completed_items"
-                ].mean()
-                runway_weeks = budget_data.get("runway_weeks", 0)
-                pert_forecast_weeks = (
-                    pert_data.get("pert_time_items", 0) / 7.0
-                    if pert_data.get("pert_time_items")
-                    else 0
-                )
-
-                if (
-                    historical_velocity > 0
-                    and recent_velocity > historical_velocity * 1.15
-                    and not math.isinf(runway_weeks)
-                    and runway_weeks > 0
-                    and pert_forecast_weeks > 0
-                    and runway_weeks > pert_forecast_weeks + 3
-                ):
-                    velocity_increase = (
-                        recent_velocity / historical_velocity - 1
-                    ) * 100
-                    surplus_weeks = runway_weeks - pert_forecast_weeks
-                    insights.append(
-                        {
-                            "severity": "success",
-                            "message": (
-                                "Performance Surplus - Team accelerating "
-                                f"({velocity_increase:.2f}% increase) while "
-                                f"budget has {surplus_weeks:.2f} weeks headroom"
-                            ),
-                            "recommendation": (
-                                "Opportunity to maximize value delivery: "
-                                "(1) Bring forward high-value roadmap items "
-                                "from future releases, (2) Invest in technical "
-                                "debt reduction or architecture improvements, "
-                                "(3) Enhance product quality, UX, or "
-                                "documentation. Coordinate with stakeholders to "
-                                "capitalize on this favorable position."
-                            ),
-                        }
-                    )
-        except Exception:
-            pass
+    # === CROSS-DOMAIN CORRELATION SIGNALS ===
+    # H1/H2/H3 moved here from inline; H4-H7 are new cross-domain rules.
+    # bug_metrics, flow_metrics, dora_metrics are optional — new signals fire
+    # only when the caller passes them; existing behaviour is fully preserved.
+    for _signal in build_correlation_signals(
+        statistics_df,
+        budget_data=budget_data,
+        pert_data=pert_data,
+        deadline=deadline,
+        bug_metrics=bug_metrics,
+        flow_metrics=flow_metrics,
+        dora_metrics=dora_metrics,
+    ):
+        insights.append(
+            {
+                "severity": _signal["severity"],
+                "message": _signal["message"],
+                "recommendation": _signal["recommendation"],
+            }
+        )
 
     # === NEW INSIGHTS: Baseline Deviation Patterns ===
     if not statistics_df.empty and budget_data:

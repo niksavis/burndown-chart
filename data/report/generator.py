@@ -529,6 +529,7 @@ def calculate_recommendations(
         build_budget_forecast_signals_from_dashboard,
         build_budget_health_signals,
     )
+    from data.recommendations.correlation_signals import build_correlation_signals
     from data.recommendations.pace_signals import build_required_pace_signals
     from data.recommendations.velocity_signals import (
         build_throughput_signals,
@@ -970,92 +971,36 @@ def calculate_recommendations(
         except Exception:
             pass
 
-    # === COMPOUND RISK PATTERNS ===
-    if not statistics_df.empty and "budget" in extended_metrics:
-        try:
-            # Calculate velocity CV for compound risks
-            velocity_cv = (
-                (
-                    statistics_df["completed_items"].std()
-                    / statistics_df["completed_items"].mean()
-                    * 100
-                )
-                if statistics_df["completed_items"].mean() > 0
-                else 0
-            )
-
-            # H1: High Variance + Scope Growth (CRITICAL compound risk)
-            if (
-                velocity_cv > 40
-                and "created_items" in statistics_df.columns
-                and statistics_df["created_items"].sum()
-                > statistics_df["completed_items"].sum() * 0.2
-            ):
-                insights.append(
-                    {
-                        "severity": "danger",
-                        "message": (
-                            "Unstable Delivery + Scope Creep - High velocity "
-                            f"variation ({velocity_cv:.0f}%) combined with "
-                            "increasing scope creates critical delivery risk"
-                        ),
-                        "recommendation": (
-                            "Dual intervention required: (1) Stabilize velocity "
-                            "through consistent team capacity, better story "
-                            "sizing, and reduced context switching, "
-                            "(2) Implement strict change control to prevent "
-                            "scope additions until delivery stabilizes. "
-                            "Consider freezing new features until "
-                            "predictability improves."
-                        ),
-                    }
-                )
-
-            # H2: Low Runway + High Forecast Uncertainty (CRITICAL compound risk)
-            budget = extended_metrics["budget"]
-            if budget.get("has_data"):
-                import math
-
-                runway_weeks = budget.get("runway_weeks", 0)
-                pert_forecast_weeks = dashboard_metrics.get("pert_time_items_weeks", 0)
-                pert_pessimistic_weeks = (
-                    pert_forecast_weeks * 1.3 if pert_forecast_weeks else 0
-                )
-                pert_optimistic_weeks = (
-                    pert_forecast_weeks * 0.7 if pert_forecast_weeks else 0
-                )
-
-                if (
-                    not math.isinf(runway_weeks)
-                    and runway_weeks > 0
-                    and runway_weeks < 6
-                    and pert_optimistic_weeks > 0
-                    and pert_pessimistic_weeks > 0
-                    and (pert_pessimistic_weeks - pert_optimistic_weeks) > 4
-                ):
-                    insights.append(
-                        {
-                            "severity": "danger",
-                            "message": (
-                                "Budget Risk + Forecast Uncertainty - Limited "
-                                f"budget ({runway_weeks:.1f} weeks) combined "
-                                "with unpredictable delivery creates critical "
-                                "planning risk"
-                            ),
-                            "recommendation": (
-                                "Urgently stabilize project: "
-                                "(1) Define and commit to minimum viable scope "
-                                "that fits budget, (2) Increase forecast "
-                                "accuracy by breaking stories into smaller "
-                                "pieces and reducing WIP, (3) Secure budget "
-                                "contingency or prepare for partial delivery. "
-                                "Risk of budget overrun or incomplete delivery "
-                                "is high."
-                            ),
-                        }
-                    )
-        except Exception:
-            pass
+    # === CROSS-DOMAIN CORRELATION SIGNALS ===
+    # Construct pert_data from dashboard_metrics (same approximation used for
+    # deadline scenarios above: optimistic = 70%, pessimistic = 130%)
+    _pert_base = dashboard_metrics.get("pert_time_items", 0) or 0
+    _pert_data_for_signals = (
+        {
+            "pert_time_items": _pert_base,
+            "pert_optimistic_days": _pert_base * 0.7,
+            "pert_pessimistic_days": _pert_base * 1.3,
+        }
+        if _pert_base
+        else None
+    )
+    correlation_signals = build_correlation_signals(
+        statistics_df,
+        budget_data=extended_metrics.get("budget"),
+        pert_data=_pert_data_for_signals,
+        deadline=deadline,
+        bug_metrics=extended_metrics.get("bug_analysis"),
+        flow_metrics=extended_metrics.get("flow"),
+        dora_metrics=extended_metrics.get("dora"),
+    )
+    for _signal in correlation_signals:
+        insights.append(
+            {
+                "severity": _signal["severity"],
+                "message": _signal["message"],
+                "recommendation": _signal["recommendation"],
+            }
+        )
 
     # === REQUIRED PACE (if deadline set) ===
     if deadline and len(statistics_df) > 0:
