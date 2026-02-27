@@ -355,8 +355,21 @@ def generate_weekly_breakdown_chart(
         except (ValueError, ZeroDivisionError):
             pass  # Skip if date parsing fails
 
-    # Build datasets with explicit order (lower order = rendered on top)
-    # Bars get order 2, lines get order 0 (render on top)
+    # Extend dates to include forecast week before building datasets
+    if forecast_items:
+        forecast_dates = dates + [forecast_items["date"]]
+        dates_js = json.dumps(forecast_dates)
+
+    # Build datasets in legend display order:
+    # 1. Actual bars (Items Completed, Points Completed)
+    # 2. EWMA forecast markers
+    # 3. PERT forecast bars
+    # 4. Required velocity reference lines
+    # Chart.js render order: lower order value = rendered on top
+    # order values control both legend sequence and tooltip ordering in Chart.js.
+    # Lower order = earlier in legend. Assign 1-8 in desired display sequence:
+    #   1=Items Completed, 2=Points Completed, 3=EWMA Items, 4=EWMA Points,
+    #   5=PERT Items, 6=PERT Points, 7=Required Items, 8=Required Points
     datasets = [
         {
             "type": "bar",
@@ -364,11 +377,10 @@ def generate_weekly_breakdown_chart(
             "data": items_completed,
             "backgroundColor": "#0d6efd",
             "yAxisID": "y",
-            "order": 2,  # Bars in back
+            "order": 1,
         }
     ]
 
-    # Add points bar if enabled
     if show_points:
         datasets.append(
             {
@@ -377,72 +389,56 @@ def generate_weekly_breakdown_chart(
                 "data": points_completed,
                 "backgroundColor": "#fd7e14",
                 "yAxisID": "y1",
-                "order": 2,  # Bars in back
+                "order": 2,
             }
         )
 
-    # Add required velocity lines with order 0 (render on top of bars)
-    # Use distinct colors: violet for items, red for points (not blue/orange like bars)
-    if required_items:
-        required_items_data = [required_items] * len(items_completed)
-        # Extend for forecast if available
-        if forecast_items:
-            required_items_data.append(required_items)
+    # EWMA forecast markers (value embedded in label)
+    if ewma_items and forecast_items:
+        ewma_items_data = [None] * len(items_completed) + [ewma_items]
         datasets.append(
             {
-                "type": "line",
-                "label": f"Required: {required_items:.1f} items/week",
-                "data": required_items_data,
-                "borderColor": "#8b5cf6",  # Violet
-                "borderWidth": 3,
-                "borderDash": [8, 4],
-                "fill": False,
+                "type": "scatter",
+                "label": f"EWMA Forecast (Items): {ewma_items:.1f}",
+                "data": ewma_items_data,
+                "backgroundColor": "#0d6efd",
+                "pointRadius": 8,
+                "pointStyle": "triangle",
                 "yAxisID": "y",
-                "pointRadius": 0,
-                "order": 0,  # Lines on top
+                "order": 3,
             }
         )
 
-    if show_points and required_points:
-        required_points_data = [required_points] * len(points_completed)
-        # Extend for forecast if available
-        if forecast_points:
-            required_points_data.append(required_points)
+    if show_points and ewma_points and forecast_points:
+        ewma_points_data = [None] * len(points_completed) + [ewma_points]
         datasets.append(
             {
-                "type": "line",
-                "label": f"Required: {required_points:.1f} points/week",
-                "data": required_points_data,
-                "borderColor": "#dc2626",  # Red
-                "borderWidth": 3,
-                "borderDash": [8, 4],
-                "fill": False,
+                "type": "scatter",
+                "label": f"EWMA Forecast (Points): {ewma_points:.1f}",
+                "data": ewma_points_data,
+                "backgroundColor": "#fd7e14",
+                "pointRadius": 8,
+                "pointStyle": "triangle",
                 "yAxisID": "y1",
-                "pointRadius": 0,
-                "order": 0,  # Lines on top
+                "order": 4,
             }
         )
 
-    # Add PERT forecast bars if available
+    # PERT forecast bars (value embedded in label)
     if forecast_items:
-        # Extend dates to include forecast
-        forecast_dates = dates + [forecast_items["date"]]
-        dates_js = json.dumps(forecast_dates)
-
-        # Pad historical data with null for forecast position
         forecast_items_data = [None] * len(items_completed) + [
             forecast_items["most_likely"]
         ]
         datasets.append(
             {
                 "type": "bar",
-                "label": "PERT Forecast (Items)",
+                "label": f"PERT Forecast (Items): {forecast_items['most_likely']:.1f}",
                 "data": forecast_items_data,
                 "backgroundColor": "rgba(13, 110, 253, 0.4)",
                 "borderColor": "#0d6efd",
                 "borderWidth": 2,
                 "yAxisID": "y",
-                "order": 2,
+                "order": 5,
             }
         )
 
@@ -453,47 +449,53 @@ def generate_weekly_breakdown_chart(
         datasets.append(
             {
                 "type": "bar",
-                "label": "PERT Forecast (Points)",
+                "label": f"PERT Forecast (Points): {forecast_points['most_likely']:.1f}",
                 "data": forecast_points_data,
                 "backgroundColor": "rgba(253, 126, 20, 0.4)",
                 "borderColor": "#fd7e14",
                 "borderWidth": 2,
                 "yAxisID": "y1",
-                "order": 2,
+                "order": 6,
             }
         )
 
-    # Add EWMA forecast markers if available
-    # Use array-based positioning to align with forecast bars
-    if ewma_items and forecast_items:
-        # Pad with nulls to align with forecast position in extended dates array
-        ewma_items_data = [None] * len(items_completed) + [ewma_items]
+    # Required velocity reference lines (last in legend)
+    # Use distinct colors: violet for items, red for points
+    if required_items:
+        required_items_data = [required_items] * len(items_completed)
+        if forecast_items:
+            required_items_data.append(required_items)
         datasets.append(
             {
-                "type": "scatter",
-                "label": "EWMA Forecast (Items)",
-                "data": ewma_items_data,
-                "backgroundColor": "#0d6efd",  # Blue to match items bars
-                "pointRadius": 8,
-                "pointStyle": "triangle",
+                "type": "line",
+                "label": f"Required: {required_items:.1f} items/week",
+                "data": required_items_data,
+                "borderColor": "#8b5cf6",
+                "borderWidth": 3,
+                "borderDash": [8, 4],
+                "fill": False,
                 "yAxisID": "y",
-                "order": 1,
+                "pointRadius": 0,
+                "order": 7,
             }
         )
 
-    if show_points and ewma_points and forecast_points:
-        # Pad with nulls to align with forecast position in extended dates array
-        ewma_points_data = [None] * len(points_completed) + [ewma_points]
+    if show_points and required_points:
+        required_points_data = [required_points] * len(points_completed)
+        if forecast_points:
+            required_points_data.append(required_points)
         datasets.append(
             {
-                "type": "scatter",
-                "label": "EWMA Forecast (Points)",
-                "data": ewma_points_data,
-                "backgroundColor": "#fd7e14",  # Orange to match points bars
-                "pointRadius": 8,
-                "pointStyle": "triangle",
+                "type": "line",
+                "label": f"Required: {required_points:.1f} points/week",
+                "data": required_points_data,
+                "borderColor": "#dc2626",
+                "borderWidth": 3,
+                "borderDash": [8, 4],
+                "fill": False,
                 "yAxisID": "y1",
-                "order": 1,
+                "pointRadius": 0,
+                "order": 8,
             }
         )
 
@@ -563,12 +565,18 @@ def generate_weekly_breakdown_chart(
                                 }},
                                 label: function(context) {{
                                     let label = context.dataset.label || '';
+                                    // Suppress entirely when no data value (PERT/EWMA on historical weeks)
+                                    if (context.parsed.y === null || context.parsed.y === undefined) {{
+                                        return null;
+                                    }}
+                                    // Labels with embedded values - return as-is without appending again
+                                    if (label.startsWith('Required:') || label.startsWith('EWMA Forecast') || label.startsWith('PERT Forecast')) {{
+                                        return label;
+                                    }}
                                     if (label) {{
                                         label += ': ';
                                     }}
-                                    if (context.parsed.y !== null) {{
-                                        label += context.parsed.y.toFixed(1);
-                                    }}
+                                    label += context.parsed.y.toFixed(1);
                                     return label;
                                 }}
                             }}
