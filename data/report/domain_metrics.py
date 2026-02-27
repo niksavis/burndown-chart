@@ -327,6 +327,29 @@ def calculate_scope_metrics(
         else 0
     )
 
+    # Scope health badge — derived from items_ratio (created / completed).
+    # Guard: if nothing was completed but items were created, treat as growing.
+    _no_completions = total_completed_items == 0 and total_created_items > 0
+    if _no_completions or items_ratio >= 1.1:
+        scope_health = "Scope Growing"
+        scope_health_color = "#dc3545"
+        scope_health_icon = "fas fa-exclamation-triangle"
+        scope_health_desc = "Creating faster than completing — backlog is expanding"
+    elif items_ratio < 0.8:
+        scope_health = "On Track"
+        scope_health_color = "#198754"
+        scope_health_icon = "fas fa-shield-alt"
+        scope_health_desc = (
+            "Completing significantly more than creating — backlog is burning down"
+        )
+    else:
+        scope_health = "At Risk"
+        scope_health_color = "#fd7e14"
+        scope_health_icon = "fas fa-exclamation-circle"
+        scope_health_desc = (
+            "Scope and delivery are roughly balanced — monitor for backlog growth"
+        )
+
     return {
         "has_data": True,
         "initial_items": initial_items,
@@ -342,6 +365,10 @@ def calculate_scope_metrics(
         "items_ratio": items_ratio,
         "points_ratio": points_ratio,
         "weeks_count": weeks_count,
+        "scope_health": scope_health,
+        "scope_health_color": scope_health_color,
+        "scope_health_icon": scope_health_icon,
+        "scope_health_desc": scope_health_desc,
     }
 
 
