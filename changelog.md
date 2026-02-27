@@ -1,5 +1,22 @@
 # Changelog
 
+## v2.13.1
+
+_Released: 2026-02-27_
+
+### Bug Fixes
+
+- **Active Work epic counts** no longer include closed epics in the weekly completed item total, giving more accurate progress numbers
+- **Completed Work section** now preserves the correct epic name instead of overwriting it with the wrong value
+- **Field mapping modal** now prefetches field values when the modal opens, so dropdowns are immediately usable without an extra click
+- **Modal dropdowns** render above overlapping elements correctly on all screen sizes
+- Python 3.11 compatibility restored — multi-line f-strings that required Python 3.12 have been rewritten
+
+### Improvements
+
+- DORA and flow metric callbacks split into separate modules for better load performance and maintainability
+- Entire codebase now enforces a strict line-length limit via Ruff, reducing noise in future diffs
+
 ## v2.13.0
 
 _Released: 2026-02-18_
