@@ -490,12 +490,67 @@ def calculate_flow_metrics(
         logger.info("No meaningful Flow data - all metrics are zero")
         return {"has_data": False, "weeks_count": weeks_count}
 
+    # Compute overall Flow performance level using the same thresholds as the
+    # report_macros.html color helpers (single canonical source per metric).
+    _fv_score = (
+        3
+        if avg_velocity >= 20
+        else (2 if avg_velocity >= 10 else (1 if avg_velocity >= 5 else 0))
+    )
+    _ft_score = (
+        3
+        if median_flow_time <= 3
+        else (2 if median_flow_time <= 7 else (1 if median_flow_time <= 14 else 0))
+    )
+    _fe_score = (
+        3
+        if avg_efficiency >= 60
+        else (2 if avg_efficiency >= 40 else (1 if avg_efficiency >= 25 else 0))
+    )
+    _fw_score = (
+        3 if wip_count < 10 else (2 if wip_count < 20 else (1 if wip_count < 30 else 0))
+    )
+    _flow_score = _fv_score + _ft_score + _fe_score + _fw_score
+    if _flow_score >= 10:
+        _flow_meta: dict[str, str] = {
+            "label": "High Performance",
+            "color": "#198754",
+            "icon": "fas fa-trophy",
+            "desc": "Fast, efficient flow with low WIP and short cycle times",
+        }
+    elif _flow_score >= 7:
+        _flow_meta = {
+            "label": "Moderate",
+            "color": "#0d6efd",
+            "icon": "fas fa-chart-line",
+            "desc": "Solid flow with some metrics that could be optimised",
+        }
+    elif _flow_score >= 4:
+        _flow_meta = {
+            "label": "Developing",
+            "color": "#fd7e14",
+            "icon": "fas fa-exclamation-circle",
+            "desc": "Flow is inconsistent — reduce WIP and improve cycle time",
+        }
+    else:
+        _flow_meta = {
+            "label": "Needs Improvement",
+            "color": "#dc3545",
+            "icon": "fas fa-exclamation-triangle",
+            "desc": "Significant flow bottlenecks detected across multiple dimensions",
+        }
+
     return {
         "has_data": True,
         "velocity": avg_velocity,  # Average items/week
         "flow_time": round(median_flow_time, 1),  # Median days
         "efficiency": avg_efficiency,  # Average percentage
         "wip": wip_count,  # Current WIP count
+        # Overall performance level derived from all four flow metric tiers
+        "performance_level": _flow_meta["label"],
+        "performance_level_color": _flow_meta["color"],
+        "performance_level_icon": _flow_meta["icon"],
+        "performance_level_desc": _flow_meta["desc"],
         "work_distribution": {
             "feature": total_feature,
             "defect": total_defect,
@@ -581,6 +636,66 @@ def calculate_dora_metrics(profile_id: str, weeks_count: int) -> dict[str, Any]:
         logger.info("No meaningful DORA data - all metrics are zero or None")
         return {"has_data": False, "weeks_count": weeks_count}
 
+    # Compute overall DORA tier using the same classify function as the app.
+    # Deployment frequency is per-week here; thresholds are per-day -> divide by 7.
+    from data.dora_metrics import (
+        CHANGE_FAILURE_RATE_TIERS,
+        DEPLOYMENT_FREQUENCY_TIERS,
+        LEAD_TIME_TIERS,
+        MTTR_TIERS,
+        _classify_performance_tier,
+    )
+
+    _tier_order = ["elite", "high", "medium", "low"]
+    _df_tier = _classify_performance_tier(
+        deployment_freq / 7, DEPLOYMENT_FREQUENCY_TIERS, higher_is_better=True
+    )
+    _lt_tier = (
+        _classify_performance_tier(
+            lead_time_days, LEAD_TIME_TIERS, higher_is_better=False
+        )
+        if lead_time_days
+        else "elite"
+    )
+    _cfr_tier = _classify_performance_tier(
+        change_failure_rate, CHANGE_FAILURE_RATE_TIERS, higher_is_better=False
+    )
+    _mttr_tier = (
+        _classify_performance_tier(mttr_hours, MTTR_TIERS, higher_is_better=False)
+        if mttr_hours
+        else "elite"
+    )
+    _worst = max(
+        [_df_tier, _lt_tier, _cfr_tier, _mttr_tier],
+        key=lambda t: _tier_order.index(t),
+    )
+    _dora_tier_meta: dict[str, str] = {
+        "elite": {
+            "label": "Elite",
+            "color": "#198754",
+            "icon": "fas fa-trophy",
+            "desc": "Top-performing team — on-demand delivery with high stability",
+        },
+        "high": {
+            "label": "High",
+            "color": "#0d6efd",
+            "icon": "fas fa-star",
+            "desc": "Strong delivery cadence and recovery capability",
+        },
+        "medium": {
+            "label": "Medium",
+            "color": "#fd7e14",
+            "icon": "fas fa-chart-line",
+            "desc": "Delivery is established but has room for improvement",
+        },
+        "low": {
+            "label": "Low",
+            "color": "#dc3545",
+            "icon": "fas fa-exclamation-triangle",
+            "desc": "Significant improvements needed in delivery and recovery",
+        },
+    }[_worst]
+
     return {
         "has_data": True,
         "deployment_frequency": deployment_freq,  # Releases per week
@@ -596,6 +711,11 @@ def calculate_dora_metrics(profile_id: str, weeks_count: int) -> dict[str, Any]:
         "mttr_days": mttr_days,  # Days (None if no data) - keep for report charts
         "weekly_labels": weekly_labels,  # For charts
         "weeks_count": weeks_count,
+        # Overall tier (worst single-metric tier across all four DORA metrics)
+        "overall_tier": _dora_tier_meta["label"],
+        "overall_tier_color": _dora_tier_meta["color"],
+        "overall_tier_icon": _dora_tier_meta["icon"],
+        "overall_tier_desc": _dora_tier_meta["desc"],
         # Include full cached data for detailed reporting
         "_raw": cached_metrics,
     }

@@ -9,6 +9,18 @@
     <p class="text-center text-muted mb-4">
       <i class="fas fa-info-circle"></i> {{ metrics.dora.weeks_count }}-Week Period • Lead Time & MTTR: median of weekly medians. Deployment Frequency: average. CFR: aggregate rate.
     </p>
+    <!-- DORA performance tier badge -->
+    <div class="d-flex align-items-center justify-content-center gap-2 mb-4">
+      <span style="background: {{ metrics.dora.overall_tier_color }};
+                   color: #fff;
+                   padding: 0.2rem 0.75rem;
+                   border-radius: 1rem;
+                   font-size: 0.85rem;
+                   font-weight: 600">
+        <i class="{{ metrics.dora.overall_tier_icon }} me-1"></i>DORA Tier: {{ metrics.dora.overall_tier }}
+      </span>
+      <span class="text-muted" style="font-size: 0.85rem">{{ metrics.dora.overall_tier_desc }}</span>
+    </div>
     {% set df_color = macros.get_deployment_frequency_color(metrics.dora.deployment_frequency) %}
     {% set lt_color = macros.get_lead_time_color(metrics.dora.lead_time_days if metrics.dora.lead_time_days else 999) %}
     {% set cfr_color = macros.get_cfr_color(metrics.dora.change_failure_rate) %}

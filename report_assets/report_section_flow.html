@@ -9,6 +9,18 @@
     <p class="text-center text-muted mb-4">
       <i class="fas fa-info-circle"></i> {{ metrics.flow.weeks_count }}-Week Period • 4-week weighted average (40%, 30%, 20%, 10%)
     </p>
+    <!-- Flow performance level badge -->
+    <div class="d-flex align-items-center justify-content-center gap-2 mb-4">
+      <span style="background: {{ metrics.flow.performance_level_color }};
+                   color: #fff;
+                   padding: 0.2rem 0.75rem;
+                   border-radius: 1rem;
+                   font-size: 0.85rem;
+                   font-weight: 600">
+        <i class="{{ metrics.flow.performance_level_icon }} me-1"></i>Flow: {{ metrics.flow.performance_level }}
+      </span>
+      <span class="text-muted" style="font-size: 0.85rem">{{ metrics.flow.performance_level_desc }}</span>
+    </div>
     {% set velocity_color = macros.get_flow_velocity_color(metrics.flow.velocity) %}
     {% set time_color = macros.get_flow_time_color(metrics.flow.flow_time) %}
     {% set efficiency_color = macros.get_flow_efficiency_color(metrics.flow.efficiency) %}

@@ -5,6 +5,35 @@
       <i class="fas fa-bug"></i>
       Bug Analysis
     </h2>
+    <!-- Bug Health badge -->
+    {% set bug_rate = metrics.bug_analysis.resolution_rate %}
+    {% if bug_rate >= 75 %}
+      {% set bug_status = "Healthy" %}
+      {% set bug_color = "#198754" %}
+      {% set bug_icon = "fas fa-shield-alt" %}
+      {% set bug_desc = "Resolution rate is high — bugs are being resolved effectively" %}
+    {% elif bug_rate >= 50 %}
+      {% set bug_status = "Moderate" %}
+      {% set bug_color = "#fd7e14" %}
+      {% set bug_icon = "fas fa-exclamation-circle" %}
+      {% set bug_desc = "Resolution rate is moderate — monitor for backlog growth" %}
+    {% else %}
+      {% set bug_status = "Critical" %}
+      {% set bug_color = "#dc3545" %}
+      {% set bug_icon = "fas fa-exclamation-triangle" %}
+      {% set bug_desc = "Low resolution rate — bug backlog may be growing faster than it is resolved" %}
+    {% endif %}
+    <div class="d-flex align-items-center gap-2 mb-3">
+      <span style="background: {{ bug_color }};
+                   color: #fff;
+                   padding: 0.2rem 0.75rem;
+                   border-radius: 1rem;
+                   font-size: 0.85rem;
+                   font-weight: 600">
+        <i class="{{ bug_icon }} me-1"></i>Bug Health: {{ bug_status }}
+      </span>
+      <span class="text-muted" style="font-size: 0.85rem">{{ bug_desc }}</span>
+    </div>
     <div class="velocity-cards">
       <div class="velocity-card" style="border-left-color: var(--color-red);">
         <div class="velocity-card-title">
@@ -36,6 +65,17 @@
             {% else %}
               <span class="velocity-card-unit">weeks</span>
             {% endif %}
+          </div>
+        </div>
+      {% endif %}
+      {% if metrics.bug_analysis.bug_investment_pct is defined and metrics.bug_analysis.bug_investment_pct > 0 %}
+        <div class="velocity-card" style="border-left-color: #dc3545;">
+          <div class="velocity-card-title">
+            <i class="fas fa-percentage"></i> Bug Capacity
+          </div>
+          <div class="velocity-card-value" style="color: #dc3545;">
+            {{ metrics.bug_analysis.bug_investment_pct|dec1 }}%
+            <span class="velocity-card-unit">of team throughput on bugs</span>
           </div>
         </div>
       {% endif %}
