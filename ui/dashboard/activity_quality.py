@@ -94,86 +94,112 @@ def create_recent_activity_section(
             last_week_label = recent_data["week_label"].iloc[-1]
         current_week_label = additional_context["current_week_label"]
 
-        if last_week_label == current_week_label:
-            # Current week is in recent data - apply blending
-            items_values = items_sparkline_values.copy()
+        # Determine if current week already has a row in the recent data.
+        # On Monday before Update Data runs, the new ISO week is not yet
+        # in the database; recent_data contains only prior weeks.
+        # We still want to show blending using actual=0 (nothing done yet).
+        current_week_in_data = last_week_label == current_week_label
+        logger.info(
+            "[Blending-RecentCompletions] current_week_in_data=%s "
+            "(last_week=%s, current=%s)",
+            current_week_in_data,
+            last_week_label,
+            current_week_label,
+        )
 
-            if len(items_values) >= 2:
-                current_week_actual = items_values[-1]
-                prior_weeks = items_values[:-1]
-                forecast_weeks = (
-                    prior_weeks[-4:] if len(prior_weeks) >= 4 else prior_weeks
+        items_values = items_sparkline_values.copy()
+
+        if current_week_in_data and len(items_values) >= 2:
+            # Current week row exists: last value is the partial actual
+            current_week_actual = items_values[-1]
+            prior_weeks = items_values[:-1]
+        elif not current_week_in_data and len(items_values) >= 2:
+            # Current week not yet in data (e.g., Monday before Update Data)
+            # No items completed yet this week; all rows are prior history
+            current_week_actual = 0.0
+            prior_weeks = items_values
+        else:
+            prior_weeks = []
+
+        if prior_weeks:
+            forecast_weeks = prior_weeks[-4:] if len(prior_weeks) >= 4 else prior_weeks
+
+            # Calculate items forecast
+            if len(forecast_weeks) >= 2:
+                try:
+                    forecast_weeks_float = [float(v) for v in forecast_weeks]
+                    forecast_data = calculate_forecast(forecast_weeks_float)
+                    forecast_value = (
+                        forecast_data.get("forecast_value", 0) if forecast_data else 0
+                    )
+
+                    if forecast_value > 0:
+                        items_blend_metadata = get_blend_metadata(
+                            current_week_actual, forecast_value
+                        )
+                        logger.info(
+                            "[Blending-RecentCompletions-Items] "
+                            "Actual: %.1f, Forecast: %.1f, Blended: %.1f",
+                            current_week_actual,
+                            forecast_value,
+                            items_blend_metadata["blended"],
+                        )
+                except Exception as e:
+                    logger.warning(
+                        "Failed to calculate items forecast for "
+                        "recent completions blending: %s",
+                        e,
+                    )
+
+        # Calculate points blend metadata
+        if has_points_data and show_points:
+            points_values = points_sparkline_values.copy()
+
+            if current_week_in_data and len(points_values) >= 2:
+                current_week_actual_pts = points_values[-1]
+                prior_weeks_pts = points_values[:-1]
+            elif not current_week_in_data and len(points_values) >= 2:
+                current_week_actual_pts = 0.0
+                prior_weeks_pts = points_values
+            else:
+                prior_weeks_pts = []
+
+            if prior_weeks_pts:
+                forecast_weeks_pts = (
+                    prior_weeks_pts[-4:]
+                    if len(prior_weeks_pts) >= 4
+                    else prior_weeks_pts
                 )
 
-                # Calculate items forecast
-                if len(forecast_weeks) >= 2:
+                if len(forecast_weeks_pts) >= 2:
                     try:
-                        forecast_weeks_float = [float(v) for v in forecast_weeks]
-                        forecast_data = calculate_forecast(forecast_weeks_float)
-                        forecast_value = (
-                            forecast_data.get("forecast_value", 0)
-                            if forecast_data
+                        forecast_weeks_pts_float = [
+                            float(v) for v in forecast_weeks_pts
+                        ]
+                        forecast_data_pts = calculate_forecast(forecast_weeks_pts_float)
+                        forecast_value_pts = (
+                            forecast_data_pts.get("forecast_value", 0)
+                            if forecast_data_pts
                             else 0
                         )
 
-                        if forecast_value > 0:
-                            items_blend_metadata = get_blend_metadata(
-                                current_week_actual, forecast_value
+                        if forecast_value_pts > 0:
+                            points_blend_metadata = get_blend_metadata(
+                                current_week_actual_pts, forecast_value_pts
                             )
                             logger.info(
-                                "[Blending-RecentCompletions-Items] "
-                                f"Actual: {current_week_actual:.1f}, "
-                                f"Forecast: {forecast_value:.1f}, "
-                                f"Blended: {items_blend_metadata['blended']:.1f}"
+                                "[Blending-RecentCompletions-Points] "
+                                "Actual: %.1f, Forecast: %.1f, Blended: %.1f",
+                                current_week_actual_pts,
+                                forecast_value_pts,
+                                points_blend_metadata["blended"],
                             )
                     except Exception as e:
                         logger.warning(
-                            "Failed to calculate items forecast for "
-                            f"recent completions blending: {e}"
+                            "Failed to calculate points forecast for "
+                            "recent completions blending: %s",
+                            e,
                         )
-
-            # Calculate points blend metadata
-            if has_points_data and show_points:
-                points_values = points_sparkline_values.copy()
-
-                if len(points_values) >= 2:
-                    current_week_actual_pts = points_values[-1]
-                    prior_weeks_pts = points_values[:-1]
-                    forecast_weeks_pts = (
-                        prior_weeks_pts[-4:]
-                        if len(prior_weeks_pts) >= 4
-                        else prior_weeks_pts
-                    )
-
-                    if len(forecast_weeks_pts) >= 2:
-                        try:
-                            forecast_weeks_pts_float = [
-                                float(v) for v in forecast_weeks_pts
-                            ]
-                            forecast_data_pts = calculate_forecast(
-                                forecast_weeks_pts_float
-                            )
-                            forecast_value_pts = (
-                                forecast_data_pts.get("forecast_value", 0)
-                                if forecast_data_pts
-                                else 0
-                            )
-
-                            if forecast_value_pts > 0:
-                                points_blend_metadata = get_blend_metadata(
-                                    current_week_actual_pts, forecast_value_pts
-                                )
-                                logger.info(
-                                    "[Blending-RecentCompletions-Points] "
-                                    f"Actual: {current_week_actual_pts:.1f}, "
-                                    f"Forecast: {forecast_value_pts:.1f}, "
-                                    f"Blended: {points_blend_metadata['blended']:.1f}"
-                                )
-                        except Exception as e:
-                            logger.warning(
-                                "Failed to calculate points forecast for "
-                                f"recent completions blending: {e}"
-                            )
 
     items_has_trend = len(items_sparkline_values) >= 2
     items_is_growing = (
