@@ -8,7 +8,7 @@ on:
 
 jobs:
   lint:
-    name: Pre-commit (Ruff, Djlint, Prettier, Markdownlint)
+    name: Lint (Ruff, Djlint, Prettier, Markdownlint, Pyright)
     runs-on: windows-latest
 
     steps:
@@ -37,4 +37,14 @@ jobs:
 
       - name: Pre-commit run (all files)
         run: pre-commit run --all-files
+        shell: pwsh
+
+      - name: Install dependencies for Pyright
+        run: |
+          pip install -r requirements.txt
+          pip install pyright
+        shell: pwsh
+
+      - name: Pyright type check
+        run: pyright data/ callbacks/ ui/ visualization/
         shell: pwsh
