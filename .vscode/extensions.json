@@ -4,6 +4,7 @@
     "esbenp.prettier-vscode",
     "codezombiech.gitignore",
     "davidanson.vscode-markdownlint",
+    "monosans.djlint",
     "ms-python.python",
     "ms-python.vscode-pylance"
   ]

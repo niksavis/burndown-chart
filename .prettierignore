@@ -15,3 +15,9 @@ assets/vendor
 changelog_draft.json
 vendor_dependencies.txt
 report_dependencies.txt
+
+# Markdown is handled by markdownlint-cli2 / vscode-markdownlint
+*.md
+
+# Jinja/HTML templates are handled by djlint
+report_assets/**/*.html
