@@ -32,6 +32,15 @@
     "editor.defaultFormatter": "monosans.djlint",
     "editor.formatOnSave": true
   },
+  "markdownlint.config": {
+    "extends": ".markdownlint.json"
+  },
+  "json.schemas": [
+    {
+      "fileMatch": [".markdownlint.json"],
+      "url": "https://raw.githubusercontent.com/DavidAnson/markdownlint/v0.40.0/schema/markdownlint-config-schema.json"
+    }
+  ],
   "files.associations": {
     "**/report_assets/*.html": "jinja-html",
     ".prettierignore": "ignore",

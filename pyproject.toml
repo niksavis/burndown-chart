@@ -41,7 +41,17 @@ strip-extras = true
 pythonVersion = "3.13"
 typeCheckingMode = "basic"
 ignoreMissingImports = true
-exclude = [".venv", "build", "dist", "cache", "logs", "profiles"]
+exclude = [
+  ".venv",
+  "build",
+  "dist",
+  "cache",
+  "logs",
+  "profiles",
+  "node_modules",
+  "**/__pycache__",
+  "**/.*",
+]
 
 [tool.djlint]
 profile = "jinja"
