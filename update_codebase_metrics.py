@@ -54,7 +54,7 @@ CALIBRATION_FILES = [
     "ui/error_utils.py",
     "ui/layout.py",
     "ui/jira_config_modal.py",
-    "ui/metric_cards.py",
+    "ui/metric_cards/_success_card.py",
     "ui/dashboard.py",
     "ui/dora_flow_combined_dashboard.py",
     "ui/budget_cards.py",
