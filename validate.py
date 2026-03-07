@@ -140,10 +140,19 @@ def check_bandit() -> int:
 
 
 def check_pip_audit() -> int:
-    return _run(
-        "pip-audit (dependency audit)",
-        ["pip-audit", "-r", "requirements.txt"],
-    )
+    import json
+
+    baseline = ROOT / ".pip-audit-baseline.json"
+    cmd = ["pip-audit", "-r", "requirements.txt"]
+    if baseline.exists():
+        try:
+            data = json.loads(baseline.read_text(encoding="utf-8"))
+            for dep in data.get("dependencies", []):
+                for vuln in dep.get("vulns", []):
+                    cmd += ["--ignore-vuln", vuln["id"]]
+        except Exception:
+            pass
+    return _run("pip-audit (dependency audit)", cmd)
 
 
 def check_vulture() -> int:
@@ -168,6 +177,8 @@ def check_coverage() -> int:
         [
             "pytest",
             "tests/unit/",
+            "-n",
+            "auto",
             "--cov=data",
             "--cov=ui",
             "--cov=visualization",

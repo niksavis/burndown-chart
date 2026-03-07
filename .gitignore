@@ -281,6 +281,7 @@ models/*
 !.vscode/*.json
 !.github/codebase_context_metrics.json
 !.github/hooks/**/*.json
+!.pip-audit-baseline.json
 
 .playwright-mcp/
 playwright-screenshots/

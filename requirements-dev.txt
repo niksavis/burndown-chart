@@ -65,6 +65,8 @@ dash-bootstrap-components==2.0.2
     # via -r D:\Development\burndown-chart\requirements.txt
 defusedxml==0.7.1
     # via py-serializable
+detect-secrets==1.5.0
+    # via -r requirements-dev.in
 dill==0.4.0
     # via
     #   -r D:\Development\burndown-chart\requirements.txt
@@ -81,6 +83,8 @@ editorconfig==0.17.1
     # via
     #   cssbeautifier
     #   jsbeautifier
+execnet==2.1.2
+    # via pytest-xdist
 filelock==3.24.3
     # via
     #   cachecontrol
@@ -246,7 +250,10 @@ pytest==9.0.2
     # via
     #   -r requirements-dev.in
     #   pytest-cov
+    #   pytest-xdist
 pytest-cov==6.1.1
+    # via -r requirements-dev.in
+pytest-xdist==3.8.0
     # via -r requirements-dev.in
 python-dateutil==2.9.0.post0
     # via
@@ -262,6 +269,7 @@ pyyaml==6.0.2
     # via
     #   -r requirements-dev.in
     #   bandit
+    #   detect-secrets
     #   djlint
     #   pre-commit
 regex==2026.2.19
@@ -271,6 +279,7 @@ requests==2.32.3
     #   -r D:\Development\burndown-chart\requirements.txt
     #   cachecontrol
     #   dash
+    #   detect-secrets
     #   pip-audit
 retrying==1.4.2
     # via

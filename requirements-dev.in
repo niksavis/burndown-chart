@@ -11,6 +11,7 @@
 # Testing dependencies
 pytest>=8.3.5  # Kaleido requires pytest>=9.0, allow newer versions
 pytest-cov==6.1.1
+pytest-xdist>=3.0  # Parallel test execution (-n auto)
 playwright>=1.40.0
 
 # Build and packaging tools
@@ -30,5 +31,6 @@ pandas-stubs>=2.2.1 # Type stubs for pandas — eliminates false-positive pyrigh
 
 # Security and quality tools
 bandit>=1.8.0       # Python SAST security linter
+detect-secrets>=1.5 # Pre-commit credential/token scanner
 pip-audit>=2.7.0    # Dependency vulnerability scanning against OSV/PyPI advisories
 vulture>=2.11       # Dead code detection

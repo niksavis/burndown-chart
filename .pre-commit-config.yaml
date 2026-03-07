@@ -35,3 +35,16 @@ repos:
     hooks:
       - id: markdownlint
         args: [--config, .markdownlint.json]
+
+  - repo: https://github.com/Yelp/detect-secrets
+    rev: v1.5.0
+    hooks:
+      - id: detect-secrets
+        args: ['--baseline', '.secrets.baseline']
+        # Exclude auto-generated lock files and vendor bundles
+        exclude: |
+          (?x)^(
+            requirements.*\.txt|
+            package-lock\.json|
+            assets/vendor/.*
+          )$
