@@ -180,6 +180,9 @@ cython_debug/
 # Ruff stuff:
 .ruff_cache/
 
+# Node.js / npm (markdownlint-cli2 dev tooling)
+node_modules/
+
 # PyPI configuration file
 .pypirc
 
