@@ -52,3 +52,54 @@ def check_has_points_in_period(
 
     # Check if any points in the filtered period
     return df_check["completed_points"].sum() > 0
+
+
+def filter_df_by_week_labels(
+    df: pd.DataFrame,
+    data_points_count: int | None,
+) -> pd.DataFrame:
+    """
+    Filter a statistics DataFrame to the most recent N weeks using ISO week labels.
+
+    Falls back to date-range filtering when no ``week_label`` column is present.
+    The input DataFrame must have a ``date`` column.
+
+    Args:
+        df: Statistics DataFrame to filter.
+        data_points_count: Number of weeks to retain. None or 0 means no filtering.
+
+    Returns:
+        Filtered (and sorted ascending by date) DataFrame.
+    """
+    from datetime import datetime
+
+    from data.time_period_calculator import format_year_week, get_iso_week
+
+    if df.empty or not data_points_count or data_points_count <= 0:
+        return df
+
+    if "date" in df.columns:
+        df["date"] = pd.to_datetime(df["date"], format="mixed", errors="coerce")
+        current_date = df["date"].max()
+    else:
+        current_date = datetime.now()
+
+    weeks = []
+    for _i in range(data_points_count):
+        year, week = get_iso_week(current_date)
+        weeks.append(format_year_week(year, week))
+        current_date = current_date - timedelta(days=7)
+
+    week_labels = set(reversed(weeks))
+
+    if "week_label" in df.columns:
+        df = df[df["week_label"].isin(week_labels)]
+        return df.sort_values("date", ascending=True)
+
+    # Fallback: date-range filtering
+    df = df.dropna(subset=["date"]).sort_values("date", ascending=True)
+    if df.empty:
+        return df
+    latest_date = df["date"].max()
+    cutoff_date = latest_date - timedelta(weeks=data_points_count)
+    return df[df["date"] >= cutoff_date]
