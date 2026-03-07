@@ -39,8 +39,12 @@ jobs:
         run: pre-commit run --all-files
         shell: pwsh
 
-      - name: Install Pyright
-        run: pip install pyright
+      - name: Install project dependencies
+        run: pip install -r requirements.txt
+        shell: pwsh
+
+      - name: Install Pyright and type stubs
+        run: pip install pyright pandas-stubs
         shell: pwsh
 
       - name: Pyright type check
