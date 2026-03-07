@@ -53,13 +53,13 @@ class TestLazyLoadingImplementation:
             content = f.read()
 
         # Check for key lazy loading implementation elements
-        assert "LAZY LOADING:" in content, (
+        assert "lazy loading" in content, (
             "Lazy loading implementation should be documented"
         )
         assert "chart_cache" in content, "Client-side caching should be implemented"
         assert "ui_state" in content, "UI state management should be implemented"
         assert "cache_key" in content, "Cache key generation should be implemented"
-        assert "Only generate charts for the active tab" in content, (
+        assert "Only generates charts for the active tab" in content, (
             "Selective chart generation should be implemented"
         )
 
