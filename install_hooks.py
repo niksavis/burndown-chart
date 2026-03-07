@@ -103,6 +103,10 @@ PRE_COMMIT_HOOK = f"""\
 
 {_PYTHON_DETECT}
 
+if [ ! -f "validate.py" ]; then
+    exit 0  # Not in main worktree; skip.
+fi
+
 echo "[git-hook] pre-commit: running ruff checks..."
 "$PYTHON" validate.py --commit
 exit $?
@@ -120,6 +124,10 @@ PRE_PUSH_HOOK = f"""\
 {_BD_CALL_PREPUSH}
 
 {_PYTHON_DETECT}
+
+if [ ! -f "validate.py" ]; then
+    exit 0  # Not in main worktree; skip.
+fi
 
 echo "[git-hook] pre-push: running full quality gate..."
 "$PYTHON" validate.py
