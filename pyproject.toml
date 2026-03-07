@@ -40,7 +40,8 @@ strip-extras = true
 [tool.pyright]
 pythonVersion = "3.13"
 typeCheckingMode = "basic"
-ignoreMissingImports = true
+venvPath = "."
+venv = ".venv"
 exclude = [
   ".venv",
   "build",
