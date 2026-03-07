@@ -10,7 +10,7 @@ repos:
     rev: 1.9.4
     hooks:
       - id: bandit
-        args: ["-c", "pyproject.toml", "--severity-level", "medium", "--confidence-level", "medium"]
+        args: ['-c', 'pyproject.toml', '--severity-level', 'medium', '--confidence-level', 'medium']
         # Only scan project source; skip tests, vendor, and generated code
         files: ^(data|callbacks|ui|visualization|app\.py)
 
