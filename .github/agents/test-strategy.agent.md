@@ -2,8 +2,8 @@
 name: 'Test Strategy'
 description: 'Designs and applies focused tests for changed behavior'
 model:
-  - Claude Sonnet 4.6
   - GPT-5.3-Codex
+  - Claude Sonnet 4.6
 tools:
   [
     'search/codebase',

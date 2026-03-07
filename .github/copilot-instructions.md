@@ -138,6 +138,8 @@ For non-trivial implementation tasks (multi-file, refactor, migration, release, 
 - Test planning/updates: `test-strategy`.
 - Final completion gate: `repo-quality-guardian`.
 - Release readiness: `release-readiness`.
+- Architecture/decision trade-offs: `critical-thinking`.
+- Creating/updating agent files: `custom-agent-foundry`.
 
 ## Self-Evolving Specialization Loop (Required)
 

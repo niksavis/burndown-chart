@@ -2,8 +2,8 @@
 name: 'Critical Thinking'
 description: 'Challenges assumptions with structured questioning to improve decision quality before implementation'
 model:
-  - Claude Sonnet 4.6
   - GPT-5.3-Codex
+  - Claude Sonnet 4.6
 disable-model-invocation: true
 tools:
   [

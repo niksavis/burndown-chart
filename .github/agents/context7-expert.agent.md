@@ -2,8 +2,8 @@
 name: 'Context7 Expert'
 description: 'Fetches current library documentation with version-aware guidance and upgrade-safe recommendations'
 model:
-  - Claude Sonnet 4.6
   - GPT-5.3-Codex
+  - Claude Sonnet 4.6
 tools:
   [
     'search/codebase',
