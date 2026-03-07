@@ -20,7 +20,7 @@ repos:
       - id: prettier
         additional_dependencies:
           - prettier@3.6.2
-        files: \.(js|css|json|md|yml|yaml)$
+        files: \.(js|css|json|yml|yaml)$
 
   - repo: https://github.com/igorshubovych/markdownlint-cli
     rev: v0.45.0
