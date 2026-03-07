@@ -7,10 +7,14 @@ by the git hooks installed via install_hooks.py.  Also safe to run manually
 at any time.
 
 Modes (choose one):
-    python validate.py             # pre-push: all checks (default)
+    python validate.py             # pre-push: full suite (default)
     python validate.py --commit    # pre-commit: ruff lint + format only (~5s)
-    python validate.py --fast      # ruff + djlint + pyright, skip slow checks
+    python validate.py --fast      # ruff + djlint + pyright + bandit + eslint
     python validate.py --fix       # auto-fix ruff + djlint where possible
+
+Full gate (pre-push) includes:
+    ruff, djlint, pyright, bandit, pip-audit, vulture, eslint,
+    markdownlint, pytest with coverage threshold (~60%)
 
 Platform-agnostic: works on Windows, macOS, and Linux.
 """
@@ -39,7 +43,15 @@ def _run(label: str, cmd: list[str], *, check: bool = True) -> int:
 
 
 def _is_venv_tool(name: str) -> bool:
-    tool_names = {"ruff", "pyright", "djlint", "pytest"}
+    tool_names = {
+        "ruff",
+        "pyright",
+        "djlint",
+        "pytest",
+        "bandit",
+        "pip-audit",
+        "vulture",
+    }
     return name in tool_names
 
 
@@ -108,8 +120,62 @@ def check_markdownlint() -> int:
     )
 
 
-def check_tests() -> int:
-    return _run("pytest (unit tests)", ["pytest", "tests/unit/", "-v", "--tb=short"])
+def check_bandit() -> int:
+    candidates = ["data/", "callbacks/", "ui/", "visualization/", "app.py"]
+    targets = [t for t in candidates if (ROOT / t.rstrip("/")).exists()]
+    return _run(
+        "bandit (security lint)",
+        [
+            "bandit",
+            "-r",
+            *targets,
+            "-c",
+            "pyproject.toml",
+            "--severity-level",
+            "medium",
+            "--confidence-level",
+            "medium",
+        ],
+    )
+
+
+def check_pip_audit() -> int:
+    return _run(
+        "pip-audit (dependency audit)",
+        ["pip-audit", "-r", "requirements.txt"],
+    )
+
+
+def check_vulture() -> int:
+    candidates = ["data/", "callbacks/", "ui/", "visualization/", "app.py"]
+    targets = [t for t in candidates if (ROOT / t.rstrip("/")).exists()]
+    return _run(
+        "vulture (dead code)",
+        ["vulture", *targets, "--min-confidence", "80"],
+    )
+
+
+def check_eslint() -> int:
+    if NPX is None:
+        print("[validate] eslint: SKIP (npx not found)")
+        return 0
+    return _run("eslint (JS lint)", [NPX, "eslint", "assets/"])
+
+
+def check_coverage() -> int:
+    return _run(
+        "pytest (coverage)",
+        [
+            "pytest",
+            "tests/unit/",
+            "--cov=data",
+            "--cov=ui",
+            "--cov=visualization",
+            "--cov-report=term-missing",
+            "--cov-fail-under=60",
+            "-q",
+        ],
+    )
 
 
 def main() -> int:
@@ -160,6 +226,8 @@ def main() -> int:
             ("ruff (format)", check_ruff_format(fix=args.fix)),
             ("djlint", check_djlint(fix=args.fix)),
             ("pyright", check_pyright()),
+            ("bandit", check_bandit()),
+            ("eslint", check_eslint()),
         ]
     else:
         # Pre-push gate: full suite.
@@ -168,8 +236,12 @@ def main() -> int:
             ("ruff (format)", check_ruff_format(fix=args.fix)),
             ("djlint", check_djlint(fix=args.fix)),
             ("pyright", check_pyright()),
+            ("bandit", check_bandit()),
+            ("pip-audit", check_pip_audit()),
+            ("vulture", check_vulture()),
+            ("eslint", check_eslint()),
             ("markdownlint", check_markdownlint()),
-            ("pytest", check_tests()),
+            ("pytest (coverage)", check_coverage()),
         ]
 
     for name, code in checks:

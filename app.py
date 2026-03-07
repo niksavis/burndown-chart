@@ -799,7 +799,7 @@ if __name__ == "__main__":
             "Starting development server in DEBUG mode on "
             f"{server_config['host']}:{server_config['port']}..."
         )
-        app.run(debug=True, host=server_config["host"], port=server_config["port"])
+        app.run(debug=True, host=server_config["host"], port=server_config["port"])  # nosec B201 -- debug branch is only reached when server_config["debug"] is True (dev env, never production)
     else:
         logger.info(
             "Starting Waitress production server on "

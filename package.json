@@ -2,11 +2,14 @@
   "name": "burndown-chart",
   "version": "1.0.0",
   "private": true,
-  "description": "Dev tooling for burndown-chart (markdown linting)",
+  "description": "Dev tooling for burndown-chart (markdown linting, JS linting)",
   "scripts": {
-    "lint:md": "markdownlint-cli2 \"**/*.md\" \"#node_modules\" \"#.venv\" \"#build\" \"#cache\" \"#logs\" \"#profiles\""
+    "lint:md": "markdownlint-cli2 \"**/*.md\" \"#node_modules\" \"#.venv\" \"#build\" \"#cache\" \"#logs\" \"#profiles\"",
+    "lint:js": "eslint assets/"
   },
   "devDependencies": {
+    "@eslint/js": "^9.0.0",
+    "eslint": "^9.0.0",
     "markdownlint-cli2": "^0.21.0"
   }
 }

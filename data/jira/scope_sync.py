@@ -380,8 +380,9 @@ def sync_jira_scope_and_data(
                         "target_environment_values", []
                     ),
                 }
-                current_hash = hashlib.md5(
-                    json.dumps(relevant_settings, sort_keys=True).encode()
+                current_hash = hashlib.md5(  # nosec B324 — non-crypto cache key
+                    json.dumps(relevant_settings, sort_keys=True).encode(),
+                    usedforsecurity=False,
                 ).hexdigest()
 
                 # Check if settings hash has changed

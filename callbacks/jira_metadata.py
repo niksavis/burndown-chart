@@ -33,7 +33,7 @@ def _compute_config_hash(jira_config: dict[str, Any]) -> str:
     # Only hash values that affect metadata fetching
     relevant_keys = ["base_url", "token", "api_version"]
     hash_input = "|".join(str(jira_config.get(key, "")) for key in relevant_keys)
-    return hashlib.md5(hash_input.encode()).hexdigest()
+    return hashlib.md5(hash_input.encode(), usedforsecurity=False).hexdigest()
 
 
 def _fetch_jira_metadata(

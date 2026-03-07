@@ -205,7 +205,7 @@ def generate_config_hash(config: dict, fields: str) -> str:
         sort_keys=True,
     )
 
-    return hashlib.md5(config_str.encode("utf-8")).hexdigest()
+    return hashlib.md5(config_str.encode("utf-8"), usedforsecurity=False).hexdigest()
 
 
 def construct_jira_endpoint(base_url: str, api_version: str = "v2") -> str:

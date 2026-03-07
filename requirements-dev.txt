@@ -12,12 +12,20 @@ annotated-types==0.7.0
     #   pydantic
 autopep8==2.3.2
     # via -r requirements-dev.in
+bandit==1.9.4
+    # via -r requirements-dev.in
 blinker==1.9.0
     # via
     #   -r D:\Development\burndown-chart\requirements.txt
     #   flask
+boolean-py==5.0
+    # via license-expression
 build==1.4.0
     # via pip-tools
+cachecontrol==0.14.4
+    # via
+    #   cachecontrol
+    #   pip-audit
 certifi==2025.10.5
     # via
     #   -r D:\Development\burndown-chart\requirements.txt
@@ -37,6 +45,7 @@ click==8.3.0
 colorama==0.4.6
     # via
     #   -r D:\Development\burndown-chart\requirements.txt
+    #   bandit
     #   build
     #   click
     #   djlint
@@ -46,12 +55,16 @@ coverage==7.13.1
     # via pytest-cov
 cssbeautifier==1.15.4
     # via djlint
+cyclonedx-python-lib==11.6.0
+    # via pip-audit
 dash==3.1.1
     # via
     #   -r D:\Development\burndown-chart\requirements.txt
     #   dash-bootstrap-components
 dash-bootstrap-components==2.0.2
     # via -r D:\Development\burndown-chart\requirements.txt
+defusedxml==0.7.1
+    # via py-serializable
 dill==0.4.0
     # via
     #   -r D:\Development\burndown-chart\requirements.txt
@@ -69,7 +82,9 @@ editorconfig==0.17.1
     #   cssbeautifier
     #   jsbeautifier
 filelock==3.24.3
-    # via virtualenv
+    # via
+    #   cachecontrol
+    #   virtualenv
 flask==3.1.2
     # via
     #   -r D:\Development\burndown-chart\requirements.txt
@@ -104,12 +119,20 @@ json5==0.13.0
     # via djlint
 kaleido==0.2.1
     # via -r D:\Development\burndown-chart\requirements.txt
+license-expression==30.4.4
+    # via cyclonedx-python-lib
+markdown-it-py==4.0.0
+    # via rich
 markupsafe==3.0.3
     # via
     #   -r D:\Development\burndown-chart\requirements.txt
     #   flask
     #   jinja2
     #   werkzeug
+mdurl==0.1.2
+    # via markdown-it-py
+msgpack==1.1.2
+    # via cachecontrol
 multiprocess==0.70.18
     # via
     #   -r D:\Development\burndown-chart\requirements.txt
@@ -132,10 +155,14 @@ numpy==2.2.5
     #   pandas
     #   pandas-stubs
     #   scipy
+packageurl-python==0.17.6
+    # via cyclonedx-python-lib
 packaging==25.0
     # via
     #   -r D:\Development\burndown-chart\requirements.txt
     #   build
+    #   pip-audit
+    #   pip-requirements-parser
     #   plotly
     #   pyinstaller
     #   pyinstaller-hooks-contrib
@@ -153,12 +180,20 @@ pillow==12.1.0
     #   -r D:\Development\burndown-chart\requirements.txt
     #   -r requirements-dev.in
     #   pystray
+pip-api==0.0.34
+    # via pip-audit
+pip-audit==2.10.0
+    # via -r requirements-dev.in
 pip-licenses==5.5.0
     # via -r requirements-dev.in
+pip-requirements-parser==32.0.1
+    # via pip-audit
 pip-tools==7.4.1
     # via -r requirements-dev.in
 platformdirs==4.9.2
-    # via virtualenv
+    # via
+    #   pip-audit
+    #   virtualenv
 playwright==1.57.0
     # via -r requirements-dev.in
 plotly==6.0.1
@@ -175,6 +210,8 @@ psutil==6.1.1
     # via
     #   -r D:\Development\burndown-chart\requirements.txt
     #   dash
+py-serializable==2.1.0
+    # via cyclonedx-python-lib
 pycodestyle==2.14.0
     # via autopep8
 pydantic==2.12.4
@@ -186,11 +223,15 @@ pydantic-core==2.41.5
 pyee==13.0.0
     # via playwright
 pygments==2.19.2
-    # via pytest
+    # via
+    #   pytest
+    #   rich
 pyinstaller==6.18.0
     # via -r requirements-dev.in
 pyinstaller-hooks-contrib==2025.11
     # via pyinstaller
+pyparsing==3.3.2
+    # via pip-requirements-parser
 pyperclip==1.8.2
     # via -r D:\Development\burndown-chart\requirements.txt
 pyproject-hooks==1.2.0
@@ -220,6 +261,7 @@ pywin32-ctypes==0.2.3
 pyyaml==6.0.2
     # via
     #   -r requirements-dev.in
+    #   bandit
     #   djlint
     #   pre-commit
 regex==2026.2.19
@@ -227,11 +269,17 @@ regex==2026.2.19
 requests==2.32.3
     # via
     #   -r D:\Development\burndown-chart\requirements.txt
+    #   cachecontrol
     #   dash
+    #   pip-audit
 retrying==1.4.2
     # via
     #   -r D:\Development\burndown-chart\requirements.txt
     #   dash
+rich==14.3.3
+    # via
+    #   bandit
+    #   pip-audit
 ruff==0.15.2
     # via -r requirements-dev.in
 scipy==1.16.2
@@ -243,6 +291,14 @@ six==1.17.0
     #   jsbeautifier
     #   pystray
     #   python-dateutil
+sortedcontainers==2.4.0
+    # via cyclonedx-python-lib
+stevedore==5.7.0
+    # via bandit
+tomli==2.4.0
+    # via pip-audit
+tomli-w==1.2.0
+    # via pip-audit
 tqdm==4.67.3
     # via djlint
 typing-extensions==4.15.0
@@ -268,6 +324,8 @@ urllib3==2.5.0
     #   requests
 virtualenv==20.38.0
     # via pre-commit
+vulture==2.15
+    # via -r requirements-dev.in
 waitress==3.0.2
     # via -r D:\Development\burndown-chart\requirements.txt
 wcwidth==0.2.14

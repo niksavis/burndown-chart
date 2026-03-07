@@ -45,7 +45,10 @@ def render_template(
         template_dir = Path(sys._MEIPASS) / "report_assets"  # type: ignore[attr-defined]
     else:
         template_dir = Path(__file__).parent.parent.parent / "report_assets"
-    env = Environment(loader=FileSystemLoader(template_dir))
+    env = Environment(
+        loader=FileSystemLoader(template_dir),
+        autoescape=True,  # Prevent XSS when rendering JIRA data into HTML reports
+    )
 
     # Add number formatting filters
     def format_int(value):

@@ -289,7 +289,7 @@
      */
     isWordChar: function (ch) {
       if (!ch) return false;
-      return /[a-zA-Z0-9_.\-]/.test(ch);
+      return /[a-zA-Z0-9_.-]/.test(ch);
     },
   };
 

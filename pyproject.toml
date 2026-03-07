@@ -64,3 +64,22 @@ format_js = false
 # H016/H030/H031: title/meta live in report_head.html included partial
 # H021: inline styles are intentional for dynamic Jinja2 color values
 ignore = "H006,H013,H016,H021,H030,H031"
+
+[tool.bandit]
+# Directories excluded from security scanning
+exclude_dirs = [
+  ".venv",
+  "build",
+  "tests",
+  "cache",
+  "logs",
+  "profiles",
+  "node_modules",
+]
+# B311: standard pseudo-random generators are not used for security/crypto here
+skips = ["B311"]
+
+[tool.vulture]
+# Minimum confidence to report unused code (80 reduces Dash callback false positives)
+min_confidence = 80
+paths = ["data", "callbacks", "ui", "visualization", "app.py"]

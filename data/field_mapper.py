@@ -391,7 +391,7 @@ def get_field_mappings_hash() -> str:
         mappings_str = json.dumps(mappings, sort_keys=True)
 
         # Calculate hash
-        hash_object = hashlib.md5(mappings_str.encode())
+        hash_object = hashlib.md5(mappings_str.encode(), usedforsecurity=False)
         return hash_object.hexdigest()[:8]
 
     except Exception as e:

@@ -61,7 +61,7 @@
         <h2 style="margin: 0 0 1rem 0; font-size: 1.5rem; font-weight: 500;">
           Reconnecting...
         </h2>
-        <p style="margin: 0; opacity: 0.8; font-size: 1rem;\">\n          The application is restarting.\n        </p>
+        <p style="margin: 0; opacity: 0.8; font-size: 1rem;">\n          The application is restarting.\n        </p>
         <p style="margin: 0.5rem 0 0 0; opacity: 0.6; font-size: 0.9rem;">
           This page will reconnect automatically in a few moments.
         </p>
