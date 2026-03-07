@@ -69,56 +69,6 @@ class TestDecimalPrecision:
         assert round(med_items, 2) == 8.80
         assert round(med_points, 2) == 30.85
 
-    @pytest.mark.skip(
-        reason="Function _get_weekly_metrics not found - needs correct import path"
-    )
-    def test_get_weekly_metrics_precision(self, sample_dataframe):
-        """Test that _get_weekly_metrics preserves decimal precision."""
-        # g_avg_items, g_avg_points, g_med_items, g_med_points = _get_weekly_metrics(
-        #     sample_dataframe
-        # )
-        #
-        # # Check that values have decimal precision
-        # assert isinstance(g_avg_items, float)
-        # assert isinstance(g_avg_points, float)
-        # assert isinstance(g_med_items, float)
-        # assert isinstance(g_med_points, float)
-        #
-        # # Verify the expected values to 2 decimal places
-        # assert round(g_avg_items, 2) == 8.72
-        # assert round(g_avg_points, 2) == 30.48
-        # assert round(g_med_items, 2) == 8.80
-        # assert round(g_med_points, 2) == 30.85
-        pass
-
-    @pytest.mark.skip(
-        reason="Function _prepare_metrics_data not found - needs correct import path"
-    )
-    def test_prepare_metrics_data_precision(self, sample_dataframe):
-        """Test that _prepare_metrics_data preserves decimal precision."""
-        # metrics_data = _prepare_metrics_data(
-        #     total_items=50,
-        #     total_points=150,
-        #     deadline=pd.Timestamp("2023-06-30"),
-        #     pert_time_items=25,
-        #     pert_time_points=30,
-        #     data_points_count=10,
-        #     df=sample_dataframe,
-        #     items_completion_enhanced="2023-05-01",
-        #     points_completion_enhanced="2023-05-15",
-        #     avg_weekly_items=8.7,
-        #     avg_weekly_points=30.6,
-        #     med_weekly_items=7.5,
-        #     med_weekly_points=25.0,
-        # )
-        #
-        # # Check that input values are preserved
-        # assert abs(metrics_data["avg_weekly_items"] - 8.7) < 0.01
-        # assert abs(metrics_data["avg_weekly_points"] - 30.6) < 0.01
-        # assert abs(metrics_data["med_weekly_items"] - 7.5) < 0.01
-        # assert abs(metrics_data["med_weekly_points"] - 25.0) < 0.01
-        pass
-
 
 class TestUIComponentsFormatting:
     """Test cases for UI component formatting of decimal values."""

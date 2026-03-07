@@ -247,21 +247,6 @@ class TestHealthScoreConsistency:
         )
         assert health_diff > 0, "Health scores should differ when completion % differs"
 
-    @pytest.mark.skip(reason="Implementation pending - requires database setup")
-    def test_full_export_import_cycle_preserves_health_score(
-        self, profile_with_artificial_points, query_with_statistics
-    ):
-        """End-to-end test: Export and import profile, verify health score unchanged."""
-        # This test would require:
-        # 1. Creating a temporary database
-        # 2. Saving profile and query data
-        # 3. Exporting the profile
-        # 4. Importing to a new profile
-        # 5. Calculating health on both and comparing
-        #
-        # Skipped for now - would be an integration test
-        pass
-
 
 class TestShowPointsNormalization:
     """Test suite for show_points normalization across formats."""

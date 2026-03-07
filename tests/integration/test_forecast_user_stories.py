@@ -10,7 +10,6 @@ Run:
     pytest tests/integration/test_forecast_user_stories.py -v
 """
 
-import shutil
 import tempfile
 from datetime import UTC
 from pathlib import Path
@@ -41,7 +40,8 @@ def isolated_metrics_snapshots():
     from data.persistence.sqlite.backend import SQLiteBackend
 
     # Create temporary directory and database
-    temp_dir = tempfile.mkdtemp(prefix="forecast_test_")
+    _tmpdir = tempfile.TemporaryDirectory(prefix="forecast_test_")
+    temp_dir = _tmpdir.name
     temp_profiles_dir = Path(temp_dir) / "profiles"
     temp_profiles_dir.mkdir(parents=True, exist_ok=True)
     temp_db_path = Path(temp_profiles_dir / "test_burndown.db")
@@ -111,7 +111,7 @@ def isolated_metrics_snapshots():
         p.stop()
 
     reset_backend()
-    shutil.rmtree(temp_dir, ignore_errors=True)
+    _tmpdir.cleanup()
 
 
 def test_user_story_3_historical_review():

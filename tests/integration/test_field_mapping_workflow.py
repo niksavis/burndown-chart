@@ -4,7 +4,6 @@ Tests the complete workflow of configuring, saving, and using Jira field mapping
 Ensures proper isolation using tempfile and mocking.
 """
 
-import shutil
 import tempfile
 from pathlib import Path
 from unittest.mock import patch
@@ -29,7 +28,8 @@ class TestFieldMappingWorkflow:
         from data.persistence.factory import reset_backend
         from data.persistence.sqlite_backend import SQLiteBackend
 
-        temp_dir = tempfile.mkdtemp(prefix="field_mapping_test_")
+        _tmpdir = tempfile.TemporaryDirectory(prefix="field_mapping_test_")
+        temp_dir = _tmpdir.name
         temp_profiles_dir = Path(temp_dir) / "profiles"
         temp_profiles_dir.mkdir(parents=True, exist_ok=True)
         temp_db_path = str(temp_profiles_dir / "test_burndown.db")
@@ -67,7 +67,7 @@ class TestFieldMappingWorkflow:
             p.stop()
 
         reset_backend()
-        shutil.rmtree(temp_dir, ignore_errors=True)
+        _tmpdir.cleanup()
 
     @pytest.fixture
     def mock_jira_fields(self):

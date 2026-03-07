@@ -13,7 +13,6 @@ This is achieved through:
 The `isolate_test_data` fixture (autouse=True) ensures this for every test.
 """
 
-import shutil
 import sys
 import tempfile
 import threading
@@ -102,7 +101,8 @@ def isolate_test_data(temp_database):
             ...
     """
     # Create temporary root directory for all test data
-    temp_root = tempfile.mkdtemp(prefix="burndown_test_")
+    _tmpdir = tempfile.TemporaryDirectory(prefix="burndown_test_")
+    temp_root = _tmpdir.name
     temp_profiles_dir = Path(temp_root) / "profiles"
     temp_profiles_dir.mkdir(parents=True, exist_ok=True)
     temp_profiles_file = temp_profiles_dir / "profiles.json"
@@ -170,7 +170,7 @@ def isolate_test_data(temp_database):
         p.stop()
 
     # Cleanup temp directory
-    shutil.rmtree(temp_root, ignore_errors=True)
+    _tmpdir.cleanup()
 
 
 @pytest.fixture(scope="function")

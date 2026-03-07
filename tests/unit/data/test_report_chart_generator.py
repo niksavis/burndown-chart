@@ -322,7 +322,7 @@ class TestBurndownCharts:
         script = generate_weekly_breakdown_chart(
             weekly_data,
             False,
-            deadline="2026-03-01",
+            deadline="2028-01-01",
             remaining_items=50,
         )
 

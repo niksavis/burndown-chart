@@ -205,39 +205,6 @@ class TestBlendingIntegration:
 class TestProcessingIntegration:
     """Integration tests for blending in data/processing.py."""
 
-    @pytest.mark.skip(reason="Complex mocking - deferred to manual testing")
-    def test_calculate_weekly_averages_with_blending(self):
-        """Verify blending is applied in calculate_weekly_averages()."""
-        from datetime import datetime
-
-        from data.processing import calculate_weekly_averages
-
-        # TODO: Implement mock for metric snapshots
-        # Should verify calculate_weekly_averages()
-        # applies blending to current week
-        # Expected: Monday shows stable forecast, not raw actual
-
-        tuesday = datetime(2026, 2, 10, 10, 0)  # Week 10 = Tuesday
-
-        with (
-            patch("data.processing.datetime") as mock_datetime,
-            patch("data.metrics_snapshots.get_metric_weekly_values") as mock_get_values,
-            patch("data.metrics.blending.datetime") as mock_blend_datetime,
-        ):
-            # Setup mocks
-            mock_datetime.now.return_value = tuesday
-            mock_blend_datetime.now.return_value = tuesday
-            mock_get_values.return_value = [10.0, 11.0, 12.0, 13.0, 2.0]
-
-            # Call function
-            avg_items, _, _, _ = calculate_weekly_averages([], data_points_count=5)
-
-            # Verify Tuesday with actual=2, forecast=12.0
-            # (weighted average of [10, 11, 12, 13])
-            # Blended = (2 * 0.2) + (12.0 * 0.8) = 10.0
-            # Average of [10, 11, 12, 13, 10.0] = 11.2
-            assert avg_items == pytest.approx(11.2, abs=0.1)
-
 
 class TestUIIntegration:
     """Integration tests for UI display of blend metadata."""
