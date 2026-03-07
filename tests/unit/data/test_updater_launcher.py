@@ -72,22 +72,23 @@ def test_launch_updater_extracts_zip():
             # Add a fake updater executable
             zf.writestr("BurndownUpdater.exe", "mock updater content")
 
-        # Mock subprocess.Popen and sys.exit to prevent actual execution
+        # Mock subprocess.Popen and os._exit to prevent actual execution.
+        # launch_updater calls os._exit(0) (not sys.exit) for immediate termination;
+        # mocking os._exit with a SystemExit side-effect makes it catchable.
         with (
             patch("data.update_manager.subprocess.Popen") as mock_popen,
-            patch("data.update_manager.sys.exit") as mock_exit,
+            patch("data.update_manager.os._exit") as mock_exit,
         ):
             mock_popen.return_value = MagicMock()
-            # sys.exit raises SystemExit, so we need to mock it
             mock_exit.side_effect = SystemExit(0)
 
-            # This should succeed and call sys.exit
+            # This should succeed and call os._exit
             with pytest.raises(SystemExit):
                 launch_updater(temp_zip)
 
             # Verify that Popen was called
             assert mock_popen.called
-            # Verify that sys.exit was called with 0
+            # Verify that os._exit was called with 0
             mock_exit.assert_called_once_with(0)
 
     finally:
@@ -109,16 +110,19 @@ def test_launch_updater_passes_correct_arguments():
         with zipfile.ZipFile(temp_zip, "w") as zf:
             zf.writestr("BurndownUpdater.exe", "mock updater content")
 
-        # Mock subprocess.Popen and sys.exit
+        # Mock subprocess.Popen and os._exit.
+        # shutil.copy2 is also mocked to fail so the fallback path is taken,
+        # which keeps the args list at exactly 4 elements (no --updater-exe flag).
         with (
             patch("data.update_manager.subprocess.Popen") as mock_popen,
-            patch("data.update_manager.sys.exit") as mock_exit,
+            patch("data.update_manager.os._exit") as mock_exit,
             patch("data.update_manager.sys.frozen", False, create=True),
+            patch("data.update_manager.shutil.copy2", side_effect=OSError("test")),
         ):
             mock_popen.return_value = MagicMock()
             mock_exit.side_effect = SystemExit(0)
 
-            # This should succeed and call sys.exit
+            # This should succeed and call os._exit
             with pytest.raises(SystemExit):
                 launch_updater(temp_zip)
 
@@ -126,7 +130,7 @@ def test_launch_updater_passes_correct_arguments():
             assert mock_popen.called
             call_args = mock_popen.call_args[0][0]  # Get positional args list
 
-            # Should have 4 arguments: updater_exe, current_exe, update_zip, pid
+            # 4 args: updater_exe, current_exe, update_zip, pid (copy2 fallback path)
             assert len(call_args) == 4
             assert "BurndownUpdater.exe" in call_args[0]
             assert str(temp_zip) == call_args[2]
@@ -150,10 +154,11 @@ def test_launch_updater_finds_updater_in_subdirectory():
             # Add updater in a subdirectory
             zf.writestr("subdir/BurndownUpdater.exe", "mock updater content")
 
-        # Mock subprocess.Popen and sys.exit
+        # Mock subprocess.Popen and os._exit.
+        # launch_updater uses os._exit(0) for immediate termination.
         with (
             patch("data.update_manager.subprocess.Popen") as mock_popen,
-            patch("data.update_manager.sys.exit") as mock_exit,
+            patch("data.update_manager.os._exit") as mock_exit,
         ):
             mock_popen.return_value = MagicMock()
             mock_exit.side_effect = SystemExit(0)

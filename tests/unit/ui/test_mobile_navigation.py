@@ -344,12 +344,12 @@ class TestMobileNavigationIntegration:
         with open(css_file_path, encoding="utf-8") as f:
             css_content = f.read()
 
-        # Check for mobile navigation CSS imports
+        # Check for mobile navigation CSS imports (custom.css uses single quotes)
         import_lines = [
-            '@import url("layout/mobile-navigation.css");',
-            '@import url("components/drawer.css");',
-            '@import url("components/bottom-nav.css");',
-            '@import url("components/mobile-tabs.css");',
+            "@import url('layout/mobile-navigation.css');",
+            "@import url('components/drawer.css');",
+            "@import url('components/bottom-nav.css');",
+            "@import url('components/mobile-tabs.css');",
         ]
 
         for import_line in import_lines:

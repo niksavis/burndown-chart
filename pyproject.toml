@@ -79,7 +79,38 @@ exclude_dirs = [
 # B311: standard pseudo-random generators are not used for security/crypto here
 skips = ["B311"]
 
+[tool.coverage.run]
+# Required for correct per-worker data collection when running with pytest-xdist -n auto
+parallel = true
+
 [tool.vulture]
-# Minimum confidence to report unused code (80 reduces Dash callback false positives)
 min_confidence = 80
-paths = ["data", "callbacks", "ui", "visualization", "app.py"]
+# callbacks/ excluded: Dash requires callback function signatures to include all
+# registered Input/State args as positional params even when not used in the body.
+paths = ["data", "ui", "visualization", "app.py"]
+ignore_names = [
+    # __exit__ context manager protocol requires this parameter
+    "exc_tb",
+    # Signal handler protocol requires (signum, frame) even when frame is unused
+    "frame",
+    # Dash callback parameters: framework always passes all registered
+    # Input/State args positionally even when the body does not use them
+    "close_clicks",
+    # API-stable function parameters (ui/error_states.py create_error_boundary)
+    "fallback_action",
+    "fallback_message",
+    "fallback_title",
+    # Assigned but intentionally unused in conditional/destructuring patterns
+    "cache_version",
+    "changelog_cache_version",
+    "chart_data",
+    "chart_title",
+    "confidence_level",
+    "content_hash",
+    "expanded_height",
+    "formula_name",
+    "production_value",
+    "restore_mode",
+    "show_performance_zones",
+    "x_range",
+]
