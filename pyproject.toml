@@ -89,28 +89,28 @@ min_confidence = 80
 # registered Input/State args as positional params even when not used in the body.
 paths = ["data", "ui", "visualization", "app.py"]
 ignore_names = [
-    # __exit__ context manager protocol requires this parameter
-    "exc_tb",
-    # Signal handler protocol requires (signum, frame) even when frame is unused
-    "frame",
-    # Dash callback parameters: framework always passes all registered
-    # Input/State args positionally even when the body does not use them
-    "close_clicks",
-    # API-stable function parameters (ui/error_states.py create_error_boundary)
-    "fallback_action",
-    "fallback_message",
-    "fallback_title",
-    # Assigned but intentionally unused in conditional/destructuring patterns
-    "cache_version",
-    "changelog_cache_version",
-    "chart_data",
-    "chart_title",
-    "confidence_level",
-    "content_hash",
-    "expanded_height",
-    "formula_name",
-    "production_value",
-    "restore_mode",
-    "show_performance_zones",
-    "x_range",
+  # __exit__ context manager protocol requires this parameter
+  "exc_tb",
+  # Signal handler protocol requires (signum, frame) even when frame is unused
+  "frame",
+  # Dash callback parameters: framework always passes all registered
+  # Input/State args positionally even when the body does not use them
+  "close_clicks",
+  # API-stable function parameters (ui/error_states.py create_error_boundary)
+  "fallback_action",
+  "fallback_message",
+  "fallback_title",
+  # Assigned but intentionally unused in conditional/destructuring patterns
+  "cache_version",
+  "changelog_cache_version",
+  "chart_data",
+  "chart_title",
+  "confidence_level",
+  "content_hash",
+  "expanded_height",
+  "formula_name",
+  "production_value",
+  "restore_mode",
+  "show_performance_zones",
+  "x_range",
 ]
