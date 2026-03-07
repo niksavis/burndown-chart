@@ -4,13 +4,13 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from callbacks.budget_settings import save_budget_settings
+from callbacks.budget_settings._save import save_budget_settings
 
 
 @pytest.fixture
 def mock_db_connection():
     """Mock database connection."""
-    with patch("callbacks.budget_settings.get_db_connection") as mock:
+    with patch("callbacks.budget_settings._save.get_db_connection") as mock:
         conn = MagicMock()
         cursor = MagicMock()
         conn.cursor.return_value = cursor
