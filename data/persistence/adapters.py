@@ -34,6 +34,7 @@ from data.persistence.adapters.jira_config import (
     cleanup_legacy_jira_fields,
     get_default_jira_config,
     load_jira_configuration,
+    migrate_csv_to_json,
     migrate_jira_config,
     save_jira_configuration,
     validate_jira_config,
@@ -41,7 +42,7 @@ from data.persistence.adapters.jira_config import (
 from data.persistence.adapters.legacy_data import (
     load_project_data_legacy,
     load_statistics_legacy,
-    migrate_csv_to_json,
+    save_jira_data_unified,
 )
 from data.persistence.adapters.metrics_history import (
     get_metric_trend_data,
@@ -79,7 +80,6 @@ from data.persistence.adapters.statistics import (
 )
 from data.persistence.adapters.unified_data import (
     load_unified_project_data,
-    save_jira_data_unified,
     save_unified_project_data,
 )
 

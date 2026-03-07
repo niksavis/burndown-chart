@@ -11,6 +11,7 @@ a fresh layout with the latest data from disk on each page load.
 # Standard library imports
 import logging
 from datetime import datetime
+from typing import Any
 
 # Third-party library imports
 import dash_bootstrap_components as dbc
@@ -19,7 +20,7 @@ from dash import dcc, html
 # Application imports
 from configuration import __version__
 from data import calculate_total_points
-from data.persistence import (
+from data.persistence.adapters import (
     get_project_scope,
     load_app_settings,
     load_statistics,
@@ -133,9 +134,9 @@ def create_app_layout(settings, statistics, is_sample_data):
     else:
         version_info = None
 
-    version_result = getattr(app, "VERSION_CHECK_RESULT", None)
+    version_result: Any = getattr(app, "VERSION_CHECK_RESULT", None)
     has_update_state = version_result is not None and hasattr(version_result, "state")
-    update_state = version_result.state if has_update_state else None
+    update_state: Any = version_result.state if has_update_state else None
     show_footer_update = has_update_state and update_state in [
         update_state.__class__.AVAILABLE,
         update_state.__class__.MANUAL_UPDATE_REQUIRED,

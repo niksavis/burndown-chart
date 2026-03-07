@@ -376,7 +376,7 @@ def _format_ai_prompt(summary: dict[str, Any], time_period_weeks: int) -> str:
     """
     # Get app version for footer
     try:
-        from bump_version import get_current_version
+        from bump_version import get_current_version  # type: ignore[import-not-found]
 
         version = get_current_version()
     except Exception:

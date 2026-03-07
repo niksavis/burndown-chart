@@ -26,3 +26,4 @@ ruff>=0.12.10       # Python linting and formatting
 autopep8>=2.3.2     # Supplemental PEP 8 line-wrapping formatter for refactors
 djlint>=1.36.4      # Jinja/HTML linting and formatting
 pyright>=1.1.0      # Static type checker (same engine as Pylance/VS Code)
+pandas-stubs>=2.2.1 # Type stubs for pandas — eliminates false-positive pyright errors

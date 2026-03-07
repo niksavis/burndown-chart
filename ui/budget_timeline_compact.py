@@ -105,7 +105,9 @@ def create_budget_timeline_card(
     )
     weeks_to_runway = (runway_end - start_date).days / 7.0 if runway_end else None
     runway_caret_class = (
-        "text-success" if weeks_to_runway > weeks_to_baseline else "text-danger"
+        "text-success"
+        if weeks_to_runway is not None and weeks_to_runway > weeks_to_baseline
+        else "text-danger"
     )
 
     # Determine timeline range

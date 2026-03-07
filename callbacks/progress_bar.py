@@ -599,7 +599,7 @@ def reload_data_after_update(refresh_trigger):
         # Load statistics from disk
         from dash import html
 
-        from data.persistence import load_statistics
+        from data.persistence.adapters import load_statistics
         from data.persistence.factory import get_backend
         from data.query_manager import get_query_dropdown_options
         from data.task_progress import TaskProgress

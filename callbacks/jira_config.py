@@ -17,7 +17,7 @@ from dash.exceptions import PreventUpdate
 
 from configuration import logger
 from data.jira import test_jira_connection
-from data.persistence import (
+from data.persistence.adapters import (
     load_jira_configuration,
     save_jira_configuration,
     validate_jira_config,

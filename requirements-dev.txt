@@ -130,6 +130,7 @@ numpy==2.2.5
     # via
     #   -r D:\Development\burndown-chart\requirements.txt
     #   pandas
+    #   pandas-stubs
     #   scipy
 packaging==25.0
     # via
@@ -141,6 +142,8 @@ packaging==25.0
     #   pytest
 pandas==2.2.3
     # via -r D:\Development\burndown-chart\requirements.txt
+pandas-stubs==3.0.0.260204
+    # via -r requirements-dev.in
 pathspec==1.0.4
     # via djlint
 pefile==2024.8.26

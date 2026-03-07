@@ -693,5 +693,5 @@ def create_panel_collapse_button(panel_id: str) -> html.Button:
         id=button_id,
         className="panel-collapse-btn",
         title="Collapse panel",
-        **{"aria-label": "Collapse panel"},
+        **{"aria-label": "Collapse panel"},  # type: ignore[arg-type]
     )

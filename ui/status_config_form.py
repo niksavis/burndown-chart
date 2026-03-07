@@ -112,8 +112,7 @@ def create_status_config_form(
                                         [
                                             dcc.Dropdown(
                                                 id="wip-statuses-dropdown",
-                                                # type: ignore  # Dash accepts list[dict]
-                                                options=status_options,
+                                                options=status_options,  # type: ignore[arg-type]
                                                 value=wip_statuses,
                                                 multi=True,
                                                 placeholder=(
@@ -175,8 +174,7 @@ def create_status_config_form(
                                         [
                                             dcc.Dropdown(
                                                 id="flow-start-statuses-dropdown",
-                                                # type: ignore  # Dash accepts list[dict]
-                                                options=status_options,
+                                                options=status_options,  # type: ignore[arg-type]
                                                 value=flow_start_statuses,
                                                 multi=True,
                                                 placeholder=(
@@ -241,8 +239,7 @@ def create_status_config_form(
                                         [
                                             dcc.Dropdown(
                                                 id="active-statuses-dropdown",
-                                                # type: ignore  # Dash accepts list[dict]
-                                                options=status_options,
+                                                options=status_options,  # type: ignore[arg-type]
                                                 value=active_statuses,
                                                 multi=True,
                                                 placeholder=(
@@ -303,8 +300,7 @@ def create_status_config_form(
                                         [
                                             dcc.Dropdown(
                                                 id="completion-statuses-dropdown",
-                                                # type: ignore  # Dash accepts list[dict]
-                                                options=status_options,
+                                                options=status_options,  # type: ignore[arg-type]
                                                 value=flow_end_statuses,
                                                 multi=True,
                                                 placeholder=(

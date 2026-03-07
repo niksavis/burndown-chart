@@ -46,8 +46,8 @@ def filter_sprint_by_issue_type(
             get_active_sprint_from_issues,
             get_sprint_snapshots,
         )
+        from ui.empty_states import create_no_sprints_state
         from ui.sprint_tracker import (
-            create_no_sprints_state,
             create_sprint_summary_cards,
         )
         from visualization.sprint_charts import (

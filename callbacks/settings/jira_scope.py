@@ -128,7 +128,7 @@ def _calculate_scope(jql_query: str, ui_config: dict) -> tuple:
     Returns:
         Tuple of (success, message, scope_data)
     """
-    from data.persistence import calculate_project_scope_from_jira
+    from data.persistence.adapters import calculate_project_scope_from_jira
 
     return calculate_project_scope_from_jira(jql_query, ui_config)
 
