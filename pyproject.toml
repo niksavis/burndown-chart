@@ -151,6 +151,7 @@ ignore_names = [
   "fallback_message",
   "fallback_title",
   # Assigned but intentionally unused in conditional/destructuring patterns
+  "alert_data",
   "cache_version",
   "changelog_cache_version",
   "chart_data",
