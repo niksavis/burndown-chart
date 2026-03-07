@@ -39,10 +39,8 @@ jobs:
         run: pre-commit run --all-files
         shell: pwsh
 
-      - name: Install dependencies for Pyright
-        run: |
-          pip install -r requirements.txt
-          pip install pyright
+      - name: Install Pyright
+        run: pip install pyright
         shell: pwsh
 
       - name: Pyright type check
