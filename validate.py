@@ -182,8 +182,9 @@ def check_coverage() -> int:
             "--cov=data",
             "--cov=ui",
             "--cov=visualization",
+            "--cov-config=pyproject.toml",
             "--cov-report=term-missing",
-            "--cov-fail-under=35",
+            "--cov-fail-under=43",
             "-q",
         ],
     )

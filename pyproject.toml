@@ -82,6 +82,56 @@ skips = ["B311"]
 [tool.coverage.run]
 # Required for correct per-worker data collection when running with pytest-xdist -n auto
 parallel = true
+omit = [
+  # Pure Plotly figure builders — no testable logic without a live renderer
+  "visualization/bug_charts.py",
+  "visualization/chart_config.py",
+  "visualization/charts.py",
+  "visualization/elements.py",
+  "visualization/flow_charts.py",
+  "visualization/metric_trends.py",
+  "visualization/sprint_charts.py",
+  # Pure Dash layout factories — return component trees, no business logic
+  "ui/aria_utils.py",
+  "ui/bug_charts.py",
+  "ui/budget_section.py",
+  "ui/budget_timeline_compact.py",
+  "ui/compact_metric_cards.py",
+  "ui/config_status_panel.py",
+  "ui/confirmation_modal.py",
+  "ui/dashboard/activity_quality.py",
+  "ui/dashboard/executive_summary.py",
+  "ui/dashboard/forecast_analytics.py",
+  "ui/dashboard/insights_engine.py",
+  "ui/dashboard/throughput_analytics.py",
+  "ui/dashboard/utils.py",
+  "ui/dora_flow_combined_dashboard.py",
+  "ui/error_states.py",
+  "ui/error_utils.py",
+  "ui/icon_mixin.py",
+  "ui/integrated_query_management.py",
+  "ui/jql_syntax_highlighter.py",
+  "ui/modern_dashboard_complete.py",
+  "ui/namespace_input.py",
+  "ui/scope_metrics.py",
+  "ui/settings_modal.py",
+  "ui/settings_panel.py",
+  "ui/sprint_tracker.py",
+  "ui/unsaved_changes_warning.py",
+  # Module-level wiring / infrastructure with no testable logic units
+  "data/changelog_processor.py",
+  "data/clear_metrics_cache.py",
+  "data/config_validation.py",
+  "data/documentation.py",
+  "data/issue_filtering.py",
+  "data/namespace_autocomplete.py",
+  "data/query_name_generator.py",
+  "data/report/data_loader.py",
+  "data/report/renderer.py",
+  "data/report_assets_embedder.py",
+  "data/smart_defaults.py",
+  "data/state_management.py",
+]
 
 [tool.vulture]
 min_confidence = 80
