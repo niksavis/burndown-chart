@@ -104,8 +104,6 @@ json5==0.13.0
     # via djlint
 kaleido==0.2.1
     # via -r D:\Development\burndown-chart\requirements.txt
-librt==0.8.1
-    # via mypy
 markupsafe==3.0.3
     # via
     #   -r D:\Development\burndown-chart\requirements.txt
@@ -116,10 +114,6 @@ multiprocess==0.70.18
     # via
     #   -r D:\Development\burndown-chart\requirements.txt
     #   dash
-mypy==1.19.1
-    # via -r requirements-dev.in
-mypy-extensions==1.1.0
-    # via mypy
 narwhals==2.9.0
     # via
     #   -r D:\Development\burndown-chart\requirements.txt
@@ -129,7 +123,9 @@ nest-asyncio==1.6.0
     #   -r D:\Development\burndown-chart\requirements.txt
     #   dash
 nodeenv==1.10.0
-    # via pre-commit
+    # via
+    #   pre-commit
+    #   pyright
 numpy==2.2.5
     # via
     #   -r D:\Development\burndown-chart\requirements.txt
@@ -146,9 +142,7 @@ packaging==25.0
 pandas==2.2.3
     # via -r D:\Development\burndown-chart\requirements.txt
 pathspec==1.0.4
-    # via
-    #   djlint
-    #   mypy
+    # via djlint
 pefile==2024.8.26
     # via pyinstaller
 pillow==12.1.0
@@ -200,6 +194,8 @@ pyproject-hooks==1.2.0
     # via
     #   build
     #   pip-tools
+pyright==1.1.408
+    # via -r requirements-dev.in
 pystray==0.19.5
     # via -r D:\Development\burndown-chart\requirements.txt
 pytest==9.0.2
@@ -250,10 +246,10 @@ typing-extensions==4.15.0
     # via
     #   -r D:\Development\burndown-chart\requirements.txt
     #   dash
-    #   mypy
     #   pydantic
     #   pydantic-core
     #   pyee
+    #   pyright
     #   typing-inspection
 typing-inspection==0.4.2
     # via

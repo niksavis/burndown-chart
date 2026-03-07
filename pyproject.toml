@@ -37,11 +37,11 @@ line-ending = "lf"
 [tool.pip-tools]
 strip-extras = true
 
-[tool.mypy]
-python_version = "3.13"
-warn_unused_configs = true
-ignore_missing_imports = true
-exclude = ["\\.venv", "build", "dist", "cache", "logs", "profiles"]
+[tool.pyright]
+pythonVersion = "3.13"
+typeCheckingMode = "basic"
+ignoreMissingImports = true
+exclude = [".venv", "build", "dist", "cache", "logs", "profiles"]
 
 [tool.djlint]
 profile = "jinja"

@@ -30,13 +30,13 @@ npm install
 # Lint gate — must all exit 0 before committing
 ruff check .
 djlint --check report_assets/**/*.html
-mypy data/ callbacks/ ui/ visualization/ --ignore-missing-imports
+pyright data/ callbacks/ ui/ visualization/
 npx markdownlint-cli2 "**/*.md" "#node_modules" "#.venv" "#build" "#cache" "#logs" "#profiles"
 ```
 
 If `ruff check` fails, fix violations then re-run before committing.
 If `djlint --check` fails, run `djlint --reformat report_assets/**/*.html` then re-run check.
-If `mypy` reports errors, fix type annotation issues before committing.
+If `pyright` reports errors, fix type annotation issues before committing.
 If `markdownlint-cli2` reports errors, fix markdown formatting before committing.
 
 ## Response expectations
