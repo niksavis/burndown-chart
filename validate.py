@@ -13,8 +13,8 @@ Modes (choose one):
     python validate.py --fix       # auto-fix ruff + djlint where possible
 
 Full gate (pre-push) includes:
-    ruff, djlint, pyright, bandit, pip-audit, vulture, eslint,
-    markdownlint, pytest with coverage threshold (~60%)
+    ruff, djlint, pyright, bandit, pip-audit, vulture, prettier,
+    eslint, markdownlint, pytest with coverage threshold (~60%)
 
 Platform-agnostic: works on Windows, macOS, and Linux.
 """
@@ -164,6 +164,24 @@ def check_vulture() -> int:
     return _run("vulture (dead code)", ["vulture"])
 
 
+def check_prettier(fix: bool = False) -> int:
+    if NPX is None:
+        print("[validate] prettier: SKIP (npx not found)")
+        return 0
+    mode = "--write" if fix else "--check"
+    return _run(
+        "prettier (format)",
+        [
+            NPX,
+            "prettier",
+            mode,
+            "--ignore-path",
+            ".prettierignore",
+            "**/*.{js,css,json,yml,yaml}",
+        ],
+    )
+
+
 def check_eslint() -> int:
     if NPX is None:
         print("[validate] eslint: SKIP (npx not found)")
@@ -239,6 +257,7 @@ def main() -> int:
             ("djlint", check_djlint(fix=args.fix)),
             ("pyright", check_pyright()),
             ("bandit", check_bandit()),
+            ("prettier (format)", check_prettier(fix=args.fix)),
             ("eslint", check_eslint()),
         ]
     else:
@@ -251,6 +270,7 @@ def main() -> int:
             ("bandit", check_bandit()),
             ("pip-audit", check_pip_audit()),
             ("vulture", check_vulture()),
+            ("prettier (format)", check_prettier(fix=args.fix)),
             ("eslint", check_eslint()),
             ("markdownlint", check_markdownlint()),
             ("pytest (coverage)", check_coverage()),

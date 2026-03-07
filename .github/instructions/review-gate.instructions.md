@@ -44,6 +44,14 @@ If `ruff` fails, fix violations then re-run.
 If `djlint` fails, run `python validate.py --fix` then re-run.
 If `pyright` reports errors, fix type issues before committing.
 If `markdownlint` reports errors, fix markdown formatting before committing.
+If `prettier` fails, run `python validate.py --fix` then re-stage any reformatted files and re-commit before pushing.
+
+## Prettier rule (agent-critical)
+
+Any time `.js`, `.css`, `.json`, `.yml`, or `.yaml` files are created or edited,
+run `python validate.py --fix` immediately afterward to auto-apply prettier formatting.
+Re-stage and commit the formatted result before pushing.  Skipping this step causes
+the GHA `lint.yml` pre-commit hook to fail with "files were modified by this hook".
 
 ## Response expectations
 
