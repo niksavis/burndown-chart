@@ -30,6 +30,19 @@ Use this agent when edits touch multiple Python layers.
 - Keep rendering-specific logic in `ui/` and chart logic in `visualization/`.
 - Suggest minimal file moves/extractions when boundaries are violated.
 
+## Platform-Aware Terminal Commands
+
+Detect the OS before issuing commands.
+
+| Task | Windows (PowerShell) | macOS / Linux (bash/zsh) |
+|---|---|---|
+| Pyright (type + boundary check) | `.venv\Scripts\pyright data/ callbacks/ ui/ visualization/` | `.venv/bin/pyright data/ callbacks/ ui/ visualization/` |
+| Ruff lint | `.venv\Scripts\ruff check .` | `.venv/bin/ruff check .` |
+| Quality gate | `python validate.py --fast` | `python validate.py --fast` |
+
+- Windows: PowerShell only. No bash utilities.
+- macOS/Linux: native bash/zsh.
+
 ## Output Contract
 
 1. Boundary violations found (if any).

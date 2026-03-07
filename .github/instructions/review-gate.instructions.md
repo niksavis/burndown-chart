@@ -16,28 +16,34 @@ Treat this as the final pass before declaring work complete.
 - Changes are minimal, focused, and do not include unrelated refactors.
 - If tests exist for touched behavior, run targeted tests first.
 
-## Pre-commit lint gate (required before every commit)
+## Quality Gate (required before every push to main)
 
-Run in the same shell as venv activation. If any tool is missing, install dev dependencies first.
+This project uses trunk-based development — `main` is the only branch and
+there are no PRs.  The pre-push hook runs `python validate.py` automatically.
+For ad-hoc manual runs:
 
 ```powershell
-# Ensure Python tools are available (safe to re-run; no-ops if already installed)
-pip install -r requirements-dev.txt
+# Fast check during development (ruff + djlint + pyright)
+python validate.py --fast
 
-# Ensure Node tools are available
-npm install
+# Full gate before pushing (adds markdownlint + pytest)
+python validate.py
 
-# Lint gate — must all exit 0 before committing
-ruff check .
-djlint --check report_assets/**/*.html
-pyright data/ callbacks/ ui/ visualization/
-npx markdownlint-cli2 "**/*.md" "#node_modules" "#.venv" "#build" "#cache" "#logs" "#profiles"
+# Auto-fix lint violations, then re-run
+python validate.py --fix
 ```
 
-If `ruff check` fails, fix violations then re-run before committing.
-If `djlint --check` fails, run `djlint --reformat report_assets/**/*.html` then re-run check.
-If `pyright` reports errors, fix type annotation issues before committing.
-If `markdownlint-cli2` reports errors, fix markdown formatting before committing.
+If any tool is missing, install dev dependencies first:
+
+```powershell
+pip install -r requirements-dev.txt
+npm install
+```
+
+If `ruff` fails, fix violations then re-run.
+If `djlint` fails, run `python validate.py --fix` then re-run.
+If `pyright` reports errors, fix type issues before committing.
+If `markdownlint` reports errors, fix markdown formatting before committing.
 
 ## Response expectations
 

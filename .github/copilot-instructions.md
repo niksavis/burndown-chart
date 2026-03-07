@@ -22,7 +22,7 @@ When guidance conflicts, higher-precedence artifacts win.
 
 ## Customization Inventory
 
-- Index and usage map: [copilot_customization.md](./copilot_customization.md)
+- Index and usage map: `.github/copilot_customization.md`
 
 ## Context Metrics Source
 
@@ -46,10 +46,19 @@ When guidance conflicts, higher-precedence artifacts win.
 
 ## Venv Rule (Formal)
 
-If running any Python command:
+If running any Python command, activate the venv first using the platform-appropriate pattern:
 
-- Required pattern (PowerShell): `.venv\Scripts\activate; <python command>`
-- Required pattern (bash): `source .venv/bin/activate && <python command>`
+| Platform | Activation pattern |
+|---|---|
+| Windows (PowerShell) | `.venv\Scripts\Activate.ps1; <python command>` |
+| macOS / Linux (bash/zsh) | `source .venv/bin/activate && <python command>` |
+
+Alternatively, call the venv interpreter directly (no activation needed):
+
+| Platform | Direct call |
+|---|---|
+| Windows | `.venv\Scripts\python.exe <args>` |
+| macOS / Linux | `.venv/bin/python <args>` |
 
 Applies to: python scripts, pytest, pip install, release.py, regenerate_changelog.py, all .py.
 
@@ -59,17 +68,17 @@ Applies to: python scripts, pytest, pip install, release.py, regenerate_changelo
 
 | Language   | Max File       | Max Function | Key Document                                                              |
 | ---------- | -------------- | ------------ | ------------------------------------------------------------------------- |
-| Python     | 500 lines      | 50 lines     | [python_guidelines.md](../docs/architecture/python_guidelines.md)         |
-| JavaScript | 400 lines      | 40 lines     | [javascript_guidelines.md](../docs/architecture/javascript_guidelines.md) |
-| HTML       | 300 lines      | N/A          | [html_guidelines.md](../docs/architecture/html_guidelines.md)             |
-| CSS        | 500 lines      | N/A          | [css_guidelines.md](../docs/architecture/css_guidelines.md)               |
-| SQL        | 50 lines/query | N/A          | [sql_guidelines.md](../docs/architecture/sql_guidelines.md)               |
+| Python     | 500 lines      | 50 lines     | `docs/architecture/python_guidelines.md`         |
+| JavaScript | 400 lines      | 40 lines     | `docs/architecture/javascript_guidelines.md` |
+| HTML       | 300 lines      | N/A          | `docs/architecture/html_guidelines.md`             |
+| CSS        | 500 lines      | N/A          | `docs/architecture/css_guidelines.md`               |
+| SQL        | 50 lines/query | N/A          | `docs/architecture/sql_guidelines.md`               |
 
 **Discoverability**:
 
-- Repository rules: [repo_rules.md](../repo_rules.md)
-- Architecture index: [docs/architecture/readme.md](../docs/architecture/readme.md)
-- Release process: [docs/release_process.md](../docs/release_process.md)
+- Repository rules: `repo_rules.md`
+- Architecture index: `docs/architecture/readme.md`
+- Release process: `docs/release_process.md`
 
 **Enforcement**: If file > 80% of limit → create a new file; do not append.
 
@@ -86,7 +95,8 @@ Applies to: python scripts, pytest, pip install, release.py, regenerate_changelo
 - **Naming**: snake_case.py, PascalCase, snake_case(), UPPER_CASE.
 - **Logging**: follow docs/LOGGING_STANDARDS.md; never log sensitive data.
 - **Performance**: page < 2s, charts < 500ms, interactions < 100ms.
-- **Windows**: PowerShell only; no bash utilities.
+- **Platform awareness**: Detect the OS before issuing terminal commands. Windows uses PowerShell (`Get-ChildItem`, `Select-String`, `Copy-Item -Force`). macOS/Linux uses bash/zsh native tools. `validate.py` works on all platforms.
+- **Windows local dev**: PowerShell only for local development. No bash utilities.
 - **Simplicity**: Keep implementations simple (KISS). Avoid over-engineering.
 - **Reusability**: Extract shared logic to reusable functions (DRY). No duplication.
 - **Boy Scout Rule**: Leave touched code and customization artifacts clearer than you found them.
@@ -155,6 +165,7 @@ When implementation reveals recurring or novel specialized task patterns, evolve
 
 - Each terminal run is a new shell; activation does not persist.
 - Background process + new command in same terminal can terminate the process.
+- Run `python validate.py` before pushing to catch ruff, djlint, pyright, markdownlint, and test failures in one pass.
 
 ## Dependency Onboarding (Required)
 
@@ -177,7 +188,16 @@ When implementation reveals recurring or novel specialized task patterns, evolve
 
 ## Branch Strategy
 
-Ask: "Create feature branch or work on main?" before implementing.
+This project uses **trunk-based development** — `main` is the only long-lived branch
+and the primary protection against broken code reaching other developers.
+
+- Local feature or bugfix branches are fine and encouraged for in-progress work.
+- Feature branches may be pushed to remote for collaboration.
+- Integrate by rebasing onto `main` locally, then push `main` to remote.
+- **No remote PRs** between branches — all code review happens locally before push.
+- Remote PRs are extremely rare exceptions, not the normal workflow.
+- The pre-commit and pre-push git hooks are the primary quality gate before code
+  reaches `main` on the remote.
 
 ## Release Process (Required)
 

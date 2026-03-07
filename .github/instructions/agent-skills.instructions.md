@@ -188,10 +188,9 @@ When including scripts, prefer cross-platform languages:
 
 | Language   | Use Case                            |
 | ---------- | ----------------------------------- |
-| Python     | Complex automation, data processing |
-| pwsh       | PowerShell Core scripting           |
+| Python     | Complex automation, data processing (preferred — cross-platform) |
+| pwsh       | PowerShell Core scripting (Windows-only skills) |
 | Node.js    | JavaScript-based tooling            |
-| Bash/Shell | Simple automation tasks             |
 
 Best practices:
 

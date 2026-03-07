@@ -57,6 +57,28 @@ Use this agent for complex, multi-step software engineering tasks that require d
 - No unrelated refactors or speculative feature additions.
 - For broad or risky edits (mass renames/deletes/schema shifts), produce a short Destructive Action Plan and pause for explicit approval.
 
+## Platform-Aware Terminal Commands
+
+Detect the operating system before issuing any terminal command.
+
+| Task | Windows (PowerShell) | macOS / Linux (bash/zsh) |
+|---|---|---|
+| Activate venv | `.venv\Scripts\Activate.ps1` | `source .venv/bin/activate` |
+| Run python | `.venv\Scripts\python.exe <args>` | `.venv/bin/python <args>` |
+| Run pytest | `.venv\Scripts\pytest tests/unit/ -v` | `.venv/bin/pytest tests/unit/ -v` |
+| Run ruff | `.venv\Scripts\ruff check .` | `.venv/bin/ruff check .` |
+| Run pyright | `.venv\Scripts\pyright data/ callbacks/ ui/ visualization/` | `.venv/bin/pyright data/ callbacks/ ui/ visualization/` |
+| Quality gate | `python validate.py` | `python validate.py` |
+| File listing | `Get-ChildItem` | `ls` |
+| Search text | `Select-String` | `grep` |
+| Copy file | `Copy-Item -Force src dst` | `cp src dst` |
+
+**Rules:**
+- Windows: use PowerShell (`pwsh`) only. Never use `bash`, `grep`, `cat`, `find`, or `&&` syntax.
+- macOS/Linux: use bash/zsh natively.
+- `validate.py` is the single entry point for all quality checks — call it before any push.
+- When uncertain about the platform, check `$env:OS` (PowerShell) or `uname` (bash) first.
+
 ## Anti-Patterns
 
 - Multiple broad searches when one focused pass is enough.

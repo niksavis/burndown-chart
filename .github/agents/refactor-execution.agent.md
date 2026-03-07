@@ -50,6 +50,21 @@ Use this agent when the task is refactoring existing code while preserving behav
 - No unrelated feature additions.
 - No customer data, credentials, tokens, or secrets introduced.
 
+## Platform-Aware Terminal Commands
+
+Detect the OS before issuing commands.
+
+| Task | Windows (PowerShell) | macOS / Linux (bash/zsh) |
+|---|---|---|
+| Quality gate | `python validate.py` | `python validate.py` |
+| Ruff lint | `.venv\Scripts\ruff check .` | `.venv/bin/ruff check .` |
+| Pyright | `.venv\Scripts\pyright data/ callbacks/ ui/ visualization/` | `.venv/bin/pyright data/ callbacks/ ui/ visualization/` |
+| Run tests | `.venv\Scripts\pytest tests/unit/ -v --tb=short` | `.venv/bin/pytest tests/unit/ -v --tb=short` |
+
+- Windows: PowerShell only. No bash utilities.
+- macOS/Linux: native bash/zsh.
+- After every significant refactor step, run `python validate.py --fast` to catch regressions early.
+
 ## Output Contract
 
 1. Refactor units applied and rationale.

@@ -99,7 +99,7 @@ When recurring or novel task patterns are discovered during implementation:
 | `.github/prompts/safe-refactor-python.prompt.md`  | Behavior-preserving refactor workflow | Python refactors                      |
 | `.github/prompts/add-targeted-tests.prompt.md`    | Add isolated targeted tests           | Test additions after behavior changes |
 | `.github/prompts/documentation-update.prompt.md`  | Documentation updates and accuracy    | Documentation changes                 |
-| `.github/prompts/pre-merge-self-review.prompt.md` | PASS/FAIL self review checklist       | Final review before merge             |
+| `.github/prompts/pre-push-self-review.prompt.md`  | PASS/FAIL self-review checklist before pushing to main | Final pre-push review (trunk-based)   |
 | `.github/prompts/release-notes-draft.prompt.md`   | User-focused changelog bullets        | Release notes drafting                |
 
 ## Agent Metrics Artifacts

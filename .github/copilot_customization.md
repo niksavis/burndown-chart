@@ -70,7 +70,7 @@ Apply artifacts in this order:
 ## Prompts
 
 - `.github/prompts/context-map-burndown.prompt.md`
-- `.github/prompts/pre-merge-self-review.prompt.md`
+- `.github/prompts/pre-push-self-review.prompt.md`
 - `.github/prompts/bug-triage-burndown.prompt.md`
 - `.github/prompts/safe-refactor-python.prompt.md`
 - `.github/prompts/documentation-update.prompt.md`

@@ -44,6 +44,21 @@ Use this agent to enforce repository quality, architecture, and safety expectati
 - Validate changed files and report results.
 - If blocked, state blocker and propose smallest viable next action.
 
+## Platform-Aware Terminal Commands
+
+Detect the OS before issuing commands.
+
+| Task | Windows (PowerShell) | macOS / Linux (bash/zsh) |
+|---|---|---|
+| Quality gate (all checks) | `python validate.py` | `python validate.py` |
+| Ruff lint | `.venv\Scripts\ruff check .` | `.venv/bin/ruff check .` |
+| Pyright | `.venv\Scripts\pyright data/ callbacks/ ui/ visualization/` | `.venv/bin/pyright data/ callbacks/ ui/ visualization/` |
+| Run tests | `.venv\Scripts\pytest tests/unit/ -v` | `.venv/bin/pytest tests/unit/ -v` |
+
+- Windows: PowerShell only. No `bash`, `grep`, `find`, or `&&` chaining.
+- macOS/Linux: native bash/zsh.
+- Always run `python validate.py` before declaring work complete.
+
 ## Output Contract
 
 1. Rule checks performed and status.

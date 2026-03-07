@@ -28,6 +28,20 @@ Use this agent before release preparation and version updates.
 - Verify release workflow prerequisites are covered.
 - Flag missing validation evidence and risky deltas.
 
+## Platform-Aware Terminal Commands
+
+Detect the OS before issuing commands.
+
+| Task | Windows (PowerShell) | macOS / Linux (bash/zsh) |
+|---|---|---|
+| Quality gate | `python validate.py` | `python validate.py` |
+| Changelog preview | `.venv\Scripts\python regenerate_changelog.py --preview --json` | `.venv/bin/python regenerate_changelog.py --preview --json` |
+| Release patch | `.venv\Scripts\python release.py patch` | `.venv/bin/python release.py patch` |
+
+- Windows: PowerShell only. No bash, `&&`, or Unix paths.
+- macOS/Linux: native bash/zsh.
+- Always run `python validate.py` before `release.py`.
+
 ## Output Contract
 
 1. Release checklist status.

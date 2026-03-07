@@ -228,7 +228,12 @@ find . -name "*.py"
 - ALWAYS: `.venv\Scripts\activate` before Python commands
 - Check: prompt shows `(.venv)`
 
-## Pre-Merge Checklist
+## Pre-Push Checklist
+
+This project uses trunk-based development (no remote PRs).  Local feature/bugfix
+branches are rebased into `main` locally, then `main` is pushed to remote.  The
+pre-push hook runs `python validate.py` automatically, but agents must also verify
+these before declaring work complete:
 
 ```
 ☐ get_errors → 0
@@ -239,7 +244,7 @@ find . -name "*.py"
 ☐ Architecture layers respected
 ☐ Functions <50 lines
 ☐ Tests → tempfile.TemporaryDirectory()
-☐ PowerShell syntax (no bash)
+☐ Platform-aware terminal commands (no bash on Windows)
 ☐ Performance targets met
 ```
 
