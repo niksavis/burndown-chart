@@ -72,7 +72,7 @@ def cleanup_orphaned_temp_updaters() -> None:
         else:
             logger.debug("No orphaned temp files found")
 
-    except Exception as e:
+    except (OSError, ValueError, TypeError) as e:
         # Don't let cleanup failures block app startup
         logger.warning(f"Temp file cleanup failed: {e}")
 
