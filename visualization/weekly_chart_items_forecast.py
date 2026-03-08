@@ -11,7 +11,7 @@ import plotly.graph_objects as go
 
 from configuration import COLOR_PALETTE
 from data import generate_weekly_forecast
-from ui.tooltip_utils import create_hoverlabel_config, format_hover_template
+from utils.chart_tooltip_utils import create_hoverlabel_config, format_hover_template
 from visualization.helpers import fill_missing_weeks
 
 

@@ -18,7 +18,7 @@ from plotly.subplots import make_subplots
 
 # Application imports
 from configuration import COLOR_PALETTE
-from ui.tooltip_utils import create_hoverlabel_config, format_hover_template
+from utils.chart_tooltip_utils import create_hoverlabel_config, format_hover_template
 
 # Mobile optimization removed for simplicity.
 # Will implement via CSS and responsive config.
@@ -278,7 +278,7 @@ def create_chart_with_loading(
     """
     from dash import dcc
 
-    from ui.loading_utils import create_loading_overlay
+    from utils.loading_overlay_utils import create_loading_overlay
 
     # Determine if we're in a loading state
     is_loading = loading_state is not None and loading_state.get("is_loading", False)

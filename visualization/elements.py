@@ -17,7 +17,7 @@ import plotly.graph_objects as go
 
 # Application imports
 from configuration import COLOR_PALETTE
-from ui.tooltip_utils import create_hoverlabel_config, format_hover_template
+from utils.chart_tooltip_utils import create_hoverlabel_config, format_hover_template
 
 #######################################################################
 # EMPTY FIGURE FUNCTION

@@ -4,7 +4,7 @@ from datetime import datetime
 
 from dash import html
 
-from ui.jira_link_helper import create_jira_issue_link
+from utils.jira_link_utils import create_jira_issue_link
 
 from ._status import _get_issue_type_icon, _get_status_color
 

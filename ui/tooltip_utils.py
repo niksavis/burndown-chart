@@ -37,8 +37,6 @@ from ui.tooltip_utils_core import (  # noqa: F401
     clear_tooltip_cache,
     create_adaptive_tooltip_config,
     create_chart_layout_config,
-    create_hoverlabel_config,
-    format_hover_template,
     get_cached_hover_config,
     get_cached_tooltip_content,
     get_cached_tooltip_style,
@@ -46,4 +44,8 @@ from ui.tooltip_utils_core import (  # noqa: F401
     get_responsive_placement,
     get_smart_placement,
     get_tooltip_style,
+)
+from utils.chart_tooltip_utils import (  # noqa: F401
+    create_hoverlabel_config,
+    format_hover_template,
 )

@@ -1,8 +1,4 @@
-"""JIRA issue link helper compatibility shim.
-
-This module preserves the original UI-layer API while delegating shared
-implementation paths to utils.jira_link_utils.
-"""
+"""Shared JIRA link helpers for visualization and UI layers."""
 
 from __future__ import annotations
 
@@ -10,23 +6,38 @@ import logging
 
 from dash import html
 
-from utils import jira_link_utils as _shared
-
 logger = logging.getLogger(__name__)
 
 
 def get_jira_base_url() -> str | None:
-    """Get JIRA base URL from configuration if connection is verified."""
-    return _shared.get_jira_base_url()
+    """Get verified JIRA base URL from persisted configuration."""
+    try:
+        from data.persistence import load_jira_configuration
+
+        config = load_jira_configuration()
+
+        if not config.get("last_test_success"):
+            logger.debug("JIRA connection not verified, links disabled")
+            return None
+
+        base_url = config.get("base_url", "").rstrip("/")
+        if not base_url:
+            return None
+
+        return base_url
+
+    except Exception as e:
+        logger.warning(f"Failed to load JIRA configuration: {e}")
+        return None
 
 
 def construct_jira_issue_url(issue_key: str, base_url: str) -> str:
     """Construct full JIRA issue URL."""
-    return _shared.construct_jira_issue_url(issue_key, base_url)
+    return f"{base_url}/browse/{issue_key}"
 
 
 def is_jira_connection_verified() -> bool:
-    """Check if JIRA connection has been successfully verified."""
+    """Return True when a verified JIRA connection is available."""
     return get_jira_base_url() is not None
 
 
@@ -36,10 +47,10 @@ def create_jira_issue_link(
     className: str | None = None,
     style: dict | None = None,
 ) -> html.A | html.Span:
-    """Create Dash html.A component linking to JIRA issue."""
+    """Create Dash anchor element to a JIRA issue when connection is verified."""
     display_text = text or issue_key
-
     base_url = get_jira_base_url()
+
     if not base_url:
         return html.Span(display_text, className=className, style=style)
 
@@ -57,10 +68,10 @@ def create_jira_issue_link(
 
 
 def create_jira_issue_link_html(issue_key: str, text: str | None = None) -> str:
-    """Create HTML string for JIRA issue link."""
+    """Create HTML link string to a JIRA issue when connection is verified."""
     display_text = text or issue_key
-
     base_url = get_jira_base_url()
+
     if not base_url:
         return display_text
 
@@ -78,7 +89,7 @@ def batch_create_jira_issue_links(
     className: str | None = None,
     style: dict | None = None,
 ) -> list[html.A | html.Span]:
-    """Create multiple JIRA issue links at once."""
+    """Create links for a list of JIRA issue keys."""
     return [
         create_jira_issue_link(issue_key, className=className, style=style)
         for issue_key in issue_keys
