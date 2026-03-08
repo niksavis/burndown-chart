@@ -6,7 +6,7 @@ from typing import Any
 from dash import Input, Output, callback
 from dash.exceptions import PreventUpdate
 
-from configuration.help_content import DORA_METRICS_TOOLTIPS
+from configuration.help_content_comprehensive import DORA_METRICS_TOOLTIPS
 from data.dora_forecast import calculate_dynamic_forecast
 from data.dora_metrics_blending import calculate_dora_blended_series
 from ui.metric_cards import create_metric_cards_grid

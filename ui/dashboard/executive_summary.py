@@ -21,7 +21,7 @@ import dash_bootstrap_components as dbc
 import pandas as pd
 from dash import html
 
-from configuration.help_content import DASHBOARD_METRICS_TOOLTIPS
+from configuration.help_content_metrics import DASHBOARD_METRICS_TOOLTIPS
 from ui.style_constants import COLOR_PALETTE
 
 from .utils import (

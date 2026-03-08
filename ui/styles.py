@@ -6,6 +6,11 @@ The implementation has been split into focused modules:
   - styles_cards.py      -- card and metric card component builders
   - styles_layout.py     -- vertical rhythm, content sections, loading styles
 
+Migration policy: Do NOT migrate callers away from this shim.
+The breadth of callers (all ui/ files) and variety of imported symbols
+make direct imports from canonical modules impractical. This shim is the
+correct aggregation point for the ui.styles domain.
+
 All callers of ``ui.styles`` continue to work unchanged.
 """
 

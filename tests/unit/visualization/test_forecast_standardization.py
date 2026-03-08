@@ -8,10 +8,8 @@ has been implemented correctly across both weekly charts.
 import pytest
 
 from data.processing import generate_weekly_forecast
-from visualization.weekly_charts import (
-    create_weekly_items_chart,
-    create_weekly_points_chart,
-)
+from visualization.weekly_chart_items import create_weekly_items_chart
+from visualization.weekly_chart_points import create_weekly_points_chart
 
 
 class TestForecastVisualizationStandardization:

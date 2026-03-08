@@ -6,7 +6,9 @@ The implementation has been split into focused modules:
                                       params, flow metrics, forecast help content
   - help_content_comprehensive.py  -- DORA, settings, and comprehensive aggregator
 
-All callers of ``configuration.help_content`` continue to work unchanged.
+Migration status: All external callers have been migrated to import
+directly from the canonical modules. This shim is retained for
+backward compatibility only.
 
 Note: FORECAST_HELP_DETAILED is defined in two places historically.
 The canonical (second) definition from help_content_comprehensive.py

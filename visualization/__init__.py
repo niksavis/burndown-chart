@@ -38,11 +38,13 @@ from visualization.helpers import (
     prepare_metrics_data,
     safe_numeric_convert,
 )
-from visualization.weekly_charts import (
-    create_weekly_items_chart,
-    create_weekly_items_forecast_chart,
-    create_weekly_points_chart,
-    create_weekly_points_forecast_chart,
+from visualization.weekly_chart_items import create_weekly_items_chart  # noqa: F401
+from visualization.weekly_chart_items_forecast import (
+    create_weekly_items_forecast_chart,  # noqa: F401
+)
+from visualization.weekly_chart_points import create_weekly_points_chart  # noqa: F401
+from visualization.weekly_chart_points_forecast import (
+    create_weekly_points_forecast_chart,  # noqa: F401
 )
 
 # Define public API

@@ -7,7 +7,7 @@ import dash_bootstrap_components as dbc
 import pandas as pd
 from dash import html
 
-from configuration.help_content import BUG_ANALYSIS_TOOLTIPS
+from configuration.help_content_metrics import BUG_ANALYSIS_TOOLTIPS
 from data.bug_insights import InsightSeverity
 from ui.tooltip_utils import create_help_icon
 

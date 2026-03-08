@@ -1,8 +1,16 @@
-"""Data Processing Module — public re-export shim.
+"""Data Processing Module — public aggregation shim.
 
 All implementation has been split into focused sub-modules.
-This module re-exports every public symbol for backward compatibility:
+This module re-exports every public symbol for backward compatibility
+and serves as the canonical import point for callers that need multiple
+symbols from this domain.
 
+Migration policy: Do NOT migrate callers away from this shim.
+The breadth of callers and variety of imported symbols make direct
+imports from canonical modules impractical. This shim is the correct
+aggregation point for the data.processing domain.
+
+Canonical modules (for single-symbol imports within the domain itself):
   data.processing_core            — basic transformations and velocity
   data.processing_rates           — PERT rate calculation
   data.processing_daily_forecast  — daily burndown / burnup forecasting

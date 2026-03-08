@@ -13,7 +13,7 @@ from typing import Any
 import dash_bootstrap_components as dbc
 from dash import dcc, html
 
-from configuration.help_content import FLOW_METRICS_TOOLTIPS
+from configuration.help_content_metrics import FLOW_METRICS_TOOLTIPS
 from ui.empty_states import (
     create_metrics_skeleton,
     create_no_data_state,

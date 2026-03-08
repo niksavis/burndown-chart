@@ -6,6 +6,10 @@ The implementation has been split into focused modules:
   - field_detector_dora.py     -- DORA deployment/environment/incident detection
   - field_detector_quality.py  -- DORA quality-gate field detection
 
+Migration status: All external callers have been migrated to import
+directly from the canonical modules. This shim is retained for
+backward compatibility only.
+
 All callers of ``data.field_detector`` continue to work unchanged.
 """
 

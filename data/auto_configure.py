@@ -8,7 +8,7 @@ import logging
 import re
 from typing import Any
 
-from data.field_detector import detect_fields_from_issues
+from data.field_detector_core import detect_fields_from_issues
 
 logger = logging.getLogger(__name__)
 

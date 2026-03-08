@@ -6,6 +6,10 @@ The implementation has been split into focused modules:
   - weekly_chart_items_forecast.py  -- items 4-week forecast chart
   - weekly_chart_points_forecast.py -- points 4-week forecast chart
 
+Migration status: All external callers have been migrated to import
+directly from the canonical modules. This shim is retained for
+backward compatibility only.
+
 All callers of ``visualization.weekly_charts`` continue to work unchanged.
 """
 

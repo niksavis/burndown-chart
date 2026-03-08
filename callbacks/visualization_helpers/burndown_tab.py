@@ -15,10 +15,8 @@ from callbacks.visualization_helpers.tab_content import create_burndown_tab_cont
 from callbacks.visualization_helpers.trend_data import prepare_trend_data
 from visualization import create_forecast_plot
 from visualization.charts import apply_mobile_optimization
-from visualization.weekly_charts import (
-    create_weekly_items_chart,
-    create_weekly_points_chart,
-)
+from visualization.weekly_chart_items import create_weekly_items_chart
+from visualization.weekly_chart_points import create_weekly_points_chart
 
 logger = logging.getLogger("burndown_chart")
 

@@ -9,7 +9,7 @@ from typing import Any
 
 from dash import Input, Output, State, callback, html
 
-from configuration.help_content import FLOW_METRICS_TOOLTIPS
+from configuration.help_content_metrics import FLOW_METRICS_TOOLTIPS
 from data.dora_forecast import calculate_dynamic_forecast
 from data.persistence import load_app_settings
 from ui.metric_cards import create_metric_cards_grid

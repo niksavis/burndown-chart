@@ -18,7 +18,7 @@ import dash
 import dash_bootstrap_components as dbc
 from dash import Input, Output, State, callback, dcc, html
 
-from configuration.help_content import COMPREHENSIVE_HELP_CONTENT
+from configuration.help_content_comprehensive import COMPREHENSIVE_HELP_CONTENT
 from ui.help_layouts.weekly_progress_help import create_weekly_progress_help_layout
 
 
