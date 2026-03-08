@@ -91,7 +91,9 @@ class TestConfigOnlyExport:
         # Seed a query and 20 statistics records into the database so that
         # FULL_DATA becomes significantly larger than CONFIG_ONLY.
         backend = get_backend()
-        now = backend.get_profile(profile_id)["created_at"]
+        profile = backend.get_profile(profile_id)
+        assert profile is not None, f"Fixture must seed profile '{profile_id}'"
+        now = profile["created_at"]
         backend.save_query(
             profile_id,
             {
