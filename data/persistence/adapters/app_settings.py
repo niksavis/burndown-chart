@@ -3,12 +3,12 @@
 # Standard library imports
 import sqlite3
 from datetime import datetime
-from typing import Any
 
 # Third-party library imports
 # Application imports
 from configuration.settings import logger
 from data.exceptions import PersistenceError
+from data.types import AppSettings
 
 
 def save_app_settings(
@@ -339,7 +339,7 @@ def save_app_settings(
         logger.debug("[Config] %s: %s", type(persistence_error).__name__, e)
 
 
-def load_app_settings() -> dict[str, Any]:
+def load_app_settings() -> AppSettings:
     """
     Load app-level settings via repository pattern (database-first).
 
@@ -353,7 +353,7 @@ def load_app_settings() -> dict[str, Any]:
         DEFAULT_PERT_FACTOR,
     )
 
-    default_settings = {
+    default_settings: AppSettings = {
         "pert_factor": DEFAULT_PERT_FACTOR,
         "deadline": DEFAULT_DEADLINE,
         "data_points_count": DEFAULT_DATA_POINTS_COUNT,
@@ -394,7 +394,7 @@ def load_app_settings() -> dict[str, Any]:
 
         # Transform backend data to legacy app_settings format for backward
         # compatibility
-        settings = {
+        settings: AppSettings = {
             "pert_factor": profile_data.get("forecast_settings", {}).get(
                 "pert_factor", DEFAULT_PERT_FACTOR
             ),
