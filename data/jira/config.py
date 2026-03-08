@@ -14,6 +14,7 @@ from datetime import datetime
 import requests
 
 from configuration import logger
+from data.exceptions import JiraError, PersistenceError
 from data.persistence import load_app_settings
 
 #######################################################################
@@ -64,7 +65,16 @@ def get_jira_config(settings_jql_query: str | None = None) -> dict:
     # Load app settings first
     try:
         app_settings = load_app_settings()
-    except Exception as e:
+    except (
+        ImportError,
+        OSError,
+        RuntimeError,
+        ValueError,
+        TypeError,
+        KeyError,
+        AttributeError,
+        PersistenceError,
+    ) as e:
         logger.debug(f"Failed to load app settings: {e}")
         app_settings = {}
 
@@ -73,7 +83,16 @@ def get_jira_config(settings_jql_query: str | None = None) -> dict:
         from data.persistence import load_jira_configuration
 
         jira_config = load_jira_configuration()
-    except Exception as e:
+    except (
+        ImportError,
+        OSError,
+        RuntimeError,
+        ValueError,
+        TypeError,
+        KeyError,
+        AttributeError,
+        PersistenceError,
+    ) as e:
         logger.debug(f"Failed to load jira configuration: {e}")
         jira_config = {}
 
@@ -359,7 +378,7 @@ def test_jira_connection(base_url: str, token: str, api_version: str = "v2") -> 
                 try:
                     error_data = search_response.json()
                     logger.warning(f"[JIRA] Search endpoint error: {error_data}")
-                except Exception:
+                except ValueError:
                     logger.warning(
                         "[JIRA] Search endpoint returned "
                         f"{search_response.status_code} without JSON body"
@@ -556,12 +575,15 @@ def test_jira_connection(base_url: str, token: str, api_version: str = "v2") -> 
             "error_details": f"Request error: {str(e)}",
         }
 
-    except Exception as e:
+    except (ValueError, TypeError, RuntimeError, JiraError) as e:
+        jira_error = JiraError("Unexpected JIRA configuration error")
         return {
             "success": False,
             "message": f"Unexpected error: {str(e)}",
             "timestamp": timestamp,
             "response_time_ms": None,
             "error_code": "unexpected_error",
-            "error_details": f"Exception: {type(e).__name__}: {str(e)}",
+            "error_details": (
+                f"{type(jira_error).__name__}: {type(e).__name__}: {str(e)}"
+            ),
         }

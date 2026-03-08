@@ -2,12 +2,14 @@
 
 # Standard library imports
 import os
+import sqlite3
 from datetime import datetime
 from typing import Any
 
 # Third-party library imports
 # Application imports
 from configuration.settings import logger
+from data.exceptions import PersistenceError
 from data.persistence.adapters.app_settings import load_app_settings
 from data.persistence.adapters.project_data import load_project_data
 from data.persistence.adapters.statistics import load_statistics
@@ -257,8 +259,22 @@ def load_jira_configuration() -> dict[str, Any]:
             if active_profile_id:
                 backend.save_profile(app_settings)
                 logger.info("[Config] Saved migrated JIRA configuration to database")
-        except Exception as e:
-            logger.error(f"[Config] Error saving migrated JIRA configuration: {e}")
+        except (
+            ImportError,
+            OSError,
+            RuntimeError,
+            ValueError,
+            TypeError,
+            KeyError,
+            AttributeError,
+            sqlite3.Error,
+            PersistenceError,
+        ) as e:
+            logger.exception("[Config] Error saving migrated JIRA configuration")
+            persistence_error = PersistenceError(
+                "Failed to persist migrated JIRA configuration"
+            )
+            logger.debug("[Config] %s: %s", type(persistence_error).__name__, e)
 
     # Cleanup legacy fields after migration if they still exist
     if any(
@@ -289,8 +305,22 @@ def load_jira_configuration() -> dict[str, Any]:
             if active_profile_id:
                 backend.save_profile(app_settings)
                 logger.info("[Config] Removed legacy JIRA fields from database")
-        except Exception as e:
-            logger.error(f"[Config] Error saving cleaned JIRA configuration: {e}")
+        except (
+            ImportError,
+            OSError,
+            RuntimeError,
+            ValueError,
+            TypeError,
+            KeyError,
+            AttributeError,
+            sqlite3.Error,
+            PersistenceError,
+        ) as e:
+            logger.exception("[Config] Error saving cleaned JIRA configuration")
+            persistence_error = PersistenceError(
+                "Failed to persist cleaned JIRA configuration"
+            )
+            logger.debug("[Config] %s: %s", type(persistence_error).__name__, e)
 
     return app_settings.get("jira_config", get_default_jira_config())
 
@@ -427,8 +457,20 @@ def save_jira_configuration(config: dict[str, Any]) -> bool:
         logger.info("[Config] JIRA configuration saved to database")
         return True
 
-    except Exception as e:
-        logger.error(f"[Config] Error saving JIRA configuration: {e}")
+    except (
+        ImportError,
+        OSError,
+        RuntimeError,
+        ValueError,
+        TypeError,
+        KeyError,
+        AttributeError,
+        sqlite3.Error,
+        PersistenceError,
+    ) as e:
+        logger.exception("[Config] Error saving JIRA configuration")
+        persistence_error = PersistenceError("Failed to save JIRA configuration")
+        logger.debug("[Config] %s: %s", type(persistence_error).__name__, e)
         # Database operations don't create temp files - no cleanup needed
         return False
 

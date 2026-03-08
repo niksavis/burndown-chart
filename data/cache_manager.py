@@ -44,8 +44,11 @@ import hashlib
 import json
 import logging
 import os
+import sqlite3
 from datetime import UTC, datetime, timedelta
 from typing import Any
+
+from data.exceptions import CacheError, PersistenceError
 
 logger = logging.getLogger(__name__)
 
@@ -74,7 +77,16 @@ def _get_backend():
         _backend_instance = get_backend()
         _backend_available = True
         return _backend_instance
-    except Exception as e:
+    except (
+        ImportError,
+        ModuleNotFoundError,
+        OSError,
+        RuntimeError,
+        ValueError,
+        TypeError,
+        AttributeError,
+        sqlite3.Error,
+    ) as e:
         logger.debug(f"Backend not available: {e}")
         _backend_available = False
         return None
@@ -314,8 +326,19 @@ def load_cache_with_validation(
                                     )
                 else:
                     logger.debug(f"Database cache miss: no record found ({cache_key})")
-        except Exception as e:
-            logger.error(f"Database cache load failed: {e}")
+        except (
+            OSError,
+            RuntimeError,
+            ValueError,
+            TypeError,
+            KeyError,
+            AttributeError,
+            sqlite3.Error,
+            PersistenceError,
+        ) as e:
+            logger.exception("Database cache load failed")
+            cache_error = CacheError("Failed to load cache from database")
+            logger.debug("%s: %s", type(cache_error).__name__, e)
 
     # No cache available
     logger.debug(f"Cache miss: no valid cache found ({cache_key})")
@@ -388,8 +411,19 @@ def save_cache(
                 )
                 logger.info(f"Cache saved to database: {len(data)} items ({cache_key})")
                 return
-        except Exception as e:
-            logger.error(f"Database cache save failed: {e}")
+        except (
+            OSError,
+            RuntimeError,
+            ValueError,
+            TypeError,
+            KeyError,
+            AttributeError,
+            sqlite3.Error,
+            PersistenceError,
+        ) as e:
+            logger.exception("Database cache save failed")
+            cache_error = CacheError("Failed to save cache to database")
+            logger.debug("%s: %s", type(cache_error).__name__, e)
 
     # If we reach here, cache save failed (no backend or no profile/query IDs)
     logger.warning(
@@ -453,8 +487,10 @@ def invalidate_metrics_cache_only() -> None:
             "[OK] Metrics cache invalidated - JIRA data cache preserved for reuse"
         )
 
-    except Exception as e:
-        logger.error(f"Error invalidating metrics cache: {e}", exc_info=True)
+    except (OSError, RuntimeError, ValueError, TypeError, ImportError) as e:
+        logger.exception("Error invalidating metrics cache")
+        cache_error = CacheError("Failed to invalidate metrics cache")
+        logger.debug("%s: %s", type(cache_error).__name__, e)
 
 
 def invalidate_all_cache() -> None:
@@ -483,7 +519,7 @@ def invalidate_all_cache() -> None:
         for cache_file in cache_files:
             try:
                 os.remove(cache_file)
-            except Exception as e:
+            except OSError as e:
                 logger.debug(f"Could not remove cache file {cache_file}: {e}")
         logger.info(f"[OK] Invalidated {len(cache_files)} JIRA cache files")
 
@@ -497,8 +533,10 @@ def invalidate_all_cache() -> None:
 
         logger.info("[OK] All cache invalidated - full JIRA re-download required")
 
-    except Exception as e:
-        logger.error(f"Error invalidating all cache: {e}", exc_info=True)
+    except (OSError, RuntimeError, ValueError, TypeError, ImportError) as e:
+        logger.exception("Error invalidating all cache")
+        cache_error = CacheError("Failed to invalidate all cache")
+        logger.debug("%s: %s", type(cache_error).__name__, e)
 
 
 class CacheInvalidationTrigger:
@@ -573,6 +611,17 @@ def has_jira_data_for_query(profile_id: str, query_id: str) -> bool:
         backend = get_backend()
         issues = backend.get_issues(profile_id, query_id, limit=1)
         return len(issues) > 0
-    except Exception as e:
-        logger.error(f"Error checking JIRA data: {e}")
+    except (
+        ImportError,
+        OSError,
+        RuntimeError,
+        ValueError,
+        TypeError,
+        AttributeError,
+        sqlite3.Error,
+        PersistenceError,
+    ) as e:
+        logger.exception("Error checking JIRA data")
+        cache_error = CacheError("Failed to check JIRA data cache state")
+        logger.debug("%s: %s", type(cache_error).__name__, e)
         return False

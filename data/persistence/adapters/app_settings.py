@@ -1,12 +1,14 @@
 """Data persistence adapters - App settings save/load operations."""
 
 # Standard library imports
+import sqlite3
 from datetime import datetime
 from typing import Any
 
 # Third-party library imports
 # Application imports
 from configuration.settings import logger
+from data.exceptions import PersistenceError
 
 
 def save_app_settings(
@@ -165,8 +167,20 @@ def save_app_settings(
         logger.debug(
             f"[Config] Final settings keys before write: {list(settings.keys())}"
         )
-    except Exception as e:
-        logger.error(f"[Config] Could not load existing settings: {e}")
+    except (
+        ImportError,
+        OSError,
+        RuntimeError,
+        ValueError,
+        TypeError,
+        KeyError,
+        AttributeError,
+        sqlite3.Error,
+        PersistenceError,
+    ) as e:
+        logger.exception("[Config] Could not load existing settings")
+        persistence_error = PersistenceError("Failed to load existing app settings")
+        logger.debug("[Config] %s: %s", type(persistence_error).__name__, e)
 
     try:
         # Use repository pattern - get backend and save via database
@@ -309,8 +323,20 @@ def save_app_settings(
             f"show_milestone={profile_data.get('show_milestone')}, "
             f"show_points={profile_data.get('show_points')}"
         )
-    except Exception as e:
-        logger.error(f"[Config] Error saving app settings: {e}")
+    except (
+        ImportError,
+        OSError,
+        RuntimeError,
+        ValueError,
+        TypeError,
+        KeyError,
+        AttributeError,
+        sqlite3.Error,
+        PersistenceError,
+    ) as e:
+        logger.exception("[Config] Error saving app settings")
+        persistence_error = PersistenceError("Failed to save app settings")
+        logger.debug("[Config] %s: %s", type(persistence_error).__name__, e)
 
 
 def load_app_settings() -> dict[str, Any]:
@@ -445,6 +471,18 @@ def load_app_settings() -> dict[str, Any]:
 
         return settings
 
-    except Exception as e:
-        logger.error(f"[Config] Error loading app settings via backend: {e}")
+    except (
+        ImportError,
+        OSError,
+        RuntimeError,
+        ValueError,
+        TypeError,
+        KeyError,
+        AttributeError,
+        sqlite3.Error,
+        PersistenceError,
+    ) as e:
+        logger.exception("[Config] Error loading app settings via backend")
+        persistence_error = PersistenceError("Failed to load app settings via backend")
+        logger.debug("[Config] %s: %s", type(persistence_error).__name__, e)
         return default_settings
