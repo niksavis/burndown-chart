@@ -10,6 +10,7 @@ For paginated bulk fetching, see data.jira.changelog_pagination.
 import logging
 from datetime import UTC
 
+from data.exceptions import JiraError, PersistenceError
 from data.jira.changelog_pagination import fetch_jira_issues_with_changelog
 
 logger = logging.getLogger(__name__)
@@ -86,7 +87,12 @@ def fetch_changelog_on_demand(
             logger.info(
                 f"[Database] Loaded {len(cached_issue_keys)} unique issues with changelog from database"
             )
-        except Exception as e:
+        except (
+            AttributeError,
+            PersistenceError,
+            TypeError,
+            ValueError,
+        ) as e:
             logger.warning(f"[Database] Could not load existing changelog: {e}")
             cached_issue_keys = set()
 
@@ -145,7 +151,12 @@ def fetch_changelog_on_demand(
                         f"[OK] Changelog already cached for all {len(cached_issue_keys)} issues",
                     )
 
-            except Exception as e:
+            except (
+                AttributeError,
+                PersistenceError,
+                TypeError,
+                ValueError,
+            ) as e:
                 logger.warning(
                     "[Database] Could not analyze issues from database: "
                     f"{e}, fetching all changelog"
@@ -353,7 +364,12 @@ def fetch_changelog_on_demand(
                             "(no status changes found)"
                         )
 
-                except Exception as db_error:
+                except (
+                    AttributeError,
+                    PersistenceError,
+                    TypeError,
+                    ValueError,
+                ) as db_error:
                     logger.error(
                         f"[Database] Failed to save changelog to database: {db_error}",
                         exc_info=True,
@@ -375,7 +391,14 @@ def fetch_changelog_on_demand(
                     True,
                     f"[OK] Changelog: {newly_fetched} newly fetched + {previously_cached} already cached = {total_cached} total issues (saved {reduction_pct:.0f}% size)",
                 )
-            except Exception as e:
+            except (
+                JiraError,
+                KeyError,
+                PersistenceError,
+                RuntimeError,
+                TypeError,
+                ValueError,
+            ) as e:
                 logger.warning(f"[Cache] Failed to save changelog data: {e}")
                 return False, f"Failed to cache changelog: {e}"
         else:
@@ -384,6 +407,13 @@ def fetch_changelog_on_demand(
             )
             return False, "Failed to fetch changelog data from JIRA"
 
-    except Exception as e:
+    except (
+        JiraError,
+        KeyError,
+        PersistenceError,
+        RuntimeError,
+        TypeError,
+        ValueError,
+    ) as e:
         logger.error(f"[JIRA] Error fetching changelog on demand: {e}")
         return False, f"Changelog fetch failed: {e}"

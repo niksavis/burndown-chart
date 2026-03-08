@@ -15,6 +15,7 @@ from datetime import UTC, datetime
 
 import requests
 
+from data.exceptions import JiraError, PersistenceError
 from data.jira.config import CACHE_EXPIRATION_HOURS
 
 logger = logging.getLogger(__name__)
@@ -232,7 +233,13 @@ def fetch_jira_issues(
                             "[JIRA] No issues found in database - "
                             "will perform full fetch"
                         )
-                except Exception as e:
+                except (
+                    AttributeError,
+                    KeyError,
+                    PersistenceError,
+                    TypeError,
+                    ValueError,
+                ) as e:
                     logger.warning(f"[JIRA] Database cache read error: {e}")
             else:
                 logger.warning(
@@ -544,7 +551,13 @@ def fetch_jira_issues(
                         total=0,
                         message=msg,
                     )
-            except Exception as e:
+            except (
+                AttributeError,
+                ImportError,
+                RuntimeError,
+                TypeError,
+                ValueError,
+            ) as e:
                 logger.debug(f"Progress update/cancellation check failed: {e}")
 
             # T052: Rate limiting - wait for token before request
@@ -572,7 +585,7 @@ def fetch_jira_issues(
                         )
                     else:
                         error_details = str(error_json)
-                except Exception:
+                except (TypeError, ValueError):
                     error_details = response.text[:500]  # First 500 chars of response
 
                 # Check for common ScriptRunner/JQL function issues
@@ -658,7 +671,7 @@ def fetch_jira_issues(
                     f"last_delta_changed_keys:{active_profile_id}:{active_query_id}",
                     "[]",
                 )
-        except Exception as e:
+        except (AttributeError, PersistenceError, TypeError, ValueError) as e:
             logger.debug(f"[JIRA] Failed to update last_fetch_time: {e}")
 
         return True, all_issues
@@ -666,6 +679,13 @@ def fetch_jira_issues(
     except requests.exceptions.RequestException as e:
         logger.error(f"[JIRA] Network error: {e}")
         return False, []
-    except Exception as e:
+    except (
+        JiraError,
+        KeyError,
+        PersistenceError,
+        RuntimeError,
+        TypeError,
+        ValueError,
+    ) as e:
         logger.error(f"[JIRA] Unexpected error: {e}")
         return False, []
