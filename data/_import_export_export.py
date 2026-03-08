@@ -17,6 +17,7 @@ from typing import Any
 
 from data._import_export_types import ExportManifest
 from data._import_export_validation import strip_credentials
+from data.exceptions import PersistenceError
 
 logger = logging.getLogger(__name__)
 
@@ -112,7 +113,14 @@ def export_profile_enhanced(
 
         return True, message
 
-    except Exception as e:
+    except (
+        PersistenceError,
+        OSError,
+        ValueError,
+        TypeError,
+        KeyError,
+        json.JSONDecodeError,
+    ) as e:
         logger.error(f"Failed to export profile '{profile_id}': {e}")
         return False, f"Export failed: {e}"
 
@@ -173,7 +181,14 @@ def _export_profile_queries(profile_id: str, export_dir: Path) -> int:
 
         return len(queries)
 
-    except Exception as e:
+    except (
+        PersistenceError,
+        OSError,
+        ValueError,
+        TypeError,
+        KeyError,
+        json.JSONDecodeError,
+    ) as e:
         logger.warning(f"Failed to export queries: {e}")
         return 0
 
@@ -210,7 +225,14 @@ def _export_profile_cache(profile_id: str, export_dir: Path) -> bool:
 
         return exported
 
-    except Exception as e:
+    except (
+        PersistenceError,
+        OSError,
+        ValueError,
+        TypeError,
+        KeyError,
+        json.JSONDecodeError,
+    ) as e:
         logger.warning(f"Failed to export cache: {e}")
         return False
 
