@@ -8,6 +8,7 @@ import pandas as pd
 
 # Application imports
 from configuration.settings import logger
+from data.exceptions import PersistenceError
 
 
 def load_unified_project_data() -> dict[str, Any]:
@@ -72,7 +73,13 @@ def load_unified_project_data() -> dict[str, Any]:
             )
         return data
 
-    except Exception as e:
+    except (
+        AttributeError,
+        KeyError,
+        PersistenceError,
+        TypeError,
+        ValueError,
+    ) as e:
         logger.error(f"[Cache] Error loading unified project data: {e}")
         return get_default_unified_data()
 
@@ -132,7 +139,7 @@ def save_unified_project_data(data: dict[str, Any]) -> None:
                                 f"{stat_data['stat_date']}"
                             )
                             continue
-                    except Exception as e:
+                    except (AttributeError, TypeError, ValueError) as e:
                         logger.warning(
                             "[Cache] Error normalizing date "
                             f"{stat_data.get('stat_date')}: {e}"
@@ -157,6 +164,12 @@ def save_unified_project_data(data: dict[str, Any]) -> None:
                 )
 
         logger.info("[Cache] Saved unified project data to database")
-    except Exception as e:
+    except (
+        AttributeError,
+        KeyError,
+        PersistenceError,
+        TypeError,
+        ValueError,
+    ) as e:
         logger.error(f"[Cache] Error saving unified project data: {e}")
         raise

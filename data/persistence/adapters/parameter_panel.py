@@ -6,6 +6,7 @@ from datetime import datetime
 # Third-party library imports
 # Application imports
 from configuration.settings import logger
+from data.exceptions import ConfigurationError, PersistenceError
 from data.persistence.adapters.app_settings import load_app_settings
 
 
@@ -46,7 +47,13 @@ def load_parameter_panel_state() -> dict:
         # Return default state if not found or invalid
         return dict(get_default_parameter_panel_state())
 
-    except Exception as e:
+    except (
+        ConfigurationError,
+        KeyError,
+        PersistenceError,
+        TypeError,
+        ValueError,
+    ) as e:
         logger.warning(f"[Config] Error loading parameter panel state: {e}")
         return dict(get_default_parameter_panel_state())
 
@@ -94,6 +101,12 @@ def save_parameter_panel_state(is_open: bool, user_preference: bool = True) -> b
         )
         return True
 
-    except Exception as e:
+    except (
+        ConfigurationError,
+        KeyError,
+        PersistenceError,
+        TypeError,
+        ValueError,
+    ) as e:
         logger.error(f"[Config] Error saving parameter panel state: {e}")
         return False
