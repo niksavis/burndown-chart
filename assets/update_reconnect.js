@@ -561,7 +561,23 @@
         }
       })
       .catch((error) => {
-        console.warn('[update_reconnect] Failed to check version/post-update status:', error);
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        const isHtmlFallbackResponse =
+          errorMessage.includes('Invalid JSON response') &&
+          errorMessage.includes('content-type: text/html');
+
+        // Startup can briefly return Dash HTML before API routes are ready; avoid noisy stack logs.
+        if (isHtmlFallbackResponse) {
+          console.info(
+            '[update_reconnect] Version endpoint returned HTML during startup; skipping post-update check'
+          );
+          return;
+        }
+
+        console.warn(
+          '[update_reconnect] Failed to check version/post-update status:',
+          errorMessage
+        );
       });
 
     // Listen for custom event from update button callback
