@@ -36,7 +36,7 @@ class TestInstallationContextDetection:
         finally:
             # Restore original state
             if original_has_meipass and original_meipass is not None:
-                sys._MEIPASS = original_meipass
+                sys._MEIPASS = original_meipass  # type: ignore[attr-defined]
         """Test detection when running as PyInstaller executable."""
         fake_exe_path = Path("C:/Program Files/Burndown/Burndown.exe")
 
@@ -78,7 +78,7 @@ class TestInstallationContextPaths:
         finally:
             # Restore original state
             if original_has_meipass and original_meipass is not None:
-                sys._MEIPASS = original_meipass
+                sys._MEIPASS = original_meipass  # type: ignore[attr-defined]
         """Test that frozen mode uses executable directory paths."""
         fake_exe_dir = Path("C:/Program Files/Burndown")
 
@@ -214,7 +214,7 @@ class TestInstallationContextPortableMode:
         finally:
             # Restore original state
             if original_has_meipass and original_meipass is not None:
-                sys._MEIPASS = original_meipass
+                sys._MEIPASS = original_meipass  # type: ignore[attr-defined]
         """Test portable mode detection in frozen mode."""
         fake_exe_dir = Path("C:/Users/Test/Burndown")
 

@@ -39,11 +39,11 @@ class TestCreateDeploymentFrequencyTrend:
 
         # Verify figure was created
         assert figure is not None
-        assert len(figure.data) > 0  # Should have at least one trace
+        assert len(figure.data) > 0  # type: ignore[arg-type]  # Should have at least one trace
 
         # Verify it's a line chart
-        assert figure.data[0].type == "scatter"
-        assert figure.data[0].mode == "lines+markers"
+        assert figure.data[0].type == "scatter"  # type: ignore[union-attr]
+        assert figure.data[0].mode == "lines+markers"  # type: ignore[union-attr]
 
     def test_trend_chart_with_empty_data(self):
         """Test that trend chart handles empty data gracefully."""
@@ -65,7 +65,7 @@ class TestCreateDeploymentFrequencyTrend:
 
         # Should create figure with single point
         assert figure is not None
-        assert len(figure.data) > 0
+        assert len(figure.data) > 0  # type: ignore[arg-type]
 
 
 class TestCreateLeadTimeTrend:
@@ -92,11 +92,11 @@ class TestCreateLeadTimeTrend:
 
         # Verify figure was created
         assert figure is not None
-        assert len(figure.data) > 0
+        assert len(figure.data) > 0  # type: ignore[arg-type]
 
         # Verify it's a line chart
-        assert figure.data[0].type == "scatter"
-        assert figure.data[0].mode == "lines+markers"
+        assert figure.data[0].type == "scatter"  # type: ignore[union-attr]
+        assert figure.data[0].mode == "lines+markers"  # type: ignore[union-attr]
 
     def test_trend_chart_with_empty_data(self):
         """Test that lead time trend chart handles empty data."""
@@ -126,7 +126,7 @@ class TestExistingChartFunctions:
 
         # Should create a figure
         assert figure is not None
-        assert len(figure.data) > 0
+        assert len(figure.data) > 0  # type: ignore[arg-type]
 
     def test_deployment_frequency_chart_with_historical(self):
         """Test deployment frequency chart with historical data."""
@@ -147,7 +147,7 @@ class TestExistingChartFunctions:
 
         # Should create a figure with trend
         assert figure is not None
-        assert len(figure.data) > 0
+        assert len(figure.data) > 0  # type: ignore[arg-type]
 
     def test_lead_time_chart_current_value(self):
         """Test lead time chart with current value only."""
@@ -162,7 +162,7 @@ class TestExistingChartFunctions:
 
         # Should create a figure
         assert figure is not None
-        assert len(figure.data) > 0
+        assert len(figure.data) > 0  # type: ignore[arg-type]
 
 
 class TestTrendChartBenchmarks:

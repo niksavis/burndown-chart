@@ -36,7 +36,7 @@ def test_df_to_dict(sample_dataframe):
     assert "b" in dict_result
 
     # Test with non-DataFrame input
-    assert df_to_dict("not a dataframe") == "not a dataframe"
+    assert df_to_dict("not a dataframe") == "not a dataframe"  # type: ignore[arg-type]
 
     # Test error handling
     with patch("pandas.DataFrame.to_dict", side_effect=Exception("Conversion error")):
@@ -60,7 +60,7 @@ def test_df_to_hashable(sample_dataframe):
     assert df_to_hashable(different_df) != result
 
     # Test with non-DataFrame input
-    assert isinstance(df_to_hashable("not a dataframe"), str)
+    assert isinstance(df_to_hashable("not a dataframe"), str)  # type: ignore[arg-type]
 
     # Test fallback mechanisms
     with patch("pandas.DataFrame.to_json", side_effect=Exception("to_json failed")):
@@ -103,7 +103,7 @@ def test_ensure_dataframe():
     assert set(result.columns) == {"a", "b"}
 
     # Test with invalid input
-    result = ensure_dataframe("not convertible")
+    result = ensure_dataframe("not convertible")  # type: ignore[arg-type]
     assert isinstance(result, pd.DataFrame)
     assert result.empty
 
@@ -119,7 +119,7 @@ def test_safe_dataframe_operation(sample_dataframe):
     assert result == 6  # 1 + 2 + 3
 
     # Test with fallback value
-    result = safe_dataframe_operation(None, sum_column_a, fallback="fallback")
+    result = safe_dataframe_operation(None, sum_column_a, fallback="fallback")  # type: ignore[arg-type]
     assert result == "fallback"
 
     # Test with empty DataFrame
