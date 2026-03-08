@@ -340,7 +340,7 @@ class TestCalculateTotalProjectScope(unittest.TestCase):
             }
         )
 
-        result = calculate_total_project_scope(float_data, int(10.3), int(50.6))
+        result = calculate_total_project_scope(float_data, 10.3, 50.6)  # type: ignore[arg-type]
 
         # Verify results are integers
         self.assertIsInstance(result["total_items"], int)
