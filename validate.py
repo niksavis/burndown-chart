@@ -14,7 +14,7 @@ Modes (choose one):
 
 Full gate (pre-push) includes:
     ruff, djlint, pyright, bandit, pip-audit, vulture, prettier,
-    eslint, markdownlint, pytest with coverage threshold (~60%)
+    eslint, markdownlint, pytest with coverage threshold (~44%)
 
 Platform-agnostic: works on Windows, macOS, and Linux.
 """
@@ -202,7 +202,7 @@ def check_coverage() -> int:
             "--cov=visualization",
             "--cov-config=pyproject.toml",
             "--cov-report=term-missing",
-            "--cov-fail-under=43",
+            "--cov-fail-under=44",
             "-q",
         ],
     )
