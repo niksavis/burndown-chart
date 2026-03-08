@@ -24,10 +24,11 @@ import json
 import os
 import uuid
 from datetime import datetime
-from typing import Any
+from typing import Any, cast
 
 from configuration import logger
 from data.schema import validate_query_profile
+from data.types import QueryProfile
 
 #######################################################################
 # CONSTANTS
@@ -107,6 +108,26 @@ def get_query_profile_by_id(profile_id: str) -> dict[str, Any] | None:
     return None
 
 
+def _build_query_profile(
+    name: str,
+    jql: str,
+    description: str,
+    created_at: str,
+    last_used: str,
+    profile_id: str | None = None,
+) -> QueryProfile:
+    """Construct a normalized query profile payload."""
+    return {
+        "id": profile_id or str(uuid.uuid4()),
+        "name": name.strip(),
+        "jql": jql.strip(),
+        "description": description.strip(),
+        "created_at": created_at,
+        "last_used": last_used,
+        "is_default": False,
+    }
+
+
 def save_query_profile(
     name: str, jql: str, description: str = "", profile_id: str | None = None
 ) -> dict[str, Any] | None:
@@ -162,15 +183,16 @@ def save_query_profile(
             return None
     else:
         # Create new profile
-        updated_profile = {
-            "id": str(uuid.uuid4()),
-            "name": name.strip(),
-            "jql": jql.strip(),
-            "description": description.strip(),
-            "created_at": now,
-            "last_used": now,
-            "is_default": False,
-        }
+        updated_profile = cast(
+            dict[str, Any],
+            _build_query_profile(
+                name=name,
+                jql=jql,
+                description=description,
+                created_at=now,
+                last_used=now,
+            ),
+        )
         user_profiles.append(updated_profile)
 
     # Validate profile
