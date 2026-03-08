@@ -36,7 +36,12 @@ def _run(label: str, cmd: list[str], *, check: bool = True) -> int:
     """Run a command and return its exit code. Print status."""
     print(f"\n[validate] {label}")
     resolved = [str(VENV_BIN / cmd[0]) if _is_venv_tool(cmd[0]) else cmd[0]] + cmd[1:]
-    result = subprocess.run(resolved, cwd=ROOT)
+    try:
+        result = subprocess.run(resolved, cwd=ROOT)
+    except KeyboardInterrupt:
+        print(f"[validate] {label}: INTERRUPTED")
+        # Preserve shell convention for interrupted processes.
+        return 130
     status = "OK" if result.returncode == 0 else "FAIL"
     print(f"[validate] {label}: {status}")
     return result.returncode
@@ -277,6 +282,11 @@ def main() -> int:
         ]
 
     for name, code in checks:
+        if code == 130:
+            print("\n" + "=" * 60)
+            print(f"[validate] INTERRUPTED during: {name}")
+            print("[validate] Validation was interrupted before completion.")
+            return 130
         if code != 0:
             failures.append(name)
 
