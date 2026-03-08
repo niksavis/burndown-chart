@@ -78,7 +78,7 @@ def _save_profiles_to_disk(profiles: list[dict[str, Any]]) -> bool:
         return False
 
 
-def load_query_profiles() -> list[QueryProfile]:
+def load_query_profiles() -> list[dict[str, Any]]:
     """
     Load all query profiles from disk.
 
@@ -86,11 +86,10 @@ def load_query_profiles() -> list[QueryProfile]:
         List of query profile dictionaries from jira_query_profiles.json
     """
     # Load user-created profiles from disk
-    profiles = _load_profiles_from_disk()
-    return [cast(QueryProfile, profile) for profile in profiles]
+    return _load_profiles_from_disk()
 
 
-def get_query_profile_by_id(profile_id: str) -> QueryProfile | None:
+def get_query_profile_by_id(profile_id: str) -> dict[str, Any] | None:
     """
     Get a specific query profile by ID.
 
@@ -104,7 +103,7 @@ def get_query_profile_by_id(profile_id: str) -> QueryProfile | None:
 
     for profile in all_profiles:
         if profile.get("id") == profile_id:
-            return cast(QueryProfile, profile)
+            return profile
 
     return None
 
@@ -131,7 +130,7 @@ def _build_query_profile(
 
 def save_query_profile(
     name: str, jql: str, description: str = "", profile_id: str | None = None
-) -> QueryProfile | None:
+) -> dict[str, Any] | None:
     """
     Save a new query profile or update existing one.
 
@@ -154,9 +153,7 @@ def save_query_profile(
         return None
 
     # Load existing user profiles
-    user_profiles: list[QueryProfile] = [
-        cast(QueryProfile, profile) for profile in _load_profiles_from_disk()
-    ]
+    user_profiles = _load_profiles_from_disk()
 
     # Check for duplicate names (only for new profiles or rename)
     for profile in user_profiles:
@@ -187,7 +184,7 @@ def save_query_profile(
     else:
         # Create new profile
         updated_profile = cast(
-            QueryProfile,
+            dict[str, Any],
             _build_query_profile(
                 name=name,
                 jql=jql,
@@ -246,7 +243,7 @@ def delete_query_profile(profile_id: str) -> bool:
 
 def update_query_profile(
     profile_id: str, name: str, jql: str, description: str = ""
-) -> QueryProfile | None:
+) -> dict[str, Any] | None:
     """
     Update an existing query profile.
 

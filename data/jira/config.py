@@ -16,7 +16,6 @@ import requests
 from configuration import logger
 from data.exceptions import JiraError, PersistenceError
 from data.persistence import load_app_settings
-from data.types import JiraConfig
 
 #######################################################################
 # CONFIGURATION CONSTANTS
@@ -39,7 +38,7 @@ CACHE_EXPIRATION_HOURS = 24  # Cache expires after 24 hours
 #######################################################################
 
 
-def get_jira_config(settings_jql_query: str | None = None) -> JiraConfig:
+def get_jira_config(settings_jql_query: str | None = None) -> dict:
     """
     Load JIRA configuration with priority hierarchy:
     jira_config → Environment → Default.
@@ -230,7 +229,7 @@ def generate_config_hash(config: dict, fields: str) -> str:
 
 def build_sync_jira_config(
     jira_config: dict, settings_jql: str, app_settings: dict
-) -> JiraConfig:
+) -> dict:
     """Build JIRA configuration dictionary for a sync operation.
 
     Args:

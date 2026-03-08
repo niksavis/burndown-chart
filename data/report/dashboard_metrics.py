@@ -11,8 +11,6 @@ from typing import Any
 
 import pandas as pd
 
-from data.types import MetricsResult
-
 logger = logging.getLogger(__name__)
 
 
@@ -24,7 +22,7 @@ def calculate_dashboard_metrics(
     weeks_count: int,
     show_points: bool = False,
     extended_metrics: dict[str, Any] | None = None,
-) -> MetricsResult:
+) -> dict[str, Any]:
     """
     Calculate dashboard summary metrics using LIFETIME-based calculations (same as app).
 
