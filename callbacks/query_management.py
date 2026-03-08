@@ -229,12 +229,6 @@ def auto_generate_query_name(
     2. JQL has content
     3. Name field is empty (don't overwrite manual names)
 
-    Uses simple heuristics to create readable names:
-    - Extract project key
-    - Extract time range (e.g., "-12w")
-    - Extract status filters
-    - Format: "ProjectKey Last 12 Weeks"
-
     Args:
         jql_query: Current JQL query string
         selected_query_id: Selected query ID (or "__create_new__" or empty)
@@ -255,48 +249,14 @@ def auto_generate_query_name(
         raise PreventUpdate
 
     try:
-        import re
+        from data.query_name_generator import generate_query_name
 
-        # Extract project key (e.g., "project = KAFKA")
-        project_match = re.search(
-            r"project\s*=\s*['\"]?(\w+)", jql_query, re.IGNORECASE
-        )
-        project = project_match.group(1) if project_match else "Query"
-
-        # Extract time range (e.g., "created >= -12w")
-        time_match = re.search(r"-(\d+)([wdmyh])", jql_query, re.IGNORECASE)
-        if time_match:
-            amount = time_match.group(1)
-            unit_map = {
-                "w": "Weeks",
-                "d": "Days",
-                "m": "Months",
-                "y": "Years",
-                "h": "Hours",
-            }
-            unit = unit_map.get(time_match.group(2).lower(), "")
-            time_desc = f"Last {amount} {unit}"
-        else:
-            time_desc = ""
-
-        # Extract status filter (e.g., "status = Done")
-        status_match = re.search(r"status\s*=\s*['\"]?(\w+)", jql_query, re.IGNORECASE)
-        status = status_match.group(1) if status_match else ""
-
-        # Build name
-        parts = [project]
-        if time_desc:
-            parts.append(time_desc)
-        if status:
-            parts.append(status)
-
-        generated_name = " ".join(parts)
-
-        logger.info(f"Auto-generated query name: {generated_name}")
+        generated_name = generate_query_name(jql_query)
+        logger.info(f"[QueryManagement] Auto-generated query name: {generated_name}")
         return generated_name
 
     except Exception as e:
-        logger.error(f"Failed to auto-generate query name: {e}")
+        logger.error(f"[QueryManagement] Failed to auto-generate query name: {e}")
         raise PreventUpdate from e
 
 

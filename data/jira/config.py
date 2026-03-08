@@ -208,6 +208,39 @@ def generate_config_hash(config: dict, fields: str) -> str:
     return hashlib.md5(config_str.encode("utf-8"), usedforsecurity=False).hexdigest()
 
 
+def build_sync_jira_config(
+    jira_config: dict, settings_jql: str, app_settings: dict
+) -> dict:
+    """Build JIRA configuration dictionary for a sync operation.
+
+    Args:
+        jira_config: Raw JIRA configuration from persistence layer
+        settings_jql: Resolved JQL query string to use for the fetch
+        app_settings: Application settings dict with project and field config
+
+    Returns:
+        Configuration dict suitable for passing to the JIRA sync functions
+    """
+    base_url = jira_config.get("base_url", "https://jira.atlassian.com")
+    api_version = jira_config.get("api_version", "v2")
+    points_field_raw = jira_config.get("points_field", "")
+
+    return {
+        "api_endpoint": construct_jira_endpoint(base_url, api_version),
+        "jql_query": settings_jql,
+        "token": jira_config.get("token", ""),
+        "story_points_field": points_field_raw
+        if isinstance(points_field_raw, str)
+        else "",
+        "cache_max_size_mb": jira_config.get("cache_size_mb", 100),
+        "max_results": jira_config.get("max_results_per_call", 1000),
+        "development_projects": app_settings.get("development_projects", []),
+        "devops_projects": app_settings.get("devops_projects", []),
+        "devops_task_types": app_settings.get("devops_task_types", []),
+        "field_mappings": app_settings.get("field_mappings", {}),
+    }
+
+
 def construct_jira_endpoint(base_url: str, api_version: str = "v2") -> str:
     """
     Construct full JIRA API endpoint from base URL and version.

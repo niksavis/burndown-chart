@@ -555,3 +555,33 @@ def validate_query_exists_for_data_operation(query_id: str) -> None:
         )
 
     logger.debug(f"[Query] Validated query '{query_id}' exists for data operation")
+
+
+def resolve_jql_query(jql_query: str, app_settings: dict) -> str:
+    """Resolve which JQL query to use for a data fetch operation.
+
+    If jql_query is empty, loads the active query's JQL from the database.
+    Falls back to the JQL stored in app_settings.
+
+    Args:
+        jql_query: JQL string from the UI (may be empty)
+        app_settings: Application settings dict with optional 'jql_query' key
+
+    Returns:
+        Resolved JQL string ready for use in a JIRA query
+    """
+    if not jql_query or not jql_query.strip():
+        try:
+            from data.persistence.factory import get_backend
+
+            backend = get_backend()
+            active_query_id = backend.get_app_state("active_query_id")
+            active_profile_id = backend.get_app_state("active_profile_id")
+            if active_query_id and active_profile_id:
+                query_data = backend.get_query(active_profile_id, active_query_id)
+                if query_data:
+                    return query_data.get("jql", "")
+        except Exception as e:
+            logger.error(f"[Query] Failed to load JQL from active query: {e}")
+        return app_settings.get("jql_query", "project = JRASERVER")
+    return jql_query.strip()

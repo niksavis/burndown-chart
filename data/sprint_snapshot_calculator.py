@@ -286,3 +286,39 @@ def get_status_at_timestamp(
 
     # Fallback to current status
     return issue.get("status")
+
+
+def filter_sprint_data(
+    sprint_data: dict, issue_type_filter: str = "all", status_filter: str = "all"
+) -> dict:
+    """Apply issue type and status filters to sprint snapshot data.
+
+    Args:
+        sprint_data: Sprint snapshot dict from get_sprint_snapshots()
+        issue_type_filter: Issue type to include ("all", "Story", "Task", "Bug", etc.)
+        status_filter: Status to include ("all", or specific status string)
+
+    Returns:
+        Filtered sprint data dict with matching issues only
+    """
+    if issue_type_filter == "all" and status_filter == "all":
+        return sprint_data
+
+    filtered_data: dict = {
+        "name": sprint_data.get("name"),
+        "current_issues": [],
+        "added_issues": sprint_data.get("added_issues", []),
+        "removed_issues": sprint_data.get("removed_issues", []),
+        "issue_states": {},
+    }
+
+    issue_states = sprint_data.get("issue_states", {})
+    for issue_key, state in issue_states.items():
+        if issue_type_filter != "all" and state.get("issue_type") != issue_type_filter:
+            continue
+        if status_filter != "all" and state.get("status") != status_filter:
+            continue
+        filtered_data["issue_states"][issue_key] = state
+        filtered_data["current_issues"].append(issue_key)
+
+    return filtered_data

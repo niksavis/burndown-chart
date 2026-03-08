@@ -14,51 +14,6 @@ from dash import Input, Output, State, callback, html
 logger = logging.getLogger(__name__)
 
 
-def _apply_sprint_filters(
-    sprint_data: dict, issue_type_filter: str = "all", status_filter: str = "all"
-) -> dict:
-    """Apply filters to sprint data.
-
-    Args:
-        sprint_data: Sprint snapshot from get_sprint_snapshots()
-        issue_type_filter: Issue type to filter ("all", "Story", "Task", "Bug")
-        status_filter: Status to filter ("all", or specific status)
-
-    Returns:
-        Filtered sprint data
-    """
-    if issue_type_filter == "all" and status_filter == "all":
-        return sprint_data
-
-    # Create filtered copy
-    filtered_data = {
-        "name": sprint_data.get("name"),
-        "current_issues": [],
-        "added_issues": sprint_data.get("added_issues", []),
-        "removed_issues": sprint_data.get("removed_issues", []),
-        "issue_states": {},
-    }
-
-    # Filter issue_states
-    issue_states = sprint_data.get("issue_states", {})
-    for issue_key, state in issue_states.items():
-        # Apply issue type filter
-        if issue_type_filter != "all":
-            if state.get("issue_type") != issue_type_filter:
-                continue
-
-        # Apply status filter
-        if status_filter != "all":
-            if state.get("status") != status_filter:
-                continue
-
-        # Issue passes filters
-        filtered_data["issue_states"][issue_key] = state
-        filtered_data["current_issues"].append(issue_key)
-
-    return filtered_data
-
-
 def _render_sprint_tracker_content(
     data_points_count: int, show_points: bool = False
 ) -> html.Div:

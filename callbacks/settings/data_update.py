@@ -246,8 +246,9 @@ def _prepare_jira_sync(jql_query, selected_query_id, force_refresh, button_norma
 
     Returns None if successful, or error tuple if validation fails.
     """
-    from data.jira import validate_jira_config
+    from data.jira import build_sync_jira_config, validate_jira_config
     from data.persistence import load_app_settings, load_jira_configuration
+    from data.query_manager import resolve_jql_query
     from data.task_progress import TaskProgress
 
     logger.info(
@@ -321,12 +322,14 @@ def _prepare_jira_sync(jql_query, selected_query_id, force_refresh, button_norma
 
     # Get JQL from active query if input is empty
     app_settings = load_app_settings()
-    settings_jql = _resolve_jql_query(jql_query, app_settings)
+    settings_jql = resolve_jql_query(jql_query, app_settings)
 
     logger.info(f"[Settings] JQL Query - Input: '{jql_query}', Final: '{settings_jql}'")
 
     # Build JIRA config for validation
-    jira_config_for_sync = _build_jira_config(jira_config, settings_jql, app_settings)
+    jira_config_for_sync = build_sync_jira_config(
+        jira_config, settings_jql, app_settings
+    )
 
     # Validate configuration
     is_valid, validation_message = validate_jira_config(jira_config_for_sync)
@@ -372,69 +375,20 @@ def _prepare_jira_sync(jql_query, selected_query_id, force_refresh, button_norma
     return None  # Success - no error
 
 
-def _resolve_jql_query(jql_query, app_settings):
-    """Resolve JQL query from input or active query."""
-    if not jql_query or not jql_query.strip():
-        try:
-            from data.persistence.factory import get_backend
-
-            backend = get_backend()
-            active_query_id = backend.get_app_state("active_query_id")
-            active_profile_id = backend.get_app_state("active_profile_id")
-
-            if active_query_id and active_profile_id:
-                query_data = backend.get_query(active_profile_id, active_query_id)
-                if query_data:
-                    settings_jql = query_data.get("jql", "")
-                    logger.info(
-                        f"[Settings] Using JQL from active query "
-                        f"'{active_query_id}': '{settings_jql}'"
-                    )
-                    return settings_jql
-
-            logger.warning("[Settings] No active query, using fallback JQL")
-        except Exception as e:
-            logger.error(f"[Settings] Failed to load JQL from active query: {e}")
-
-        return app_settings.get("jql_query", "project = JRASERVER")
-
-    return jql_query.strip()
-
-
-def _build_jira_config(jira_config, settings_jql, app_settings):
-    """Build JIRA configuration dictionary for sync."""
-    from data.jira import construct_jira_endpoint
-
-    base_url = jira_config.get("base_url", "https://jira.atlassian.com")
-    api_version = jira_config.get("api_version", "v2")
-    points_field_raw = jira_config.get("points_field", "")
-
-    return {
-        "api_endpoint": construct_jira_endpoint(base_url, api_version),
-        "jql_query": settings_jql,
-        "token": jira_config.get("token", ""),
-        "story_points_field": points_field_raw
-        if isinstance(points_field_raw, str)
-        else "",
-        "cache_max_size_mb": jira_config.get("cache_size_mb", 100),
-        "max_results": jira_config.get("max_results_per_call", 1000),
-        "development_projects": app_settings.get("development_projects", []),
-        "devops_projects": app_settings.get("devops_projects", []),
-        "devops_task_types": app_settings.get("devops_task_types", []),
-        "field_mappings": app_settings.get("field_mappings", {}),
-    }
-
-
 def _start_background_sync(jql_query, selected_query_id, force_refresh, button_normal):
     """Start background thread for JIRA data synchronization."""
+    from data.jira import build_sync_jira_config
     from data.persistence import load_app_settings, load_jira_configuration
+    from data.query_manager import resolve_jql_query
     from data.task_progress import TaskProgress
 
     # Reload config for background thread
     app_settings = load_app_settings()
     jira_config = load_jira_configuration()
-    settings_jql = _resolve_jql_query(jql_query, app_settings)
-    jira_config_for_sync = _build_jira_config(jira_config, settings_jql, app_settings)
+    settings_jql = resolve_jql_query(jql_query, app_settings)
+    jira_config_for_sync = build_sync_jira_config(
+        jira_config, settings_jql, app_settings
+    )
 
     # Convert force_refresh to boolean and check for new queries
     force_refresh_bool = _should_force_refresh(force_refresh)

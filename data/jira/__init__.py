@@ -39,6 +39,7 @@ from data.jira.config import (
     DEFAULT_CACHE_MAX_SIZE_MB,
     JIRA_CACHE_FILE,
     JIRA_CHANGELOG_CACHE_FILE,
+    build_sync_jira_config,
     construct_jira_endpoint,
     generate_config_hash,
     get_jira_config,
@@ -114,6 +115,7 @@ __all__ = [
     # Configuration
     "get_jira_config",
     "validate_jira_config",
+    "build_sync_jira_config",
     "construct_jira_endpoint",
     "test_jira_connection",
     "generate_config_hash",
