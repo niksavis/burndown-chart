@@ -4,9 +4,11 @@ from __future__ import annotations
 
 import json
 import logging
+import sqlite3
 from pathlib import Path
 
 from data.database import get_db_connection
+from data.exceptions import PersistenceError
 from data.persistence import ProfileNotFoundError, ValidationError
 from data.persistence.sqlite.helpers import retry_on_db_lock
 
@@ -43,12 +45,21 @@ class ProfilesMixin:
 
                 return profile
 
-        except Exception as e:
+        except (
+            sqlite3.Error,
+            OSError,
+            RuntimeError,
+            ValueError,
+            TypeError,
+            AttributeError,
+            json.JSONDecodeError,
+            PersistenceError,
+        ) as e:
             logger.error(
                 f"Failed to get profile '{profile_id}': {e}",
                 extra={"error_type": type(e).__name__, "profile_id": profile_id},
             )
-            raise
+            raise PersistenceError(f"Failed to load profile '{profile_id}'") from e
 
     @retry_on_db_lock(max_retries=3, base_delay=0.1)
     def save_profile(self, profile: dict) -> None:
@@ -115,12 +126,23 @@ class ProfilesMixin:
                 conn.commit()
                 logger.info(f"Saved profile: {profile['id']}")
 
-        except Exception as e:
+        except (
+            sqlite3.Error,
+            OSError,
+            RuntimeError,
+            ValueError,
+            TypeError,
+            AttributeError,
+            json.JSONDecodeError,
+            PersistenceError,
+        ) as e:
             logger.error(
                 f"Failed to save profile '{profile.get('id')}': {e}",
                 extra={"error_type": type(e).__name__},
             )
-            raise
+            raise PersistenceError(
+                f"Failed to save profile '{profile.get('id')}'"
+            ) from e
 
     def list_profiles(self) -> list[dict]:
         """List all profiles, ordered by last_used descending."""
@@ -134,11 +156,19 @@ class ProfilesMixin:
                 results = cursor.fetchall()
                 return [dict(row) for row in results]
 
-        except Exception as e:
+        except (
+            sqlite3.Error,
+            OSError,
+            RuntimeError,
+            ValueError,
+            TypeError,
+            AttributeError,
+            PersistenceError,
+        ) as e:
             logger.error(
                 f"Failed to list profiles: {e}", extra={"error_type": type(e).__name__}
             )
-            raise
+            raise PersistenceError("Failed to list profiles") from e
 
     @retry_on_db_lock(max_retries=3, base_delay=0.1)
     def delete_profile(self, profile_id: str) -> None:
@@ -160,9 +190,17 @@ class ProfilesMixin:
 
         except ProfileNotFoundError:
             raise
-        except Exception as e:
+        except (
+            sqlite3.Error,
+            OSError,
+            RuntimeError,
+            ValueError,
+            TypeError,
+            AttributeError,
+            PersistenceError,
+        ) as e:
             logger.error(
                 f"Failed to delete profile '{profile_id}': {e}",
                 extra={"error_type": type(e).__name__, "profile_id": profile_id},
             )
-            raise
+            raise PersistenceError(f"Failed to delete profile '{profile_id}'") from e

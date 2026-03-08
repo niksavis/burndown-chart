@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 import logging
+import sqlite3
 from pathlib import Path
 
 from data.database import get_db_connection
+from data.exceptions import PersistenceError
 from data.persistence.sqlite.helpers import retry_on_db_lock
 
 logger = logging.getLogger(__name__)
@@ -24,12 +26,20 @@ class AppStateMixin:
                 cursor.execute("SELECT value FROM app_state WHERE key = ?", (key,))
                 result = cursor.fetchone()
                 return result["value"] if result else None
-        except Exception as e:
-            logger.error(
-                f"Failed to get app_state key '{key}': {e}",
+        except (
+            sqlite3.Error,
+            OSError,
+            RuntimeError,
+            ValueError,
+            TypeError,
+            AttributeError,
+            PersistenceError,
+        ) as e:
+            logger.exception(
+                f"Failed to get app_state key '{key}'",
                 extra={"error_type": type(e).__name__, "key": key},
             )
-            raise
+            raise PersistenceError(f"Failed to load app state key '{key}'") from e
 
     @retry_on_db_lock(max_retries=3, base_delay=0.1)
     def set_app_state(self, key: str, value: str | None) -> None:
@@ -54,9 +64,17 @@ class AppStateMixin:
                     )
                     logger.debug(f"Set app_state: {key} = {value}")
                 conn.commit()
-        except Exception as e:
-            logger.error(
-                f"Failed to set app_state key '{key}': {e}",
+        except (
+            sqlite3.Error,
+            OSError,
+            RuntimeError,
+            ValueError,
+            TypeError,
+            AttributeError,
+            PersistenceError,
+        ) as e:
+            logger.exception(
+                f"Failed to set app_state key '{key}'",
                 extra={"error_type": type(e).__name__, "key": key},
             )
-            raise
+            raise PersistenceError(f"Failed to save app state key '{key}'") from e

@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 import logging
+import sqlite3
 from pathlib import Path
 
 from data.database import get_db_connection
+from data.exceptions import PersistenceError
 from data.persistence import ProfileNotFoundError, QueryNotFoundError, ValidationError
 from data.persistence.sqlite.helpers import retry_on_db_lock
 
@@ -29,16 +31,26 @@ class QueriesMixin:
                 result = cursor.fetchone()
                 return dict(result) if result else None
 
-        except Exception as e:
-            logger.error(
-                f"Failed to get query '{query_id}' for profile '{profile_id}': {e}",
+        except (
+            sqlite3.Error,
+            OSError,
+            RuntimeError,
+            ValueError,
+            TypeError,
+            AttributeError,
+            PersistenceError,
+        ) as e:
+            logger.exception(
+                f"Failed to get query '{query_id}' for profile '{profile_id}'",
                 extra={
                     "error_type": type(e).__name__,
                     "profile_id": profile_id,
                     "query_id": query_id,
                 },
             )
-            raise
+            raise PersistenceError(
+                f"Failed to load query '{query_id}' for profile '{profile_id}'"
+            ) from e
 
     @retry_on_db_lock(max_retries=3, base_delay=0.1)
     def save_query(self, profile_id: str, query: dict) -> None:
@@ -83,13 +95,23 @@ class QueriesMixin:
 
         except (ProfileNotFoundError, ValidationError):
             raise
-        except Exception as e:
+        except (
+            sqlite3.Error,
+            OSError,
+            RuntimeError,
+            ValueError,
+            TypeError,
+            AttributeError,
+            PersistenceError,
+        ) as e:
             logger.error(
                 "Failed to save query "
                 f"'{query.get('id')}' for profile '{profile_id}': {e}",
                 extra={"error_type": type(e).__name__},
             )
-            raise
+            raise PersistenceError(
+                f"Failed to save query '{query.get('id')}' for profile '{profile_id}'"
+            ) from e
 
     def list_queries(self, profile_id: str) -> list[dict]:
         """List all queries for a profile, ordered by last_used descending."""
@@ -104,12 +126,22 @@ class QueriesMixin:
                 results = cursor.fetchall()
                 return [dict(row) for row in results]
 
-        except Exception as e:
+        except (
+            sqlite3.Error,
+            OSError,
+            RuntimeError,
+            ValueError,
+            TypeError,
+            AttributeError,
+            PersistenceError,
+        ) as e:
             logger.error(
                 f"Failed to list queries for profile '{profile_id}': {e}",
                 extra={"error_type": type(e).__name__, "profile_id": profile_id},
             )
-            raise
+            raise PersistenceError(
+                f"Failed to list queries for profile '{profile_id}'"
+            ) from e
 
     @retry_on_db_lock(max_retries=3, base_delay=0.1)
     def delete_query(self, profile_id: str, query_id: str) -> None:
@@ -139,9 +171,19 @@ class QueriesMixin:
 
         except QueryNotFoundError:
             raise
-        except Exception as e:
+        except (
+            sqlite3.Error,
+            OSError,
+            RuntimeError,
+            ValueError,
+            TypeError,
+            AttributeError,
+            PersistenceError,
+        ) as e:
             logger.error(
                 f"Failed to delete query '{query_id}' from profile '{profile_id}': {e}",
                 extra={"error_type": type(e).__name__},
             )
-            raise
+            raise PersistenceError(
+                f"Failed to delete query '{query_id}' from profile '{profile_id}'"
+            ) from e
