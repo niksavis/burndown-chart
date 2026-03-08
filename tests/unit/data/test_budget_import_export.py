@@ -206,11 +206,3 @@ def test_budget_revisions_export_import(temp_db):
     assert len(imported_revisions) == 2
     assert imported_revisions[0]["week_label"] == "2026-W01"
     assert imported_revisions[1]["week_label"] == "2026-W02"
-
-
-def test_budget_export_in_full_package(temp_db):
-    """Test budget data is included in full export package."""
-    # This test requires mocking the factory to use the test database
-    # For now, we verify the backend methods work correctly
-    # Full integration test would require app context
-    pytest.skip("Requires app context/factory mocking - covered by backend tests")

@@ -83,64 +83,76 @@ class TestConfigOnlyExport:
         Independent Test Scenario: Compare CONFIG_ONLY export size vs
         FULL_DATA export - should be >90% smaller.
         """
-        # Given - Profile with significant query data
-        profiles_dir = temp_profiles_dir_with_default
+        from data.persistence.factory import get_backend
+
         profile_id = "default"
         query_id = "test_query"
 
-        # Create query with large dataset
-        query_path = Path(profiles_dir) / profile_id / "queries" / query_id
-        query_path.mkdir(parents=True, exist_ok=True)
-
-        # Large project data (simulating 1000 issues)
-        large_project_data = {
-            "query_id": query_id,
-            "statistics": {"total_issues": 1000, "completed": 750},
-            "issues": [
-                {"key": f"TEST-{i}", "summary": f"Issue {i}"} for i in range(100)
+        # Seed a query and 20 statistics records into the database so that
+        # FULL_DATA becomes significantly larger than CONFIG_ONLY.
+        backend = get_backend()
+        now = backend.get_profile(profile_id)["created_at"]
+        backend.save_query(
+            profile_id,
+            {
+                "id": query_id,
+                "name": "Test Query",
+                "jql": "project = TEST",
+                "created_at": now,
+                "last_used": now,
+            },
+        )
+        backend.save_statistics_batch(
+            profile_id,
+            query_id,
+            [
+                {
+                    "stat_date": f"2026-01-{i + 1:02d}",
+                    "week_label": f"2026-W{i + 1:02d}",
+                    "remaining_items": 100 - i * 5,
+                    "remaining_total_points": 200 - i * 10,
+                    "items_added": 2,
+                    "items_completed": 5,
+                    "completed_items": i * 5,
+                    "completed_points": i * 10,
+                    "created_items": 2,
+                    "created_points": 4,
+                    "velocity_items": 5,
+                    "velocity_points": 10,
+                }
+                for i in range(20)
             ],
-        }
-        with open(query_path / "project_data.json", "w") as f:
-            json.dump(large_project_data, f)
+        )
 
-        try:
-            # When - Export with CONFIG_ONLY
-            config_only_result = export_profile_with_mode(
-                profile_id=profile_id,
-                query_id=query_id,
-                export_mode="CONFIG_ONLY",
-                include_token=False,
-            )
+        # When - Export with CONFIG_ONLY and FULL_DATA for comparison
+        config_only_result = export_profile_with_mode(
+            profile_id=profile_id,
+            query_id=query_id,
+            export_mode="CONFIG_ONLY",
+            include_token=False,
+        )
+        full_data_result = export_profile_with_mode(
+            profile_id=profile_id,
+            query_id=query_id,
+            export_mode="FULL_DATA",
+            include_token=False,
+        )
 
-            # Export with FULL_DATA for comparison
-            full_data_result = export_profile_with_mode(
-                profile_id=profile_id,
-                query_id=query_id,
-                export_mode="FULL_DATA",
-                include_token=False,
-            )
+        # Calculate sizes
+        config_only_size = len(json.dumps(config_only_result))
+        full_data_size = len(json.dumps(full_data_result))
 
-            # Calculate sizes
-            config_only_size = len(json.dumps(config_only_result))
-            full_data_size = len(json.dumps(full_data_result))
+        # Then - CONFIG_ONLY should be significantly smaller (statistics excluded)
+        size_reduction_percent = (
+            (full_data_size - config_only_size) / full_data_size * 100
+        )
 
-            # Then - CONFIG_ONLY should be significantly smaller
-            size_reduction_percent = (
-                (full_data_size - config_only_size) / full_data_size * 100
-            )
-
-            assert config_only_size < full_data_size
-            # CONFIG_ONLY should be at least 50% smaller (ideally >90%)
-            assert size_reduction_percent > 50, (
-                f"CONFIG_ONLY export only {size_reduction_percent:.1f}% smaller. "
-                f"Expected >50% reduction."
-            )
-
-        except FileNotFoundError:
-            pytest.skip(
-                "Profile fixture needs profile.json - "
-                "use temp_profiles_dir_with_default fixture"
-            )
+        assert config_only_size < full_data_size
+        # CONFIG_ONLY should be at least 50% smaller (excludes statistics/cache data)
+        assert size_reduction_percent > 50, (
+            f"CONFIG_ONLY export only {size_reduction_percent:.1f}% smaller. "
+            f"Expected >50% reduction."
+        )
 
     def test_config_only_preserves_configuration_structure(
         self, temp_profiles_dir_with_default
@@ -197,40 +209,21 @@ class TestExportSecurity:
         profile_id = "default"
         query_id = "test_query"
 
-        # Note: This test requires profile.json with jira_token field
-        # If fixture doesn't have token, skip test
-        profile_path = Path("profiles") / profile_id / "profile.json"
-        if not profile_path.exists():
-            pytest.skip("Profile fixture not available")
+        # When - Export with CONFIG_ONLY and include_token=False (default)
+        result = export_profile_with_mode(
+            profile_id=profile_id,
+            query_id=query_id,
+            export_mode="CONFIG_ONLY",
+            include_token=False,
+        )
 
-        with open(profile_path) as f:
-            profile_data = json.load(f)
+        # Then - Credentials should be stripped
+        assert result["manifest"]["includes_token"] is False
 
-        # Add token if not present (for test purposes)
-        if "jira_token" not in profile_data and "jira_config" in profile_data:
-            profile_data["jira_config"]["jira_token"] = "test_secret_token"
-            with open(profile_path, "w") as f:
-                json.dump(profile_data, f)
-
-        try:
-            # When - Export with CONFIG_ONLY and include_token=False (default)
-            result = export_profile_with_mode(
-                profile_id=profile_id,
-                query_id=query_id,
-                export_mode="CONFIG_ONLY",
-                include_token=False,
-            )
-
-            # Then - Credentials should be stripped
-            assert result["manifest"]["includes_token"] is False
-
-            # Check profile data for any credential fields
-            profile_str = json.dumps(result["profile_data"]).lower()
-            # Should not contain actual token value
-            assert "test_secret_token" not in profile_str
-
-        except FileNotFoundError:
-            pytest.skip("Profile fixture not available")
+        # Check profile data for any credential fields
+        profile_str = json.dumps(result["profile_data"]).lower()
+        # Should not contain actual token value seeded in fixture
+        assert "test_secret_token" not in profile_str
 
     def test_full_data_also_strips_credentials_unless_requested(
         self, temp_profiles_dir_with_default

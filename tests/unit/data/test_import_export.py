@@ -375,25 +375,8 @@ class TestResolveProfileConflict:
 class TestExportProfileWithMode:
     """Test export mode logic for CONFIG_ONLY exports."""
 
-    def test_export_config_only_excludes_query_data(self):
-        """T014: Verify CONFIG_ONLY mode excludes query data."""
-        # Skip - function uses hardcoded 'profiles' dir, needs integration test
-        pytest.skip("Function uses hardcoded 'profiles' dir - needs integration test")
-
-    def test_export_config_only_strips_token_by_default(self):
-        """T015: Verify CONFIG_ONLY mode strips token by default."""
-        # Skip - function uses hardcoded 'profiles' dir, needs integration test
-        pytest.skip("Function uses hardcoded 'profiles' dir - needs integration test")
-
-    def test_export_config_only_includes_token_when_requested(self):
-        """Verify CONFIG_ONLY mode can include token when explicitly requested."""
-        # Skip - function uses hardcoded 'profiles' dir, needs integration test
-        pytest.skip("Function uses hardcoded 'profiles' dir - needs integration test")
-
-    def test_export_full_data_includes_query_data(self):
-        """Verify FULL_DATA mode includes query data."""
-        # Skip - function uses hardcoded 'profiles' dir, needs integration test
-        pytest.skip("Function uses hardcoded 'profiles' dir - needs integration test")
+    # T014, T015, and related integration tests moved to
+    # tests/integration/test_import_export_scenarios.py (DB-backed).
 
     def test_export_config_only_size_reduction(self):
         """T024: Verify CONFIG_ONLY exports are significantly smaller."""

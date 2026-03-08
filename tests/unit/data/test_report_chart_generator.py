@@ -6,8 +6,6 @@ Tests the refactored chart generation modules that were split from chart_generat
 - chart_flow.py
 """
 
-import pytest
-
 from data.report.chart_bugs import generate_bug_trends_chart
 from data.report.chart_burndown import (
     generate_burndown_chart,
@@ -330,22 +328,7 @@ class TestBurndownCharts:
         assert "items/week" in script
 
 
-class TestScopeChart:
-    """Test scope changes chart generation."""
-
-    def test_generate_scope_changes_chart_basic(self):
-        """Test basic scope changes chart (deprecated - chart removed)."""
-        # This chart has been removed and consolidated into Weekly Breakdown
-        # Keeping test structure for compatibility but marking as skipped
-        pytest.skip(
-            "Scope changes chart removed - functionality merged into Weekly Breakdown"
-        )
-
-    def test_generate_scope_changes_chart_no_data(self):
-        """Test scope chart with no items (deprecated)."""
-        pytest.skip(
-            "Scope changes chart removed - functionality merged into Weekly Breakdown"
-        )
+# TestScopeChart removed: scope changes chart was merged into Weekly Breakdown.
 
 
 class TestBugsChart:

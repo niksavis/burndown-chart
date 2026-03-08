@@ -11,6 +11,7 @@
 # Testing dependencies
 pytest>=8.3.5  # Kaleido requires pytest>=9.0, allow newer versions
 pytest-cov==6.1.1
+pytest-timeout>=2.0  # Enforce @pytest.mark.timeout() limits
 pytest-xdist>=3.0  # Parallel test execution (-n auto)
 playwright>=1.40.0
 

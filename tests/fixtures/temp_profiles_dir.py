@@ -91,4 +91,31 @@ def temp_profiles_dir_with_default():
 
             factory._backend_instance = None
 
+            # Seed a default profile in the database so export/import tests can run
+            from datetime import UTC, datetime
+
+            from data.persistence.factory import get_backend
+
+            now = datetime.now(UTC).isoformat()
+            backend = get_backend()
+            backend.save_profile(
+                {
+                    "id": "default",
+                    "name": "Default Profile",
+                    "description": "Default profile for testing",
+                    "created_at": now,
+                    "last_used": now,
+                    "jira_config": {
+                        "configured": True,
+                        "jira_url": "https://example.atlassian.net",
+                        "jira_token": "test_secret_token",
+                        "username": "testuser@example.com",
+                    },
+                    "field_mappings": {},
+                    "forecast_settings": {},
+                    "project_classification": {},
+                    "flow_type_mappings": {},
+                }
+            )
+
             yield profiles_dir

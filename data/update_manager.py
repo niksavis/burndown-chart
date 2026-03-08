@@ -53,7 +53,7 @@ import tempfile
 import uuid
 import zipfile
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import UTC, datetime
 from enum import Enum
 from pathlib import Path
 
@@ -202,7 +202,7 @@ def _persist_download_state(progress: UpdateProgress) -> None:
         backend.set_app_state("pending_update_path", str(progress.download_path))
         backend.set_app_state("pending_update_url", progress.download_url)
         backend.set_app_state(
-            "pending_update_checked_at", datetime.utcnow().isoformat()
+            "pending_update_checked_at", datetime.now(UTC).isoformat()
         )
 
         logger.debug(
@@ -1084,6 +1084,10 @@ def launch_updater(update_path: Path) -> bool:
                 stderr=updater_log_file,
                 start_new_session=True,
             )
+
+        # Close parent's fd - subprocess has its own copy
+        if not isinstance(updater_log_file, int):
+            updater_log_file.close()
 
         logger.info(
             "Updater launched successfully - application will exit",

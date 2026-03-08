@@ -250,8 +250,11 @@ pytest==9.0.2
     # via
     #   -r requirements-dev.in
     #   pytest-cov
+    #   pytest-timeout
     #   pytest-xdist
 pytest-cov==6.1.1
+    # via -r requirements-dev.in
+pytest-timeout==2.4.0
     # via -r requirements-dev.in
 pytest-xdist==3.8.0
     # via -r requirements-dev.in
