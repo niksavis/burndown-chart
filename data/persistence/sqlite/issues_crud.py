@@ -4,11 +4,13 @@ from __future__ import annotations
 
 import json
 import logging
+import sqlite3
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
 from data.database import get_db_connection
+from data.exceptions import PersistenceError
 from data.persistence.sqlite.helpers import extract_nested_field, retry_on_db_lock
 
 logger = logging.getLogger(__name__)
@@ -91,7 +93,13 @@ class IssuesCRUDMixin:
 
                 return issues
 
-        except Exception as e:
+        except (
+            OSError,
+            PersistenceError,
+            sqlite3.Error,
+            TypeError,
+            ValueError,
+        ) as e:
             logger.error(
                 f"Failed to get issues for {profile_id}/{query_id}: {e}",
                 extra={"error_type": type(e).__name__},
@@ -359,7 +367,13 @@ class IssuesCRUDMixin:
                     f"{points_configured}"
                 )
 
-        except Exception as e:
+        except (
+            OSError,
+            PersistenceError,
+            sqlite3.Error,
+            TypeError,
+            ValueError,
+        ) as e:
             logger.error(
                 f"Failed to save issues batch for {profile_id}/{query_id}: {e}",
                 extra={"error_type": type(e).__name__},
@@ -379,7 +393,13 @@ class IssuesCRUDMixin:
                 conn.commit()
                 logger.info(f"Deleted {deleted_count} expired issues")
                 return deleted_count
-        except Exception as e:
+        except (
+            OSError,
+            PersistenceError,
+            sqlite3.Error,
+            TypeError,
+            ValueError,
+        ) as e:
             logger.error(
                 f"Failed to delete expired issues: {e}",
                 extra={"error_type": type(e).__name__},
@@ -495,7 +515,13 @@ class IssuesCRUDMixin:
                 )
                 return updated_count
 
-        except Exception as e:
+        except (
+            OSError,
+            PersistenceError,
+            sqlite3.Error,
+            TypeError,
+            ValueError,
+        ) as e:
             logger.error(
                 f"Failed to re-normalize points for {profile_id}: {e}",
                 extra={"error_type": type(e).__name__},
