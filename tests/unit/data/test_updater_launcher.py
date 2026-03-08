@@ -76,8 +76,8 @@ def test_launch_updater_extracts_zip():
         # launch_updater calls os._exit(0) (not sys.exit) for immediate termination;
         # mocking os._exit with a SystemExit side-effect makes it catchable.
         with (
-            patch("data.update_manager.subprocess.Popen") as mock_popen,
-            patch("data.update_manager.os._exit") as mock_exit,
+            patch("data.update_delivery.subprocess.Popen") as mock_popen,
+            patch("data.update_delivery.os._exit") as mock_exit,
         ):
             mock_popen.return_value = MagicMock()
             mock_exit.side_effect = SystemExit(0)
@@ -114,10 +114,10 @@ def test_launch_updater_passes_correct_arguments():
         # shutil.copy2 is also mocked to fail so the fallback path is taken,
         # which keeps the args list at exactly 4 elements (no --updater-exe flag).
         with (
-            patch("data.update_manager.subprocess.Popen") as mock_popen,
-            patch("data.update_manager.os._exit") as mock_exit,
-            patch("data.update_manager.sys.frozen", False, create=True),
-            patch("data.update_manager.shutil.copy2", side_effect=OSError("test")),
+            patch("data.update_delivery.subprocess.Popen") as mock_popen,
+            patch("data.update_delivery.os._exit") as mock_exit,
+            patch("data.update_delivery.sys.frozen", False, create=True),
+            patch("data.update_delivery.shutil.copy2", side_effect=OSError("test")),
         ):
             mock_popen.return_value = MagicMock()
             mock_exit.side_effect = SystemExit(0)
@@ -157,8 +157,8 @@ def test_launch_updater_finds_updater_in_subdirectory():
         # Mock subprocess.Popen and os._exit.
         # launch_updater uses os._exit(0) for immediate termination.
         with (
-            patch("data.update_manager.subprocess.Popen") as mock_popen,
-            patch("data.update_manager.os._exit") as mock_exit,
+            patch("data.update_delivery.subprocess.Popen") as mock_popen,
+            patch("data.update_delivery.os._exit") as mock_exit,
         ):
             mock_popen.return_value = MagicMock()
             mock_exit.side_effect = SystemExit(0)

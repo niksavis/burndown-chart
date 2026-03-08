@@ -30,14 +30,17 @@ from callbacks import register_all_callbacks
 from configuration.logging_config import cleanup_old_logs, setup_logging
 from configuration.server import get_server_config
 from data.installation_context import get_installation_context
-from data.profile_manager import (
-    get_active_profile,
-    list_profiles,
-    switch_profile,
-)
-from data.query_manager import get_active_query_id, list_queries_for_profile
-from data.update_manager import UpdateProgress, UpdateState, check_for_updates
+from data.update_cleanup import cleanup_orphaned_temp_updaters
+from data.update_manager import UpdateProgress
+from data.update_startup import restore_pending_update, start_update_check
+from data.workspace_manager import ensure_valid_workspace
 from ui import serve_layout
+from ui.app_config import (
+    EXTERNAL_SCRIPTS,
+    EXTERNAL_STYLESHEETS,
+    INDEX_STRING,
+    META_TAGS,
+)
 from utils.license_extractor import extract_license_on_first_run
 
 # Global reference to server for clean shutdown
@@ -74,77 +77,6 @@ cleanup_old_logs(log_dir=str(installation_context.logs_path), max_age_days=30)
 logger = logging.getLogger(__name__)
 logger.info("Starting Burndown application")
 
-#######################################################################
-# TEMP FILE CLEANUP
-#######################################################################
-
-
-def cleanup_orphaned_temp_updaters() -> None:
-    """Remove orphaned temp updater files from previous sessions.
-
-    Temp updater copies (BurndownUpdater-temp-*.exe) are created during
-    updates but cannot delete themselves while running. This function cleans
-    up any leftover files from previous update sessions.
-
-    Only deletes files older than 1 hour to avoid interfering with any
-    running update process.
-    """
-    import tempfile
-
-    try:
-        temp_dir = Path(tempfile.gettempdir())
-        cutoff_time = time.time() - (60 * 60)  # 1 hour ago
-
-        # Cleanup temp updater executables
-        cleaned_count = 0
-        temp_updater_patterns = [
-            "BurndownUpdater-temp-*.exe",
-            "BurndownChartUpdater-temp-*.exe",  # Legacy name for older releases.
-        ]
-        for pattern in temp_updater_patterns:
-            for temp_updater in temp_dir.glob(pattern):
-                try:
-                    # Only delete if older than 1 hour (safety margin)
-                    if temp_updater.stat().st_mtime < cutoff_time:
-                        temp_updater.unlink()
-                        cleaned_count += 1
-                        logger.info(f"Cleaned up orphaned updater: {temp_updater.name}")
-                except (PermissionError, OSError) as e:
-                    # File might be in use, skip silently
-                    logger.debug(f"Could not delete {temp_updater.name}: {e}")
-
-        # Cleanup orphaned extraction directories (burndown_update_*)
-        extract_dir_patterns = ["burndown_update_*", "burndown_chart_update_*"]
-        for pattern in extract_dir_patterns:
-            for extract_dir in temp_dir.glob(pattern):
-                if extract_dir.is_dir():
-                    try:
-                        # Only delete if older than 1 hour (safety margin)
-                        if extract_dir.stat().st_mtime < cutoff_time:
-                            import shutil
-
-                            shutil.rmtree(extract_dir)
-                            cleaned_count += 1
-                            logger.info(
-                                "Cleaned up orphaned extraction dir: "
-                                f"{extract_dir.name}"
-                            )
-                    except (PermissionError, OSError) as e:
-                        # Directory might be in use, skip silently
-                        logger.debug(f"Could not delete {extract_dir.name}: {e}")
-
-        if cleaned_count > 0:
-            logger.info(
-                f"Cleanup complete: removed {cleaned_count} orphaned file(s)/folder(s)"
-            )
-        else:
-            logger.debug("No orphaned temp files found")
-
-    except Exception as e:
-        # Don't let cleanup failures block app startup
-        logger.warning(f"Temp file cleanup failed: {e}")
-
-
 # Clean up orphaned temp updaters from previous sessions
 cleanup_orphaned_temp_updaters()
 
@@ -175,210 +107,17 @@ except Exception as e:
 # VERSION CHECK
 #######################################################################
 
-# Global variable to store update check result
-# Accessed by UI components to show update notifications
-VERSION_CHECK_RESULT: UpdateProgress | None = None
+VERSION_CHECK_RESULT: UpdateProgress | None = restore_pending_update()
 
 
-def _restore_pending_update() -> None:
-    """Restore pending update state from database.
-
-    If app was closed or crashed after downloading an update but before
-    installation, this restores the download state. Handles graceful
-    fallback if temp files were deleted by Windows.
-
-    Also invalidates stale state if current version >= pending version
-    (e.g., after manual upgrade or development version bump).
-    """
+def _set_version_check_result(result: UpdateProgress) -> None:
     global VERSION_CHECK_RESULT
-    try:
-        from configuration import __version__
-        from data.update_manager import (
-            _restore_download_state,
-            clear_download_state,
-            compare_versions,
-        )
-
-        restored_progress = _restore_download_state()
-        if restored_progress:
-            # Invalidate stale state if current version >= pending version
-            # Skip if available_version is None (shouldn't happen, but type-safe)
-            if not restored_progress.available_version:
-                logger.warning("Restored state missing available_version, clearing")
-                clear_download_state()
-                return
-
-            try:
-                comparison = compare_versions(
-                    __version__, restored_progress.available_version
-                )
-                if comparison >= 0:
-                    logger.info(
-                        "Invalidating stale update state - already at or past "
-                        "that version",
-                        extra={
-                            "operation": "restore_pending_update",
-                            "current_version": __version__,
-                            "pending_version": restored_progress.available_version,
-                        },
-                    )
-                    clear_download_state()
-                    return
-            except Exception as e:
-                logger.warning(
-                    f"Failed to compare versions, clearing state to be safe: {e}"
-                )
-                clear_download_state()
-                return
-
-            # Valid pending update - restore state
-            VERSION_CHECK_RESULT = restored_progress
-            logger.info(
-                "Restored pending update from previous session",
-                extra={
-                    "operation": "restore_pending_update",
-                    "state": restored_progress.state.value,
-                    "version": restored_progress.available_version,
-                },
-            )
-    except Exception as e:
-        logger.warning(f"Failed to restore pending update: {e}")
+    VERSION_CHECK_RESULT = result
 
 
-# Restore pending update state (if any)
-_restore_pending_update()
-
-
-def _check_for_updates_background() -> None:
-    """Background thread function to check for updates.
-
-    Runs update check without blocking app startup. Result is stored
-    in global VERSION_CHECK_RESULT for UI components to display.
-
-    This is a daemon thread, so it will be terminated when the app exits.
-    """
-    global VERSION_CHECK_RESULT
-
-    # Skip check if we already have a pending update
-    if VERSION_CHECK_RESULT and VERSION_CHECK_RESULT.state in (
-        UpdateState.READY,
-        UpdateState.AVAILABLE,
-    ):
-        logger.info("Skipping update check - pending update already available")
-        return
-
-    try:
-        logger.info("Starting background update check")
-        VERSION_CHECK_RESULT = check_for_updates()
-        logger.info(
-            "Update check complete",
-            extra={
-                "operation": "update_check",
-                "state": VERSION_CHECK_RESULT.state.value,
-                "current_version": VERSION_CHECK_RESULT.current_version,
-                "available_version": VERSION_CHECK_RESULT.available_version,
-            },
-        )
-    except Exception as e:
-        logger.error(
-            f"Update check failed: {e}",
-            exc_info=True,
-            extra={"operation": "update_check"},
-        )
-        # Set error state so UI knows check failed
-        VERSION_CHECK_RESULT = UpdateProgress(
-            state=UpdateState.ERROR,
-            current_version="unknown",
-            error_message=str(e),
-        )
-
-
-# Launch update check in background thread (daemon=True)
-# App UI will appear immediately without waiting for check to complete
-update_check_thread = threading.Thread(
-    target=_check_for_updates_background,
-    daemon=True,
-    name="UpdateCheckThread",
+update_check_thread = start_update_check(
+    _set_version_check_result, VERSION_CHECK_RESULT
 )
-update_check_thread.start()
-logger.info("Update check thread started")
-
-#######################################################################
-# WORKSPACE VALIDATION
-#######################################################################
-
-
-def ensure_valid_workspace() -> None:
-    """
-    Validate application workspace on startup.
-
-    This function checks the workspace state and ensures:
-    1. If profiles exist, active profile is set
-    2. If active profile exists, it has at least one query
-    3. If queries exist, active query is set
-
-    Unlike previous versions, this does NOT create a default profile.
-    The app starts with a clean slate - users create their first profile via UI.
-
-    Called during app initialization (after migration).
-    """
-    try:
-        logger.info("[Workspace] Starting workspace validation...")
-
-        # Step 1: Check if any profiles exist
-        all_profiles = list_profiles()
-        if not all_profiles:
-            logger.info(
-                "[Workspace] No profiles found - fresh installation. "
-                "User will create first profile via UI."
-            )
-            logger.info("[Workspace] Workspace validation complete [OK]")
-            return
-
-        # Step 2: Ensure active profile is set (if profiles exist)
-        active_profile = get_active_profile()
-        if not active_profile:
-            logger.warning(
-                "[Workspace] Profiles exist but no active profile set. "
-                f"Switching to first profile: {all_profiles[0]['name']}"
-            )
-            switch_profile(all_profiles[0]["id"])
-            active_profile = get_active_profile()
-
-        logger.info(
-            "[Workspace] Active profile: "
-            f"{active_profile.name if active_profile else 'None'}"
-        )
-
-        # Step 3: Ensure profile has at least one query
-        if active_profile:
-            queries = list_queries_for_profile(active_profile.id)
-            if not queries:
-                logger.info(
-                    f"[Workspace] No queries in profile '{active_profile.name}' - "
-                    "User will need to create a query before using JIRA integration"
-                )
-                # Note: We don't auto-create queries here because they require
-                # JIRA configuration. The UI will enforce creating queries
-                # after JIRA config is complete.
-
-            # Step 4: Ensure active query is set (if queries exist)
-            active_query_id = get_active_query_id()
-            if queries and not active_query_id:
-                logger.info("[Workspace] No active query, switching to first query")
-                from data.profile_manager import switch_query
-
-                switch_query(active_profile.id, queries[0]["id"])
-
-        logger.info("[Workspace] Workspace validation complete [OK]")
-
-    except Exception as e:
-        # Log error but don't crash - allow app to continue
-        logger.error(f"[Workspace] Validation failed: {e}", exc_info=True)
-        print(
-            f"WARNING: Workspace validation failed - {e}. See logs/app.log for details."
-        )
-
 
 # Validate workspace before app initialization
 ensure_valid_workspace()
@@ -399,121 +138,16 @@ app = dash.Dash(
     # Prevent auto-loading vendor CSS/JS to preserve order
     background_callback_manager=background_callback_manager,
     # Enable background callbacks
-    external_stylesheets=[
-        # Bootswatch Flatly theme (local copy for offline use)
-        "/assets/vendor/bootswatch/flatly/bootstrap.min.css",
-        # SECURITY: Font Awesome served locally
-        # (no tracking, no checkout popup injection)
-        # Using free version CSS-only (no kit system) to prevent checkout code injection
-        "/assets/vendor/fontawesome/css/fontawesome.min.css",
-        # Font Awesome core (CSS only)
-        "/assets/vendor/fontawesome/css/solid.min.css",  # Solid icons
-        "/assets/vendor/fontawesome/css/brands.min.css",  # Brand icons (GitHub, etc.)
-        "/assets/vendor/codemirror/codemirror.min.css",  # CodeMirror base styles
-        "/assets/custom.css",
-        # Our custom CSS for standardized styling
-        # (includes CodeMirror theme overrides)
-        "/assets/help_system.css",  # Help system CSS for progressive disclosure
-    ],
-    external_scripts=[
-        # Bootstrap JS Bundle (required for CSS interactive states and transitions)
-        "/assets/vendor/bootstrap/js/bootstrap.bundle.min.js",
-        # CodeMirror 5 (legacy) - Better script tag support than CM6
-        # CM6 requires ES modules which don't work well with Dash script loading
-        # CM5 provides adequate syntax highlighting for our use case
-        "/assets/vendor/codemirror/codemirror.min.js",
-        "/assets/vendor/codemirror/mode/sql/sql.min.js",  # Base for query language
-        "/assets/jql_language_mode.js",  # JQL tokenizer for syntax highlighting
-        "/assets/jql_editor_native.js",
-        # Native CodeMirror editors (no textarea transformation)
-        "/assets/mobile_navigation.js",
-        # Mobile navigation JavaScript for swipe gestures
-        "/assets/conflict_resolution_clientside.js",
-        # Conflict resolution clientside callbacks (import/export)
-        "/assets/active_work_toggle.js",  # Active Work expand/collapse all button
-    ],
+    external_stylesheets=EXTERNAL_STYLESHEETS,
+    external_scripts=EXTERNAL_SCRIPTS,
     suppress_callback_exceptions=True,
     # Suppress errors for components in dynamic layouts
     # (Settings flyout, modals)
-    meta_tags=[
-        # PWA Meta Tags for Mobile-First Design
-        {
-            "name": "viewport",
-            "content": (
-                "width=device-width, initial-scale=1.0, "
-                "maximum-scale=5.0, user-scalable=yes"
-            ),
-        },
-        {"name": "theme-color", "content": "#0d6efd"},
-        {"name": "apple-mobile-web-app-capable", "content": "yes"},
-        {"name": "apple-mobile-web-app-status-bar-style", "content": "default"},
-        {"name": "apple-mobile-web-app-title", "content": "Burndown"},
-        {"name": "mobile-web-app-capable", "content": "yes"},
-        # Performance and SEO
-        {
-            "name": "description",
-            "content": (
-                "Modern mobile-first agile project forecasting with JIRA integration"
-            ),
-        },
-        {
-            "name": "keywords",
-            "content": "burndown chart, agile, project management, JIRA, forecasting",
-        },
-        {"property": "og:title", "content": "Burndown"},
-        {"property": "og:type", "content": "website"},
-        {
-            "property": "og:description",
-            "content": (
-                "Modern mobile-first agile project forecasting with JIRA integration"
-            ),
-        },
-        # SECURITY: Content Security Policy to prevent unauthorized script injection
-        # Prevents Font Awesome and other CDNs from injecting tracking/checkout scripts
-        {
-            "http-equiv": "Content-Security-Policy",
-            "content": (
-                "default-src 'self'; "
-                "script-src 'self' 'unsafe-inline' 'unsafe-eval' "
-                "https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; "
-                "style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com "
-                "https://cdn.jsdelivr.net https://fonts.googleapis.com; "
-                "font-src 'self' https://cdnjs.cloudflare.com "
-                "https://fonts.gstatic.com data:; "
-                "img-src 'self' data: https: blob:; "
-                "connect-src 'self' https://cdn.jsdelivr.net"
-            ),
-        },
-    ],
+    meta_tags=META_TAGS,
 )
 
 # Add PWA manifest link to app index
-app.index_string = """
-<!DOCTYPE html>
-<html>
-    <head>
-        {%metas%}
-        <title>{%title%}</title>
-        <!-- Custom Favicon -->
-        <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
-        <link rel="shortcut icon" href="/assets/favicon.svg">
-        {%css%}
-        <!-- PWA Manifest -->
-        <link rel="manifest" href="/assets/manifest.json">
-        <!-- Apple Touch Icons -->
-        <link rel="apple-touch-icon" href="/assets/icon-192.svg">
-        <link rel="apple-touch-icon" sizes="512x512" href="/assets/icon-512.svg">
-    </head>
-    <body>
-        {%app_entry%}
-        <footer>
-            {%config%}
-            {%scripts%}
-            {%renderer%}
-        </footer>
-    </body>
-</html>
-"""
+app.index_string = INDEX_STRING
 
 # Set the layout function as the app's layout
 app.layout = serve_layout
@@ -530,7 +164,6 @@ register_all_callbacks(app)
 #######################################################################
 
 
-@app.server.route("/api/version")
 def get_version():
     """API endpoint to get current application version and post-update state.
 
@@ -617,6 +250,11 @@ def wait_for_server_ready(host: str, port: int, timeout: float = 3.0) -> bool:
         except OSError:
             time.sleep(0.1)
     return False
+
+
+#######################################################################
+# MAIN
+#######################################################################
 
 
 def setup_graceful_shutdown():

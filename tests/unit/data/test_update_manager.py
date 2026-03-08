@@ -228,7 +228,7 @@ def test_check_for_updates_returns_progress():
 def test_check_for_updates_with_newer_version():
     """Test check_for_updates detects available update."""
     with patch("data.update_manager.requests.get") as mock_get:
-        with patch("data.update_manager.sys") as mock_sys:
+        with patch("data.update_platform.sys") as mock_sys:
             # Mock frozen=True to simulate executable
             mock_sys.frozen = True
             mock_sys.executable = "C:/Program Files/Burndown/Burndown.exe"
@@ -268,7 +268,7 @@ def test_check_for_updates_with_newer_version():
 def test_check_for_updates_selects_legacy_asset():
     """Test check_for_updates selects legacy ZIP when running from legacy exe."""
     with patch("data.update_manager.requests.get") as mock_get:
-        with patch("data.update_manager.sys") as mock_sys:
+        with patch("data.update_platform.sys") as mock_sys:
             # Mock frozen=True to simulate executable
             mock_sys.frozen = True
             mock_sys.executable = "C:/Program Files/Burndown/BurndownChart.exe"
@@ -475,7 +475,7 @@ def test_download_update_success(tmp_path):
     file_content = b"fake zip content for testing" * 1000  # ~27KB
 
     with patch("data.update_manager.requests.get") as mock_get:
-        with patch("data.update_manager.tempfile.gettempdir") as mock_tempdir:
+        with patch("data.update_delivery.tempfile.gettempdir") as mock_tempdir:
             # Set temp directory to our test path
             mock_tempdir.return_value = str(tmp_path)
 
@@ -519,7 +519,7 @@ def test_download_update_progress_tracking():
     file_content = b"x" * (10 * 1024 * 1024)  # 10MB
 
     with patch("data.update_manager.requests.get") as mock_get:
-        with patch("data.update_manager.tempfile.gettempdir") as mock_tempdir:
+        with patch("data.update_delivery.tempfile.gettempdir") as mock_tempdir:
             with patch("builtins.open", mock_open()):
                 mock_tempdir.return_value = "/tmp"
 
@@ -557,7 +557,7 @@ def test_download_update_large_file_warning(tmp_path):
     file_content = b"x" * large_size
 
     with patch("data.update_manager.requests.get") as mock_get:
-        with patch("data.update_manager.tempfile.gettempdir") as mock_tempdir:
+        with patch("data.update_delivery.tempfile.gettempdir") as mock_tempdir:
             mock_tempdir.return_value = str(tmp_path)
 
             mock_response = Mock()
@@ -591,7 +591,7 @@ def test_download_update_incomplete_download(tmp_path):
     actual_content = b"incomplete" * 100  # Much smaller
 
     with patch("data.update_manager.requests.get") as mock_get:
-        with patch("data.update_manager.tempfile.gettempdir") as mock_tempdir:
+        with patch("data.update_delivery.tempfile.gettempdir") as mock_tempdir:
             mock_tempdir.return_value = str(tmp_path)
 
             mock_response = Mock()
