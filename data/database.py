@@ -122,7 +122,7 @@ def check_database_integrity(db_path: Path = DB_PATH) -> bool:
                 )
                 return False
 
-    except Exception as e:
+    except (sqlite3.Error, OSError, ValueError, TypeError) as e:
         logger.error(f"Integrity check failed: {e}")
         return False
 
