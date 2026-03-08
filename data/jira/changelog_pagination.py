@@ -9,6 +9,7 @@ from collections.abc import Callable
 
 import requests
 
+from data.exceptions import JiraError
 from data.jira.changelog_http import (
     _build_headers,
     _extract_error_details,
@@ -151,7 +152,7 @@ def fetch_jira_issues_with_changelog(
                         total=total_issues,
                         message="Fetching changelog",
                     )
-            except Exception as e:
+            except (AttributeError, RuntimeError, TypeError, ValueError) as e:
                 logger.debug(f"Progress update/cancellation check failed: {e}")
 
             if progress_callback:
@@ -260,7 +261,7 @@ def fetch_jira_issues_with_changelog(
                     total=total_issues,
                     message="Fetching changelog",
                 )
-            except Exception as e:
+            except (AttributeError, RuntimeError, TypeError, ValueError) as e:
                 logger.debug(f"Final progress update failed: {e}")
 
         return True, all_issues
@@ -268,6 +269,6 @@ def fetch_jira_issues_with_changelog(
     except requests.exceptions.RequestException as e:
         logger.error(f"[JIRA] Network error fetching changelog: {e}")
         return False, []
-    except Exception as e:
+    except (JiraError, KeyError, RuntimeError, TypeError, ValueError) as e:
         logger.error(f"[JIRA] Unexpected error fetching changelog: {e}")
         return False, []
