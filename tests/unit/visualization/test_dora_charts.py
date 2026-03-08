@@ -54,7 +54,7 @@ class TestCreateDeploymentFrequencyTrend:
 
         # Should still return a figure with a message
         assert figure is not None
-        assert len(figure.layout.annotations) > 0  # Should have "no data" message
+        assert len(figure.layout.annotations) > 0  # type: ignore[union-attr]  # Should have "no data" message
 
     def test_trend_chart_with_single_data_point(self):
         """Test that trend chart handles single data point."""
@@ -107,7 +107,7 @@ class TestCreateLeadTimeTrend:
 
         # Should still return a figure
         assert figure is not None
-        assert len(figure.layout.annotations) > 0
+        assert len(figure.layout.annotations) > 0  # type: ignore[union-attr]
 
 
 class TestExistingChartFunctions:
@@ -181,8 +181,8 @@ class TestTrendChartBenchmarks:
 
         # Check for horizontal lines (benchmarks)
         # Plotly adds shapes for hlines
-        assert figure.layout.shapes is not None
-        assert len(figure.layout.shapes) > 0
+        assert figure.layout.shapes is not None  # type: ignore[union-attr]
+        assert len(figure.layout.shapes) > 0  # type: ignore[union-attr]
 
     def test_lead_time_has_benchmark_lines(self):
         """Test that lead time trend includes benchmark lines."""
@@ -196,5 +196,5 @@ class TestTrendChartBenchmarks:
         figure = create_lead_time_trend(trend_data, metric_data)
 
         # Check for horizontal lines (benchmarks)
-        assert figure.layout.shapes is not None
-        assert len(figure.layout.shapes) > 0
+        assert figure.layout.shapes is not None  # type: ignore[union-attr]
+        assert len(figure.layout.shapes) > 0  # type: ignore[union-attr]
