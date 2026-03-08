@@ -97,6 +97,36 @@
   }
 
   /**
+   * Parse JSON responses defensively so HTML/text fallback responses do not throw SyntaxError.
+   */
+  function parseJsonResponse(response, contextLabel) {
+    return response.text().then((rawText) => {
+      const contentType = response.headers.get('content-type') || '';
+      const payload = rawText || '';
+
+      if (!response.ok) {
+        const snippet = payload.slice(0, 120).replace(/\s+/g, ' ').trim();
+        throw new Error(
+          `${contextLabel}: HTTP ${response.status} ${response.statusText} (content-type: ${contentType || 'unknown'}, body: ${snippet || '<empty>'})`
+        );
+      }
+
+      if (!payload.trim()) {
+        throw new Error(`${contextLabel}: Empty response body`);
+      }
+
+      try {
+        return JSON.parse(payload);
+      } catch (_parseError) {
+        const snippet = payload.slice(0, 120).replace(/\s+/g, ' ').trim();
+        throw new Error(
+          `${contextLabel}: Invalid JSON response (content-type: ${contentType || 'unknown'}, body: ${snippet || '<empty>'})`
+        );
+      }
+    });
+  }
+
+  /**
    * Show success toast after update completes
    */
   function showUpdateSuccessToast(version) {
@@ -228,7 +258,7 @@
                 Pragma: 'no-cache',
               },
             })
-              .then((versionResponse) => versionResponse.json())
+              .then((versionResponse) => parseJsonResponse(versionResponse, 'version-check'))
               .then((versionData) => {
                 console.log('[update_reconnect] New version:', versionData.version);
 
@@ -486,7 +516,7 @@
         Pragma: 'no-cache',
       },
     })
-      .then((response) => response.json())
+      .then((response) => parseJsonResponse(response, 'post-update-version-check'))
       .then((versionData) => {
         const version = versionData && versionData.version ? versionData.version : 'unknown';
         const postUpdate = Boolean(versionData && versionData.post_update);
@@ -517,7 +547,7 @@
             method: 'POST',
             cache: 'no-cache',
           })
-            .then((response) => response.json())
+            .then((response) => parseJsonResponse(response, 'clear-post-update'))
             .then((result) => {
               if (result.success) {
                 console.log('[update_reconnect] Post-update flag cleared successfully');
