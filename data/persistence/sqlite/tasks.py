@@ -4,10 +4,12 @@ from __future__ import annotations
 
 import json
 import logging
+import sqlite3
 from datetime import datetime
 from pathlib import Path
 
 from data.database import get_db_connection
+from data.exceptions import PersistenceError
 from data.persistence import ValidationError
 
 logger = logging.getLogger(__name__)
@@ -28,7 +30,7 @@ class TasksMixin:
                 )
                 result = cursor.fetchone()
                 return dict(result) if result else None
-        except Exception as e:
+        except (OSError, PersistenceError, sqlite3.Error, TypeError, ValueError) as e:
             logger.error(
                 f"Failed to get task progress '{task_name}': {e}",
                 extra={"error_type": type(e).__name__},
@@ -73,7 +75,7 @@ class TasksMixin:
                 )
         except ValidationError:
             raise
-        except Exception as e:
+        except (OSError, PersistenceError, sqlite3.Error, TypeError, ValueError) as e:
             logger.error(
                 f"Failed to save task progress '{task_name}': {e}",
                 extra={"error_type": type(e).__name__},
@@ -90,7 +92,7 @@ class TasksMixin:
                 )
                 conn.commit()
                 logger.debug(f"Cleared task progress: {task_name}")
-        except Exception as e:
+        except (OSError, PersistenceError, sqlite3.Error, TypeError, ValueError) as e:
             logger.error(
                 f"Failed to clear task progress '{task_name}': {e}",
                 extra={"error_type": type(e).__name__},
@@ -114,7 +116,13 @@ class TasksMixin:
         except json.JSONDecodeError as e:
             logger.error(f"Failed to parse task state JSON: {e}")
             return None
-        except Exception as e:
+        except (
+            OSError,
+            PersistenceError,
+            sqlite3.Error,
+            TypeError,
+            ValueError,
+        ) as e:
             logger.error(
                 f"Failed to get task state: {e}",
                 extra={"error_type": type(e).__name__},
@@ -169,7 +177,13 @@ class TasksMixin:
                 logger.debug(
                     f"Task state saved: {task_name} - {progress_percent}% {status}"
                 )
-        except Exception as e:
+        except (
+            OSError,
+            PersistenceError,
+            sqlite3.Error,
+            TypeError,
+            ValueError,
+        ) as e:
             logger.error(
                 f"Failed to save task state: {e}",
                 extra={"error_type": type(e).__name__},
@@ -184,7 +198,7 @@ class TasksMixin:
                 cursor.execute("DELETE FROM task_progress")
                 conn.commit()
                 logger.debug("Cleared all task progress state")
-        except Exception as e:
+        except (OSError, PersistenceError, sqlite3.Error, TypeError, ValueError) as e:
             logger.error(
                 f"Failed to clear task state: {e}",
                 extra={"error_type": type(e).__name__},

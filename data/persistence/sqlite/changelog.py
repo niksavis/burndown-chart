@@ -3,11 +3,13 @@
 from __future__ import annotations
 
 import logging
+import sqlite3
 from datetime import datetime
 from pathlib import Path
 from typing import Any
 
 from data.database import get_db_connection
+from data.exceptions import PersistenceError
 
 logger = logging.getLogger(__name__)
 
@@ -56,7 +58,13 @@ class ChangelogMixin:
                 results = cursor.fetchall()
                 return [dict(row) for row in results]
 
-        except Exception as e:
+        except (
+            OSError,
+            PersistenceError,
+            sqlite3.Error,
+            TypeError,
+            ValueError,
+        ) as e:
             logger.error(
                 f"Failed to get changelog entries for {profile_id}/{query_id}: {e}",
                 extra={"error_type": type(e).__name__},
@@ -138,7 +146,13 @@ class ChangelogMixin:
                     f"for {profile_id}/{query_id}"
                 )
 
-        except Exception as e:
+        except (
+            OSError,
+            PersistenceError,
+            sqlite3.Error,
+            TypeError,
+            ValueError,
+        ) as e:
             logger.error(
                 f"Failed to save changelog batch for {profile_id}/{query_id}: {e}",
                 extra={"error_type": type(e).__name__},
