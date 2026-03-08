@@ -10,6 +10,8 @@ from __future__ import annotations
 import logging
 from datetime import UTC, datetime
 
+from data.exceptions import PersistenceError
+
 logger = logging.getLogger(__name__)
 
 
@@ -85,10 +87,10 @@ def create_profile(name: str, settings: dict) -> str:
         logger.info(f"[Profiles] Created profile: {name} ({profile_id})")
         return profile_id
 
-    except Exception as e:
+    except (PersistenceError, KeyError, TypeError, ValueError) as e:
         try:
             backend.delete_profile(profile_id)
-        except Exception:
+        except (PersistenceError, KeyError, TypeError, ValueError):
             pass
         logger.error(f"[Profiles] Error creating profile '{name}': {e}")
         raise OSError(f"Failed to create profile: {e}") from e
@@ -342,10 +344,10 @@ def duplicate_profile(
         )
         return new_profile_id
 
-    except Exception as e:
+    except (PersistenceError, KeyError, TypeError, ValueError) as e:
         try:
             backend.delete_profile(new_profile_id)
-        except Exception:
+        except (PersistenceError, KeyError, TypeError, ValueError):
             pass
         logger.error(f"[Profiles] Error duplicating profile: {e}")
         raise OSError(f"Failed to duplicate profile: {e}") from e
