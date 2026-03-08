@@ -11,6 +11,7 @@ from data.cache_manager import (
     generate_cache_key,
     load_cache_with_validation,
 )
+from data.exceptions import CacheError, PersistenceError
 from data.persistence import load_app_settings, save_app_settings
 
 logger = logging.getLogger(__name__)
@@ -108,7 +109,13 @@ def cache_jira_response(
                             cache_metadata=cache_metadata,
                         )
                         logger.debug(f"[Cache] Metadata saved: {cache_key[:8]}...")
-                    except Exception as metadata_error:
+                    except (
+                        PersistenceError,
+                        CacheError,
+                        KeyError,
+                        TypeError,
+                        ValueError,
+                    ) as metadata_error:
                         logger.warning(
                             f"[Cache] Failed to save metadata: {metadata_error}"
                         )
@@ -118,7 +125,13 @@ def cache_jira_response(
                     "[Database] No active profile/query - skipping database save"
                 )
 
-        except Exception as db_error:
+        except (
+            PersistenceError,
+            CacheError,
+            KeyError,
+            TypeError,
+            ValueError,
+        ) as db_error:
             logger.error(
                 f"[Database] Failed to save issues to database: {db_error}",
                 exc_info=True,
@@ -126,7 +139,13 @@ def cache_jira_response(
 
         return True
 
-    except Exception as e:
+    except (
+        PersistenceError,
+        CacheError,
+        KeyError,
+        TypeError,
+        ValueError,
+    ) as e:
         logger.error(f"[Cache] Error saving response: {e}", exc_info=True)
         return False
 
@@ -193,7 +212,7 @@ def load_jira_cache(
         logger.debug("[Cache] Miss: No valid cache found")
         return False, []
 
-    except Exception as e:
+    except (CacheError, PersistenceError, KeyError, TypeError, ValueError) as e:
         logger.error(f"[Cache] Error loading: {e}", exc_info=True)
         return False, []
 
@@ -265,6 +284,6 @@ def load_changelog_cache(
         )
         return True, issues
 
-    except Exception as e:
+    except (PersistenceError, CacheError, KeyError, TypeError, ValueError) as e:
         logger.error(f"[Cache] Error loading changelog from database: {e}")
         return False, []
