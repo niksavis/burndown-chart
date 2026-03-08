@@ -12,6 +12,7 @@ from data.persistence.adapters.app_settings import load_app_settings
 from data.persistence.adapters.project_data import load_project_data
 from data.persistence.adapters.statistics import load_statistics
 from data.persistence.adapters.unified_data import save_unified_project_data
+from data.types import JiraConfig
 
 
 def migrate_csv_to_json() -> dict[str, Any]:
@@ -96,7 +97,7 @@ def _backup_legacy_files() -> None:
 #######################################################################
 
 
-def get_default_jira_config() -> dict[str, Any]:
+def get_default_jira_config() -> JiraConfig:
     """
     Get default JIRA configuration structure.
 
@@ -137,7 +138,7 @@ def migrate_jira_config(app_settings: dict[str, Any]) -> dict[str, Any]:
     import os
 
     # Start with default configuration
-    jira_config = get_default_jira_config()
+    jira_config: JiraConfig = get_default_jira_config()
 
     # Migrate legacy token field
     legacy_token = app_settings.get("jira_token", "")
