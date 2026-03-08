@@ -59,7 +59,7 @@ module.exports = [
       ...js.configs.recommended.rules,
 
       // Rule overrides for Dash clientside code
-      'no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],
+      'no-unused-vars': ['warn', { argsIgnorePattern: '^_', caughtErrorsIgnorePattern: '^_' }],
       // console.log is acceptable in Dash asset scripts
       'no-console': 'off',
       // Nudge toward strict equality but do not block builds

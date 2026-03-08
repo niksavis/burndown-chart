@@ -60,7 +60,7 @@
     try {
       const testMode = CodeMirror.getMode({}, 'jql');
       return testMode && testMode.name === 'jql';
-    } catch (e) {
+    } catch {
       return false;
     }
   }
@@ -266,7 +266,7 @@
 
   // Refresh CodeMirror when tabs change (multiple event strategies)
   // Strategy 1: Bootstrap native event
-  document.addEventListener('shown.bs.tab', function (event) {
+  document.addEventListener('shown.bs.tab', function (_event) {
     console.log('[Native JQL] Bootstrap tab shown event');
     refreshAllEditors();
   });

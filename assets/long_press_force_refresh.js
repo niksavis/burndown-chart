@@ -32,8 +32,6 @@ window.dash_clientside.clientside.setupLongPress = function () {
     let textChangeTimer = null;
     let startTime = null;
     let isReadyForForceRefresh = false;
-    let processingForceRefresh = false;
-    let allowNextClick = false;
     const originalText = 'Update Data';
     const forceRefreshText = 'Force Refresh';
     const LONG_PRESS_DURATION = 2000; // 2 seconds
@@ -91,7 +89,7 @@ window.dash_clientside.clientside.setupLongPress = function () {
     }
 
     // Handle button release
-    function handleRelease(e) {
+    function handleRelease(_e) {
       // If force refresh is ready, trigger it
       if (isReadyForForceRefresh) {
         console.log('🔄 Force refresh activated!');
@@ -175,7 +173,7 @@ if (document.readyState === 'loading') {
 // This runs BEFORE the server-side callback
 window.dash_clientside = Object.assign({}, window.dash_clientside, {
   forceRefresh: {
-    updateStore: function (n_clicks) {
+    updateStore: function (_n_clicks) {
       // Check if force refresh is pending
       if (window._forceRefreshPending) {
         console.log('✅ Clientside callback: Force refresh detected, returning TRUE');

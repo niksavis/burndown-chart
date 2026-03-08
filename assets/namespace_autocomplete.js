@@ -47,7 +47,7 @@
     });
 
     // Handle input events
-    input.addEventListener('input', (e) => {
+    input.addEventListener('input', (_e) => {
       // Suggestions will be populated by Dash callback
       // We just need to handle navigation/selection
       resetSelection(input);

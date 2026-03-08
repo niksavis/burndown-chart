@@ -27,7 +27,7 @@
         // Add CAPTURE phase listener to fire before Dash's bubbling listeners
         updateButton.addEventListener(
           'click',
-          function (event) {
+          function (_event) {
             console.log('[update_button_handler] CLICK CAPTURED - triggering overlay');
 
             // Dispatch overlay trigger event IMMEDIATELY

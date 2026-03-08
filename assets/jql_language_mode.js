@@ -217,7 +217,6 @@
      * Handles single char (=, <, >, ~, !) and multi-char (!=, <=, >=, !~).
      */
     tokenizeOperator: function (stream) {
-      const start = stream.pos;
       stream.next();
 
       // Check for multi-character operators
@@ -238,7 +237,7 @@
      *   3. JQL keywords
      *   4. Field names (default)
      */
-    tokenizeWord: function (stream, state) {
+    tokenizeWord: function (stream, _state) {
       const start = stream.pos;
 
       // Consume entire word
@@ -300,7 +299,7 @@
 
   // Register with CodeMirror 5 if available
   if (typeof CodeMirror !== 'undefined' && CodeMirror.defineMode) {
-    CodeMirror.defineMode('jql', function (config, parserConfig) {
+    CodeMirror.defineMode('jql', function (_config, _parserConfig) {
       return jqlLanguageMode;
     });
   }
