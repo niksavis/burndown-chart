@@ -8,6 +8,7 @@ import json
 import os
 
 from configuration import logger
+from data.exceptions import CacheError
 from data.jira.config import (
     DEFAULT_CACHE_MAX_SIZE_MB,
     JIRA_CACHE_FILE,
@@ -46,8 +47,10 @@ def validate_cache_file(
 
         return True
 
-    except Exception as e:
-        logger.error(f"[Cache] Validation failed: {e}")
+    except (OSError, ValueError, TypeError, json.JSONDecodeError) as e:
+        logger.exception("[Cache] Validation failed")
+        cache_error = CacheError("Failed to validate cache file")
+        logger.debug("[Cache] %s: %s", type(cache_error).__name__, e)
         return False
 
 
@@ -89,8 +92,10 @@ def get_cache_status(cache_file: str = JIRA_CACHE_FILE) -> str:
             f"Cache: {file_size_mb:.2f} MB, Updated: {timestamp[:16]}, {project_status}"
         )
 
-    except Exception as e:
-        logger.error(f"[Cache] Error getting status: {e}")
+    except (OSError, ValueError, TypeError, json.JSONDecodeError) as e:
+        logger.exception("[Cache] Error getting status")
+        cache_error = CacheError("Failed to get cache status")
+        logger.debug("[Cache] %s: %s", type(cache_error).__name__, e)
         return "Error reading cache status"
 
 
@@ -115,6 +120,8 @@ def invalidate_changelog_cache(cache_file: str = JIRA_CHANGELOG_CACHE_FILE) -> b
         else:
             logger.debug("[Cache] Changelog cache does not exist")
             return True
-    except Exception as e:
-        logger.error(f"[Cache] Failed to invalidate changelog cache: {e}")
+    except OSError as e:
+        logger.exception("[Cache] Failed to invalidate changelog cache")
+        cache_error = CacheError("Failed to invalidate changelog cache")
+        logger.debug("[Cache] %s: %s", type(cache_error).__name__, e)
         return False

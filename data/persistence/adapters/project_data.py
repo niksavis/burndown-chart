@@ -1,11 +1,13 @@
 """Data persistence adapters - Project data save/load operations."""
 
 # Standard library imports
+import sqlite3
 from typing import Any
 
 # Third-party library imports
 # Application imports
 from configuration.settings import logger
+from data.exceptions import PersistenceError
 
 
 def save_project_data(
@@ -62,8 +64,20 @@ def save_project_data(
 
         backend.save_scope(active_profile_id, active_query_id, scope_data)
         logger.info("[Cache] Project data saved to database")
-    except Exception as e:
-        logger.error(f"[Cache] Error saving project data: {e}")
+    except (
+        ImportError,
+        OSError,
+        RuntimeError,
+        ValueError,
+        TypeError,
+        KeyError,
+        AttributeError,
+        sqlite3.Error,
+        PersistenceError,
+    ) as e:
+        logger.exception("[Cache] Error saving project data")
+        persistence_error = PersistenceError("Failed to save project data")
+        logger.debug("[Cache] %s: %s", type(persistence_error).__name__, e)
 
 
 def load_project_data() -> dict[str, Any]:
@@ -110,6 +124,18 @@ def load_project_data() -> dict[str, Any]:
             "estimated_points": scope.get("estimated_points", DEFAULT_ESTIMATED_POINTS),
             "metadata": {},
         }
-    except Exception as e:
-        logger.error(f"[Cache] Error loading project data: {e}")
+    except (
+        ImportError,
+        OSError,
+        RuntimeError,
+        ValueError,
+        TypeError,
+        KeyError,
+        AttributeError,
+        sqlite3.Error,
+        PersistenceError,
+    ) as e:
+        logger.exception("[Cache] Error loading project data")
+        persistence_error = PersistenceError("Failed to load project data")
+        logger.debug("[Cache] %s: %s", type(persistence_error).__name__, e)
         return default_data

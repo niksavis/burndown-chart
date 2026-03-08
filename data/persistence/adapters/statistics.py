@@ -1,6 +1,7 @@
 """Data persistence adapters - Statistics save/load operations."""
 
 # Standard library imports
+import sqlite3
 from datetime import datetime
 from typing import Any
 
@@ -9,6 +10,7 @@ import pandas as pd
 
 # Application imports
 from configuration.settings import logger
+from data.exceptions import PersistenceError
 from data.persistence.adapters.core import (
     convert_timestamps_to_strings,
 )
@@ -89,9 +91,19 @@ def save_statistics(data: list[dict[str, Any]]) -> None:
             "[Persistence] ✓ Statistics saved successfully to DB: "
             f"{len(statistics_data)} rows"
         )
-    except Exception as e:
-        logger.error(f"[Persistence] ✗ FAILED to save statistics: {e}", exc_info=True)
-        raise  # Re-raise so the callback knows it failed
+    except (
+        ImportError,
+        OSError,
+        RuntimeError,
+        ValueError,
+        TypeError,
+        KeyError,
+        AttributeError,
+        sqlite3.Error,
+        PersistenceError,
+    ) as e:
+        logger.exception("[Persistence] ✗ FAILED to save statistics")
+        raise PersistenceError("Failed to save statistics") from e
 
 
 def save_statistics_from_csv_import(data: list[dict[str, Any]]) -> None:
@@ -156,8 +168,20 @@ def save_statistics_from_csv_import(data: list[dict[str, Any]]) -> None:
         save_unified_project_data(unified_data)
 
         logger.info("[Cache] Statistics from CSV import saved to database")
-    except Exception as e:
-        logger.error(f"[Cache] Error saving CSV import statistics: {e}")
+    except (
+        ImportError,
+        OSError,
+        RuntimeError,
+        ValueError,
+        TypeError,
+        KeyError,
+        AttributeError,
+        sqlite3.Error,
+        PersistenceError,
+    ) as e:
+        logger.exception("[Cache] Error saving CSV import statistics")
+        persistence_error = PersistenceError("Failed to save CSV import statistics")
+        logger.debug("[Cache] %s: %s", type(persistence_error).__name__, e)
 
 
 def load_statistics() -> tuple:
@@ -225,6 +249,18 @@ def load_statistics() -> tuple:
         data = convert_timestamps_to_strings(data)
         logger.info(f"[Cache] Statistics loaded from database: {len(data)} rows")
         return data, False
-    except Exception as e:
-        logger.error(f"[Cache] Error loading statistics: {e}")
+    except (
+        ImportError,
+        OSError,
+        RuntimeError,
+        ValueError,
+        TypeError,
+        KeyError,
+        AttributeError,
+        sqlite3.Error,
+        PersistenceError,
+    ) as e:
+        logger.exception("[Cache] Error loading statistics")
+        persistence_error = PersistenceError("Failed to load statistics")
+        logger.debug("[Cache] %s: %s", type(persistence_error).__name__, e)
         return [], False
