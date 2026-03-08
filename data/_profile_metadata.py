@@ -11,6 +11,8 @@ import logging
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from data.exceptions import PersistenceError
+
 if TYPE_CHECKING:
     from data._profile_model import Profile
 
@@ -54,7 +56,7 @@ def load_profiles_metadata() -> dict:
             "profiles": profiles_dict,
         }
 
-    except Exception as e:
+    except (PersistenceError, KeyError, TypeError, ValueError) as e:
         import data.profile_manager as _pm  # noqa: PLC0415 (already imported above but guard)
 
         logger.error(f"[Profiles] Error loading metadata from database: {e}")
@@ -98,7 +100,7 @@ def save_profiles_metadata(metadata: dict) -> bool:
         logger.debug("[Profiles] Metadata saved to database")
         return True
 
-    except Exception as e:
+    except (PersistenceError, KeyError, TypeError, ValueError) as e:
         logger.error(f"[Profiles] Error saving metadata to database: {e}")
         return False
 
@@ -246,6 +248,12 @@ def get_active_profile_and_query_display_names() -> dict:
 
         return {"profile_name": profile_name, "query_name": query_name}
 
-    except Exception as e:
+    except (
+        PersistenceError,
+        KeyError,
+        TypeError,
+        ValueError,
+        AttributeError,
+    ) as e:
         logger.warning(f"Failed to get active profile/query names: {e}")
         return {"profile_name": None, "query_name": None}
