@@ -11,8 +11,11 @@ This module handles the main JIRA data synchronization and scope calculation:
 """
 
 import logging
+import sqlite3
 from datetime import UTC
 from pathlib import Path
+
+from data.exceptions import ConfigurationError, JiraError, PersistenceError
 
 logger = logging.getLogger(__name__)
 
@@ -64,7 +67,7 @@ def sync_jira_scope_and_data(
                 0,
                 "Connecting to JIRA...",
             )
-        except Exception:
+        except (AttributeError, RuntimeError, TypeError, ValueError):
             pass  # Progress update is optional
 
         # Load configuration with JQL query from settings or use provided UI config
@@ -231,7 +234,13 @@ def sync_jira_scope_and_data(
                             f"{scope_deleted} scope, {task_deleted} tasks from database"
                         )
 
-            except Exception as e:
+            except (
+                OSError,
+                PersistenceError,
+                sqlite3.Error,
+                TypeError,
+                ValueError,
+            ) as e:
                 logger.warning(f"[JIRA] Failed to clear database cache: {e}")
 
         # Step 2: Fetch from JIRA (includes built-in delta fetch optimization)
@@ -294,7 +303,14 @@ def sync_jira_scope_and_data(
                     f"{len(parent_types)} parent "
                     f"type(s) already included in main query: {', '.join(parent_types)}"
                 )
-        except Exception as e:
+        except (
+            ImportError,
+            JiraError,
+            KeyError,
+            RuntimeError,
+            TypeError,
+            ValueError,
+        ) as e:
             logger.error(
                 f"[PARENT] Failed to fetch parent issues (non-fatal): {e}",
                 exc_info=True,
@@ -310,7 +326,7 @@ def sync_jira_scope_and_data(
                 total=len(issues),
                 message="Issues fetched, preparing changelog download...",
             )
-        except Exception:
+        except (AttributeError, RuntimeError, TypeError, ValueError):
             pass
 
         from data.persistence.factory import get_backend
@@ -455,7 +471,13 @@ def sync_jira_scope_and_data(
                 )
             else:
                 logger.warning("[JIRA] No active profile/query, cannot save issues")
-        except Exception as e:
+        except (
+            OSError,
+            PersistenceError,
+            sqlite3.Error,
+            TypeError,
+            ValueError,
+        ) as e:
             logger.error(
                 f"[JIRA] Failed to save issues before changelog fetch: {e}",
                 exc_info=True,
@@ -516,7 +538,7 @@ def sync_jira_scope_and_data(
                 total=len(issues),
                 message="Processing issues and calculating scope...",
             )
-        except Exception:
+        except (AttributeError, RuntimeError, TypeError, ValueError):
             pass
 
         # CRITICAL: Filter out parent issues dynamically
@@ -637,7 +659,7 @@ def sync_jira_scope_and_data(
                 total=len(issues),
                 message="Saving data to database...",
             )
-        except Exception:
+        except (AttributeError, RuntimeError, TypeError, ValueError):
             pass
 
         # Save both statistics and project scope to unified data structure
@@ -651,7 +673,15 @@ def sync_jira_scope_and_data(
         else:
             return False, "Failed to save JIRA data to unified structure", {}
 
-    except Exception as e:
+    except (
+        ConfigurationError,
+        JiraError,
+        KeyError,
+        PersistenceError,
+        RuntimeError,
+        TypeError,
+        ValueError,
+    ) as e:
         logger.error(f"[JIRA] Error in scope sync: {e}")
         return False, f"JIRA scope sync failed: {e}", {}
 
@@ -663,6 +693,14 @@ def sync_jira_data(
     try:
         success, message, scope_data = sync_jira_scope_and_data(jql_query, ui_config)
         return success, message
-    except Exception as e:
+    except (
+        ConfigurationError,
+        JiraError,
+        KeyError,
+        PersistenceError,
+        RuntimeError,
+        TypeError,
+        ValueError,
+    ) as e:
         logger.error(f"[JIRA] Error in data sync: {e}")
         return False, f"JIRA sync failed: {e}"
