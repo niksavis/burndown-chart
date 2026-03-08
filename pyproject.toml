@@ -141,6 +141,7 @@ paths = ["data", "ui", "visualization", "app.py"]
 ignore_names = [
   # re-exported from flow_metrics.py for backward compatibility
   "FLOW_DISTRIBUTION_RECOMMENDATIONS",
+  "_normalize_work_type",
   # __exit__ context manager protocol requires this parameter
   "exc_tb",
   # Signal handler protocol requires (signum, frame) even when frame is unused
