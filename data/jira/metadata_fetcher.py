@@ -12,6 +12,8 @@ import logging
 
 import requests
 
+from data.exceptions import JiraError
+
 logger = logging.getLogger(__name__)
 
 
@@ -427,7 +429,7 @@ class JiraMetadataFetcher:
             else:
                 logger.info(f"[JIRA] Cache file {cache_file} not found")
 
-        except Exception as e:
+        except (OSError, TypeError, ValueError) as e:
             logger.warning(f"[JIRA] Failed to extract from cache: {e}")
 
         # Fallback 2: Extract from live issues via JQL (scoped to development projects)
@@ -450,7 +452,7 @@ class JiraMetadataFetcher:
                 logger.warning(f"[JIRA] No values found for field {field_id}")
                 return []
 
-        except Exception as e:
+        except (JiraError, KeyError, RuntimeError, TypeError, ValueError) as e:
             logger.error(f"[JIRA] Failed to fetch values for field {field_id}: {e}")
             return []
 
@@ -621,7 +623,7 @@ class JiraMetadataFetcher:
         except requests.exceptions.RequestException as e:
             logger.error(f"[JIRA] Failed to query issues for {field_id}: {e}")
             return []
-        except Exception as e:
+        except (JiraError, KeyError, RuntimeError, TypeError, ValueError) as e:
             logger.error(
                 f"[JIRA] Error extracting values from issues for {field_id}: {e}"
             )
