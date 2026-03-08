@@ -1,0 +1,372 @@
+"""Weekly 4-week ahead forecast chart for points (story points).
+
+Renders historical bars plus a weighted moving average and PERT
+optimistic/most-likely/pessimistic forecast bars for the next 4 weeks.
+"""
+
+from datetime import timedelta
+
+import pandas as pd
+import plotly.graph_objects as go
+
+from configuration import COLOR_PALETTE
+from data import generate_weekly_forecast
+from ui.tooltip_utils import create_hoverlabel_config, format_hover_template
+from visualization.helpers import fill_missing_weeks
+
+
+def create_weekly_points_forecast_chart(
+    statistics_data, pert_factor=3, date_range_weeks=12, data_points_count=None
+):
+    """
+    Create a chart showing weekly completed points with a 4-week forecast.
+
+    Args:
+        statistics_data: List of dictionaries containing statistics data
+        pert_factor: Number of data points to use for optimistic/pessimistic scenarios
+        date_range_weeks: Number of weeks of historical data to display
+            (default: 12 weeks)
+        data_points_count: Number of data points to use for calculations
+            (default: None, uses all data)
+
+    Returns:
+        Plotly figure object with the weekly points forecast chart
+    """
+    # CRITICAL FIX: Apply data points filtering by DATE RANGE, not row count
+    # data_points_count represents WEEKS, not rows. With sparse data,
+    # filtering by row count gives incorrect results.
+    filtered_statistics_data = statistics_data
+    if data_points_count is not None and data_points_count > 0:
+        if isinstance(statistics_data, list):
+            df_temp = pd.DataFrame(statistics_data)
+            if not df_temp.empty and "date" in df_temp.columns:
+                df_temp["date"] = pd.to_datetime(
+                    df_temp["date"], format="mixed", errors="coerce"
+                )
+                df_temp = df_temp.dropna(subset=["date"])
+                df_temp = df_temp.sort_values("date", ascending=True)
+
+                latest_date = df_temp["date"].max()
+                cutoff_date = latest_date - timedelta(weeks=data_points_count)
+                df_temp = df_temp[df_temp["date"] >= cutoff_date]
+
+                filtered_statistics_data = df_temp.to_dict("records")
+        elif isinstance(statistics_data, pd.DataFrame):
+            df_temp = statistics_data.copy()
+            if not df_temp.empty and "date" in df_temp.columns:
+                df_temp["date"] = pd.to_datetime(
+                    df_temp["date"], format="mixed", errors="coerce"
+                )
+                df_temp = df_temp.dropna(subset=["date"])
+                df_temp = df_temp.sort_values("date", ascending=True)
+
+                latest_date = df_temp["date"].max()
+                cutoff_date = latest_date - timedelta(weeks=data_points_count)
+                filtered_statistics_data = df_temp[df_temp["date"] >= cutoff_date]
+
+    # Create DataFrame from filtered statistics data
+    df = pd.DataFrame(filtered_statistics_data).copy()
+    if df.empty:
+        # Return empty figure if no data
+        fig = go.Figure()
+        fig.update_layout(
+            title="Weekly Points Forecast (No Data Available)",
+            xaxis_title="Week",
+            yaxis_title="Points Completed",
+        )
+        return fig
+
+    # Convert date to datetime and ensure proper format
+    df["date"] = pd.to_datetime(df["date"], format="mixed", errors="coerce")
+
+    # Always filter by date range for better visualization
+    # Ensure date_range_weeks is not None and is a positive number
+    weeks = 12  # Default to 12 weeks
+    if (
+        date_range_weeks is not None
+        and isinstance(date_range_weeks, (int, float))
+        and date_range_weeks > 0
+    ):
+        weeks = int(date_range_weeks)
+
+    latest_date = df["date"].max()
+    start_date = latest_date - timedelta(weeks=weeks)
+    df = df[df["date"] >= start_date]
+
+    # Add week and year columns for grouping
+    df["week"] = df["date"].dt.isocalendar().week
+    df["year"] = df["date"].dt.year
+    # Use vectorized string formatting to avoid DataFrame return issues
+    df["year_week"] = (
+        df["year"].astype(str) + "-W" + df["week"].astype(str).str.zfill(2)
+    )
+
+    # Aggregate by week
+    weekly_df = (
+        df.groupby("year_week")
+        .agg(points=("completed_points", "sum"), start_date=("date", "min"))
+        .reset_index()
+    )
+
+    # Fill in missing weeks with zeros to show complete time range
+    # Use date range from aggregated data to respect data_points_count filtering
+    if not weekly_df.empty:
+        weekly_start = weekly_df["start_date"].min()
+        weekly_end = weekly_df["start_date"].max()
+        weekly_df = fill_missing_weeks(weekly_df, weekly_start, weekly_end, ["points"])
+    else:
+        weekly_df = fill_missing_weeks(weekly_df, start_date, latest_date, ["points"])
+
+    # Sort by date
+    weekly_df = weekly_df.sort_values("start_date")
+
+    # Ensure start_date is datetime for type safety
+    weekly_df["start_date"] = pd.to_datetime(
+        weekly_df["start_date"], format="mixed", errors="coerce"
+    )
+
+    # Format date for display using ISO week format (2026-W07)
+    weekly_df["week_label"] = (
+        weekly_df["start_date"].dt.isocalendar().year.astype(str)  # type: ignore[attr-defined]
+        + "-W"
+        + weekly_df["start_date"].dt.isocalendar().week.astype(str).str.zfill(2)  # type: ignore[attr-defined]
+    )
+
+    # Calculate weighted moving average (last 4 weeks)
+    if len(weekly_df) >= 4:
+        values = weekly_df["points"].values
+        weighted_avg = []
+
+        for i in range(len(weekly_df)):
+            if i < 3:  # First 3 weeks don't have enough prior data
+                weighted_avg.append(None)
+            else:
+                # Get last 4 weeks of data
+                window = values[i - 3 : i + 1]
+                # Apply exponential weights (more weight to recent weeks)
+                weights = [0.1, 0.2, 0.3, 0.4]  # Weights sum to 1.0
+                w_avg = sum(w * v for w, v in zip(weights, window, strict=False))
+                weighted_avg.append(w_avg)
+
+        weekly_df["weighted_avg"] = weighted_avg
+
+    # Generate forecast data using filtered statistics data
+    forecast_data = generate_weekly_forecast(
+        filtered_statistics_data, pert_factor, data_points_count=data_points_count
+    )
+
+    # Create the figure
+    fig = go.Figure()
+
+    # Add historical data as bar chart
+    fig.add_trace(
+        go.Bar(
+            x=weekly_df["week_label"],
+            y=weekly_df["points"],
+            marker_color=COLOR_PALETTE["points"],
+            name="Completed Points",
+            text=weekly_df["points"],
+            textposition="outside",
+            customdata=weekly_df["week_label"],
+            hovertemplate=format_hover_template(
+                title="Weekly Points",
+                fields={
+                    "Week of": "%{customdata}",
+                    "Points": "%{y}",
+                },
+            ),
+            hoverlabel=create_hoverlabel_config("default"),
+        )
+    )
+
+    # Add weighted moving average line if we have enough historical data
+    if len(weekly_df) >= 4 and "weighted_avg" in weekly_df.columns:
+        # Filter out None values for display
+        weighted_df = weekly_df.dropna(subset=["weighted_avg"])
+
+        fig.add_trace(
+            go.Scatter(
+                x=weighted_df["week_label"],
+                y=weighted_df["weighted_avg"],
+                mode="lines+markers",
+                name="Weighted 4-Week Average",
+                line=dict(
+                    color="#FF6347",  # Tomato color
+                    width=3,
+                    dash="solid",
+                ),
+                marker=dict(size=6, opacity=1),
+                customdata=weighted_df[
+                    "week_label"
+                ],  # Add custom data for hover template
+                hovertemplate=format_hover_template(
+                    title="Weekly Average",
+                    fields={
+                        "Week of": "%{customdata}",
+                        "Weighted Avg": "%{y:.1f}",
+                    },
+                ),
+                hoverlabel=create_hoverlabel_config("info"),
+                hoverinfo="all",  # Ensure hover info shows
+            )
+        )
+
+    # Add forecast data if available
+    if forecast_data["points"]["dates"]:
+        # Create confidence interval for the most likely forecast
+        most_likely = forecast_data["points"]["most_likely"]
+        optimistic = forecast_data["points"]["optimistic"]
+        pessimistic = forecast_data["points"]["pessimistic"]
+
+        # Calculate upper and lower bounds for confidence interval (25% of difference)
+        upper_bound = [
+            ml + 0.25 * (opt - ml)
+            for ml, opt in zip(most_likely, optimistic, strict=False)
+        ]
+        lower_bound = [
+            ml - 0.25 * (ml - pes)
+            for ml, pes in zip(most_likely, pessimistic, strict=False)
+        ]
+
+        # Most likely forecast with confidence interval
+        fig.add_trace(
+            go.Bar(
+                x=forecast_data["points"]["dates"],
+                y=most_likely,
+                marker_color=COLOR_PALETTE["points"],
+                marker_pattern_shape="x",  # Add pattern to distinguish forecast
+                opacity=0.7,
+                name="Most Likely Forecast",
+                text=[round(val, 1) for val in most_likely],
+                textposition="outside",
+                error_y=dict(
+                    type="data",
+                    symmetric=False,
+                    array=[
+                        u - ml for u, ml in zip(upper_bound, most_likely, strict=False)
+                    ],
+                    arrayminus=[
+                        ml - lb
+                        for ml, lb in zip(most_likely, lower_bound, strict=False)
+                    ],
+                    color="rgba(0, 0, 0, 0.3)",
+                ),
+                hovertemplate=format_hover_template(
+                    title="Points Forecast",
+                    fields={
+                        "Week": "%{x}",
+                        "Points": "%{y:.1f}",
+                        "Range": "[%{error_y.arrayminus:.1f}, %{error_y.array:.1f}]",
+                    },
+                ),
+                hoverlabel=create_hoverlabel_config("info"),
+            )
+        )
+
+        # Optimistic forecast
+        fig.add_trace(
+            go.Bar(
+                x=forecast_data["points"]["dates"],
+                y=optimistic,
+                marker_color=COLOR_PALETTE["optimistic"],
+                marker_pattern_shape="x",  # Add pattern to distinguish forecast
+                opacity=0.6,
+                name="Optimistic Forecast",
+                text=[round(val, 1) for val in optimistic],
+                textposition="outside",
+                hovertemplate=format_hover_template(
+                    title="Points Forecast",
+                    fields={"Week": "%{x}", "Points": "%{y:.1f}", "Type": "Optimistic"},
+                ),
+                hoverlabel=create_hoverlabel_config("success"),
+            )
+        )
+
+        # Pessimistic forecast
+        fig.add_trace(
+            go.Bar(
+                x=forecast_data["points"]["dates"],
+                y=pessimistic,
+                marker_color=COLOR_PALETTE["pessimistic"],
+                marker_pattern_shape="x",  # Add pattern to distinguish forecast
+                opacity=0.6,
+                name="Pessimistic Forecast",
+                text=[round(val, 1) for val in pessimistic],
+                textposition="outside",
+                hovertemplate=format_hover_template(
+                    title="Points Forecast",
+                    fields={
+                        "Week": "%{x}",
+                        "Points": "%{y:.1f}",
+                        "Type": "Pessimistic",
+                    },
+                ),
+                hoverlabel=create_hoverlabel_config("warning"),
+            )
+        )
+
+    # Add vertical line between historical and forecast data
+    if weekly_df["week_label"].any() and forecast_data["points"]["dates"]:
+        fig.add_vline(
+            x=len(weekly_df["week_label"])
+            - 0.5,  # Position between last historical and first forecast
+            line_dash="dash",
+            line_color="rgba(0, 0, 0, 0.5)",
+            annotation_text="Forecast starts",
+            annotation_position="top",
+        )
+
+    # Update layout with grid lines, styling, and forecast explanation
+    fig.update_layout(
+        title="Weekly Points Forecast (Next 4 Weeks)",
+        xaxis_title="Week Starting",
+        yaxis_title="Points Completed",
+        hovermode="x unified",
+        hoverlabel=dict(
+            font_size=14,
+        ),
+        yaxis=dict(
+            gridcolor="rgba(200, 200, 200, 0.2)",
+            zeroline=True,
+            zerolinecolor="rgba(0, 0, 0, 0.2)",
+        ),
+        xaxis=dict(
+            tickangle=45,
+        ),
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+        plot_bgcolor="rgba(255, 255, 255, 0.9)",
+        annotations=[
+            dict(
+                x=0.5,
+                y=-0.25,  # Adjusted from -0.3 to -0.25
+                xref="paper",
+                yref="paper",
+                text=(
+                    "<b>Forecast Methodology:</b> "
+                    "Based on PERT analysis using historical data.<br>"
+                    "<b>Most Likely:</b> "
+                    f"{forecast_data['points'].get('most_likely_value', 0):.1f} "
+                    "points/week (historical average)<br>"
+                    "<b>Optimistic:</b> "
+                    f"{forecast_data['points'].get('optimistic_value', 0):.1f} "
+                    "points/week<br>"
+                    "<b>Pessimistic:</b> "
+                    f"{forecast_data['points'].get('pessimistic_value', 0):.1f} "
+                    "points/week<br>"
+                    "<b>Weighted Average:</b> "
+                    "More weight given to recent data "
+                    "(40% for most recent week, 30%, 20%, 10% for earlier weeks)"
+                ),
+                showarrow=False,
+                font=dict(size=12),
+                align="center",
+                bordercolor="rgba(200, 200, 200, 0.5)",
+                borderwidth=1,
+                borderpad=8,
+                bgcolor="rgba(250, 250, 250, 0.8)",
+            )
+        ],
+        margin=dict(b=70),  # Reduced from 120 to 70
+    )
+
+    return fig

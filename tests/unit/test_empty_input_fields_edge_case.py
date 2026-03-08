@@ -183,7 +183,7 @@ class TestEmptyInputFieldsRemainingTotalPoints(unittest.TestCase):
         # This simulates what happens when the user sets input fields to empty/0
         # and the settings callback processes them with use_fallback=False
 
-        with patch("data.processing.pd.DataFrame") as mock_df:
+        with patch("data.processing_core.pd.DataFrame") as mock_df:
             # Mock empty historical data
             mock_df.return_value.empty = True
 
