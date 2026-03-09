@@ -9,6 +9,8 @@ import pandas as pd
 # Application imports
 from configuration.settings import logger
 from data.exceptions import PersistenceError
+from data.persistence.factory import get_backend
+from data.schema import get_default_unified_data
 
 
 def load_unified_project_data() -> dict[str, Any]:
@@ -20,11 +22,8 @@ def load_unified_project_data() -> dict[str, Any]:
     Returns:
         Dict: Unified project data structure
     """
-    from data.schema import get_default_unified_data
 
     try:
-        from data.persistence.factory import get_backend
-
         backend = get_backend()
         active_profile_id = backend.get_app_state("active_profile_id")
         active_query_id = backend.get_app_state("active_query_id")
@@ -94,8 +93,6 @@ def save_unified_project_data(data: dict[str, Any]) -> None:
         data: Unified project data dictionary
     """
     try:
-        from data.persistence.factory import get_backend
-
         backend = get_backend()
         active_profile_id = backend.get_app_state("active_profile_id")
         active_query_id = backend.get_app_state("active_query_id")

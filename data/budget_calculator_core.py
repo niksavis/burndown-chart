@@ -17,6 +17,8 @@ import logging
 from pathlib import Path
 from typing import Any
 
+from data.database import get_db_connection
+
 logger = logging.getLogger(__name__)
 
 
@@ -36,7 +38,6 @@ def _get_current_budget(
     Returns:
         Dict with current budget or None if not configured
     """
-    from data.database import get_db_connection
 
     try:
         conn_context = (
@@ -103,7 +104,6 @@ def get_budget_at_week(
         >>> print(budget["budget_total_eur"])
         50000.0
     """
-    from data.database import get_db_connection
 
     try:
         # Handle db_path None by using default
@@ -192,7 +192,6 @@ def _get_velocity(
     Returns:
         float: Velocity (items per week)
     """
-    from data.database import get_db_connection
 
     try:
         conn_context = (
@@ -263,7 +262,6 @@ def _get_velocity_points(
     Returns:
         float: Velocity (points per week)
     """
-    from data.database import get_db_connection
 
     try:
         conn_context = (

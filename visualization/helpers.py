@@ -17,6 +17,8 @@ from datetime import datetime, timedelta
 import pandas as pd
 import plotly.graph_objects as go
 
+from data import calculate_weekly_averages
+
 #######################################################################
 # DATA PREPARATION HELPERS
 #######################################################################
@@ -159,7 +161,6 @@ def get_weekly_metrics(df, data_points_count=None):
         data_points_count = int(data_points_count)
 
     # Import here to avoid circular imports
-    from data import calculate_weekly_averages
 
     avg_weekly_items, avg_weekly_points, med_weekly_items, med_weekly_points = (
         0.0,
@@ -333,8 +334,6 @@ def generate_burndown_forecast(
         Dictionary containing forecasts for average,
         optimistic, and pessimistic scenarios
     """
-    from datetime import datetime
-
     # STRICT 10-YEAR CAP: Never forecast beyond today + 10 years
     today = datetime.now()
     absolute_max_date = today + timedelta(

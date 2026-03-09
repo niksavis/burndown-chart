@@ -10,12 +10,33 @@ This module handles the main JIRA data synchronization and scope calculation:
 - Progress tracking and atomic database operations
 """
 
+import hashlib
+import json
 import logging
 import sqlite3
-from datetime import UTC
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
+from data.database import get_db_connection
 from data.exceptions import ConfigurationError, JiraError, PersistenceError
+from data.jira.cache_validator import invalidate_changelog_cache, validate_cache_file
+from data.jira.changelog_fetcher import fetch_changelog_on_demand
+from data.jira.config import get_jira_config, validate_jira_config
+from data.jira.data_transformer import jira_to_csv_format
+from data.jira.epic_fetch import fetch_epics_for_display
+from data.jira.field_utils import extract_jira_field_id
+from data.jira.main_fetch import fetch_jira_issues
+from data.jira.parent_filter import filter_out_parent_types
+from data.jira.query_builder import (
+    build_jql_with_parent_types,
+    extract_parent_types_from_config,
+)
+from data.jira.scope_calculator import calculate_jira_project_scope
+from data.parent_filter import filter_parent_issues
+from data.persistence import load_app_settings, save_jira_data_unified
+from data.persistence.factory import get_backend
+from data.project_filter import filter_development_issues
+from data.task_progress import TaskProgress
 
 logger = logging.getLogger(__name__)
 
@@ -36,20 +57,6 @@ def sync_jira_scope_and_data(
     Returns:
         Tuple of (success, message, scope_data)
     """
-    # Import TaskProgress at function level to avoid "possibly unbound" errors
-    from data.jira.cache_validator import (
-        invalidate_changelog_cache,
-        validate_cache_file,
-    )
-    from data.jira.changelog_fetcher import fetch_changelog_on_demand
-    from data.jira.config import get_jira_config, validate_jira_config
-    from data.jira.data_transformer import jira_to_csv_format
-    from data.jira.field_utils import extract_jira_field_id
-    from data.jira.main_fetch import fetch_jira_issues
-    from data.jira.scope_calculator import calculate_jira_project_scope
-    from data.persistence import save_jira_data_unified
-    from data.task_progress import TaskProgress
-
     try:
         # CRITICAL: Log function entry to verify code is being executed
         logger.warning("=" * 80)
@@ -86,11 +93,6 @@ def sync_jira_scope_and_data(
 
         # Modify JQL to include parent issue types (Epic, Initiative, etc.)
         # Parent types are fetched but excluded from calculations via parent_filter.py
-        from data.jira.query_builder import (
-            build_jql_with_parent_types,
-            extract_parent_types_from_config,
-        )
-
         parent_types = extract_parent_types_from_config(config)
         if parent_types:
             original_jql = config.get("jql_query", "")
@@ -162,9 +164,6 @@ def sync_jira_scope_and_data(
             # CRITICAL: Clear database cache for this query on force refresh
             # This ensures old issues that no longer match the JQL are removed
             try:
-                from data.database import get_db_connection
-                from data.persistence.factory import get_backend
-
                 backend = get_backend()
                 active_profile_id = backend.get_app_state("active_profile_id")
                 active_query_id = backend.get_app_state("active_query_id")
@@ -267,15 +266,11 @@ def sync_jira_scope_and_data(
         # parent_issue_types not configured.
         try:
             logger.info("[PARENT] Starting parent fetch...")
-            from data.jira.query_builder import extract_parent_types_from_config
-
             parent_types = extract_parent_types_from_config(config)
 
             if not parent_types:
                 # Legacy behavior: Fetch parent issues via separate API call
                 # This runs only when parent_issue_types not configured
-                from data.jira.epic_fetch import fetch_epics_for_display
-
                 logger.info(
                     "[PARENT] Calling fetch_epics_for_display "
                     f"(legacy) with {len(issues)} issues"
@@ -329,8 +324,6 @@ def sync_jira_scope_and_data(
         except (AttributeError, RuntimeError, TypeError, ValueError):
             pass
 
-        from data.persistence.factory import get_backend
-
         backend = get_backend()
         active_profile_id = backend.get_app_state("active_profile_id")
         active_query_id = backend.get_app_state("active_query_id")
@@ -345,11 +338,6 @@ def sync_jira_scope_and_data(
             if last_delta_count == "0":
                 # Check if field mappings have changed since last update
                 # If they have, we MUST recalculate metrics even with no new data
-                import hashlib
-                import json
-
-                from data.persistence import load_app_settings
-
                 current_settings = load_app_settings()
                 # Hash ALL settings that affect metrics calculation
                 # These correspond to all tabs in Configure JIRA Mappings modal:
@@ -443,8 +431,6 @@ def sync_jira_scope_and_data(
         # Quick save: Just save issues to database (minimal processing)
         # Full save with statistics and scope will happen later
         try:
-            from data.persistence.factory import get_backend
-
             backend = get_backend()
             active_profile_id = backend.get_app_state("active_profile_id")
             active_query_id = backend.get_app_state("active_query_id")
@@ -452,8 +438,6 @@ def sync_jira_scope_and_data(
             if active_profile_id and active_query_id:
                 # Save ALL issues to database (including DevOps projects)
                 # DevOps filtering happens later for statistics calculation
-                from datetime import datetime, timedelta
-
                 utc_now = datetime.now(UTC)
                 expires_at = utc_now + timedelta(hours=24)
                 cache_key = f"issues:{active_profile_id}:{active_query_id}"
@@ -501,8 +485,6 @@ def sync_jira_scope_and_data(
             )
         if delta_keys_key:
             try:
-                import json
-
                 delta_keys_raw = backend.get_app_state(delta_keys_key) or "[]"
                 parsed_keys = json.loads(delta_keys_raw)
                 if isinstance(parsed_keys, list):
@@ -550,8 +532,6 @@ def sync_jira_scope_and_data(
             config.get("field_mappings", {}).get("general", {}).get("parent_field")
         )
         if parent_field:
-            from data.parent_filter import filter_parent_issues
-
             issues = filter_parent_issues(issues, parent_field, log_prefix="JIRA SYNC")
 
         # CRITICAL: Filter to only configured development project issues
@@ -567,8 +547,6 @@ def sync_jira_scope_and_data(
         )
 
         if development_projects or devops_projects:
-            from data.project_filter import filter_development_issues
-
             total_issues_count = len(issues)
             issues_for_metrics = filter_development_issues(
                 issues, development_projects, devops_projects
@@ -601,8 +579,6 @@ def sync_jira_scope_and_data(
         # Parent types are included in the fetch (via query_builder) to get their data
         # but excluded from scope calculations to prevent double-counting
         if parent_types:
-            from data.jira.parent_filter import filter_out_parent_types
-
             total_before_parent_filter = len(issues_for_metrics)
             issues_for_metrics = filter_out_parent_types(
                 issues_for_metrics, parent_types

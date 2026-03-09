@@ -15,6 +15,12 @@ import logging
 
 import dash_bootstrap_components as dbc
 from dash import Input, Output, State, callback, html, no_update
+from dash.exceptions import PreventUpdate
+
+from data.persistence import load_app_settings, save_app_settings
+from data.persistence.factory import get_backend
+from data.query_manager import get_active_profile_id, update_query
+from data.task_progress import TaskProgress
 
 logger = logging.getLogger(__name__)
 
@@ -232,13 +238,11 @@ def enforce_query_save_before_data_ops(config_status):
         tuple: (button_disabled, alert_content, alert_is_open)
     """
     # Check if Update Data task is in progress - if so, don't override button state
-    from data.task_progress import TaskProgress
 
     active_task = TaskProgress.get_active_task()
     if active_task and active_task.get("task_id") == "update_data":
         # Task in progress - keep current button state.
         # Restoration callback handles state transitions.
-        from dash.exceptions import PreventUpdate
 
         raise PreventUpdate
 
@@ -304,8 +308,6 @@ def save_profile_settings(
         return no_update
 
     try:
-        from data.persistence import save_app_settings
-
         # Save to profile.json with individual parameters
         save_app_settings(
             pert_factor=pert_factor or 1.2,
@@ -363,9 +365,6 @@ def load_profile_settings_after_import(metrics_trigger, profile_trigger):
     This ensures that when a profile is imported or switched, the Profile Settings
     Card in the accordion shows the correct values.
     """
-    from dash.exceptions import PreventUpdate
-
-    from data.persistence import load_app_settings
 
     try:
         settings = load_app_settings()
@@ -430,9 +429,6 @@ def load_query_jql(query_id):
         return ""
 
     try:
-        from data.persistence.factory import get_backend
-        from data.query_manager import get_active_profile_id
-
         profile_id = get_active_profile_id()
         backend = get_backend()
         query_data = backend.get_query(profile_id, query_id)
@@ -500,8 +496,6 @@ def save_query_changes(n_clicks, query_id, jql):
         )
 
     try:
-        from data.query_manager import get_active_profile_id, update_query
-
         profile_id = get_active_profile_id()
 
         # Update query with new JQL
@@ -563,9 +557,6 @@ def cancel_query_edit(n_clicks, query_id):
         return no_update
 
     try:
-        from data.persistence.factory import get_backend
-        from data.query_manager import get_active_profile_id
-
         profile_id = get_active_profile_id()
         backend = get_backend()
         query_data = backend.get_query(profile_id, query_id)

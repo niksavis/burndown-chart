@@ -1,9 +1,15 @@
 """Metrics refresh callbacks for Flow and DORA calculations."""
 
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from dash import Input, Output, State, callback, html
+
+from data.iso_week_bucketing import get_iso_week_bounds, get_week_label
+from data.jira import get_jira_config, load_jira_cache
+from data.metrics_calculator import calculate_metrics_for_last_n_weeks
+from data.metrics_snapshots import add_forecasts_to_week
+from data.task_progress import TaskProgress
 
 logger = logging.getLogger(__name__)
 
@@ -46,12 +52,6 @@ def calculate_metrics_from_settings(
 
     try:
         logger.info("Starting Flow metrics calculation from Settings panel")
-
-        from datetime import timedelta
-
-        from data.iso_week_bucketing import get_iso_week_bounds, get_week_label
-        from data.jira import get_jira_config, load_jira_cache
-        from data.task_progress import TaskProgress
 
         weeks_to_calculate = []
         try:
@@ -135,8 +135,6 @@ def calculate_metrics_from_settings(
             weeks=n_weeks,
         )
 
-        from data.metrics_calculator import calculate_metrics_for_last_n_weeks
-
         if weeks_to_calculate:
             success, message = calculate_metrics_for_last_n_weeks(
                 n_weeks=n_weeks, custom_weeks=weeks_to_calculate
@@ -145,9 +143,6 @@ def calculate_metrics_from_settings(
             success, message = calculate_metrics_for_last_n_weeks(n_weeks=n_weeks)
 
         if success:
-            from data.iso_week_bucketing import get_week_label
-            from data.metrics_snapshots import add_forecasts_to_week
-
             current_week_label = get_week_label(datetime.now())
             logger.info(
                 "Adding forecasts to week "
@@ -220,8 +215,6 @@ def calculate_metrics_from_settings(
         return settings_status_html, False, button_normal, refresh_timestamp
 
     except Exception as e:
-        from data.task_progress import TaskProgress
-
         TaskProgress.complete_task("calculate_metrics")
 
         error_msg = f"Error calculating metrics: {str(e)}"

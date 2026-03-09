@@ -24,6 +24,27 @@ from typing import Any
 from dash import Input, Output, State, callback_context, no_update
 from dash.exceptions import PreventUpdate
 
+from data.jira.query_profiles import (
+    delete_query_profile as _delete_jira_query_profile,
+)
+from data.jira.query_profiles import (
+    get_default_query,
+    get_query_profile_by_id,
+    load_query_profiles,
+    set_default_query,
+)
+from data.jira.query_profiles import (
+    save_query_profile as _save_jira_query_profile,
+)
+from data.persistence import load_app_settings, save_app_settings
+from data.query_manager import (
+    delete_query,
+    get_active_profile_id,
+    get_active_query_id,
+    list_queries_for_profile,
+    switch_query,
+)
+
 # Get logger
 logger = logging.getLogger(__name__)
 
@@ -156,21 +177,12 @@ def register(app: Any) -> None:
             )
 
         try:
-            from data.jira.query_profiles import (
-                save_query_profile as save_profile_func,
-            )
-            from data.jira.query_profiles import (
-                set_default_query,
-            )
-
             # Save the profile
-            saved_profile = save_profile_func(
+            saved_profile = _save_jira_query_profile(
                 name=query_name.strip(),
                 jql=jql_value.strip(),
                 description=description.strip() if description else "",
             )
-
-            # Set as default if checkbox is checked
             if set_as_default and saved_profile:
                 set_default_query(saved_profile["id"])
 
@@ -288,11 +300,6 @@ def register(app: Any) -> None:
         visible_style = {"display": "inline-block"}
 
         try:
-            from data.jira.query_profiles import (
-                get_default_query,
-                load_query_profiles,
-            )
-
             profiles = load_query_profiles()
             default_query = get_default_query()
             logger.info(
@@ -424,13 +431,8 @@ def register(app: Any) -> None:
             raise PreventUpdate
 
         try:
-            from data.jira.query_profiles import (
-                delete_query_profile,
-                load_query_profiles,
-            )
-
             # Delete the profile
-            delete_query_profile(current_profile_id)
+            _delete_jira_query_profile(current_profile_id)
 
             # Reload options
             updated_options = _build_profile_options()
@@ -478,14 +480,6 @@ def register(app: Any) -> None:
             raise PreventUpdate
 
         try:
-            from data.query_manager import (
-                delete_query,
-                get_active_profile_id,
-                get_active_query_id,
-                list_queries_for_profile,
-                switch_query,
-            )
-
             profile_id = get_active_profile_id()
             active_query_id = get_active_query_id()
 
@@ -549,8 +543,6 @@ def register(app: Any) -> None:
             raise PreventUpdate
 
         try:
-            from data.jira.query_profiles import get_query_profile_by_id
-
             profile = get_query_profile_by_id(selected_profile_id)
             if profile:
                 logger.info(f"Loading JQL query from profile: {profile['name']}")
@@ -587,8 +579,6 @@ def register(app: Any) -> None:
             return ""
 
         try:
-            from data.jira.query_profiles import get_query_profile_by_id
-
             profile = get_query_profile_by_id(selected_profile_id)
             if profile:
                 status_text = f"[List] Using saved query: {profile['name']}"
@@ -669,10 +659,8 @@ def register(app: Any) -> None:
             )
 
         try:
-            from data.jira.query_profiles import save_query_profile
-
             # Update the profile
-            updated_profile = save_query_profile(
+            updated_profile = _save_jira_query_profile(
                 name=query_name.strip(),
                 jql=jql_value.strip(),
                 description=description.strip() if description else "",
@@ -732,8 +720,6 @@ def register(app: Any) -> None:
             raise PreventUpdate
 
         try:
-            from data.jira.query_profiles import get_default_query
-
             default_query = get_default_query()
             if default_query:
                 logger.info(f"Loading default query: {default_query['name']}")
@@ -790,7 +776,6 @@ def _build_profile_options() -> list[dict[str, str]]:
     Returns:
         List of option dictionaries with label and value
     """
-    from data.jira.query_profiles import load_query_profiles
 
     options = []
     profiles = load_query_profiles()
@@ -809,9 +794,6 @@ def _persist_profile_selection(selected_profile_id: str) -> None:
         selected_profile_id: ID of selected profile
     """
     try:
-        from data.jira.query_profiles import get_query_profile_by_id
-        from data.persistence import load_app_settings, save_app_settings
-
         app_settings = load_app_settings()
         current_profile_id = app_settings.get("active_jql_profile_id", "")
 

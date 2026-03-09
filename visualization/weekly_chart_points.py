@@ -10,6 +10,9 @@ import plotly.graph_objects as go
 
 from configuration import COLOR_PALETTE
 from data import generate_weekly_forecast
+from data.metrics.blending import calculate_current_week_blend
+from data.metrics.forecast_calculator import calculate_ewma_forecast
+from data.metrics_calculator import calculate_forecast
 from utils.chart_tooltip_utils import create_hoverlabel_config, format_hover_template
 from visualization.helpers import fill_missing_weeks
 from visualization.weekly_chart_items import _add_required_velocity_line
@@ -212,9 +215,6 @@ def create_weekly_points_chart(
     # Add adjusted line for current week (progressive blending)
     adjusted_points = None
     if len(weekly_df) >= 2:
-        from data.metrics.blending import calculate_current_week_blend
-        from data.metrics_calculator import calculate_forecast
-
         point_values = weekly_df["points"].tolist()
         prior_weeks = point_values[:-1]
         forecast_weeks = prior_weeks[-4:] if len(prior_weeks) >= 4 else prior_weeks
@@ -311,8 +311,6 @@ def create_weekly_points_chart(
                     hoverlabel=create_hoverlabel_config("info"),
                 )
             )
-
-            from data.metrics.forecast_calculator import calculate_ewma_forecast
 
             ewma_data = calculate_ewma_forecast(weekly_df["points"].tolist(), alpha=0.3)
             if ewma_data:

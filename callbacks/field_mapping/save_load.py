@@ -13,6 +13,9 @@ from callbacks.field_mapping.validation_helpers import (
     _build_validation_error_alert,
     _validate_all_tabs,
 )
+from data.metrics_snapshots import clear_snapshots_cache
+from data.persistence import load_app_settings, save_app_settings
+from data.persistence.factory import get_backend
 from ui.toast_notifications import create_error_toast, create_success_toast
 
 logger = logging.getLogger(__name__)
@@ -64,7 +67,6 @@ def save_or_validate_mappings(namespace_values, state_data):
                 - metrics_refresh_trigger: Timestamp to trigger metrics refresh
                     (on save success), no_update otherwise
     """
-    from data.persistence import load_app_settings, save_app_settings
 
     # namespace_values structure:
     # {trigger: "save"|"validate"|"tab_switch", values: {...},
@@ -311,9 +313,6 @@ def save_or_validate_mappings(namespace_values, state_data):
     # Affects all field mappings: status configs, project filters,
     # issue types, environment values, etc.
     try:
-        from data.metrics_snapshots import clear_snapshots_cache
-        from data.persistence.factory import get_backend
-
         backend = get_backend()
         active_profile_id = backend.get_app_state("active_profile_id")
         active_query_id = backend.get_app_state("active_query_id")

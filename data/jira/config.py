@@ -15,6 +15,7 @@ import requests
 
 from configuration import logger
 from data.exceptions import JiraError, PersistenceError
+from data.jira.validation import validate_jql_for_scriptrunner
 from data.persistence import load_app_settings
 
 #######################################################################
@@ -190,7 +191,6 @@ def validate_jira_config(config: dict) -> tuple[bool, str]:
         return False, "JIRA API endpoint must be a valid URL (http:// or https://)"
 
     # Check for ScriptRunner compatibility issues
-    from data.jira.validation import validate_jql_for_scriptrunner
 
     is_compatible, scriptrunner_warning = validate_jql_for_scriptrunner(jql_query)
     if not is_compatible:

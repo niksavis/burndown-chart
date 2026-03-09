@@ -28,11 +28,12 @@ Usage:
 
 import json
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 
 from data.migration.backup import create_backup, restore_backup
 from data.migration.schema_manager import initialize_schema, verify_schema
+from data.migration.validator import validate_all_profiles
 from data.persistence import PersistenceBackend
 from data.persistence.factory import get_backend
 
@@ -122,10 +123,6 @@ def migrate_profile(
     }
 
     try:
-        import json
-        from datetime import datetime, timedelta
-        from pathlib import Path
-
         json_base = Path("profiles") / profile_id
 
         # Step 1: Migrate profile configuration
@@ -516,7 +513,6 @@ def run_migration_if_needed(
                 logger.info(f"Set active_query_id to {first_query_id}")
 
         # Step 5: Validate migration
-        from data.migration.validator import validate_all_profiles
 
         is_valid, validation_report = validate_all_profiles(profiles_path, db_path)
 

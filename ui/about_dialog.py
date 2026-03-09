@@ -681,7 +681,6 @@ def _get_latest_release_notes() -> tuple[str, str, list[str]] | None:
         Tuple of (version, date, feature_list) or None if not found
     """
     import sys
-    from pathlib import Path
 
     # Determine changelog path (works for both dev and frozen)
     if getattr(sys, "frozen", False) and hasattr(sys, "_MEIPASS"):
@@ -738,7 +737,6 @@ def _read_and_parse_changelog() -> html.Div:
         html.Div containing parsed changelog sections or fallback content
     """
     import sys
-    from pathlib import Path
 
     # Determine changelog path (works for both dev and frozen)
     if getattr(sys, "frozen", False) and hasattr(sys, "_MEIPASS"):

@@ -14,10 +14,15 @@ import dash_bootstrap_components as dbc
 from dash import dcc, html
 
 from configuration.help_content_metrics import FLOW_METRICS_TOOLTIPS
+from data.cache_manager import has_jira_data_for_query
+from data.metrics_snapshots import get_available_weeks
+from data.query_manager import get_active_profile_id, get_active_query_id
 from ui.empty_states import (
     create_metrics_skeleton,
     create_no_data_state,
-)  # Visible skeleton with shimmer
+    create_no_metrics_state,
+)
+from ui.metric_cards import create_metric_card
 from ui.tooltip_utils import create_info_tooltip
 
 
@@ -28,8 +33,6 @@ def create_flow_dashboard() -> dbc.Container:
         dbc.Container with Flow metrics dashboard components
     """
     # Check if JIRA data exists AND if metrics are calculated
-    from data.cache_manager import has_jira_data_for_query
-    from data.query_manager import get_active_profile_id, get_active_query_id
 
     has_jira_data = False
     has_metrics = False
@@ -44,8 +47,6 @@ def create_flow_dashboard() -> dbc.Container:
 
             # Check if metrics are calculated (check if ANY week has metrics)
             if has_jira_data:
-                from data.metrics_snapshots import get_available_weeks
-
                 available_weeks = get_available_weeks()
                 has_metrics = len(available_weeks) > 0
     except Exception:
@@ -55,8 +56,6 @@ def create_flow_dashboard() -> dbc.Container:
     if not has_jira_data:
         initial_content = [create_no_data_state()]
     elif not has_metrics:
-        from ui.empty_states import create_no_metrics_state
-
         initial_content = [create_no_metrics_state(metric_type="Flow")]
     else:
         initial_content = [create_metrics_skeleton(num_cards=5)]
@@ -473,8 +472,6 @@ def create_flow_metrics_cards_grid(metrics_data: dict):
     Returns:
         dbc.Row containing the grid of Flow metric cards
     """
-    from ui.metric_cards import create_metric_card
-
     if not metrics_data:
         return html.Div(
             children="No Flow metrics available. Please ensure data is loaded.",

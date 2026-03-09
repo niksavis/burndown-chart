@@ -1,8 +1,13 @@
 """Callbacks for HTML report generation (simplified synchronous version)."""
 
 import logging
+from datetime import datetime
 
 from dash import Input, Output, State, callback, no_update
+
+from data.query_manager import get_active_profile_id
+from data.report import generate_html_report
+from ui.toast_notifications import create_error_toast, create_warning_toast
 
 logger = logging.getLogger(__name__)
 
@@ -40,12 +45,6 @@ def generate_and_download_report(n_clicks, sections, data_points):
         return no_update, no_update
 
     try:
-        from datetime import datetime
-
-        from data.query_manager import get_active_profile_id
-        from data.report import generate_html_report
-        from ui.toast_notifications import create_error_toast, create_warning_toast
-
         try:
             profile_id = get_active_profile_id()
         except ValueError:
@@ -98,7 +97,6 @@ def generate_and_download_report(n_clicks, sections, data_points):
 
     except Exception as e:
         logger.error(f"Report generation failed: {e}", exc_info=True)
-        from ui.toast_notifications import create_error_toast
 
         toast = create_error_toast(
             f"Report generation failed: {str(e)}",

@@ -49,6 +49,8 @@ from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from data.exceptions import CacheError, PersistenceError
+from data.metrics_cache import invalidate_cache as invalidate_metrics_cache_file
+from data.persistence.factory import get_backend
 
 logger = logging.getLogger(__name__)
 
@@ -72,8 +74,6 @@ def _get_backend():
         return _backend_instance
 
     try:
-        from data.persistence.factory import get_backend
-
         _backend_instance = get_backend()
         _backend_available = True
         return _backend_instance
@@ -478,7 +478,6 @@ def invalidate_metrics_cache_only() -> None:
             logger.info("[OK] Invalidated metrics_snapshots.json")
 
         # Remove DORA/Flow metrics cache
-        from data.metrics_cache import invalidate_cache as invalidate_metrics_cache_file
 
         invalidate_metrics_cache_file()  # Removes metrics_cache.json
         logger.info("[OK] Invalidated metrics_cache.json (DORA/Flow)")
@@ -606,8 +605,6 @@ def has_jira_data_for_query(profile_id: str, query_id: str) -> bool:
         ...     print("Data available")
     """
     try:
-        from data.persistence.factory import get_backend
-
         backend = get_backend()
         issues = backend.get_issues(profile_id, query_id, limit=1)
         return len(issues) > 0

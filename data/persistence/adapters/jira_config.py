@@ -14,6 +14,7 @@ from data.persistence.adapters.app_settings import load_app_settings
 from data.persistence.adapters.project_data import load_project_data
 from data.persistence.adapters.statistics import load_statistics
 from data.persistence.adapters.unified_data import save_unified_project_data
+from data.persistence.factory import get_backend
 from data.types import JiraConfig
 
 
@@ -252,8 +253,6 @@ def load_jira_configuration() -> dict[str, Any]:
 
         # Save migrated settings via backend
         try:
-            from data.persistence.factory import get_backend
-
             backend = get_backend()
             active_profile_id = backend.get_app_state("active_profile_id")
             if active_profile_id:
@@ -298,8 +297,6 @@ def load_jira_configuration() -> dict[str, Any]:
 
         # Save cleaned settings via backend
         try:
-            from data.persistence.factory import get_backend
-
             backend = get_backend()
             active_profile_id = backend.get_app_state("active_profile_id")
             if active_profile_id:
@@ -426,7 +423,6 @@ def save_jira_configuration(config: dict[str, Any]) -> bool:
             return False
 
         # Use repository pattern - save via backend
-        from data.persistence.factory import get_backend
 
         backend = get_backend()
 

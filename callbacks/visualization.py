@@ -24,6 +24,10 @@ from dash import (
 )
 from dash.exceptions import PreventUpdate
 
+# Application imports
+from callbacks.active_work_timeline import _render_active_work_timeline_content
+from callbacks.bug_analysis import _render_bug_analysis_content
+from callbacks.sprint_tracker import _render_sprint_tracker_content
 from callbacks.visualization_helpers import check_has_points_in_period
 from callbacks.visualization_helpers.burndown_tab import _render_burndown_tab
 from callbacks.visualization_helpers.dashboard_tab import _render_dashboard_tab
@@ -31,9 +35,12 @@ from callbacks.visualization_helpers.data_checks import filter_df_by_week_labels
 from callbacks.visualization_helpers.tab_content import (
     create_scope_tracking_tab_content,
 )
-
-# Application imports
 from data import compute_cumulative_values
+from data.metrics_snapshots import load_snapshots
+from data.persistence import load_unified_project_data
+from ui.cards.data_cards import create_statistics_data_card
+from ui.dora_metrics_dashboard import create_dora_dashboard
+from ui.flow_metrics_dashboard import create_flow_dashboard
 from ui.loading_utils import create_content_placeholder
 from visualization import create_forecast_plot
 from visualization.charts import apply_mobile_optimization
@@ -439,7 +446,6 @@ def register(app):
             elif active_tab == "tab-bug-analysis":
                 # Generate bug analysis tab content directly (no placeholder loading)
                 # Import the actual rendering function from bug_analysis callback
-                from callbacks.bug_analysis import _render_bug_analysis_content
 
                 # Get data_points_count from settings
                 data_points_count = int(
@@ -466,7 +472,6 @@ def register(app):
             elif active_tab == "tab-dora-metrics":
                 # Generate DORA metrics dashboard
                 # Callback will populate with metrics (prevent_initial_call=False)
-                from ui.dora_metrics_dashboard import create_dora_dashboard
 
                 dora_content = create_dora_dashboard()
 
@@ -478,7 +483,6 @@ def register(app):
             elif active_tab == "tab-flow-metrics":
                 # Generate Flow metrics dashboard
                 # Callback will populate with metrics (prevent_initial_call=False)
-                from ui.flow_metrics_dashboard import create_flow_dashboard
 
                 flow_content = create_flow_dashboard()
 
@@ -489,7 +493,6 @@ def register(app):
 
             elif active_tab == "tab-statistics-data":
                 # Load statistics from DB and render table
-                from ui.cards import create_statistics_data_card
 
                 statistics_content = create_statistics_data_card(statistics)
 
@@ -500,7 +503,6 @@ def register(app):
 
             elif active_tab == "tab-sprint-tracker":
                 # Generate Sprint Tracker content directly (no placeholder loading)
-                from callbacks.sprint_tracker import _render_sprint_tracker_content
 
                 # Get data_points_count from settings
                 data_points_count = int(
@@ -520,9 +522,6 @@ def register(app):
             elif active_tab == "tab-active-work-timeline":
                 # Generate Active Work Timeline content directly
                 # (no placeholder loading)
-                from callbacks.active_work_timeline import (
-                    _render_active_work_timeline_content,
-                )
 
                 # Get data_points_count from settings
                 data_points_count = int(settings.get("data_points_count", 12))
@@ -614,9 +613,6 @@ def register(app):
             raise PreventUpdate
 
         try:
-            from data.metrics_snapshots import load_snapshots
-            from data.persistence import load_unified_project_data
-
             current_time = datetime.now().strftime("%Y%m%d_%H%M%S")
 
             # Load the complete unified project data

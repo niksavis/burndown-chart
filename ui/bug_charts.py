@@ -10,6 +10,15 @@ and mobile optimization.
 
 from dash import dcc, html
 
+from configuration.chart_config import get_bug_analysis_chart_config
+from visualization.bug_charts import (
+    create_bug_forecast_chart,
+    create_bug_investment_chart,
+    create_bug_trend_chart,
+    get_mobile_chart_config,
+    get_mobile_chart_layout,
+)
+
 
 def BugTrendChart(
     weekly_stats: list[dict],
@@ -31,12 +40,6 @@ def BugTrendChart(
         Dash Bootstrap Components Card with bug trend chart
     """
     try:
-        from configuration.chart_config import get_bug_analysis_chart_config
-        from visualization.bug_charts import (
-            create_bug_trend_chart,
-            get_mobile_chart_layout,
-        )
-
         # Create the chart figure
         fig = create_bug_trend_chart(weekly_stats, viewport_size)
 
@@ -122,12 +125,6 @@ def BugInvestmentChart(
         Dash Bootstrap Components Div with bug investment chart
     """
     try:
-        from configuration.chart_config import get_bug_analysis_chart_config
-        from visualization.bug_charts import (
-            create_bug_investment_chart,
-            get_mobile_chart_layout,
-        )
-
         # Create the chart figure
         fig = create_bug_investment_chart(weekly_stats, viewport_size)
 
@@ -212,13 +209,10 @@ def BugForecastChart(
         Dash Bootstrap Components Div with bug forecast chart
     """
     try:
-        from visualization.bug_charts import create_bug_forecast_chart
-
         # Create the chart figure
         fig = create_bug_forecast_chart(forecast, viewport_size)
 
         # Get mobile-optimized config
-        from visualization.bug_charts import get_mobile_chart_config
 
         chart_config = get_mobile_chart_config(viewport_size)
 

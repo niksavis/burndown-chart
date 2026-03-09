@@ -12,10 +12,16 @@ from dash import (
     State,
     callback,
     clientside_callback,
+    ctx,
+    html,
     no_update,
 )
 
+from data.import_export import export_profile_with_mode, resolve_profile_conflict
+from data.import_export_changelog import normalize_imported_changelog_entries
+from data.persistence.factory import get_backend
 from data.query_manager import get_active_profile_id, get_active_query_id
+from ui.toast_notifications import create_toast
 
 logger = logging.getLogger(__name__)
 
@@ -36,7 +42,6 @@ def export_full_profile(
     n_clicks, export_mode, include_token, include_budget, include_changelog
 ):
     """Export profile with mode selection and optional token inclusion (T013)."""
-    from ui.toast_notifications import create_toast
 
     if not n_clicks:
         return no_update, no_update
@@ -52,7 +57,6 @@ def export_full_profile(
             )
 
         # Use new T013 export function
-        from data.import_export import export_profile_with_mode
 
         export_package = export_profile_with_mode(
             profile_id=profile_id,
@@ -145,7 +149,6 @@ def detect_import_conflict(contents, filename):
             return False, "", None, no_update
 
         # Check if profile already exists in database
-        from data.persistence.factory import get_backend
 
         backend = get_backend()
         existing_profile = backend.get_profile(profile_id)
@@ -214,9 +217,6 @@ def handle_conflict_resolution(
     import_data,
 ):
     """T052: Handle user's conflict resolution choice with optional custom name."""
-    from dash import ctx
-
-    from ui.toast_notifications import create_toast
 
     if not ctx.triggered or not import_data:
         return no_update, no_update, no_update, no_update, no_update
@@ -254,11 +254,6 @@ def handle_conflict_resolution(
 
 def perform_import(import_data, conflict_strategy=None, custom_name=None):
     """Perform the actual import with optional conflict resolution and custom name."""
-    from dash import html
-
-    from data.import_export import resolve_profile_conflict
-    from data.persistence.factory import get_backend
-    from ui.toast_notifications import create_toast
 
     try:
         backend = get_backend()
@@ -544,10 +539,6 @@ def perform_import(import_data, conflict_strategy=None, custom_name=None):
                     if "changelog_entries" in query_data:
                         changelog_entries = query_data["changelog_entries"]
                         if changelog_entries:
-                            from data.import_export_changelog import (
-                                normalize_imported_changelog_entries,
-                            )
-
                             normalized_entries = normalize_imported_changelog_entries(
                                 changelog_entries
                             )
@@ -767,7 +758,6 @@ def show_token_warning_callback(include_token, proceed_clicks, cancel_clicks):
 
     Only show modal when checkbox is clicked by user, not when programmatically set.
     """
-    from dash import ctx
 
     if not ctx.triggered:
         return no_update
@@ -792,7 +782,6 @@ def show_token_warning_callback(include_token, proceed_clicks, cancel_clicks):
 )
 def cancel_token_warning_callback(cancel_clicks):
     """Handle token warning cancellation - uncheck the checkbox."""
-    from dash import ctx
 
     if not ctx.triggered:
         return no_update

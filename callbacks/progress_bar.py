@@ -1,9 +1,17 @@
 """Progress bar callback for tracking Update Data operations."""
 
 import logging
+import time
+from datetime import datetime
 
-from dash import Input, Output, callback, no_update
+from dash import Input, Output, callback, html, no_update
 from dash.exceptions import PreventUpdate
+
+from data.persistence.adapters import load_statistics
+from data.persistence.factory import get_backend
+from data.query_manager import get_query_dropdown_options
+from data.task_progress import TaskProgress
+from utils.datetime_utils import parse_iso_datetime
 
 logger = logging.getLogger(__name__)
 
@@ -36,9 +44,6 @@ def update_progress_bars(n_intervals):
     Returns:
         Tuple of (container_style, label, value, color, animated, interval_disabled)
     """
-    from data.persistence.factory import get_backend
-    from utils.datetime_utils import parse_iso_datetime
-
     try:
         # Read task progress from database
         backend = get_backend()
@@ -102,8 +107,6 @@ def update_progress_bars(n_intervals):
         # If task is cancelled but still in_progress (backend didn't call fail_task),
         # force it to error status after grace period
         if status == "in_progress" and cancelled and cancel_time:
-            from datetime import datetime
-
             cancel_timestamp = parse_iso_datetime(cancel_time)
             if cancel_timestamp:
                 elapsed = (datetime.now() - cancel_timestamp).total_seconds()
@@ -114,8 +117,6 @@ def update_progress_bars(n_intervals):
                         f"({elapsed:.0f}s since cancellation). "
                         "Forcing to error status."
                     )
-                    from data.task_progress import TaskProgress
-
                     TaskProgress.fail_task("update_data", "Operation cancelled by user")
                     # Will be handled on next poll as error status
                     raise PreventUpdate
@@ -149,7 +150,6 @@ def update_progress_bars(n_intervals):
                 "[Progress] Detected calculate phase transition - "
                 "triggering metrics calculation"
             )
-            import time
 
             # Trigger metrics calculation by returning a timestamp
             stuck_metrics_trigger = int(time.time() * 1000)
@@ -159,10 +159,6 @@ def update_progress_bars(n_intervals):
         # This ensures reload_data_after_update callback fires and completes the task
         postprocess_trigger = None
         if status == "in_progress" and phase == "postprocess":
-            from datetime import datetime
-
-            from data.task_progress import TaskProgress
-
             postprocess_time = progress_data.get("postprocess_time")
             postprocess_message = progress_data.get(
                 "postprocess_message", "Data updated successfully"
@@ -170,7 +166,6 @@ def update_progress_bars(n_intervals):
 
             # Check if we've already triggered the refresh (prevent infinite loop)
             # Store last postprocess_time we've seen to avoid re-triggering
-            import time
 
             last_postprocess_time_seen = getattr(
                 update_progress_bars, "_last_postprocess_time", None
@@ -210,8 +205,6 @@ def update_progress_bars(n_intervals):
 
         # Handle complete status - show success for 3 seconds then hide
         if status == "complete":
-            from datetime import datetime
-
             complete_time = progress_data.get("complete_time")
             if complete_time:
                 # CRITICAL: Check if this is a stale completion from an old task
@@ -232,7 +225,6 @@ def update_progress_bars(n_intervals):
                         f"[Progress] Stale completion detected "
                         f"({elapsed:.0f}s old), hiding immediately"
                     )
-                    import time
 
                     return (
                         {"display": "none"},
@@ -253,7 +245,6 @@ def update_progress_bars(n_intervals):
                     # Let the next task's start_task() handle cleanup
                     # to avoid race condition
                     logger.info("[Progress] Auto-hiding progress bar after 3s")
-                    import time
 
                     return (
                         {"display": "none"},
@@ -276,7 +267,6 @@ def update_progress_bars(n_intervals):
                         f"[Progress] Task complete: {message}, "
                         f"hiding in {3 - elapsed:.1f}s"
                     )
-                    import time
 
                     return (
                         {"display": "block", "minHeight": "60px"},
@@ -294,7 +284,6 @@ def update_progress_bars(n_intervals):
                     )
             # No complete_time, hide immediately
             logger.info("[Progress] Task complete (no timestamp), hiding immediately")
-            import time
 
             return (
                 {"display": "none"},
@@ -315,8 +304,6 @@ def update_progress_bars(n_intervals):
         if status == "error":
             error_time = progress_data.get("error_time")
             if error_time:
-                from datetime import datetime
-
                 error_timestamp = parse_iso_datetime(error_time)
                 if not error_timestamp:
                     logger.warning(
@@ -535,8 +522,6 @@ def cancel_operation(n_clicks):
     if not n_clicks:
         raise PreventUpdate
 
-    from data.task_progress import TaskProgress
-
     logger.info("[Progress] Cancel button clicked")
 
     if TaskProgress.cancel_task():
@@ -597,13 +582,6 @@ def reload_data_after_update(refresh_trigger):
 
     try:
         # Load statistics from disk
-        from dash import html
-
-        from data.persistence.adapters import load_statistics
-        from data.persistence.factory import get_backend
-        from data.query_manager import get_query_dropdown_options
-        from data.task_progress import TaskProgress
-
         # Check if task is already complete (avoid redundant complete_task calls)
         backend = get_backend()
         progress_data = backend.get_task_state()
@@ -674,16 +652,10 @@ def reload_data_after_update(refresh_trigger):
 
     except Exception as e:
         logger.error(f"[Progress] Error reloading statistics: {e}", exc_info=True)
-        from dash import html
-
-        from data.task_progress import TaskProgress
-
         TaskProgress.fail_task("update_data", "Error refreshing UI after data update")
 
         # Try to build dropdown even on error
         try:
-            from data.query_manager import get_query_dropdown_options
-
             dropdown_options = get_query_dropdown_options()
         except Exception:
             dropdown_options = []
@@ -717,11 +689,6 @@ def cleanup_stale_tasks_on_load(pathname):
     Returns:
         bool: False to enable polling if stale task exists, True to keep disabled
     """
-    from datetime import datetime
-
-    from data.persistence.factory import get_backend
-    from utils.datetime_utils import parse_iso_datetime
-
     try:
         backend = get_backend()
         state = backend.get_task_state()

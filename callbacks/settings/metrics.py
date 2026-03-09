@@ -12,6 +12,12 @@ from dash import Input, Output
 from dash.exceptions import PreventUpdate
 
 from configuration import logger
+from data.iso_week_bucketing import get_weeks_from_date_range
+from data.metrics_calculator import calculate_metrics_for_last_n_weeks
+from data.metrics_snapshots import clear_snapshots_cache
+from data.persistence.adapters.statistics import load_statistics
+from data.persistence.factory import get_backend
+from data.task_progress import TaskProgress
 
 
 def register(app):
@@ -49,7 +55,6 @@ def register(app):
         )
 
         # Import TaskProgress before checking trigger
-        from data.task_progress import TaskProgress
 
         # Check if there's actually an active task in calculate phase
         active_task = TaskProgress.get_active_task()
@@ -95,7 +100,6 @@ def register(app):
 
         try:
             # Load statistics to verify fetch completed successfully
-            from data.persistence.adapters.statistics import load_statistics
 
             statistics, _ = load_statistics()
 
@@ -146,7 +150,6 @@ def _calculate_weeks_from_statistics(statistics: list) -> tuple[int, list]:
     Returns:
         Tuple of (total_weeks, custom_weeks list)
     """
-    from data.iso_week_bucketing import get_weeks_from_date_range
 
     # Extract date range from statistics
     dates = [datetime.fromisoformat(stat["date"]) for stat in statistics]
@@ -175,8 +178,6 @@ def _clear_existing_metrics() -> None:
         "to force fresh calculation"
     )
 
-    from data.persistence.factory import get_backend
-
     backend = get_backend()
     active_profile_id = backend.get_app_state("active_profile_id")
     active_query_id = backend.get_app_state("active_query_id")
@@ -187,7 +188,6 @@ def _clear_existing_metrics() -> None:
             backend.delete_metrics(active_profile_id, active_query_id)
 
             # Clear in-memory snapshots cache (used by Flow/DORA tabs)
-            from data.metrics_snapshots import clear_snapshots_cache
 
             clear_snapshots_cache()
             logger.info(
@@ -205,8 +205,6 @@ def _start_background_metrics_calculation(custom_weeks: list, total_weeks: int) 
         custom_weeks: List of ISO weeks to calculate metrics for
         total_weeks: Total number of weeks for progress tracking
     """
-    from data.metrics_calculator import calculate_metrics_for_last_n_weeks
-    from data.task_progress import TaskProgress
 
     def metrics_progress_callback(message: str):
         """Update TaskProgress during metrics calculation."""

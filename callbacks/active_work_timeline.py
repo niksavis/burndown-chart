@@ -12,6 +12,19 @@ import re
 import dash_bootstrap_components as dbc
 from dash import ClientsideFunction, Input, Output, State, ctx, html
 
+from data.active_work_completed import get_completed_items_by_week
+from data.active_work_manager import get_active_work_data
+from data.active_work_search import filter_timeline_by_query, is_strict_query_valid
+from data.persistence import load_app_settings
+from data.persistence.factory import get_backend
+from data.project_filter import filter_development_issues
+from ui.active_work_completed_components import create_completed_items_section
+from ui.active_work_epic_timeline import (
+    _render_filtered_timeline,
+    create_nested_epic_timeline,
+)
+from ui.empty_states import create_no_active_work_state
+
 logger = logging.getLogger(__name__)
 
 
@@ -81,11 +94,6 @@ def _render_active_work_timeline_content(
         Div containing nested epic timeline
     """
     try:
-        from data.active_work_manager import get_active_work_data
-        from data.persistence.factory import get_backend
-        from ui.active_work_epic_timeline import create_nested_epic_timeline
-        from ui.empty_states import create_no_active_work_state
-
         backend = get_backend()
 
         # Get active profile and query
@@ -114,7 +122,6 @@ def _render_active_work_timeline_content(
         logger.info(f"[ACTIVE WORK] Loaded {len(issues)} issues from database")
 
         # Get configuration
-        from data.persistence import load_app_settings
 
         settings = load_app_settings()
         field_mappings = settings.get("field_mappings", {})
@@ -133,7 +140,6 @@ def _render_active_work_timeline_content(
         logger.info(f"[ACTIVE WORK DEBUG] Before filtering: {len(issues)} total issues")
 
         # Filter to only configured development project issues
-        from data.project_filter import filter_development_issues
 
         issues = filter_development_issues(
             issues, development_projects, devops_projects
@@ -201,8 +207,6 @@ def _render_active_work_timeline_content(
         logger.info(f"Found {len(timeline)} epics with {total_issues} total issues")
 
         # Get recently completed items by week
-        from data.active_work_completed import get_completed_items_by_week
-        from ui.active_work_completed_components import create_completed_items_section
 
         completed_by_week = get_completed_items_by_week(
             issues=issues,
@@ -247,7 +251,6 @@ def _render_active_work_timeline_content(
 
     except Exception as e:
         logger.error(f"Error rendering Active Work Timeline: {e}", exc_info=True)
-        from ui.empty_states import create_no_active_work_state
 
         return create_no_active_work_state()
 
@@ -457,10 +460,6 @@ def register(app):
     )
     def filter_timeline(search_input, timeline_data):
         """Filter timeline based on search input (server-side for now)."""
-        from data.active_work_completed import get_completed_items_by_week
-        from data.persistence import load_app_settings
-        from ui.active_work_completed_components import create_completed_items_section
-        from ui.active_work_epic_timeline import _render_filtered_timeline
 
         def _flatten_issues(epics):
             flattened = []
@@ -515,11 +514,6 @@ def register(app):
 
         if not timeline_data:
             return html.Div(), []
-
-        from data.active_work_search import (
-            filter_timeline_by_query,
-            is_strict_query_valid,
-        )
 
         query_text = (search_input or "").strip()
         query_state = "empty"

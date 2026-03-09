@@ -3,6 +3,8 @@
 Provides UI components for bug metrics display, charts, and analysis tab layout.
 """
 
+from datetime import datetime
+
 import dash_bootstrap_components as dbc
 import pandas as pd
 from dash import html
@@ -104,7 +106,6 @@ def create_bug_metrics_cards(bug_metrics: dict, forecast: dict) -> html.Div:
     weeks_analyzed = forecast.get("weeks_analyzed", 0) if forecast else 0
 
     # Format date for display
-    from datetime import datetime
 
     def format_date(iso_date: str) -> str:
         if not iso_date:
@@ -739,7 +740,6 @@ def create_bug_forecast_card(forecast: dict, open_bugs: int) -> html.Div:
     avg_closure_rate = forecast.get("avg_closure_rate", 0.0)
 
     # Format date for display (YYYY-MM-DD -> Mon DD, YYYY)
-    from datetime import datetime
 
     def format_date(iso_date: str) -> str:
         """Format ISO date for display."""

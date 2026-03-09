@@ -13,6 +13,7 @@ from typing import Any
 
 import requests
 
+from configuration import dora_config, flow_config
 from data.performance_utils import FieldMappingIndex
 from data.persistence import load_app_settings, load_jira_configuration
 
@@ -468,7 +469,6 @@ def check_required_mappings(metric_name: str) -> tuple[bool, list[str]]:
         >>> check_required_mappings("deployment_frequency")
         (True, [])
     """
-    from configuration import dora_config, flow_config
 
     # Determine if DORA or Flow metric
     if metric_name in dora_config.REQUIRED_DORA_FIELDS:

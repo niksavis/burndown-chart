@@ -4,9 +4,11 @@ Data Validation Helpers
 Helper functions for validating and checking data conditions in visualizations.
 """
 
-from datetime import timedelta
+from datetime import datetime, timedelta
 
 import pandas as pd
+
+from data.time_period_calculator import format_year_week, get_iso_week
 
 
 def check_has_points_in_period(
@@ -71,9 +73,6 @@ def filter_df_by_week_labels(
     Returns:
         Filtered (and sorted ascending by date) DataFrame.
     """
-    from datetime import datetime
-
-    from data.time_period_calculator import format_year_week, get_iso_week
 
     if df.empty or not data_points_count or data_points_count <= 0:
         return df

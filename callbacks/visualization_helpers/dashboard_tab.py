@@ -15,6 +15,16 @@ import pandas as pd
 
 from callbacks.visualization_helpers.extended_metrics import load_extended_metrics
 from data import calculate_weekly_averages, compute_cumulative_values
+from data.budget_calculator import (
+    _get_current_budget,
+    calculate_cost_breakdown_by_type,
+    calculate_weekly_cost_breakdowns,
+    get_budget_baseline_vs_actual,
+)
+from data.iso_week_bucketing import get_week_label
+from data.persistence.factory import get_backend
+from data.processing import calculate_velocity_from_dataframe
+from data.time_period_calculator import format_year_week, get_iso_week
 from ui.dashboard import create_comprehensive_dashboard
 from visualization import create_forecast_plot
 
@@ -40,7 +50,6 @@ def _render_dashboard_tab(
     Returns:
         Rendered dashboard content (html.Div).
     """
-    from data.time_period_calculator import format_year_week, get_iso_week
 
     pert_factor = settings.get("pert_factor", 1.2)
     deadline = settings.get("deadline") or None
@@ -111,8 +120,6 @@ def _render_dashboard_tab(
         data_points_count=data_points_count,
     )
 
-    from data.processing import calculate_velocity_from_dataframe
-
     velocity_for_health_items = calculate_velocity_from_dataframe(df, "completed_items")
     velocity_for_health_points = calculate_velocity_from_dataframe(
         df, "completed_points"
@@ -182,15 +189,11 @@ def _load_budget_data(
     """
     import math
 
-    from data.iso_week_bucketing import get_week_label
-
     budget_data = None
     profile_id = ""
     query_id = ""
     current_week_label = ""
     try:
-        from data.persistence.factory import get_backend
-
         backend = get_backend()
         profile_id = backend.get_app_state("active_profile_id") or ""
         query_id = backend.get_app_state("active_query_id") or ""
@@ -202,13 +205,6 @@ def _load_budget_data(
         )
 
         if profile_id and query_id:
-            from data.budget_calculator import (
-                _get_current_budget,
-                calculate_cost_breakdown_by_type,
-                calculate_weekly_cost_breakdowns,
-                get_budget_baseline_vs_actual,
-            )
-
             budget_config = _get_current_budget(profile_id, query_id)
             logger.info(f"[BUDGET DEBUG] budget_config={budget_config}")
 

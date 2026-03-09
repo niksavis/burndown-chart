@@ -8,6 +8,15 @@ Part of data/report/generator.py split.
 
 from typing import Any
 
+from data.recommendations.budget_signals import build_budget_health_signals
+from data.recommendations.correlation_signals import build_correlation_signals
+from data.recommendations.pace_signals import build_required_pace_signals
+from data.recommendations.scope_signals import build_scope_signals
+from data.recommendations.velocity_signals import (
+    build_throughput_signals,
+    build_velocity_consistency_signals,
+    build_velocity_trend_signals,
+)
 from data.report.generator_recommendation_signals import (
     _build_budget_forecast_insights,
     _build_deadline_scenario_insights,
@@ -39,17 +48,6 @@ def calculate_recommendations(
         Dictionary with insights list and metadata
     """
     import pandas as pd
-
-    from data.recommendations.budget_signals import (
-        build_budget_health_signals,
-    )
-    from data.recommendations.correlation_signals import build_correlation_signals
-    from data.recommendations.pace_signals import build_required_pace_signals
-    from data.recommendations.velocity_signals import (
-        build_throughput_signals,
-        build_velocity_consistency_signals,
-        build_velocity_trend_signals,
-    )
 
     insights = []
     statistics_df = pd.DataFrame(statistics)
@@ -191,8 +189,6 @@ def calculate_recommendations(
 
     # === SCOPE MANAGEMENT ===
     if not statistics_df.empty:
-        from data.recommendations.scope_signals import build_scope_signals
-
         scope_signals = build_scope_signals(statistics_df)
         scope_warning_added = False
 

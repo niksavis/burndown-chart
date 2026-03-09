@@ -4,7 +4,9 @@ import logging
 from datetime import UTC, datetime
 from typing import Any
 
+from data.fixversion_matcher import get_deployment_date_for_issue
 from data.performance_utils import log_performance
+from data.persistence import load_app_settings
 
 from ._common import (
     LEAD_TIME_TIERS,
@@ -69,9 +71,6 @@ def calculate_lead_time_for_changes(
                 "trend_percentage": 0.0,
             }
 
-        # Import shared fixversion lookup function
-        from data.fixversion_matcher import get_deployment_date_for_issue
-
         # Extract lead times
         lead_times = []
         missing_start_count = 0
@@ -79,8 +78,6 @@ def calculate_lead_time_for_changes(
         no_fixversion_match_count = 0
 
         # Get field mappings from profile configuration
-        from data.persistence import load_app_settings
-
         app_settings = load_app_settings()
         field_mappings = app_settings.get("field_mappings", {})
         dora_mappings = field_mappings.get("dora", {})

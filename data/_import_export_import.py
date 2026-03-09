@@ -14,6 +14,13 @@ from pathlib import Path
 from typing import Any
 
 from data._import_export_types import ExportManifest
+from data.profile_manager import (
+    PROFILES_DIR,
+    get_profile_file_path,
+    load_profiles_metadata,
+    save_profiles_metadata,
+)
+from data.query_manager import create_query
 
 logger = logging.getLogger(__name__)
 
@@ -106,7 +113,6 @@ def import_profile_enhanced(
 
 def _generate_unique_profile_id(base_name: str) -> str:
     """Generate unique profile ID for import."""
-    from data.profile_manager import get_profile_file_path
 
     # Create base ID from name
     base_id = base_name.lower().replace(" ", "-")
@@ -165,13 +171,6 @@ def _create_profile_from_import(
 ) -> tuple[bool, str]:
     """Create profile from imported data."""
     try:
-        from data.profile_manager import (
-            PROFILES_DIR,
-            get_profile_file_path,
-            load_profiles_metadata,
-            save_profiles_metadata,
-        )
-
         # Extract profile name for creation
         profile_name = profile_data.get("name", f"Imported Profile {profile_id}")
 
@@ -228,8 +227,6 @@ def _create_profile_from_import(
 def _import_profile_queries(profile_id: str, queries_dir: Path) -> int:
     """Import queries for imported profile."""
     try:
-        from data.query_manager import create_query
-
         imported = 0
         for query_file in queries_dir.glob("*.json"):
             with open(query_file) as f:
@@ -254,8 +251,6 @@ def _import_profile_queries(profile_id: str, queries_dir: Path) -> int:
 def _import_profile_cache(profile_id: str, cache_dir: Path) -> bool:
     """Import cached data for imported profile."""
     try:
-        from data.profile_manager import PROFILES_DIR
-
         target_dir = PROFILES_DIR / profile_id
         target_dir.mkdir(parents=True, exist_ok=True)
 

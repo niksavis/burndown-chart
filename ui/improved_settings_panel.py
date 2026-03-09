@@ -15,10 +15,12 @@ Restructured for better UX workflow:
 import dash_bootstrap_components as dbc
 from dash import html
 
+from data.persistence import load_app_settings
 from ui.profile_modals import (
     create_profile_deletion_modal,
     create_profile_form_modal,
 )
+from ui.tabbed_settings_panel import create_tabbed_settings_panel
 
 #######################################################################
 # HELPER FUNCTIONS
@@ -28,8 +30,6 @@ from ui.profile_modals import (
 def _get_default_jql_query():
     """Get default JQL query from settings."""
     try:
-        from data.persistence import load_app_settings
-
         app_settings = load_app_settings()
         return app_settings.get("jql_query", "project = JRASERVER")
     except ImportError:
@@ -78,7 +78,6 @@ def create_settings_panel_content():
     4. Queries - define queries for data fetch
     5. Data - execute fetch and import/export
     """
-    from ui.tabbed_settings_panel import create_tabbed_settings_panel
 
     # Return the tabbed panel - cleaner UI without overflow issues
     return create_tabbed_settings_panel()

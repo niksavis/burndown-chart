@@ -9,6 +9,7 @@ Functions:
 - _create_current_budget_card(): Full card with header and footer
 """
 
+from datetime import datetime
 from typing import Any
 
 import dash_bootstrap_components as dbc
@@ -65,8 +66,6 @@ def _create_current_budget_card_content(
 
     if updated_at:
         try:
-            from datetime import datetime
-
             dt = datetime.fromisoformat(updated_at.replace("Z", "+00:00"))
             updated_str = dt.strftime("%Y-%m-%d")
         except Exception:
@@ -74,8 +73,6 @@ def _create_current_budget_card_content(
 
     if created_at:
         try:
-            from datetime import datetime
-
             dt = datetime.fromisoformat(created_at.replace("Z", "+00:00"))
             created_str = dt.strftime("%Y-%m-%d")
         except Exception:

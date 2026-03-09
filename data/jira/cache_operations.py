@@ -9,10 +9,12 @@ from datetime import UTC, datetime, timedelta
 
 from data.cache_manager import (
     generate_cache_key,
+    generate_jira_data_cache_key,
     load_cache_with_validation,
 )
 from data.exceptions import CacheError, PersistenceError
 from data.persistence import load_app_settings, save_app_settings
+from data.persistence.factory import get_backend
 
 logger = logging.getLogger(__name__)
 
@@ -47,8 +49,6 @@ def cache_jira_response(
     try:
         # PHASE 1: Save to DATABASE (primary storage after migration)
         try:
-            from data.persistence.factory import get_backend
-
             backend = get_backend()
             active_profile_id = backend.get_app_state("active_profile_id")
             active_query_id = backend.get_app_state("active_query_id")
@@ -183,7 +183,6 @@ def load_jira_cache(
         # Generate cache key from configuration
         # CRITICAL FIX: Use generate_jira_data_cache_key() which excludes field_mappings
         # This allows field mapping changes (like WIP states) to reuse cached JIRA data
-        from data.cache_manager import generate_jira_data_cache_key
 
         cache_key = generate_jira_data_cache_key(
             jql_query=current_jql_query,
@@ -242,8 +241,6 @@ def load_changelog_cache(
         Tuple of (cache_loaded: bool, issues: List[Dict])
     """
     try:
-        from data.persistence.factory import get_backend
-
         backend = get_backend()
         active_profile_id = backend.get_app_state("active_profile_id")
         active_query_id = backend.get_app_state("active_query_id")

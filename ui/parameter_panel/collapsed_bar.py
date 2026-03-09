@@ -1,7 +1,11 @@
 """Collapsed parameter bar component."""
 
+from pathlib import Path
+
 import dash_bootstrap_components as dbc
 from dash import html
+
+from ui.style_constants import DESIGN_TOKENS
 
 
 def create_parameter_bar_collapsed(
@@ -50,7 +54,6 @@ def create_parameter_bar_collapsed(
         ...     1.5, "2025-12-31", 100, 500, remaining_items=50
         ... )
     """
-    from ui.style_constants import DESIGN_TOKENS
 
     bar_id = f"parameter-bar-collapsed{'-' + id_suffix if id_suffix else ''}"
     expand_btn_id = f"btn-expand-parameters{'-' + id_suffix if id_suffix else ''}"
@@ -103,7 +106,6 @@ def create_parameter_bar_collapsed(
 
     try:
         import json
-        from pathlib import Path
 
         progress_file = Path("task_progress.json")
         if progress_file.exists():

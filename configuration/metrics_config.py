@@ -15,6 +15,8 @@ Reference: docs/metrics/IMPLEMENTATION_GUIDE.md
 import logging
 from typing import Any
 
+from data.persistence.factory import get_backend
+
 logger = logging.getLogger(__name__)
 
 
@@ -51,8 +53,6 @@ class MetricsConfig:
             RuntimeError: If no active profile configured
         """
         try:
-            from data.persistence.factory import get_backend
-
             backend = get_backend()
             active_profile_id = backend.get_app_state("active_profile_id")
 
@@ -79,8 +79,6 @@ class MetricsConfig:
             RuntimeError: If profile doesn't exist or cannot be loaded
         """
         try:
-            from data.persistence.factory import get_backend
-
             backend = get_backend()
             profile_data = backend.get_profile(self.profile_id)
 

@@ -16,6 +16,9 @@ from datetime import datetime
 
 from dash import Input, Output, State, callback, ctx
 
+from data.persistence.factory import get_backend
+from utils.datetime_utils import parse_iso_datetime
+
 logger = logging.getLogger(__name__)
 
 
@@ -70,9 +73,6 @@ def update_banner_status_icons(
         return "fas fa-folder me-1", "fas fa-search me-1"
 
     try:
-        from data.persistence.factory import get_backend
-        from utils.datetime_utils import parse_iso_datetime
-
         backend = get_backend()
         progress_data = backend.get_task_state()
 

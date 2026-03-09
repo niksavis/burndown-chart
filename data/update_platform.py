@@ -10,6 +10,7 @@ import sys
 from datetime import UTC, datetime
 from pathlib import Path
 
+from data.persistence.factory import get_backend
 from data.update_models import (
     LEGACY_MAIN_EXE_NAME,
     UpdateProgress,
@@ -34,8 +35,7 @@ def _persist_download_state(progress: UpdateProgress) -> None:
         progress: UpdateProgress with completed download information
     """
     try:
-        from data.persistence import backend
-
+        backend = get_backend()
         backend.set_app_state("pending_update_version", progress.available_version)
         backend.set_app_state("pending_update_path", str(progress.download_path))
         backend.set_app_state("pending_update_url", progress.download_url)
@@ -66,8 +66,7 @@ def _restore_download_state() -> UpdateProgress | None:
         UpdateProgress if valid pending update found, None otherwise
     """
     try:
-        from data.persistence import backend
-
+        backend = get_backend()
         version = backend.get_app_state("pending_update_version")
         path_str = backend.get_app_state("pending_update_path")
         url = backend.get_app_state("pending_update_url")
@@ -134,8 +133,7 @@ def clear_download_state() -> None:
     Should be called after update installation completes successfully.
     """
     try:
-        from data.persistence import backend
-
+        backend = get_backend()
         backend.set_app_state("pending_update_version", None)
         backend.set_app_state("pending_update_path", None)
         backend.set_app_state("pending_update_url", None)

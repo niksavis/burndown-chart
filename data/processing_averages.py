@@ -5,7 +5,14 @@ Uses metric snapshots as source of truth when available, falling back
 to raw statistics data.
 """
 
+from datetime import datetime, timedelta
+
 import pandas as pd
+
+from data.metrics.blending import calculate_current_week_blend
+from data.metrics_calculator import calculate_forecast
+from data.metrics_snapshots import get_metric_weekly_values
+from data.time_period_calculator import format_year_week, get_iso_week
 
 
 def calculate_weekly_averages(
@@ -48,11 +55,6 @@ def calculate_weekly_averages(
     # This ensures Dashboard and DORA tab show the same values
     try:
         if data_points_count is not None and data_points_count > 0:
-            from datetime import datetime, timedelta
-
-            from data.metrics_snapshots import get_metric_weekly_values
-            from data.time_period_calculator import format_year_week, get_iso_week
-
             # Generate week labels exactly like DORA/Flow metrics do
             weeks = []
             current_date = datetime.now()
@@ -72,9 +74,6 @@ def calculate_weekly_averages(
             # PROGRESSIVE BLENDING: Apply blending to current week (Feature bd-a1vn)
             # This eliminates Monday reliability drop by blending forecast with actuals
             if velocity_items and len(velocity_items) >= 2:
-                from data.metrics.blending import calculate_current_week_blend
-                from data.metrics_calculator import calculate_forecast
-
                 # Current week is last item in velocity_items
                 current_week_actual = velocity_items[-1]
 

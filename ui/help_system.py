@@ -20,6 +20,7 @@ from dash import Input, Output, State, callback, dcc, html
 
 from configuration.help_content_comprehensive import COMPREHENSIVE_HELP_CONTENT
 from ui.help_layouts.weekly_progress_help import create_weekly_progress_help_layout
+from ui.tooltip_utils import create_info_tooltip
 
 
 # Performance optimization: Cache formatted content
@@ -722,8 +723,6 @@ def create_help_button_with_tooltip(
     Returns:
         html.Span containing both tooltip icon and help button
     """
-    from ui.tooltip_utils import create_info_tooltip
-
     if help_button_id is None:
         help_button_id = f"help-btn-{help_category}-{help_key}"
 
@@ -790,8 +789,6 @@ def create_dashboard_metric_tooltip(metric_key, id_suffix=None):
     Returns:
         Tooltip component with dark theme
     """
-    from ui.tooltip_utils import create_info_tooltip
-
     if id_suffix is None:
         id_suffix = f"dashboard-{metric_key}"
 
@@ -814,8 +811,6 @@ def create_parameter_tooltip(param_key, id_suffix=None):
     Returns:
         Tooltip component with dark theme
     """
-    from ui.tooltip_utils import create_info_tooltip
-
     if id_suffix is None:
         id_suffix = f"param-{param_key}"
 
@@ -839,8 +834,6 @@ def create_metric_help_icon(metric_key, category="dashboard", show_modal_link=Fa
     Returns:
         Help icon component with tooltip (and optional modal trigger)
     """
-    from ui.tooltip_utils import create_info_tooltip
-
     help_content = COMPREHENSIVE_HELP_CONTENT.get(category, {})
     tooltip_text = help_content.get(metric_key, f"Help for {metric_key}")
 
@@ -871,8 +864,6 @@ def create_settings_tooltip(settings_key, id_suffix=None):
     Returns:
         Tooltip component with dark theme
     """
-    from ui.tooltip_utils import create_info_tooltip
-
     if id_suffix is None:
         id_suffix = f"settings-{settings_key}"
 

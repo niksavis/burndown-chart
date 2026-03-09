@@ -22,6 +22,9 @@ import dash_bootstrap_components as dbc
 import pandas as pd
 from dash import html
 
+from data.budget_calculator_core import _get_velocity, _get_velocity_points
+from data.metrics.blending import get_blend_metadata
+from data.metrics.forecast_calculator import calculate_forecast
 from ui.metric_cards import create_metric_card as create_professional_metric_card
 from ui.style_constants import COLOR_PALETTE
 
@@ -69,8 +72,6 @@ def create_throughput_analytics_section(
         and additional_context.get("current_week_label")
         and data_points_count
     ):
-        from data.budget_calculator import _get_velocity, _get_velocity_points
-
         avg_items = _get_velocity(
             additional_context["profile_id"],
             additional_context["query_id"],
@@ -159,9 +160,6 @@ def create_throughput_analytics_section(
         and not statistics_df.empty
         and len(statistics_df) >= 2
     ):
-        from data.metrics.blending import get_blend_metadata
-        from data.metrics_calculator import calculate_forecast
-
         # Check if last week in dataframe is the current week
         last_week_label = None
         if "week_label" in statistics_df.columns and len(statistics_df) > 0:

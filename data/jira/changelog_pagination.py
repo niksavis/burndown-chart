@@ -16,6 +16,7 @@ from data.jira.changelog_http import (
     _fetch_with_retry,
 )
 from data.jira.changelog_request import _build_changelog_jql, _build_fields_string
+from data.task_progress import TaskProgress
 
 logger = logging.getLogger(__name__)
 
@@ -128,8 +129,6 @@ def fetch_jira_issues_with_changelog(
 
             # Check for cancellation BEFORE making API call
             try:
-                from data.task_progress import TaskProgress
-
                 # Check if task was cancelled
                 is_cancelled = TaskProgress.is_task_cancelled()
                 logger.debug(
@@ -252,8 +251,6 @@ def fetch_jira_issues_with_changelog(
         # Final progress update to show 100% completion
         if total_issues:
             try:
-                from data.task_progress import TaskProgress
-
                 TaskProgress.update_progress(
                     "update_data",
                     "fetch",

@@ -8,7 +8,7 @@ For paginated bulk fetching, see data.jira.changelog_pagination.
 """
 
 import logging
-from datetime import UTC
+from datetime import UTC, datetime, timedelta
 
 from data.exceptions import JiraError, PersistenceError
 from data.jira.changelog_pagination import fetch_jira_issues_with_changelog
@@ -49,7 +49,6 @@ def fetch_changelog_on_demand(
     Returns:
         Tuple of (success, message)
     """
-    from datetime import datetime, timedelta
 
     logger.info("Fetching changelog for profile/query: %s/%s", profile_id, query_id)
 

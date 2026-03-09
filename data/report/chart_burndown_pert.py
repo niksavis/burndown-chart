@@ -8,6 +8,8 @@ Part of data/report/chart_burndown.py split.
 import json
 from datetime import datetime
 
+from data.metrics.forecast_calculator import calculate_ewma_forecast
+from data.processing import generate_weekly_forecast
 from data.velocity_projections import calculate_required_velocity
 
 
@@ -51,9 +53,6 @@ def generate_weekly_items_chart(
         )
         if has_required_data:
             try:
-                from data.metrics.forecast_calculator import calculate_ewma_forecast
-                from data.processing import generate_weekly_forecast
-
                 forecast_data = generate_weekly_forecast(
                     statistics, pert_factor=pert_factor
                 )
@@ -266,9 +265,6 @@ def generate_weekly_points_chart(
         has_points_data = "completed_points" in statistics[0] if statistics else False
         if has_points_data:
             try:
-                from data.metrics.forecast_calculator import calculate_ewma_forecast
-                from data.processing import generate_weekly_forecast
-
                 forecast_data = generate_weekly_forecast(
                     statistics, pert_factor=pert_factor
                 )

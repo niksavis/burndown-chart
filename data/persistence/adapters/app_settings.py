@@ -7,8 +7,14 @@ from typing import Any
 
 # Third-party library imports
 # Application imports
-from configuration.settings import logger
+from configuration.settings import (
+    DEFAULT_DATA_POINTS_COUNT,
+    DEFAULT_DEADLINE,
+    DEFAULT_PERT_FACTOR,
+    logger,
+)
 from data.exceptions import PersistenceError
+from data.persistence.factory import get_backend
 
 
 def save_app_settings(
@@ -70,8 +76,6 @@ def save_app_settings(
         cache_metadata: Dict with cache tracking info (last_cache_key,
             last_cache_timestamp, cache_config_hash)
     """
-    # Lazy import to avoid circular dependency
-    from configuration.settings import DEFAULT_DATA_POINTS_COUNT, DEFAULT_PERT_FACTOR
 
     settings = {
         "pert_factor": pert_factor,
@@ -184,7 +188,6 @@ def save_app_settings(
 
     try:
         # Use repository pattern - get backend and save via database
-        from data.persistence.factory import get_backend
 
         backend = get_backend()
 
@@ -346,12 +349,6 @@ def load_app_settings() -> dict[str, Any]:
     Returns:
         Dictionary containing app settings or default values if not found
     """
-    # Lazy import to avoid circular dependency
-    from configuration.settings import (
-        DEFAULT_DATA_POINTS_COUNT,
-        DEFAULT_DEADLINE,
-        DEFAULT_PERT_FACTOR,
-    )
 
     default_settings = {
         "pert_factor": DEFAULT_PERT_FACTOR,
@@ -372,7 +369,6 @@ def load_app_settings() -> dict[str, Any]:
 
     try:
         # Use repository pattern - backend abstracts storage
-        from data.persistence.factory import get_backend
 
         backend = get_backend()  # Returns SQLiteBackend by default
 

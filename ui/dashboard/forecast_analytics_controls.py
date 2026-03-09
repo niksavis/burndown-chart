@@ -13,6 +13,8 @@ from typing import Any
 import dash_bootstrap_components as dbc
 from dash import html
 
+from data.velocity_projections import calculate_required_velocity
+from ui.cards.pace_health_card import create_pace_health_card
 from ui.style_constants import COLOR_PALETTE
 from ui.styles import create_metric_card_header
 
@@ -365,8 +367,6 @@ def _build_pace_health_element(
     ):
         return None
 
-    from data.velocity_projections import calculate_required_velocity
-
     # Calculate required velocities using the actual deadline date.
     # This ensures exact match with burndown charts calculation.
     # Use date() to ensure value does not change during the same day (consistency).
@@ -383,8 +383,6 @@ def _build_pace_health_element(
             current_date=current_date,
             time_unit="week",
         )
-
-    from ui.cards.pace_health_card import create_pace_health_card
 
     return create_pace_health_card(
         required_items=required_items,

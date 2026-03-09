@@ -30,6 +30,21 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+from configuration.metrics_config import (
+    FLOW_LOAD_RANGE_PERCENT,
+    HIGHER_BETTER_METRICS,
+    LOWER_BETTER_METRICS,
+)
+from data.iso_week_bucketing import get_week_label
+from data.metrics_calculator import (
+    calculate_flow_load_range,
+    calculate_forecast,
+    calculate_trend_vs_forecast,
+)
+from data.persistence.factory import get_backend
+from data.profile_manager import get_data_file_path
+from data.time_period_calculator import get_week_start_date, parse_year_week_label
+
 logger = logging.getLogger(__name__)
 
 # Thread lock for file access
@@ -46,7 +61,6 @@ _batch_snapshots = None
 
 def _get_snapshots_file_path() -> Path:
     """Get the path to metrics_snapshots.json in the active query workspace."""
-    from data.profile_manager import get_data_file_path
 
     return get_data_file_path("metrics_snapshots.json")
 
@@ -65,11 +79,6 @@ def load_snapshots() -> dict[str, dict[str, Any]]:
     global _snapshots_cache, _cache_query_id
 
     try:
-        from datetime import datetime
-
-        from data.iso_week_bucketing import get_week_label
-        from data.persistence.factory import get_backend
-
         backend = get_backend()
 
         # Get active profile and query
@@ -176,12 +185,6 @@ def save_snapshots(snapshots: dict[str, dict[str, Any]]) -> bool:
         True if successful, False otherwise
     """
     try:
-        from data.persistence.factory import get_backend
-        from data.time_period_calculator import (
-            get_week_start_date,
-            parse_year_week_label,
-        )
-
         backend = get_backend()
 
         # Get active profile and query
@@ -729,16 +732,6 @@ def save_metric_snapshot_with_forecast(
         ...     metric_type="higher_better"
         ... )
     """
-    from configuration.metrics_config import (
-        FLOW_LOAD_RANGE_PERCENT,
-        HIGHER_BETTER_METRICS,
-        LOWER_BETTER_METRICS,
-    )
-    from data.metrics_calculator import (
-        calculate_flow_load_range,
-        calculate_forecast,
-        calculate_trend_vs_forecast,
-    )
 
     # First, save the base metric data (without forecast)
     success = save_metric_snapshot(week_label, metric_name, metric_data)
@@ -843,12 +836,6 @@ def add_forecasts_to_week(week_label: str) -> bool:
         >>> add_forecasts_to_week("2025-44")
         True
     """
-    from configuration.metrics_config import FLOW_LOAD_RANGE_PERCENT
-    from data.metrics_calculator import (
-        calculate_flow_load_range,
-        calculate_forecast,
-        calculate_trend_vs_forecast,
-    )
 
     logger.info(f"Adding forecast data to all metrics for week {week_label}")
 

@@ -8,6 +8,8 @@ Reference: DORA_Flow_Jira_Mapping.md
 
 from typing import Literal
 
+from configuration.metrics_config import get_metrics_config
+
 # Flow work item types
 FlowItemType = Literal["Feature", "Defect", "Risk", "Technical_Debt"]
 
@@ -261,7 +263,6 @@ def get_wip_included_statuses() -> list:
         List of status names that indicate work-in-progress
         Example: ["In Progress", "In Review", "Testing", "In Deployment"]
     """
-    from configuration.metrics_config import get_metrics_config
 
     try:
         config = get_metrics_config()
@@ -281,7 +282,6 @@ def get_active_statuses() -> list:
         List of active status names
         Example: ["In Progress", "In Review", "Testing"]
     """
-    from configuration.metrics_config import get_metrics_config
 
     try:
         config = get_metrics_config()

@@ -10,6 +10,12 @@ from typing import Any
 
 from dash import Input, Output, State, callback, html, no_update
 
+from data.task_progress import TaskProgress
+from ui.metric_cards import (
+    _create_detailed_chart,
+    _get_flow_performance_tier_color_hex,
+)
+
 logger = logging.getLogger(__name__)
 
 
@@ -121,10 +127,6 @@ def _get_dora_tier_hex_color(tier_color: str) -> str:
 
 def _build_metric_details_chart(metric_name: str, metric_data: dict[str, Any]) -> Any:
     """Create a detail chart for the expanded metric card."""
-    from ui.metric_cards import (
-        _create_detailed_chart,
-        _get_flow_performance_tier_color_hex,
-    )
 
     weekly_labels = metric_data.get("weekly_labels", [])
     weekly_values = metric_data.get("weekly_values", [])
@@ -330,7 +332,6 @@ def render_mean_time_to_recovery_details_chart(
 )
 def restore_calculate_metrics_progress(pathname):
     """Restore metrics calculation button state if task is in progress."""
-    from data.task_progress import TaskProgress
 
     active_task = TaskProgress.get_active_task()
     if active_task and active_task.get("task_id") == "calculate_metrics":

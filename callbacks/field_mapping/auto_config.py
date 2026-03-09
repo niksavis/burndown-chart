@@ -5,10 +5,15 @@ for all configuration sections.
 """
 
 import logging
+from pathlib import Path
 
 import dash_bootstrap_components as dbc
 from dash import Input, Output, State, callback, html, no_update
 
+from data.auto_configure import generate_smart_defaults
+from data.jira import fetch_jira_issues
+from data.persistence.factory import get_backend
+from data.profile_manager import get_active_profile, get_profile_file_path
 from ui.toast_notifications import create_error_toast, create_success_toast
 
 logger = logging.getLogger(__name__)
@@ -61,9 +66,6 @@ def auto_configure_from_metadata(
         Tuple of (updated_state, status_alert, banner_closed)
     """
     import json
-
-    from data.auto_configure import generate_smart_defaults
-    from data.profile_manager import get_active_profile, get_profile_file_path
 
     if not n_clicks:
         return (
@@ -135,7 +137,6 @@ def auto_configure_from_metadata(
                         )
                     else:
                         # Last resort: Check for query directories
-                        from pathlib import Path
 
                         queries_dir = Path(profile_path).parent / "queries"
                         if queries_dir.exists():
@@ -151,7 +152,6 @@ def auto_configure_from_metadata(
 
                 if active_query_id:
                     # Load query from database
-                    from data.persistence.factory import get_backend
 
                     backend = get_backend()
 
@@ -186,8 +186,6 @@ def auto_configure_from_metadata(
         issues = []
         if jql_query:
             try:
-                from data.jira import fetch_jira_issues
-
                 logger.info(
                     "[AutoConfigure] Fetching last 100 issues for field analysis..."
                 )

@@ -10,7 +10,11 @@ from __future__ import annotations
 import logging
 from datetime import UTC, datetime
 
+from data._profile_metadata import load_profiles_metadata
+from data._profile_model import Profile, _generate_unique_profile_id
 from data.exceptions import PersistenceError
+from data.persistence.factory import get_backend
+from data.query_manager import _generate_unique_query_id
 
 logger = logging.getLogger(__name__)
 
@@ -39,8 +43,6 @@ def create_profile(name: str, settings: dict) -> str:
         >>> assert profile_id.startswith("p_") and len(profile_id) == 14
     """
     import data.profile_manager as _pm
-    from data._profile_model import Profile, _generate_unique_profile_id
-    from data.persistence.factory import get_backend
 
     # Validate inputs
     if not name or not name.strip():
@@ -110,7 +112,6 @@ def switch_profile(profile_id: str) -> None:
         >>> switch_profile("kafka")
         >>> # App now uses kafka profile settings and queries
     """
-    from data.persistence.factory import get_backend
 
     backend = get_backend()
 
@@ -159,7 +160,6 @@ def delete_profile(profile_id: str) -> None:
         >>> delete_profile("old-project")
         >>> # Removes profile and all associated queries from database
     """
-    from data.persistence.factory import get_backend
 
     backend = get_backend()
 
@@ -219,8 +219,6 @@ def rename_profile(profile_id: str, new_name: str) -> None:
     if len(new_name) > 100:
         raise ValueError("Profile name cannot exceed 100 characters")
 
-    from data.persistence.factory import get_backend
-
     backend = get_backend()
 
     profile = backend.get_profile(profile_id)
@@ -279,8 +277,6 @@ def duplicate_profile(
         >>> # Creates complete copy with new ID and timestamps
     """
     import data.profile_manager as _pm
-    from data._profile_model import _generate_unique_profile_id
-    from data.persistence.factory import get_backend
 
     if not new_name or not new_name.strip():
         raise ValueError("Profile name cannot be empty")
@@ -322,8 +318,6 @@ def duplicate_profile(
         new_query_ids = []
 
         for source_query in source_queries:
-            from data.query_manager import _generate_unique_query_id
-
             new_query_id = _generate_unique_query_id()
             query_data = backend.get_query(source_profile_id, source_query["id"])
             if query_data:
@@ -365,7 +359,6 @@ def list_profiles() -> list[dict]:
         >>> for p in profiles:
         ...     print(f"{p['name']} ({p['query_count']} queries)")
     """
-    from data.persistence.factory import get_backend
 
     backend = get_backend()
     profiles = backend.list_profiles()
@@ -396,7 +389,6 @@ def get_profile(profile_id: str) -> dict:
         >>> config = get_profile("kafka")
         >>> print(config["forecast_settings"]["pert_factor"])
     """
-    from data._profile_metadata import load_profiles_metadata
 
     metadata = load_profiles_metadata()
 

@@ -16,7 +16,20 @@ from datetime import UTC, datetime
 import requests
 
 from data.exceptions import JiraError, PersistenceError
+from data.jira.cache_operations import cache_jira_response
 from data.jira.config import CACHE_EXPIRATION_HOURS
+from data.jira.delta_fetch import try_delta_fetch
+from data.jira.fetch_utils import fetch_jira_paginated
+from data.jira.field_utils import extract_jira_field_id
+from data.jira.issue_counter import check_jira_issue_count
+from data.jira.rate_limiter import get_rate_limiter, retry_with_backoff
+from data.jira.two_phase_fetch import (
+    fetch_jira_issues_two_phase,
+    should_use_two_phase_fetch,
+)
+from data.persistence.factory import get_backend
+from data.task_progress import TaskProgress
+from utils.datetime_utils import parse_iso_datetime
 
 logger = logging.getLogger(__name__)
 
@@ -60,16 +73,6 @@ def fetch_jira_issues(
     Returns:
         Tuple of (success: bool, issues: List[Dict])
     """
-    from data.jira.cache_operations import cache_jira_response
-    from data.jira.delta_fetch import try_delta_fetch
-    from data.jira.field_utils import extract_jira_field_id
-    from data.jira.issue_counter import check_jira_issue_count
-    from data.jira.rate_limiter import get_rate_limiter, retry_with_backoff
-    from data.jira.two_phase_fetch import (
-        fetch_jira_issues_two_phase,
-        should_use_two_phase_fetch,
-    )
-    from utils.datetime_utils import parse_iso_datetime
 
     start_time = time.time()
 
@@ -155,7 +158,6 @@ def fetch_jira_issues(
 
         # Initialize backend and cache keys BEFORE conditional checks
         # (fix unbound variable errors)
-        from data.persistence.factory import get_backend
 
         backend = get_backend()
         active_profile_id = backend.get_app_state("active_profile_id")
@@ -428,7 +430,6 @@ def fetch_jira_issues(
         if use_two_phase:
             logger.info("[JIRA] Executing two-phase fetch...")
             # Import paginated function from fetch utilities module
-            from data.jira.fetch_utils import fetch_jira_paginated
 
             success, all_issues = fetch_jira_issues_two_phase(
                 config,
@@ -441,8 +442,6 @@ def fetch_jira_issues(
                 return False, []
 
             # Cache the two-phase results to profile-specific location
-            from data.persistence.factory import get_backend
-
             backend = get_backend()
             active_profile_id = backend.get_app_state("active_profile_id")
             active_query_id = backend.get_app_state("active_query_id")
@@ -516,8 +515,6 @@ def fetch_jira_issues(
 
             # Check for cancellation BEFORE making API call
             try:
-                from data.task_progress import TaskProgress
-
                 # Check if task was cancelled
                 is_cancelled = TaskProgress.is_task_cancelled()
                 logger.debug(f"[JIRA] Cancellation check: is_cancelled={is_cancelled}")
@@ -653,8 +650,6 @@ def fetch_jira_issues(
             config=config,
         )
         try:
-            from data.persistence.factory import get_backend
-
             backend = get_backend()
             active_profile_id = backend.get_app_state("active_profile_id")
             active_query_id = backend.get_app_state("active_query_id")

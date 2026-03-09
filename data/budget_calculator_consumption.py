@@ -15,6 +15,9 @@ import logging
 from pathlib import Path
 
 from data.budget_calculator_core import _get_current_budget, _get_velocity
+from data.database import get_db_connection
+from data.iso_week_bucketing import get_last_n_weeks
+from data.metrics_snapshots import get_metric_snapshot, load_snapshots
 
 logger = logging.getLogger(__name__)
 
@@ -45,7 +48,6 @@ def calculate_budget_consumed(
         >>> print(f"{pct:.1f}% consumed")
         75.5% consumed
     """
-    from data.database import get_db_connection
 
     try:
         # Load budget directly from budget_settings
@@ -140,7 +142,6 @@ def calculate_cost_breakdown_by_type(
         >>> print(f"Feature cost: €{breakdown['Feature']['cost']:.2f}")
         Feature cost: €12500.00
     """
-    from data.metrics_snapshots import load_snapshots
 
     try:
         budget = _get_current_budget(profile_id, query_id, db_path)
@@ -238,8 +239,6 @@ def calculate_runway(
         >>> print(f"Runway: {runway:.1f} weeks at €{burn_rate:.2f}/week")
         Runway: 12.5 weeks at €4000.00/week
     """
-    from data.database import get_db_connection
-    from data.iso_week_bucketing import get_last_n_weeks
 
     try:
         budget = _get_current_budget(profile_id, query_id, db_path)
@@ -350,8 +349,6 @@ def calculate_weekly_cost_breakdowns(
         >>> print(breakdowns[0]['Feature'])
         {'cost': 3125.50, 'count': 8}
     """
-    from data.iso_week_bucketing import get_last_n_weeks
-    from data.metrics_snapshots import get_metric_snapshot
 
     try:
         budget = _get_current_budget(profile_id, query_id, db_path)

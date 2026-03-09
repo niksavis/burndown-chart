@@ -5,7 +5,7 @@ Tracks form changes across all tabs in real-time.
 
 import logging
 
-from dash import ALL, Input, Output, State, callback, no_update
+from dash import ALL, Input, Output, State, callback, ctx, no_update
 
 logger = logging.getLogger(__name__)
 
@@ -33,7 +33,6 @@ def track_form_state_changes(*args):
     Returns:
         Updated state dict with current form values
     """
-    from dash import ctx
 
     # Get current state (last argument)
     current_state = args[-1] or {}
@@ -213,7 +212,6 @@ def track_status_tab_changes(completion, active, flow_start, wip, current_state)
 )
 def track_environment_tab_changes(prod_env, current_state):
     """Track Environment tab dropdown changes."""
-    from dash import ctx
 
     # Only process if this was triggered by an actual user interaction
     if not ctx.triggered or not ctx.triggered[0]["value"]:

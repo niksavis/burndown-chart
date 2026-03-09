@@ -129,7 +129,7 @@ class JSONBackend(PersistenceBackend):
             "JSONBackend.get_app_state - Legacy only, use SQLiteBackend"
         )
 
-    def set_app_state(self, key: str, value: str) -> None:
+    def set_app_state(self, key: str, value: str | None) -> None:
         """STUB: Save state to app_state.json."""
         raise NotImplementedError(
             "JSONBackend.set_app_state - Legacy only, use SQLiteBackend"

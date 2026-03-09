@@ -8,6 +8,7 @@ from datetime import datetime
 from configuration.settings import logger
 from data.exceptions import ConfigurationError, PersistenceError
 from data.persistence.adapters.app_settings import load_app_settings
+from data.schema import get_default_parameter_panel_state
 
 
 def load_parameter_panel_state() -> dict:
@@ -31,7 +32,6 @@ def load_parameter_panel_state() -> dict:
         >>> print(state['is_open'])
         False
     """
-    from data.schema import get_default_parameter_panel_state
 
     try:
         app_settings = load_app_settings()

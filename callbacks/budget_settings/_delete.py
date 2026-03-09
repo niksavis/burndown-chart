@@ -10,6 +10,7 @@ import logging
 from dash import Input, Output, State, callback, ctx, html, no_update
 
 from data.database import get_db_connection
+from ui.toast_notifications import create_toast
 
 logger = logging.getLogger(__name__)
 
@@ -126,8 +127,6 @@ def confirm_delete_budget_history(n_clicks, profile_id, query_id):
     """
     if not n_clicks or not profile_id or not query_id:
         return no_update, no_update, no_update, no_update
-
-    from ui.toast_notifications import create_toast
 
     try:
         with get_db_connection() as conn:
@@ -257,8 +256,6 @@ def confirm_delete_complete_budget(n_clicks, profile_id, query_id):
             no_update,
             no_update,
         )
-
-    from ui.toast_notifications import create_toast
 
     try:
         with get_db_connection() as conn:

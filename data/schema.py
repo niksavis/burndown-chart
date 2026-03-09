@@ -4,6 +4,7 @@ Data schema for the Burndown application.
 Defines the structure of data used across the application.
 """
 
+from datetime import datetime
 from typing import Any, Literal, TypedDict
 
 #######################################################################
@@ -176,7 +177,6 @@ def get_default_unified_data() -> dict[str, Any]:
     Returns:
         Dict: Default unified project data structure
     """
-    from datetime import datetime
 
     return {
         "project_scope": {
@@ -316,7 +316,6 @@ def get_default_parameter_panel_state() -> ParameterPanelState:
     Returns:
         ParameterPanelState: Default state with panel collapsed
     """
-    from datetime import datetime
 
     return {
         "is_open": False,
@@ -644,7 +643,6 @@ def get_default_bug_analysis_data() -> dict[str, Any]:
     Returns:
         Dict: Default bug analysis data structure
     """
-    from datetime import datetime
 
     return {
         "enabled": False,

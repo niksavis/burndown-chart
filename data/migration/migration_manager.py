@@ -12,6 +12,9 @@ from datetime import datetime as dt
 from pathlib import Path
 from typing import Any
 
+from data.migration.migrator import run_migration_if_needed
+from data.persistence.factory import get_backend
+
 logger = logging.getLogger(__name__)
 
 
@@ -60,8 +63,6 @@ def check_migration_needed() -> tuple[bool, dict[str, int]]:
         if not db_path.exists():
             logger.info("Database does not exist, migration needed")
             return True, file_counts
-
-        from data.persistence.factory import get_backend
 
         backend = get_backend()
 
@@ -140,8 +141,6 @@ def run_migration() -> tuple[bool, dict[str, int], str]:
         - message: User-friendly status message
     """
     try:
-        from data.migration.migrator import run_migration_if_needed
-
         logger.info("Starting complete migration of ALL JSON data to database")
 
         # Run the actual migration using the migrator module
@@ -151,7 +150,6 @@ def run_migration() -> tuple[bool, dict[str, int], str]:
             return False, {}, "Migration failed"
 
         # Get statistics from database to report back
-        from data.persistence.factory import get_backend
 
         backend = get_backend()
 

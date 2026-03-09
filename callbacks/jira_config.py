@@ -11,6 +11,9 @@ Feature: 003-jira-config-separation
 #######################################################################
 # IMPORTS
 #######################################################################
+from datetime import datetime
+from urllib.parse import urlparse
+
 import dash_bootstrap_components as dbc
 from dash import Input, Output, State, callback, ctx, html, no_update
 from dash.exceptions import PreventUpdate
@@ -22,7 +25,11 @@ from data.persistence.adapters import (
     save_jira_configuration,
     validate_jira_config,
 )
-from ui.toast_notifications import create_error_toast, create_success_toast
+from ui.toast_notifications import (
+    create_error_toast,
+    create_success_toast,
+    create_warning_toast,
+)
 
 #######################################################################
 # CALLBACK: OPEN MODAL
@@ -132,8 +139,6 @@ def test_jira_connection_callback(n_clicks, base_url, api_version, token):
     # Validate required fields (base_url required;
     # token optional for public servers).
     if not base_url:
-        from ui.toast_notifications import create_warning_toast
-
         toast = create_warning_toast(
             "Please fill in the JIRA Base URL before testing.",
             header="Missing Required Field",
@@ -186,8 +191,6 @@ def test_jira_connection_callback(n_clicks, base_url, api_version, token):
         error_details = result.get("error_details", "No additional details available")
 
         if is_version_mismatch:
-            from ui.toast_notifications import create_warning_toast
-
             toast = create_warning_toast(
                 error_details,
                 header=error_message,
@@ -283,8 +286,6 @@ def save_jira_configuration_callback(
         # Warn about high cache sizes (T026 - User Story 2)
         cache_warning_toast = None
         if config["cache_size_mb"] > 500:
-            from ui.toast_notifications import create_warning_toast
-
             cache_warning_toast = create_warning_toast(
                 f"{config['cache_size_mb']}MB may impact disk space. "
                 "Consider reducing if you experience storage issues.",
@@ -406,8 +407,6 @@ def update_jira_config_status(modal_is_open, save_clicks, profile_id):
     """
     import time
 
-    from data.persistence import load_jira_configuration
-
     try:
         # If triggered by profile switch, wait briefly for switch to complete
         if ctx.triggered and ctx.triggered[0]["prop_id"] == "profile-selector.value":
@@ -428,7 +427,6 @@ def update_jira_config_status(modal_is_open, save_clicks, profile_id):
             token = jira_config.get("token", "")
 
             # Test the connection to verify API version actually works
-            from data.jira import test_jira_connection
 
             logger.info(
                 "Status indicator: Testing connection to "
@@ -478,8 +476,6 @@ def update_jira_config_status(modal_is_open, save_clicks, profile_id):
             # Connection successful - show green status with shortened URL
             # Extract domain from URL for more compact display
             try:
-                from urllib.parse import urlparse
-
                 parsed = urlparse(base_url)
                 domain = parsed.netloc if parsed.netloc else base_url
             except Exception:
@@ -554,7 +550,6 @@ def display_last_test_info(is_open):
             return html.Div()  # No test history yet
 
         # Format the timestamp
-        from datetime import datetime
 
         try:
             dt = datetime.fromisoformat(last_test_timestamp.replace("Z", "+00:00"))

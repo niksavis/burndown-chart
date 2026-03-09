@@ -14,6 +14,32 @@ from typing import Any
 
 import pandas as pd
 
+from data.bug_processing import (
+    calculate_bug_metrics_summary,
+    calculate_bug_statistics,
+    filter_bug_issues,
+    forecast_bug_resolution,
+)
+from data.dora._common import _classify_performance_tier
+from data.dora_metrics import (
+    CHANGE_FAILURE_RATE_TIERS,
+    DEPLOYMENT_FREQUENCY_TIERS,
+    LEAD_TIME_TIERS,
+    MTTR_TIERS,
+)
+from data.dora_metrics_calculator import load_dora_metrics_from_cache
+from data.metrics_snapshots import (
+    get_available_weeks,
+    get_metric_snapshot,
+    get_metric_weekly_values,
+)
+from data.processing import calculate_velocity_from_dataframe
+from data.report.helpers import (
+    calculate_historical_burndown,
+    calculate_weekly_breakdown,
+)
+from data.time_period_calculator import format_year_week, get_iso_week
+
 logger = logging.getLogger(__name__)
 
 
@@ -31,11 +57,6 @@ def calculate_burndown_metrics(
     Returns:
         Dictionary with burndown metrics and weekly data
     """
-    from data.processing import calculate_velocity_from_dataframe
-    from data.report.helpers import (
-        calculate_historical_burndown,
-        calculate_weekly_breakdown,
-    )
 
     if not statistics:
         return {"has_data": False, "weeks_count": weeks_count}
@@ -97,12 +118,6 @@ def calculate_bug_metrics(
     Returns:
         Dictionary with bug analysis metrics
     """
-    from data.bug_processing import (
-        calculate_bug_metrics_summary,
-        calculate_bug_statistics,
-        filter_bug_issues,
-        forecast_bug_resolution,
-    )
 
     if not jira_issues:
         logger.warning("[REPORT BUG] No JIRA issues available for bug analysis")
@@ -392,8 +407,6 @@ def calculate_flow_metrics(
     Returns:
         Dictionary with Flow metrics matching app display
     """
-    from data.metrics_snapshots import get_available_weeks, get_metric_snapshot
-    from data.time_period_calculator import format_year_week, get_iso_week
 
     logger.info(f"Loading Flow metrics from snapshots for {weeks_count} weeks")
 
@@ -426,7 +439,6 @@ def calculate_flow_metrics(
         return {"has_data": False, "weeks_count": weeks_count}
 
     # Load weekly values from snapshots (same as app)
-    from data.metrics_snapshots import get_metric_weekly_values
 
     # Note: flow_load (WIP) is loaded separately as point-in-time snapshot below
     flow_time_values = get_metric_weekly_values(week_labels, "flow_time", "median_days")
@@ -631,7 +643,6 @@ def calculate_dora_metrics(profile_id: str, weeks_count: int) -> dict[str, Any]:
     Returns:
         Dictionary with DORA metrics matching app display
     """
-    from data.dora_metrics_calculator import load_dora_metrics_from_cache
 
     logger.info(f"Loading DORA metrics from cache for {weeks_count} weeks")
 
@@ -691,13 +702,6 @@ def calculate_dora_metrics(profile_id: str, weeks_count: int) -> dict[str, Any]:
 
     # Compute overall DORA tier using the same classify function as the app.
     # Deployment frequency is per-week here; thresholds are per-day -> divide by 7.
-    from data.dora_metrics import (
-        CHANGE_FAILURE_RATE_TIERS,
-        DEPLOYMENT_FREQUENCY_TIERS,
-        LEAD_TIME_TIERS,
-        MTTR_TIERS,
-        _classify_performance_tier,
-    )
 
     _tier_order = ["elite", "high", "medium", "low"]
     _df_tier = _classify_performance_tier(

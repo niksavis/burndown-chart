@@ -22,6 +22,12 @@ from configuration import (
     logger,
 )
 from data import calculate_total_points
+from data.persistence import (
+    load_app_settings,
+    load_unified_project_data,
+    save_app_settings,
+)
+from data.profile_manager import get_active_profile
 
 from .helpers import normalize_show_points
 
@@ -146,8 +152,6 @@ def register(app):
         are loaded into the UI, fixing the bug where imported settings
         were not displayed.
         """
-        from data.persistence import load_app_settings
-        from data.profile_manager import get_active_profile
 
         logger.info(
             f"[Settings] reload_settings_after_import_or_switch triggered: "
@@ -296,9 +300,6 @@ def register(app):
 
         # Load current remaining work from project_scope
         try:
-            from data.persistence import load_unified_project_data
-            from data.profile_manager import get_active_profile
-
             active_profile = get_active_profile()
             if not active_profile:
                 logger.info("[Settings] No active profile, using default values")
@@ -344,12 +345,10 @@ def register(app):
         }
 
         # Save app-level settings
-        from data.persistence import load_app_settings, save_app_settings
 
         existing_settings = load_app_settings()
 
         # Preserve values that might not have been updated yet
-        from dash import ctx
 
         if ctx.triggered:
             triggered_id = ctx.triggered[0]["prop_id"].split(".")[0]

@@ -12,6 +12,7 @@ from dash import Input, Output, State, callback, no_update
 
 from data.database import get_db_connection
 from data.iso_week_bucketing import get_week_label
+from ui.toast_notifications import create_toast
 
 logger = logging.getLogger(__name__)
 
@@ -64,8 +65,6 @@ def save_budget_settings(
     """
     if not n_clicks or not profile_id or not query_id:
         return no_update, no_update
-
-    from ui.toast_notifications import create_toast
 
     if not time_allocated or time_allocated < 1:
         error = create_toast(

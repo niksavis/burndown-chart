@@ -17,6 +17,8 @@ import dash_bootstrap_components as dbc
 import pandas as pd
 from dash import html
 
+from data.metrics.blending import get_blend_metadata
+from data.metrics_calculator import calculate_forecast
 from ui.metric_cards import create_metric_card as create_professional_metric_card
 from ui.style_constants import COLOR_PALETTE
 from ui.styles import create_metric_card_header
@@ -85,9 +87,6 @@ def create_recent_activity_section(
         and additional_context.get("current_week_label")
         and len(recent_data) >= 2
     ):
-        from data.metrics.blending import get_blend_metadata
-        from data.metrics_calculator import calculate_forecast
-
         # Check if last week in recent_data is the current week
         last_week_label = None
         if "week_label" in recent_data.columns and len(recent_data) > 0:

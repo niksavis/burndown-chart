@@ -18,6 +18,10 @@ from typing import Any
 from data._import_export_types import ExportManifest
 from data._import_export_validation import strip_credentials
 from data.exceptions import PersistenceError
+from data.import_export_changelog import collect_changelog_entries
+from data.persistence.factory import get_backend
+from data.profile_manager import PROFILES_DIR, get_profile, get_profile_file_path
+from data.query_manager import list_queries_for_profile
 
 logger = logging.getLogger(__name__)
 
@@ -48,7 +52,6 @@ def export_profile_enhanced(
     """
     try:
         # Load profile data
-        from data.profile_manager import get_profile, get_profile_file_path
 
         profile_path = get_profile_file_path(profile_id)
         if not profile_path.exists():
@@ -168,8 +171,6 @@ def _prepare_profile_for_export(
 def _export_profile_queries(profile_id: str, export_dir: Path) -> int:
     """Export all queries for a profile."""
     try:
-        from data.query_manager import list_queries_for_profile
-
         queries = list_queries_for_profile(profile_id)
         queries_dir = export_dir / "queries"
         queries_dir.mkdir()
@@ -200,8 +201,6 @@ def _export_profile_cache(profile_id: str, export_dir: Path) -> bool:
     Most cache data is now stored in SQLite database and exported separately.
     """
     try:
-        from data.profile_manager import PROFILES_DIR
-
         profile_dir = PROFILES_DIR / profile_id
         # Legacy cache files - most data now in database
         cache_files = [
@@ -296,9 +295,7 @@ def export_profile_with_mode(
         )
 
     # Load profile data from database
-    from data.persistence import factory
-
-    backend = factory.get_backend()
+    backend = get_backend()
     profile_data = backend.get_profile(profile_id)
 
     if not profile_data:
@@ -442,8 +439,6 @@ def _attach_full_data(
         )
 
     if include_changelog:
-        from data.import_export_changelog import collect_changelog_entries
-
         sprint_field = (
             profile_data.get("field_mappings", {})
             .get("general", {})

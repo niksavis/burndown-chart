@@ -11,6 +11,9 @@ from typing import Any
 
 import pandas as pd
 
+from data.import_export import export_profile_with_mode, strip_credentials
+from data.query_manager import get_active_profile_id, get_active_query_id
+
 logger = logging.getLogger(__name__)
 
 
@@ -44,8 +47,6 @@ def generate_ai_analysis_prompt(
     logger.info(f"Generating AI prompt for {time_period_weeks} weeks")
 
     # 1. Export full data (without token)
-    from data.import_export import export_profile_with_mode
-    from data.query_manager import get_active_profile_id, get_active_query_id
 
     if not profile_id:
         profile_id = get_active_profile_id()
@@ -99,8 +100,6 @@ def _sanitize_for_ai(export_data: dict[str, Any]) -> dict[str, Any]:
         Deep copy with all PII stripped
     """
     import copy
-
-    from data.import_export import strip_credentials
 
     sanitized = copy.deepcopy(export_data)
 

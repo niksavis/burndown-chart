@@ -7,11 +7,13 @@ and provide actionable insights at a glance.
 """
 
 import logging
+from datetime import datetime
 from typing import Any
 
 import dash_bootstrap_components as dbc
 from dash import html
 
+from ui import budget_cards
 from ui.styles import create_metric_card_header
 
 logger = logging.getLogger(__name__)
@@ -43,9 +45,6 @@ def create_budget_timeline_card(
     Example:
         >>> card = create_budget_timeline_card(baseline_data, 15.0)
     """
-    from datetime import datetime
-
-    from ui import budget_cards
 
     def _fallback_card_footer(text: str, icon: str) -> dbc.CardFooter:
         return dbc.CardFooter(

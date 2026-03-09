@@ -8,9 +8,16 @@ This module handles callbacks related to statistics data management.
 # IMPORTS
 #######################################################################
 # Third-party library imports
+from datetime import datetime, timedelta
+
 import dash_bootstrap_components as dbc
 from dash import Input, Output, State, html
 from dash.exceptions import PreventUpdate
+
+from configuration import logger
+from data.iso_week_bucketing import get_week_label
+from data.persistence import load_unified_project_data, save_statistics
+from data.profile_manager import get_active_profile
 
 #######################################################################
 # HELPER FUNCTIONS
@@ -200,11 +207,6 @@ def register(app):
         Returns:
             List of statistics dictionaries loaded from database
         """
-        from dash.exceptions import PreventUpdate
-
-        from configuration import logger
-        from data.persistence import load_unified_project_data
-        from data.profile_manager import get_active_profile
 
         logger.info(
             "[Statistics] reload_statistics_from_database "
@@ -270,10 +272,6 @@ def register(app):
         To distinguish: Compare table_data with current_statistics. If they match,
         this is a re-render, not a user edit.
         """
-        from datetime import datetime
-
-        from configuration import logger
-        from data.persistence import save_statistics
 
         logger.info(
             f"[Statistics] save_statistics_on_edit triggered: "
@@ -364,10 +362,6 @@ def register(app):
         Calculates the next Monday date (7 days after most recent entry)
         and inserts a new row at the beginning of the table.
         """
-        from datetime import datetime, timedelta
-
-        from configuration import logger
-        from data.iso_week_bucketing import get_week_label
 
         if not n_clicks or not current_data:
             raise PreventUpdate

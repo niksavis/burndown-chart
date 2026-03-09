@@ -6,8 +6,15 @@ from typing import Any
 
 # Third-party library imports
 # Application imports
-from configuration.settings import logger
+from configuration.settings import (
+    DEFAULT_ESTIMATED_ITEMS,
+    DEFAULT_ESTIMATED_POINTS,
+    DEFAULT_TOTAL_ITEMS,
+    DEFAULT_TOTAL_POINTS,
+    logger,
+)
 from data.exceptions import PersistenceError
+from data.persistence.factory import get_backend
 
 
 def save_project_data(
@@ -34,13 +41,6 @@ def save_project_data(
     )
 
     try:
-        # Lazy import to avoid circular dependency
-        from configuration.settings import (
-            DEFAULT_ESTIMATED_ITEMS,
-            DEFAULT_ESTIMATED_POINTS,
-        )
-        from data.persistence.factory import get_backend
-
         backend = get_backend()
 
         active_profile_id = backend.get_app_state("active_profile_id")
@@ -87,13 +87,6 @@ def load_project_data() -> dict[str, Any]:
     Returns:
         Dictionary containing project data or default values if not found
     """
-    # Lazy import to avoid circular dependency
-    from configuration.settings import (
-        DEFAULT_ESTIMATED_ITEMS,
-        DEFAULT_ESTIMATED_POINTS,
-        DEFAULT_TOTAL_ITEMS,
-        DEFAULT_TOTAL_POINTS,
-    )
 
     default_data = {
         "total_items": DEFAULT_TOTAL_ITEMS,
@@ -104,8 +97,6 @@ def load_project_data() -> dict[str, Any]:
     }
 
     try:
-        from data.persistence.factory import get_backend
-
         backend = get_backend()
         active_profile_id = backend.get_app_state("active_profile_id")
         active_query_id = backend.get_app_state("active_query_id")

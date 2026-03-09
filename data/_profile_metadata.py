@@ -9,12 +9,12 @@ from __future__ import annotations
 
 import logging
 from pathlib import Path
-from typing import TYPE_CHECKING
 
+from data._profile_model import Profile
+from data._profile_paths import get_active_query_workspace
 from data.exceptions import PersistenceError
-
-if TYPE_CHECKING:
-    from data._profile_model import Profile
+from data.persistence.factory import get_backend
+from data.query_manager import get_active_query_id
 
 logger = logging.getLogger(__name__)
 
@@ -32,7 +32,6 @@ def load_profiles_metadata() -> dict:
         >>> print(len(meta["profiles"]))      # Number of profiles
     """
     import data.profile_manager as _pm
-    from data.persistence.factory import get_backend
 
     backend = get_backend()
 
@@ -84,7 +83,6 @@ def save_profiles_metadata(metadata: dict) -> bool:
         >>> meta["active_profile_id"] = "new-profile"
         >>> save_profiles_metadata(meta)
     """
-    from data.persistence.factory import get_backend
 
     backend = get_backend()
 
@@ -117,8 +115,6 @@ def get_active_profile() -> Profile | None:
         >>> if profile:
         ...     print(f"Active: {profile.name}")
     """
-    from data._profile_model import Profile
-    from data.persistence.factory import get_backend
 
     backend = get_backend()
     active_id = backend.get_app_state("active_profile_id")
@@ -175,7 +171,6 @@ def get_data_file_path(filename: str) -> Path:
         >>> # In legacy mode: jira_cache.json (root level)
         >>> cache_path = get_data_file_path("jira_cache.json")
     """
-    from data._profile_paths import get_active_query_workspace
 
     if is_profiles_mode_enabled():
         try:
@@ -230,14 +225,10 @@ def get_active_profile_and_query_display_names() -> dict:
         profile = get_active_profile()
         profile_name = profile.name if profile else None
 
-        from data.query_manager import get_active_query_id
-
         query_id = get_active_query_id()
         query_name = None
 
         if profile and query_id:
-            from data.persistence.factory import get_backend
-
             backend = get_backend()
             query_data = backend.get_query(profile.id, query_id)
 

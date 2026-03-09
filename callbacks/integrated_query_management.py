@@ -19,6 +19,15 @@ from typing import Any
 from dash import Input, Output, State, callback, ctx, no_update
 from dash.exceptions import PreventUpdate
 
+from data.query_manager import (
+    create_query,
+    delete_query,
+    get_active_profile_id,
+    list_queries_for_profile,
+    update_query,
+)
+from data.query_name_generator import generate_query_name, validate_query_name
+
 logger = logging.getLogger(__name__)
 
 
@@ -79,8 +88,6 @@ def detect_jql_changes(
     # Generate suggested name if JQL exists
     suggested_name = ""
     if current_jql.strip():
-        from data.query_name_generator import generate_query_name
-
         suggested_name = generate_query_name(current_jql)
 
     # Update state
@@ -215,8 +222,6 @@ def load_query_jql(
         raise PreventUpdate
 
     try:
-        from data.query_manager import get_active_profile_id, list_queries_for_profile
-
         # Load query data
         profile_id = get_active_profile_id()
         all_queries = list_queries_for_profile(profile_id)
@@ -426,14 +431,6 @@ def save_query_confirm(
         raise PreventUpdate
 
     try:
-        from data.query_manager import (
-            create_query,
-            get_active_profile_id,
-            list_queries_for_profile,
-            update_query,
-        )
-        from data.query_name_generator import validate_query_name
-
         # Validate name
         profile_id = get_active_profile_id()
         all_queries = list_queries_for_profile(profile_id)
@@ -660,12 +657,6 @@ def confirm_delete_query(
         raise PreventUpdate
 
     try:
-        from data.query_manager import (
-            delete_query,
-            get_active_profile_id,
-            list_queries_for_profile,
-        )
-
         query_id = state.get("activeQueryId")
         profile_id = get_active_profile_id()
 
@@ -777,8 +768,6 @@ def initialize_query_dropdown(state: dict[str, Any]) -> tuple:
         Tuple of (dropdown_options, selected_value)
     """
     try:
-        from data.query_manager import get_active_profile_id, list_queries_for_profile
-
         profile_id = get_active_profile_id()
         if not profile_id:
             return [], None

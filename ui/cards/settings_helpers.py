@@ -11,6 +11,9 @@ All functions follow a consistent pattern:
 3. Never raise exceptions to caller
 """
 
+from data.jira.query_profiles import load_query_profiles
+from data.persistence import load_app_settings
+
 
 def _get_default_data_source() -> str:
     """
@@ -20,8 +23,6 @@ def _get_default_data_source() -> str:
         str: "JIRA" (default) or "CSV" based on last_used_data_source setting
     """
     try:
-        from data.persistence import load_app_settings
-
         app_settings = load_app_settings()
         # Use persisted value, default to JIRA (swapped order)
         data_source = app_settings.get("last_used_data_source", "JIRA")
@@ -39,8 +40,6 @@ def _get_default_jql_query() -> str:
         str: JQL query from settings or default value
     """
     try:
-        from data.persistence import load_app_settings
-
         app_settings = load_app_settings()
         return app_settings.get("jql_query", "project = JRASERVER")
     except ImportError:
@@ -55,8 +54,6 @@ def _get_default_jql_profile_id() -> str:
         str: Profile ID from settings or empty string if none
     """
     try:
-        from data.persistence import load_app_settings
-
         app_settings = load_app_settings()
         return app_settings.get("active_jql_profile_id", "")
     except (ImportError, Exception):
@@ -71,8 +68,6 @@ def _get_default_jira_story_points_field() -> str:
         str: Story points field from settings or default value
     """
     try:
-        from data.persistence import load_app_settings
-
         app_settings = load_app_settings()
         return app_settings.get("jira_story_points_field", "")
     except ImportError:
@@ -87,8 +82,6 @@ def _get_default_jira_cache_max_size() -> int:
         int: Cache max size from settings or default value
     """
     try:
-        from data.persistence import load_app_settings
-
         app_settings = load_app_settings()
         return app_settings.get("jira_cache_max_size", 100)
     except ImportError:
@@ -103,8 +96,6 @@ def _get_default_jira_max_results() -> int:
         int: Max results from settings or default value
     """
     try:
-        from data.persistence import load_app_settings
-
         app_settings = load_app_settings()
         return app_settings.get("jira_max_results", 1000)
     except ImportError:
@@ -120,8 +111,6 @@ def _get_query_profile_options() -> list[dict[str, str]]:
         [{"label": str, "value": str}]
     """
     try:
-        from data.jira.query_profiles import load_query_profiles
-
         profiles = load_query_profiles()
         options = []
 

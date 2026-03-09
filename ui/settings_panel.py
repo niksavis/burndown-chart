@@ -13,6 +13,8 @@ User Story 6: Contextual Help System - Adds help icons to settings features.
 import dash_bootstrap_components as dbc
 from dash import dcc, html
 
+from data.jira.query_profiles import load_query_profiles
+from data.persistence import load_app_settings
 from ui.button_utils import create_button
 from ui.delete_query_modal import create_delete_query_modal
 from ui.help_system import create_settings_tooltip
@@ -33,8 +35,6 @@ from ui.unsaved_changes_modal import create_unsaved_changes_modal
 def _get_default_jql_query():
     """Get default JQL query from settings."""
     try:
-        from data.persistence import load_app_settings
-
         app_settings = load_app_settings()
         return app_settings.get("jql_query", "project = JRASERVER")
     except ImportError:
@@ -53,9 +53,6 @@ def _get_default_jql_profile_id():
     matches a saved profile or is a custom query.
     """
     try:
-        from data.jira.query_profiles import load_query_profiles
-        from data.persistence import load_app_settings
-
         app_settings = load_app_settings()
         jql_query = app_settings.get("jql_query", "")
 
@@ -81,8 +78,6 @@ def _get_default_jql_profile_id():
 def _get_query_profile_options():
     """Get query profile dropdown options."""
     try:
-        from data.jira.query_profiles import load_query_profiles
-
         profiles = load_query_profiles()
         options = []
         for profile in profiles:

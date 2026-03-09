@@ -4,7 +4,9 @@ Provides functions for filtering bug issues, calculating bug statistics,
 aggregating metrics, and forecasting bug resolution timelines.
 """
 
-from datetime import datetime
+from datetime import datetime, timedelta
+
+dt = datetime
 
 
 def filter_bug_issues(
@@ -621,7 +623,6 @@ def calculate_future_date(weeks_ahead: int, base_date: datetime | None = None) -
     Returns:
         ISO date string
     """
-    from datetime import timedelta
 
     if base_date is None:
         base_date = datetime.now()
@@ -707,13 +708,11 @@ def generate_bug_weekly_forecast(
     most_likely_resolved = avg_resolved
 
     # Calculate next week date
-    from datetime import timedelta
 
     last_week = recent_stats[-1]["week"]
     # Parse ISO week format (e.g., "2025-W43")
     year, week_num = last_week.split("-W")
     # Calculate next week
-    from datetime import datetime as dt
 
     last_week_date = dt.strptime(f"{year}-W{week_num}-1", "%Y-W%W-%w")
     next_week_date = last_week_date + timedelta(weeks=1)

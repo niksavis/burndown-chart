@@ -4,8 +4,24 @@ Part of data/report/generator.py split.
 """
 
 import logging
+from datetime import datetime
 from typing import Any
 
+from data.project_health_calculator import (
+    calculate_comprehensive_project_health,
+    prepare_dashboard_metrics_for_health,
+)
+from data.query_manager import get_active_query_id
+from data.report.dashboard_metrics import calculate_dashboard_metrics
+from data.report.domain_metrics import (
+    calculate_bug_metrics,
+    calculate_burndown_metrics,
+    calculate_dora_metrics,
+    calculate_flow_metrics,
+    calculate_scope_metrics,
+)
+from data.report.generator_recommendations import calculate_recommendations
+from data.report.helpers import calculate_budget_metrics
 from data.types import MetricsResult
 
 logger = logging.getLogger(__name__)
@@ -25,16 +41,6 @@ def calculate_all_metrics(
     Returns:
         Dictionary with metrics for each section
     """
-    from data.report.dashboard_metrics import calculate_dashboard_metrics
-    from data.report.domain_metrics import (
-        calculate_bug_metrics,
-        calculate_burndown_metrics,
-        calculate_dora_metrics,
-        calculate_flow_metrics,
-        calculate_scope_metrics,
-    )
-    from data.report.generator_recommendations import calculate_recommendations
-    from data.report.helpers import calculate_budget_metrics
 
     metrics = {}
 
@@ -68,7 +74,6 @@ def calculate_all_metrics(
         )
 
     # Budget metrics (always calculated for health score)
-    from data.query_manager import get_active_query_id
 
     # Note: Budget needs velocity which we calculate in dashboard, so we'll add it later
     # For now, mark that it's needed
@@ -88,8 +93,6 @@ def calculate_all_metrics(
 
     # Now calculate budget with velocity from dashboard
     if extended_metrics.get("budget_needed"):
-        from data.query_manager import get_active_query_id
-
         query_id = get_active_query_id() or ""
         # Pass velocity from dashboard for accurate cost per item/point calculation
         velocity_items = metrics["dashboard"].get("velocity_items", 0.0)
@@ -107,10 +110,6 @@ def calculate_all_metrics(
         # The initial health calculation in calculate_dashboard_metrics() didn't
         # have budget
         # This ensures Financial dimension is included when budget is configured
-        from data.project_health_calculator import (
-            calculate_comprehensive_project_health,
-            prepare_dashboard_metrics_for_health,
-        )
 
         # Prepare same dashboard metrics used in initial calculation
         dashboard = metrics["dashboard"]
@@ -257,8 +256,6 @@ def calculate_executive_summary(
     # Schedule risk
     if summary["forecast_date"] and summary["deadline"]:
         try:
-            from datetime import datetime
-
             forecast_dt = datetime.strptime(summary["forecast_date"], "%Y-%m-%d")
             deadline_dt = datetime.strptime(summary["deadline"], "%Y-%m-%d")
             buffer_days = (deadline_dt - forecast_dt).days
@@ -353,8 +350,6 @@ def calculate_executive_summary(
     # Schedule win
     if summary["forecast_date"] and summary["deadline"]:
         try:
-            from datetime import datetime
-
             forecast_dt = datetime.strptime(summary["forecast_date"], "%Y-%m-%d")
             deadline_dt = datetime.strptime(summary["deadline"], "%Y-%m-%d")
             buffer_days = (deadline_dt - forecast_dt).days

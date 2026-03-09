@@ -17,6 +17,8 @@ Related modules:
 from __future__ import annotations
 
 import logging
+from datetime import datetime
+from pathlib import Path
 from typing import Any
 
 from dash import Input, Output, State, html, no_update
@@ -26,6 +28,8 @@ from dash.exceptions import PreventUpdate
 from callbacks.settings.helpers import calculate_remaining_work_for_data_window
 from configuration import DEFAULT_PERT_FACTOR
 from configuration import logger as config_logger
+from data.profile_manager import get_active_profile_and_query_display_names
+from data.task_progress import TaskProgress
 from ui.parameter_panel import create_parameter_bar_collapsed
 
 # Get logger
@@ -78,7 +82,6 @@ def register(app: Any) -> None:
             Tuple of (new_is_open, updated_panel_state, new_settings_state,
                       new_import_export_state)
         """
-        from datetime import datetime
 
         if n_clicks:
             new_is_open = not is_open
@@ -183,7 +186,6 @@ def register(app: Any) -> None:
         )
 
         # Get active profile and query names for display
-        from data.profile_manager import get_active_profile_and_query_display_names
 
         display_names = get_active_profile_and_query_display_names()
         profile_name = display_names.get("profile_name")
@@ -414,9 +416,6 @@ def register(app: Any) -> None:
                       update_button_style, cancel_button_style, metrics_trigger)
         """
         import time
-        from pathlib import Path
-
-        from data.task_progress import TaskProgress
 
         # Check if app was just restarted (stale task cleanup ran)
         restart_marker = Path("task_progress.json.restart")

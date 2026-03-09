@@ -10,6 +10,7 @@ handling bug metrics updates and interactivity with timeline filters.
 #######################################################################
 # Standard library imports
 import logging
+from datetime import datetime, timedelta
 
 import dash_bootstrap_components as dbc
 
@@ -22,13 +23,20 @@ from data.bug_insights import generate_quality_insights
 # Application imports
 from data.bug_processing import (
     calculate_bug_metrics_summary,
+    calculate_bug_statistics,
     filter_bug_issues,
     forecast_bug_resolution,
 )
+from data.issue_filtering import filter_issues_for_metrics
+from data.persistence import load_app_settings, load_jira_configuration
+from data.persistence.factory import get_backend
 from ui.bug_analysis import (
     create_bug_metrics_cards,
     create_quality_insights_panel,
 )
+from ui.bug_charts import BugInvestmentChart, BugTrendChart
+from ui.empty_states import create_no_bugs_state
+from ui.loading_utils import create_content_placeholder
 
 #######################################################################
 # LOGGING CONFIGURATION
@@ -65,7 +73,6 @@ def _render_bug_analysis_content(
         bug_config = get_bug_analysis_config()
 
         # Get JIRA configuration for points field
-        from data.persistence import load_jira_configuration
 
         jira_config = load_jira_configuration()
         points_field = jira_config.get("points_field", "")
@@ -77,7 +84,6 @@ def _render_bug_analysis_content(
 
         try:
             # Load from database via backend
-            from data.persistence.factory import get_backend
 
             backend = get_backend()
             active_profile_id = backend.get_app_state("active_profile_id")
@@ -109,9 +115,6 @@ def _render_bug_analysis_content(
         # Filter to configured development project issues
         # (exclude parents/parent types)
         if all_issues:
-            from data.issue_filtering import filter_issues_for_metrics
-            from data.persistence import load_app_settings
-
             settings = load_app_settings()
 
             original_count = len(all_issues)
@@ -127,7 +130,6 @@ def _render_bug_analysis_content(
                 )
 
         # Determine date range based on data_points_count (timeline filter)
-        from datetime import datetime, timedelta
 
         date_to = datetime.now()
         date_from = date_to - timedelta(weeks=data_points_count or 12)
@@ -158,8 +160,6 @@ def _render_bug_analysis_content(
 
         # Check if there are no bugs at all - show helpful placeholder
         if len(all_bug_issues) == 0:
-            from ui.empty_states import create_no_bugs_state
-
             # Return empty state in fluid container to match DORA/Flow dashboards
             # Wrap in div with ID for fade-in animation
             return html.Div(
@@ -176,8 +176,6 @@ def _render_bug_analysis_content(
 
         # Check if there are no bugs in the timeline - show specific placeholder
         if len(timeline_filtered_bugs) == 0 and len(all_bug_issues) > 0:
-            from ui.loading_utils import create_content_placeholder
-
             # Wrap in div with ID for fade-in animation
             return html.Div(
                 create_content_placeholder(
@@ -202,7 +200,6 @@ def _render_bug_analysis_content(
                 f"{len(timeline_filtered_bugs)} bugs "
                 f"from {date_from} to {date_to}"
             )
-            from data.bug_processing import calculate_bug_statistics
 
             weekly_stats = calculate_bug_statistics(
                 timeline_filtered_bugs,
@@ -247,7 +244,6 @@ def _render_bug_analysis_content(
             metrics_cards = create_bug_metrics_cards(bug_metrics, forecast)
 
             # Create bug trends chart
-            from ui.bug_charts import BugInvestmentChart, BugTrendChart
 
             trends_chart = BugTrendChart(weekly_stats, viewport_size="mobile")
 

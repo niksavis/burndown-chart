@@ -21,6 +21,7 @@ import logging
 from pathlib import Path
 from typing import Literal
 
+from data.database import database_exists
 from data.installation_context import get_installation_context
 from data.persistence import PersistenceBackend
 from data.persistence.json_backend import JSONBackend
@@ -165,7 +166,6 @@ def is_sqlite_available() -> bool:
         ... else:
         ...     backend = get_backend("json")  # Fallback to legacy
     """
-    from data.database import database_exists
 
     return database_exists(Path(DEFAULT_SQLITE_PATH))
 

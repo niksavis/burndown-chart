@@ -193,7 +193,7 @@ class PersistenceBackend(ABC):
         pass
 
     @abstractmethod
-    def set_app_state(self, key: str, value: str) -> None:
+    def set_app_state(self, key: str, value: str | None) -> None:
         """
         Set application state value.
 

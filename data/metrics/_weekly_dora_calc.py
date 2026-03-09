@@ -3,6 +3,18 @@
 import logging
 from datetime import datetime
 
+from data.dora_metrics import (
+    calculate_change_failure_rate,
+    calculate_lead_time_for_changes,
+    calculate_mean_time_to_recovery,
+)
+from data.fixversion_matcher import filter_issues_deployed_in_week
+from data.metrics._weekly_dora_prep import (
+    count_deployments_for_week,
+    filter_bugs_by_resolution_week,
+)
+from data.metrics_snapshots import save_metric_snapshot
+
 logger = logging.getLogger(__name__)
 
 
@@ -14,8 +26,6 @@ def _calculate_lead_time(
     week_label: str,
 ) -> dict:
     """Calculate Lead Time for Changes snapshot for the given week."""
-    from data.dora_metrics import calculate_lead_time_for_changes
-    from data.fixversion_matcher import filter_issues_deployed_in_week
 
     try:
         week_dev_issues = filter_issues_deployed_in_week(
@@ -80,7 +90,6 @@ def _calculate_deployment_frequency(
     development_fix_versions: set,
 ) -> dict:
     """Calculate Deployment Frequency snapshot for the given week."""
-    from data.metrics._weekly_dora_prep import count_deployments_for_week
 
     try:
         weekly_deployments = count_deployments_for_week(
@@ -115,8 +124,6 @@ def _calculate_cfr(
     week_end: datetime,
 ) -> dict:
     """Calculate Change Failure Rate snapshot for the given week."""
-    from data.dora_metrics import calculate_change_failure_rate
-    from data.fixversion_matcher import filter_issues_deployed_in_week
 
     try:
         week_operational_tasks = filter_issues_deployed_in_week(
@@ -168,9 +175,6 @@ def _calculate_mttr(
     week_end: datetime,
 ) -> dict:
     """Calculate Mean Time To Recovery snapshot for the given week."""
-    from data.dora_metrics import calculate_mean_time_to_recovery
-    from data.fixversion_matcher import filter_issues_deployed_in_week
-    from data.metrics._weekly_dora_prep import filter_bugs_by_resolution_week
 
     try:
         incident_resolved_field = dora_mappings.get(
@@ -241,7 +245,6 @@ def calculate_dora_metrics(
 
     Returns (metrics_saved, metrics_details).
     """
-    from data.metrics_snapshots import save_metric_snapshot
 
     metrics_saved = 0
     metrics_details: list[str] = []

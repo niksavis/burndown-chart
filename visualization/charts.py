@@ -14,11 +14,13 @@ from datetime import datetime, timedelta
 # Third-party library imports
 import pandas as pd
 import plotly.graph_objects as go
+from dash import dcc
 from plotly.subplots import make_subplots
 
 # Application imports
 from configuration import COLOR_PALETTE
 from utils.chart_tooltip_utils import create_hoverlabel_config, format_hover_template
+from utils.loading_overlay_utils import create_loading_overlay
 
 # Mobile optimization removed for simplicity.
 # Will implement via CSS and responsive config.
@@ -276,9 +278,6 @@ def create_chart_with_loading(
     Returns:
         html.Div: Chart component with loading states
     """
-    from dash import dcc
-
-    from utils.loading_overlay_utils import create_loading_overlay
 
     # Determine if we're in a loading state
     is_loading = loading_state is not None and loading_state.get("is_loading", False)
@@ -584,7 +583,6 @@ def create_pert_timeline_chart(pert_data: dict) -> go.Figure:
         - PERT weighted average highlighted
         - Confidence range shading
     """
-    from datetime import datetime
 
     # Parse dates
     try:

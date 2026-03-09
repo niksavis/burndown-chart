@@ -9,13 +9,14 @@ import logging
 import threading
 
 import dash_bootstrap_components as dbc
-from dash import Input, Output, State, callback, no_update
+from dash import Input, Output, State, callback, callback_context, html, no_update
 
 from data.update_manager import (
     UpdateState,
     download_update,
     launch_updater,
 )
+from ui.toast_notifications import create_toast
 
 logger = logging.getLogger(__name__)
 
@@ -43,10 +44,8 @@ def handle_footer_update_click(footer_clicks: int):
     Returns:
         Toast notification
     """
-    from dash import callback_context, html
 
     import app
-    from ui.toast_notifications import create_toast
 
     # Check if actually clicked
     if not callback_context.triggered:
@@ -157,10 +156,8 @@ def handle_footer_update_click(footer_clicks: int):
 def handle_toast_download_click(download_clicks: int, status_data: dict | None):
     """Handle download when user clicks Download button in toast notification."""
     global _download_thread, _download_in_progress
-    from dash import callback_context, html
 
     import app
-    from ui.toast_notifications import create_toast
 
     # Check if button was actually clicked
     if not callback_context.triggered:
@@ -292,10 +289,8 @@ def poll_download_progress(n_intervals):
             progress text,
         )
     """
-    from dash import html
 
     import app
-    from ui.toast_notifications import create_toast
 
     progress = app.VERSION_CHECK_RESULT
 
@@ -375,7 +370,6 @@ def handle_update_install(install_clicks: int, status_data: dict | None):
         Toast notification about the update process
     """
     import app
-    from ui.toast_notifications import create_toast
 
     if not install_clicks:
         return no_update
@@ -477,8 +471,6 @@ def handle_manual_update_instructions(n_clicks: int):
         new=2,  # Open in new tab
         autoraise=True,
     )
-
-    from ui.toast_notifications import create_toast
 
     return create_toast(
         "Opening GitHub releases page in your browser...",

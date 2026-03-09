@@ -14,6 +14,10 @@ from typing import Any
 from jinja2 import Environment, FileSystemLoader
 from jinja2.runtime import Undefined
 
+from data.iso_week_bucketing import get_iso_week_bounds
+from data.report_assets_embedder import embed_report_dependencies
+from data.time_period_calculator import format_year_week, get_iso_week
+
 logger = logging.getLogger(__name__)
 
 
@@ -82,8 +86,6 @@ def render_template(
     weeks_count = metrics.get("dashboard", {}).get("weeks_count", time_period_weeks)
 
     # Calculate date range for the report period
-    from data.iso_week_bucketing import get_iso_week_bounds
-    from data.time_period_calculator import format_year_week, get_iso_week
 
     # Calculate start date (Monday of the oldest week)
     current_date = datetime.now()
@@ -115,7 +117,6 @@ def render_template(
         last_week = ""
 
     # Load and embed external dependencies for offline reports
-    from data.report_assets_embedder import embed_report_dependencies
 
     embedded_deps = embed_report_dependencies()
 

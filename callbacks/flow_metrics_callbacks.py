@@ -7,11 +7,25 @@ import logging
 from datetime import datetime, timedelta
 from typing import Any
 
-from dash import Input, Output, State, callback, html
+from dash import Input, Output, State, callback, html, no_update
 
 from configuration.help_content_metrics import FLOW_METRICS_TOOLTIPS
 from data.dora_forecast import calculate_dynamic_forecast
+from data.metrics.blending import calculate_current_week_blend, get_blend_metadata
+from data.metrics_calculator import calculate_flow_load_range, calculate_forecast
+from data.metrics_snapshots import (
+    get_available_weeks,
+    get_metric_snapshot,
+    get_metric_weekly_values,
+)
 from data.persistence import load_app_settings
+from data.time_period_calculator import format_year_week, get_iso_week
+from ui.empty_states import create_no_data_state, create_no_metrics_state
+from ui.flow_metrics_dashboard import (
+    _get_flow_performance_tier,
+    _get_flow_performance_tier_color,
+)
+from ui.loading_utils import create_skeleton_loader
 from ui.metric_cards import create_metric_cards_grid
 from ui.work_distribution_card import create_work_distribution_card
 
@@ -69,8 +83,6 @@ def calculate_and_display_flow_metrics(
     try:
         import dash_bootstrap_components as dbc
 
-        from ui.loading_utils import create_skeleton_loader
-
         # DEBUG: Log the exact state of jira_data_store
         logger.info(
             f"FLOW CALLBACK START: jira_data_store type={type(jira_data_store)}"
@@ -96,8 +108,6 @@ def calculate_and_display_flow_metrics(
         # CRITICAL: Only render if on Flow tab.
         # Prevent stale "No Data" flashing when switching tabs.
         if active_tab != "tab-flow-metrics":
-            from dash import no_update
-
             logger.info("FLOW: Not on Flow tab, skipping render")
             return no_update, no_update
 
@@ -125,8 +135,6 @@ def calculate_and_display_flow_metrics(
 
         # Validate inputs - if store is populated but has no issues
         if not jira_data_store.get("issues"):
-            from ui.empty_states import create_no_data_state
-
             # Return no_data state for all metrics.
             # Work Distribution is included in the same container.
             return create_no_data_state(), {}
@@ -145,7 +153,6 @@ def calculate_and_display_flow_metrics(
         n_weeks = data_points if data_points and data_points > 0 else 12
 
         # Generate week labels for display
-        from data.time_period_calculator import format_year_week, get_iso_week
 
         weeks = []
         current_date = datetime.now()
@@ -165,14 +172,11 @@ def calculate_and_display_flow_metrics(
 
         # Check if any week has snapshots (not just current week).
         # Prevent "No Metrics" when current week is missing but history exists.
-        from data.metrics_snapshots import get_available_weeks
 
         available_weeks = get_available_weeks()
         has_any_data = any(week in available_weeks for week in week_labels)
 
         if not has_any_data:
-            from ui.empty_states import create_no_metrics_state
-
             logger.warning(
                 "No Flow metrics snapshots found for any of "
                 f"the {len(week_labels)} weeks"
@@ -184,14 +188,8 @@ def calculate_and_display_flow_metrics(
         # READ METRICS FROM SNAPSHOTS (instant, no calculation)
         # AGGREGATED across all weeks in selected period (like DORA metrics)
         # Import blending functions (Feature bd-a1vn, bd-3pff)
-        from data.metrics.blending import (
-            calculate_current_week_blend,
-            get_blend_metadata,
-        )
-        from data.metrics_calculator import calculate_forecast
 
         # Load historical metric values from snapshots for sparklines AND aggregation
-        from data.metrics_snapshots import get_metric_snapshot, get_metric_weekly_values
 
         flow_load_values = get_metric_weekly_values(
             week_labels, "flow_load", "wip_count"
@@ -424,10 +422,6 @@ def calculate_and_display_flow_metrics(
         # AGGREGATED across selected period (like DORA metrics)
 
         # Import performance tier calculation functions
-        from ui.flow_metrics_dashboard import (
-            _get_flow_performance_tier,
-            _get_flow_performance_tier_color,
-        )
 
         metrics_data = {
             "flow_velocity": {
@@ -552,8 +546,6 @@ def calculate_and_display_flow_metrics(
                 # Special handling for Flow Load range
                 if metric_name == "flow_load":
                     try:
-                        from data.metrics_calculator import calculate_flow_load_range
-
                         FLOW_LOAD_RANGE_PERCENT = 0.20  # ±20% range
                         range_data = calculate_flow_load_range(
                             forecast_value=forecast_data["forecast_value"],

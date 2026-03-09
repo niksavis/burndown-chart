@@ -10,7 +10,25 @@ Delegates to focused sub-modules:
 import logging
 from datetime import UTC, datetime
 
+from configuration.metrics_config import MetricsConfig
+from data.fixversion_matcher import build_fixversion_release_map
+from data.metrics._weekly_dora_calc import calculate_dora_metrics
+from data.metrics._weekly_dora_prep import (
+    classify_dora_issues,
+    collect_development_fix_versions,
+)
+from data.metrics._weekly_flow import calculate_flow_metrics
+from data.metrics._weekly_issue_prep import (
+    check_metrics_cached,
+    compute_week_boundaries,
+    filter_completed_in_week,
+    load_and_filter_issues,
+    load_and_merge_changelog,
+)
 from data.metrics.helpers import get_current_iso_week
+from data.metrics_snapshots import save_metric_snapshot
+from data.persistence import load_app_settings
+from data.persistence.factory import get_backend
 
 logger = logging.getLogger(__name__)
 
@@ -45,8 +63,6 @@ def calculate_and_save_weekly_metrics(
 
         # Load profile configuration for status lists and field mappings
         report_progress("Loading profile configuration...")
-        from configuration.metrics_config import MetricsConfig
-
         try:
             # Load active profile or use specified profile_id
             metrics_config = MetricsConfig(profile_id=profile_id)
@@ -61,16 +77,12 @@ def calculate_and_save_weekly_metrics(
             )
 
         # Load configuration
-        from data.persistence import load_app_settings
-
         app_settings = load_app_settings()
 
         if not app_settings:
             return False, "Failed to load app settings"
 
         # Check if JIRA data exists in database
-        from data.persistence.factory import get_backend
-
         backend = get_backend()
         active_profile_id = backend.get_app_state("active_profile_id")
         active_query_id = backend.get_app_state("active_query_id")
@@ -79,8 +91,6 @@ def calculate_and_save_weekly_metrics(
             return False, "No active profile/query selected."
 
         # Check cache - skip recalculation for up-to-date historical weeks
-        from data.metrics._weekly_issue_prep import check_metrics_cached
-
         if check_metrics_cached(week_label):
             report_progress(
                 f"[OK] Week {week_label} already calculated - using cached metrics"
@@ -88,8 +98,6 @@ def calculate_and_save_weekly_metrics(
             return True, f"[OK] Metrics for week {week_label} already up-to-date"
 
         # Load and filter issues from database
-        from data.metrics._weekly_issue_prep import load_and_filter_issues
-
         try:
             all_issues, all_issues_raw = load_and_filter_issues(
                 backend, active_profile_id, active_query_id, app_settings
@@ -98,15 +106,11 @@ def calculate_and_save_weekly_metrics(
             return False, str(e)
 
         # Load changelog and merge into issues in-place
-        from data.metrics._weekly_issue_prep import load_and_merge_changelog
-
         all_issues, changelog_available = load_and_merge_changelog(
             backend, all_issues, active_profile_id, active_query_id
         )
 
         # Compute week date boundaries
-        from data.metrics._weekly_issue_prep import compute_week_boundaries
-
         try:
             week_start, week_end, is_current_week, completion_cutoff = (
                 compute_week_boundaries(week_label)
@@ -135,8 +139,6 @@ def calculate_and_save_weekly_metrics(
             + (" (running total)" if is_current_week else "")
             + "..."
         )
-        from data.metrics._weekly_issue_prep import filter_completed_in_week
-
         issues_completed = filter_completed_in_week(
             all_issues, flow_end_statuses, week_start, completion_cutoff
         )
@@ -146,8 +148,6 @@ def calculate_and_save_weekly_metrics(
         )
 
         # Calculate and save Flow metrics
-        from data.metrics._weekly_flow import calculate_flow_metrics
-
         flow_saved, flow_details = calculate_flow_metrics(
             issues_completed,
             all_issues,
@@ -171,19 +171,12 @@ def calculate_and_save_weekly_metrics(
             "[Stats] Calculating DORA metrics (Lead Time, Deployment Frequency)..."
         )
 
-        from data.metrics._weekly_dora_prep import (
-            classify_dora_issues,
-            collect_development_fix_versions,
-        )
-
         operational_tasks, development_issues, production_bugs = classify_dora_issues(
             all_issues, all_issues_raw, app_settings
         )
         logger.info(f"Week {week_label} boundaries: {week_start} to {week_end}")
 
         development_fix_versions = collect_development_fix_versions(all_issues)
-
-        from data.fixversion_matcher import build_fixversion_release_map
 
         fixversion_release_map = build_fixversion_release_map(
             operational_tasks,
@@ -197,8 +190,6 @@ def calculate_and_save_weekly_metrics(
         )
 
         dora_mappings = app_settings.get("field_mappings", {}).get("dora", {})
-
-        from data.metrics._weekly_dora_calc import calculate_dora_metrics
 
         dora_saved, dora_details = calculate_dora_metrics(
             operational_tasks,
@@ -218,8 +209,6 @@ def calculate_and_save_weekly_metrics(
         metrics_details.extend(dora_details)
 
         # Save trend metadata
-        from data.metrics_snapshots import save_metric_snapshot
-
         trends = {
             "flow_time_trend": "stable",
             "flow_efficiency_trend": "stable",

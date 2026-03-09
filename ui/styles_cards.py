@@ -7,6 +7,7 @@ import dash_bootstrap_components as dbc
 from dash import html
 
 from ui.styles_tokens import BOOTSTRAP_SPACING
+from ui.tooltip_utils import create_info_tooltip
 
 
 def create_standardized_card(
@@ -37,7 +38,6 @@ def create_standardized_card(
     Returns:
         dbc.Card: A standardized Bootstrap card component
     """
-    import dash_bootstrap_components as dbc
 
     # Add vertical rhythm spacing using our component spacing
     className = f"{className} mb-{BOOTSTRAP_SPACING['3']}"
@@ -100,11 +100,6 @@ def create_card_header_with_tooltip(
         list or html.H4: Components for card header with tooltip
             and optional help button
     """
-    import dash_bootstrap_components as dbc
-    from dash import html
-
-    # Import the tooltip function and help system
-    from ui.tooltip_utils import create_info_tooltip
 
     # Start with base header
     if not tooltip_id and not help_key:
@@ -171,8 +166,6 @@ def create_metric_card_header(
     header_children = [html.Span(title, className="metric-card-title")]
 
     if tooltip_text and tooltip_id:
-        from ui.tooltip_utils import create_info_tooltip
-
         header_children.append(
             create_info_tooltip(
                 help_text=tooltip_text,

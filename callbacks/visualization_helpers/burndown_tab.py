@@ -13,6 +13,8 @@ import pandas as pd
 from callbacks.visualization_helpers.data_checks import check_has_points_in_period
 from callbacks.visualization_helpers.tab_content import create_burndown_tab_content
 from callbacks.visualization_helpers.trend_data import prepare_trend_data
+from data.persistence import load_unified_project_data
+from data.velocity_projections import calculate_required_velocity
 from visualization import create_forecast_plot
 from visualization.charts import apply_mobile_optimization
 from visualization.weekly_chart_items import create_weekly_items_chart
@@ -78,9 +80,6 @@ def _render_burndown_tab(
     required_velocity_items = None
     required_velocity_points = None
     if deadline:
-        from data.persistence import load_unified_project_data
-        from data.velocity_projections import calculate_required_velocity
-
         try:
             deadline_date = datetime.strptime(deadline, "%Y-%m-%d")
             current_date = datetime.combine(datetime.now().date(), datetime.min.time())

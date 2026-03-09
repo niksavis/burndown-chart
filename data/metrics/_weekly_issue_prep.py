@@ -3,7 +3,13 @@
 import logging
 from datetime import UTC, datetime, timedelta
 
+from data.flow_metrics import _find_first_transition_to_statuses
+from data.jira.parent_filter import filter_out_parent_types
+from data.jira.query_builder import extract_parent_types_from_config
 from data.metrics.helpers import get_current_iso_week
+from data.metrics_snapshots import get_metric_snapshot
+from data.parent_filter import filter_parent_issues
+from data.project_filter import filter_development_issues
 
 logger = logging.getLogger(__name__)
 
@@ -13,7 +19,6 @@ def check_metrics_cached(week_label: str) -> bool:
 
     Historical weeks only - current week always recalculates as a running total.
     """
-    from data.metrics_snapshots import get_metric_snapshot
 
     if week_label == get_current_iso_week():
         logger.info(
@@ -67,8 +72,6 @@ def load_and_filter_issues(
         app_settings.get("field_mappings", {}).get("general", {}).get("parent_field")
     )
     if parent_field:
-        from data.parent_filter import filter_parent_issues
-
         all_issues_raw = filter_parent_issues(
             all_issues_raw, parent_field, log_prefix="WEEKLY CALC"
         )
@@ -77,8 +80,6 @@ def load_and_filter_issues(
     devops_projects = app_settings.get("devops_projects", [])
 
     if development_projects or devops_projects:
-        from data.project_filter import filter_development_issues
-
         all_issues = filter_development_issues(
             all_issues_raw, development_projects, devops_projects
         )
@@ -91,12 +92,8 @@ def load_and_filter_issues(
         all_issues = all_issues_raw
         logger.info("No project classification configured, using all issues")
 
-    from data.jira.query_builder import extract_parent_types_from_config
-
     parent_types = extract_parent_types_from_config(app_settings)
     if parent_types:
-        from data.jira.parent_filter import filter_out_parent_types
-
         total_before_parent_filter = len(all_issues)
         all_issues = filter_out_parent_types(all_issues, parent_types)
         parent_filtered_count = total_before_parent_filter - len(all_issues)
@@ -248,7 +245,6 @@ def filter_completed_in_week(
     completion_cutoff: datetime,
 ) -> list:
     """Return issues with completion timestamp in [week_start, completion_cutoff)."""
-    from data.flow_metrics import _find_first_transition_to_statuses
 
     issues_completed_this_week = []
 

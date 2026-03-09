@@ -3,12 +3,22 @@
 import logging
 from typing import Any
 
-from dash import Input, Output, callback
+from dash import Input, Output, callback, no_update
 from dash.exceptions import PreventUpdate
 
 from configuration.help_content_comprehensive import DORA_METRICS_TOOLTIPS
 from data.dora_forecast import calculate_dynamic_forecast
+from data.dora_metrics import (
+    CHANGE_FAILURE_RATE_TIERS,
+    DEPLOYMENT_FREQUENCY_TIERS,
+    LEAD_TIME_TIERS,
+    MTTR_TIERS,
+    _determine_performance_tier,
+)
 from data.dora_metrics_blending import calculate_dora_blended_series
+from data.dora_metrics_calculator import load_dora_metrics_from_cache
+from ui.empty_states import create_no_data_state, create_no_metrics_state
+from ui.loading_utils import create_skeleton_loader
 from ui.metric_cards import create_metric_cards_grid
 
 logger = logging.getLogger(__name__)
@@ -42,8 +52,6 @@ def load_and_display_dora_metrics(
     try:
         import dash_bootstrap_components as dbc
 
-        from ui.loading_utils import create_skeleton_loader
-
         logger.info(
             f"DORA CALLBACK START: jira_data_store type={type(jira_data_store)}"
         )
@@ -66,8 +74,6 @@ def load_and_display_dora_metrics(
                 logger.info(f"DORA CALLBACK START: len(issues) = {issues_count}")
 
         if active_tab != "tab-dora-metrics":
-            from dash import no_update
-
             logger.info("DORA: Not on DORA tab, skipping render")
             return no_update, no_update
 
@@ -91,14 +97,10 @@ def load_and_display_dora_metrics(
             )
 
         if not jira_data_store.get("issues"):
-            from ui.empty_states import create_no_data_state
-
             logger.info("DORA: No JIRA issues in loaded data, showing 'No Data' state")
             return create_no_data_state(), {}
 
         n_weeks = data_points if data_points and data_points > 0 else 12
-
-        from data.dora_metrics_calculator import load_dora_metrics_from_cache
 
         logger.info(f"DORA: Loading metrics from cache for {n_weeks} weeks")
         cached_metrics = load_dora_metrics_from_cache(n_weeks=n_weeks)
@@ -126,8 +128,6 @@ def load_and_display_dora_metrics(
         )
 
         if not cached_metrics:
-            from ui.empty_states import create_no_metrics_state
-
             return create_no_metrics_state(metric_type="DORA"), {}
 
         n_weeks_display = cached_metrics.get("_n_weeks", 12)
@@ -146,14 +146,6 @@ def load_and_display_dora_metrics(
         mttr_weekly_values = blend_data["mttr_weekly_values"]
         mttr_weekly_values_adjusted = blend_data["mttr_weekly_values_adjusted"]
         mttr_blend_metadata = blend_data["mttr_blend_metadata"]
-
-        from data.dora_metrics import (
-            CHANGE_FAILURE_RATE_TIERS,
-            DEPLOYMENT_FREQUENCY_TIERS,
-            LEAD_TIME_TIERS,
-            MTTR_TIERS,
-            _determine_performance_tier,
-        )
 
         deployment_weekly_values_for_calc = (
             deployment_weekly_values_adjusted or deployment_weekly_values

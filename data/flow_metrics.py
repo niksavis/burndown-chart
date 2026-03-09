@@ -32,6 +32,7 @@ from data.flow_metrics_time import (
     _calculate_time_in_statuses,
     calculate_flow_time,  # noqa: F401 (re-exported)
 )
+from data.persistence import load_app_settings
 
 logger = logging.getLogger(__name__)
 
@@ -80,7 +81,6 @@ def calculate_flow_velocity(
 
     # Load field mappings
     flow_mappings, project_classification = _get_field_mappings()
-    from data.persistence import load_app_settings
 
     settings = load_app_settings()
     flow_type_mappings = settings.get("flow_type_mappings", {})
@@ -377,7 +377,6 @@ def calculate_flow_distribution(
 
     # Load field mappings
     flow_mappings, project_classification = _get_field_mappings()
-    from data.persistence import load_app_settings
 
     flow_type_mappings = load_app_settings().get("flow_type_mappings", {})
     flow_end_statuses = project_classification.get("flow_end_statuses", [])

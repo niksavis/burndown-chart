@@ -8,6 +8,9 @@ helpers, and common calculation primitives.
 import logging
 from typing import Any
 
+from configuration.metrics_config import get_metrics_config
+from data.persistence import load_app_settings
+
 logger = logging.getLogger(__name__)
 
 
@@ -21,7 +24,6 @@ def _get_completed_date_field():
         str: Field name to use for completion date (e.g., "resolutiondate"
             or "resolved")
     """
-    from data.persistence import load_app_settings
 
     settings = load_app_settings()
     field_mappings = settings.get("field_mappings", {})
@@ -54,7 +56,6 @@ def _get_field_mappings():
     Returns:
         Tuple of (flow_mappings, project_classification)
     """
-    from data.persistence import load_app_settings
 
     app_settings = load_app_settings()
     field_mappings = app_settings.get("field_mappings", {})
@@ -270,7 +271,6 @@ def _get_work_type_for_issue(
     Returns:
         Work type: "Feature", "Defect", "Technical Debt", or "Risk"
     """
-    from configuration.metrics_config import get_metrics_config
 
     # Try nested JIRA API format first
     fields = issue.get("fields", {})

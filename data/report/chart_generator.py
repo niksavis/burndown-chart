@@ -4,6 +4,7 @@ import logging
 from datetime import datetime
 from typing import Any
 
+from data.persistence import load_unified_project_data
 from data.report.chart_bugs import generate_bug_trends_chart
 from data.report.chart_burndown import (
     generate_burndown_chart,
@@ -11,6 +12,7 @@ from data.report.chart_burndown import (
 )
 from data.report.chart_flow import generate_work_distribution_chart
 from data.report.chart_scope import generate_scope_changes_chart
+from data.velocity_projections import calculate_required_velocity
 
 logger = logging.getLogger(__name__)
 
@@ -29,8 +31,6 @@ def _load_remaining_work(deadline: str | None) -> tuple[float, float, float, flo
         Tuple of (remaining_items, remaining_points,
                   required_velocity_items, required_velocity_points)
     """
-    from data.persistence import load_unified_project_data
-    from data.velocity_projections import calculate_required_velocity
 
     project_data = load_unified_project_data()
     project_scope = project_data.get("project_scope", {})

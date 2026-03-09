@@ -8,6 +8,8 @@ Reference: DORA_Flow_Jira_Mapping.md
 
 from typing import Literal
 
+from configuration.metrics_config import get_metrics_config
+
 # Performance tier type definition
 PerformanceTier = Literal["Elite", "High", "Medium", "Low"]
 
@@ -275,7 +277,6 @@ def get_operational_project_keys() -> list:
     Returns:
         List of operational project keys (e.g., ["RI", "DEVOPS"])
     """
-    from configuration.metrics_config import get_metrics_config
 
     try:
         config = get_metrics_config()
@@ -291,7 +292,6 @@ def get_flow_end_status_names() -> list:
     Returns:
         List of flow end status names (e.g., ["Done", "Resolved", "Closed"])
     """
-    from configuration.metrics_config import get_metrics_config
 
     try:
         config = get_metrics_config()
@@ -322,7 +322,6 @@ def is_status_match(
         >>> is_status_match("Done", ["done", "closed"], case_sensitive=True)
         False
     """
-    from configuration.metrics_config import get_metrics_config
 
     try:
         config = get_metrics_config()

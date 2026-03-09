@@ -5,6 +5,10 @@ from datetime import datetime
 
 # Application imports
 from configuration.settings import logger
+from data.jira.config import get_jira_config, validate_jira_config
+from data.jira.main_fetch import fetch_jira_issues
+from data.jira.scope_calculator import calculate_jira_project_scope
+from data.jira.scope_sync import sync_jira_scope_and_data
 from data.persistence.adapters.unified_data import (
     load_unified_project_data,
     save_unified_project_data,
@@ -80,8 +84,6 @@ def update_project_scope_from_jira(
         Tuple (success: bool, message: str)
     """
     try:
-        from data.jira import sync_jira_scope_and_data
-
         # Get JIRA scope data
         success, message, scope_data = sync_jira_scope_and_data(jql_query, ui_config)
 
@@ -117,13 +119,6 @@ def calculate_project_scope_from_jira(
         Tuple (success: bool, message: str, scope_data: dict)
     """
     try:
-        from data.jira import (
-            fetch_jira_issues,
-            get_jira_config,
-            validate_jira_config,
-        )
-        from data.jira.scope_calculator import calculate_jira_project_scope
-
         # Load configuration
         if ui_config:
             config = ui_config.copy()

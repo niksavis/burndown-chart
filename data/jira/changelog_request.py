@@ -6,6 +6,8 @@ JIRA issues with changelog expansion.
 
 import logging
 
+from data.jira.field_utils import extract_jira_field_id as _extract_jira_field_id
+
 logger = logging.getLogger(__name__)
 
 
@@ -92,7 +94,6 @@ def _build_fields_string(config: dict) -> str:
     Returns:
         Comma-separated string of field names
     """
-    from data.jira.field_utils import extract_jira_field_id as _extract_jira_field_id
 
     # Fields to fetch (same as regular fetch + changelog)
     # NOTE: fixVersions is critical for DORA Lead Time calculation (matching dev issues

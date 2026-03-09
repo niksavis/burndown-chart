@@ -24,12 +24,17 @@ from pathlib import Path
 import dash
 import diskcache
 from dash import DiskcacheManager
+from flask import jsonify
+from waitress.server import create_server
 
 # Application imports (after third-party, before usage)
 from callbacks import register_all_callbacks
+from configuration import __version__
 from configuration.logging_config import cleanup_old_logs, setup_logging
 from configuration.server import get_server_config
 from data.installation_context import get_installation_context
+from data.persistence.factory import get_backend
+from data.task_progress import TaskProgress
 from data.update_cleanup import cleanup_orphaned_temp_updaters
 from data.update_manager import UpdateProgress
 from data.update_startup import restore_pending_update, start_update_check
@@ -174,10 +179,6 @@ def get_version():
         GET /api/version
         Response: {"version": "2.7.2", "post_update": true}
     """
-    from flask import jsonify
-
-    from configuration import __version__
-    from data.persistence.factory import get_backend
 
     # Check post_update_show_toast flag from database (for JavaScript toast display)
     try:
@@ -205,9 +206,6 @@ def clear_post_update():
         POST /api/clear-post-update
         Response: {"success": true}
     """
-    from flask import jsonify
-
-    from data.persistence.factory import get_backend
 
     try:
         backend = get_backend()
@@ -286,8 +284,6 @@ if __name__ == "__main__":
     try:
         import time
 
-        from data.task_progress import TaskProgress
-
         active_task = TaskProgress.get_active_task()
         if active_task and active_task.get("status") == "in_progress":
             task_id = active_task.get("task_id", "unknown")
@@ -300,7 +296,6 @@ if __name__ == "__main__":
 
             # Add app restart marker so recovery callback knows not to trigger actions
             import json
-            from pathlib import Path
 
             restart_marker = Path("task_progress.json.restart")
             restart_marker.write_text(json.dumps({"restart_time": time.time()}))
@@ -393,8 +388,6 @@ if __name__ == "__main__":
     # Check database flag for post-update relaunch (separate from toast display flag)
     if should_launch_browser:
         try:
-            from data.persistence.factory import get_backend
-
             backend = get_backend()
             no_browser_flag = backend.get_app_state("post_update_no_browser")
 
@@ -488,7 +481,6 @@ if __name__ == "__main__":
             browser_thread.start()
 
         # Start server in a way that allows graceful shutdown
-        from waitress.server import create_server
 
         _server = create_server(
             app.server,

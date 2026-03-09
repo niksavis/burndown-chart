@@ -17,7 +17,14 @@ from configuration.chart_config import (
     get_burndown_chart_config,
     get_weekly_chart_config,
 )
+from data.persistence import load_unified_project_data
 from data.schema import DEFAULT_SETTINGS
+from data.scope_metrics import (
+    calculate_scope_creep_rate,
+    calculate_scope_stability_index,
+    calculate_weekly_scope_growth,
+)
+from ui.scope_metrics import create_scope_metrics_dashboard
 
 logger = logging.getLogger("burndown_chart")
 
@@ -280,12 +287,6 @@ def create_scope_tracking_tab_content(
     Returns:
         html.Div: Scope tracking tab content.
     """
-    from data.scope_metrics import (
-        calculate_scope_creep_rate,
-        calculate_scope_stability_index,
-        calculate_weekly_scope_growth,
-    )
-    from ui.scope_metrics import create_scope_metrics_dashboard
 
     scope_creep_threshold = settings.get(
         "scope_creep_threshold", DEFAULT_SETTINGS["scope_creep_threshold"]
@@ -315,8 +316,6 @@ def create_scope_tracking_tab_content(
     current_remaining_points = settings.get("total_points", 0)
 
     try:
-        from data.persistence import load_unified_project_data
-
         project_scope = load_unified_project_data().get("project_scope", {})
         scope_remaining_items = project_scope.get("remaining_items")
         scope_remaining_points = project_scope.get("remaining_total_points")

@@ -7,12 +7,20 @@ from typing import Any
 # Third-party library imports
 # Application imports
 from configuration.settings import logger
+from data.jira import (
+    fetch_jira_issues,
+    get_jira_config,
+    sync_jira_scope_and_data,
+    validate_jira_config,
+)
+from data.jira.scope_calculator import calculate_jira_project_scope
 from data.persistence.adapters.project_data import load_project_data
 from data.persistence.adapters.statistics import load_statistics
 from data.persistence.adapters.unified_data import (
     load_unified_project_data,
     save_unified_project_data,
 )
+from data.schema import get_default_unified_data
 
 
 def _migrate_legacy_project_data(data):
@@ -25,7 +33,6 @@ def _migrate_legacy_project_data(data):
     Returns:
         Dict: Migrated v2.0 data structure
     """
-    from data.schema import get_default_unified_data
 
     unified_data = get_default_unified_data()
 
@@ -126,8 +133,6 @@ def update_project_scope_from_jira(
         Tuple (success: bool, message: str)
     """
     try:
-        from data.jira import sync_jira_scope_and_data
-
         # Get JIRA scope data
         success, message, scope_data = sync_jira_scope_and_data(jql_query, ui_config)
 
@@ -163,13 +168,6 @@ def calculate_project_scope_from_jira(
         Tuple (success: bool, message: str, scope_data: dict)
     """
     try:
-        from data.jira import (
-            fetch_jira_issues,
-            get_jira_config,
-            validate_jira_config,
-        )
-        from data.jira.scope_calculator import calculate_jira_project_scope
-
         # Load configuration
         if ui_config:
             config = ui_config.copy()

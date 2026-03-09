@@ -3,6 +3,7 @@
 # Standard library imports
 import sqlite3
 from datetime import datetime
+from datetime import datetime as dt_module
 from typing import Any
 
 # Third-party library imports
@@ -11,6 +12,7 @@ import pandas as pd
 # Application imports
 from configuration.settings import logger
 from data.exceptions import PersistenceError
+from data.iso_week_bucketing import get_week_label
 from data.persistence.adapters.core import (
     convert_timestamps_to_strings,
 )
@@ -18,6 +20,7 @@ from data.persistence.adapters.unified_data import (
     load_unified_project_data,
     save_unified_project_data,
 )
+from data.persistence.factory import get_backend
 
 
 def save_statistics(data: list[dict[str, Any]]) -> None:
@@ -27,9 +30,6 @@ def save_statistics(data: list[dict[str, Any]]) -> None:
     Args:
         data: List of dictionaries containing statistics data
     """
-    from datetime import datetime
-
-    from data.iso_week_bucketing import get_week_label
 
     logger.info(
         f"[Persistence] save_statistics called with {len(data) if data else 0} rows"
@@ -114,9 +114,6 @@ def save_statistics_from_csv_import(data: list[dict[str, Any]]) -> None:
     Args:
         data: List of dictionaries containing statistics data
     """
-    from datetime import datetime as dt_module
-
-    from data.iso_week_bucketing import get_week_label
 
     try:
         df = pd.DataFrame(data)
@@ -194,8 +191,6 @@ def load_statistics() -> tuple:
         - is_sample: Boolean indicating if sample data is being used
     """
     try:
-        from data.persistence.factory import get_backend
-
         backend = get_backend()
         active_profile_id = backend.get_app_state("active_profile_id")
         active_query_id = backend.get_app_state("active_query_id")

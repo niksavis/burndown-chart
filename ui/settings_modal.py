@@ -14,7 +14,10 @@ Feature: Configuration UI consolidation for better UX
 import dash_bootstrap_components as dbc
 from dash import dcc, html
 
+from data.jira.query_profiles import load_query_profiles
+from data.persistence import load_app_settings
 from ui.button_utils import create_button
+from ui.jira_config_modal import create_jira_config_button
 from ui.jql_components import (
     create_character_count_display,
     should_show_character_warning,
@@ -29,8 +32,6 @@ from ui.jql_editor import create_jql_editor
 def _get_default_data_source():
     """Get default data source from settings."""
     try:
-        from data.persistence import load_app_settings
-
         app_settings = load_app_settings()
         data_source = app_settings.get("last_used_data_source", "JIRA")
         return data_source if data_source else "JIRA"
@@ -41,8 +42,6 @@ def _get_default_data_source():
 def _get_default_jql_query():
     """Get default JQL query from settings."""
     try:
-        from data.persistence import load_app_settings
-
         app_settings = load_app_settings()
         return app_settings.get("jql_query", "project = JRASERVER")
     except ImportError:
@@ -52,8 +51,6 @@ def _get_default_jql_query():
 def _get_default_jql_profile_id():
     """Get active JQL profile ID from settings."""
     try:
-        from data.persistence import load_app_settings
-
         app_settings = load_app_settings()
         return app_settings.get("active_jql_profile_id", "")
     except (ImportError, Exception):
@@ -63,8 +60,6 @@ def _get_default_jql_profile_id():
 def _get_query_profile_options():
     """Get query profile dropdown options."""
     try:
-        from data.jira.query_profiles import load_query_profiles
-
         profiles = load_query_profiles()
         options = []
         for profile in profiles:
@@ -166,7 +161,6 @@ def create_import_export_tab():
 
 def create_jira_integration_tab():
     """Create JIRA Integration tab content (formerly JQL Queries)."""
-    from ui.jira_config_modal import create_jira_config_button
 
     return html.Div(
         [

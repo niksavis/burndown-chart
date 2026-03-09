@@ -9,6 +9,9 @@ import logging
 import pyperclip  # Cross-platform clipboard support
 from dash import Input, Output, State, callback, no_update
 
+from data.ai_prompt_generator import generate_ai_analysis_prompt
+from ui.toast_notifications import create_toast
+
 logger = logging.getLogger(__name__)
 
 
@@ -49,9 +52,6 @@ def generate_and_copy_ai_prompt(n_clicks: int, data_points: int):
         return no_update
 
     try:
-        from data.ai_prompt_generator import generate_ai_analysis_prompt
-        from ui.toast_notifications import create_toast
-
         time_period = data_points or 12
 
         logger.info(f"[AI Prompt] Generating for {time_period} weeks")
@@ -78,7 +78,6 @@ def generate_and_copy_ai_prompt(n_clicks: int, data_points: int):
     except ValueError as e:
         # User-facing errors (no profile, insufficient data)
         logger.warning(f"[AI Prompt] Generation failed: {e}")
-        from ui.toast_notifications import create_toast
 
         return create_toast(
             str(e),
@@ -89,7 +88,6 @@ def generate_and_copy_ai_prompt(n_clicks: int, data_points: int):
     except Exception as e:
         # System errors
         logger.error(f"[AI Prompt] Unexpected error: {e}", exc_info=True)
-        from ui.toast_notifications import create_toast
 
         return create_toast(
             f"Could not generate AI prompt: {str(e)}",

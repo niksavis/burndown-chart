@@ -12,6 +12,9 @@ from typing import Any
 
 import requests
 
+from data.iso_week_bucketing import get_week_label
+from data.jira.field_utils import extract_story_points_value
+from data.persistence.factory import get_backend
 from utils.datetime_utils import parse_iso_datetime
 
 logger = logging.getLogger(__name__)
@@ -30,8 +33,6 @@ def get_affected_weeks_from_changed_issues(changed_keys: list[str]) -> set[str]:
     Returns:
         Set of ISO week labels (e.g., {"2025-W50", "2025-W51", "2026-W01"})
     """
-    from data.iso_week_bucketing import get_week_label
-    from data.persistence.factory import get_backend
 
     affected_weeks = set()
 
@@ -111,7 +112,6 @@ def get_affected_weeks_from_changed_issues(changed_keys: list[str]) -> set[str]:
 
 def _normalize_issue_for_cache(issue: dict[str, Any], config: dict) -> dict[str, Any]:
     """Normalize JIRA issue to flat database-like structure for calculations."""
-    from data.jira.field_utils import extract_story_points_value
 
     fields = issue.get("fields", {}) if isinstance(issue.get("fields"), dict) else {}
     status = fields.get("status", {}) if isinstance(fields.get("status"), dict) else {}
@@ -184,7 +184,6 @@ def try_delta_fetch(
     """
     try:
         # Get cache metadata from database
-        from data.persistence.factory import get_backend
 
         backend = get_backend()
         active_profile_id = backend.get_app_state("active_profile_id")

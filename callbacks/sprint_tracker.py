@@ -7,9 +7,37 @@ Follows Bug Analysis pattern for conditional tab display.
 """
 
 import logging
+import traceback
 
 import dash_bootstrap_components as dbc
-from dash import Input, Output, State, callback, html
+from dash import Input, Output, State, callback, callback_context, html, no_update
+
+from data.issue_filtering import filter_issues_for_metrics
+from data.parent_filter import filter_parent_issues
+from data.persistence import load_app_settings
+from data.persistence.factory import get_backend
+from data.project_filter import filter_development_issues
+from data.sprint_manager import (
+    _parse_sprint_object,
+    calculate_sprint_progress,
+    calculate_sprint_scope_changes,
+    filter_sprint_issues,
+    get_active_sprint_from_issues,
+    get_sprint_dates,
+    get_sprint_snapshots,
+)
+from data.sprint_snapshot_calculator import calculate_daily_sprint_snapshots
+from ui.empty_states import create_no_sprints_state
+from ui.sprint_tracker import (
+    create_combined_sprint_controls,
+    create_sprint_charts_section,
+    create_sprint_summary_cards,
+)
+from visualization.sprint_burnup_chart import create_sprint_burnup_chart
+from visualization.sprint_charts import (
+    create_sprint_progress_bars,
+    create_sprint_summary_card,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -35,16 +63,12 @@ def _render_sprint_tracker_content(
 
     try:
         # Load issues and changelog from database
-        from data.persistence.factory import get_backend
-
         backend = get_backend()
         active_profile_id = backend.get_app_state("active_profile_id")
         active_query_id = backend.get_app_state("active_query_id")
 
         if not active_profile_id or not active_query_id:
             logger.warning("No active profile/query configured")
-            from ui.empty_states import create_no_sprints_state
-
             return create_no_sprints_state()
 
         # Load issues from database
@@ -52,17 +76,12 @@ def _render_sprint_tracker_content(
 
         if not all_issues:
             logger.warning("No issues found in database")
-            from ui.empty_states import create_no_sprints_state
-
             return create_no_sprints_state()
 
         logger.info(f"Loaded {len(all_issues)} issues from database")
 
         # Filter to configured development project issues
         # (exclude parents/parent types).
-        from data.issue_filtering import filter_issues_for_metrics
-        from data.persistence import load_app_settings
-
         settings = load_app_settings()
         all_issues = filter_issues_for_metrics(
             all_issues, settings=settings, log_prefix="SPRINT TRACKER"
@@ -74,14 +93,10 @@ def _render_sprint_tracker_content(
         general_mappings = field_mappings.get("general", {})
 
         # Filter to tracked issue types (Story, Task, Bug - exclude sub-tasks)
-        from data.sprint_manager import filter_sprint_issues
-
         tracked_issues = filter_sprint_issues(all_issues)
 
         if not tracked_issues:
             logger.warning("No tracked issue types (Story/Task/Bug) found")
-            from ui.empty_states import create_no_sprints_state
-
             return create_no_sprints_state()
 
         # Get configured sprint field from settings
@@ -89,8 +104,6 @@ def _render_sprint_tracker_content(
 
         if not sprint_field:
             logger.warning("Sprint field not configured in field mappings")
-            from ui.empty_states import create_no_sprints_state
-
             return create_no_sprints_state()
 
         logger.info(f"Using sprint field: {sprint_field}")
@@ -116,30 +129,22 @@ def _render_sprint_tracker_content(
 
         if not changelog_entries or len(changelog_entries) == 0:
             logger.info("No sprint changelog data found - sprints not configured")
-            from ui.empty_states import create_no_sprints_state
-
             return create_no_sprints_state()
 
         logger.info(f"Loaded {len(changelog_entries)} sprint changelog entries")
 
         # Build sprint snapshots from changelog
-        from data.sprint_manager import get_sprint_snapshots
-
         sprint_snapshots = get_sprint_snapshots(
             tracked_issues, changelog_entries, sprint_field
         )
 
         if not sprint_snapshots:
             logger.warning("No sprint snapshots built from changelog")
-            from ui.empty_states import create_no_sprints_state
-
             return create_no_sprints_state()
 
         logger.info(f"Built {len(sprint_snapshots)} sprint snapshots")
 
         # Determine active sprint from issue data (uses JIRA state field)
-        from data.sprint_manager import get_active_sprint_from_issues
-
         active_sprint_info = get_active_sprint_from_issues(tracked_issues, sprint_field)
 
         # Select active sprint if found, otherwise use first sprint
@@ -158,8 +163,6 @@ def _render_sprint_tracker_content(
             logger.info(f"No active sprint found, selected first: {selected_sprint_id}")
         else:
             logger.warning("No sprint snapshots available")
-            from ui.empty_states import create_no_sprints_state
-
             return create_no_sprints_state()
 
         sprint_data = sprint_snapshots[selected_sprint_id]
@@ -167,10 +170,6 @@ def _render_sprint_tracker_content(
         logger.info(f"Selected sprint: {selected_sprint_id}")
 
         # Calculate sprint progress
-        from data.persistence import load_app_settings
-        from data.sprint_manager import calculate_sprint_progress
-
-        settings = load_app_settings()
         flow_end_statuses = settings.get("flow_end_statuses", ["Done", "Closed"])
         flow_wip_statuses = settings.get("wip_statuses", ["In Progress"])
 
@@ -196,8 +195,6 @@ def _render_sprint_tracker_content(
                     continue
 
                 # Parse sprint object to extract name and state
-                from data.sprint_manager import _parse_sprint_object
-
                 sprint_obj = _parse_sprint_object(sprint_obj_str)
                 if sprint_obj and sprint_obj.get("name"):
                     sprint_name = sprint_obj["name"]
@@ -212,8 +209,6 @@ def _render_sprint_tracker_content(
         )
 
         # Calculate sprint scope changes
-        from data.sprint_manager import calculate_sprint_scope_changes
-
         sprint_start_date = sprint_metadata.get(selected_sprint_id, {}).get(
             "start_date"
         )
@@ -226,16 +221,6 @@ def _render_sprint_tracker_content(
         }
 
         # Create UI components
-        from ui.sprint_tracker import (
-            create_combined_sprint_controls,
-            create_sprint_charts_section,
-            create_sprint_summary_cards,
-        )
-        from visualization.sprint_charts import (
-            create_sprint_progress_bars,
-            create_sprint_summary_card,
-        )
-
         # Build summary card data
         summary_card_data = create_sprint_summary_card(
             progress_data, show_points, flow_wip_statuses
@@ -257,8 +242,6 @@ def _render_sprint_tracker_content(
         )
 
         # Load flow configuration for dynamic status colors
-        from data.persistence import load_app_settings
-
         app_settings = load_app_settings()
         flow_start_statuses = app_settings.get("flow_start_statuses", [])
         flow_wip_statuses = app_settings.get("wip_statuses", [])
@@ -331,8 +314,6 @@ def _render_sprint_tracker_content(
         )
 
     except Exception as e:
-        import traceback
-
         logger.error(f"Error rendering Sprint Tracker content: {e}")
         logger.error(traceback.format_exc())
 
@@ -405,14 +386,6 @@ def update_sprint_charts(selected_sprint, charts_visible, points_toggle_list):
     Returns:
         Plotly figure for burnup chart
     """
-    from dash import callback_context, no_update
-
-    from data.persistence import load_app_settings
-    from data.persistence.factory import get_backend
-    from data.sprint_manager import get_sprint_dates, get_sprint_snapshots
-    from data.sprint_snapshot_calculator import calculate_daily_sprint_snapshots
-    from visualization.sprint_burnup_chart import create_sprint_burnup_chart
-
     # Log which input triggered this callback
     triggered = callback_context.triggered[0] if callback_context.triggered else None
     trigger_id = triggered["prop_id"].split(".")[0] if triggered else "unknown"
@@ -445,7 +418,6 @@ def update_sprint_charts(selected_sprint, charts_visible, points_toggle_list):
 
         # Load data from backend
         backend = get_backend()
-        from data.project_filter import filter_development_issues
 
         active_profile_id = backend.get_app_state("active_profile_id")
         active_query_id = backend.get_app_state("active_query_id")
@@ -478,8 +450,6 @@ def update_sprint_charts(selected_sprint, charts_visible, points_toggle_list):
                 .get("parent_field")
             )
             if parent_field:
-                from data.parent_filter import filter_parent_issues
-
                 all_issues = filter_parent_issues(
                     all_issues, parent_field, log_prefix="SPRINT CHARTS"
                 )
@@ -611,8 +581,6 @@ def update_sprint_charts(selected_sprint, charts_visible, points_toggle_list):
         return burnup_fig
 
     except Exception as e:
-        import traceback
-
         logger.error(f"Error updating sprint charts: {e}")
         logger.error(traceback.format_exc())
         return no_update

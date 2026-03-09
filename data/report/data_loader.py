@@ -9,6 +9,12 @@ from typing import Any
 
 import pandas as pd
 
+from data.metrics_snapshots import load_snapshots
+from data.persistence import load_app_settings, load_unified_project_data
+from data.persistence.factory import get_backend
+from data.query_manager import get_active_query_id
+from data.time_period_calculator import format_year_week, get_iso_week
+
 logger = logging.getLogger(__name__)
 
 
@@ -33,10 +39,6 @@ def load_report_data(profile_id: str, weeks: int) -> dict[str, Any]:
             - jira_issues: Raw JIRA issues for ad-hoc calculations
             - weeks_count: Actual number of weeks with data
     """
-    from data.metrics_snapshots import load_snapshots
-    from data.persistence import load_app_settings, load_unified_project_data
-    from data.persistence.factory import get_backend
-    from data.query_manager import get_active_query_id
 
     # Load core data
     project_data = load_unified_project_data()
@@ -92,7 +94,6 @@ def load_report_data(profile_id: str, weeks: int) -> dict[str, Any]:
     current_week = reference_date.strftime("%G-W%V")
 
     # Generate week labels to include (SAME AS UI)
-    from data.time_period_calculator import format_year_week, get_iso_week
 
     week_labels_list = []
     current_date = reference_date

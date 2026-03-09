@@ -11,6 +11,16 @@ from typing import Any
 
 import pandas as pd
 
+from data.processing import (
+    calculate_rates,
+    calculate_velocity_from_dataframe,
+    compute_weekly_throughput,
+)
+from data.project_health_calculator import (
+    calculate_comprehensive_project_health,
+    prepare_dashboard_metrics_for_health,
+)
+from data.time_period_calculator import format_year_week, get_iso_week
 from data.types import MetricsResult
 
 logger = logging.getLogger(__name__)
@@ -141,7 +151,6 @@ def calculate_dashboard_metrics(
         )
 
         # Generate the same week labels that the dashboard uses
-        from data.time_period_calculator import format_year_week, get_iso_week
 
         weeks = []
         current_date = df_windowed_temp["date"].max()
@@ -225,7 +234,6 @@ def calculate_dashboard_metrics(
 
     # Calculate velocity using filtered data
     # (df_for_velocity was already filtered above)
-    from data.processing import calculate_velocity_from_dataframe
 
     velocity_items_early = calculate_velocity_from_dataframe(
         df_for_velocity, "completed_items"
@@ -233,10 +241,6 @@ def calculate_dashboard_metrics(
 
     # Calculate comprehensive health score using v3.0 formula (6 dimensions)
     # Prepare dashboard metrics for health calculator using shared function (DRY)
-    from data.project_health_calculator import (
-        calculate_comprehensive_project_health,
-        prepare_dashboard_metrics_for_health,
-    )
 
     dashboard_metrics_for_health = prepare_dashboard_metrics_for_health(
         completion_percentage=items_completion_pct
@@ -300,7 +304,6 @@ def calculate_dashboard_metrics(
     # (items per week)
     # Velocity calculation - df_for_velocity was already filtered earlier (line ~690)
     # Just calculate velocity from the already-filtered dataframe
-    from data.processing import calculate_velocity_from_dataframe
 
     velocity_items = calculate_velocity_from_dataframe(
         df_for_velocity, "completed_items"
@@ -363,7 +366,6 @@ def calculate_dashboard_metrics(
     # App uses calculate_rates() which returns empirical PERT days
     # (not simplified formula)
     # This is in ui/dashboard.py and data/processing.py calculate_rates()
-    from data.processing import calculate_rates, compute_weekly_throughput
 
     forecast_date = None
     forecast_months = None

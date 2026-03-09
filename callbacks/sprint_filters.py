@@ -8,6 +8,24 @@ import logging
 import dash_bootstrap_components as dbc
 from dash import Input, Output, State, callback, html, no_update
 
+from data.issue_filtering import filter_issues_for_metrics
+from data.persistence import load_app_settings
+from data.persistence.factory import get_backend
+from data.sprint_manager import (
+    calculate_sprint_progress,
+    calculate_sprint_scope_changes,
+    filter_sprint_issues,
+    get_active_sprint_from_issues,
+    get_sprint_dates,
+    get_sprint_snapshots,
+)
+from ui.empty_states import create_no_sprints_state
+from ui.sprint_tracker import create_sprint_summary_cards
+from visualization.sprint_charts import (
+    create_sprint_progress_bars,
+    create_sprint_summary_card,
+)
+
 logger = logging.getLogger(__name__)
 
 
@@ -37,24 +55,6 @@ def filter_sprint_by_issue_type(
     logger.info(f"Filtering sprint by issue type: {issue_type_filter}")
 
     try:
-        from data.persistence import load_app_settings
-        from data.persistence.factory import get_backend
-        from data.sprint_manager import (
-            calculate_sprint_progress,
-            calculate_sprint_scope_changes,
-            filter_sprint_issues,
-            get_active_sprint_from_issues,
-            get_sprint_snapshots,
-        )
-        from ui.empty_states import create_no_sprints_state
-        from ui.sprint_tracker import (
-            create_sprint_summary_cards,
-        )
-        from visualization.sprint_charts import (
-            create_sprint_progress_bars,
-            create_sprint_summary_card,
-        )
-
         backend = get_backend()
         active_profile_id = backend.get_app_state("active_profile_id")
         active_query_id = backend.get_app_state("active_query_id")
@@ -70,7 +70,6 @@ def filter_sprint_by_issue_type(
         # Filter to configured development-project issues
         # (exclude parents/parent types)
         settings = load_app_settings()
-        from data.issue_filtering import filter_issues_for_metrics
 
         all_issues = filter_issues_for_metrics(
             all_issues, settings=settings, log_prefix="SPRINT FILTERS"
@@ -195,7 +194,6 @@ def filter_sprint_by_issue_type(
         )
 
         # Get sprint dates for the selected sprint
-        from data.sprint_manager import get_sprint_dates
 
         sprint_dates = get_sprint_dates(
             selected_sprint_id, filtered_issues, sprint_field
@@ -205,7 +203,6 @@ def filter_sprint_by_issue_type(
         sprint_state = sprint_dates.get("state") if sprint_dates else None
 
         # Load flow configuration for dynamic status colors
-        from data.persistence import load_app_settings
 
         app_settings = load_app_settings()
         flow_start_statuses = app_settings.get("flow_start_statuses", [])

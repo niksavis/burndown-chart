@@ -15,9 +15,10 @@ Key Functions:
 
 import logging
 from collections import defaultdict
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 from data.active_work_sorting import get_epic_sort_key
+from data.parent_filter import filter_parent_issues
 
 logger = logging.getLogger(__name__)
 
@@ -43,8 +44,6 @@ def filter_active_issues(
     Returns:
         List of filtered issues
     """
-    from datetime import datetime, timedelta
-
     if not flow_end_statuses:
         flow_end_statuses = ["Done", "Closed", "Resolved"]
     if not flow_wip_statuses:
@@ -160,8 +159,6 @@ def get_active_work_data(
     # Use parent field mapping to detect which issues are parents
     filtered_issues = filtered_all_issues
     if filter_parents and parent_field:
-        from data.parent_filter import filter_parent_issues
-
         filtered_issues = filter_parent_issues(
             filtered_all_issues, parent_field, log_prefix="ACTIVE WORK MGR"
         )

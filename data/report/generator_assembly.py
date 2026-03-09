@@ -6,6 +6,13 @@ Part of data/report/generator.py split.
 
 import logging
 
+from data.profile_manager import get_active_profile_and_query_display_names
+from data.query_manager import get_active_profile_id
+from data.report.chart_generator import generate_chart_scripts
+from data.report.data_loader import load_report_data
+from data.report.generator_metrics import calculate_all_metrics
+from data.report.renderer import render_template, update_report_progress
+
 logger = logging.getLogger(__name__)
 
 
@@ -35,8 +42,6 @@ def generate_html_report(
         raise ValueError("At least one section must be selected for report generation")
 
     # Get active profile context
-    from data.profile_manager import get_active_profile_and_query_display_names
-    from data.query_manager import get_active_profile_id
 
     if not profile_id:
         profile_id = get_active_profile_id()
@@ -51,10 +56,6 @@ def generate_html_report(
     )
 
     # Delegate to specialized modules
-    from data.report.chart_generator import generate_chart_scripts
-    from data.report.data_loader import load_report_data
-    from data.report.generator_metrics import calculate_all_metrics
-    from data.report.renderer import render_template
 
     # Load and filter data for the time period
     report_data = load_report_data(profile_id, time_period_weeks)
@@ -109,7 +110,6 @@ def generate_html_report_with_progress(
     Returns:
         Tuple of (HTML string, metadata dict)
     """
-    from data.report.renderer import update_report_progress
 
     try:
         update_report_progress(10, "Loading data...")

@@ -15,7 +15,7 @@ Key Functions:
 
 import logging
 from collections import defaultdict
-from datetime import UTC
+from datetime import UTC, datetime
 
 logger = logging.getLogger(__name__)
 
@@ -804,7 +804,6 @@ def calculate_issue_status_timeline(
         ]
         Empty list if no status changes found
     """
-    from datetime import datetime
 
     # Filter to this issue's status changes
     issue_changes = [

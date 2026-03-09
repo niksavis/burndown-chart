@@ -12,6 +12,8 @@ from typing import Any
 
 from dash import Input, Output, State, callback, ctx, no_update
 
+from data.jira.metadata_fetcher import create_metadata_fetcher
+from data.persistence import load_app_settings, load_jira_configuration
 from ui.toast_notifications import create_success_toast, create_warning_toast
 
 logger = logging.getLogger(__name__)
@@ -79,8 +81,6 @@ def _fetch_field_values(field_id: str, jira_config: dict[str, Any]) -> list[str]
         return []
 
     try:
-        from data.jira.metadata_fetcher import create_metadata_fetcher
-
         fetcher = create_metadata_fetcher(
             jira_url=jira_config.get("base_url", ""),
             jira_token=jira_config.get("token", ""),
@@ -121,8 +121,6 @@ def prefetch_field_values_on_modal_open(is_open: bool):
     """
     if not is_open:
         return no_update
-
-    from data.persistence import load_app_settings, load_jira_configuration
 
     settings = load_app_settings() or {}
     jira_config = load_jira_configuration() or {}
@@ -238,7 +236,6 @@ def fetch_field_values_on_blur(
         return no_update, no_update
 
     # Load JIRA config from profile (not from a store)
-    from data.persistence import load_jira_configuration
 
     jira_config = load_jira_configuration() or {}
 

@@ -15,10 +15,26 @@ This is a large callback (~980 lines) that coordinates:
 
 import threading
 
-from dash import ClientsideFunction, Input, Output, State, html, no_update
+from dash import ClientsideFunction, Input, Output, State, ctx, html, no_update
 from dash.exceptions import PreventUpdate
 
 from configuration import logger
+from data.cache_manager import invalidate_all_cache
+from data.database import get_db_connection
+from data.jira import (
+    build_sync_jira_config,
+    sync_jira_scope_and_data,
+    validate_jira_config,
+)
+from data.metrics_snapshots import clear_snapshots_cache
+from data.persistence import load_app_settings, load_jira_configuration
+from data.persistence.factory import get_backend
+from data.profile_manager import get_active_query_workspace
+from data.query_manager import (
+    resolve_jql_query,
+    switch_query,
+)
+from data.task_progress import TaskProgress
 
 
 def register(app):
@@ -91,10 +107,6 @@ def register(app):
         Returns:
             Tuple of 16 outputs for UI state management
         """
-        from dash import ctx
-
-        from data.task_progress import TaskProgress
-
         triggered_id = ctx.triggered_id if ctx.triggered else None
         triggered_prop = ctx.triggered[0] if ctx.triggered else None
 
@@ -246,11 +258,6 @@ def _prepare_jira_sync(jql_query, selected_query_id, force_refresh, button_norma
 
     Returns None if successful, or error tuple if validation fails.
     """
-    from data.jira import build_sync_jira_config, validate_jira_config
-    from data.persistence import load_app_settings, load_jira_configuration
-    from data.query_manager import resolve_jql_query
-    from data.task_progress import TaskProgress
-
     logger.info(
         "[Settings] Received jql_query from Store: "
         f"'{jql_query}' (type: {type(jql_query)})"
@@ -262,8 +269,6 @@ def _prepare_jira_sync(jql_query, selected_query_id, force_refresh, button_norma
     # Switch to selected query BEFORE fetching data
     if selected_query_id and selected_query_id != "__create_new__":
         try:
-            from data.query_manager import switch_query
-
             switch_query(selected_query_id)
             logger.info(
                 f"[Settings] Switched to query '{selected_query_id}' before Update Data"
@@ -377,11 +382,6 @@ def _prepare_jira_sync(jql_query, selected_query_id, force_refresh, button_norma
 
 def _start_background_sync(jql_query, selected_query_id, force_refresh, button_normal):
     """Start background thread for JIRA data synchronization."""
-    from data.jira import build_sync_jira_config
-    from data.persistence import load_app_settings, load_jira_configuration
-    from data.query_manager import resolve_jql_query
-    from data.task_progress import TaskProgress
-
     # Reload config for background thread
     app_settings = load_app_settings()
     jira_config = load_jira_configuration()
@@ -409,8 +409,6 @@ def _start_background_sync(jql_query, selected_query_id, force_refresh, button_n
     # Start background thread
     def background_sync():
         """Background thread for JIRA data fetch."""
-        from data.jira import sync_jira_scope_and_data
-
         logger.info("=" * 70)
         logger.info("[BACKGROUND SYNC] Thread started")
         logger.info(f"[BACKGROUND SYNC] JQL: {settings_jql}")
@@ -507,8 +505,6 @@ def _should_force_refresh(force_refresh):
 
     # Check for new queries with no existing data
     if not force_refresh_bool:
-        from data.persistence.factory import get_backend
-
         backend = get_backend()
         active_profile_id = backend.get_app_state("active_profile_id")
         active_query_id = backend.get_app_state("active_query_id")
@@ -527,11 +523,6 @@ def _should_force_refresh(force_refresh):
 
 def _perform_data_wipe():
     """Perform complete data wipe for active query."""
-    from data.cache_manager import invalidate_all_cache
-    from data.database import get_db_connection
-    from data.persistence.factory import get_backend
-    from data.profile_manager import get_active_query_workspace
-
     logger.info("=" * 60)
     logger.info("[Settings] FORCE REFRESH ENABLED - COMPLETE DATA WIPE FOR THIS QUERY")
     logger.info("[Settings] This is a self-repair mechanism to recover from bad data")
@@ -586,8 +577,6 @@ def _perform_data_wipe():
 
         # Clear snapshots cache
         try:
-            from data.metrics_snapshots import clear_snapshots_cache
-
             clear_snapshots_cache()
             logger.info("[Settings] ✓ Cleared in-memory snapshots cache")
         except Exception as e:

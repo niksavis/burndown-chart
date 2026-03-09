@@ -10,6 +10,9 @@ from dash import Input, State, html, no_update
 from dash.exceptions import PreventUpdate
 
 from configuration import logger
+from data.jira import construct_jira_endpoint
+from data.persistence import load_jira_configuration
+from data.persistence.adapters import calculate_project_scope_from_jira
 
 
 def register(app):
@@ -88,8 +91,6 @@ def _load_and_validate_jira_config(jql_query: str) -> tuple:
     Returns:
         Tuple of (jira_config dict or None, ui_config dict)
     """
-    from data.jira import construct_jira_endpoint
-    from data.persistence import load_jira_configuration
 
     jira_config = load_jira_configuration()
 
@@ -128,7 +129,6 @@ def _calculate_scope(jql_query: str, ui_config: dict) -> tuple:
     Returns:
         Tuple of (success, message, scope_data)
     """
-    from data.persistence.adapters import calculate_project_scope_from_jira
 
     return calculate_project_scope_from_jira(jql_query, ui_config)
 

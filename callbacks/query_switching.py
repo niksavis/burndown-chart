@@ -9,6 +9,16 @@ import logging
 from dash import Input, Output, State, callback, ctx, html, no_update
 from dash.exceptions import PreventUpdate
 
+from data.persistence import load_app_settings, load_unified_project_data
+from data.query_manager import (
+    create_query,
+    get_active_profile_id,
+    get_active_query_id,
+    get_query_dropdown_options,
+    list_queries_for_profile,
+    switch_query,
+)
+from ui.query_selector import get_query_dropdown_options as build_query_options
 from ui.toast_notifications import create_error_toast, create_success_toast
 
 logger = logging.getLogger(__name__)
@@ -74,8 +84,6 @@ def populate_query_dropdown(_pathname, profile_id):
         Tuple of (options, value, jql_query, query_name, legacy_jql)
     """
     try:
-        from data.query_manager import get_active_profile_id, list_queries_for_profile
-
         # Use provided profile_id if available (from profile-selector change),
         # otherwise get active profile from file system (on page load)
         if profile_id is None or profile_id == "":
@@ -87,7 +95,6 @@ def populate_query_dropdown(_pathname, profile_id):
                 logger.debug(
                     "[Query] App state not initialized, returning empty dropdown"
                 )
-                from data.query_manager import get_query_dropdown_options
 
                 return (
                     get_query_dropdown_options(None),
@@ -100,7 +107,6 @@ def populate_query_dropdown(_pathname, profile_id):
         # Guard against None profile_id after all checks
         if not profile_id:
             logger.debug("[Query] No profile ID available, returning empty dropdown")
-            from data.query_manager import get_query_dropdown_options
 
             return (
                 get_query_dropdown_options(None),
@@ -114,7 +120,6 @@ def populate_query_dropdown(_pathname, profile_id):
         queries = list_queries_for_profile(profile_id)
 
         # Build dropdown options with "Create New" at the top and timestamps
-        from data.query_manager import get_query_dropdown_options
 
         options = get_query_dropdown_options(profile_id)
         active_value = ""
@@ -203,11 +208,6 @@ def switch_query_callback(selected_query_id, current_options):
         return no_update, "__create_new__", "", "", ""
 
     try:
-        from data.query_manager import (
-            get_active_profile_id,
-            list_queries_for_profile,
-        )
-
         # IMPORTANT: Do NOT call switch_query() here!
         # Switching the active query would cause other callbacks to load data
         # from the newly selected query before the user clicks "Load".
@@ -217,8 +217,6 @@ def switch_query_callback(selected_query_id, current_options):
         # Just refresh the dropdown to show the selected query's JQL and name
         profile_id = get_active_profile_id()
         queries = list_queries_for_profile(profile_id)
-
-        from data.query_manager import get_query_dropdown_options
 
         options = get_query_dropdown_options(profile_id)
         selected_jql = ""
@@ -306,11 +304,6 @@ def toggle_edit_query_modal(
             raise PreventUpdate
 
         try:
-            from data.query_manager import (
-                get_active_profile_id,
-                list_queries_for_profile,
-            )
-
             profile_id = get_active_profile_id()
             queries = list_queries_for_profile(profile_id)
 
@@ -409,13 +402,6 @@ def create_new_query_callback(save_clicks, query_name, query_jql):
         raise PreventUpdate
 
     try:
-        from data.query_manager import (
-            create_query,
-            get_active_profile_id,
-            list_queries_for_profile,
-        )
-        from ui.query_selector import get_query_dropdown_options
-
         # Validate inputs
         if not query_name or not query_name.strip():
             feedback = create_error_toast(
@@ -441,7 +427,7 @@ def create_new_query_callback(save_clicks, query_name, query_jql):
 
         # Get updated query list
         queries = list_queries_for_profile(profile_id)
-        options = get_query_dropdown_options(queries)
+        options = build_query_options(queries)
 
         # Clear inputs and show success toast
         toast = create_success_toast(
@@ -519,12 +505,6 @@ def trigger_delete_query_modal_from_selector(delete_clicks, selected_query_id):
         raise PreventUpdate
 
     try:
-        from data.query_manager import (
-            get_active_profile_id,
-            get_active_query_id,
-            list_queries_for_profile,
-        )
-
         # Get query info
         profile_id = get_active_profile_id()
         queries = list_queries_for_profile(profile_id)
@@ -619,19 +599,12 @@ def load_query_cached_data(n_clicks, selected_query_id):
         raise PreventUpdate
 
     try:
-        from data.persistence import load_app_settings, load_unified_project_data
-        from data.query_manager import (
-            get_active_profile_id,
-            switch_query,
-        )
-
         # Switch to the selected query
         switch_query(selected_query_id)
         logger.info(f"Switched to query: {selected_query_id}")
 
         # Refresh dropdown to show [Active] indicator on the newly active query
         profile_id = get_active_profile_id()
-        from data.query_manager import get_query_dropdown_options
 
         dropdown_options = get_query_dropdown_options(profile_id)
 

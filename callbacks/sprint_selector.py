@@ -6,7 +6,23 @@ Handles sprint selection changes in the Sprint Tracker tab.
 import logging
 
 import dash_bootstrap_components as dbc
-from dash import Input, Output, callback, html, no_update
+from dash import Input, Output, callback, callback_context, html, no_update
+
+from data.issue_filtering import filter_issues_for_metrics
+from data.persistence import load_app_settings
+from data.persistence.factory import get_backend
+from data.sprint_manager import (
+    calculate_sprint_progress,
+    calculate_sprint_scope_changes,
+    filter_sprint_issues,
+    get_sprint_dates,
+    get_sprint_snapshots,
+)
+from ui.sprint_tracker import create_sprint_summary_cards
+from visualization.sprint_charts import (
+    create_sprint_progress_bars,
+    create_sprint_summary_card,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -30,7 +46,6 @@ def update_sprint_selection(selected_sprint: str, show_points_list: list):
     Returns:
         Tuple of (updated data container, dropdown value)
     """
-    from dash import callback_context
 
     # Log which input triggered this callback
     triggered = callback_context.triggered[0] if callback_context.triggered else None
@@ -55,10 +70,6 @@ def update_sprint_selection(selected_sprint: str, show_points_list: list):
     # Re-render the entire sprint tracker with the selected sprint
     # We need to reload data and filter to the selected sprint
     try:
-        from data.persistence import load_app_settings
-        from data.persistence.factory import get_backend
-        from data.sprint_manager import filter_sprint_issues, get_sprint_snapshots
-
         backend = get_backend()
         active_profile_id = backend.get_app_state("active_profile_id")
         active_query_id = backend.get_app_state("active_query_id")
@@ -73,7 +84,6 @@ def update_sprint_selection(selected_sprint: str, show_points_list: list):
         # (exclude parents and parent issue types).
         if all_issues:
             settings = load_app_settings()
-            from data.issue_filtering import filter_issues_for_metrics
 
             all_issues = filter_issues_for_metrics(
                 all_issues, settings=settings, log_prefix="SPRINT SELECTOR"
@@ -119,10 +129,6 @@ def update_sprint_selection(selected_sprint: str, show_points_list: list):
         sprint_data = sprint_snapshots[selected_sprint]
 
         # Calculate progress
-        from data.sprint_manager import (
-            calculate_sprint_progress,
-            calculate_sprint_scope_changes,
-        )
 
         flow_end_statuses = settings.get("flow_end_statuses", ["Done", "Closed"])
         flow_wip_statuses = settings.get("wip_statuses", ["In Progress"])
@@ -141,13 +147,6 @@ def update_sprint_selection(selected_sprint: str, show_points_list: list):
         }
 
         # Create UI components
-        from ui.sprint_tracker import (
-            create_sprint_summary_cards,
-        )
-        from visualization.sprint_charts import (
-            create_sprint_progress_bars,
-            create_sprint_summary_card,
-        )
 
         # Build summary card data
         summary_card_data = create_sprint_summary_card(
@@ -165,7 +164,6 @@ def update_sprint_selection(selected_sprint: str, show_points_list: list):
         )
 
         # Get sprint dates for the selected sprint
-        from data.sprint_manager import get_sprint_dates
 
         sprint_dates = get_sprint_dates(selected_sprint, tracked_issues, sprint_field)
         sprint_start_date = sprint_dates.get("start_date") if sprint_dates else None
@@ -173,7 +171,6 @@ def update_sprint_selection(selected_sprint: str, show_points_list: list):
         sprint_state = sprint_dates.get("state") if sprint_dates else None
 
         # Load flow configuration for dynamic status colors
-        from data.persistence import load_app_settings
 
         app_settings = load_app_settings()
         flow_start_statuses = app_settings.get("flow_start_statuses", [])

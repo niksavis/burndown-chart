@@ -8,6 +8,19 @@ used in the dashboard tab.  All business logic delegated to data/ modules.
 import logging
 from datetime import datetime, timedelta
 
+from data.bug_processing import calculate_bug_metrics_summary, filter_bug_issues
+from data.dora_metrics_calculator import load_dora_metrics_from_cache
+from data.issue_filtering import filter_issues_for_metrics
+from data.metrics_snapshots import (
+    get_available_weeks,
+    get_metric_snapshot,
+    get_metric_weekly_values,
+)
+from data.persistence import load_app_settings, load_unified_project_data
+from data.persistence.factory import get_backend
+from data.query_manager import get_active_query_id
+from data.time_period_calculator import format_year_week, get_iso_week
+
 logger = logging.getLogger("burndown_chart")
 
 
@@ -50,8 +63,6 @@ def load_extended_metrics(
 def _try_load_dora(extended_metrics: dict, data_points_count: int) -> None:
     """Load DORA metrics into extended_metrics if available."""
     try:
-        from data.dora_metrics_calculator import load_dora_metrics_from_cache
-
         cached_metrics = load_dora_metrics_from_cache(n_weeks=data_points_count or 12)
         if not cached_metrics:
             return
@@ -98,13 +109,6 @@ def _try_load_flow(
 ) -> None:
     """Load flow metrics into extended_metrics if available."""
     try:
-        from data.metrics_snapshots import (
-            get_available_weeks,
-            get_metric_snapshot,
-            get_metric_weekly_values,
-        )
-        from data.time_period_calculator import format_year_week, get_iso_week
-
         weeks = []
         current_date = datetime.now()
         for _i in range(data_points_count or 12):
@@ -199,13 +203,6 @@ def _try_load_bugs(
 ) -> None:
     """Load bug analysis metrics into extended_metrics if available."""
     try:
-        from data.bug_processing import (
-            calculate_bug_metrics_summary,
-            filter_bug_issues,
-        )
-        from data.persistence.factory import get_backend
-        from data.query_manager import get_active_query_id
-
         backend = get_backend()
         query_id_active = get_active_query_id()
         bug_data = None
@@ -215,15 +212,10 @@ def _try_load_bugs(
 
         issues = backend.get_issues(profile_id, query_id_active)
         if issues:
-            from data.issue_filtering import filter_issues_for_metrics
-            from data.persistence import load_app_settings
-
             settings = load_app_settings()
             issues = filter_issues_for_metrics(
                 issues, settings=settings, log_prefix="BUG METRICS"
             )
-
-        from data.persistence import load_app_settings
 
         settings = load_app_settings()
         bug_types = settings.get("bug_types", {})
@@ -243,8 +235,6 @@ def _try_load_bugs(
             date_from=date_from,
             date_to=date_to,
         )
-
-        from data.persistence import load_unified_project_data
 
         project_data = load_unified_project_data()
         weekly_stats = project_data.get("statistics", [])

@@ -18,6 +18,12 @@ from typing import Any
 from dash import Input, Output, State, html
 from dash.exceptions import PreventUpdate
 
+from data.jira import (
+    construct_jira_endpoint,
+)
+from data.jira.validation import test_jql_query, validate_jql_for_scriptrunner
+from data.persistence import load_jira_configuration
+
 # Get logger
 logger = logging.getLogger(__name__)
 
@@ -68,9 +74,6 @@ def register(app: Any) -> None:
             )
 
         try:
-            from data.jira import test_jql_query, validate_jql_for_scriptrunner
-            from data.persistence import load_jira_configuration
-
             # Load JIRA configuration
             loaded_jira_config = load_jira_configuration()
 
@@ -212,7 +215,6 @@ def _build_jira_config(loaded_jira_config: dict, jql_query: str) -> dict:
     Returns:
         JIRA config dictionary
     """
-    from data.jira import construct_jira_endpoint
 
     base_url = loaded_jira_config.get("base_url", "https://jira.atlassian.com")
     api_version = loaded_jira_config.get("api_version", "v2")

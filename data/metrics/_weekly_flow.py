@@ -3,6 +3,14 @@
 import logging
 from datetime import UTC, datetime
 
+from configuration.metrics_config import get_metrics_config
+from data.changelog_processor import (
+    get_first_status_transition_timestamp,
+    get_status_at_point_in_time,
+)
+from data.flow_metrics import calculate_flow_efficiency, calculate_flow_time
+from data.metrics_snapshots import save_metric_snapshot
+
 logger = logging.getLogger(__name__)
 
 
@@ -17,10 +25,6 @@ def _compute_wip_at_week_end(
     week_label: str,
 ) -> dict:
     """Build the Flow Load result dict from historical WIP reconstruction."""
-    from data.changelog_processor import (
-        get_first_status_transition_timestamp,
-        get_status_at_point_in_time,
-    )
 
     issues_in_wip_at_week_end = []
     week_end_check_time = completion_cutoff
@@ -118,7 +122,6 @@ def _compute_wip_at_week_end(
 
 def _compute_work_distribution(issues_completed: list, app_settings: dict) -> dict:
     """Compute work distribution by flow type for completed issues."""
-    from configuration.metrics_config import get_metrics_config
 
     field_mappings = app_settings.get("field_mappings", {})
     flow_mappings = field_mappings.get("flow", {})
@@ -206,14 +209,12 @@ def calculate_flow_metrics(
 
     Returns (metrics_saved, metrics_details).
     """
-    from data.metrics_snapshots import save_metric_snapshot
 
     metrics_saved = 0
     metrics_details: list[str] = []
 
     if changelog_available:
         report_progress("[Stats] Calculating Flow Time metric...")
-        from data.flow_metrics import calculate_flow_time
 
         flow_time_result = calculate_flow_time(issues_completed, time_period_days=7)
     else:
@@ -222,7 +223,6 @@ def calculate_flow_metrics(
 
     if changelog_available:
         report_progress("[Stats] Calculating Flow Efficiency metric...")
-        from data.flow_metrics import calculate_flow_efficiency
 
         efficiency_result = calculate_flow_efficiency(
             issues_completed, time_period_days=7

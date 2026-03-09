@@ -5,7 +5,16 @@
 # Third-party library imports
 
 # Application imports
-from configuration.settings import logger
+from configuration.settings import (
+    DEFAULT_DATA_POINTS_COUNT,
+    DEFAULT_DEADLINE,
+    DEFAULT_ESTIMATED_ITEMS,
+    DEFAULT_ESTIMATED_POINTS,
+    DEFAULT_PERT_FACTOR,
+    DEFAULT_TOTAL_ITEMS,
+    DEFAULT_TOTAL_POINTS,
+    logger,
+)
 from data.persistence.adapters.app_settings import load_app_settings, save_app_settings
 
 
@@ -28,12 +37,6 @@ def save_settings(
     This function is kept for backward compatibility only.
     """
     # Lazy import to avoid circular dependency
-    from configuration.settings import (
-        DEFAULT_DATA_POINTS_COUNT,
-        DEFAULT_ESTIMATED_ITEMS,
-        DEFAULT_ESTIMATED_POINTS,
-    )
-
     logger.warning(
         "[Deprecated] save_settings() called - use save_app_settings() "
         "for profile-based storage"
@@ -73,16 +76,6 @@ def load_settings():
     This function is kept for backward compatibility only.
     """
     # Lazy import to avoid circular dependency
-    from configuration.settings import (
-        DEFAULT_DATA_POINTS_COUNT,
-        DEFAULT_DEADLINE,
-        DEFAULT_ESTIMATED_ITEMS,
-        DEFAULT_ESTIMATED_POINTS,
-        DEFAULT_PERT_FACTOR,
-        DEFAULT_TOTAL_ITEMS,
-        DEFAULT_TOTAL_POINTS,
-    )
-
     logger.warning(
         "[Deprecated] load_settings() called - use load_app_settings() "
         "for profile-based storage"

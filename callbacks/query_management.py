@@ -14,10 +14,23 @@ Workflow:
 
 import logging
 
-from dash import Input, Output, State, callback, html, no_update
+from dash import Input, Output, State, callback, callback_context, html, no_update
 from dash.exceptions import PreventUpdate
 
-from ui.toast_notifications import create_error_toast, create_success_toast
+from data.query_manager import (
+    create_query,
+    get_active_profile_id,
+    get_query_dropdown_options,
+    list_queries_for_profile,
+    switch_query,
+    update_query,
+)
+from data.query_name_generator import generate_query_name
+from ui.toast_notifications import (
+    create_error_toast,
+    create_success_toast,
+    create_warning_toast,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -71,7 +84,6 @@ def manage_button_states(
     Returns:
         Tuple of (save_disabled, save_as_disabled, discard_disabled, show_alert)
     """
-    from dash import callback_context
 
     logger.info(
         f"[QueryManagement] CALLBACK FIRED - selected_query_id='{selected_query_id}', "
@@ -166,7 +178,6 @@ def manage_button_states(
             return save_disabled, save_as_disabled, discard_disabled, show_alert
 
         # Get original query data from dropdown options
-        from data.query_manager import get_active_profile_id, list_queries_for_profile
 
         profile_id = get_active_profile_id()
         queries = list_queries_for_profile(profile_id)
@@ -249,8 +260,6 @@ def auto_generate_query_name(
         raise PreventUpdate
 
     try:
-        from data.query_name_generator import generate_query_name
-
         generated_name = generate_query_name(jql_query)
         logger.info(f"[QueryManagement] Auto-generated query name: {generated_name}")
         return generated_name
@@ -318,8 +327,6 @@ def save_query_overwrite(
 
             # Auto-generate name if empty
             if not query_name or not query_name.strip():
-                from data.query_name_generator import generate_query_name
-
                 query_name = generate_query_name(query_jql.strip())
                 logger.info(
                     "[QueryManagement] Auto-generated name for first query: "
@@ -327,12 +334,6 @@ def save_query_overwrite(
                 )
 
             # Create first query
-            from data.query_manager import (
-                create_query,
-                get_active_profile_id,
-                list_queries_for_profile,
-                switch_query,
-            )
 
             profile_id = get_active_profile_id()
             new_query_id = create_query(profile_id, query_name, query_jql.strip())
@@ -344,7 +345,6 @@ def save_query_overwrite(
             )
 
             # Refresh dropdown and select new query
-            from data.query_manager import get_query_dropdown_options
 
             options = get_query_dropdown_options(profile_id)
 
@@ -367,8 +367,6 @@ def save_query_overwrite(
 
             # Auto-generate name if empty
             if not query_name or not query_name.strip():
-                from data.query_name_generator import generate_query_name
-
                 query_name = generate_query_name(query_jql.strip())
                 logger.info(
                     "[QueryManagement] Auto-generated name for new query: "
@@ -376,12 +374,6 @@ def save_query_overwrite(
                 )
 
             # Create new query
-            from data.query_manager import (
-                create_query,
-                get_active_profile_id,
-                list_queries_for_profile,
-                switch_query,
-            )
 
             profile_id = get_active_profile_id()
 
@@ -389,8 +381,6 @@ def save_query_overwrite(
             queries = list_queries_for_profile(profile_id)
             for query in queries:
                 if query.get("name", "").strip() == query_name.strip():
-                    from ui.toast_notifications import create_warning_toast
-
                     feedback = create_warning_toast(
                         "Query name "
                         f"'{query_name}' already exists. "
@@ -408,7 +398,6 @@ def save_query_overwrite(
             )
 
             # Refresh dropdown and select new query
-            from data.query_manager import get_query_dropdown_options
 
             options = get_query_dropdown_options(profile_id)
 
@@ -435,11 +424,6 @@ def save_query_overwrite(
             return "", no_update, no_update, feedback
 
         # Update query
-        from data.query_manager import (
-            get_active_profile_id,
-            list_queries_for_profile,
-            update_query,
-        )
 
         profile_id = get_active_profile_id()
 
@@ -450,8 +434,6 @@ def save_query_overwrite(
                 query.get("id") != selected_query_id
                 and query.get("name", "").strip() == query_name.strip()
             ):
-                from ui.toast_notifications import create_warning_toast
-
                 feedback = create_warning_toast(
                     "Query name "
                     f"'{query_name}' already exists. "
@@ -467,7 +449,6 @@ def save_query_overwrite(
         logger.info(f"Query '{selected_query_id}' updated successfully")
 
         # Refresh dropdown
-        from data.query_manager import get_query_dropdown_options
 
         options = get_query_dropdown_options(profile_id)
 
@@ -549,11 +530,6 @@ def save_query_as_new(
             return "", no_update, no_update, feedback
 
         # Create new query
-        from data.query_manager import (
-            create_query,
-            get_active_profile_id,
-            list_queries_for_profile,
-        )
 
         profile_id = get_active_profile_id()
 
@@ -561,8 +537,6 @@ def save_query_as_new(
         queries = list_queries_for_profile(profile_id)
         for query in queries:
             if query.get("name", "").strip() == query_name.strip():
-                from ui.toast_notifications import create_warning_toast
-
                 feedback = create_warning_toast(
                     "Query name "
                     f"'{query_name}' already exists. "
@@ -576,7 +550,6 @@ def save_query_as_new(
         logger.info(f"New query '{query_id}' created successfully")
 
         # Refresh dropdown and select new query
-        from data.query_manager import get_query_dropdown_options
 
         options = get_query_dropdown_options(profile_id)
 
@@ -646,7 +619,6 @@ def discard_query_changes(n_clicks: int, selected_query_id: str) -> tuple:
             return "", "", feedback
 
         # Handle existing query - reload original data
-        from data.query_manager import get_active_profile_id, list_queries_for_profile
 
         profile_id = get_active_profile_id()
         queries = list_queries_for_profile(profile_id)

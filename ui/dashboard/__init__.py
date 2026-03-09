@@ -14,6 +14,8 @@ from datetime import datetime, timedelta
 
 from dash import html
 
+from data.persistence import load_unified_project_data
+from ui.budget_section import _create_budget_section
 from ui.dashboard.activity_quality import (
     create_quality_scope_section,
     create_recent_activity_section,
@@ -124,8 +126,6 @@ def create_comprehensive_dashboard(
     # CRITICAL FIX: Dashboard shows CURRENT remaining work, not windowed scope
     # The Data Points slider filters statistics for forecasting,
     # but remaining is always current
-    from data.persistence import load_unified_project_data
-    from ui.budget_section import _create_budget_section
 
     unified_data = load_unified_project_data()
     project_scope = unified_data.get("project_scope", {})

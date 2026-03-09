@@ -18,6 +18,9 @@ from typing import Any
 
 from dash import Input, Output, State, callback, ctx, no_update
 
+from data.jira.metadata_fetcher import create_metadata_fetcher
+from data.persistence import load_app_settings, load_jira_configuration
+
 logger = logging.getLogger(__name__)
 
 
@@ -50,9 +53,6 @@ def _fetch_jira_metadata(
         - error_message is None on success, error string on failure
     """
     import time
-
-    from data.jira.metadata_fetcher import create_metadata_fetcher
-    from data.persistence import load_app_settings
 
     try:
         # Check if JIRA is configured
@@ -192,7 +192,6 @@ def fetch_metadata_on_startup_or_config_change(
     Returns:
         Tuple of (metadata_dict, config_hash)
     """
-    from data.persistence import load_jira_configuration
 
     triggered_id = ctx.triggered_id if ctx.triggered else None
 

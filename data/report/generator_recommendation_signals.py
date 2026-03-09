@@ -5,8 +5,14 @@ private helpers to keep module size within the 500-line limit.
 Part of data/report/generator.py split.
 """
 
+from datetime import datetime
 from typing import Any
 
+import pandas as pd
+
+from data.recommendations.budget_signals import (
+    build_budget_forecast_signals_from_dashboard,
+)
 from data.types import MetricsResult
 
 
@@ -27,10 +33,6 @@ def _build_deadline_scenario_insights(
     """
     if deadline:
         try:
-            from datetime import datetime
-
-            import pandas as pd
-
             deadline_date = pd.to_datetime(deadline)
             if not pd.isna(deadline_date):
                 current_date = datetime.combine(
@@ -183,10 +185,6 @@ def _build_budget_forecast_insights(
     """
     if "budget" in extended_metrics and deadline:
         try:
-            from data.recommendations.budget_signals import (
-                build_budget_forecast_signals_from_dashboard,
-            )
-
             budget = extended_metrics["budget"]
             if budget.get("has_data"):
                 budget_forecast_signals = build_budget_forecast_signals_from_dashboard(

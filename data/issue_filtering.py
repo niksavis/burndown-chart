@@ -9,6 +9,12 @@ Centralizes filtering to:
 import logging
 from typing import Any
 
+from data.jira.parent_filter import filter_out_parent_types
+from data.jira.query_builder import extract_parent_types_from_config
+from data.parent_filter import filter_parent_issues
+from data.persistence import load_app_settings
+from data.project_filter import filter_development_issues
+
 logger = logging.getLogger(__name__)
 
 
@@ -31,8 +37,6 @@ def filter_issues_for_metrics(
         return issues
 
     if settings is None:
-        from data.persistence import load_app_settings
-
         settings = load_app_settings()
 
     # Exclude parent issues based on parent field mapping
@@ -40,27 +44,20 @@ def filter_issues_for_metrics(
         settings.get("field_mappings", {}).get("general", {}).get("parent_field")
     )
     if parent_field:
-        from data.parent_filter import filter_parent_issues
-
         issues = filter_parent_issues(issues, parent_field, log_prefix=log_prefix)
 
     # Filter to development projects only
     development_projects = settings.get("development_projects", [])
     devops_projects = settings.get("devops_projects", [])
     if development_projects or devops_projects:
-        from data.project_filter import filter_development_issues
-
         issues = filter_development_issues(
             issues, development_projects, devops_projects
         )
 
     # Exclude configured parent issue types from calculations
-    from data.jira.query_builder import extract_parent_types_from_config
 
     parent_types = extract_parent_types_from_config(settings)
     if parent_types:
-        from data.jira.parent_filter import filter_out_parent_types
-
         issues = filter_out_parent_types(issues, parent_types)
 
     return issues

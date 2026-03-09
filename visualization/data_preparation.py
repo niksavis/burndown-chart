@@ -15,6 +15,14 @@ from datetime import datetime, timedelta
 # Third-party library imports
 import pandas as pd
 
+from data.metrics.forecast_calculator import calculate_ewma_forecast
+from data.processing import (
+    calculate_rates,
+    compute_weekly_throughput,
+    daily_forecast_burnup,
+)
+from utils.dataframe_utils import ensure_dataframe
+
 # Get logger
 logger = logging.getLogger(__name__)
 
@@ -238,14 +246,6 @@ def prepare_visualization_data(
     if data_points_count is not None:
         data_points_count = int(data_points_count)
 
-    # Import needed functions from data module
-    from data.processing import (
-        calculate_rates,
-        compute_weekly_throughput,
-        daily_forecast_burnup,
-    )
-    from utils.dataframe_utils import ensure_dataframe
-
     # Handle empty dataframe case
     if (
         df is None
@@ -427,8 +427,6 @@ def prepare_visualization_data(
             if not df_calc.empty
             else total_points,
         }
-
-    from data.metrics.forecast_calculator import calculate_ewma_forecast
 
     ewma_items_weekly = (
         calculate_ewma_forecast(

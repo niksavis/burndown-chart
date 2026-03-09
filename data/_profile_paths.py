@@ -8,6 +8,8 @@ that test fixtures patching data.profile_manager.PROFILES_DIR take effect.
 import logging
 from pathlib import Path
 
+from data.persistence.factory import get_backend
+
 logger = logging.getLogger(__name__)
 
 
@@ -26,7 +28,6 @@ def get_active_profile_workspace() -> Path:
         >>> profile_config = workspace / "profile.json"
     """
     import data.profile_manager as _pm
-    from data.persistence.factory import get_backend
 
     backend = get_backend()
 
@@ -59,7 +60,6 @@ def get_active_query_workspace() -> Path:
         >>> cache_file = workspace / "jira_cache.json"
     """
     import data.profile_manager as _pm
-    from data.persistence.factory import get_backend
 
     backend = get_backend()
 

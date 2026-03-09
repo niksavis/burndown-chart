@@ -27,8 +27,11 @@ Data Isolation:
 
 import logging
 from datetime import UTC, datetime
+from pathlib import Path
 
+from data.database import get_db_connection
 from data.persistence.factory import get_backend
+from data.time_formatting import get_relative_time_string
 
 logger = logging.getLogger(__name__)
 
@@ -230,10 +233,6 @@ def get_query_dropdown_options(profile_id: str | None = None) -> list[dict]:
     """
     import logging
 
-    from data.database import get_db_connection
-    from data.persistence.factory import get_backend
-    from data.time_formatting import get_relative_time_string
-
     logger = logging.getLogger(__name__)
 
     backend = get_backend()
@@ -253,8 +252,6 @@ def get_query_dropdown_options(profile_id: str | None = None) -> list[dict]:
     # (performance optimization).
     timestamp_map = {}
     try:
-        from pathlib import Path
-
         db_path = getattr(backend, "db_path", Path("profiles/burndown.db"))
 
         with get_db_connection(Path(db_path)) as conn:
@@ -416,7 +413,6 @@ def update_query(
         True
     """
     # Use repository pattern - get backend and load query
-    from data.persistence.factory import get_backend
 
     backend = get_backend()
 
@@ -572,8 +568,6 @@ def resolve_jql_query(jql_query: str, app_settings: dict) -> str:
     """
     if not jql_query or not jql_query.strip():
         try:
-            from data.persistence.factory import get_backend
-
             backend = get_backend()
             active_query_id = backend.get_app_state("active_query_id")
             active_profile_id = backend.get_app_state("active_profile_id")

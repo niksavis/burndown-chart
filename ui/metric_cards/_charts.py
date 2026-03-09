@@ -2,9 +2,18 @@
 
 from typing import Any
 
-from dash import html
+from dash import dcc, html
 
 from ui.metric_cards._helpers import _get_flow_performance_tier_color_hex
+from visualization.flow_charts import (
+    create_flow_efficiency_trend_chart,
+    create_flow_load_trend_chart,
+)
+from visualization.metric_trends import (
+    create_dual_line_trend,
+    create_metric_trend_full,
+    create_metric_trend_sparkline,
+)
 
 
 def _create_detailed_chart(
@@ -35,13 +44,6 @@ def _create_detailed_chart(
     Returns:
         Div containing chart and optional details table
     """
-    # Import visualization functions needed for chart creation
-    from visualization.flow_charts import create_flow_efficiency_trend_chart
-    from visualization.metric_trends import (
-        create_dual_line_trend,
-        create_metric_trend_full,
-        create_metric_trend_sparkline,
-    )
 
     # Special case 1: deployment_frequency with release tracking
     if metric_name == "deployment_frequency" and "weekly_release_values" in metric_data:
@@ -112,9 +114,6 @@ def _create_detailed_chart(
         )
     elif metric_name == "flow_efficiency":
         # Phase 2.2: Use specialized Flow Efficiency chart with health zones
-        from dash import dcc
-
-        from visualization.flow_charts import create_flow_efficiency_trend_chart
 
         # Convert data format for flow_charts function (expects {date, value})
         trend_data = [
@@ -144,9 +143,6 @@ def _create_detailed_chart(
     elif metric_name == "flow_load":
         # Use specialized Flow Load chart with dynamic WIP thresholds
         # and tier-based color
-        from dash import dcc
-
-        from visualization.flow_charts import create_flow_load_trend_chart
 
         # Convert data format for flow_charts function (expects {date, value})
         trend_data = [

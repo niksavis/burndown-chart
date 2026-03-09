@@ -13,9 +13,13 @@ from typing import Any
 import dash_bootstrap_components as dbc
 from dash import dcc, html
 
+from data.cache_manager import has_jira_data_for_query
+from data.dora_metrics_calculator import load_dora_metrics_from_cache
+from data.query_manager import get_active_profile_id, get_active_query_id
 from ui.empty_states import (
     create_metrics_skeleton,
     create_no_data_state,
+    create_no_metrics_state,
 )  # Visible skeleton with shimmer
 from ui.metric_cards import create_loading_card
 
@@ -27,9 +31,6 @@ def create_dora_dashboard() -> dbc.Container:
         dbc.Container with DORA metrics dashboard components
     """
     # Check if JIRA data exists AND if metrics are calculated
-    from data.cache_manager import has_jira_data_for_query
-    from data.dora_metrics_calculator import load_dora_metrics_from_cache
-    from data.query_manager import get_active_profile_id, get_active_query_id
 
     has_jira_data = False
     has_metrics = False
@@ -53,8 +54,6 @@ def create_dora_dashboard() -> dbc.Container:
     if not has_jira_data:
         initial_content = [create_no_data_state()]
     elif not has_metrics:
-        from ui.empty_states import create_no_metrics_state
-
         initial_content = [create_no_metrics_state(metric_type="DORA")]
     else:
         initial_content = [create_metrics_skeleton()]

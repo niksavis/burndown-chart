@@ -10,6 +10,11 @@ from datetime import datetime
 import pandas as pd
 from plotly.subplots import make_subplots
 
+from visualization.charts import (
+    _calculate_forecast_completion_dates,
+    _prepare_metrics_data,
+)
+from visualization.data_preparation import prepare_visualization_data
 from visualization.elements import create_empty_figure
 from visualization.forecast_chart_layout import (
     add_deadline_marker,
@@ -60,11 +65,6 @@ def create_forecast_plot(
         contains all PERT forecast information
     """
     # Import helper functions (to avoid circular dependency)
-    from visualization.charts import (
-        _calculate_forecast_completion_dates,
-        _prepare_metrics_data,
-    )
-    from visualization.data_preparation import prepare_visualization_data
 
     try:
         if df is None:

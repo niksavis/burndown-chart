@@ -5,6 +5,8 @@ import math
 import dash_bootstrap_components as dbc
 from dash import dcc, html
 
+from ui.style_constants import DESIGN_TOKENS
+
 
 def create_mobile_parameter_fab() -> html.Div:
     """
@@ -16,7 +18,6 @@ def create_mobile_parameter_fab() -> html.Div:
     Returns:
         html.Div: FAB component with mobile-only visibility
     """
-    from ui.style_constants import DESIGN_TOKENS
 
     return html.Div(
         [
@@ -65,7 +66,6 @@ def create_mobile_parameter_bottom_sheet(
     Returns:
         dbc.Offcanvas: Mobile parameter bottom sheet component
     """
-    from ui.style_constants import DESIGN_TOKENS
 
     # Extract settings with defaults
     pert_factor = settings.get("pert_factor", 3)
