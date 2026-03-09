@@ -25,7 +25,7 @@ def wait_for_process_exit(pid: int, status: StatusFn, timeout: int = 10) -> bool
     status(f"Waiting for process {pid} to exit (timeout: {timeout}s)...")
 
     try:
-        import psutil
+        import psutil  # noqa: PLC0415
 
         start_time = time.time()
         while time.time() - start_time < timeout:

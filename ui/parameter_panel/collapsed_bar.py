@@ -105,7 +105,7 @@ def create_parameter_bar_collapsed(
     query_icon_class = "fas fa-search me-1"
 
     try:
-        import json
+        import json  # noqa: PLC0415
 
         progress_file = Path("task_progress.json")
         if progress_file.exists():

@@ -35,7 +35,7 @@ def calculate_weekly_averages(
         Tuple of (avg_weekly_items, avg_weekly_points,
         med_weekly_items, med_weekly_points)
     """
-    import logging
+    import logging  # noqa: PLC0415
 
     logger = logging.getLogger(__name__)
 
@@ -269,7 +269,7 @@ def calculate_weekly_averages(
         recent_data = weekly_df.tail(10)
 
     # Calculate averages and medians
-    import logging
+    import logging  # noqa: PLC0415
 
     logger = logging.getLogger(__name__)
     logger.debug(

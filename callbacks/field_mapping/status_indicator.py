@@ -32,7 +32,7 @@ def update_field_mapping_status(modal_is_open, save_clicks, profile_id):
     Returns:
         Status indicator component showing mapping state
     """
-    import time
+    import time  # noqa: PLC0415
 
     try:
         # If triggered by profile switch, wait briefly for switch to complete

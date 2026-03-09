@@ -118,7 +118,7 @@ def save_budget_settings(
             )
         else:
             # Create mode: capture baseline from Recent Completions (last 4 weeks)
-            import pandas as pd
+            import pandas as pd  # noqa: PLC0415
 
             unified_data = load_unified_project_data()
             statistics_list = unified_data.get("statistics", [])

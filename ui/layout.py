@@ -116,7 +116,7 @@ def create_app_layout(settings, statistics, is_sample_data):
 
     # Import help system components
     # Import app module for version check (late import to avoid circular dependency)
-    import app
+    import app  # noqa: PLC0415
 
     # Store version check result for callback access (not rendered in initial layout)
     # Toast will be shown via callback to avoid being cleared by page load callbacks

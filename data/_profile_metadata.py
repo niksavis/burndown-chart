@@ -31,7 +31,7 @@ def load_profiles_metadata() -> dict:
         >>> print(meta["active_profile_id"])  # "default"
         >>> print(len(meta["profiles"]))      # Number of profiles
     """
-    import data.profile_manager as _pm
+    import data.profile_manager as _pm  # noqa: PLC0415
 
     backend = get_backend()
 
@@ -147,7 +147,7 @@ def is_profiles_mode_enabled() -> bool:
         ... else:
         ...     # Legacy file-based mode
     """
-    import data.profile_manager as _pm
+    import data.profile_manager as _pm  # noqa: PLC0415
 
     db_path = _pm.PROFILES_DIR / "burndown.db"
     return db_path.exists()

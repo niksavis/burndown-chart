@@ -42,6 +42,6 @@ __all__ = [
 
 
 def __getattr__(name: str):
-    from data.persistence._persistence_proxy import lazy_getattr
+    from data.persistence._persistence_proxy import lazy_getattr  # noqa: PLC0415
 
     return lazy_getattr(name)

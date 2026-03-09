@@ -4,9 +4,11 @@ JIRA Validation Functions
 Handles JQL query validation and connection testing.
 """
 
+import logging
+
 import requests
 
-from configuration import logger
+logger = logging.getLogger(__name__)
 
 
 def validate_jql_for_scriptrunner(jql_query: str) -> tuple[bool, str]:

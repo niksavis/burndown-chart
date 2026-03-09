@@ -13,7 +13,6 @@ import logging
 import requests
 
 from data.exceptions import JiraError
-from data.persistence import load_app_settings
 
 logger = logging.getLogger(__name__)
 
@@ -378,8 +377,8 @@ class JiraMetadataFetcher:
         # Fallback 1: Try to extract from cached JIRA data (FAST - no API calls)
         logger.info(f"[JIRA] Trying to extract {field_id} values from jira_cache.json")
         try:
-            import json
-            import os
+            import json  # noqa: PLC0415
+            import os  # noqa: PLC0415
 
             cache_file = "jira_cache.json"
             if os.path.exists(cache_file):
@@ -491,6 +490,9 @@ class JiraMetadataFetcher:
             # Build JQL query with optional project scope
             if scoped:
                 # Load configured development projects to scope the query
+                # circular import guard
+                from data.persistence import load_app_settings  # noqa: PLC0415
+
                 settings = load_app_settings()
                 dev_projects = settings.get("development_projects", [])
 
@@ -539,6 +541,9 @@ class JiraMetadataFetcher:
                     f"[JIRA] JQL with IS NOT EMPTY failed ({response.status_code}), trying simpler query"
                 )
                 # Fallback: get recent issues from development projects if configured
+                # circular import guard
+                from data.persistence import load_app_settings  # noqa: PLC0415
+
                 settings = load_app_settings()
                 # development_projects can be at root level or under
                 # project_classification

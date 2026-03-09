@@ -97,7 +97,7 @@ def create_jql_editor(
         - Callbacks work unchanged - they read from textarea.value
         - CodeMirror is purely cosmetic enhancement (graceful degradation if JS fails)
     """
-    import dash_bootstrap_components as dbc
+    import dash_bootstrap_components as dbc  # noqa: PLC0415
 
     return html.Div(
         className=f"jql-editor-wrapper {class_name}".strip(),

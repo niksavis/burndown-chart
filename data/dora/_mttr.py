@@ -191,7 +191,7 @@ def calculate_mean_time_to_recovery(
 
         # Use MEDIAN per official DORA methodology (outlier resistant)
         # Note: MTTR name contains "Mean" for historical reasons, but DORA uses median
-        import statistics
+        import statistics  # noqa: PLC0415
 
         median_mttr_hours = statistics.median(recovery_times)
         median_mttr_days = median_mttr_hours / 24

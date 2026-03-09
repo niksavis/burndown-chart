@@ -77,7 +77,7 @@ def show_version_update_toast(app_init_complete, toast_already_shown):
         return no_update, no_update
 
     # Import app module to access VERSION_CHECK_RESULT
-    import app
+    import app  # noqa: PLC0415
 
     if not app.VERSION_CHECK_RESULT:
         return no_update, no_update
@@ -94,7 +94,7 @@ def show_version_update_toast(app_init_complete, toast_already_shown):
             },
         )
 
-        import dash_bootstrap_components as dbc
+        import dash_bootstrap_components as dbc  # noqa: PLC0415
 
         toast = create_toast(
             [
@@ -131,7 +131,7 @@ def show_version_update_toast(app_init_complete, toast_already_shown):
             },
         )
 
-        import dash_bootstrap_components as dbc
+        import dash_bootstrap_components as dbc  # noqa: PLC0415
 
         toast = create_toast(
             [

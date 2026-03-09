@@ -7,7 +7,7 @@ def _get_backend_instance():
     """Get or create the backend instance (lazy initialization)."""
     global _backend_instance
     if _backend_instance is None:
-        from data.persistence.factory import get_backend
+        from data.persistence.factory import get_backend  # noqa: PLC0415
 
         _backend_instance = get_backend()
     return _backend_instance
@@ -51,12 +51,12 @@ _ADAPTER_FUNCTIONS = {
 def lazy_getattr(name: str):
     """Resolve adapter or factory function by name for data.persistence.__getattr__."""
     if name in _ADAPTER_FUNCTIONS:
-        from data.persistence import adapters
+        from data.persistence import adapters  # noqa: PLC0415
 
         return getattr(adapters, name)
 
     if name == "get_backend":
-        from data.persistence.factory import get_backend
+        from data.persistence.factory import get_backend  # noqa: PLC0415
 
         return get_backend
 

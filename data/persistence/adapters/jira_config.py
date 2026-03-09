@@ -82,7 +82,7 @@ def migrate_csv_to_json() -> dict[str, Any]:
 
 def _backup_legacy_files() -> None:
     """Create backup copies of CSV and old JSON files."""
-    import shutil
+    import shutil  # noqa: PLC0415
 
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 
@@ -138,7 +138,7 @@ def migrate_jira_config(app_settings: dict[str, Any]) -> dict[str, Any]:
     Returns:
         Updated app settings with jira_config structure
     """
-    import os
+    import os  # noqa: PLC0415
 
     # Start with default configuration
     jira_config: JiraConfig = get_default_jira_config()

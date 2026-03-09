@@ -12,9 +12,18 @@ from datetime import UTC, datetime, timedelta
 
 from data.exceptions import JiraError, PersistenceError
 from data.jira.changelog_pagination import fetch_jira_issues_with_changelog
-from data.persistence.factory import get_backend
 
 logger = logging.getLogger(__name__)
+
+
+def get_backend():  # noqa: PLC0415
+    """Lazy import wrapper to break circular: data.persistence.adapters -> data.jira."""
+    from data.persistence.factory import (  # noqa: PLC0415
+        get_backend as _get_backend,
+    )
+
+    return _get_backend()
+
 
 # Re-export for backward compatibility
 __all__ = ["fetch_changelog_on_demand", "fetch_jira_issues_with_changelog"]

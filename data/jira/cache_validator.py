@@ -5,15 +5,17 @@ Handles cache file validation, size checks, and status reporting.
 """
 
 import json
+import logging
 import os
 
-from configuration import logger
 from data.exceptions import CacheError
 from data.jira.config import (
     DEFAULT_CACHE_MAX_SIZE_MB,
     JIRA_CACHE_FILE,
     JIRA_CHANGELOG_CACHE_FILE,
 )
+
+logger = logging.getLogger(__name__)
 
 
 def validate_cache_file(

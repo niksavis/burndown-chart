@@ -99,7 +99,7 @@ def _sanitize_for_ai(export_data: dict[str, Any]) -> dict[str, Any]:
     Returns:
         Deep copy with all PII stripped
     """
-    import copy
+    import copy  # noqa: PLC0415
 
     sanitized = copy.deepcopy(export_data)
 
@@ -375,7 +375,9 @@ def _format_ai_prompt(summary: dict[str, Any], time_period_weeks: int) -> str:
     """
     # Get app version for footer
     try:
-        from bump_version import get_current_version  # type: ignore[import-not-found]
+        from bump_version import (  # type: ignore[import-not-found]  # noqa: PLC0415
+            get_current_version,
+        )
 
         version = get_current_version()
     except Exception:

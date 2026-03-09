@@ -4,9 +4,11 @@ JIRA Issue Counter
 Fast issue counting without fetching full data (incremental fetch optimization).
 """
 
+import logging
+
 import requests
 
-from configuration import logger
+logger = logging.getLogger(__name__)
 
 
 def check_jira_issue_count(jql_query: str, config: dict) -> tuple[bool, int]:

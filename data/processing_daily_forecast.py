@@ -212,7 +212,7 @@ def daily_forecast_burnup(
         values.append(target_scope)
 
     # Debug logging
-    import logging
+    import logging  # noqa: PLC0415
 
     logger = logging.getLogger(__name__)
     if dates:

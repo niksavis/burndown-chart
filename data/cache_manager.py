@@ -512,7 +512,7 @@ def invalidate_all_cache() -> None:
     """
     try:
         # Remove JIRA data cache files
-        import glob
+        import glob  # noqa: PLC0415
 
         cache_files = glob.glob("cache/*.json")
         for cache_file in cache_files:

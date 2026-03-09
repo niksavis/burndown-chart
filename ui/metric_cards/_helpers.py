@@ -8,7 +8,14 @@ from typing import Any
 
 from dash import html
 
-from ui.flow_metrics_dashboard import _get_flow_performance_tier
+
+def _get_flow_performance_tier(metric_name: str, value: float):  # noqa: PLC0415
+    """Lazy wrapper: breaks circular _helpers -> flow_metrics_dashboard."""
+    from ui.flow_metrics_dashboard import (  # noqa: PLC0415
+        _get_flow_performance_tier as _fn,  # noqa: PLC0415
+    )
+
+    return _fn(metric_name, value)
 
 
 def _get_flow_performance_tier_color_hex(metric_name: str, value: float) -> str:

@@ -53,7 +53,7 @@ def populate_jira_issues_store(jira_status, statistics_data):
             return None
 
         # Get all issues from database
-        import time
+        import time  # noqa: PLC0415
 
         start_time = time.perf_counter()
         issues = backend.get_issues(active_profile_id, active_query_id, limit=None)

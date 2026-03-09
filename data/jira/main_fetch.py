@@ -27,11 +27,19 @@ from data.jira.two_phase_fetch import (
     fetch_jira_issues_two_phase,
     should_use_two_phase_fetch,
 )
-from data.persistence.factory import get_backend
 from data.task_progress import TaskProgress
 from utils.datetime_utils import parse_iso_datetime
 
 logger = logging.getLogger(__name__)
+
+
+def get_backend():  # noqa: PLC0415
+    """Lazy import wrapper to break circular: data.persistence.adapters -> data.jira."""
+    from data.persistence.factory import (  # noqa: PLC0415
+        get_backend as _get_backend,
+    )
+
+    return _get_backend()
 
 
 def fetch_jira_issues(
@@ -284,7 +292,7 @@ def fetch_jira_issues(
                             str(len(delta_issues)),
                         )
                         if last_delta_keys_key:
-                            import json
+                            import json  # noqa: PLC0415
 
                             backend.set_app_state(
                                 last_delta_keys_key,
@@ -334,7 +342,7 @@ def fetch_jira_issues(
                                     str(len(delta_issues)),
                                 )
                                 if last_delta_keys_key:
-                                    import json
+                                    import json  # noqa: PLC0415
 
                                     backend.set_app_state(
                                         last_delta_keys_key,
@@ -363,7 +371,7 @@ def fetch_jira_issues(
                                 config=config,
                             )
                             if last_delta_keys_key:
-                                import json
+                                import json  # noqa: PLC0415
 
                                 backend.set_app_state(
                                     last_delta_keys_key,
@@ -400,7 +408,7 @@ def fetch_jira_issues(
                                 str(len(delta_issues)),
                             )
                             if last_delta_keys_key:
-                                import json
+                                import json  # noqa: PLC0415
 
                                 backend.set_app_state(
                                     last_delta_keys_key,

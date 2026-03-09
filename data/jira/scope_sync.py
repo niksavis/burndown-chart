@@ -33,12 +33,31 @@ from data.jira.query_builder import (
 )
 from data.jira.scope_calculator import calculate_jira_project_scope
 from data.parent_filter import filter_parent_issues
-from data.persistence import load_app_settings, save_jira_data_unified
-from data.persistence.factory import get_backend
 from data.project_filter import filter_development_issues
 from data.task_progress import TaskProgress
 
 logger = logging.getLogger(__name__)
+
+
+def get_backend():  # noqa: PLC0415
+    """Lazy import wrapper to break circular: data.persistence.adapters -> data.jira."""
+    from data.persistence.factory import get_backend as _get_backend  # noqa: PLC0415
+
+    return _get_backend()
+
+
+def load_app_settings():  # noqa: PLC0415
+    """Lazy import wrapper to break circular: data.persistence.adapters -> data.jira."""
+    from data.persistence import load_app_settings as _load  # noqa: PLC0415
+
+    return _load()
+
+
+def save_jira_data_unified(*args, **kwargs):  # noqa: PLC0415
+    """Lazy import wrapper to break circular: data.persistence.adapters -> data.jira."""
+    from data.persistence import save_jira_data_unified as _save  # noqa: PLC0415
+
+    return _save(*args, **kwargs)
 
 
 def sync_jira_scope_and_data(

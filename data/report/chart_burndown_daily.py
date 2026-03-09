@@ -11,7 +11,7 @@ from datetime import datetime
 def _iso_week_str(date_str: str) -> str | None:
     """Convert a YYYY-MM-DD date string to ISO week label 'YYYY-WWW'."""
     try:
-        import pandas as pd
+        import pandas as pd  # noqa: PLC0415
 
         dt = pd.to_datetime(date_str)
         year, week, _ = dt.isocalendar()

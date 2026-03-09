@@ -6,7 +6,6 @@ JIRA issues with changelog expansion.
 
 import logging
 
-from configuration.dora_config import get_flow_end_status_names
 from data.jira.field_utils import extract_jira_field_id as _extract_jira_field_id
 
 logger = logging.getLogger(__name__)
@@ -30,7 +29,7 @@ def _build_changelog_jql(config: dict) -> str:
     order_by_clause = ""
     if "ORDER BY" in base_jql.upper():
         # Find ORDER BY position (case-insensitive)
-        import re
+        import re  # noqa: PLC0415
 
         match = re.search(r"\s+ORDER\s+BY\s+", base_jql, re.IGNORECASE)
         if match:
@@ -40,6 +39,10 @@ def _build_changelog_jql(config: dict) -> str:
 
     # Load completion statuses from configuration
     try:
+        from configuration.dora_config import (  # noqa: PLC0415
+            get_flow_end_status_names,  # circular import guard
+        )
+
         flow_end_statuses = get_flow_end_status_names()
         if flow_end_statuses:
             statuses_str = ", ".join([f'"{s}"' for s in flow_end_statuses])

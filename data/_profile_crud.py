@@ -42,7 +42,7 @@ def create_profile(name: str, settings: dict) -> str:
         ... })
         >>> assert profile_id.startswith("p_") and len(profile_id) == 14
     """
-    import data.profile_manager as _pm
+    import data.profile_manager as _pm  # noqa: PLC0415
 
     # Validate inputs
     if not name or not name.strip():
@@ -276,7 +276,7 @@ def duplicate_profile(
         ... )
         >>> # Creates complete copy with new ID and timestamps
     """
-    import data.profile_manager as _pm
+    import data.profile_manager as _pm  # noqa: PLC0415
 
     if not new_name or not new_name.strip():
         raise ValueError("Profile name cannot be empty")

@@ -164,13 +164,13 @@ def calculate_metrics_from_settings(
 
         actual_weeks_processed = n_weeks
         if "calculated metrics for all" in message.lower():
-            import re
+            import re  # noqa: PLC0415
 
             match = re.search(r"all (\d+) weeks", message)
             if match:
                 actual_weeks_processed = int(match.group(1))
         elif "calculated metrics for" in message.lower():
-            import re
+            import re  # noqa: PLC0415
 
             match = re.search(r"for (\d+)/(\d+) weeks", message)
             if match:

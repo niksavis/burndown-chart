@@ -41,8 +41,8 @@ def create_toast(
     Returns:
         dbc.Toast component ready to render
     """
-    import logging
-    import traceback
+    import logging  # noqa: PLC0415
+    import traceback  # noqa: PLC0415
 
     logger = logging.getLogger(__name__)
 

@@ -271,7 +271,7 @@ def calculate_rates(
     ) / 6
 
     # DEBUG: Log PERT calculation details
-    import logging
+    import logging  # noqa: PLC0415
 
     logger = logging.getLogger(__name__)
     logger.info(

@@ -412,7 +412,7 @@ def _calculate_forecast_completion_dates(pert_time_items, pert_time_points):
     Returns:
         Tuple of (items_completion_enhanced, points_completion_enhanced) strings
     """
-    import math
+    import math  # noqa: PLC0415
 
     # Handle NaN, None, or invalid values
     if pert_time_items is None or (

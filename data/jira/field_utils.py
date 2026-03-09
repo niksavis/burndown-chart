@@ -4,9 +4,10 @@ JIRA Field Utilities
 Handles field extraction and mapping transformations.
 """
 
+import logging
 from typing import Any
 
-from configuration import logger
+logger = logging.getLogger(__name__)
 
 
 def extract_jira_field_id(field_mapping: str) -> str:

@@ -52,7 +52,7 @@ def _fetch_jira_metadata(
         - metadata_dict contains fields, projects, issue_types, statuses, auto_detected
         - error_message is None on success, error string on failure
     """
-    import time
+    import time  # noqa: PLC0415
 
     try:
         # Check if JIRA is configured

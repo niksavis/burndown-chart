@@ -22,10 +22,11 @@ Usage:
     success, response = retry_with_backoff(requests.get, url, headers=headers)
 """
 
+import logging
 import time
 from typing import Any
 
-from configuration import logger
+logger = logging.getLogger(__name__)
 
 #######################################################################
 # RATE LIMITING CONFIGURATION (T052)

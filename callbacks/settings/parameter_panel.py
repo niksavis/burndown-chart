@@ -415,13 +415,13 @@ def register(app: Any) -> None:
             Tuple of (status_message, polling_enabled, progress_bar_style,
                       update_button_style, cancel_button_style, metrics_trigger)
         """
-        import time
+        import time  # noqa: PLC0415
 
         # Check if app was just restarted (stale task cleanup ran)
         restart_marker = Path("task_progress.json.restart")
         if restart_marker.exists():
             try:
-                import json
+                import json  # noqa: PLC0415
 
                 marker_data = json.loads(restart_marker.read_text())
                 restart_time = marker_data.get("restart_time", 0)

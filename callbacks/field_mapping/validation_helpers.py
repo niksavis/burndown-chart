@@ -417,7 +417,7 @@ def _build_comprehensive_validation_alert(validation_result: dict):
 
     # Wrap all content in a single container div to ensure vertical stacking
     # Use timestamp in ID to force complete re-render each time validation runs
-    import time
+    import time  # noqa: PLC0415
 
     timestamp = int(time.time() * 1000)  # Millisecond timestamp
 

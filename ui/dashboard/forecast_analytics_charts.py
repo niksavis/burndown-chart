@@ -58,7 +58,7 @@ def _build_forecast_trend_chart(
     if not history_dates or len(history_dates) < 2:
         return None
 
-    import plotly.graph_objects as go
+    import plotly.graph_objects as go  # noqa: PLC0415
 
     fig = go.Figure()
 

@@ -27,7 +27,7 @@ def get_active_profile_workspace() -> Path:
         >>> workspace = get_active_profile_workspace()
         >>> profile_config = workspace / "profile.json"
     """
-    import data.profile_manager as _pm
+    import data.profile_manager as _pm  # noqa: PLC0415
 
     backend = get_backend()
 
@@ -59,7 +59,7 @@ def get_active_query_workspace() -> Path:
         >>> workspace = get_active_query_workspace()
         >>> cache_file = workspace / "jira_cache.json"
     """
-    import data.profile_manager as _pm
+    import data.profile_manager as _pm  # noqa: PLC0415
 
     backend = get_backend()
 
@@ -96,7 +96,7 @@ def get_profile_file_path(profile_id: str) -> Path:
     Example:
         >>> path = get_profile_file_path("kafka")  # For exports only
     """
-    import data.profile_manager as _pm
+    import data.profile_manager as _pm  # noqa: PLC0415
 
     return _pm.PROFILES_DIR / profile_id / "profile.json"
 
@@ -119,7 +119,7 @@ def get_query_file_path(profile_id: str, query_id: str) -> Path:
     Example:
         >>> path = get_query_file_path("kafka", "12w")  # For exports only
     """
-    import data.profile_manager as _pm
+    import data.profile_manager as _pm  # noqa: PLC0415
 
     return _pm.PROFILES_DIR / profile_id / "queries" / query_id / "query.json"
 
@@ -142,6 +142,6 @@ def get_jira_cache_path(profile_id: str, query_id: str) -> Path:
     Example:
         >>> cache_path = get_jira_cache_path("kafka", "main")  # For exports only
     """
-    import data.profile_manager as _pm
+    import data.profile_manager as _pm  # noqa: PLC0415
 
     return _pm.PROFILES_DIR / profile_id / "queries" / query_id / "jira_cache.json"

@@ -81,7 +81,7 @@ def calculate_and_display_flow_metrics(
         Tuple of metrics cards HTML and raw metrics data for detail charts
     """
     try:
-        import dash_bootstrap_components as dbc
+        import dash_bootstrap_components as dbc  # noqa: PLC0415
 
         # DEBUG: Log the exact state of jira_data_store
         logger.info(

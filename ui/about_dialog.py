@@ -32,7 +32,7 @@ def _parse_markdown_text(text: str) -> list:
     Returns:
         List of html.Span/html.Strong/html.Code/html.A components
     """
-    import re
+    import re  # noqa: PLC0415
 
     # Pattern to match **bold**, `code`, and [text](url)
     pattern = r"(\*\*.*?\*\*|`.*?`|\[.*?\]\(.*?\))"
@@ -167,7 +167,7 @@ def _parse_licenses(licenses_text: str) -> list[dict]:
     except Exception as e:
         # Defensive: if parsing fails completely, return empty list
         # This prevents UI crash but logs the error
-        import logging
+        import logging  # noqa: PLC0415
 
         logger = logging.getLogger(__name__)
         logger.error(f"License parsing failed: {e}", exc_info=True)
@@ -680,7 +680,7 @@ def _get_latest_release_notes() -> tuple[str, str, list[str]] | None:
     Returns:
         Tuple of (version, date, feature_list) or None if not found
     """
-    import sys
+    import sys  # noqa: PLC0415
 
     # Determine changelog path (works for both dev and frozen)
     if getattr(sys, "frozen", False) and hasattr(sys, "_MEIPASS"):
@@ -736,7 +736,7 @@ def _read_and_parse_changelog() -> html.Div:
     Returns:
         html.Div containing parsed changelog sections or fallback content
     """
-    import sys
+    import sys  # noqa: PLC0415
 
     # Determine changelog path (works for both dev and frozen)
     if getattr(sys, "frozen", False) and hasattr(sys, "_MEIPASS"):
@@ -886,7 +886,7 @@ def _read_and_parse_changelog() -> html.Div:
 
     except Exception as e:
         # Fallback on parse error
-        import logging
+        import logging  # noqa: PLC0415
 
         logger = logging.getLogger(__name__)
         logger.error(f"Error parsing changelog: {e}", exc_info=True)

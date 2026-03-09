@@ -202,7 +202,7 @@ def update_sprint_selection(selected_sprint: str, show_points_list: list):
         ), selected_sprint
 
     except Exception as e:
-        import traceback
+        import traceback  # noqa: PLC0415
 
         logger.error(f"Error updating sprint selection: {e}")
         logger.error(traceback.format_exc())

@@ -301,7 +301,7 @@ def load_dora_metrics_from_cache(n_weeks: int = 12) -> dict[str, Any] | None:
 
         logger.info(f"[LOAD_CACHE] all_lead_times list: {all_lead_times}")
         # Use MEDIAN of weekly medians (more robust than mean of medians)
-        import statistics
+        import statistics  # noqa: PLC0415
 
         overall_lead_time = (
             statistics.median(all_lead_times) if all_lead_times else None

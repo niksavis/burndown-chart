@@ -134,7 +134,7 @@ def detect_import_conflict(contents, filename):
 
     try:
         # Decode uploaded file
-        import base64
+        import base64  # noqa: PLC0415
 
         content_type, content_string = contents.split(",")
         decoded = base64.b64decode(content_string)
@@ -278,7 +278,7 @@ def perform_import(import_data, conflict_strategy=None, custom_name=None):
                     and custom_name.strip()
                 ):
                     # Validate custom name doesn't already exist
-                    import copy
+                    import copy  # noqa: PLC0415
 
                     final_profile_id = custom_name.strip()
 

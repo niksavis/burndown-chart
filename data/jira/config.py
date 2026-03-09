@@ -7,20 +7,20 @@ Configuration hierarchy: jira_config → Environment Variables → Defaults
 
 import hashlib
 import json
+import logging
 import os
 import time
 from datetime import datetime
 
 import requests
 
-from configuration import logger
 from data.exceptions import JiraError, PersistenceError
 from data.jira.validation import validate_jql_for_scriptrunner
-from data.persistence import load_app_settings, load_jira_configuration
+
+logger = logging.getLogger(__name__)
 
 #######################################################################
 # CONFIGURATION CONSTANTS
-#######################################################################
 
 JIRA_CACHE_FILE = "jira_cache.json"
 JIRA_CHANGELOG_CACHE_FILE = "jira_changelog_cache.json"
@@ -65,6 +65,11 @@ def get_jira_config(settings_jql_query: str | None = None) -> dict:
     """
     # Load app settings first
     try:
+        from data.persistence import (  # circular import guard  # noqa: PLC0415
+            load_app_settings,
+            load_jira_configuration,
+        )
+
         app_settings = load_app_settings()
     except (
         ImportError,

@@ -295,7 +295,7 @@ def get_bug_analysis_config() -> dict:
         >>> "Bug" in config["issue_type_mappings"]
         True
     """
-    from data.persistence import load_app_settings
+    from data.persistence import load_app_settings  # noqa: PLC0415
 
     settings = load_app_settings()
 

@@ -91,7 +91,7 @@ def save_parameter_panel_state(is_open: bool, user_preference: bool = True) -> b
         backend = get_backend()
 
         # Store panel state in app_state table (UI preference) as JSON string
-        import json
+        import json  # noqa: PLC0415
 
         backend.set_app_state("parameter_panel_state", json.dumps(panel_state))
 

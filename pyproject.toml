@@ -13,9 +13,11 @@ extend-exclude = [
 ]
 
 [tool.ruff.lint]
-select = ["E", "F", "I", "B", "UP"]
+select = ["E", "F", "I", "B", "UP", "PLC"]
 
 [tool.ruff.lint.per-file-ignores]
+# PLC0415: Tests legitimately use lazy imports inside test functions for isolation.
+"tests/**/*.py" = ["PLC0415"]
 # E501: Lines were multi-line f-string expressions (PEP 701, Python 3.12+) that
 # were collapsed to single lines for Python 3.11 compatibility. The long strings
 # are logger calls and cannot be broken without sacrificing readability.

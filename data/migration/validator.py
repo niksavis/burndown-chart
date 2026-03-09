@@ -65,7 +65,7 @@ def validate_migration(
     }
 
     try:
-        from data.persistence.factory import get_backend
+        from data.persistence.factory import get_backend  # noqa: PLC0415
 
         # Get backends
         sqlite_backend = get_backend("sqlite", str(db_path))

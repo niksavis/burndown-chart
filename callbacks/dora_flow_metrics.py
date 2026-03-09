@@ -50,7 +50,7 @@ def load_and_display_dora_metrics(
 ):
     """Load and display DORA metrics from cache."""
     try:
-        import dash_bootstrap_components as dbc
+        import dash_bootstrap_components as dbc  # noqa: PLC0415
 
         logger.info(
             f"DORA CALLBACK START: jira_data_store type={type(jira_data_store)}"
@@ -343,11 +343,11 @@ def load_and_display_dora_metrics(
             "mean_time_to_recovery": "lower_better",
         }
 
-        for metric_name in metrics_data.keys():
-            weekly_values = metrics_data[metric_name].get(
+        for metric_name, metric_data in metrics_data.items():
+            weekly_values = metric_data.get(
                 "weekly_values_adjusted"
-            ) or metrics_data[metric_name].get("weekly_values", [])
-            current_value = metrics_data[metric_name].get("value")
+            ) or metric_data.get("weekly_values", [])
+            current_value = metric_data.get("value")
             metric_type = metric_type_mapping.get(metric_name, "higher_better")
 
             forecast_data, trend_vs_forecast = calculate_dynamic_forecast(
@@ -358,11 +358,11 @@ def load_and_display_dora_metrics(
             )
 
             if forecast_data:
-                metrics_data[metric_name]["forecast_data"] = forecast_data
+                metric_data["forecast_data"] = forecast_data
                 forecast_value = forecast_data.get("forecast_value")
                 logger.info(f"Calculated forecast for {metric_name}: {forecast_value}")
             if trend_vs_forecast:
-                metrics_data[metric_name]["trend_vs_forecast"] = trend_vs_forecast
+                metric_data["trend_vs_forecast"] = trend_vs_forecast
 
         return create_metric_cards_grid(metrics_data), metrics_data
 

@@ -114,6 +114,6 @@ def _generate_unique_profile_id() -> str:
         >>> _generate_unique_profile_id()
         'p_a1b2c3d4e5f6'
     """
-    import uuid
+    import uuid  # noqa: PLC0415
 
     return f"p_{uuid.uuid4().hex[:12]}"

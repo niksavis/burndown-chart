@@ -14,10 +14,18 @@ import requests
 
 from data.iso_week_bucketing import get_week_label
 from data.jira.field_utils import extract_story_points_value
-from data.persistence.factory import get_backend
 from utils.datetime_utils import parse_iso_datetime
 
 logger = logging.getLogger(__name__)
+
+
+def get_backend():  # noqa: PLC0415
+    """Lazy import wrapper to break circular: data.persistence.adapters -> data.jira."""
+    from data.persistence.factory import (  # noqa: PLC0415
+        get_backend as _get_backend,
+    )
+
+    return _get_backend()
 
 
 def get_affected_weeks_from_changed_issues(changed_keys: list[str]) -> set[str]:

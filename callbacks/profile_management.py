@@ -548,7 +548,7 @@ def handle_delete_profile(n_clicks, profile_id, confirmation_text):
         logger.info(f"[UI] Deleted profile: {profile_name}")
 
         # Trigger dropdown refresh and data reload for newly active profile
-        import time
+        import time  # noqa: PLC0415
 
         trigger_value = int(time.time() * 1000)
 

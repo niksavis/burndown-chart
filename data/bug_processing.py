@@ -280,7 +280,7 @@ def calculate_bug_metrics_summary(
     # Calculate average age of open bugs
     avg_age_days = sum(open_bug_ages) / len(open_bug_ages) if open_bug_ages else 0
 
-    import logging
+    import logging  # noqa: PLC0415
 
     logger = logging.getLogger(__name__)
     logger.info(
@@ -295,7 +295,7 @@ def calculate_bug_metrics_summary(
     total_bug_points = 0
     resolution_times = []
 
-    import logging
+    import logging  # noqa: PLC0415
 
     logger = logging.getLogger(__name__)
     logger.info(
@@ -344,7 +344,7 @@ def calculate_bug_metrics_summary(
     )
 
     # DEBUG: Log resolution rate calculation
-    import logging
+    import logging  # noqa: PLC0415
 
     logger = logging.getLogger(__name__)
     logger.info(

@@ -131,7 +131,7 @@ def calculate_change_failure_rate(
                 fields = issue
                 # fixVersions is JSON string in flat format
                 # (mapped from fix_versions by sqlite_backend)
-                import json
+                import json  # noqa: PLC0415
 
                 fix_versions_raw = issue.get("fixVersions", "[]")
                 try:

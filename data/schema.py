@@ -370,7 +370,7 @@ def validate_navigation_state(state: dict[str, Any]) -> bool:
         return False
 
     # Validate tab ID pattern
-    import re
+    import re  # noqa: PLC0415
 
     pattern = re.compile(r"^tab-[a-z-]+$")
     if not pattern.match(state["active_tab"]):

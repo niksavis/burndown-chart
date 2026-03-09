@@ -153,7 +153,7 @@ def calculate_metrics_for_last_n_weeks(
                 # Yield control to allow other Dash callbacks
                 # (like progress bar polling) to execute.
                 # This prevents the long-running calculation from blocking the UI
-                import time
+                import time  # noqa: PLC0415
 
                 time.sleep(0.001)  # 1ms sleep to yield to event loop
 

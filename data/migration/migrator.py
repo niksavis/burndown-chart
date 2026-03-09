@@ -629,7 +629,7 @@ def cleanup_json_files(profiles_path: Path = DEFAULT_PROFILES_PATH) -> None:
         return
 
     try:
-        import shutil
+        import shutil  # noqa: PLC0415
 
         removed_count = 0
         skipped_count = 0

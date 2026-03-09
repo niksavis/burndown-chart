@@ -47,7 +47,7 @@ def calculate_recommendations(
     Returns:
         Dictionary with insights list and metadata
     """
-    import pandas as pd
+    import pandas as pd  # noqa: PLC0415
 
     insights = []
     statistics_df = pd.DataFrame(statistics)

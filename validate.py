@@ -145,7 +145,7 @@ def check_bandit() -> int:
 
 
 def check_pip_audit() -> int:
-    import json
+    import json  # noqa: PLC0415
 
     baseline = ROOT / ".pip-audit-baseline.json"
     # --no-deps: audit packages as listed without resolving in an isolated env.

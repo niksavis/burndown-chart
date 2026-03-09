@@ -187,7 +187,7 @@ def _load_budget_data(
         Tuple of (profile_id, query_id, current_week_label, budget_data).
         budget_data is None when not configured or on error.
     """
-    import math
+    import math  # noqa: PLC0415
 
     budget_data = None
     profile_id = ""

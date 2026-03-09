@@ -187,7 +187,7 @@ def calculate_lead_time_for_changes(
             }
 
         # Calculate statistics in hours for backward compatibility
-        import statistics
+        import statistics  # noqa: PLC0415
 
         lead_times_hours = [lt * 24 for lt in lead_times]
         median_hours = statistics.median(lead_times_hours)

@@ -855,7 +855,7 @@ def _extract_projects_from_jql(jql_query: str, projects: list[dict]) -> list[str
     Returns:
         List of project keys extracted from JQL
     """
-    import re
+    import re  # noqa: PLC0415
 
     if not jql_query:
         return []

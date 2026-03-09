@@ -13,9 +13,15 @@ from data.metrics._weekly_dora_prep import (
     count_deployments_for_week,
     filter_bugs_by_resolution_week,
 )
-from data.metrics_snapshots import save_metric_snapshot
 
 logger = logging.getLogger(__name__)
+
+
+def save_metric_snapshot(*args, **kwargs):  # noqa: PLC0415
+    """Lazy wrapper: breaks circular data.metrics -> metrics_snapshots."""
+    from data.metrics_snapshots import save_metric_snapshot as _save  # noqa: PLC0415
+
+    return _save(*args, **kwargs)
 
 
 def _calculate_lead_time(

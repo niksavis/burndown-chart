@@ -58,7 +58,7 @@ def _generate_unique_query_id() -> str:
         >>> _generate_unique_query_id()
         'q_a1b2c3d4e5f6'
     """
-    import uuid
+    import uuid  # noqa: PLC0415
 
     return f"q_{uuid.uuid4().hex[:12]}"
 
@@ -231,7 +231,7 @@ def get_query_dropdown_options(profile_id: str | None = None) -> list[dict]:
             {"label": "Bug Queries (Jan 28)", "value": "q_456"}
         ]
     """
-    import logging
+    import logging  # noqa: PLC0415
 
     logger = logging.getLogger(__name__)
 

@@ -234,7 +234,7 @@ def main() -> int:
     # Step 3: Extract new version
     # Use unique directory name to avoid conflicts with concurrent updates
     # or stale files
-    import uuid
+    import uuid  # noqa: PLC0415
 
     extract_dir = (
         Path(tempfile.gettempdir()) / f"burndown_update_{uuid.uuid4().hex[:8]}"

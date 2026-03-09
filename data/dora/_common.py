@@ -128,7 +128,7 @@ def _extract_datetime_from_field_mapping(
             fix_versions = issue["fields"].get("fixVersions", [])
         else:
             # In flat format, fixVersions is JSON string - need to parse
-            import json
+            import json  # noqa: PLC0415
 
             fix_versions_raw = issue.get("fixversions", "[]")
             try:

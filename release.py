@@ -137,7 +137,7 @@ def regenerate_changelog() -> None:
     """Regenerate changelog.md from git tags using regenerate_changelog script."""
     try:
         print("\n[Regenerating changelog from git history]")
-        import regenerate_changelog
+        import regenerate_changelog  # noqa: PLC0415
 
         regenerate_changelog.main()
     except Exception as e:

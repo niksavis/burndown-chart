@@ -544,7 +544,7 @@ def register(app):
             return fallback_content, chart_cache, ui_state
 
         except Exception as e:
-            import traceback
+            import traceback  # noqa: PLC0415
 
             logger.error(f"Error in render_tab_content callback: {e}")
             logger.error(f"Full traceback: {traceback.format_exc()}")

@@ -13,8 +13,6 @@ from data.cache_manager import (
     load_cache_with_validation,
 )
 from data.exceptions import CacheError, PersistenceError
-from data.persistence import load_app_settings, save_app_settings
-from data.persistence.factory import get_backend
 
 logger = logging.getLogger(__name__)
 
@@ -49,6 +47,9 @@ def cache_jira_response(
     try:
         # PHASE 1: Save to DATABASE (primary storage after migration)
         try:
+            # circular import guard
+            from data.persistence.factory import get_backend  # noqa: PLC0415
+
             backend = get_backend()
             active_profile_id = backend.get_app_state("active_profile_id")
             active_query_id = backend.get_app_state("active_query_id")
@@ -86,6 +87,12 @@ def cache_jira_response(
                 if config and generate_config_hash_func:
                     config_hash = generate_config_hash_func(config, fields_requested)
                     try:
+                        # circular import guard
+                        from data.persistence import (  # noqa: PLC0415
+                            load_app_settings,
+                            save_app_settings,
+                        )
+
                         current_settings = load_app_settings()
                         cache_metadata = {
                             "last_cache_key": cache_key,
@@ -241,6 +248,9 @@ def load_changelog_cache(
         Tuple of (cache_loaded: bool, issues: List[Dict])
     """
     try:
+        # circular import guard
+        from data.persistence.factory import get_backend  # noqa: PLC0415
+
         backend = get_backend()
         active_profile_id = backend.get_app_state("active_profile_id")
         active_query_id = backend.get_app_state("active_query_id")

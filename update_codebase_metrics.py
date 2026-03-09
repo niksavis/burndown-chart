@@ -352,8 +352,8 @@ def format_with_prettier(files: list[Path]) -> None:
     Silently skips when npx/prettier is not on PATH so the script remains
     usable in environments without Node.js.
     """
-    import shutil
-    import subprocess
+    import shutil  # noqa: PLC0415
+    import subprocess  # noqa: PLC0415
 
     if not shutil.which("npx"):
         return
@@ -401,7 +401,7 @@ def write_metrics_files(metrics: dict[str, dict[str, int]], markdown_text: str) 
 
 def commit_changes() -> bool:
     """Commit context metrics artifact changes to git if modified."""
-    import subprocess
+    import subprocess  # noqa: PLC0415
 
     try:
         # Check if metrics artifacts were modified

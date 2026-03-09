@@ -344,7 +344,7 @@ def update_baseline_velocity_display(profile_id, query_id):
         return "Will be captured from Recent Completions (Last 4 Weeks) when you save"
 
     try:
-        import pandas as pd
+        import pandas as pd  # noqa: PLC0415
 
         unified_data = load_unified_project_data()
         statistics_list = unified_data.get("statistics", [])

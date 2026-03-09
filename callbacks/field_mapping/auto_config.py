@@ -65,7 +65,7 @@ def auto_configure_from_metadata(
     Returns:
         Tuple of (updated_state, status_alert, banner_closed)
     """
-    import json
+    import json  # noqa: PLC0415
 
     if not n_clicks:
         return (

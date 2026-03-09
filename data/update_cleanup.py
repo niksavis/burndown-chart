@@ -21,7 +21,7 @@ def cleanup_orphaned_temp_updaters() -> None:
     Only deletes files older than 1 hour to avoid interfering with any
     running update process.
     """
-    import tempfile
+    import tempfile  # noqa: PLC0415
 
     try:
         temp_dir = Path(tempfile.gettempdir())
@@ -53,7 +53,7 @@ def cleanup_orphaned_temp_updaters() -> None:
                     try:
                         # Only delete if older than 1 hour (safety margin)
                         if extract_dir.stat().st_mtime < cutoff_time:
-                            import shutil
+                            import shutil  # noqa: PLC0415
 
                             shutil.rmtree(extract_dir)
                             cleaned_count += 1

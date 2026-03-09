@@ -12,9 +12,10 @@ This reduces DevOps data volume by 10x+ by only fetching issues that link
 to actual development work through fixVersions.
 """
 
+import logging
 import time
 
-from configuration import logger
+logger = logging.getLogger(__name__)
 
 
 def should_use_two_phase_fetch(config: dict) -> tuple[bool, str]:

@@ -45,7 +45,7 @@ def handle_footer_update_click(footer_clicks: int):
         Toast notification
     """
 
-    import app
+    import app  # noqa: PLC0415
 
     # Check if actually clicked
     if not callback_context.triggered:
@@ -122,7 +122,7 @@ def handle_footer_update_click(footer_clicks: int):
     elif progress.state == UpdateState.MANUAL_UPDATE_REQUIRED:
         logger.info("Footer clicked in MANUAL mode - opening GitHub releases page")
 
-        import webbrowser
+        import webbrowser  # noqa: PLC0415
 
         webbrowser.open(
             "https://github.com/niksavis/burndown-chart/releases",
@@ -157,7 +157,7 @@ def handle_toast_download_click(download_clicks: int, status_data: dict | None):
     """Handle download when user clicks Download button in toast notification."""
     global _download_thread, _download_in_progress
 
-    import app
+    import app  # noqa: PLC0415
 
     # Check if button was actually clicked
     if not callback_context.triggered:
@@ -290,7 +290,7 @@ def poll_download_progress(n_intervals):
         )
     """
 
-    import app
+    import app  # noqa: PLC0415
 
     progress = app.VERSION_CHECK_RESULT
 
@@ -369,7 +369,7 @@ def handle_update_install(install_clicks: int, status_data: dict | None):
     Returns:
         Toast notification about the update process
     """
-    import app
+    import app  # noqa: PLC0415
 
     if not install_clicks:
         return no_update
@@ -416,7 +416,7 @@ def handle_update_install(install_clicks: int, status_data: dict | None):
 
         # Start updater in background thread with 2 second delay
         # to give overlay time to show
-        import threading
+        import threading  # noqa: PLC0415
 
         update_thread = threading.Timer(2.0, launch_and_exit)
         update_thread.daemon = True
@@ -464,7 +464,7 @@ def handle_manual_update_instructions(n_clicks: int):
     )
 
     # Open GitHub releases page in browser
-    import webbrowser
+    import webbrowser  # noqa: PLC0415
 
     webbrowser.open(
         "https://github.com/niksavis/burndown-chart/releases",

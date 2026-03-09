@@ -21,14 +21,16 @@ Usage:
 """
 
 import json
+import logging
 import os
 import uuid
 from datetime import datetime
 from typing import Any, cast
 
-from configuration import logger
 from data.schema import validate_query_profile
 from data.types import QueryProfile
+
+logger = logging.getLogger(__name__)
 
 #######################################################################
 # CONSTANTS

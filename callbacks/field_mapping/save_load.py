@@ -595,7 +595,7 @@ def save_or_validate_mappings(namespace_values, state_data):
         # Update state store with saved values so modal shows
         # correct state when reopened
         # Trigger metrics refresh to show "No metrics" state immediately
-        import time
+        import time  # noqa: PLC0415
 
         return True, "", state_data, toast, time.time()
 
