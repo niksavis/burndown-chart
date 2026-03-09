@@ -1,11 +1,6 @@
 ---
 name: circular-import-safety
-description: >
-  Detect, diagnose, and safely resolve circular Python import cycles in burndown-chart.
-  Use when you see ImportError at startup, are about to add a new cross-module import,
-  are refactoring module structure, get a PLC0415 ruff violation, or need to decide
-  whether a lazy import is justified. Covers known cycle map, decision tree, approved
-  wrapper pattern, structural fix protocol, and validation commands.
+description: 'Detect, diagnose, and safely resolve circular Python import cycles in burndown-chart. Use when you see ImportError at startup, are about to add a new cross-module import, are refactoring module structure, get a PLC0415 ruff violation, or need to decide whether a lazy import is justified. Covers known cycle map, decision tree, approved wrapper pattern, structural fix protocol, and validation commands.'
 ---
 
 # Skill: Circular Import Safety
