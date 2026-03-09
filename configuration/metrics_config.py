@@ -15,9 +15,16 @@ Reference: docs/metrics/IMPLEMENTATION_GUIDE.md
 import logging
 from typing import Any
 
-from data.persistence.factory import get_backend
-
 logger = logging.getLogger(__name__)
+
+
+def get_backend():  # noqa: PLC0415
+    """Lazy wrapper: breaks circular configuration.metrics_config -> data.metrics."""
+    from data.persistence.factory import (  # noqa: PLC0415
+        get_backend as _get_backend,
+    )
+
+    return _get_backend()
 
 
 class MetricsConfig:
