@@ -7,12 +7,7 @@ from typing import Any
 
 # Third-party library imports
 # Application imports
-from configuration.settings import (
-    DEFAULT_DATA_POINTS_COUNT,
-    DEFAULT_DEADLINE,
-    DEFAULT_PERT_FACTOR,
-    logger,
-)
+from configuration.settings import logger
 from data.exceptions import PersistenceError
 from data.persistence.factory import get_backend
 
@@ -76,6 +71,11 @@ def save_app_settings(
         cache_metadata: Dict with cache tracking info (last_cache_key,
             last_cache_timestamp, cache_config_hash)
     """
+
+    from configuration.settings import (  # noqa: PLC0415
+        DEFAULT_DATA_POINTS_COUNT,
+        DEFAULT_PERT_FACTOR,
+    )
 
     settings = {
         "pert_factor": pert_factor,
@@ -349,6 +349,12 @@ def load_app_settings() -> dict[str, Any]:
     Returns:
         Dictionary containing app settings or default values if not found
     """
+
+    from configuration.settings import (  # noqa: PLC0415
+        DEFAULT_DATA_POINTS_COUNT,
+        DEFAULT_DEADLINE,
+        DEFAULT_PERT_FACTOR,
+    )
 
     default_settings = {
         "pert_factor": DEFAULT_PERT_FACTOR,
