@@ -73,6 +73,7 @@ When recurring or novel task patterns are discovered during implementation:
 | `.github/skills/frontend-javascript-quality/SKILL.md`  | Reliable JavaScript/clientside callbacks                      | `assets/` JS/CSS changes                |
 | `.github/skills/updater-reliability/SKILL.md`          | Safe updater two-phase update flow                            | `updater/` system changes               |
 | `.github/skills/refactor/SKILL.md`                     | Behavior-preserving refactoring workflow                      | Large-file splits and cleanup tasks     |
+| `.github/skills/circular-import-safety/SKILL.md`       | Detect, diagnose, and resolve circular Python import cycles   | Any cross-module import change, PLC0415 violations, module restructure |
 | `.github/skills/make-skill-template/SKILL.md`          | Skill scaffolding template (`disable-model-invocation: true`) | Creating new skills — invoke explicitly |
 
 ## Custom Agents (Subagents)
@@ -140,7 +141,8 @@ Recommended baseline composition:
 - **Dependency onboarding**: `.github/copilot-instructions.md` `Dependency Onboarding (Required)` + `build-pipeline` instruction
 - **Updater system**: `updater-reliability` skill + `build-pipeline` instruction
 - **Configuration**: `configuration-changes` instruction + `security-data-safety` instruction
-- **Refactor**: `refactor` skill + `safe-refactor-python` prompt + `refactor-execution` agent + `layering-enforcer` agent + `testing-quality` instruction
+- **Refactor**: `refactor` skill + `circular-import-safety` skill + `safe-refactor-python` prompt + `refactor-execution` agent + `layering-enforcer` agent + `testing-quality` instruction
+- **Circular/lazy import issue**: `circular-import-safety` skill + `python-dash-layering` instruction + `python-code-quality` instruction
 - **Release prep**: `release-management` skill + `release-readiness` agent + `release-notes-draft` prompt
 - **Documentation (latest guidelines)**: `documentation-update` prompt + `context7-retrieval-patterns` skill + `context7-refresh` instruction + `context7-expert` agent
 

@@ -28,6 +28,13 @@ Use this skill when working in `callbacks/`, `data/`, `visualization/`, or relat
 - Parameterized SQL only.
 - No emoji in code/logging/comments.
 - No customer data or credentials in code, logs, or tests.
+- All imports at module top level. PLC0415 violations are blocking defects.
+- Never add `# noqa: PLC0415` without either a wrapper function docstring or a
+  `# circular import guard` comment naming the specific cycle being broken.
+- Before any cross-module import change, run:
+  `.venv\Scripts\python.exe -c "from callbacks import register_all_callbacks; print('OK')"`
+  A startup crash means a new circular import was introduced.
+- If you need a lazy import, load the `circular-import-safety` skill first.
 
 ## Suggested validations
 

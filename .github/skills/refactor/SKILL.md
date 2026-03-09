@@ -58,6 +58,17 @@ If refactoring crosses layers, move logic to the correct layer rather than addin
 - Keep SQL parameterized where applicable.
 - Respect existing style and naming conventions.
 - Avoid unrelated reformatting and broad churn.
+- After every module split or import restructure, run the circular import smoke test:
+  ```powershell
+  .venv\Scripts\python.exe -c "from callbacks import register_all_callbacks; print('OK')"
+  .venv\Scripts\python.exe -m ruff check . --select PLC0415
+  ```
+  Both must pass before declaring the refactor complete.
+- If a PLC0415 violation appears after a restructure, do NOT suppress it with `# noqa`.
+  Fix the import topology. Consult the `circular-import-safety` skill.
+- Known cycle boundaries that must not be crossed at module level:
+  `data/jira/*.py` ↔ `data.persistence`, `data/jira/*.py` → `configuration`,
+  `data/metrics_snapshots.py` ↔ `data.metrics_calculator`, `ui/metric_cards/_helpers.py` ↔ `ui.flow_metrics_dashboard`.
 
 ## Validation checklist
 

@@ -64,6 +64,7 @@ Apply artifacts in this order:
 - `.github/skills/updater-reliability/SKILL.md`
 - `.github/skills/release-management/SKILL.md`
 - `.github/skills/refactor/SKILL.md`
+- `.github/skills/circular-import-safety/SKILL.md` (detect, diagnose, and safely resolve circular Python import cycles)
 - `.github/skills/cli-search-tools/SKILL.md` (repo-agnostic; rg, fd, jq, yq patterns for code exploration and structured data querying)
 - `.github/skills/make-skill-template/SKILL.md` (`disable-model-invocation: true` — invoke explicitly to scaffold new skills)
 
