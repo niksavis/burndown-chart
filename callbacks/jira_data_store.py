@@ -10,6 +10,8 @@ import logging
 
 from dash import Input, Output, callback
 
+from data.persistence.factory import get_backend
+
 logger = logging.getLogger(__name__)
 
 
@@ -33,8 +35,6 @@ def populate_jira_issues_store(jira_status, statistics_data):
     """
     try:
         # Load JIRA issues from database
-        from data.persistence.factory import get_backend
-
         logger.info("===== JIRA STORE CALLBACK START =====")
         logger.info(f"jira_status: {jira_status}")
         logger.info(f"statistics_data type: {type(statistics_data)}")

@@ -10,6 +10,8 @@ Now uses SQLite database for persistence instead of task_progress.json file.
 import logging
 from datetime import datetime, timedelta
 
+from data.persistence.factory import get_backend
+
 logger = logging.getLogger(__name__)
 
 # Task timeout (if task takes longer than this, assume it failed)
@@ -18,7 +20,6 @@ TASK_TIMEOUT_MINUTES = 30
 
 def _get_backend():
     """Get persistence backend instance."""
-    from data.persistence.factory import get_backend
 
     return get_backend()
 

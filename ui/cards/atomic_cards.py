@@ -23,6 +23,7 @@ from typing import Any
 import dash_bootstrap_components as dbc
 from dash import html
 
+from ui.help_system import create_dashboard_metric_tooltip
 from ui.style_constants import get_card_style, get_color, get_spacing
 from ui.styles import create_metric_card_header
 
@@ -253,7 +254,6 @@ def create_dashboard_metrics_card(
         - "pert": PERT timeline estimates
     """
     # Import help system function for tooltips
-    from ui.help_system import create_dashboard_metric_tooltip
 
     # Validate card type
     valid_types = ["forecast", "velocity", "remaining", "pert"]

@@ -8,6 +8,8 @@ from typing import Any
 
 from dash import html
 
+from ui.flow_metrics_dashboard import _get_flow_performance_tier
+
 
 def _get_flow_performance_tier_color_hex(metric_name: str, value: float) -> str:
     """Get hex color code for Flow metric performance tier.
@@ -27,7 +29,6 @@ def _get_flow_performance_tier_color_hex(metric_name: str, value: float) -> str:
         Hex color code for performance tier
     """
     # Import tier determination function
-    from ui.flow_metrics_dashboard import _get_flow_performance_tier
 
     tier = _get_flow_performance_tier(metric_name, value)
 

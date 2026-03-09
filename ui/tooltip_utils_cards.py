@@ -14,6 +14,7 @@ import dash_bootstrap_components as dbc
 from dash import html
 
 # Local imports
+from ui.style_constants import HELP_ICON_POSITIONS
 from ui.tooltip_utils_core import (
     create_adaptive_tooltip_config,
     get_smart_placement,
@@ -126,8 +127,6 @@ def create_help_icon(
         >>> # Trailing help icon (pushed to end of container)
         >>> icon = create_help_icon("forecast-help", position="trailing")
     """
-    from ui.style_constants import HELP_ICON_POSITIONS
-
     # Get position-specific styling
     position_config = HELP_ICON_POSITIONS.get(position, HELP_ICON_POSITIONS["inline"])
 

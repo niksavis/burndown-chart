@@ -8,6 +8,8 @@ from typing import Any
 import plotly.graph_objects as go
 from dash import dcc
 
+from configuration.dora_config import DORA_BENCHMARKS
+
 
 def _add_performance_tier_zones(
     figure: go.Figure,
@@ -30,7 +32,6 @@ def _add_performance_tier_zones(
 
     Modifies figure in place by adding shape annotations for each tier.
     """
-    from configuration.dora_config import DORA_BENCHMARKS
 
     if metric_name not in DORA_BENCHMARKS:
         return  # No zones for non-DORA metrics

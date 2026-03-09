@@ -23,6 +23,7 @@ from data.budget_calculator_core import (
     _get_velocity,
     _get_velocity_points,
 )
+from data.database import get_db_connection
 
 logger = logging.getLogger(__name__)
 
@@ -101,7 +102,6 @@ def get_budget_baseline_vs_actual(
         >>> print(data["insights"][0])
         "Spending 43.4% below budgeted rate"
     """
-    from data.database import get_db_connection
 
     try:
         # Get baseline budget configuration

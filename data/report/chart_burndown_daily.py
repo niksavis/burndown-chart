@@ -5,6 +5,7 @@ Part of data/report/chart_burndown.py split.
 """
 
 import json
+from datetime import datetime
 
 
 def _iso_week_str(date_str: str) -> str | None:
@@ -46,7 +47,6 @@ def generate_burndown_chart(
         statistics: Statistics data (unused, kept for signature compatibility)
         pert_factor: PERT factor (unused, kept for signature compatibility)
     """
-    from datetime import datetime
 
     historical = burndown_metrics.get("historical_data", {})
     raw_dates = historical.get("dates", [])

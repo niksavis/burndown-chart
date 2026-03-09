@@ -10,6 +10,7 @@ import logging
 from typing import Any
 
 from data.performance_utils import log_performance
+from data.persistence import load_app_settings
 
 logger = logging.getLogger(__name__)
 
@@ -20,7 +21,6 @@ def _get_field_mappings():
     Returns:
         Tuple of (dora_mappings, project_classification)
     """
-    from data.persistence import load_app_settings
 
     app_settings = load_app_settings()
     field_mappings = app_settings.get("field_mappings", {})

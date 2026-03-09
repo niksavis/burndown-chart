@@ -12,6 +12,7 @@ from datetime import UTC, datetime, timedelta
 
 from data.exceptions import JiraError, PersistenceError
 from data.jira.changelog_pagination import fetch_jira_issues_with_changelog
+from data.persistence.factory import get_backend
 
 logger = logging.getLogger(__name__)
 
@@ -58,8 +59,6 @@ def fetch_changelog_on_demand(
             progress_callback("[Stats] Starting changelog download...")
 
         # Get active profile and query from database if not provided
-        from data.persistence.factory import get_backend
-
         backend = get_backend()
 
         if not profile_id:

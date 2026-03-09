@@ -6,14 +6,14 @@ import logging
 
 from dash import html
 
+from data.persistence import load_jira_configuration
+
 logger = logging.getLogger(__name__)
 
 
 def get_jira_base_url() -> str | None:
     """Get verified JIRA base URL from persisted configuration."""
     try:
-        from data.persistence import load_jira_configuration
-
         config = load_jira_configuration()
 
         if not config.get("last_test_success"):

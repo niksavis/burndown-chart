@@ -15,6 +15,8 @@ Design Pattern:
 import dash_bootstrap_components as dbc
 from dash import html
 
+from ui.style_constants import METRIC_CARD
+
 
 def create_unified_metric_card(
     title: str,
@@ -64,7 +66,6 @@ def create_unified_metric_card(
         ...     tertiary_info="[Date] May 22, 2025 - Oct 23, 2025",
         ... )
     """
-    from ui.style_constants import METRIC_CARD
 
     # Build card content layers
     card_content = [

@@ -17,6 +17,7 @@ import logging
 import dash_bootstrap_components as dbc
 from dash import html
 
+from data.velocity_projections import assess_pace_health
 from ui.style_constants import COLOR_PALETTE
 from ui.styles import create_metric_card_header
 
@@ -54,7 +55,6 @@ def create_pace_health_card(
         ...     show_points=True
         ... )
     """
-    from data.velocity_projections import assess_pace_health
 
     # Calculate items-based metrics
     items_health = assess_pace_health(current_items, required_items)

@@ -12,6 +12,7 @@ Bug investment chart showing items and points per week with forecast
 import plotly.graph_objects as go
 
 # Local imports - mobile layout helper from trend module
+from data.bug_processing import generate_bug_weekly_forecast
 from visualization.bug_charts_trend import get_mobile_chart_layout
 
 #######################################################################
@@ -151,8 +152,6 @@ def create_bug_investment_chart(
 
     # Add next week forecast if requested and have enough data
     if include_forecast and len(weekly_stats) >= 2:
-        from data.bug_processing import generate_bug_weekly_forecast
-
         forecast = generate_bug_weekly_forecast(weekly_stats)
 
         if not forecast.get("insufficient_data", False):

@@ -7,6 +7,8 @@ import logging
 
 from dash import Input, Output, callback, callback_context, html
 
+from data.persistence import load_app_settings
+
 logger = logging.getLogger(__name__)
 
 
@@ -31,8 +33,6 @@ def update_field_mapping_status(modal_is_open, save_clicks, profile_id):
         Status indicator component showing mapping state
     """
     import time
-
-    from data.persistence import load_app_settings
 
     try:
         # If triggered by profile switch, wait briefly for switch to complete

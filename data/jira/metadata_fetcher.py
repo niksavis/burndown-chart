@@ -13,6 +13,7 @@ import logging
 import requests
 
 from data.exceptions import JiraError
+from data.persistence import load_app_settings
 
 logger = logging.getLogger(__name__)
 
@@ -473,8 +474,6 @@ class JiraMetadataFetcher:
             List of unique values found in issues
         """
         try:
-            from data.persistence import load_app_settings
-
             logger.info(
                 f"[JIRA] Attempting to fetch field values from issues: "
                 f"{field_id} (scoped={scoped})"

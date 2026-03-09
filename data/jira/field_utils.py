@@ -6,6 +6,8 @@ Handles field extraction and mapping transformations.
 
 from typing import Any
 
+from configuration import logger
+
 
 def extract_jira_field_id(field_mapping: str) -> str:
     """Extract clean JIRA field ID from a field mapping string.
@@ -56,7 +58,6 @@ def extract_story_points_value(story_points_value: Any, field_name: str = "") ->
     Returns:
         Float value of story points, or 0.0 if unable to parse
     """
-    from configuration import logger
 
     if story_points_value is None:
         return 0.0

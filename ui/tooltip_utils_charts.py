@@ -9,6 +9,7 @@ lazy loading, formula tooltips, and statistical context tooltips.
 # IMPORTS
 #######################################################################
 # Local imports
+from configuration.settings import CHART_HELP_TEXTS
 from ui.tooltip_utils_cards import (
     create_enhanced_tooltip,
     create_expandable_tooltip,
@@ -199,8 +200,6 @@ def create_tooltip_with_settings_integration(setting_key, id_suffix, variant="in
     def get_help_text():
         # In practice, this would import and access CHART_HELP_TEXTS
         try:
-            from configuration.settings import CHART_HELP_TEXTS
-
             return CHART_HELP_TEXTS.get(setting_key, f"Help for {setting_key}")
         except ImportError:
             return f"Help text for {setting_key} (settings integration available)"

@@ -8,6 +8,7 @@ from datetime import datetime
 from configuration.settings import logger
 from data.exceptions import ConfigurationError, PersistenceError
 from data.persistence.adapters.app_settings import load_app_settings
+from data.persistence.factory import get_backend
 from data.schema import get_default_parameter_panel_state
 
 
@@ -87,8 +88,6 @@ def save_parameter_panel_state(is_open: bool, user_preference: bool = True) -> b
         }
 
         # Update app settings via backend
-        from data.persistence.factory import get_backend
-
         backend = get_backend()
 
         # Store panel state in app_state table (UI preference) as JSON string

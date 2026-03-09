@@ -16,6 +16,7 @@ import dash_bootstrap_components as dbc
 from dash import html
 
 from ui.loading_utils_core import (
+    create_growing_spinner,
     create_loading_overlay,
     create_skeleton_loader,
     create_spinner,
@@ -151,8 +152,6 @@ def create_loading_state(
     Returns:
         Dash component: A loading state component of the specified type
     """
-    from ui.loading_utils_core import create_growing_spinner
-
     # If not loading and we have children, just return the children
     if not is_loading and children is not None:
         return html.Div(children, className=className, id=id)

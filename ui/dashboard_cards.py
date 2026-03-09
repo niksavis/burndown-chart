@@ -9,6 +9,7 @@ from typing import Any
 import dash_bootstrap_components as dbc
 from dash import html
 
+from data.project_health_calculator import calculate_comprehensive_project_health
 from ui.metric_cards import create_metric_card
 from ui.tooltip_utils import create_info_tooltip
 
@@ -534,7 +535,6 @@ def _calculate_health_score(metrics: dict[str, Any]) -> int:
     Returns:
         Health score from 0-100
     """
-    from data.project_health_calculator import calculate_comprehensive_project_health
 
     # Prepare dashboard metrics for health calculator
     completion_pct = metrics.get("completion_percentage", 0)

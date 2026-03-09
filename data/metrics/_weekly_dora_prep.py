@@ -3,6 +3,8 @@
 import logging
 from datetime import datetime
 
+from data.dora_metrics import is_production_environment
+
 logger = logging.getLogger(__name__)
 
 
@@ -122,7 +124,6 @@ def classify_dora_issues(
 
     Returns (operational_tasks, development_issues, production_bugs).
     """
-    from data.dora_metrics import is_production_environment
 
     devops_task_types = app_settings.get("devops_task_types", [])
     bug_types = app_settings.get("bug_types", ["Bug"])

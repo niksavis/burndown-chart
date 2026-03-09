@@ -9,6 +9,7 @@ from __future__ import annotations
 import dash_bootstrap_components as dbc
 from dash import dcc, html
 
+from data.persistence import load_unified_project_data
 from ui.style_constants import COLOR_PALETTE
 
 
@@ -19,8 +20,6 @@ def get_forecast_history() -> tuple[list, list, list]:
         Tuple of (dates, items_forecasts, points_forecasts) lists
     """
     try:
-        from data.persistence import load_unified_project_data
-
         unified_data = load_unified_project_data()
         forecast_history = unified_data.get("forecast_history", [])
 

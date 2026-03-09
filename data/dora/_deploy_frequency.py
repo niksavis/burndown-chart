@@ -4,6 +4,7 @@ import logging
 from typing import Any
 
 from data.performance_utils import log_performance
+from data.persistence import load_app_settings
 
 from ._common import (
     DEPLOYMENT_FREQUENCY_TIERS,
@@ -75,8 +76,6 @@ def calculate_deployment_frequency(
         )
 
         # Get DevOps configuration for filtering
-        from data.persistence import load_app_settings
-
         app_settings = load_app_settings()
         devops_projects = app_settings.get("devops_projects", [])
         devops_task_types = project_classification.get("devops_task_types", [])

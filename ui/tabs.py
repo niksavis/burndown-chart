@@ -17,6 +17,7 @@ from dash import html
 
 # Application imports
 from configuration.settings import CHART_HELP_TEXTS
+from ui.cards import create_forecast_info_card
 from ui.grid_utils import create_tab_content as grid_create_tab_content
 from ui.mobile_navigation import (
     get_mobile_tabs_config,
@@ -253,7 +254,6 @@ def create_tab_content(active_tab, charts, statistics_df=None, pert_data=None):
         Dash component containing the active tab's content with consistent styling
     """
     # Import forecast info card functions
-    from ui.cards import create_forecast_info_card
 
     # Default to burndown chart if tab is None or invalid
     if active_tab not in [

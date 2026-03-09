@@ -5,6 +5,7 @@ Shared helper functions used across PERT component modules.
 
 from dash import html
 
+from ui.help_system import create_help_button_with_tooltip
 from ui.tooltip_utils import create_info_tooltip
 from ui.trend_components import TREND_COLORS, TREND_ICONS
 
@@ -42,8 +43,6 @@ def _create_header_with_icon(
 
     # Add progressive disclosure help system (Phase 9.2) if help parameters provided
     if help_key and help_category:
-        from ui.help_system import create_help_button_with_tooltip
-
         header_content.append(
             html.Span(
                 [

@@ -8,6 +8,7 @@ import logging
 import threading
 from collections.abc import Callable
 
+from configuration import __version__
 from data.update_manager import (
     UpdateProgress,
     UpdateState,
@@ -34,8 +35,6 @@ def restore_pending_update() -> UpdateProgress | None:
         Restored UpdateProgress or None if nothing to restore.
     """
     try:
-        from configuration import __version__
-
         restored_progress = _restore_download_state()
         if restored_progress:
             # Invalidate stale state if current version >= pending version

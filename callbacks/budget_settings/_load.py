@@ -14,6 +14,7 @@ from dash import Input, Output, callback, html, no_update
 from data.budget_calculator import get_budget_at_week
 from data.database import get_db_connection
 from data.iso_week_bucketing import get_week_label
+from data.persistence import load_unified_project_data
 from ui.budget_revision_history import create_revision_history_table
 from ui.budget_settings_card import _create_current_budget_card_content
 
@@ -344,8 +345,6 @@ def update_baseline_velocity_display(profile_id, query_id):
 
     try:
         import pandas as pd
-
-        from data.persistence import load_unified_project_data
 
         unified_data = load_unified_project_data()
         statistics_list = unified_data.get("statistics", [])

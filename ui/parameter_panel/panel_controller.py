@@ -3,6 +3,7 @@
 import dash_bootstrap_components as dbc
 from dash import html
 
+from data.profile_manager import get_active_profile_and_query_display_names
 from ui.parameter_panel.collapsed_bar import create_parameter_bar_collapsed
 from ui.parameter_panel.expanded_panel import create_parameter_panel_expanded
 
@@ -51,7 +52,6 @@ def create_parameter_panel(
     # This ensures the initial banner matches the callback-updated banner
 
     # Get active profile and query names for display
-    from data.profile_manager import get_active_profile_and_query_display_names
 
     display_names = get_active_profile_and_query_display_names()
     profile_name = display_names.get("profile_name")

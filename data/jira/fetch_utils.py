@@ -19,6 +19,7 @@ import requests
 from configuration import logger
 from data.jira.config import generate_config_hash
 from data.jira.field_utils import extract_jira_field_id
+from data.jira.rate_limiter import get_rate_limiter, retry_with_backoff
 
 # Main fetch with caching and optimization
 
@@ -75,7 +76,6 @@ def _fetch_jira_paginated(
     Returns:
         Tuple of (success: bool, issues: List[Dict])
     """
-    from data.jira.rate_limiter import get_rate_limiter, retry_with_backoff
 
     try:
         # Get configuration

@@ -5,7 +5,7 @@ Manages loading overlays and button states based on metadata availability.
 
 import logging
 
-from dash import Input, Output, State, callback, no_update
+from dash import Input, Output, State, callback, ctx, no_update
 
 from ui.toast_notifications import create_error_toast, create_success_toast
 
@@ -146,7 +146,6 @@ def toggle_auto_configure_warning(auto_click, cancel_click, is_open):
     Returns:
         Updated banner visibility state
     """
-    from dash import ctx
 
     if not ctx.triggered_id:
         return no_update

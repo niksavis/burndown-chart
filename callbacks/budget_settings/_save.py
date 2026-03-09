@@ -12,6 +12,7 @@ from dash import Input, Output, State, callback, no_update
 
 from data.database import get_db_connection
 from data.iso_week_bucketing import get_week_label
+from data.persistence import load_unified_project_data
 from ui.toast_notifications import create_toast
 
 logger = logging.getLogger(__name__)
@@ -118,8 +119,6 @@ def save_budget_settings(
         else:
             # Create mode: capture baseline from Recent Completions (last 4 weeks)
             import pandas as pd
-
-            from data.persistence import load_unified_project_data
 
             unified_data = load_unified_project_data()
             statistics_list = unified_data.get("statistics", [])

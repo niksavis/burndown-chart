@@ -20,6 +20,7 @@ from dash import html
 from ui.budget_cards import (
     create_budget_forecast_card,
     create_budget_runway_card,
+    create_budget_timeline_card,
     create_budget_utilization_card,
     create_cost_breakdown_card,
     create_cost_per_item_card,
@@ -240,7 +241,6 @@ def _create_budget_section(
     )
 
     # NEW: Budget Timeline card (card_8)
-    from ui.budget_cards import create_budget_timeline_card
 
     card_8 = None
     if baseline_comparison:

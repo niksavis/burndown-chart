@@ -14,6 +14,8 @@ drawer navigation, swipe gestures, and bottom navigation for mobile devices.
 import dash_bootstrap_components as dbc
 from dash import html
 
+from configuration.settings import get_bug_analysis_config
+
 # Application imports
 # from ui.icon_utils import get_icon_class  # Import removed as not used
 
@@ -257,7 +259,6 @@ def get_mobile_tabs_config():
         - True: Show in bottom navigation bar (6 primary tabs)
         - False: Show in overflow "More" menu (3 secondary tabs)
     """
-    from configuration.settings import get_bug_analysis_config
 
     tabs = [
         {

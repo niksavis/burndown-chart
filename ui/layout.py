@@ -29,6 +29,7 @@ from ui.about_dialog import create_about_dialog
 from ui.delete_query_modal import create_delete_query_modal
 from ui.field_mapping_modal import create_field_mapping_modal
 from ui.grid_utils import create_full_width_layout
+from ui.help_system import create_help_system_layout
 from ui.import_export_panel import create_import_export_flyout
 from ui.improved_settings_panel import create_improved_settings_panel
 from ui.jira_config_modal import create_jira_config_modal
@@ -116,7 +117,6 @@ def create_app_layout(settings, statistics, is_sample_data):
     # Import help system components
     # Import app module for version check (late import to avoid circular dependency)
     import app
-    from ui.help_system import create_help_system_layout
 
     # Store version check result for callback access (not rendered in initial layout)
     # Toast will be shown via callback to avoid being cleared by page load callbacks

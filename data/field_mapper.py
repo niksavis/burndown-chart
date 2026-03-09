@@ -16,6 +16,7 @@ import requests
 from configuration import dora_config, flow_config
 from data.performance_utils import FieldMappingIndex
 from data.persistence import load_app_settings, load_jira_configuration
+from data.persistence.factory import get_backend
 
 logger = logging.getLogger(__name__)
 
@@ -280,8 +281,6 @@ def save_field_mappings(mappings: dict) -> bool:
     """
     try:
         # Use repository pattern - get backend and save via database
-        from data.persistence.factory import get_backend
-
         backend = get_backend()
 
         # Get active profile

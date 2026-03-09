@@ -8,6 +8,7 @@ burndown chart visualization.
 from datetime import datetime, timedelta
 
 from configuration import logger
+from data.iso_week_bucketing import get_week_label
 from data.jira.field_utils import extract_story_points_value
 
 
@@ -27,7 +28,6 @@ def jira_to_csv_format(issues: list[dict], config: dict) -> list[dict]:
     Returns:
         List of weekly data dictionaries with burndown statistics
     """
-    from data.iso_week_bucketing import get_week_label
 
     try:
         if not issues:

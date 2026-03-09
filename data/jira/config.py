@@ -16,7 +16,7 @@ import requests
 from configuration import logger
 from data.exceptions import JiraError, PersistenceError
 from data.jira.validation import validate_jql_for_scriptrunner
-from data.persistence import load_app_settings
+from data.persistence import load_app_settings, load_jira_configuration
 
 #######################################################################
 # CONFIGURATION CONSTANTS
@@ -81,8 +81,6 @@ def get_jira_config(settings_jql_query: str | None = None) -> dict:
 
     # Load jira_config structure (new configuration system)
     try:
-        from data.persistence import load_jira_configuration
-
         jira_config = load_jira_configuration()
     except (
         ImportError,

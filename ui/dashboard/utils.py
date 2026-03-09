@@ -18,6 +18,10 @@ from typing import Any
 import pandas as pd
 from dash import html
 
+from data.project_health_calculator import (
+    calculate_comprehensive_project_health,
+    prepare_dashboard_metrics_for_health,
+)
 from ui.metric_cards import create_metric_card as create_professional_metric_card
 
 logger = logging.getLogger(__name__)
@@ -110,11 +114,6 @@ def calculate_project_health_score(
         Health score from 0-100
     """
     logger.info("[HEALTH v3.0] Using comprehensive multi-dimensional health formula")
-
-    from data.project_health_calculator import (
-        calculate_comprehensive_project_health,
-        prepare_dashboard_metrics_for_health,
-    )
 
     # Prepare metrics for comprehensive calculator using shared function (DRY)
     dashboard_metrics = prepare_dashboard_metrics_for_health(

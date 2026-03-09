@@ -55,6 +55,7 @@ import json
 import re
 import subprocess
 from collections import defaultdict
+from datetime import date
 from pathlib import Path
 
 import yaml
@@ -371,8 +372,6 @@ def main(export_json: bool = False, preview: bool = False):
 
         if export_json:
             # Export to JSON for LLM processing
-            from datetime import date
-
             tags_data = [
                 {
                     "version": "vX.Y.Z (UNRELEASED)",

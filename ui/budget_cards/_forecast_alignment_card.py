@@ -15,6 +15,7 @@ from datetime import datetime, timedelta
 import dash_bootstrap_components as dbc
 from dash import html
 
+from configuration import COLOR_PALETTE
 from ui.styles import create_metric_card_header
 
 
@@ -85,7 +86,6 @@ def create_forecast_alignment_card(
     Example:
         >>> card = create_forecast_alignment_card(105.0, 92.4, 12.5, True)
     """
-    from configuration import COLOR_PALETTE
 
     # Use last_date for date calculations, fall back to datetime.now()
     reference_date = last_date if last_date else datetime.now()

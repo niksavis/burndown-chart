@@ -17,6 +17,8 @@ import logging
 from collections import defaultdict
 from datetime import UTC, datetime
 
+from dateutil import parser as date_parser
+
 logger = logging.getLogger(__name__)
 
 
@@ -566,8 +568,6 @@ def calculate_sprint_scope_changes(
 
     # If sprint start date provided, filter to only changes after start
     if sprint_start_date:
-        from dateutil import parser as date_parser
-
         try:
             start_dt = date_parser.parse(sprint_start_date)
             added_issues = [

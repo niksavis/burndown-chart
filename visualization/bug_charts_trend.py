@@ -12,8 +12,11 @@ Mobile-optimized chart configuration helpers and the bug trend chart
 from datetime import datetime
 from typing import Any
 
-# Third-party library imports
 import plotly.graph_objects as go
+
+from data.bug_processing import generate_bug_weekly_forecast
+
+# Third-party library imports
 
 #######################################################################
 # MOBILE CHART CONFIGURATION HELPERS
@@ -323,8 +326,6 @@ def create_bug_trend_chart(
 
     # Add next week forecast if requested and have enough data
     if include_forecast and len(weekly_stats) >= 2:
-        from data.bug_processing import generate_bug_weekly_forecast
-
         forecast = generate_bug_weekly_forecast(weekly_stats)
 
         if not forecast.get("insufficient_data", False):

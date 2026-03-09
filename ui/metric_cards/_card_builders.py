@@ -9,6 +9,7 @@ from typing import Any
 import dash_bootstrap_components as dbc
 from dash import html
 
+from data.metrics.blending import format_blend_description
 from ui.metric_cards._helpers import _create_mini_bar_sparkline, _get_metric_explanation
 from ui.tooltip_utils import create_info_tooltip
 
@@ -212,8 +213,6 @@ def _build_blend_section(
     Returns a Div to append to card_body_children, or None if nothing to show.
     """
     if blend_metadata and blend_metadata.get("is_blended"):
-        from data.metrics.blending import format_blend_description
-
         return html.Div(
             [
                 html.Hr(className="my-2"),

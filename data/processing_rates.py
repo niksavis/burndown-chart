@@ -6,6 +6,7 @@ historical weekly throughput using agile-adapted PERT methodology.
 
 import pandas as pd
 
+from data.schema import DEFAULT_SETTINGS
 from utils.caching import memoize
 
 
@@ -107,8 +108,6 @@ def calculate_rates(
     """
     # Set default performance settings if not provided
     if performance_settings is None:
-        from data.schema import DEFAULT_SETTINGS
-
         performance_settings = {
             "forecast_max_days": DEFAULT_SETTINGS.get("forecast_max_days", 730),
             "pessimistic_multiplier_cap": DEFAULT_SETTINGS.get(

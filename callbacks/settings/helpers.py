@@ -6,6 +6,7 @@ Functions here are pure utilities with no Dash callback decorators.
 """
 
 from configuration import logger
+from data.persistence import load_unified_project_data
 
 
 def normalize_show_points(value):
@@ -91,8 +92,6 @@ def calculate_remaining_work_for_data_window(data_points_count, statistics):
         return None
 
     try:
-        from data.persistence import load_unified_project_data
-
         # Load unified data to get current scope
         unified_data = load_unified_project_data()
         project_scope = unified_data.get("project_scope", {})

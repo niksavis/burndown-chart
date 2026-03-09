@@ -10,6 +10,7 @@ from data.profile_manager import (
     get_active_profile,
     list_profiles,
     switch_profile,
+    switch_query,
 )
 from data.query_manager import get_active_query_id, list_queries_for_profile
 
@@ -74,8 +75,6 @@ def ensure_valid_workspace() -> None:
             active_query_id = get_active_query_id()
             if queries and not active_query_id:
                 logger.info("[Workspace] No active query, switching to first query")
-                from data.profile_manager import switch_query
-
                 switch_query(active_profile.id, queries[0]["id"])
 
         logger.info("[Workspace] Workspace validation complete [OK]")
