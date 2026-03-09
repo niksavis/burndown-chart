@@ -98,6 +98,25 @@ ui.metric_cards.__init__
 
 ---
 
+### Cycle 5: configuration.metrics_config ↔ data.metrics
+
+```
+configuration.metrics_config
+  → data.persistence.factory       (if imported at module level)
+    → data.__init__
+      → data.metrics.weekly_calculator
+        → configuration.metrics_config  ← CYCLE (partial init)
+```
+
+**Consequence**: `from data.persistence.factory import get_backend` at
+module level in `configuration/metrics_config.py` crashes collection of
+any test that imports through the `configuration` or `data` package chain.
+
+**Guard**: Use the lazy wrapper function pattern for `get_backend` in
+`configuration/metrics_config.py`. Never promote this import to module level.
+
+---
+
 ## Approved Lazy Wrapper Pattern
 
 When a structural fix is deferred, use this exact pattern. Never use bare
