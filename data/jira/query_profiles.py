@@ -78,7 +78,7 @@ def _save_profiles_to_disk(profiles: list[dict[str, Any]]) -> bool:
         return False
 
 
-def load_query_profiles() -> list[dict[str, Any]]:
+def load_query_profiles() -> list[QueryProfile]:
     """
     Load all query profiles from disk.
 
@@ -86,10 +86,10 @@ def load_query_profiles() -> list[dict[str, Any]]:
         List of query profile dictionaries from jira_query_profiles.json
     """
     # Load user-created profiles from disk
-    return _load_profiles_from_disk()
+    return cast(list[QueryProfile], _load_profiles_from_disk())
 
 
-def get_query_profile_by_id(profile_id: str) -> dict[str, Any] | None:
+def get_query_profile_by_id(profile_id: str) -> QueryProfile | None:
     """
     Get a specific query profile by ID.
 

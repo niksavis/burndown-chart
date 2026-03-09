@@ -12,11 +12,12 @@ from data.report.generator_recommendation_signals import (
     _build_budget_forecast_insights,
     _build_deadline_scenario_insights,
 )
+from data.types import MetricsResult
 
 
 def calculate_recommendations(
     statistics: list[dict],
-    dashboard_metrics: dict[str, Any],
+    dashboard_metrics: MetricsResult,
     extended_metrics: dict[str, Any],
     settings: dict[str, Any],
     time_period_weeks: int,

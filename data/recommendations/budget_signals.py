@@ -5,6 +5,8 @@ from __future__ import annotations
 import math
 from typing import Any
 
+from data.types import MetricsResult
+
 
 def build_budget_health_signals(
     budget_data: dict[str, Any] | None,
@@ -177,7 +179,7 @@ def build_budget_forecast_signals_from_pert(
 
 def build_budget_forecast_signals_from_dashboard(
     budget_data: dict[str, Any] | None,
-    dashboard_metrics: dict[str, Any],
+    dashboard_metrics: MetricsResult,
 ) -> list[dict[str, Any]]:
     """Build budget vs forecast signals using dashboard metrics."""
     if not budget_data:

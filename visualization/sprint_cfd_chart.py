@@ -7,6 +7,8 @@ Stack order (bottom to top): Done → Testing → In Progress → To Do
 """
 
 import logging
+from collections.abc import Mapping, Sequence
+from typing import Any
 
 import plotly.graph_objects as go
 
@@ -30,7 +32,7 @@ STATUS_COLORS = {
 
 
 def create_sprint_cfd_chart(
-    daily_snapshots: list[dict],
+    daily_snapshots: Sequence[Mapping[str, Any]],
     sprint_name: str = "Sprint",
     status_order: list[str] | None = None,
     height: int = 400,

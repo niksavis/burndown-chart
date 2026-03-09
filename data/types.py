@@ -65,10 +65,12 @@ class JiraConfig(TypedDict, total=False):
 class MetricsResult(TypedDict, total=False):
     """Dashboard/report metrics produced by report calculations."""
 
-    has_data: bool
-    completed_items: int
+    has_data: Required[bool]
+    completed_items: Required[int]
+    health_score: Required[int]
+    health_status: Required[str]
+    remaining_items: Required[int]
     completed_points: float
-    remaining_items: int
     remaining_points: float
     total_items: int
     total_points: float

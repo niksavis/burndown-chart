@@ -10,7 +10,9 @@ Used in Sprint Progress Tracker tab to visualize commitment vs actual delivery.
 """
 
 import logging
+from collections.abc import Mapping, Sequence
 from datetime import datetime
+from typing import Any
 
 import plotly.graph_objects as go
 
@@ -21,7 +23,7 @@ logger = logging.getLogger(__name__)
 
 
 def create_sprint_burnup_chart(
-    daily_snapshots: list[dict],
+    daily_snapshots: Sequence[Mapping[str, Any]],
     sprint_name: str = "Sprint",
     sprint_start_date: str | None = None,
     sprint_end_date: str | None = None,

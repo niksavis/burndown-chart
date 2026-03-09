@@ -59,7 +59,7 @@ class TestQueryProfileManager:
             assert len(profiles) == 1
 
             # Should be the user profile
-            assert not profiles[0]["is_default"]
+            assert not profiles[0].get("is_default")
             assert profiles[0]["name"] == "Custom Query"
 
     def test_save_query_profile_creates_new_profile(self):

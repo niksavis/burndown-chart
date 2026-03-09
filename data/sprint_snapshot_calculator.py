@@ -15,6 +15,8 @@ import logging
 from collections import defaultdict
 from datetime import UTC, datetime, timedelta
 
+from data.types import SprintSnapshot
+
 logger = logging.getLogger(__name__)
 
 
@@ -25,7 +27,7 @@ def calculate_daily_sprint_snapshots(
     sprint_start_date: str,
     sprint_end_date: str,
     flow_end_statuses: list[str] | None = None,
-) -> list[dict]:
+) -> list[SprintSnapshot]:
     """Generate daily snapshots of sprint progress.
 
     Args:

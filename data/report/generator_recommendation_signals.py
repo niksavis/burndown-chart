@@ -7,9 +7,11 @@ Part of data/report/generator.py split.
 
 from typing import Any
 
+from data.types import MetricsResult
+
 
 def _build_deadline_scenario_insights(
-    dashboard_metrics: dict[str, Any],
+    dashboard_metrics: MetricsResult,
     deadline: str | None,
     insights: list[dict],
 ) -> None:
@@ -165,7 +167,7 @@ def _build_deadline_scenario_insights(
 
 def _build_budget_forecast_insights(
     extended_metrics: dict[str, Any],
-    dashboard_metrics: dict[str, Any],
+    dashboard_metrics: MetricsResult,
     deadline: str | None,
     insights: list[dict],
 ) -> None:

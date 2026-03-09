@@ -6,6 +6,8 @@ Part of data/report/generator.py split.
 import logging
 from typing import Any
 
+from data.types import MetricsResult
+
 logger = logging.getLogger(__name__)
 
 
@@ -219,7 +221,7 @@ def calculate_all_metrics(
 
 
 def calculate_executive_summary(
-    dashboard_metrics: dict[str, Any], extended_metrics: dict[str, Any]
+    dashboard_metrics: MetricsResult, extended_metrics: dict[str, Any]
 ) -> dict[str, Any]:
     """
     Generate executive summary with top insights and risks.
