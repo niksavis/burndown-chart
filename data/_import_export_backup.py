@@ -15,6 +15,7 @@ from pathlib import Path
 from data._import_export_export import export_profile_enhanced
 from data._import_export_import import import_profile_enhanced
 from data._import_export_types import ExportManifest
+from data.profile_manager import list_profiles
 
 logger = logging.getLogger(__name__)
 
@@ -29,8 +30,6 @@ def create_full_system_backup(backup_path: str) -> tuple[bool, str]:
         Tuple of (success, message)
     """
     try:
-        from data.profile_manager import list_profiles
-
         profiles = list_profiles()
         if not profiles:
             return False, "No profiles found to backup"

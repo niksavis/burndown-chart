@@ -16,6 +16,8 @@ Used for:
 import logging
 from datetime import UTC, datetime
 
+from dateutil import parser
+
 #######################################################################
 # LOGGING
 #######################################################################
@@ -522,8 +524,6 @@ def get_status_at_point_in_time(
             return None
 
         # Parse creation date
-        from dateutil import parser
-
         created_date = parser.parse(created_str)
         # Convert to UTC and strip timezone for comparison
 
