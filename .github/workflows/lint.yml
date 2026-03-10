@@ -9,7 +9,7 @@ on:
 jobs:
   lint:
     name: Lint (Ruff, Djlint, Prettier, Markdownlint, Pyright)
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout
@@ -19,15 +19,10 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.13'
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
+          cache: 'pip'
 
       - name: Install pre-commit
         run: pip install pre-commit
-        shell: pwsh
 
       - name: Cache pre-commit environments
         uses: actions/cache@v4
@@ -37,16 +32,12 @@ jobs:
 
       - name: Pre-commit run (all files)
         run: pre-commit run --all-files
-        shell: pwsh
 
       - name: Install project dependencies
         run: pip install -r requirements.txt
-        shell: pwsh
 
       - name: Install Pyright and type stubs
         run: pip install pyright pandas-stubs
-        shell: pwsh
 
       - name: Pyright type check
-        run: pyright data/ callbacks/ ui/ visualization/
-        shell: pwsh
+        run: pyright data/ callbacks/ ui/ visualization/ tests/
