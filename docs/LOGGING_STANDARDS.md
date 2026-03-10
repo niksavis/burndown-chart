@@ -123,7 +123,7 @@ The `SensitiveDataFilter` in `configuration/logging_config.py` automatically red
 ✅ **Automatically filtered**:
 
 - API tokens: `"token": "abc123"` → `"token": "[REDACTED]"`
-- Passwords: `"password": "pass"` → `"password": "[REDACTED]"`
+- Passwords: `"password": "pass"` → `"password": "[REDACTED]"` # pragma: allowlist secret
 - Bearer tokens: `Bearer xyz...` → `Bearer [REDACTED]`
 - API keys: `api_key=sk-...` → `api_key: [REDACTED]`
 - Production URLs: `https://jira.company.com` → `https://jira.example.com`
