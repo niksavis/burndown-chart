@@ -34,10 +34,7 @@ jobs:
         run: pre-commit run --all-files
 
       - name: Install project dependencies
-        run: pip install -r requirements.txt
-
-      - name: Install Pyright and type stubs
-        run: pip install pyright pandas-stubs
+        run: pip install -r requirements.txt -r requirements-dev.txt
 
       - name: Pyright type check
         run: pyright data/ callbacks/ ui/ visualization/ tests/
