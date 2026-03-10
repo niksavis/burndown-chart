@@ -58,13 +58,15 @@ def sample_dict_list():
 def test_prepare_visualization_data_with_dataframe(sample_dataframe):
     """Test that prepare_visualization_data handles DataFrame input correctly."""
     with (
-        patch("data.processing.calculate_rates") as mock_calculate_rates,
+        patch("visualization.data_preparation.calculate_rates") as mock_calculate_rates,
         patch(
-            "data.processing.compute_weekly_throughput"
+            "visualization.data_preparation.compute_weekly_throughput"
         ) as mock_compute_weekly_throughput,
-        patch("data.processing.daily_forecast_burnup") as mock_daily_forecast_burnup,
         patch(
-            "visualization.helpers.generate_burndown_forecast"
+            "visualization.data_preparation.daily_forecast_burnup"
+        ) as mock_daily_forecast_burnup,
+        patch(
+            "visualization.data_preparation.generate_burndown_forecast"
         ) as mock_generate_burndown_forecast,
     ):
         # Mock the calculate_rates function to return sample data
@@ -112,13 +114,15 @@ def test_prepare_visualization_data_with_dataframe(sample_dataframe):
 def test_prepare_visualization_data_with_dict_list(sample_dict_list):
     """Test list-of-dictionaries input handling in prepare_visualization_data."""
     with (
-        patch("data.processing.calculate_rates") as mock_calculate_rates,
+        patch("visualization.data_preparation.calculate_rates") as mock_calculate_rates,
         patch(
-            "data.processing.compute_weekly_throughput"
+            "visualization.data_preparation.compute_weekly_throughput"
         ) as mock_compute_weekly_throughput,
-        patch("data.processing.daily_forecast_burnup") as mock_daily_forecast_burnup,
         patch(
-            "visualization.helpers.generate_burndown_forecast"
+            "visualization.data_preparation.daily_forecast_burnup"
+        ) as mock_daily_forecast_burnup,
+        patch(
+            "visualization.data_preparation.generate_burndown_forecast"
         ) as mock_generate_burndown_forecast,
     ):
         # Mock the calculate_rates function to return sample data

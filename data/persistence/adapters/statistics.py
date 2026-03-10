@@ -1,6 +1,7 @@
 """Data persistence adapters - Statistics save/load operations."""
 
 # Standard library imports
+import logging
 import sqlite3
 from datetime import datetime
 from datetime import datetime as dt_module
@@ -10,7 +11,6 @@ from typing import Any
 import pandas as pd
 
 # Application imports
-from configuration.settings import logger
 from data.exceptions import PersistenceError
 from data.iso_week_bucketing import get_week_label
 from data.persistence.adapters.core import (
@@ -21,6 +21,8 @@ from data.persistence.adapters.unified_data import (
     save_unified_project_data,
 )
 from data.persistence.factory import get_backend
+
+logger = logging.getLogger(__name__)
 
 
 def save_statistics(data: list[dict[str, Any]]) -> None:

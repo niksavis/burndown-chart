@@ -1,16 +1,18 @@
 """Data persistence adapters - Unified project data operations."""
 
 # Standard library imports
+import logging
 from typing import Any
 
 # Third-party library imports
 import pandas as pd
 
 # Application imports
-from configuration.settings import logger
 from data.exceptions import PersistenceError
 from data.persistence.factory import get_backend
 from data.schema import get_default_unified_data
+
+logger = logging.getLogger(__name__)
 
 
 def load_unified_project_data() -> dict[str, Any]:

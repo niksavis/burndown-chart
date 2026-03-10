@@ -66,8 +66,11 @@ def render_tab_content(
         Tuple of (form component, updated state)
     """
 
-    # Check what triggered this callback
-    triggered_id = ctx.triggered_id if ctx.triggered else None
+    # Check what triggered this callback (None outside callback context)
+    try:
+        triggered_id = ctx.triggered_id if ctx.triggered else None
+    except Exception:
+        triggered_id = None
 
     # Debug logging
     metadata_status = (

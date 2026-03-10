@@ -1,10 +1,10 @@
 """Data persistence adapters - Project scope and statistics operations."""
 
 # Standard library imports
+import logging
 from datetime import datetime
 
 # Application imports
-from configuration.settings import logger
 from data.jira.config import get_jira_config, validate_jira_config
 from data.jira.main_fetch import fetch_jira_issues
 from data.jira.scope_calculator import calculate_jira_project_scope
@@ -13,6 +13,8 @@ from data.persistence.adapters.unified_data import (
     load_unified_project_data,
     save_unified_project_data,
 )
+
+logger = logging.getLogger(__name__)
 
 
 def get_project_statistics():

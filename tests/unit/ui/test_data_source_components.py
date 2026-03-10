@@ -28,7 +28,7 @@ class TestDataSourceUIComponents:
     def test_get_default_data_source_returns_persisted_value(self):
         """Test that persisted data source value is returned"""
         with patch(
-            "data.persistence.load_app_settings",
+            "ui.cards.settings_helpers.load_app_settings",
             return_value={"last_used_data_source": "CSV"},
         ):
             result = _get_default_data_source()
@@ -38,7 +38,8 @@ class TestDataSourceUIComponents:
         """Test graceful handling when persistence module import fails"""
         # Mock an exception to trigger the error handling
         with patch(
-            "data.persistence.load_app_settings", side_effect=Exception("Mock error")
+            "ui.cards.settings_helpers.load_app_settings",
+            side_effect=Exception("Mock error"),
         ):
             result = _get_default_data_source()
             # Should return "JIRA" as default when error occurs
@@ -46,14 +47,14 @@ class TestDataSourceUIComponents:
 
     def test_get_default_jql_profile_id_returns_empty_when_no_settings(self):
         """Test that empty string is returned when no profile ID is stored"""
-        with patch("data.persistence.load_app_settings", return_value={}):
+        with patch("ui.cards.settings_helpers.load_app_settings", return_value={}):
             result = _get_default_jql_profile_id()
             assert result == ""
 
     def test_get_default_jql_profile_id_returns_persisted_value(self):
         """Test that persisted JQL profile ID is returned"""
         with patch(
-            "data.persistence.load_app_settings",
+            "ui.cards.settings_helpers.load_app_settings",
             return_value={"active_jql_profile_id": "profile-123"},
         ):
             result = _get_default_jql_profile_id()
@@ -63,7 +64,8 @@ class TestDataSourceUIComponents:
         """Test graceful handling when persistence module import fails"""
         # Mock an exception to trigger the error handling
         with patch(
-            "data.persistence.load_app_settings", side_effect=Exception("Mock error")
+            "ui.cards.settings_helpers.load_app_settings",
+            side_effect=Exception("Mock error"),
         ):
             result = _get_default_jql_profile_id()
             # Should return "" as default when error occurs
@@ -80,7 +82,9 @@ class TestDataSourceHelperFunctions:
             "active_jql_profile_id": "test-profile-123",
         }
 
-        with patch("data.persistence.load_app_settings", return_value=mock_settings):
+        with patch(
+            "ui.cards.settings_helpers.load_app_settings", return_value=mock_settings
+        ):
             data_source = _get_default_data_source()
             profile_id = _get_default_jql_profile_id()
 
@@ -95,7 +99,9 @@ class TestDataSourceHelperFunctions:
             # Missing: last_used_data_source, active_jql_profile_id
         }
 
-        with patch("data.persistence.load_app_settings", return_value=old_settings):
+        with patch(
+            "ui.cards.settings_helpers.load_app_settings", return_value=old_settings
+        ):
             data_source = _get_default_data_source()
             profile_id = _get_default_jql_profile_id()
 
@@ -119,7 +125,9 @@ def test_data_source_default_variations(data_source, expected):
         {"last_used_data_source": data_source} if data_source is not None else {}
     )
 
-    with patch("data.persistence.load_app_settings", return_value=mock_settings):
+    with patch(
+        "ui.cards.settings_helpers.load_app_settings", return_value=mock_settings
+    ):
         result = _get_default_data_source()
         assert result == expected
 
@@ -139,6 +147,8 @@ def test_jql_profile_id_variations(profile_id, expected):
         {"active_jql_profile_id": profile_id} if profile_id is not None else {}
     )
 
-    with patch("data.persistence.load_app_settings", return_value=mock_settings):
+    with patch(
+        "ui.cards.settings_helpers.load_app_settings", return_value=mock_settings
+    ):
         result = _get_default_jql_profile_id()
         assert result == expected

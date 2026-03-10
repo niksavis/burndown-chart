@@ -75,8 +75,14 @@ def mock_profile_config() -> dict[str, Any]:
 @pytest.fixture
 def mock_load_app_settings(mock_profile_config):
     """Patch load_app_settings to return mock profile config."""
-    with patch("data.persistence.load_app_settings") as mock:
+    with (
+        patch("data.persistence.load_app_settings") as mock,
+        patch("data.dora._mttr.load_app_settings") as mock_mttr,
+        patch("data.dora._lead_time.load_app_settings") as mock_lead,
+    ):
         mock.return_value = mock_profile_config
+        mock_mttr.return_value = mock_profile_config
+        mock_lead.return_value = mock_profile_config
         yield mock
 
 

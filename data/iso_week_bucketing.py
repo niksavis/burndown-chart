@@ -105,6 +105,12 @@ def get_weeks_from_date_range(
         # Move to next week
         current = current + timedelta(days=7)
 
+    # Ensure end_date's week is included; a 7-day step may overshoot it
+    end_week_label = get_week_label(end_date)
+    if end_week_label not in seen_labels:
+        monday, sunday = get_iso_week_bounds(end_date)
+        weeks.append((end_week_label, monday, sunday))
+
     return weeks
 
 

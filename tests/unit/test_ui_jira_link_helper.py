@@ -20,7 +20,7 @@ from ui.jira_link_helper import (
 class TestGetJiraBaseUrl:
     """Tests for get_jira_base_url function."""
 
-    @patch("data.persistence.load_jira_configuration")
+    @patch("utils.jira_link_utils.load_jira_configuration")
     def test_returns_url_when_verified(self, mock_load_config):
         """Should return base URL when connection is verified."""
         mock_load_config.return_value = {
@@ -32,7 +32,7 @@ class TestGetJiraBaseUrl:
 
         assert result == "https://jira.example.com"
 
-    @patch("data.persistence.load_jira_configuration")
+    @patch("utils.jira_link_utils.load_jira_configuration")
     def test_returns_none_when_not_verified(self, mock_load_config):
         """Should return None when connection not verified."""
         mock_load_config.return_value = {
@@ -44,7 +44,7 @@ class TestGetJiraBaseUrl:
 
         assert result is None
 
-    @patch("data.persistence.load_jira_configuration")
+    @patch("utils.jira_link_utils.load_jira_configuration")
     def test_returns_none_when_no_base_url(self, mock_load_config):
         """Should return None when no base URL configured."""
         mock_load_config.return_value = {
@@ -56,7 +56,7 @@ class TestGetJiraBaseUrl:
 
         assert result is None
 
-    @patch("data.persistence.load_jira_configuration")
+    @patch("utils.jira_link_utils.load_jira_configuration")
     def test_returns_none_on_exception(self, mock_load_config):
         """Should return None when configuration loading fails."""
         mock_load_config.side_effect = Exception("Config error")

@@ -1,15 +1,17 @@
 """Data persistence adapters - App settings save/load operations."""
 
 # Standard library imports
+import logging
 import sqlite3
 from datetime import datetime
 from typing import Any
 
 # Third-party library imports
 # Application imports
-from configuration.settings import logger
 from data.exceptions import PersistenceError
 from data.persistence.factory import get_backend
+
+logger = logging.getLogger(__name__)
 
 
 def save_app_settings(

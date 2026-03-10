@@ -465,9 +465,9 @@ def test_format_prompt_reasonable_length(sample_summary):
 # ============================================================================
 
 
-@patch("data.import_export.export_profile_with_mode")
-@patch("data.query_manager.get_active_profile_id")
-@patch("data.query_manager.get_active_query_id")
+@patch("data.ai_prompt_generator.export_profile_with_mode")
+@patch("data.ai_prompt_generator.get_active_profile_id")
+@patch("data.ai_prompt_generator.get_active_query_id")
 def test_generate_prompt_full_flow(
     mock_get_query, mock_get_profile, mock_export, sample_export_with_pii
 ):
@@ -494,8 +494,8 @@ def test_generate_prompt_full_flow(
     assert "Project Data" in prompt  # New format
 
 
-@patch("data.query_manager.get_active_profile_id")
-@patch("data.query_manager.get_active_query_id")
+@patch("data.ai_prompt_generator.get_active_profile_id")
+@patch("data.ai_prompt_generator.get_active_query_id")
 def test_generate_prompt_no_active_profile(mock_get_query, mock_get_profile):
     """Verify error handling when no profile selected."""
     mock_get_profile.return_value = None
@@ -574,9 +574,9 @@ def test_generate_prompt_performance(sample_export_with_pii):
     """Verify prompt generation completes within performance budget (<100ms)."""
     import time
 
-    with patch("data.import_export.export_profile_with_mode") as mock_export:
-        with patch("data.query_manager.get_active_profile_id") as mock_profile:
-            with patch("data.query_manager.get_active_query_id") as mock_query:
+    with patch("data.ai_prompt_generator.export_profile_with_mode") as mock_export:
+        with patch("data.ai_prompt_generator.get_active_profile_id") as mock_profile:
+            with patch("data.ai_prompt_generator.get_active_query_id") as mock_query:
                 mock_export.return_value = sample_export_with_pii
                 mock_profile.return_value = "test"
                 mock_query.return_value = "q_12345"

@@ -73,7 +73,7 @@ def test_budget_metrics_calculation_with_data(temp_db):
     backend.save_budget_settings("test_profile", "test_query", budget_settings)
 
     # Calculate metrics with mocked backend
-    with patch("data.persistence.factory.get_backend", return_value=backend):
+    with patch("data.report.helpers.get_backend", return_value=backend):
         with patch(
             "data.persistence.load_unified_project_data",
             return_value={"statistics": [], "project_scope": {}, "settings": {}},

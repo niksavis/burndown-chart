@@ -16,10 +16,10 @@ from callbacks.field_mapping.tab_rendering import render_tab_content
 class TestFieldMappingStateInitialization:
     """Test that render_tab_content properly initializes state from saved settings."""
 
-    @patch("data.field_mapper.fetch_available_jira_fields")
-    @patch("data.persistence.load_app_settings")
+    @patch("callbacks.field_mapping.tab_rendering.fetch_available_jira_fields")
+    @patch("callbacks.field_mapping.tab_rendering.load_app_settings")
     @patch("callbacks.field_mapping.tab_rendering.callback_context")
-    @patch("dash.ctx")
+    @patch("callbacks.field_mapping.tab_rendering.ctx")
     def test_render_initializes_state_from_saved_settings(
         self, mock_dash_ctx, mock_callback_ctx, mock_load_settings, mock_fetch_fields
     ):
@@ -187,10 +187,10 @@ class TestFieldMappingStateInitialization:
         )
         assert returned_state["development_projects"] == ["CHANGED"]
 
-    @patch("data.field_mapper.fetch_available_jira_fields")
-    @patch("data.persistence.load_app_settings")
+    @patch("callbacks.field_mapping.tab_rendering.fetch_available_jira_fields")
+    @patch("callbacks.field_mapping.tab_rendering.load_app_settings")
     @patch("callbacks.field_mapping.tab_rendering.callback_context")
-    @patch("dash.ctx")
+    @patch("callbacks.field_mapping.tab_rendering.ctx")
     def test_render_reinitializes_when_profile_tracking_only(
         self, mock_dash_ctx, mock_callback_ctx, mock_load_settings, mock_fetch_fields
     ):

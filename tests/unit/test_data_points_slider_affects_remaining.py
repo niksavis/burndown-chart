@@ -56,7 +56,7 @@ class TestDataPointsSliderRemainingFixed:
         - Remaining items = 137 (current)
         - Remaining points = 848.0 (current)
         """
-        with patch("data.persistence.load_unified_project_data") as mock_load:
+        with patch("callbacks.settings.helpers.load_unified_project_data") as mock_load:
             mock_load.return_value = {"project_scope": mock_project_scope}
 
             result = calculate_remaining_work_for_data_window(
@@ -92,7 +92,7 @@ class TestDataPointsSliderRemainingFixed:
         - Remaining items = 137 (current, always)
         - Remaining points = 848.0 (current, always)
         """
-        with patch("data.persistence.load_unified_project_data") as mock_load:
+        with patch("callbacks.settings.helpers.load_unified_project_data") as mock_load:
             mock_load.return_value = {"project_scope": mock_project_scope}
 
             result = calculate_remaining_work_for_data_window(
@@ -126,7 +126,7 @@ class TestDataPointsSliderRemainingFixed:
 
         Key behavior: Remaining is always current, regardless of slider position.
         """
-        with patch("data.persistence.load_unified_project_data") as mock_load:
+        with patch("callbacks.settings.helpers.load_unified_project_data") as mock_load:
             mock_load.return_value = {"project_scope": mock_project_scope}
 
             # Calculate at 4 weeks
@@ -166,7 +166,7 @@ class TestDataPointsSliderRemainingFixed:
         The avg is: remaining_points / remaining_items
         This is used for display/reference.
         """
-        with patch("data.persistence.load_unified_project_data") as mock_load:
+        with patch("callbacks.settings.helpers.load_unified_project_data") as mock_load:
             mock_load.return_value = {"project_scope": mock_project_scope}
 
             result = calculate_remaining_work_for_data_window(
@@ -194,7 +194,7 @@ class TestDataPointsSliderRemainingFixed:
         """
         Test that without data_points_count, function returns None.
         """
-        with patch("data.persistence.load_unified_project_data") as mock_load:
+        with patch("callbacks.settings.helpers.load_unified_project_data") as mock_load:
             mock_load.return_value = {"project_scope": mock_project_scope}
 
             result = calculate_remaining_work_for_data_window(
@@ -225,7 +225,7 @@ class TestDataPointsSliderRemainingFixed:
             },
         ]
 
-        with patch("data.persistence.load_unified_project_data") as mock_load:
+        with patch("callbacks.settings.helpers.load_unified_project_data") as mock_load:
             mock_load.return_value = {"project_scope": mock_project_scope}
 
             result = calculate_remaining_work_for_data_window(

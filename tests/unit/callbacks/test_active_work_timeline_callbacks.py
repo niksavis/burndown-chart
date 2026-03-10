@@ -28,10 +28,10 @@ def test_render_returns_no_issues_when_no_active_profile(monkeypatch):
         app_state={"active_profile_id": None, "active_query_id": None}
     )
 
-    monkeypatch.setattr("data.persistence.factory.get_backend", lambda: backend)
+    monkeypatch.setattr("callbacks.active_work_timeline.get_backend", lambda: backend)
     sentinel = html.Div("empty")
     monkeypatch.setattr(
-        "ui.empty_states.create_no_active_work_state",
+        "callbacks.active_work_timeline.create_no_active_work_state",
         lambda **kwargs: sentinel,
     )
 
@@ -47,10 +47,10 @@ def test_render_returns_no_issues_when_issue_list_empty(monkeypatch):
         app_state={"active_profile_id": "profile", "active_query_id": "query"},
     )
 
-    monkeypatch.setattr("data.persistence.factory.get_backend", lambda: backend)
+    monkeypatch.setattr("callbacks.active_work_timeline.get_backend", lambda: backend)
     sentinel = html.Div("empty")
     monkeypatch.setattr(
-        "ui.empty_states.create_no_active_work_state",
+        "callbacks.active_work_timeline.create_no_active_work_state",
         lambda **kwargs: sentinel,
     )
 
@@ -77,9 +77,9 @@ def test_render_builds_timeline_when_data_available(monkeypatch):
         app_state={"active_profile_id": "profile", "active_query_id": "query"},
     )
 
-    monkeypatch.setattr("data.persistence.factory.get_backend", lambda: backend)
+    monkeypatch.setattr("callbacks.active_work_timeline.get_backend", lambda: backend)
     monkeypatch.setattr(
-        "data.persistence.load_app_settings",
+        "callbacks.active_work_timeline.load_app_settings",
         lambda: {
             "field_mappings": {
                 "general": {"parent_field": "parent"},
@@ -93,10 +93,11 @@ def test_render_builds_timeline_when_data_available(monkeypatch):
         },
     )
     monkeypatch.setattr(
-        "data.project_filter.filter_development_issues", lambda items, *_: items
+        "callbacks.active_work_timeline.filter_development_issues",
+        lambda items, *_: items,
     )
     monkeypatch.setattr(
-        "data.active_work_manager.get_active_work_data",
+        "callbacks.active_work_timeline.get_active_work_data",
         lambda *args, **kwargs: {
             "timeline": [
                 {
@@ -110,7 +111,7 @@ def test_render_builds_timeline_when_data_available(monkeypatch):
         },
     )
     monkeypatch.setattr(
-        "data.active_work_completed.get_completed_items_by_week",
+        "callbacks.active_work_timeline.get_completed_items_by_week",
         lambda *args, **kwargs: {},  # Return empty dict for completed items
     )
 
@@ -129,7 +130,7 @@ def test_render_builds_timeline_when_data_available(monkeypatch):
         return html.Div("timeline")
 
     monkeypatch.setattr(
-        "ui.active_work_epic_timeline.create_nested_epic_timeline",
+        "callbacks.active_work_timeline.create_nested_epic_timeline",
         fake_create_nested_epic_timeline,
     )
 

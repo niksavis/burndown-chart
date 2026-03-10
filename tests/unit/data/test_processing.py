@@ -1075,7 +1075,7 @@ class TestCalculateWeeklyAveragesDataPointsFiltering(unittest.TestCase):
             self.assertIsInstance(value, (int, float))
             self.assertGreaterEqual(value, 0)
 
-    @patch("data.metrics_snapshots.get_metric_weekly_values", return_value=[])
+    @patch("data.processing_averages.get_metric_weekly_values", return_value=[])
     def test_data_points_count_larger_than_available(self, mock_snapshots):
         """Test when data_points_count is larger than available data."""
         # Request more data points than available (8 weeks in test data)

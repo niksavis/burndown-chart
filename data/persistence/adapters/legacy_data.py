@@ -1,12 +1,12 @@
 """Data persistence adapters - Legacy data migration and loaders."""
 
 # Standard library imports
+import logging
 from datetime import datetime
 from typing import Any
 
 # Third-party library imports
 # Application imports
-from configuration.settings import logger
 from data.jira import (
     fetch_jira_issues,
     get_jira_config,
@@ -21,6 +21,8 @@ from data.persistence.adapters.unified_data import (
     save_unified_project_data,
 )
 from data.schema import get_default_unified_data
+
+logger = logging.getLogger(__name__)
 
 
 def _migrate_legacy_project_data(data):

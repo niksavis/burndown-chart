@@ -90,8 +90,8 @@ def mock_load_app_settings(temp_database, mock_profile_config):
     mock_config.profile_config = mock_profile_config
 
     with (
-        patch("data.persistence.load_app_settings") as mock_settings,
-        patch("configuration.metrics_config.get_metrics_config") as mock_get_config,
+        patch("data.flow_metrics_helpers.load_app_settings") as mock_settings,
+        patch("data.flow_metrics_helpers.get_metrics_config") as mock_get_config,
     ):
         mock_settings.return_value = mock_profile_config
         mock_get_config.return_value = mock_config

@@ -1,6 +1,7 @@
 """Data persistence adapters - JIRA configuration management."""
 
 # Standard library imports
+import logging
 import os
 import sqlite3
 from datetime import datetime
@@ -8,7 +9,6 @@ from typing import Any
 
 # Third-party library imports
 # Application imports
-from configuration.settings import logger
 from data.exceptions import PersistenceError
 from data.persistence.adapters.app_settings import load_app_settings
 from data.persistence.adapters.project_data import load_project_data
@@ -16,6 +16,8 @@ from data.persistence.adapters.statistics import load_statistics
 from data.persistence.adapters.unified_data import save_unified_project_data
 from data.persistence.factory import get_backend
 from data.types import JiraConfig
+
+logger = logging.getLogger(__name__)
 
 
 def migrate_csv_to_json() -> dict[str, Any]:

@@ -1,15 +1,17 @@
 """Data persistence adapters - Parameter panel state management."""
 
 # Standard library imports
+import logging
 from datetime import datetime
 
 # Third-party library imports
 # Application imports
-from configuration.settings import logger
 from data.exceptions import ConfigurationError, PersistenceError
 from data.persistence.adapters.app_settings import load_app_settings
 from data.persistence.factory import get_backend
 from data.schema import get_default_parameter_panel_state
+
+logger = logging.getLogger(__name__)
 
 
 def load_parameter_panel_state() -> dict:

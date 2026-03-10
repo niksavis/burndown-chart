@@ -310,7 +310,7 @@ class TestQuerySaveEnforcement:
 class TestProfileSettingsSave:
     """Test profile settings save callback."""
 
-    @patch("data.persistence.save_app_settings")
+    @patch("callbacks.accordion_settings.save_app_settings")
     def test_save_profile_settings_success(self, mock_save_settings):
         """Verify profile settings save successfully."""
         from callbacks.accordion_settings import save_profile_settings
@@ -346,7 +346,7 @@ class TestProfileSettingsSave:
         # Verify success alert returned
         assert isinstance(result, (dbc.Alert, html.Div))
 
-    @patch("data.persistence.save_app_settings")
+    @patch("callbacks.accordion_settings.save_app_settings")
     def test_save_profile_settings_error_handling(self, mock_save_settings):
         """Verify error handling when save fails."""
         from callbacks.accordion_settings import save_profile_settings

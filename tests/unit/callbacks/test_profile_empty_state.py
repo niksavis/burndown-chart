@@ -105,7 +105,9 @@ class TestProfileEmptyState:
         """Verify load_statistics returns empty list with no active profile."""
         from data.persistence.adapters import load_statistics
 
-        with patch("data.persistence.factory.get_backend") as mock_backend_factory:
+        with patch(
+            "data.persistence.adapters.statistics.get_backend"
+        ) as mock_backend_factory:
             mock_backend = Mock()
             mock_backend.get_app_state.side_effect = lambda key: (
                 "" if key == "active_profile_id" else None
@@ -123,7 +125,9 @@ class TestProfileEmptyState:
         """Verify load_statistics gracefully returns empty list when no active query."""
         from data.persistence.adapters import load_statistics
 
-        with patch("data.persistence.factory.get_backend") as mock_backend_factory:
+        with patch(
+            "data.persistence.adapters.statistics.get_backend"
+        ) as mock_backend_factory:
             mock_backend = Mock()
 
             def get_state(key):

@@ -150,7 +150,7 @@ class TestHealthScoreConsistency:
         from data.import_export import export_profile_with_mode
 
         # Setup: Mock database backend
-        with patch("data.persistence.factory.get_backend") as mock_get_backend:
+        with patch("data._import_export_export.get_backend") as mock_get_backend:
             mock_backend = MagicMock()
             mock_get_backend.return_value = mock_backend
 

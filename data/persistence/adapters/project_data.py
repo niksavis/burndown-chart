@@ -1,20 +1,16 @@
 """Data persistence adapters - Project data save/load operations."""
 
 # Standard library imports
+import logging
 import sqlite3
 from typing import Any
 
 # Third-party library imports
 # Application imports
-from configuration.settings import (
-    DEFAULT_ESTIMATED_ITEMS,
-    DEFAULT_ESTIMATED_POINTS,
-    DEFAULT_TOTAL_ITEMS,
-    DEFAULT_TOTAL_POINTS,
-    logger,
-)
 from data.exceptions import PersistenceError
 from data.persistence.factory import get_backend
+
+logger = logging.getLogger(__name__)
 
 
 def save_project_data(
@@ -35,6 +31,11 @@ def save_project_data(
         estimated_points: Number of points for the estimated items
         metadata: Additional project metadata (e.g., JIRA sync info)
     """
+    from configuration.settings import (  # noqa: PLC0415  - breaks configuration ↔ persistence cycle
+        DEFAULT_ESTIMATED_ITEMS,
+        DEFAULT_ESTIMATED_POINTS,
+    )
+
     logger.warning(
         "[Deprecated] save_project_data() called - "
         "use save_unified_project_data() instead"
@@ -87,6 +88,12 @@ def load_project_data() -> dict[str, Any]:
     Returns:
         Dictionary containing project data or default values if not found
     """
+    from configuration.settings import (  # noqa: PLC0415  - breaks configuration ↔ persistence cycle
+        DEFAULT_ESTIMATED_ITEMS,
+        DEFAULT_ESTIMATED_POINTS,
+        DEFAULT_TOTAL_ITEMS,
+        DEFAULT_TOTAL_POINTS,
+    )
 
     default_data = {
         "total_items": DEFAULT_TOTAL_ITEMS,

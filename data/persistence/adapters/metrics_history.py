@@ -1,16 +1,18 @@
 """Data persistence adapters - Metrics history and snapshots."""
 
 # Standard library imports
+import logging
 from datetime import datetime, timedelta
 from typing import Any
 
 # Third-party library imports
 # Application imports
-from configuration.settings import logger
 from data.persistence.adapters.unified_data import (
     load_unified_project_data,
     save_unified_project_data,
 )
+
+logger = logging.getLogger(__name__)
 
 
 def load_metrics_history() -> dict[str, list[dict[str, Any]]]:
