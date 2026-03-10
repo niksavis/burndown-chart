@@ -275,6 +275,7 @@ models/*
 # Additional JSON data files that may be generated during development
 *.json
 !package.json
+!package-lock.json
 !tsconfig.json
 !*.example.json
 !.prettierrc.json
