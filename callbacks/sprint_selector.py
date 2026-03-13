@@ -128,10 +128,16 @@ def update_sprint_selection(selected_sprint: str, show_points_list: list):
         # Get selected sprint data
         sprint_data = sprint_snapshots[selected_sprint]
 
-        # Calculate progress
-
-        flow_end_statuses = settings.get("flow_end_statuses", ["Done", "Closed"])
-        flow_wip_statuses = settings.get("wip_statuses", ["In Progress"])
+        # Load flow status configuration - same lists used for metrics and visualization
+        flow_start_statuses = settings.get("flow_start_statuses", [])
+        flow_wip_statuses = settings.get("wip_statuses", [])
+        flow_end_statuses = settings.get("flow_end_statuses", [])
+        if not flow_start_statuses:
+            flow_start_statuses = ["To Do", "Backlog", "Open"]
+        if not flow_wip_statuses:
+            flow_wip_statuses = ["In Progress", "In Review", "Testing"]
+        if not flow_end_statuses:
+            flow_end_statuses = ["Done", "Closed", "Resolved"]
 
         progress_data = calculate_sprint_progress(
             sprint_data, flow_end_statuses, flow_wip_statuses
@@ -169,13 +175,6 @@ def update_sprint_selection(selected_sprint: str, show_points_list: list):
         sprint_start_date = sprint_dates.get("start_date") if sprint_dates else None
         sprint_end_date = sprint_dates.get("end_date") if sprint_dates else None
         sprint_state = sprint_dates.get("state") if sprint_dates else None
-
-        # Load flow configuration for dynamic status colors
-
-        app_settings = load_app_settings()
-        flow_start_statuses = app_settings.get("flow_start_statuses", [])
-        flow_wip_statuses = app_settings.get("wip_statuses", [])
-        flow_end_statuses = app_settings.get("flow_end_statuses", [])
 
         # Create visualizations
         progress_bars = create_sprint_progress_bars(

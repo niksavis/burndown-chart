@@ -108,13 +108,21 @@ def filter_sprint_by_issue_type(
         # Load sprint changelog
         settings = load_app_settings()
         field_mappings = settings.get("field_mappings", {})
-        sprint_field = field_mappings.get("sprint_tracker", {}).get(
-            "sprint_field", "customfield_10005"
-        )
+        general_mappings = field_mappings.get("general", {})
+        sprint_field = general_mappings.get("sprint_field")
+
+        if not sprint_field:
+            logger.warning("Sprint field not configured in field_mappings.general")
+            return create_no_sprints_state()
 
         sprint_changelog = backend.get_changelog_entries(
-            active_profile_id, active_query_id, field_name="Sprint"
+            active_profile_id, active_query_id, field_name=sprint_field
         )
+
+        if not sprint_changelog:
+            sprint_changelog = backend.get_changelog_entries(
+                active_profile_id, active_query_id, field_name="Sprint"
+            )
 
         # Build sprint snapshots from filtered issues
         sprint_snapshots = get_sprint_snapshots(
@@ -157,9 +165,16 @@ def filter_sprint_by_issue_type(
             f"{issue_types_in_sprint}, Filter: {issue_type_filter}"
         )
 
-        # Calculate sprint progress
-        flow_end_statuses = settings.get("flow_end_statuses", ["Done", "Closed"])
-        flow_wip_statuses = settings.get("wip_statuses", ["In Progress"])
+        # Load flow status configuration - same lists used for metrics and visualization
+        flow_start_statuses = settings.get("flow_start_statuses", [])
+        flow_wip_statuses = settings.get("wip_statuses", [])
+        flow_end_statuses = settings.get("flow_end_statuses", [])
+        if not flow_start_statuses:
+            flow_start_statuses = ["To Do", "Backlog", "Open"]
+        if not flow_wip_statuses:
+            flow_wip_statuses = ["In Progress", "In Review", "Testing"]
+        if not flow_end_statuses:
+            flow_end_statuses = ["Done", "Closed", "Resolved"]
 
         progress_data = calculate_sprint_progress(
             sprint_data, flow_end_statuses, flow_wip_statuses
@@ -201,13 +216,6 @@ def filter_sprint_by_issue_type(
         sprint_start_date = sprint_dates.get("start_date") if sprint_dates else None
         sprint_end_date = sprint_dates.get("end_date") if sprint_dates else None
         sprint_state = sprint_dates.get("state") if sprint_dates else None
-
-        # Load flow configuration for dynamic status colors
-
-        app_settings = load_app_settings()
-        flow_start_statuses = app_settings.get("flow_start_statuses", [])
-        flow_wip_statuses = app_settings.get("wip_statuses", [])
-        flow_end_statuses = app_settings.get("flow_end_statuses", [])
 
         # Create visualizations
         progress_bars = create_sprint_progress_bars(

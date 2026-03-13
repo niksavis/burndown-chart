@@ -62,13 +62,9 @@ def _get_status_color(
     Returns:
         Hex color code
     """
-    # Check if we have a specific color defined for this status first
-    if status in STATUS_COLORS:
-        return STATUS_COLORS[status]
-
-    # Fall back to flow-based generic colors
-    if status in flow_start_statuses:
-        return "#6c757d"  # Gray for start states
+    # Flow config takes priority to match calculate_sprint_progress categorization
+    if status in flow_end_statuses:
+        return COLOR_PALETTE["success"]  # Green for done states
     elif status in flow_wip_statuses:
         # Cycle through distinct WIP colors (never green or gray)
         wip_colors = [
@@ -81,8 +77,12 @@ def _get_status_color(
         ]
         wip_index = flow_wip_statuses.index(status) % len(wip_colors)
         return wip_colors[wip_index]
-    elif status in flow_end_statuses:
-        return COLOR_PALETTE["success"]  # Green for done states
+    elif status in flow_start_statuses:
+        return "#6c757d"  # Gray for start states
+
+    # Fall back to STATUS_COLORS for statuses not in any configured flow list
+    if status in STATUS_COLORS:
+        return STATUS_COLORS[status]
 
     # Final fallback
     return COLOR_PALETTE["secondary"]

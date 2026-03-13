@@ -169,9 +169,16 @@ def _render_sprint_tracker_content(
 
         logger.info(f"Selected sprint: {selected_sprint_id}")
 
-        # Calculate sprint progress
-        flow_end_statuses = settings.get("flow_end_statuses", ["Done", "Closed"])
-        flow_wip_statuses = settings.get("wip_statuses", ["In Progress"])
+        # Load flow status configuration - same lists used for metrics and visualization
+        flow_start_statuses = settings.get("flow_start_statuses", [])
+        flow_wip_statuses = settings.get("wip_statuses", [])
+        flow_end_statuses = settings.get("flow_end_statuses", [])
+        if not flow_start_statuses:
+            flow_start_statuses = ["To Do", "Backlog", "Open"]
+        if not flow_wip_statuses:
+            flow_wip_statuses = ["In Progress", "In Review", "Testing"]
+        if not flow_end_statuses:
+            flow_end_statuses = ["Done", "Closed", "Resolved"]
 
         # Extract sprint metadata (states) from issues for all sprints
         sprint_metadata = {}
@@ -240,12 +247,6 @@ def _render_sprint_tracker_content(
             "[SPRINT TRACKER] Loaded "
             f"{len(status_changelog)} status changelog entries for sprint"
         )
-
-        # Load flow configuration for dynamic status colors
-        app_settings = load_app_settings()
-        flow_start_statuses = app_settings.get("flow_start_statuses", [])
-        flow_wip_statuses = app_settings.get("wip_statuses", [])
-        flow_end_statuses = app_settings.get("flow_end_statuses", [])
 
         # Get sprint state for selected sprint
         selected_sprint_state = (
