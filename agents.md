@@ -36,7 +36,7 @@ If specialized patterns are discovered during implementation, run the self-evolv
 ## External Agent Quick Start
 
 ```powershell
-bd daemon status
+bd dolt status
 bd backup fetch-git
 bd ready --json
 git pull --rebase
@@ -165,11 +165,11 @@ bd close bd-42 --reason "Completed" --json
 
 ### Auto-Sync
 
-bd automatically syncs via Dolt:
+bd stores issues in a local Dolt database. Team sync uses git (no DoltHub):
 
-- Each write auto-commits to Dolt history
-- Use `bd dolt push`/`bd dolt pull` for remote sync
-- No manual export/import needed!
+- End of session: `bd backup export-git` — publishes JSONL snapshot to `origin/beads-backup`
+- Start of session: `bd backup fetch-git` — restores from the team's latest snapshot
+- No manual Dolt remote needed
 
 ### Important Rules
 
