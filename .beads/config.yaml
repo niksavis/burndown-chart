@@ -6,7 +6,8 @@
 # Issue prefix for this repository (used by bd init)
 # If not set, bd init will auto-detect from directory name
 # Example: issue-prefix: "myproject" creates issues like "myproject-1", "myproject-2", etc.
-# issue-prefix: ""
+# IMPORTANT: Set explicitly so issues use the same prefix regardless of the clone folder name.
+issue-prefix: "burndown-chart"
 
 # Use no-db mode: JSONL-only, no Dolt database
 # When true, bd will use .beads/issues.jsonl as the source of truth
@@ -37,12 +38,13 @@
 #     - ~/work-planning   # Work planning repo
 
 # JSONL backup (periodic export for off-machine recovery)
-# Auto-enabled when a git remote exists. Override explicitly:
-# backup:
-#   enabled: false     # Disable auto-backup entirely
-#   interval: 15m      # Minimum time between auto-exports
-#   git-push: false    # Disable git push (export locally only)
-#   git-repo: ""       # Separate git repo for backups (default: project repo)
+# Team sync uses bd backup export-git / bd backup fetch-git (no DoltHub needed).
+# Auto-backup is enabled because a git remote is detected; git-push is disabled
+# because we use the manual 'bd backup export-git' command at end of session.
+backup:
+  enabled: true
+  interval: 15m
+  git-push: false
 
 # Integration settings (access with 'bd config get/set')
 # These are stored in the database, not in this file:

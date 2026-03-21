@@ -1,0 +1,7 @@
+{
+  "database": "dolt",
+  "backend": "dolt",
+  "dolt_mode": "server",
+  "dolt_database": "burndown_chart",
+  "project_id": "853d384c-0c13-43a1-bd9f-d2d0adc9997f"
+}

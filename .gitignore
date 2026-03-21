@@ -283,6 +283,7 @@ models/*
 !.github/codebase_context_metrics.json
 !.github/hooks/**/*.json
 !.pip-audit-baseline.json
+!.beads/metadata.json
 
 .playwright-mcp/
 playwright-screenshots/
