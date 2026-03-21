@@ -37,7 +37,7 @@ If specialized patterns are discovered during implementation, run the self-evolv
 
 ```powershell
 bd daemon status
-bd dolt pull
+bd backup fetch-git
 bd ready --json
 git pull --rebase
 ```
@@ -56,7 +56,7 @@ Rules:
 
 - Always include `--description` when creating beads.
 - Never use `bd edit`.
-- Beads data lives in `.beads/dolt/` (Dolt database). Use `bd dolt push`/`bd dolt pull` to sync with remote.
+- Team sync uses git (no DoltHub). Publish: `bd backup export-git`. Restore fresh clone: `bd backup fetch-git`.
 
 ## Dependency Onboarding Rule
 
@@ -89,12 +89,11 @@ Remove-Item -Recurse -Force dir
 
 ## Session End (External Agents)
 
-Do not finish until both main and beads data are pushed:
+Do not finish until both main and beads snapshot are pushed:
 
 ```powershell
 git pull --rebase
-bd dolt pull
-bd dolt push
+bd backup export-git
 git push
 git status
 ```
@@ -196,7 +195,7 @@ For more details, see README.md and docs/QUICKSTART.md.
 4. **PUSH TO REMOTE** - This is MANDATORY:
    ```bash
    git pull --rebase
-   bd dolt push
+   bd backup export-git
    git push
    git status  # MUST show "up to date with origin"
    ```

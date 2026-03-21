@@ -216,7 +216,7 @@ release.py updates version files, regenerates version info, updates codebase con
 - **ALWAYS** include `--description` when creating beads (issues without descriptions lack context).
 - **NEVER** use `bd edit` (opens interactive editor that agents cannot use).
 - Close bead before push.
-- Beads data lives in `.beads/dolt/` (Dolt database). Use `bd dolt push`/`bd dolt pull` to sync with remote.
+- Team sync uses git via `beads-backup` branch (no DoltHub). Publish: `bd backup export-git`. Fresh clone restore: `bd backup fetch-git`.
 
 ## Priority System
 

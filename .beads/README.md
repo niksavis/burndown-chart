@@ -1,81 +1,119 @@
-# Beads - AI-Native Issue Tracking
+# Beads - Issue Tracking for burndown-chart
 
-Welcome to Beads! This repository uses **Beads** for issue tracking - a modern, AI-native tool designed to live directly in your codebase alongside your code.
-
-## What is Beads?
-
-Beads is issue tracking that lives in your repo, making it perfect for AI coding agents and developers who want their issues close to their code. No web UI required - everything works through the CLI and integrates seamlessly with git.
-
-**Learn more:** [github.com/steveyegge/beads](https://github.com/steveyegge/beads)
-
-## Quick Start
-
-### Essential Commands
-
-```bash
-# Create new issues
-bd create "Add user authentication"
-
-# View all issues
-bd list
-
-# View issue details
-bd show <issue-id>
-
-# Update issue status
-bd update <issue-id> --claim
-bd update <issue-id> --status done
-
-# Sync with Dolt remote
-bd dolt push
-```
-
-### Working with Issues
-
-Issues in Beads are:
-- **Git-native**: Stored in Dolt database with version control and branching
-- **AI-friendly**: CLI-first design works perfectly with AI coding agents
-- **Branch-aware**: Issues can follow your branch workflow
-- **Always in sync**: Auto-syncs with your commits
-
-## Why Beads?
-
-✨ **AI-Native Design**
-- Built specifically for AI-assisted development workflows
-- CLI-first interface works seamlessly with AI coding agents
-- No context switching to web UIs
-
-🚀 **Developer Focused**
-- Issues live in your repo, right next to your code
-- Works offline, syncs when you push
-- Fast, lightweight, and stays out of your way
-
-🔧 **Git Integration**
-- Automatic sync with git commits
-- Branch-aware issue tracking
-- Dolt-native three-way merge resolution
-
-## Get Started with Beads
-
-Try Beads in your own projects:
-
-```bash
-# Install Beads
-curl -sSL https://raw.githubusercontent.com/steveyegge/beads/main/scripts/install.sh | bash
-
-# Initialize in your repo
-bd init
-
-# Create your first issue
-bd create "Try out Beads"
-```
-
-## Learn More
-
-- **Documentation**: [github.com/steveyegge/beads/docs](https://github.com/steveyegge/beads/tree/main/docs)
-- **Quick Start Guide**: Run `bd quickstart`
-- **Examples**: [github.com/steveyegge/beads/examples](https://github.com/steveyegge/beads/tree/main/examples)
+This repository uses [Beads (bd)](https://github.com/steveyegge/beads) for issue tracking.
+Issues live in a local Dolt database at `.beads/dolt/` and are synced between developers
+via the `beads-backup` git branch (no DoltHub or external server required).
 
 ---
 
-*Beads: Issue tracking that moves at the speed of thought* ⚡
+## New Developer Setup
+
+### 1. Install bd globally
+
+**macOS / Linux:**
+```bash
+curl -sSL https://raw.githubusercontent.com/steveyegge/beads/main/scripts/install.sh | bash
+```
+
+**Windows (PowerShell):**
+```powershell
+irm https://raw.githubusercontent.com/steveyegge/beads/main/scripts/install.ps1 | iex
+```
+
+Verify: `bd --version`
+
+### 2. Clone the repository and restore the issue database
+
+```powershell
+git clone https://github.com/niksavis/burndown-chart.git
+cd burndown-chart
+bd bootstrap          # sets up the local Dolt database
+bd backup fetch-git   # pulls the latest JSONL snapshot from origin/beads-backup and restores it
+bd status             # confirm issues are loaded
+```
+
+That is all. Your local beads database is now in sync with the team.
+
+---
+
+## Daily Workflow
+
+### Start of session
+
+```powershell
+git pull --rebase
+bd backup fetch-git   # pull latest issue snapshot from the team
+```
+
+### End of session
+
+```powershell
+git pull --rebase
+bd backup export-git  # publish your issue changes to origin/beads-backup
+git push              # push code changes to origin/main
+```
+
+### Check what is ready to work on
+
+```powershell
+bd ready --json
+```
+
+---
+
+## Common Commands
+
+```powershell
+# Create a new issue (always include --description)
+bd create "Title" --description="Context explaining why this matters" -t feature -p 2 --json
+
+# Show issue details
+bd show burndown-chart-42 --json
+
+# Claim and start an issue
+bd update burndown-chart-42 --claim --json
+
+# Close a completed issue
+bd close burndown-chart-42 --reason "Implemented in commit abc123" --json
+
+# List open issues
+bd list
+
+# View dependency graph
+bd graph
+```
+
+---
+
+## Sync Architecture
+
+Team sync works via git (no DoltHub / no server):
+
+```
+Developer A                    GitHub origin                Developer B
+-----------                    -------------                -----------
+bd backup export-git  ──────►  beads-backup branch  ◄──── bd backup fetch-git
+git push              ──────►  main branch           ◄──── git pull --rebase
+```
+
+- `bd backup export-git` exports a JSONL snapshot of all issues and pushes it to `origin/beads-backup`.
+- `bd backup fetch-git` fetches that snapshot and restores it into the local Dolt database.
+- The primary database is always local Dolt — git carries the portable JSONL snapshot.
+- Conflict handling: last writer wins (acceptable for a small team working sequentially).
+
+---
+
+## Issue Prefixes
+
+Issues in this repo are prefixed `burndown-chart-` (e.g. `burndown-chart-42`).
+
+---
+
+## Rules for AI Agents
+
+- Always use `--json` flag for programmatic use.
+- Always include `--description` when creating issues.
+- Never use `bd edit` (opens interactive editor that agents cannot use).
+- Check `bd ready` before starting new work.
+- Publish at end of every session with `bd backup export-git`.
+

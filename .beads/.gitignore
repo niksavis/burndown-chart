@@ -2,6 +2,9 @@
 dolt/
 dolt-access.lock
 
+# Live JSONL mirror of Dolt (not authoritative — use 'bd backup export-git' for team sync)
+issues.jsonl
+
 # Runtime files
 bd.sock
 bd.sock.startlock
