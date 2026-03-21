@@ -289,3 +289,7 @@ playwright-screenshots/
 *.png
 !assets/*.png
 !docs/**/*.png
+
+# Dolt database files (added by bd init)
+.dolt/
+*.db
