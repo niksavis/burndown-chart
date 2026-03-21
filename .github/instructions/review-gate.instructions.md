@@ -15,6 +15,7 @@ Treat this as the final pass before declaring work complete.
 - No real customer data, secrets, tokens, or credentials.
 - Changes are minimal, focused, and do not include unrelated refactors.
 - If tests exist for touched behavior, run targeted tests first.
+- Beads lifecycle completed: bead claimed, work done, bead closed — in that order — before committing.
 
 ## Quality Gate (required before every push to main)
 

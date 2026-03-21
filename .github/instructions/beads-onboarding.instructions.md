@@ -66,8 +66,20 @@ bd status             # verify: should show 663+ issues
 Then install the git hooks so beads integrates with git commits:
 
 ```powershell
-bd hooks install
+python install_hooks.py --force
 ```
+
+> **Windows trap**: `bd init` (and some `bd hooks install` invocations) sets `core.hooksPath`
+> to `.beads/hooks`, which silently bypasses `.git/hooks/` and all quality gates in it.
+> Always verify and unset it after setup:
+>
+> ```powershell
+> git config --local core.hooksPath   # should return nothing
+> git config --local --unset core.hooksPath  # fix if set
+> ```
+>
+> `bd hooks install` on Windows only injects into already-existing hook files. It does NOT
+> create new files. Use `python install_hooks.py --force` to ensure all 6 hooks are present.
 
 ---
 
@@ -193,4 +205,5 @@ bd ready     # shows unblocked work available
 | `bd status` shows 0 issues | Run `bd backup fetch-git` to restore from the team snapshot. |
 | Wrong prefix (e.g. `my-repo-1` instead of `burndown-chart-1`) | Delete `.beads/dolt/` and re-run `bd bootstrap` then `bd backup fetch-git`. The prefix is locked in `.beads/config.yaml`. |
 | Dolt server fails to start | Run `bd doctor` to diagnose and repair. |
-| Hook conflicts after update | Run `bd hooks install` to refresh hooks. |
+| Hook conflicts after update | Run `python install_hooks.py --force` to refresh all 6 hooks. |
+| `core.hooksPath` set to `.beads/hooks` | Run `git config --local --unset core.hooksPath` — quality gates in `.git/hooks/` are bypassed while this is set. |

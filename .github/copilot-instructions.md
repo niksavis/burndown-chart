@@ -166,7 +166,12 @@ When implementation reveals recurring or novel specialized task patterns, evolve
 ## Terminal Behavior (Critical)
 
 - Each terminal run is a new shell; activation does not persist.
-- Background process + new command in same terminal can terminate the process.
+- **`git push` MUST run as a background process** (`isBackground=true`) — the pre-push hook
+  runs the full validate.py suite including pytest (~2-3 min). Running any other terminal
+  command before push completes sends KeyboardInterrupt to pytest, corrupting the run.
+  Poll with `get_terminal_output` until `"To github.com"` appears before proceeding.
+- Branch deletions and tag pushes do NOT trigger the quality gate (hook skips them automatically).
+- `git branch -d` is policy-blocked on this machine. Use `git update-ref -d refs/heads/<name>` instead.
 - Run `python validate.py` before pushing to catch ruff, djlint, pyright, markdownlint, and test failures in one pass.
 
 ## Dependency Onboarding (Required)
@@ -215,7 +220,11 @@ release.py updates version files, regenerates version info, updates codebase con
 
 - **ALWAYS** include `--description` when creating beads (issues without descriptions lack context).
 - **NEVER** use `bd edit` (opens interactive editor that agents cannot use).
-- Close bead before push.
+- **Lifecycle order** (do not skip or reorder):
+  1. `bd update <id> --claim --json` — claim BEFORE starting any work
+  2. Do the work (edit, test, validate)
+  3. `bd close <id> --reason "..." --json` — close BEFORE committing
+  4. Commit with bead ID in message, then push
 - Team sync uses git via `beads-backup` branch (no DoltHub). Publish: `bd backup export-git`. Fresh clone restore: `bd backup fetch-git`.
 
 ## Priority System
