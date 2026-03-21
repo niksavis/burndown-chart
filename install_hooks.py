@@ -144,6 +144,21 @@ if [ ! -f "validate.py" ] || [ ! -d ".venv" ]; then
     exit 0  # Not a dev worktree (e.g. bd backup); skip.
 fi
 
+# Read what is being pushed from stdin (format: <local ref> <local sha> ...).
+# Skip the quality gate for deletions and tag-only pushes.
+_has_code_push=0
+while IFS=' ' read -r local_ref local_sha _remote_ref _remote_sha; do
+    # Deletions: local sha is all zeros.
+    case "$local_sha" in 0000000000000000000000000000000000000000) continue ;; esac
+    # Tag pushes: local ref starts with refs/tags/.
+    case "$local_ref" in refs/tags/*) continue ;; esac
+    _has_code_push=1
+    break
+done
+if [ "$_has_code_push" -eq 0 ]; then
+    exit 0  # Nothing to validate (delete or tag push).
+fi
+
 echo "[git-hook] pre-push: running full quality gate..."
 "$PYTHON" validate.py
 exit $?
