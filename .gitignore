@@ -293,3 +293,6 @@ playwright-screenshots/
 # Dolt database files (added by bd init)
 .dolt/
 *.db
+
+# Beads migration safety backup (created during bd migration, not versioned)
+issues.jsonl.bak
