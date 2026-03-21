@@ -164,7 +164,24 @@ bd hooks install
 ```powershell
 git pull --rebase
 bd backup fetch-git   # pull latest issue snapshot from team
+bd ready              # shows only open, unblocked, unclaimed work
 ```
+
+`bd ready` automatically excludes:
+- Beads with status `in_progress` or `closed`
+- Beads whose dependencies are not yet resolved
+
+This is the primary collision-avoidance mechanism. Always run `bd backup fetch-git`
+**before** `bd ready` so you see who has already claimed beads since the last snapshot.
+
+### Claiming work (atomic signal to team)
+
+```powershell
+bd update <id> --claim --json   # marks in_progress + sets owner
+```
+
+After claiming, run `bd backup export-git` as soon as practical so other developers
+see the claim on their next session start.
 
 ### End of session
 
@@ -175,6 +192,11 @@ git push              # push code changes to origin/main
 
 The `beads-backup` branch on `origin` is the shared issue snapshot. It is separate
 from `main` and only contains JSONL backup files — never code.
+
+> **Race window**: visibility is snapshot-based, not real-time. If two developers run
+> `bd backup fetch-git` before either has pushed a claim, they may both see the same
+> bead as open. For a small sequential team this is acceptable — the `--claim` step
+> and end-of-session export keep the window short.
 
 ---
 
