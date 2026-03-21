@@ -118,8 +118,8 @@ PRE_COMMIT_HOOK = f"""\
 
 {_PYTHON_DETECT}
 
-if [ ! -f "validate.py" ]; then
-    exit 0  # Not in main worktree; skip.
+if [ ! -f "validate.py" ] || [ ! -d ".venv" ]; then
+    exit 0  # Not a dev worktree (e.g. bd backup); skip.
 fi
 
 echo "[git-hook] pre-commit: running ruff checks..."
@@ -140,8 +140,8 @@ PRE_PUSH_HOOK = f"""\
 
 {_PYTHON_DETECT}
 
-if [ ! -f "validate.py" ]; then
-    exit 0  # Not in main worktree; skip.
+if [ ! -f "validate.py" ] || [ ! -d ".venv" ]; then
+    exit 0  # Not a dev worktree (e.g. bd backup); skip.
 fi
 
 echo "[git-hook] pre-push: running full quality gate..."
@@ -202,6 +202,11 @@ COMMIT_MSG_HOOK = """\
 # Bypass in an emergency only: git commit --no-verify
 
 COMMIT_MSG_FILE="$1"
+
+# Skip if not in a dev worktree (e.g. bd backup export worktree has no .venv).
+if [ ! -d ".venv" ]; then
+    exit 0
+fi
 
 # Read the first non-comment, non-empty line of the commit message.
 FIRST_LINE=$(grep -v '^#' "$COMMIT_MSG_FILE" | grep -v '^[[:space:]]*$' | head -n1)
