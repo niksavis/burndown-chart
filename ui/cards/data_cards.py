@@ -321,7 +321,7 @@ def create_statistics_data_card(current_statistics) -> dbc.Card:
             style_table=table_style["style_table"],
             style_header=table_style["style_header"],
             style_cell=table_style["style_cell"],
-            style_cell_conditional=style_cell_conditional,  # type: ignore # Ignore type error for style_cell_conditional
+            style_cell_conditional=style_cell_conditional,  # type: ignore
             style_data=table_style["style_data"],
             style_data_conditional=style_data_conditional,
             css=table_style.get("css", []),

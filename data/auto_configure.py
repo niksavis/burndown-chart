@@ -139,7 +139,8 @@ def generate_smart_defaults(
     )
 
     logger.info(
-        f"[AutoConfigure] Mapped {len(flow_end_statuses)} completion, {len(active_statuses)} active, {len(wip_statuses)} WIP statuses"
+        f"[AutoConfigure] Mapped {len(flow_end_statuses)} completion, "
+        f"{len(active_statuses)} active, {len(wip_statuses)} WIP statuses"
     )
 
     # 2. Map issue types to flow categories AND extract DevOps types
@@ -159,10 +160,14 @@ def generate_smart_defaults(
     )
 
     logger.info(
-        f"[AutoConfigure] Mapped issue types: Feature={len(flow_type_mappings['Feature'])}, Defect={len(flow_type_mappings['Defect'])}, TechnicalDebt={len(flow_type_mappings['Technical Debt'])}"
+        f"[AutoConfigure] Mapped issue types: "
+        f"Feature={len(flow_type_mappings['Feature'])}, "
+        f"Defect={len(flow_type_mappings['Defect'])}, "
+        f"TechnicalDebt={len(flow_type_mappings['Technical Debt'])}"
     )
     logger.info(
-        f"[AutoConfigure] Incident types (bug_types): {defaults['project_classification']['bug_types']}"
+        f"[AutoConfigure] Incident types (bug_types): "
+        f"{defaults['project_classification']['bug_types']}"
     )
 
     # 3. Extract projects from JQL query (if provided)
@@ -172,7 +177,8 @@ def generate_smart_defaults(
             development_projects
         )
         logger.info(
-            f"[AutoConfigure] Extracted {len(development_projects)} projects from JQL: {development_projects}"
+            f"[AutoConfigure] Extracted {len(development_projects)} projects "
+            f"from JQL: {development_projects}"
         )
     else:
         logger.info(
@@ -251,7 +257,8 @@ def generate_smart_defaults(
     # These are fields that may have dedicated custom fields in some JIRA instances
     if issues:
         logger.info(
-            f"[AutoConfigure] Analyzing {len(issues)} issues for custom field detection (optional enhancements)"
+            f"[AutoConfigure] Analyzing {len(issues)} issues "
+            f"for custom field detection (optional enhancements)"
         )
         field_detections = detect_fields_from_issues(issues, metadata)
 
@@ -295,7 +302,8 @@ def generate_smart_defaults(
             defaults["points_field"] = field_detections["points_field"]
             general_mappings["estimate"] = field_detections["points_field"]
             logger.info(
-                f"[AutoConfigure] Detected points field: {field_detections['points_field']}"
+                f"[AutoConfigure] Detected points field: "
+                f"{field_detections['points_field']}"
             )
 
         # Extract field values for dropdowns (effort_category, affected_environment)
@@ -319,7 +327,9 @@ def generate_smart_defaults(
 
     logger.info(
         f"[AutoConfigure] Field mappings configured: "
-        f"{len(general_mappings)} General fields, {len(dora_mappings)} DORA fields, {len(flow_mappings)} Flow fields"
+        f"{len(general_mappings)} General fields, "
+        f"{len(dora_mappings)} DORA fields, "
+        f"{len(flow_mappings)} Flow fields"
     )
 
     return defaults
@@ -402,7 +412,8 @@ def _select_flow_start_statuses(wip_statuses: list[str]) -> list[str]:
         matching = [s for s in wip_statuses if keyword in s.lower()]
         if matching:
             logger.info(
-                f"[AutoConfigure] Selected flow start status: {matching[0]} (matched '{keyword}')"
+                f"[AutoConfigure] Selected flow start status: "
+                f"{matching[0]} (matched '{keyword}')"
             )
             return [matching[0]]
 

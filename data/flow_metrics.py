@@ -76,7 +76,8 @@ def calculate_flow_velocity(
         Velocity: 12.5 items/week
     """
     logger.info(
-        f"Calculating flow velocity for {len(issues)} issues over {time_period_days} days"
+        f"Calculating flow velocity for {len(issues)} issues "
+        f"over {time_period_days} days"
     )
 
     # Load field mappings
@@ -184,7 +185,8 @@ def calculate_flow_efficiency(
         }
     """
     logger.info(
-        f"Calculating flow efficiency for {len(issues)} issues over {time_period_days} days"
+        f"Calculating flow efficiency for {len(issues)} issues "
+        f"over {time_period_days} days"
     )
 
     # Load field mappings
@@ -227,7 +229,8 @@ def calculate_flow_efficiency(
         total_time = _calculate_time_in_statuses(changelog, wip_statuses, issue_key)
 
         logger.debug(
-            f"[FlowEfficiency] {issue_key}: active={active_time:.2f}h, total={total_time:.2f}h"
+            f"[FlowEfficiency] {issue_key}: "
+            f"active={active_time:.2f}h, total={total_time:.2f}h"
         )
 
         if total_time > 0:
@@ -254,7 +257,8 @@ def calculate_flow_efficiency(
     trend = _calculate_trend(average_efficiency, previous_period_value)
 
     logger.info(
-        f"Flow Efficiency: {average_efficiency:.1f}% average ({len(efficiency_values)} issues analyzed)"
+        f"Flow Efficiency: {average_efficiency:.1f}% average "
+        f"({len(efficiency_values)} issues analyzed)"
     )
 
     return {
@@ -372,7 +376,8 @@ def calculate_flow_distribution(
         }
     """
     logger.info(
-        f"Calculating flow distribution for {len(issues)} issues over {time_period_days} days"
+        f"Calculating flow distribution for {len(issues)} issues "
+        f"over {time_period_days} days"
     )
 
     # Load field mappings
@@ -425,7 +430,8 @@ def calculate_flow_distribution(
                 )
 
     logger.info(
-        f"Flow Distribution: Found {completed_count} completed issues out of {len(issues)} total"
+        f"Flow Distribution: Found {completed_count} completed issues "
+        f"out of {len(issues)} total"
     )
     logger.info(f"Flow Distribution: distribution_counts={distribution_counts}")
 

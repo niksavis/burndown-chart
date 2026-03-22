@@ -420,7 +420,7 @@ def create_recent_activity_section(
                                                 className="text-muted",
                                             ),
                                             html.Small(
-                                                f"{points_sparkline_values[-i - 1]:.1f}",
+                                                f"{points_sparkline_values[~i]:.1f}",
                                                 " pts",
                                                 className="fw-bold",
                                             ),

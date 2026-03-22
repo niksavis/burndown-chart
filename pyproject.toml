@@ -18,18 +18,6 @@ select = ["E", "F", "I", "B", "UP", "PLC"]
 [tool.ruff.lint.per-file-ignores]
 # PLC0415: Tests legitimately use lazy imports inside test functions for isolation.
 "tests/**/*.py" = ["PLC0415"]
-# E501: Lines were multi-line f-string expressions (PEP 701, Python 3.12+) that
-# were collapsed to single lines for Python 3.11 compatibility. The long strings
-# are logger calls and cannot be broken without sacrificing readability.
-"data/auto_configure.py" = ["E501"]
-"data/field_detector.py" = ["E501"]
-"data/fixversion_matcher.py" = ["E501"]
-"data/flow_metrics.py" = ["E501"]
-"data/jira/changelog_fetcher.py" = ["E501"]
-"data/jira/metadata_fetcher.py" = ["E501"]
-"data/report/chart_burndown.py" = ["E501"]
-"ui/cards/data_cards.py" = ["E501"]
-"ui/dashboard/activity_quality.py" = ["E501"]
 
 [tool.ruff.format]
 quote-style = "double"

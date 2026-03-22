@@ -92,7 +92,8 @@ def fetch_changelog_on_demand(
                 if entry.get("issue_key")
             )
             logger.info(
-                f"[Database] Loaded {len(cached_issue_keys)} unique issues with changelog from database"
+                f"[Database] Loaded {len(cached_issue_keys)} unique issues "
+                f"with changelog from database"
             )
         except (
             AttributeError,
@@ -108,11 +109,13 @@ def fetch_changelog_on_demand(
         if issue_keys:
             issues_needing_changelog = sorted(set(issue_keys))
             logger.info(
-                f"[JIRA] Changelog refresh: targeting {len(issues_needing_changelog)} issues"
+                f"[JIRA] Changelog refresh: targeting "
+                f"{len(issues_needing_changelog)} issues"
             )
             if progress_callback:
                 progress_callback(
-                    f"Targeted changelog refresh: {len(issues_needing_changelog)} issues"
+                    f"Targeted changelog refresh: "
+                    f"{len(issues_needing_changelog)} issues"
                 )
         else:
             try:
@@ -133,12 +136,14 @@ def fetch_changelog_on_demand(
 
                 logger.info(
                     f"[JIRA] Changelog analysis: {len(all_issue_keys)} total, "
-                    f"{len(cached_issue_keys)} cached, {len(issues_needing_changelog)} need fetch"
+                    f"{len(cached_issue_keys)} cached, "
+                    f"{len(issues_needing_changelog)} need fetch"
                 )
 
                 if issues_needing_changelog:
                     logger.info(
-                        f"[Database] Optimized fetch: Only {len(issues_needing_changelog)} new issues"
+                        f"[Database] Optimized fetch: Only "
+                        f"{len(issues_needing_changelog)} new issues"
                     )
                     if progress_callback:
                         progress_callback(
@@ -151,11 +156,13 @@ def fetch_changelog_on_demand(
                     )
                     if progress_callback:
                         progress_callback(
-                            f"[OK] All {len(cached_issue_keys)} issues already cached - skipping download"
+                            f"[OK] All {len(cached_issue_keys)} issues "
+                            f"already cached - skipping download"
                         )
                     return (
                         True,
-                        f"[OK] Changelog already cached for all {len(cached_issue_keys)} issues",
+                        f"[OK] Changelog already cached for all "
+                        f"{len(cached_issue_keys)} issues",
                     )
 
             except (
@@ -234,7 +241,8 @@ def fetch_changelog_on_demand(
                             for item in hist.get("items", []):
                                 unique_fields.add(item.get("field"))
                         logger.info(
-                            f"[JIRA] Sample changelog field names for {issue_key}: {sorted(unique_fields)}"
+                            f"[JIRA] Sample changelog field names for {issue_key}: "
+                            f"{sorted(unique_fields)}"
                         )
 
                     filtered_histories = []
@@ -360,10 +368,14 @@ def fetch_changelog_on_demand(
                         )
 
                         logger.info(
-                            f"[Database] Saved {len(changelog_entries_batch)} changelog entries to database for {profile_id}/{query_id}"
+                            f"[Database] Saved {len(changelog_entries_batch)} "
+                            f"changelog entries to database for {profile_id}/{query_id}"
                         )
                         logger.info(
-                            f"[Database] Optimized changelog: {total_histories_before} → {total_histories_after} histories ({reduction_pct:.1f}% reduction)"
+                            f"[Database] Optimized changelog: "
+                            f"{total_histories_before} → "
+                            f"{total_histories_after} histories "
+                            f"({reduction_pct:.1f}% reduction)"
                         )
                     else:
                         logger.info(
@@ -396,7 +408,9 @@ def fetch_changelog_on_demand(
 
                 return (
                     True,
-                    f"[OK] Changelog: {newly_fetched} newly fetched + {previously_cached} already cached = {total_cached} total issues (saved {reduction_pct:.0f}% size)",
+                    f"[OK] Changelog: {newly_fetched} newly fetched + "
+                    f"{previously_cached} already cached = {total_cached} total issues "
+                    f"(saved {reduction_pct:.0f}% size)",
                 )
             except (
                 JiraError,

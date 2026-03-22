@@ -252,7 +252,10 @@ class JiraMetadataFetcher:
                         has_more = True
 
                         while has_more:
-                            options_url = f"{self.jira_url}/rest/api/{self.api_version}/field/{field_id}/context/{context_id}/option"
+                            options_url = (
+                                f"{self.jira_url}/rest/api/{self.api_version}/field/"
+                                f"{field_id}/context/{context_id}/option"
+                            )
                             params = {"startAt": start_at, "maxResults": max_results}
                             options_response = requests.get(
                                 options_url,
@@ -268,7 +271,9 @@ class JiraMetadataFetcher:
                                 is_last = options_data.get("isLast", True)
 
                                 logger.info(
-                                    f"[JIRA] Context {context_id}: Retrieved {len(options)} options (startAt={start_at}, total={total})"
+                                    f"[JIRA] Context {context_id}: Retrieved "
+                                    f"{len(options)} options "
+                                    f"(startAt={start_at}, total={total})"
                                 )
 
                                 for option in options:
@@ -294,7 +299,8 @@ class JiraMetadataFetcher:
                                     start_at += len(options)
                             else:
                                 logger.warning(
-                                    f"[JIRA] Failed to fetch options for context {context_id}: {options_response.status_code}"
+                                    f"[JIRA] Failed to fetch options for context "
+                                    f"{context_id}: {options_response.status_code}"
                                 )
                                 has_more = False
 
@@ -302,7 +308,8 @@ class JiraMetadataFetcher:
                     values = sorted(all_options)
                     self._field_options_cache[field_id] = values
                     logger.info(
-                        f"[JIRA] Fetched {len(values)} total options for field {field_id} from all contexts: {values}"
+                        f"[JIRA] Fetched {len(values)} total options "
+                        f"for field {field_id} from all contexts: {values}"
                     )
                     return values
 
@@ -338,7 +345,8 @@ class JiraMetadataFetcher:
                     if values:
                         self._field_options_cache[field_id] = values
                         logger.info(
-                            f"[JIRA] Fetched {len(values)} options for field {field_id} from schema: {values}"
+                            f"[JIRA] Fetched {len(values)} options "
+                            f"for field {field_id} from schema: {values}"
                         )
                         return values
                 else:
@@ -367,7 +375,8 @@ class JiraMetadataFetcher:
                 if values:
                     self._field_options_cache[field_id] = values
                     logger.info(
-                        f"[JIRA] Fetched {len(values)} options for field {field_id} from legacy endpoint"
+                        f"[JIRA] Fetched {len(values)} options for field {field_id} "
+                        f"from legacy endpoint"
                     )
                     return values
 
@@ -387,7 +396,8 @@ class JiraMetadataFetcher:
 
                 issues = cache_data.get("issues", [])
                 logger.info(
-                    f"[JIRA] Found {len(issues)} cached issues, extracting {field_id} values"
+                    f"[JIRA] Found {len(issues)} cached issues, "
+                    f"extracting {field_id} values"
                 )
 
                 unique_values = set()
@@ -421,7 +431,8 @@ class JiraMetadataFetcher:
                     values = sorted(unique_values)
                     self._field_options_cache[field_id] = values
                     logger.info(
-                        f"[JIRA] Extracted {len(values)} unique values from cache: {values}"
+                        f"[JIRA] Extracted {len(values)} unique values "
+                        f"from cache: {values}"
                     )
                     return values
                 else:
@@ -445,7 +456,8 @@ class JiraMetadataFetcher:
             if values:
                 self._field_options_cache[field_id] = values
                 logger.info(
-                    f"[JIRA] Extracted {len(values)} unique values from issues: {values}"
+                    f"[JIRA] Extracted {len(values)} unique values "
+                    f"from issues: {values}"
                 )
                 return values
             else:
@@ -538,7 +550,8 @@ class JiraMetadataFetcher:
             # issues)
             if response.status_code != 200:
                 logger.warning(
-                    f"[JIRA] JQL with IS NOT EMPTY failed ({response.status_code}), trying simpler query"
+                    f"[JIRA] JQL with IS NOT EMPTY failed ({response.status_code}), "
+                    f"trying simpler query"
                 )
                 # Fallback: get recent issues from development projects if configured
                 # circular import guard
@@ -572,7 +585,8 @@ class JiraMetadataFetcher:
 
             if response.status_code != 200:
                 logger.warning(
-                    f"[JIRA] Issue search failed for {field_id} ({field_name}): {response.status_code}"
+                    f"[JIRA] Issue search failed for {field_id} ({field_name}): "
+                    f"{response.status_code}"
                 )
                 return []
 
@@ -620,7 +634,8 @@ class JiraMetadataFetcher:
             # Sort and return as list
             sorted_values = sorted(unique_values)
             logger.info(
-                f"[JIRA] Found {len(sorted_values)} unique values for {field_id}: {sorted_values}"
+                f"[JIRA] Found {len(sorted_values)} unique values for {field_id}: "
+                f"{sorted_values}"
             )
             return sorted_values
 
