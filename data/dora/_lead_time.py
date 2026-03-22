@@ -125,7 +125,7 @@ def calculate_lead_time_for_changes(
                     deployment_datetime = datetime.fromisoformat(
                         deployment_value.replace("Z", "+00:00")
                     )
-                except (ValueError, TypeError):
+                except ValueError, TypeError:
                     missing_deployment_count += 1
                     continue
 

@@ -40,7 +40,7 @@ def safe_divide(numerator, denominator, default=0):
     """
     try:
         return numerator / denominator if denominator != 0 else default
-    except (TypeError, ZeroDivisionError):
+    except TypeError, ZeroDivisionError:
         return default
 
 
@@ -291,7 +291,7 @@ def create_metric_card(
             if isinstance(value, str)
             else float(value)
         )
-    except (ValueError, IndexError, AttributeError):
+    except ValueError, IndexError, AttributeError:
         numeric_value = None
 
     # Determine performance tier color based on value

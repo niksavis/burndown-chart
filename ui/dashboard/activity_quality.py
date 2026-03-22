@@ -31,7 +31,7 @@ def safe_divide(numerator, denominator, default=0):
     """Safely divide two numbers, returning default if denominator is zero."""
     try:
         return numerator / denominator if denominator != 0 else default
-    except (TypeError, ZeroDivisionError):
+    except TypeError, ZeroDivisionError:
         return default
 
 

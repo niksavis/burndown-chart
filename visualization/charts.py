@@ -606,7 +606,7 @@ def create_pert_timeline_chart(pert_data: dict) -> go.Figure:
             if pert_data.get("pert_estimate_date")
             else None
         )
-    except (ValueError, TypeError):
+    except ValueError, TypeError:
         # Return empty chart if dates are invalid
         fig = go.Figure()
         fig.add_annotation(

@@ -93,7 +93,7 @@ def sync_jira_scope_and_data(
                 0,
                 "Connecting to JIRA...",
             )
-        except (AttributeError, RuntimeError, TypeError, ValueError):
+        except AttributeError, RuntimeError, TypeError, ValueError:
             pass  # Progress update is optional
 
         # Load configuration with JQL query from settings or use provided UI config
@@ -340,7 +340,7 @@ def sync_jira_scope_and_data(
                 total=len(issues),
                 message="Issues fetched, preparing changelog download...",
             )
-        except (AttributeError, RuntimeError, TypeError, ValueError):
+        except AttributeError, RuntimeError, TypeError, ValueError:
             pass
 
         backend = get_backend()
@@ -539,7 +539,7 @@ def sync_jira_scope_and_data(
                 total=len(issues),
                 message="Processing issues and calculating scope...",
             )
-        except (AttributeError, RuntimeError, TypeError, ValueError):
+        except AttributeError, RuntimeError, TypeError, ValueError:
             pass
 
         # CRITICAL: Filter out parent issues dynamically
@@ -654,7 +654,7 @@ def sync_jira_scope_and_data(
                 total=len(issues),
                 message="Saving data to database...",
             )
-        except (AttributeError, RuntimeError, TypeError, ValueError):
+        except AttributeError, RuntimeError, TypeError, ValueError:
             pass
 
         # Save both statistics and project scope to unified data structure

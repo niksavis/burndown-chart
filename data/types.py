@@ -26,7 +26,7 @@ class AppSettings(TypedDict, total=False):
     jql_query: str
     last_used_data_source: str
     active_jql_profile_id: str
-    jira_config: "JiraConfig"
+    jira_config: JiraConfig
     field_mappings: dict[str, str]
     devops_projects: list[str]
     development_projects: list[str]

@@ -70,7 +70,7 @@ class MetricsMixin:
                     ):
                         try:
                             metric["metric_value"] = json.loads(metric_value)
-                        except (json.JSONDecodeError, TypeError):
+                        except json.JSONDecodeError, TypeError:
                             pass
                     if metric.get("calculation_metadata"):
                         metric["calculation_metadata"] = json.loads(

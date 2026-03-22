@@ -67,7 +67,7 @@ def generate_weekly_items_chart(
                 ewma_data = calculate_ewma_forecast(items_completed, alpha=0.3)
                 if ewma_data:
                     ewma_items = round(ewma_data["forecast_value"], 1)
-            except (KeyError, ValueError, IndexError):
+            except KeyError, ValueError, IndexError:
                 pass
 
     # Calculate required velocity using midnight-today (matches app calculation exactly)
@@ -83,7 +83,7 @@ def generate_weekly_items_chart(
                 time_unit="week",
             )
             required_items = round(raw, 1) if raw != float("inf") else None
-        except (ValueError, ZeroDivisionError):
+        except ValueError, ZeroDivisionError:
             pass
 
     # Build datasets
@@ -279,7 +279,7 @@ def generate_weekly_points_chart(
                 ewma_data = calculate_ewma_forecast(points_completed, alpha=0.3)
                 if ewma_data:
                     ewma_points = round(ewma_data["forecast_value"], 1)
-            except (KeyError, ValueError, IndexError):
+            except KeyError, ValueError, IndexError:
                 pass
 
     # Calculate required velocity using midnight-today (matches app calculation exactly)
@@ -295,7 +295,7 @@ def generate_weekly_points_chart(
                 time_unit="week",
             )
             required_points = round(raw, 1) if raw != float("inf") else None
-        except (ValueError, ZeroDivisionError):
+        except ValueError, ZeroDivisionError:
             pass
 
     # Build datasets

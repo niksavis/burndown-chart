@@ -91,7 +91,7 @@ def register(app):
             total_items = int(total_items)
             estimated_items = int(estimated_items)
             estimated_points = float(estimated_points)
-        except (ValueError, TypeError):
+        except ValueError, TypeError:
             return (
                 f"{calc_results.get('total_points', DEFAULT_TOTAL_POINTS):.1f}",
                 calc_results

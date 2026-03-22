@@ -66,7 +66,7 @@ def get_server_config():
     # Get port with priority: command line > env var > default
     try:
         port = args.port or int(os.environ.get("BURNDOWN_PORT", DEFAULT_PORT))
-    except (ValueError, TypeError):
+    except ValueError, TypeError:
         logger.warning(f"Invalid port specified, using default: {DEFAULT_PORT}")
         port = DEFAULT_PORT
 

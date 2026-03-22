@@ -290,7 +290,7 @@ def next_breakpoint(breakpoint):
         current_index = breakpoint_order.index(breakpoint)
         if current_index < len(breakpoint_order) - 1:
             return breakpoint_order[current_index + 1]
-    except (ValueError, IndexError):
+    except ValueError, IndexError:
         pass
     return None
 

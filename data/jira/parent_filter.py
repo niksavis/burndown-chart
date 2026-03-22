@@ -124,7 +124,7 @@ def extract_parent_types_from_issues(
             if issue_type:
                 issue_types.add(issue_type)
 
-        except (KeyError, TypeError):
+        except KeyError, TypeError:
             continue
 
     # Return sorted list of dicts for consistency

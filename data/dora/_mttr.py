@@ -131,7 +131,7 @@ def calculate_mean_time_to_recovery(
                     end_datetime = datetime.fromisoformat(
                         incident_resolved_value.replace("Z", "+00:00")
                     )
-                except (ValueError, TypeError):
+                except ValueError, TypeError:
                     missing_end_count += 1
                     continue
 

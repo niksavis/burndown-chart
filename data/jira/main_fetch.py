@@ -590,7 +590,7 @@ def fetch_jira_issues(
                         )
                     else:
                         error_details = str(error_json)
-                except (TypeError, ValueError):
+                except TypeError, ValueError:
                     error_details = response.text[:500]  # First 500 chars of response
 
                 # Check for common ScriptRunner/JQL function issues

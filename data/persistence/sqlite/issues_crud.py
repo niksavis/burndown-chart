@@ -284,7 +284,7 @@ class IssuesCRUDMixin:
                             if points_raw is not None:
                                 try:
                                     points = float(points_raw)
-                                except (ValueError, TypeError):
+                                except ValueError, TypeError:
                                     logger.warning(
                                         "Cannot convert points to float for "
                                         f"{issue.get('key')}: {points_raw}"
@@ -297,7 +297,7 @@ class IssuesCRUDMixin:
                         if points_raw is not None:
                             try:
                                 points = float(points_raw)
-                            except (ValueError, TypeError):
+                            except ValueError, TypeError:
                                 points = None
 
                     cursor.execute(
@@ -491,7 +491,7 @@ class IssuesCRUDMixin:
                         if points_raw is not None:
                             try:
                                 points = float(points_raw)
-                            except (ValueError, TypeError):
+                            except ValueError, TypeError:
                                 logger.debug(
                                     "Cannot convert points to float for "
                                     f"issue ID {issue_id}: {points_raw}"

@@ -390,7 +390,7 @@ def _add_health_indicators(
                                 is_blocked = True
                             elif is_in_wip_status and days_since_created >= 3:
                                 is_aging = True
-                        except (ValueError, AttributeError):
+                        except ValueError, AttributeError:
                             pass
 
         except Exception as e:

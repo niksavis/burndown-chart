@@ -71,7 +71,7 @@ def _get_default_jql_profile_id():
         # No match found - return empty (user has custom query)
         return ""
 
-    except (ImportError, Exception):
+    except ImportError, Exception:
         return ""
 
 
@@ -91,7 +91,7 @@ def _get_query_profile_options():
                 }
             )
         return options
-    except (ImportError, Exception):
+    except ImportError, Exception:
         return []
 
 

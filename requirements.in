@@ -1,16 +1,21 @@
 # Production Dependencies Only
 # These are the packages required for the application to run.
 # Use requirements-dev.in for development/testing/build dependencies.
+#
+# Version constraints:
+#   dash <4   -- Dash 4.0 is a major rewrite; upgrade requires testing
+#   pandas <3 -- pandas 3.0 makes chained assignment hard errors; upgrade separately
+#   kaleido>=1.0 -- v1 is pure Python (py3-none-any), much lighter than 0.2.x
 
 # Core Dash application dependencies
-dash[diskcache]==3.1.1
-dash-bootstrap-components==2.0.2
-plotly==6.0.1
-kaleido==0.2.1  # Required for plotly PNG export (compatible with plotly 6.0.1)
+dash[diskcache]>=3.1.1,<4
+dash-bootstrap-components>=2.0.2
+plotly>=6.0.1
+kaleido>=1.0              # v1+ is pure Python wheel, no binary dependency
 
 # Data processing
-pandas==2.2.3
-numpy==2.2.5
+pandas>=2.3.0,<3  # 2.3.0+ ships cp314 wheels; cap <3 until CoW hard-errors are fixed
+numpy>=2.2.5
 
 # Data validation and modeling
 pydantic>=2.0.0
@@ -19,16 +24,16 @@ pydantic>=2.0.0
 scipy>=1.11.0
 
 # Web requests and HTTP
-requests==2.32.3
+requests>=2.32.3
 
 # Production server
-waitress==3.0.2
+waitress>=3.0.2
 
 # Clipboard support (cross-platform)
-pyperclip==1.8.2
+pyperclip>=1.8.2
 
 # Process utilities (for faster update process detection)
-psutil==6.1.1
+psutil>=6.0.0
 
 # System tray icon (for console-free executable control)
 pystray>=0.19.5

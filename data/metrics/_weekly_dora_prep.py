@@ -50,7 +50,7 @@ def count_deployments_for_week(
                     deployment_count += 1
                     releases.add(release_name)
                     break
-            except (ValueError, TypeError):
+            except ValueError, TypeError:
                 continue
 
     return {
@@ -82,7 +82,7 @@ def filter_issues_by_deployment_week(
                 if week_start <= release_date < week_end:
                     filtered.append(issue)
                     break
-            except (ValueError, TypeError):
+            except ValueError, TypeError:
                 continue
 
     return filtered
@@ -109,7 +109,7 @@ def filter_bugs_by_resolution_week(
                 resolution_date = resolution_date.replace(tzinfo=None)
             if week_start <= resolution_date < week_end:
                 filtered.append(bug)
-        except (ValueError, TypeError):
+        except ValueError, TypeError:
             continue
 
     return filtered

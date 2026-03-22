@@ -298,7 +298,7 @@ def setup_logging(
         def format(self, record):
             try:
                 return super().format(record)
-            except (TypeError, ValueError):
+            except TypeError, ValueError:
                 # If formatting fails, use raw message without args
                 return f"{record.levelname} - waitress - {record.msg}"
 

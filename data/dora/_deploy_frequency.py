@@ -131,7 +131,7 @@ def calculate_deployment_frequency(
                         if isinstance(fix_versions_raw, str)
                         else fix_versions_raw
                     )
-                except (json.JSONDecodeError, TypeError):
+                except json.JSONDecodeError, TypeError:
                     fix_versions = []
 
             # Log first 3 issues for debugging

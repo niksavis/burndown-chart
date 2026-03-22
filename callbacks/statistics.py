@@ -395,7 +395,7 @@ def register(app):
                     raise PreventUpdate
             else:
                 new_date = datetime.now().strftime("%Y-%m-%d")
-        except (ValueError, KeyError):
+        except ValueError, KeyError:
             # Handle any date parsing errors
             new_date = datetime.now().strftime("%Y-%m-%d")
 

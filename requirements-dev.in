@@ -10,7 +10,7 @@
 
 # Testing dependencies
 pytest>=8.3.5  # Kaleido requires pytest>=9.0, allow newer versions
-pytest-cov==6.1.1
+pytest-cov>=6.1.1
 pytest-timeout>=2.0  # Enforce @pytest.mark.timeout() limits
 pytest-xdist>=3.0  # Parallel test execution (-n auto)
 playwright>=1.40.0
@@ -22,13 +22,13 @@ pip-licenses>=5.0.0 # License auditing for THIRD_PARTY_LICENSES.txt
 PyYAML>=6.0.0       # Used by regenerate_changelog.py build script
 
 # Development tools
-pip-tools==7.4.1    # Dependency management (pip-compile)
+pip-tools==7.5.3    # Dependency management (pip-compile)
 pre-commit>=4.2.0   # Shared git hooks for lint/format checks
 ruff>=0.12.10       # Python linting and formatting
 autopep8>=2.3.2     # Supplemental PEP 8 line-wrapping formatter for refactors
 djlint>=1.36.4      # Jinja/HTML linting and formatting
 pyright>=1.1.0      # Static type checker (same engine as Pylance/VS Code)
-pandas-stubs>=2.2.1 # Type stubs for pandas — eliminates false-positive pyright errors
+pandas-stubs>=2.3.0 # Type stubs for pandas — eliminates false-positive pyright errors
 
 # Security and quality tools
 bandit>=1.8.0       # Python SAST security linter

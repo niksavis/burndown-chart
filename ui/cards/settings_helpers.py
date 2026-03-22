@@ -28,7 +28,7 @@ def _get_default_data_source() -> str:
         data_source = app_settings.get("last_used_data_source", "JIRA")
         # Return JIRA if the value is empty or None
         return data_source if data_source else "JIRA"
-    except (ImportError, Exception):
+    except ImportError, Exception:
         return "JIRA"  # Default to JIRA if import fails or any other error
 
 
@@ -56,7 +56,7 @@ def _get_default_jql_profile_id() -> str:
     try:
         app_settings = load_app_settings()
         return app_settings.get("active_jql_profile_id", "")
-    except (ImportError, Exception):
+    except ImportError, Exception:
         return ""
 
 
@@ -129,6 +129,6 @@ def _get_query_profile_options() -> list[dict[str, str]]:
         # Don't add "New Query" option - keep dropdown for saved queries only
         return options
 
-    except (ImportError, Exception):
+    except ImportError, Exception:
         # Return empty list if query manager fails
         return []

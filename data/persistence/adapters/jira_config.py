@@ -365,7 +365,7 @@ def validate_jira_config(config: dict[str, Any]) -> tuple[bool, str]:
         cache_size = int(cache_size)
         if not (10 <= cache_size <= 1000):
             return (False, "Cache size must be between 10 and 1000 MB")
-    except (ValueError, TypeError):
+    except ValueError, TypeError:
         return (False, "Cache size must be a valid integer")
 
     # Max results validation
@@ -374,7 +374,7 @@ def validate_jira_config(config: dict[str, Any]) -> tuple[bool, str]:
         max_results = int(max_results)
         if not (10 <= max_results <= 1000):
             return (False, "Max results must be between 10 and 1000 (JIRA API limit)")
-    except (ValueError, TypeError):
+    except ValueError, TypeError:
         return (False, "Max results must be a valid integer")
 
     # Points field validation (optional, but must be valid field name if provided)

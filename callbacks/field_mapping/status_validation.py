@@ -59,7 +59,7 @@ def validate_active_wip_subset(active_statuses, wip_statuses, current_warning):
                 new_msg = str(new_warning.children)
                 if current_msg == new_msg:
                     return no_update
-            except (AttributeError, TypeError):
+            except AttributeError, TypeError:
                 pass  # If comparison fails, update anyway
 
         return new_warning
@@ -119,7 +119,7 @@ def validate_flow_start_wip_subset(flow_start_statuses, wip_statuses, current_wa
                 new_msg = str(new_warning.children)
                 if current_msg == new_msg:
                     return no_update
-            except (AttributeError, TypeError):
+            except AttributeError, TypeError:
                 pass  # If comparison fails, update anyway
 
         return new_warning

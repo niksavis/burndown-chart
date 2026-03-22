@@ -262,7 +262,7 @@ def _extract_story_points(fields: dict[str, Any], points_field: str) -> int:
                 # String representation
                 try:
                     return int(float(value))  # Handle "8.0" -> 8
-                except (ValueError, TypeError):
+                except ValueError, TypeError:
                     return 0
             elif isinstance(value, (int, float)):
                 # Direct numeric value
@@ -292,7 +292,7 @@ def _extract_story_points(fields: dict[str, Any], points_field: str) -> int:
             if isinstance(value, str):
                 try:
                     return int(float(value))
-                except (ValueError, TypeError):
+                except ValueError, TypeError:
                     return 0
 
             # Unknown type

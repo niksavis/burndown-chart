@@ -131,7 +131,7 @@ def save_cached_metrics(
                     content = f.read().strip()
                     if content:  # Check if file has content
                         cache = json.loads(content)
-            except (json.JSONDecodeError, ValueError):
+            except json.JSONDecodeError, ValueError:
                 logger.warning("Cache file corrupted, recreating")
                 cache = None
 

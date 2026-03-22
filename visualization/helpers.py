@@ -100,7 +100,7 @@ def safe_numeric_convert(value, default=0.0):
     """
     try:
         return float(value) if value is not None else default
-    except (ValueError, TypeError):
+    except ValueError, TypeError:
         return default
 
 
@@ -118,7 +118,7 @@ def parse_deadline_milestone(deadline_str, milestone_str=None):
     # Parse deadline with error handling
     try:
         deadline = pd.to_datetime(deadline_str, format="mixed", errors="coerce")
-    except (ValueError, TypeError):
+    except ValueError, TypeError:
         # Use fallback date 30 days from now if deadline format is invalid
         deadline = pd.Timestamp.now() + pd.Timedelta(days=30)
         logging.getLogger("burndown_chart").warning(
@@ -130,7 +130,7 @@ def parse_deadline_milestone(deadline_str, milestone_str=None):
     if milestone_str:
         try:
             milestone = pd.to_datetime(milestone_str, format="mixed", errors="coerce")
-        except (ValueError, TypeError):
+        except ValueError, TypeError:
             logging.getLogger("burndown_chart").warning(
                 f"Invalid milestone format: {milestone_str}. Ignoring milestone."
             )

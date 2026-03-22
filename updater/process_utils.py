@@ -51,7 +51,7 @@ def wait_for_process_exit(pid: int, status: StatusFn, timeout: int = 10) -> bool
                     os.kill(pid, 0)
 
                 time.sleep(0.2)
-            except (ProcessLookupError, OSError):
+            except ProcessLookupError, OSError:
                 status(f"Process {pid} has exited")
                 return True
             except Exception as e:

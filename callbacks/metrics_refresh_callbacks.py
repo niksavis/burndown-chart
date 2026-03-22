@@ -76,7 +76,7 @@ def calculate_metrics_from_settings(
                                         date_str.replace("Z", "+00:00")
                                     )
                                 )
-                            except (ValueError, AttributeError):
+                            except ValueError, AttributeError:
                                 pass
 
                 if all_dates:

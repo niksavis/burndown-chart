@@ -113,7 +113,7 @@ def create_bug_metrics_cards(bug_metrics: dict, forecast: dict) -> html.Div:
         try:
             date_obj = datetime.fromisoformat(iso_date)
             return date_obj.strftime("%b %d, %Y")
-        except (ValueError, AttributeError):
+        except ValueError, AttributeError:
             return iso_date
 
     most_likely_date_formatted = format_date(most_likely_date)
@@ -748,7 +748,7 @@ def create_bug_forecast_card(forecast: dict, open_bugs: int) -> html.Div:
         try:
             date_obj = datetime.fromisoformat(iso_date)
             return date_obj.strftime("%b %d, %Y")
-        except (ValueError, AttributeError):
+        except ValueError, AttributeError:
             return iso_date
 
     most_likely_date_formatted = format_date(most_likely_date)

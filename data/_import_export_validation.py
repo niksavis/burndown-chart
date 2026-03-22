@@ -122,7 +122,7 @@ def validate_import_data(data: dict[str, Any]) -> tuple[bool, list[str]]:
             # Support version 1.x and 2.x
             if major_version < 1 or major_version > 2:
                 errors.append(f"Unsupported version {version}. Expected 1.x or 2.x")
-        except (ValueError, IndexError):
+        except ValueError, IndexError:
             errors.append(f"Invalid version format: {version}")
 
     # Stage 3: Schema validation

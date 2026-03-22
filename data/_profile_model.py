@@ -83,7 +83,7 @@ class Profile:
         }
 
     @classmethod
-    def from_dict(cls, data: dict) -> "Profile":
+    def from_dict(cls, data: dict) -> Profile:
         """Create profile from dictionary loaded from JSON."""
         return cls(
             id=data["id"],

@@ -140,7 +140,7 @@ def calculate_change_failure_rate(
                         if isinstance(fix_versions_raw, str)
                         else fix_versions_raw
                     )
-                except (json.JSONDecodeError, TypeError):
+                except json.JSONDecodeError, TypeError:
                     fix_versions = []
 
             # Check if issue is completed

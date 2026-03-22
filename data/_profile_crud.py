@@ -92,7 +92,7 @@ def create_profile(name: str, settings: dict) -> str:
     except (PersistenceError, KeyError, TypeError, ValueError) as e:
         try:
             backend.delete_profile(profile_id)
-        except (PersistenceError, KeyError, TypeError, ValueError):
+        except PersistenceError, KeyError, TypeError, ValueError:
             pass
         logger.error(f"[Profiles] Error creating profile '{name}': {e}")
         raise OSError(f"Failed to create profile: {e}") from e
@@ -341,7 +341,7 @@ def duplicate_profile(
     except (PersistenceError, KeyError, TypeError, ValueError) as e:
         try:
             backend.delete_profile(new_profile_id)
-        except (PersistenceError, KeyError, TypeError, ValueError):
+        except PersistenceError, KeyError, TypeError, ValueError:
             pass
         logger.error(f"[Profiles] Error duplicating profile: {e}")
         raise OSError(f"Failed to duplicate profile: {e}") from e

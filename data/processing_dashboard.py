@@ -165,7 +165,7 @@ def calculate_dashboard_metrics(statistics: list, settings: dict) -> dict:
             deadline_date = datetime.strptime(deadline, "%Y-%m-%d")
             days_to_deadline = (deadline_date - datetime.now()).days
             metrics["days_to_deadline"] = days_to_deadline
-        except (ValueError, TypeError):
+        except ValueError, TypeError:
             pass
 
     return metrics

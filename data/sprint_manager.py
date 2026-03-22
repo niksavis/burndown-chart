@@ -826,7 +826,7 @@ def calculate_issue_status_timeline(
 
         try:
             start_time = datetime.fromisoformat(change_date_str.replace("Z", "+00:00"))
-        except (ValueError, AttributeError):
+        except ValueError, AttributeError:
             logger.warning(
                 f"Invalid date format for {issue_key}: {change_date_str}, skipping"
             )
@@ -839,7 +839,7 @@ def calculate_issue_status_timeline(
                 end_time = datetime.fromisoformat(
                     next_change_date_str.replace("Z", "+00:00")
                 )
-            except (ValueError, AttributeError):
+            except ValueError, AttributeError:
                 logger.warning(
                     "Invalid next date format for "
                     f"{issue_key}: {next_change_date_str}, using now"

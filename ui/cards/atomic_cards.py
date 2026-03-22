@@ -324,7 +324,7 @@ def create_dashboard_metrics_card(
     # Format subtitle with metrics
     try:
         subtitle = config["subtitle_template"].format(**metrics)
-    except (KeyError, ValueError):
+    except KeyError, ValueError:
         subtitle = ""
 
     # Create title with help icon

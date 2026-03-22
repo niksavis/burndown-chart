@@ -137,7 +137,7 @@ def _extract_datetime_from_field_mapping(
                     if isinstance(fix_versions_raw, str)
                     else fix_versions_raw
                 )
-            except (json.JSONDecodeError, TypeError):
+            except json.JSONDecodeError, TypeError:
                 fix_versions = []
 
         for fv in fix_versions:

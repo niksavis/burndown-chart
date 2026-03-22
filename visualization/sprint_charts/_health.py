@@ -108,7 +108,7 @@ def _calculate_issue_health_priority(
                 if created_dt.tzinfo is None:
                     created_dt = created_dt.replace(tzinfo=UTC)
                 days_since_status_change = (now - created_dt).days
-            except (ValueError, AttributeError):
+            except ValueError, AttributeError:
                 pass
 
     # Calculate health priority based on WIP status and velocity
@@ -176,7 +176,7 @@ def _calculate_completion_percentage(
                         change_dt = change_dt.replace(tzinfo=UTC)
                     completion_time = change_dt
                     break  # Use first transition to completed status
-                except (ValueError, AttributeError):
+                except ValueError, AttributeError:
                     pass
 
     if not completion_time:
@@ -236,7 +236,7 @@ def _sort_issues_by_health_priority(
             sprint_start = datetime.fromisoformat(sprint_start_date)
             if sprint_start.tzinfo is None:
                 sprint_start = sprint_start.replace(tzinfo=UTC)
-        except (ValueError, AttributeError):
+        except ValueError, AttributeError:
             pass
 
     if sprint_end_date:
@@ -244,7 +244,7 @@ def _sort_issues_by_health_priority(
             sprint_end = datetime.fromisoformat(sprint_end_date)
             if sprint_end.tzinfo is None:
                 sprint_end = sprint_end.replace(tzinfo=UTC)
-        except (ValueError, AttributeError):
+        except ValueError, AttributeError:
             pass
 
     # Calculate priority and completion percentage for each issue
@@ -283,7 +283,7 @@ def _sort_issues_by_health_priority(
                     days_in_completed,
                     -numeric_part,  # Negative for descending
                 )
-        except (ValueError, AttributeError):
+        except ValueError, AttributeError:
             pass
         # Fallback to string comparison (reverse for descending)
         return (completion_bucket, health_priority, days_in_completed, issue_key)

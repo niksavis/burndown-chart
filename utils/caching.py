@@ -81,7 +81,7 @@ def _make_hashable(obj: Any) -> Any:
                 json.dumps(obj, sort_keys=True).encode()
             ).hexdigest()
             return f"{type(obj).__name__}:{hash_value}"
-        except (TypeError, ValueError):
+        except TypeError, ValueError:
             # Fallback for objects that can't be JSON serialized
             return str(obj)
 

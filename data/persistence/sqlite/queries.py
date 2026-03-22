@@ -93,7 +93,7 @@ class QueriesMixin:
                 conn.commit()
                 logger.info(f"Saved query: {profile_id}/{query['id']}")
 
-        except (ProfileNotFoundError, ValidationError):
+        except ProfileNotFoundError, ValidationError:
             raise
         except (
             sqlite3.Error,

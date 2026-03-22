@@ -140,7 +140,7 @@ def get_beads_issue_title(issue_id: str) -> str | None:
                 title = issue["title"]
                 title = re.sub(r"^[A-Z]\d+:\s*", "", title)
                 return title
-    except (json.JSONDecodeError, KeyError):
+    except json.JSONDecodeError, KeyError:
         pass
     return None
 

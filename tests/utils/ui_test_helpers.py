@@ -89,7 +89,7 @@ def extract_numeric_value_from_component(
             if value is not None:
                 try:
                     return float(value)
-                except (ValueError, TypeError):
+                except ValueError, TypeError:
                     # Not a numeric value
                     pass
         except Exception:

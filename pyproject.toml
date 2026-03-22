@@ -1,6 +1,6 @@
 [tool.ruff]
 line-length = 88
-target-version = "py313"
+target-version = "py314"
 extend-exclude = [
   ".beads",
   ".continue",
@@ -40,7 +40,7 @@ line-ending = "lf"
 strip-extras = true
 
 [tool.pyright]
-pythonVersion = "3.13"
+pythonVersion = "3.14"
 typeCheckingMode = "basic"
 venvPath = "."
 venv = ".venv"

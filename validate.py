@@ -101,7 +101,16 @@ def check_djlint(fix: bool = False) -> int:
 def check_pyright() -> int:
     return _run(
         "pyright (type check)",
-        ["pyright", "data/", "callbacks/", "ui/", "visualization/", "tests/"],
+        [
+            "pyright",
+            "--pythonpath",
+            str(PYTHON),
+            "data/",
+            "callbacks/",
+            "ui/",
+            "visualization/",
+            "tests/",
+        ],
     )
 
 

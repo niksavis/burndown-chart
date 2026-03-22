@@ -31,7 +31,7 @@ class InstallationContext:
     is_portable: bool
 
     @classmethod
-    def detect(cls) -> "InstallationContext":
+    def detect(cls) -> InstallationContext:
         """
         Detect the current installation context.
 

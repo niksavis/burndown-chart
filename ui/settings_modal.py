@@ -35,7 +35,7 @@ def _get_default_data_source():
         app_settings = load_app_settings()
         data_source = app_settings.get("last_used_data_source", "JIRA")
         return data_source if data_source else "JIRA"
-    except (ImportError, Exception):
+    except ImportError, Exception:
         return "JIRA"
 
 
@@ -53,7 +53,7 @@ def _get_default_jql_profile_id():
     try:
         app_settings = load_app_settings()
         return app_settings.get("active_jql_profile_id", "")
-    except (ImportError, Exception):
+    except ImportError, Exception:
         return ""
 
 
@@ -70,7 +70,7 @@ def _get_query_profile_options():
                 }
             )
         return options
-    except (ImportError, Exception):
+    except ImportError, Exception:
         return []
 
 

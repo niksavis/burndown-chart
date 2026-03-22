@@ -88,7 +88,7 @@ def create_project_summary_card(
             try:
                 deadline_obj = datetime.strptime(deadline_date, "%Y-%m-%d")
                 days_to_deadline = (deadline_obj - datetime.now()).days
-            except (ValueError, TypeError):
+            except ValueError, TypeError:
                 days_to_deadline = None
         else:
             deadline_str = "Not set"

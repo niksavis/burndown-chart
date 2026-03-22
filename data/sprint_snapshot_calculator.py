@@ -272,7 +272,7 @@ def get_status_at_timestamp(
             to_status = entry.get("new_value")
             if to_status:
                 last_status = to_status
-        except (ValueError, AttributeError):
+        except ValueError, AttributeError:
             continue
 
     # If we found a status change before the timestamp, return it

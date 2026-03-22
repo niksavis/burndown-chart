@@ -263,7 +263,7 @@ class TestTooltipIntegration:
         try:
             tooltip = create_info_tooltip("none-test", None)
             # Should either work or raise appropriate exception
-        except (TypeError, ValueError):
+        except TypeError, ValueError:
             # Expected behavior for None content
             pass
 

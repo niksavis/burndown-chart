@@ -171,7 +171,7 @@ def register(app: Any) -> None:
         # Parse scope_points - may be string or float
         try:
             scope_points = float(scope_points) if scope_points else 0.0
-        except (ValueError, TypeError):
+        except ValueError, TypeError:
             scope_points = 0.0
 
         # Get show_points setting

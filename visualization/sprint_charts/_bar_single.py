@@ -256,7 +256,7 @@ def _create_simple_html_bars(
             if len(parts) > 1:
                 numeric_part = int(parts[-1])
                 return (is_completed, -numeric_part)  # Negative for descending
-        except (ValueError, AttributeError):
+        except ValueError, AttributeError:
             pass
         return (is_completed, issue_key)
 

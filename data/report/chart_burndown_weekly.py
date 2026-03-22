@@ -113,7 +113,7 @@ def generate_weekly_breakdown_chart(
                     )
                     if ewma_data_points:
                         ewma_points = round(ewma_data_points["forecast_value"], 1)
-        except (KeyError, ValueError, IndexError):
+        except KeyError, ValueError, IndexError:
             # If forecast generation fails, continue without forecasts
             pass
 
@@ -140,7 +140,7 @@ def generate_weekly_breakdown_chart(
                     time_unit="week",
                 )
                 required_points = round(raw_pts, 1) if raw_pts != float("inf") else None
-        except (ValueError, ZeroDivisionError):
+        except ValueError, ZeroDivisionError:
             pass  # Skip if date parsing fails
 
     # Extend dates to include forecast week before building datasets
