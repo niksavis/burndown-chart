@@ -77,8 +77,10 @@ def df_to_hashable(df: pd.DataFrame) -> str:
         return str(df)
 
     try:
-        # Use to_json for a stable string representation
-        return f"DataFrame:{hashlib.md5(df.to_json().encode()).hexdigest()}"
+        # Use to_json for a stable string representation.
+        # date_format='iso' avoids the Pandas4Warning about deprecated 'epoch' default.
+        json_str = df.to_json(date_format="iso").encode()
+        return f"DataFrame:{hashlib.md5(json_str).hexdigest()}"
     except Exception as e:
         logger.debug(f"Failed to hash DataFrame with to_json: {str(e)}")
         try:
