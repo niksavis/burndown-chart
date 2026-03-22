@@ -23,6 +23,8 @@ from typing import (
 )
 
 # Application imports
+import pandas as pd
+
 from utils.dataframe_utils import df_to_hashable
 
 #######################################################################
@@ -70,7 +72,7 @@ def _make_hashable(obj: Any) -> Any:
         A hashable representation of the object
     """
     # Handle pandas DataFrame specially using our utility
-    if str(type(obj)).endswith("pandas.core.frame.DataFrame'>"):
+    if isinstance(obj, pd.DataFrame):
         return df_to_hashable(obj)
 
     # Handle other unhashable types

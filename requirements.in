@@ -3,7 +3,6 @@
 # Use requirements-dev.in for development/testing/build dependencies.
 #
 # Version constraints:
-#   pandas <3 -- pandas 3.0 makes chained assignment hard errors; upgrade separately
 #   kaleido>=1.0 -- v1 is pure Python (py3-none-any), much lighter than 0.2.x
 
 # Core Dash application dependencies
@@ -13,7 +12,7 @@ plotly>=6.0.1
 kaleido>=1.0              # v1+ is pure Python wheel, no binary dependency
 
 # Data processing
-pandas>=2.3.0,<3  # 2.3.0+ ships cp314 wheels; cap <3 until CoW hard-errors are fixed
+pandas>=3.0.1
 numpy>=2.2.5
 
 # Data validation and modeling
