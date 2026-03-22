@@ -3,12 +3,11 @@
 # Use requirements-dev.in for development/testing/build dependencies.
 #
 # Version constraints:
-#   dash <4   -- Dash 4.0 is a major rewrite; upgrade requires testing
 #   pandas <3 -- pandas 3.0 makes chained assignment hard errors; upgrade separately
 #   kaleido>=1.0 -- v1 is pure Python (py3-none-any), much lighter than 0.2.x
 
 # Core Dash application dependencies
-dash[diskcache]>=3.1.1,<4
+dash[diskcache]>=4.0.0
 dash-bootstrap-components>=2.0.2
 plotly>=6.0.1
 kaleido>=1.0              # v1+ is pure Python wheel, no binary dependency
