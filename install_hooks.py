@@ -122,6 +122,11 @@ if [ ! -f "validate.py" ] || [ ! -d ".venv" ]; then
     exit 0  # Not a dev worktree (e.g. bd backup); skip.
 fi
 
+# Skip codebase quality checks for beads-backup branch
+# (task tracking exchange, not codebase).
+_current_branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "")
+case "$_current_branch" in beads-backup) exit 0 ;; esac
+
 echo "[git-hook] pre-commit: running ruff checks..."
 "$PYTHON" validate.py --commit
 exit $?
@@ -145,18 +150,21 @@ if [ ! -f "validate.py" ] || [ ! -d ".venv" ]; then
 fi
 
 # Read what is being pushed from stdin (format: <local ref> <local sha> ...).
-# Skip the quality gate for deletions and tag-only pushes.
+# Skip the quality gate for deletions, tag-only pushes, and beads-backup pushes.
 _has_code_push=0
 while IFS=' ' read -r local_ref local_sha _remote_ref _remote_sha; do
     # Deletions: local sha is all zeros.
     case "$local_sha" in 0000000000000000000000000000000000000000) continue ;; esac
     # Tag pushes: local ref starts with refs/tags/.
     case "$local_ref" in refs/tags/*) continue ;; esac
+    # Beads backup: remote ref is refs/heads/beads-backup
+    # (task tracking exchange, not codebase -- skip quality gate).
+    case "$_remote_ref" in refs/heads/beads-backup) continue ;; esac
     _has_code_push=1
     break
 done
 if [ "$_has_code_push" -eq 0 ]; then
-    exit 0  # Nothing to validate (delete or tag push).
+    exit 0  # Nothing to validate (delete, tag, or beads-backup push).
 fi
 
 echo "[git-hook] pre-push: running full quality gate..."
@@ -222,6 +230,10 @@ COMMIT_MSG_FILE="$1"
 if [ ! -d ".venv" ]; then
     exit 0
 fi
+
+# Skip for beads-backup branch commits (task tracking exchange, not codebase).
+_current_branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "")
+case "$_current_branch" in beads-backup) exit 0 ;; esac
 
 # Read the first non-comment, non-empty line of the commit message.
 FIRST_LINE=$(grep -v '^#' "$COMMIT_MSG_FILE" | grep -v '^[[:space:]]*$' | head -n1)
