@@ -1,5 +1,7 @@
 """Unit tests for Sprint Tracker UI builders."""
 
+from typing import Any, cast
+
 from ui.sprint_tracker import create_sprint_scope_changes_view
 
 
@@ -18,5 +20,6 @@ def test_scope_changes_view_renders_for_future_sprint():
 
     assert component.__class__.__name__ == "Card"
 
-    header_children = component.children[0].children
+    children = cast(list[Any], component.children)
+    header_children = children[0].children
     assert "Upcoming Sprint Scope Changes" in str(header_children)
