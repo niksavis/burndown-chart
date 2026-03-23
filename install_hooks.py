@@ -167,6 +167,11 @@ if [ "$_has_code_push" -eq 0 ]; then
     exit 0  # Nothing to validate (delete, tag, or beads-backup push).
 fi
 
+# Auto-export beads issue snapshot before pushing code so teammates see it.
+if command -v bd >/dev/null 2>&1; then
+    bd backup export-git || true
+fi
+
 echo "[git-hook] pre-push: running full quality gate..."
 "$PYTHON" validate.py
 exit $?
@@ -179,8 +184,14 @@ POST_MERGE_HOOK = f"""\
 #
 # Runs after every `git pull` (merge).  Keeps git hooks current for all
 # developers automatically whenever install_hooks.py changes in the repo.
+# Also syncs the beads issue snapshot from origin/beads-backup.
 
 {_BD_CALL_POSTMERGE}
+
+# Auto-sync beads issue snapshot after pulling so the local DB stays current.
+if command -v bd >/dev/null 2>&1; then
+    bd backup fetch-git || true
+fi
 
 {_PYTHON_DETECT}
 
