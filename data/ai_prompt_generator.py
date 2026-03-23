@@ -6,10 +6,10 @@ Follows Constitution Principle V (Data Privacy) - strips all customer PII.
 
 import json
 import logging
+from collections.abc import Sequence
 from datetime import datetime, timedelta
+from statistics import pstdev
 from typing import Any
-
-import pandas as pd
 
 from data.import_export import export_profile_with_mode, strip_credentials
 from data.query_manager import get_active_profile_id, get_active_query_id
@@ -264,46 +264,61 @@ def _aggregate_statistics(statistics: list[dict], weeks: int) -> dict[str, Any]:
     if not statistics:
         return {"error": "No statistics available"}
 
-    df = pd.DataFrame(statistics)
-    if df.empty:
-        return {"error": "Empty statistics DataFrame"}
-
-    # Handle both 'date' and 'stat_date' column names (database uses 'stat_date')
-    if "date" not in df.columns and "stat_date" not in df.columns:
-        available_columns = ", ".join(df.columns.tolist())
+    # Handle both 'date' and 'stat_date' column names (database uses 'stat_date').
+    sample_row = statistics[0]
+    if "date" in sample_row:
+        date_key = "date"
+    elif "stat_date" in sample_row:
+        date_key = "stat_date"
+    else:
+        available_columns = ", ".join(sample_row.keys())
         logger.error(
             "Statistics DataFrame missing date column. "
             f"Available columns: {available_columns}"
         )
         return {"error": f"Missing date column. Found: {available_columns}"}
 
-    # Normalize column name to 'date'
-    if "stat_date" in df.columns and "date" not in df.columns:
-        df["date"] = df["stat_date"]
+    parsed_rows: list[tuple[datetime, dict]] = []
+    for row in statistics:
+        raw_date = row.get(date_key)
+        if not raw_date:
+            continue
+        try:
+            parsed_rows.append((datetime.fromisoformat(str(raw_date)), row))
+        except ValueError:
+            continue
 
-    # Filter to requested time period
-    df["date"] = pd.to_datetime(df["date"])
-    cutoff = df["date"].max() - timedelta(weeks=weeks)
-    df_windowed = df[df["date"] > cutoff]
-
-    if df_windowed.empty:
+    if not parsed_rows:
         return {"error": "No data in requested time window"}
 
-    # Calculate aggregates (convert to native Python types for JSON serialization)
-    total_completed_items = int(df_windowed["completed_items"].sum())
-    total_created_items = int(df_windowed["created_items"].sum())
-    total_completed_points = (
-        float(df_windowed["completed_points"].sum())
-        if "completed_points" in df_windowed.columns
-        else 0.0
+    latest_date = max(date for date, _ in parsed_rows)
+    cutoff = latest_date - timedelta(weeks=weeks)
+    windowed_rows = [row for date, row in parsed_rows if date > cutoff]
+
+    if not windowed_rows:
+        return {"error": "No data in requested time window"}
+
+    completed_items = [int(row.get("completed_items", 0) or 0) for row in windowed_rows]
+    created_items = [int(row.get("created_items", 0) or 0) for row in windowed_rows]
+    completed_points = [
+        float(row.get("completed_points", 0) or 0) for row in windowed_rows
+    ]
+
+    total_completed_items = sum(completed_items)
+    total_created_items = sum(created_items)
+    total_completed_points = sum(completed_points)
+    avg_completed_items = total_completed_items / len(completed_items)
+    avg_completed_points = total_completed_points / len(completed_points)
+    velocity_cov = (
+        (pstdev(completed_items) / avg_completed_items * 100)
+        if avg_completed_items > 0
+        else 0
     )
 
     return {
-        "weeks_analyzed": len(df_windowed),
-        "avg_velocity_items": round(df_windowed["completed_items"].mean(), 1),
-        "avg_velocity_points": round(
-            df_windowed.get("completed_points", pd.Series([0])).mean(), 1
-        ),
+        "weeks_analyzed": len(windowed_rows),
+        "avg_velocity_items": round(avg_completed_items, 1),
+        "avg_velocity_points": round(avg_completed_points, 1),
         "total_completed_items": total_completed_items,
         "total_completed_points": round(total_completed_points, 1),
         "total_created_items": total_created_items,
@@ -313,21 +328,12 @@ def _aggregate_statistics(statistics: list[dict], weeks: int) -> dict[str, Any]:
             else 0,
             1,
         ),
-        "velocity_trend": _calculate_trend(df_windowed["completed_items"]),
-        "velocity_coefficient_of_variation": round(
-            (
-                df_windowed["completed_items"].std()
-                / df_windowed["completed_items"].mean()
-                * 100
-            )
-            if df_windowed["completed_items"].mean() > 0
-            else 0,
-            1,
-        ),
+        "velocity_trend": _calculate_trend(completed_items),
+        "velocity_coefficient_of_variation": round(velocity_cov, 1),
     }
 
 
-def _calculate_trend(series: pd.Series) -> str:
+def _calculate_trend(series: Sequence[int | float]) -> str:
     """
     Calculate trend direction (improving/stable/declining).
 
@@ -337,11 +343,15 @@ def _calculate_trend(series: pd.Series) -> str:
     Returns:
         "improving" | "stable" | "declining" | "insufficient_data"
     """
-    if len(series) < 4:
+    values = [float(value) for value in series]
+    if len(values) < 4:
         return "insufficient_data"
 
-    first_half_mean = series.iloc[: len(series) // 2].mean()
-    second_half_mean = series.iloc[len(series) // 2 :].mean()
+    midpoint = len(values) // 2
+    first_half = values[:midpoint]
+    second_half = values[midpoint:]
+    first_half_mean = sum(first_half) / len(first_half)
+    second_half_mean = sum(second_half) / len(second_half)
 
     if first_half_mean == 0:
         return "insufficient_data"

@@ -28,6 +28,7 @@ Data Isolation:
 import logging
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import Any, cast
 
 from data.database import get_db_connection
 from data.persistence.factory import get_backend
@@ -133,6 +134,36 @@ def switch_query(query_id: str) -> None:
     active_profile_id = backend.get_app_state("active_profile_id")
     if not active_profile_id:
         raise ValueError("active_profile_id not found in app state")
+
+    if hasattr(backend, "db_path"):
+        db_path = Path(str(cast(Any, backend).db_path))
+        with get_db_connection(db_path) as conn:
+            cursor = conn.cursor()
+
+            cursor.execute(
+                "SELECT 1 FROM queries WHERE profile_id = ? AND id = ?",
+                (active_profile_id, query_id),
+            )
+            if not cursor.fetchone():
+                cursor.execute(
+                    "SELECT id FROM queries "
+                    "WHERE profile_id = ? ORDER BY last_used DESC",
+                    (active_profile_id,),
+                )
+                available_ids = [row["id"] for row in cursor.fetchall()]
+                raise ValueError(
+                    f"Query '{query_id}' not found in profile '{active_profile_id}'. "
+                    f"Available queries: {available_ids}"
+                )
+
+            cursor.execute(
+                "INSERT OR REPLACE INTO app_state (key, value) VALUES (?, ?)",
+                ("active_query_id", query_id),
+            )
+            conn.commit()
+
+        logger.info(f"Switched to query '{query_id}' in profile '{active_profile_id}'")
+        return
 
     # Validate query exists
     query = backend.get_query(active_profile_id, query_id)
