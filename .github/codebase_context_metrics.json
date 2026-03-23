@@ -1,47 +1,52 @@
 {
-  "last_updated": "2026-02-27",
+  "last_updated": "2026-03-23",
   "recommended_strategy": "strict-chunking",
   "metrics": {
     "total": {
-      "files": 703,
-      "lines": 226316,
-      "chars": 8075572,
-      "tokens": 1917788
+      "files": 861,
+      "lines": 234341,
+      "chars": 8272244,
+      "tokens": 2061975
     },
     "code": {
-      "files": 454,
-      "lines": 161486,
-      "chars": 5813731,
-      "tokens": 1380645
+      "files": 598,
+      "lines": 166203,
+      "chars": 5892224,
+      "tokens": 1468721
     },
     "docs": {
-      "files": 100,
-      "lines": 21660,
-      "chars": 693295,
-      "tokens": 164643
+      "files": 104,
+      "lines": 23296,
+      "chars": 747980,
+      "tokens": 186444
     },
     "tests": {
-      "files": 149,
-      "lines": 43170,
-      "chars": 1568546,
-      "tokens": 372498
+      "files": 159,
+      "lines": 44842,
+      "chars": 1632040,
+      "tokens": 406809
     },
     "python": {
-      "files": 371,
-      "lines": 148927,
-      "chars": 5475280,
-      "tokens": 1300270
+      "files": 510,
+      "lines": 153348,
+      "chars": 5547680,
+      "tokens": 1382838
     },
     "frontend": {
-      "files": 83,
-      "lines": 12559,
-      "chars": 338451,
-      "tokens": 80375
+      "files": 88,
+      "lines": 12855,
+      "chars": 344544,
+      "tokens": 85882
     }
   },
   "guidance": {
     "max_lines_per_read": 500,
     "use_semantic_search": true,
-    "focus_folders": ["data", "ui", "callbacks", "visualization"]
+    "focus_folders": [
+      "data",
+      "ui",
+      "callbacks",
+      "visualization"
+    ]
   }
 }
