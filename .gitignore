@@ -297,3 +297,6 @@ playwright-screenshots/
 
 # Beads migration safety backup (created during bd migration, not versioned)
 issues.jsonl.bak
+
+# Beads / Dolt files (added by bd init)
+.beads-credential-key

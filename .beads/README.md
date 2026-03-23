@@ -27,12 +27,19 @@ Verify: `bd --version`
 ```powershell
 git clone https://github.com/niksavis/burndown-chart.git
 cd burndown-chart
-bd bootstrap          # sets up the local Dolt database
+bd bootstrap          # initialises the local Dolt database
+bd migrate            # applies any pending schema migrations (run this after every bd upgrade)
 bd backup fetch-git   # pulls the latest JSONL snapshot from origin/beads-backup and restores it
 bd status             # confirm issues are loaded
 ```
 
 That is all. Your local beads database is now in sync with the team.
+
+> **Troubleshooting: `fetch-git` restores 0 issues with "unknown column" warnings**
+>
+> The backup was created by a machine whose Dolt schema is newer than the local one.
+> Fix: run `bd migrate` to bring the schema up to date, then retry `bd backup fetch-git`.
+> If issues persist, run `bd doctor --fix` to repair hooks and gitignore, then retry.
 
 ---
 
