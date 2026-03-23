@@ -10,7 +10,7 @@
     "UserPromptSubmit": [
       {
         "type": "command",
-        "command": "pwsh -NoProfile -Command \"Write-Host '[governance-strict] enforce: keep layering boundaries, no secrets/customer data, and no emoji in code/logging/comments.'\"",
+        "command": "pwsh -NoProfile -Command \"Write-Host '[governance-strict] enforce: keep layering boundaries, no secrets/customer data, no emoji in code/logging/comments, and Python-first cross-platform automation.'\"",
         "timeout": 5
       }
     ],

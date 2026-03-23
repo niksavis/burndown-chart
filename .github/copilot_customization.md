@@ -46,6 +46,7 @@ Apply artifacts in this order:
 - `.github/instructions/configuration-changes.instructions.md`
 - `.github/instructions/review-gate.instructions.md`
 - `.github/instructions/review.instructions.md`
+- `.github/instructions/authoring.instructions.md`
 
 ## Agent Discoverability Artifacts
 

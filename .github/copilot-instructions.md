@@ -24,6 +24,13 @@ When guidance conflicts, higher-precedence artifacts win.
 
 - Index and usage map: `.github/copilot_customization.md`
 
+## Discoverability (Required)
+
+- All agents, skills, and instructions must be discoverable in both:
+  - `.github/copilot_customization.md`
+  - `.github/copilot_capability_map.md`
+- Any add/remove/rename of customization artifacts must update both discoverability files in the same change.
+
 ## Context Metrics Source
 
 - Machine-readable: `.github/codebase_context_metrics.json`
@@ -166,6 +173,9 @@ When implementation reveals recurring or novel specialized task patterns, evolve
 ## Terminal Behavior (Critical)
 
 - Each terminal run is a new shell; activation does not persist.
+- Never queue a follow-up terminal command while a previous command is still running.
+- Never send readiness probe commands (for example `echo`, `Write-Output`, `pwd`) while a long-running command is active.
+- Never use `python -c "..."` inline snippets in PowerShell for complex quoting scenarios; write temporary `.py` files instead.
 - **`git push` MUST run as a background process** (`isBackground=true`) — the pre-push hook
   runs the full validate.py suite including pytest (~2-3 min). Running any other terminal
   command before push completes sends KeyboardInterrupt to pytest, corrupting the run.
