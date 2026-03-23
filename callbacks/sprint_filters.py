@@ -17,10 +17,14 @@ from data.sprint_manager import (
     filter_sprint_issues,
     get_active_sprint_from_issues,
     get_sprint_dates,
+    get_sprint_scope_change_issues,
     get_sprint_snapshots,
 )
 from ui.empty_states import create_no_sprints_state
-from ui.sprint_tracker import create_sprint_summary_cards
+from ui.sprint_tracker import (
+    create_sprint_scope_changes_view,
+    create_sprint_summary_cards,
+)
 from visualization.sprint_charts import (
     create_sprint_progress_bars,
     create_sprint_summary_card,
@@ -180,8 +184,20 @@ def filter_sprint_by_issue_type(
             sprint_data, flow_end_statuses, flow_wip_statuses
         )
 
+        sprint_dates = get_sprint_dates(
+            selected_sprint_id, filtered_issues, sprint_field
+        )
+        sprint_start_date = sprint_dates.get("start_date") if sprint_dates else None
+        sprint_end_date = sprint_dates.get("end_date") if sprint_dates else None
+        sprint_state = sprint_dates.get("state") if sprint_dates else None
+
         # Calculate sprint scope changes
-        scope_changes = calculate_sprint_scope_changes(sprint_data, None)
+        scope_changes = calculate_sprint_scope_changes(sprint_data, sprint_start_date)
+        scope_change_issues = get_sprint_scope_change_issues(
+            sprint_data,
+            sprint_start_date=sprint_start_date,
+            sprint_end_date=sprint_end_date,
+        )
 
         # Extract sprint_changes with issue lists
         # for progress bars
@@ -200,22 +216,23 @@ def filter_sprint_by_issue_type(
 
         # Create UI components
         summary_cards = create_sprint_summary_cards(
-            selected_sprint_id, summary_card_data, show_points
+            selected_sprint_id,
+            summary_card_data,
+            show_points,
+            scope_change_summary={
+                "added_after_start": scope_changes.get("added", 0),
+                "removed_after_start": scope_changes.get("removed", 0),
+            },
+            sprint_state=sprint_state,
+        )
+        scope_changes_view = create_sprint_scope_changes_view(
+            scope_change_issues, sprint_state=sprint_state
         )
 
         # Load status changelog for timeline
         status_changelog = backend.get_changelog_entries(
             active_profile_id, active_query_id, field_name="status"
         )
-
-        # Get sprint dates for the selected sprint
-
-        sprint_dates = get_sprint_dates(
-            selected_sprint_id, filtered_issues, sprint_field
-        )
-        sprint_start_date = sprint_dates.get("start_date") if sprint_dates else None
-        sprint_end_date = sprint_dates.get("end_date") if sprint_dates else None
-        sprint_state = sprint_dates.get("state") if sprint_dates else None
 
         # Create visualizations
         progress_bars = create_sprint_progress_bars(
@@ -236,6 +253,7 @@ def filter_sprint_by_issue_type(
         return html.Div(
             [
                 summary_cards,
+                scope_changes_view,
                 html.H5("Issue Progress", className="mt-4 mb-3"),
                 progress_bars,
             ]

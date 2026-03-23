@@ -26,7 +26,11 @@ def create_sprint_tracker_tab() -> html.Div:
 
 
 def create_sprint_summary_cards(
-    sprint_name: str, summary_data: dict, show_points: bool = False
+    sprint_name: str,
+    summary_data: dict,
+    show_points: bool = False,
+    scope_change_summary: dict | None = None,
+    sprint_state: str | None = None,
 ) -> html.Div:
     """Create sprint summary metric cards.
 
@@ -34,6 +38,8 @@ def create_sprint_summary_cards(
         sprint_name: Name of the sprint
         summary_data: Summary metrics from sprint_manager.create_sprint_summary_card()
         show_points: Whether to show story points metrics
+        scope_change_summary: Optional scope summary with added/removed counts
+        sprint_state: Sprint state (ACTIVE/CLOSED/FUTURE)
 
     Returns:
         Row of metric cards showing sprint progress
@@ -279,10 +285,158 @@ def create_sprint_summary_cards(
             ]
         )
 
+    if scope_change_summary:
+        added_after_start = scope_change_summary.get("added_after_start", 0)
+        removed_after_start = scope_change_summary.get("removed_after_start", 0)
+
+        cards.extend(
+            [
+                dbc.Col(
+                    [
+                        html.Div(
+                            [
+                                html.Div(
+                                    [
+                                        html.I(
+                                            className=(
+                                                "fas fa-arrow-up-right-dots "
+                                                "fa-2x text-success"
+                                            ),
+                                        ),
+                                    ],
+                                    className="mb-2",
+                                ),
+                                html.H2(
+                                    str(added_after_start),
+                                    className="mb-1 text-success",
+                                ),
+                                html.P(
+                                    "Added After Start",
+                                    className="text-muted mb-0 small",
+                                ),
+                            ],
+                            className="text-center p-3 rounded h-100",
+                            style={"backgroundColor": "rgba(40, 167, 69, 0.1)"},
+                        )
+                    ],
+                    xs=12,
+                    md=3,
+                    className="mb-3",
+                ),
+                dbc.Col(
+                    [
+                        html.Div(
+                            [
+                                html.Div(
+                                    [
+                                        html.I(
+                                            className=(
+                                                "fas fa-arrow-down-short-wide "
+                                                "fa-2x text-danger"
+                                            ),
+                                        ),
+                                    ],
+                                    className="mb-2",
+                                ),
+                                html.H2(
+                                    str(removed_after_start),
+                                    className="mb-1 text-danger",
+                                ),
+                                html.P(
+                                    "Removed After Start",
+                                    className="text-muted mb-0 small",
+                                ),
+                            ],
+                            className="text-center p-3 rounded h-100",
+                            style={"backgroundColor": "rgba(220, 53, 69, 0.1)"},
+                        )
+                    ],
+                    xs=12,
+                    md=3,
+                    className="mb-3",
+                ),
+            ]
+        )
+
+    header_suffix = ""
+    if sprint_state == "CLOSED":
+        header_suffix = " [Closed Snapshot]"
+    elif sprint_state == "ACTIVE":
+        header_suffix = " [Current Snapshot]"
+
     return html.Div(
         [
-            html.H5(f"Sprint: {sprint_name}", className="mb-3"),
+            html.H5(f"Sprint: {sprint_name}{header_suffix}", className="mb-3"),
             dbc.Row(cards, className="g-3"),
+        ],
+        className="mb-4",
+    )
+
+
+def create_sprint_scope_changes_view(
+    scope_change_issues: dict[str, list[str]],
+    sprint_state: str | None = None,
+) -> html.Div | dbc.Card:
+    """Create a closed-sprint scope changes section with added/removed issue lists.
+
+    Args:
+        scope_change_issues: Dict with issue key lists for added and removed
+        sprint_state: Sprint state (ACTIVE/CLOSED/FUTURE)
+
+    Returns:
+        Scope changes section, or empty div when not applicable
+    """
+    if sprint_state != "CLOSED":
+        return html.Div()
+
+    added_issues = scope_change_issues.get("added", [])
+    removed_issues = scope_change_issues.get("removed", [])
+
+    if not added_issues and not removed_issues:
+        return html.Div()
+
+    def _issue_list(items: list[str], empty_text: str) -> html.Ul | html.Div:
+        if not items:
+            return html.Div(empty_text, className="text-muted small")
+        return html.Ul([html.Li(item) for item in items], className="mb-0")
+
+    return dbc.Card(
+        [
+            dbc.CardHeader(
+                [
+                    html.I(className="fas fa-shuffle me-2"),
+                    html.Strong("Scope Changes During Sprint"),
+                ]
+            ),
+            dbc.CardBody(
+                dbc.Row(
+                    [
+                        dbc.Col(
+                            [
+                                html.H6("Added After Start", className="text-success"),
+                                _issue_list(
+                                    added_issues,
+                                    "No issues were added after sprint start.",
+                                ),
+                            ],
+                            xs=12,
+                            md=6,
+                        ),
+                        dbc.Col(
+                            [
+                                html.H6("Removed After Start", className="text-danger"),
+                                _issue_list(
+                                    removed_issues,
+                                    "No issues were removed after sprint start.",
+                                ),
+                            ],
+                            xs=12,
+                            md=6,
+                        ),
+                    ],
+                    className="g-3",
+                )
+            ),
         ],
         className="mb-4",
     )

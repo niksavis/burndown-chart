@@ -203,6 +203,8 @@ def get_sprint_snapshots(
     # Track sprint events and current state
     sprint_snapshots: dict[str, dict] = {}
     issue_current_sprint = {}  # issue_key -> current sprint_id
+    changelog_processed_pairs: set[tuple[str, str]] = set()
+    issues_with_sprint_changelog: set[str] = set()
 
     def _get_or_create_snapshot(sprint_id: str) -> dict:
         """Helper to create sprint snapshot structure if not exists."""
@@ -225,8 +227,9 @@ def get_sprint_snapshots(
         new_value = entry.get("new_value")
         timestamp = entry.get("change_date")
 
-        if not issue_key or not timestamp:
+        if not isinstance(issue_key, str) or not issue_key or not timestamp:
             continue
+        issues_with_sprint_changelog.add(issue_key)
 
         # CRITICAL: Only process changelog entries for issues in the filtered list
         # This ensures issue type filtering works correctly
@@ -248,6 +251,7 @@ def get_sprint_snapshots(
             )
             snapshot["current_issues"].add(issue_key)
             issue_current_sprint[issue_key] = new_sprint
+            changelog_processed_pairs.add((issue_key, new_sprint))
 
         # Case 2: Issue removed from sprint (Sprint X -> null)
         elif old_sprint and not new_sprint:
@@ -257,6 +261,7 @@ def get_sprint_snapshots(
             )
             snapshot["current_issues"].discard(issue_key)
             issue_current_sprint[issue_key] = None
+            changelog_processed_pairs.add((issue_key, old_sprint))
 
         # Case 3: Issue moved between sprints (Sprint X -> Sprint Y)
         elif old_sprint and new_sprint and old_sprint != new_sprint:
@@ -265,12 +270,14 @@ def get_sprint_snapshots(
                 {"issue_key": issue_key, "timestamp": timestamp}
             )
             old_snapshot["current_issues"].discard(issue_key)
+            changelog_processed_pairs.add((issue_key, old_sprint))
 
             new_snapshot = _get_or_create_snapshot(new_sprint)
             new_snapshot["added_issues"].append(
                 {"issue_key": issue_key, "timestamp": timestamp}
             )
             new_snapshot["current_issues"].add(issue_key)
+            changelog_processed_pairs.add((issue_key, new_sprint))
 
             issue_current_sprint[issue_key] = new_sprint
 
@@ -281,7 +288,11 @@ def get_sprint_snapshots(
     added_count = 0
     for issue in issues:
         issue_key = issue.get("issue_key")
-        if not issue_key:
+        if not isinstance(issue_key, str) or not issue_key:
+            continue
+
+        # Trust changelog-derived membership whenever available for this issue.
+        if issue_key in issues_with_sprint_changelog:
             continue
 
         # Get current sprint value from issue
@@ -291,24 +302,20 @@ def get_sprint_snapshots(
         if not sprint_value:
             continue
 
-        # Parse sprint name from field value
-        sprint_list = sprint_value if isinstance(sprint_value, list) else [sprint_value]
-        for sprint_obj in sprint_list:
-            sprint_name = _parse_sprint_name(sprint_obj)
-            if not sprint_name:
+        inferred_current_sprints = _infer_current_sprints_from_field(sprint_value)
+        for sprint_name in inferred_current_sprints:
+            if (issue_key, sprint_name) in changelog_processed_pairs:
                 continue
 
-            # Check if issue is already tracked in this sprint
-            if issue_current_sprint.get(issue_key) != sprint_name:
-                # Issue is in sprint but not in snapshot - add it
-                logger.info(
-                    f"Adding issue {issue_key} to {sprint_name} (no changelog entry)"
-                )
-                snapshot = _get_or_create_snapshot(sprint_name)
-                if issue_key not in snapshot["current_issues"]:
-                    snapshot["current_issues"].add(issue_key)
-                    issue_current_sprint[issue_key] = sprint_name
-                    added_count += 1
+            logger.info(
+                f"Adding issue {issue_key} to {sprint_name} (no changelog entry)"
+            )
+            snapshot = _get_or_create_snapshot(sprint_name)
+            if issue_key not in snapshot["current_issues"]:
+                snapshot["current_issues"].add(issue_key)
+                changelog_processed_pairs.add((issue_key, sprint_name))
+                issue_current_sprint[issue_key] = sprint_name
+                added_count += 1
 
     logger.info(f"Added {added_count} issues with no changelog to sprint snapshots")
 
@@ -410,6 +417,56 @@ def _parse_sprint_name(sprint_value: str | None) -> str | None:
 
     # Fallback: return as-is if simple string
     return sprint_value.strip()
+
+
+def _infer_current_sprints_from_field(sprint_value: str | list[str]) -> list[str]:
+    """Infer current sprint membership from issue sprint field value.
+
+    This is a no-changelog fallback only. Prefer ACTIVE/FUTURE sprint objects,
+    otherwise fall back to the last sprint token from the field value.
+
+    Args:
+        sprint_value: Sprint field raw value (string or list of strings)
+
+    Returns:
+        List of inferred current sprint names (deduplicated, preserve order)
+    """
+
+    sprint_tokens = sprint_value if isinstance(sprint_value, list) else [sprint_value]
+
+    parsed_objects: list[dict] = []
+    fallback_names: list[str] = []
+
+    for token in sprint_tokens:
+        if not isinstance(token, str) or not token:
+            continue
+
+        parsed = _parse_sprint_object(token)
+        if parsed and parsed.get("name"):
+            parsed_objects.append(parsed)
+            continue
+
+        parsed_name = _parse_sprint_name(token)
+        if parsed_name:
+            fallback_names.append(parsed_name)
+
+    preferred_names = [
+        obj["name"]
+        for obj in parsed_objects
+        if obj.get("state") in {"ACTIVE", "FUTURE"}
+    ]
+
+    if preferred_names:
+        return list(dict.fromkeys(preferred_names))
+
+    if parsed_objects:
+        # JIRA field ordering is historical; last object is newest known sprint.
+        return [parsed_objects[-1]["name"]]
+
+    if fallback_names:
+        return [fallback_names[-1]]
+
+    return []
 
 
 def _parse_sprint_object(sprint_value: str) -> dict | None:
@@ -590,6 +647,74 @@ def calculate_sprint_scope_changes(
         "added": added_count,
         "removed": removed_count,
         "net_change": added_count - removed_count,
+    }
+
+
+def get_sprint_scope_change_issues(
+    sprint_snapshot: dict,
+    sprint_start_date: str | None = None,
+    sprint_end_date: str | None = None,
+) -> dict[str, list[str]]:
+    """Get unique issue keys added/removed within a sprint time window.
+
+    Args:
+        sprint_snapshot: Sprint snapshot from get_sprint_snapshots()
+        sprint_start_date: Optional sprint start date. If provided, only events
+            strictly after the start date are included.
+        sprint_end_date: Optional sprint end date. If provided, only events up to
+            and including this date are included.
+
+    Returns:
+        Dict with sorted unique issue key lists:
+        {
+            "added": ["PROJ-1", "PROJ-2"],
+            "removed": ["PROJ-3"]
+        }
+    """
+
+    start_dt = None
+    end_dt = None
+
+    if sprint_start_date:
+        try:
+            start_dt = date_parser.parse(sprint_start_date)
+        except Exception as error:
+            logger.warning(
+                f"Failed to parse sprint start date for scope issues: {error}"
+            )
+
+    if sprint_end_date:
+        try:
+            end_dt = date_parser.parse(sprint_end_date)
+        except Exception as error:
+            logger.warning(f"Failed to parse sprint end date for scope issues: {error}")
+
+    def _in_window(timestamp: str) -> bool:
+        try:
+            event_dt = date_parser.parse(timestamp)
+        except Exception:
+            return False
+
+        if start_dt and event_dt <= start_dt:
+            return False
+        if end_dt and event_dt > end_dt:
+            return False
+        return True
+
+    added_keys = {
+        item.get("issue_key")
+        for item in sprint_snapshot.get("added_issues", [])
+        if item.get("issue_key") and _in_window(item.get("timestamp", ""))
+    }
+    removed_keys = {
+        item.get("issue_key")
+        for item in sprint_snapshot.get("removed_issues", [])
+        if item.get("issue_key") and _in_window(item.get("timestamp", ""))
+    }
+
+    return {
+        "added": sorted(added_keys),
+        "removed": sorted(removed_keys),
     }
 
 

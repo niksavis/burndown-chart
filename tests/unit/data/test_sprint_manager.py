@@ -10,6 +10,7 @@ from data.sprint_manager import (
     detect_sprint_changes,
     filter_sprint_issues,
     get_sprint_field_from_config,
+    get_sprint_scope_change_issues,
     get_sprint_snapshots,
 )
 
@@ -198,6 +199,88 @@ class TestGetSprintSnapshots:
         assert len(snapshots["Sprint 23"]["added_issues"]) == 1
         assert "PROJ-1" in snapshots["Sprint 23"]["current_issues"]
 
+    def test_get_sprint_snapshots_removed_issue_not_readded_from_field_history(self):
+        """Removed issue must not be re-added from historical sprint field values."""
+        issues = [
+            {
+                "issue_key": "PROJ-1",
+                "status": "Done",
+                "issue_type": "Story",
+                "summary": "Test Story",
+                "custom_fields": {
+                    "customfield_10020": [
+                        SPRINT_23_SERIALIZED,
+                        SPRINT_42_SERIALIZED,
+                    ]
+                },
+            }
+        ]
+
+        changelog_entries = [
+            {
+                "issue_key": "PROJ-1",
+                "change_date": "2025-01-10T10:00:00Z",
+                "field_name": "sprint",
+                "old_value": None,
+                "new_value": SPRINT_23_SERIALIZED,
+            },
+            {
+                "issue_key": "PROJ-1",
+                "change_date": "2025-01-15T10:00:00Z",
+                "field_name": "sprint",
+                "old_value": SPRINT_23_SERIALIZED,
+                "new_value": SPRINT_42_SERIALIZED,
+            },
+        ]
+
+        snapshots = get_sprint_snapshots(
+            issues, changelog_entries, sprint_field="customfield_10020"
+        )
+
+        assert "PROJ-1" not in snapshots["Sprint 23"]["current_issues"]
+        assert "PROJ-1" in snapshots["Sprint 42"]["current_issues"]
+
+    def test_get_sprint_snapshots_moved_issue_not_readded_to_old_sprint(self):
+        """Moved issue must stay out of old sprint current list."""
+        issues = [
+            {
+                "issue_key": "PROJ-1",
+                "status": "Done",
+                "issue_type": "Story",
+                "summary": "Test Story",
+                "custom_fields": {
+                    "customfield_10020": [
+                        SPRINT_22_SERIALIZED,
+                        SPRINT_23_SERIALIZED,
+                    ]
+                },
+            }
+        ]
+
+        changelog_entries = [
+            {
+                "issue_key": "PROJ-1",
+                "change_date": "2025-01-10T10:00:00Z",
+                "field_name": "sprint",
+                "old_value": None,
+                "new_value": SPRINT_22_SERIALIZED,
+            },
+            {
+                "issue_key": "PROJ-1",
+                "change_date": "2025-01-15T10:00:00Z",
+                "field_name": "sprint",
+                "old_value": SPRINT_22_SERIALIZED,
+                "new_value": SPRINT_23_SERIALIZED,
+            },
+        ]
+
+        snapshots = get_sprint_snapshots(
+            issues, changelog_entries, sprint_field="customfield_10020"
+        )
+
+        assert "PROJ-1" not in snapshots["Sprint 22"]["current_issues"]
+        assert "PROJ-1" in snapshots["Sprint 23"]["current_issues"]
+
     def test_get_sprint_snapshots_empty_changelog(self):
         """Test with empty changelog entries."""
         issues = [
@@ -214,6 +297,31 @@ class TestGetSprintSnapshots:
 
         # Should return empty dict
         assert len(snapshots) == 0
+
+    def test_get_sprint_snapshots_no_changelog_uses_latest_sprint_only(self):
+        """No-changelog fallback should infer only current/latest sprint."""
+        issues = [
+            {
+                "issue_key": "PROJ-1",
+                "status": "To Do",
+                "issue_type": "Story",
+                "summary": "Test Story",
+                "custom_fields": {
+                    "customfield_10020": [
+                        SPRINT_22_SERIALIZED,
+                        SPRINT_23_ACTIVE_SERIALIZED,
+                    ]
+                },
+            }
+        ]
+
+        snapshots = get_sprint_snapshots(
+            issues, changelog_entries=[], sprint_field="customfield_10020"
+        )
+
+        assert "Sprint 23" in snapshots
+        assert "PROJ-1" in snapshots["Sprint 23"]["current_issues"]
+        assert "Sprint 22" not in snapshots
 
 
 class TestDetectSprintChanges:
@@ -378,6 +486,49 @@ class TestCalculateSprintProgress:
         assert progress["completion_percentage"] == 0.0
         assert progress["completion_pct"] == 0.0
         assert progress["total_points"] == 0.0
+
+
+class TestGetSprintScopeChangeIssues:
+    """Test suite for get_sprint_scope_change_issues function."""
+
+    def test_get_sprint_scope_change_issues_with_window(self):
+        """Only include changes after start and before end."""
+        sprint_snapshot = {
+            "added_issues": [
+                {"issue_key": "PROJ-1", "timestamp": "2025-01-10T09:00:00Z"},
+                {"issue_key": "PROJ-2", "timestamp": "2025-01-12T10:00:00Z"},
+            ],
+            "removed_issues": [
+                {"issue_key": "PROJ-3", "timestamp": "2025-01-11T11:00:00Z"},
+                {"issue_key": "PROJ-4", "timestamp": "2025-01-20T11:00:00Z"},
+            ],
+        }
+
+        result = get_sprint_scope_change_issues(
+            sprint_snapshot,
+            sprint_start_date="2025-01-11T00:00:00Z",
+            sprint_end_date="2025-01-15T00:00:00Z",
+        )
+
+        assert result["added"] == ["PROJ-2"]
+        assert result["removed"] == ["PROJ-3"]
+
+    def test_get_sprint_scope_change_issues_without_window(self):
+        """Include all unique issue keys when no date window is provided."""
+        sprint_snapshot = {
+            "added_issues": [
+                {"issue_key": "PROJ-1", "timestamp": "2025-01-10T09:00:00Z"},
+                {"issue_key": "PROJ-1", "timestamp": "2025-01-12T10:00:00Z"},
+            ],
+            "removed_issues": [
+                {"issue_key": "PROJ-2", "timestamp": "2025-01-11T11:00:00Z"},
+            ],
+        }
+
+        result = get_sprint_scope_change_issues(sprint_snapshot)
+
+        assert result["added"] == ["PROJ-1"]
+        assert result["removed"] == ["PROJ-2"]
 
 
 class TestFilterSprintIssues:

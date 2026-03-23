@@ -49,7 +49,6 @@ def create_profile_dropdown(id_suffix: str = "") -> dbc.Col:
             dcc.Store(id="profile-switch-trigger", data=0),
             html.Label(
                 "Profile",
-                htmlFor=f"profile-selector{id_suffix}",
                 className="form-label fw-bold mb-1",
             ),
             dcc.Dropdown(
