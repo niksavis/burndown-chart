@@ -66,6 +66,7 @@ Apply artifacts in this order:
 - `.github/skills/refactor/SKILL.md`
 - `.github/skills/circular-import-safety/SKILL.md` (detect, diagnose, and safely resolve circular Python import cycles)
 - `.github/skills/cli-search-tools/SKILL.md` (repo-agnostic; rg, fd, jq, yq patterns for code exploration and structured data querying)
+- `.github/skills/beads-schema-repair/SKILL.md` (diagnose and repair Dolt schema mismatches that prevent issue restoration after `bd backup fetch-git`)
 - `.github/skills/make-skill-template/SKILL.md` (`disable-model-invocation: true` — invoke explicitly to scaffold new skills)
 
 ## Prompts
