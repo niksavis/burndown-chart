@@ -329,7 +329,8 @@ def create_sprint_scope_changes_view(
                                 html.H6(
                                     [
                                         html.I(
-                                            className="fas fa-circle-plus text-success me-1"
+                                            className="fas fa-circle-plus "
+                                            "text-success me-1"
                                         ),
                                         f"Added After Start ({len(added_issues)})",
                                     ],
@@ -338,7 +339,9 @@ def create_sprint_scope_changes_view(
                                 _scope_list(
                                     added_issues,
                                     is_added=True,
-                                    empty_text="No issues were added after sprint start.",
+                                    empty_text=(
+                                        "No issues were added after sprint start."
+                                    ),
                                 ),
                             ],
                             xs=12,
@@ -349,7 +352,8 @@ def create_sprint_scope_changes_view(
                                 html.H6(
                                     [
                                         html.I(
-                                            className="fas fa-circle-minus text-danger me-1"
+                                            className="fas fa-circle-minus "
+                                            "text-danger me-1"
                                         ),
                                         f"Removed After Start ({len(removed_issues)})",
                                     ],
@@ -358,7 +362,9 @@ def create_sprint_scope_changes_view(
                                 _scope_list(
                                     removed_issues,
                                     is_added=False,
-                                    empty_text="No issues were removed after sprint start.",
+                                    empty_text=(
+                                        "No issues were removed after sprint start."
+                                    ),
                                 ),
                             ],
                             xs=12,
