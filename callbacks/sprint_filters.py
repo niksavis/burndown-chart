@@ -8,21 +8,17 @@ import logging
 import dash_bootstrap_components as dbc
 from dash import Input, Output, State, callback, html, no_update
 
-from data.issue_filtering import filter_issues_for_metrics
-from data.persistence import load_app_settings
 from data.persistence.factory import get_backend
 from data.sprint_manager import (
-    build_issue_state_lookup,
     calculate_sprint_progress,
     calculate_sprint_scope_change_points,
     calculate_sprint_scope_changes,
-    filter_sprint_issues,
-    get_active_sprint_from_issues,
     get_sprint_dates,
     get_sprint_scope_change_issues,
-    get_sprint_snapshots,
     reconcile_active_sprint_membership,
+    select_preferred_sprint,
 )
+from data.sprint_tracker_data import load_sprint_tracker_dataset
 from ui.empty_states import create_no_sprints_state
 from ui.sprint_tracker import (
     create_sprint_scope_changes_view,
@@ -69,73 +65,44 @@ def filter_sprint_by_issue_type(
         if not active_profile_id or not active_query_id:
             return create_no_sprints_state()
 
-        # Load issues and changelog
-        all_issues = backend.get_issues(active_profile_id, active_query_id)
-        if not all_issues:
-            return create_no_sprints_state()
-
-        # Filter to configured development-project issues
-        # (exclude parents/parent types)
-        settings = load_app_settings()
-
-        all_issues = filter_issues_for_metrics(
-            all_issues, settings=settings, log_prefix="SPRINT FILTERS"
+        dataset = load_sprint_tracker_dataset(
+            active_profile_id,
+            active_query_id,
+            issue_type_filter=issue_type_filter,
         )
 
-        # Filter to tracked issue types (Story/Task/Bug only)
-        if issue_type_filter == "all":
-            tracked_types = ["Story", "Task", "Bug"]
-        else:
-            tracked_types = [issue_type_filter]
-
-        filtered_issues = filter_sprint_issues(
-            all_issues, tracked_issue_types=tracked_types
-        )
-        all_issue_states = build_issue_state_lookup(filtered_issues)
+        filtered_issues = dataset["tracked_issues"]
+        all_issue_states = dataset["all_issue_states"]
+        settings = dataset["settings"]
+        sprint_field = dataset["sprint_field"]
+        sprint_snapshots = dataset["sprint_snapshots"]
+        status_changelog = dataset["status_changelog"]
 
         if not filtered_issues:
-            return html.Div(
-                [
-                    dbc.Alert(
-                        [
-                            html.I(className="fas fa-filter fa-2x mb-3"),
-                            html.H5(f"No {issue_type_filter} Issues Found"),
-                            html.P(
-                                f"No issues of type '{issue_type_filter}' "
-                                "in current sprint. "
-                                "Try selecting 'All' or a different issue type."
-                            ),
-                        ],
-                        color="info",
-                        className="text-center p-5",
-                    )
-                ],
-                className="container mt-5",
-            )
-
-        # Load sprint changelog
-        settings = load_app_settings()
-        field_mappings = settings.get("field_mappings", {})
-        general_mappings = field_mappings.get("general", {})
-        sprint_field = general_mappings.get("sprint_field")
+            if issue_type_filter != "all":
+                return html.Div(
+                    [
+                        dbc.Alert(
+                            [
+                                html.I(className="fas fa-filter fa-2x mb-3"),
+                                html.H5(f"No {issue_type_filter} Issues Found"),
+                                html.P(
+                                    f"No issues of type '{issue_type_filter}' "
+                                    "in current sprint. "
+                                    "Try selecting 'All' or a different issue type."
+                                ),
+                            ],
+                            color="info",
+                            className="text-center p-5",
+                        )
+                    ],
+                    className="container mt-5",
+                )
+            return create_no_sprints_state()
 
         if not sprint_field:
             logger.warning("Sprint field not configured in field_mappings.general")
             return create_no_sprints_state()
-
-        sprint_changelog = backend.get_changelog_entries(
-            active_profile_id, active_query_id, field_name=sprint_field
-        )
-
-        if not sprint_changelog:
-            sprint_changelog = backend.get_changelog_entries(
-                active_profile_id, active_query_id, field_name="Sprint"
-            )
-
-        # Build sprint snapshots from filtered issues
-        sprint_snapshots = get_sprint_snapshots(
-            filtered_issues, sprint_changelog, sprint_field
-        )
 
         if not sprint_snapshots:
             return create_no_sprints_state()
@@ -146,20 +113,15 @@ def filter_sprint_by_issue_type(
             sprint_start_date = None
             sprint_end_date = None
         else:
-            active_sprint_info = get_active_sprint_from_issues(
-                filtered_issues, sprint_field
+            selected_info = select_preferred_sprint(
+                sprint_snapshots,
+                dataset["sprint_metadata"],
             )
-            sprint_ids = sorted(sprint_snapshots.keys(), reverse=True)
-            if active_sprint_info and active_sprint_info["name"] in sprint_snapshots:
-                selected_sprint_id = active_sprint_info["name"]
-                sprint_start_date = active_sprint_info.get("start_date")
-                sprint_end_date = active_sprint_info.get("end_date")
-            elif sprint_ids:
-                selected_sprint_id = sprint_ids[0]
-                sprint_start_date = None
-                sprint_end_date = None
-            else:
+            if not selected_info:
                 return create_no_sprints_state()
+            selected_sprint_id = selected_info["name"]
+            sprint_start_date = selected_info.get("start_date")
+            sprint_end_date = selected_info.get("end_date")
 
         sprint_data = sprint_snapshots[selected_sprint_id]
 
@@ -199,21 +161,23 @@ def filter_sprint_by_issue_type(
                 sprint_field,
             )
 
+        scope_window_start = None if sprint_state == "FUTURE" else sprint_start_date
+
         progress_data = calculate_sprint_progress(
             sprint_data, flow_end_statuses, flow_wip_statuses
         )
 
         # Calculate sprint scope changes
-        scope_changes = calculate_sprint_scope_changes(sprint_data, sprint_start_date)
+        scope_changes = calculate_sprint_scope_changes(sprint_data, scope_window_start)
         scope_change_points = calculate_sprint_scope_change_points(
             sprint_data,
             filtered_issues,
-            sprint_start_date=sprint_start_date,
+            sprint_start_date=scope_window_start,
             sprint_end_date=sprint_end_date,
         )
         scope_change_issues = get_sprint_scope_change_issues(
             sprint_data,
-            sprint_start_date=sprint_start_date,
+            sprint_start_date=scope_window_start,
             sprint_end_date=sprint_end_date,
         )
 
@@ -253,11 +217,6 @@ def filter_sprint_by_issue_type(
             scope_change_issues,
             sprint_state=sprint_state,
             issue_states=all_issue_states,
-        )
-
-        # Load status changelog for timeline
-        status_changelog = backend.get_changelog_entries(
-            active_profile_id, active_query_id, field_name="status"
         )
 
         # Create visualizations

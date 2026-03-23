@@ -110,28 +110,68 @@ def get_active_sprint_from_issues(
                     }
                 sprint_counts[name]["count"] += 1
 
-    # Find sprint with state=ACTIVE (highest priority)
+    # Prefer ACTIVE, then FUTURE (nearest start), then CLOSED (most recent end).
+    def _parse_or_default(iso_date: str | None, fallback: float) -> float:
+        if not iso_date:
+            return fallback
+        try:
+            return date_parser.parse(iso_date).timestamp()
+        except Exception:
+            return fallback
+
+    active_candidates = [
+        (name, data)
+        for name, data in sprint_counts.items()
+        if data.get("state") == "ACTIVE"
+    ]
+    future_candidates = [
+        (name, data)
+        for name, data in sprint_counts.items()
+        if data.get("state") == "FUTURE"
+    ]
+    closed_candidates = [
+        (name, data)
+        for name, data in sprint_counts.items()
+        if data.get("state") == "CLOSED"
+    ]
+
     active_sprint_name = None
     active_sprint_data = None
-    max_count = 0
 
-    for sprint_name, data in sprint_counts.items():
-        if data["state"] == "ACTIVE" and data["count"] > max_count:
-            active_sprint_name = sprint_name
-            active_sprint_data = data
-            max_count = data["count"]
-
-    # If no active sprint, fall back to the sprint with most issues
-    if not active_sprint_name:
-        for sprint_name, data in sprint_counts.items():
-            if data["count"] > max_count:
-                active_sprint_name = sprint_name
-                active_sprint_data = data
-                max_count = data["count"]
+    if active_candidates:
+        active_sprint_name, active_sprint_data = max(
+            active_candidates,
+            key=lambda item: (
+                item[1].get("count", 0),
+                _parse_or_default(item[1].get("start_date"), float("-inf")),
+            ),
+        )
+    elif future_candidates:
+        active_sprint_name, active_sprint_data = min(
+            future_candidates,
+            key=lambda item: (
+                _parse_or_default(item[1].get("start_date"), float("inf")),
+                # Earlier future start should win.
+                -item[1].get("count", 0),
+            ),
+        )
+    elif closed_candidates:
+        active_sprint_name, active_sprint_data = max(
+            closed_candidates,
+            key=lambda item: (
+                _parse_or_default(item[1].get("end_date"), float("-inf")),
+                item[1].get("count", 0),
+            ),
+        )
+    elif sprint_counts:
+        active_sprint_name, active_sprint_data = max(
+            sprint_counts.items(), key=lambda item: item[1].get("count", 0)
+        )
 
     if active_sprint_name and active_sprint_data:
         logger.info(
-            f"Determined active sprint: {active_sprint_name} ({max_count} issues), "
+            "Determined preferred sprint: "
+            f"{active_sprint_name} ({active_sprint_data.get('count', 0)} issues), "
             "dates: "
             f"{active_sprint_data['start_date']} to {active_sprint_data['end_date']}"
         )
@@ -195,6 +235,106 @@ def get_sprint_dates(
 
     logger.warning(f"No dates found for sprint: {sprint_name}")
     return None
+
+
+def sort_sprint_ids_by_recency(
+    sprint_snapshots: dict[str, dict], sprint_metadata: dict[str, dict] | None = None
+) -> list[str]:
+    """Sort sprint IDs with date-aware recency fallback.
+
+    Prefers end_date, then start_date, then lexical sprint name.
+    """
+    sprint_metadata = sprint_metadata or {}
+
+    def _parse_date(value: str | None) -> float:
+        if not value:
+            return float("-inf")
+        try:
+            return date_parser.parse(value).timestamp()
+        except Exception:
+            return float("-inf")
+
+    def _sort_key(sprint_id: str) -> tuple[float, float, str]:
+        metadata = sprint_metadata.get(sprint_id, {})
+        return (
+            _parse_date(metadata.get("end_date")),
+            _parse_date(metadata.get("start_date")),
+            sprint_id,
+        )
+
+    return sorted(sprint_snapshots.keys(), key=_sort_key, reverse=True)
+
+
+def select_preferred_sprint(
+    sprint_snapshots: dict[str, dict],
+    sprint_metadata: dict[str, dict] | None = None,
+    preferred_sprint: str | None = None,
+) -> dict | None:
+    """Select sprint for display using explicit and state-aware priority.
+
+    Priority:
+    1) preferred sprint if provided and present
+    2) ACTIVE sprint
+    3) FUTURE sprint with nearest start date
+    4) most recent CLOSED sprint
+    5) newest by recency sort
+    """
+    if not sprint_snapshots:
+        return None
+
+    sprint_metadata = sprint_metadata or {}
+
+    if preferred_sprint and preferred_sprint in sprint_snapshots:
+        preferred_meta = sprint_metadata.get(preferred_sprint, {})
+        return {
+            "name": preferred_sprint,
+            "start_date": preferred_meta.get("start_date"),
+            "end_date": preferred_meta.get("end_date"),
+            "state": preferred_meta.get("state"),
+        }
+
+    active_candidates: list[str] = []
+    future_candidates: list[str] = []
+    closed_candidates: list[str] = []
+    for sprint_id in sprint_snapshots.keys():
+        state = sprint_metadata.get(sprint_id, {}).get("state")
+        if state == "ACTIVE":
+            active_candidates.append(sprint_id)
+        elif state == "FUTURE":
+            future_candidates.append(sprint_id)
+        elif state == "CLOSED":
+            closed_candidates.append(sprint_id)
+
+    if active_candidates:
+        chosen = sort_sprint_ids_by_recency(
+            {sid: sprint_snapshots[sid] for sid in active_candidates}, sprint_metadata
+        )[0]
+    elif future_candidates:
+
+        def _future_key(sprint_id: str) -> float:
+            value = sprint_metadata.get(sprint_id, {}).get("start_date")
+            if not value:
+                return float("inf")
+            try:
+                return date_parser.parse(value).timestamp()
+            except Exception:
+                return float("inf")
+
+        chosen = min(future_candidates, key=_future_key)
+    elif closed_candidates:
+        chosen = sort_sprint_ids_by_recency(
+            {sid: sprint_snapshots[sid] for sid in closed_candidates}, sprint_metadata
+        )[0]
+    else:
+        chosen = sort_sprint_ids_by_recency(sprint_snapshots, sprint_metadata)[0]
+
+    chosen_meta = sprint_metadata.get(chosen, {})
+    return {
+        "name": chosen,
+        "start_date": chosen_meta.get("start_date"),
+        "end_date": chosen_meta.get("end_date"),
+        "state": chosen_meta.get("state"),
+    }
 
 
 def get_sprint_snapshots(

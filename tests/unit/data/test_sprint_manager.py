@@ -10,10 +10,13 @@ from data.sprint_manager import (
     calculate_sprint_scope_change_points,
     detect_sprint_changes,
     filter_sprint_issues,
+    get_active_sprint_from_issues,
     get_sprint_field_from_config,
     get_sprint_scope_change_issues,
     get_sprint_snapshots,
     reconcile_active_sprint_membership,
+    select_preferred_sprint,
+    sort_sprint_ids_by_recency,
 )
 
 SPRINT_22_SERIALIZED = (
@@ -28,6 +31,21 @@ SPRINT_23_ACTIVE_SERIALIZED = (
 )
 SPRINT_42_SERIALIZED = (
     "com.atlassian.greenhopper.service.sprint.Sprint@14b3c[id=42,name=Sprint 42]"
+)
+SPRINT_23_CLOSED_SERIALIZED = (
+    "com.atlassian.greenhopper.service.sprint.Sprint@14b3c"
+    "[id=23,name=Sprint 23,state=CLOSED,startDate=2026-02-10T09:00:00.000+01:00,"
+    "endDate=2026-02-24T19:19:00.000+01:00]"
+)
+SPRINT_24_FUTURE_SERIALIZED = (
+    "com.atlassian.greenhopper.service.sprint.Sprint@14b3c"
+    "[id=24,name=Sprint 24,state=FUTURE,startDate=2026-02-25T09:00:00.000+01:00,"
+    "endDate=2026-03-11T19:19:00.000+01:00]"
+)
+SPRINT_25_FUTURE_SERIALIZED = (
+    "com.atlassian.greenhopper.service.sprint.Sprint@14b3c"
+    "[id=25,name=Sprint 25,state=FUTURE,startDate=2026-03-12T09:00:00.000+01:00,"
+    "endDate=2026-03-26T19:19:00.000+01:00]"
 )
 
 
@@ -711,6 +729,77 @@ class TestReconcileActiveSprintMembership:
         assert set(result["issue_states"].keys()) == {"PROJ-1", "PROJ-2"}
         assert result["issue_states"]["PROJ-2"]["status"] == "Done"
         assert result["issue_states"]["PROJ-2"]["story_points"] == 5
+
+
+class TestSprintSelectionHelpers:
+    """Test suite for sprint sorting and preferred sprint selection."""
+
+    def test_get_active_sprint_prefers_nearest_future_when_no_active(self):
+        """When no ACTIVE exists, nearest FUTURE sprint should be selected."""
+        issues = [
+            {
+                "issue_key": "PROJ-1",
+                "custom_fields": {
+                    "customfield_10020": [
+                        SPRINT_23_CLOSED_SERIALIZED,
+                        SPRINT_24_FUTURE_SERIALIZED,
+                    ]
+                },
+            },
+            {
+                "issue_key": "PROJ-2",
+                "custom_fields": {"customfield_10020": [SPRINT_25_FUTURE_SERIALIZED]},
+            },
+        ]
+
+        selected = get_active_sprint_from_issues(
+            issues, sprint_field="customfield_10020"
+        )
+
+        assert selected is not None
+        assert selected["name"] == "Sprint 24"
+
+    def test_sort_sprint_ids_by_recency_uses_dates_not_lexical(self):
+        """Date-aware sorting should place Sprint 10 above Sprint 9."""
+        snapshots = {"Sprint 9": {}, "Sprint 10": {}}
+        metadata = {
+            "Sprint 9": {"end_date": "2026-02-20T00:00:00Z"},
+            "Sprint 10": {"end_date": "2026-03-05T00:00:00Z"},
+        }
+
+        sprint_ids = sort_sprint_ids_by_recency(snapshots, metadata)
+
+        assert sprint_ids[0] == "Sprint 10"
+
+    def test_select_preferred_sprint_prioritizes_active(self):
+        """Preferred selector should pick ACTIVE sprint over FUTURE/CLOSED."""
+        snapshots = {
+            "Sprint 23": {},
+            "Sprint 24": {},
+            "Sprint 25": {},
+        }
+        metadata = {
+            "Sprint 23": {
+                "state": "CLOSED",
+                "start_date": "2026-02-10T09:00:00Z",
+                "end_date": "2026-02-24T19:00:00Z",
+            },
+            "Sprint 24": {
+                "state": "FUTURE",
+                "start_date": "2026-02-25T09:00:00Z",
+                "end_date": "2026-03-11T19:00:00Z",
+            },
+            "Sprint 25": {
+                "state": "ACTIVE",
+                "start_date": "2026-03-01T09:00:00Z",
+                "end_date": "2026-03-14T19:00:00Z",
+            },
+        }
+
+        selected = select_preferred_sprint(snapshots, metadata)
+
+        assert selected is not None
+        assert selected["name"] == "Sprint 25"
 
 
 class TestFilterSprintIssues:

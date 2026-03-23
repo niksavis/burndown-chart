@@ -38,7 +38,8 @@ def _build_sprint_progress_info(
         html.Div with sprint progress header
     """
     elapsed_time = (now - sprint_start).total_seconds()
-    time_progress_pct = min(100, (elapsed_time / sprint_duration_seconds) * 100)
+    raw_progress_pct = (elapsed_time / sprint_duration_seconds) * 100
+    time_progress_pct = max(0.0, min(100.0, raw_progress_pct))
 
     # Determine time text based on sprint state
     if sprint_state == "CLOSED":
@@ -49,6 +50,30 @@ def _build_sprint_progress_info(
     else:
         remaining_days = (sprint_end - now).total_seconds() / 86400
         time_text = f"({remaining_days:.1f} days remaining)"
+
+    time_marker = (
+        []
+        if sprint_state == "FUTURE"
+        else [
+            html.Div(
+                "TODAY",
+                style={
+                    "position": "absolute",
+                    "left": f"{time_progress_pct:.2f}%",
+                    "top": "-2px",
+                    "transform": "translateX(-50%)",
+                    "fontSize": "0.7rem",
+                    "fontWeight": "700",
+                    "color": "#0d6efd",
+                    "backgroundColor": "#fff",
+                    "padding": "2px 6px",
+                    "borderRadius": "3px",
+                    "border": "1px solid #0d6efd",
+                    "whiteSpace": "nowrap",
+                },
+            )
+        ]
+    )
 
     sprint_progress_children = [
         html.Div(
@@ -72,7 +97,7 @@ def _build_sprint_progress_info(
             ],
             style={"marginBottom": "8px"},
         ),
-        # Today indicator visual guide
+        # Today marker is hidden for FUTURE sprints.
         html.Div(
             [
                 html.Div(
@@ -84,23 +109,7 @@ def _build_sprint_progress_info(
                         "position": "relative",
                     },
                 ),
-                html.Div(
-                    "TODAY",
-                    style={
-                        "position": "absolute",
-                        "left": f"{time_progress_pct:.2f}%",
-                        "top": "-2px",
-                        "transform": "translateX(-50%)",
-                        "fontSize": "0.7rem",
-                        "fontWeight": "700",
-                        "color": "#0d6efd",
-                        "backgroundColor": "#fff",
-                        "padding": "2px 6px",
-                        "borderRadius": "3px",
-                        "border": "1px solid #0d6efd",
-                        "whiteSpace": "nowrap",
-                    },
-                ),
+                *time_marker,
             ],
             style={
                 "width": "100%",
@@ -266,7 +275,7 @@ def create_sprint_progress_bars(
     sprint_changes: dict | None = None,
     sprint_state: str | None = None,
     scope_changes: dict | None = None,
-):
+) -> html.Div:
     """Create HTML progress bars showing time proportion spent in each status.
 
     Each bar represents one issue with colored segments showing the PERCENTAGE

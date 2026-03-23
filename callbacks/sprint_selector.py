@@ -8,20 +8,17 @@ import logging
 import dash_bootstrap_components as dbc
 from dash import Input, Output, callback, callback_context, html, no_update
 
-from data.issue_filtering import filter_issues_for_metrics
-from data.persistence import load_app_settings
 from data.persistence.factory import get_backend
 from data.sprint_manager import (
-    build_issue_state_lookup,
     calculate_sprint_progress,
     calculate_sprint_scope_change_points,
     calculate_sprint_scope_changes,
-    filter_sprint_issues,
     get_sprint_dates,
     get_sprint_scope_change_issues,
-    get_sprint_snapshots,
     reconcile_active_sprint_membership,
+    select_preferred_sprint,
 )
+from data.sprint_tracker_data import load_sprint_tracker_dataset
 from ui.sprint_tracker import (
     create_sprint_scope_changes_view,
     create_sprint_summary_cards,
@@ -84,54 +81,34 @@ def update_sprint_selection(selected_sprint: str, show_points_list: list):
         if not active_profile_id or not active_query_id:
             return no_update
 
-        # Load issues
-        all_issues = backend.get_issues(active_profile_id, active_query_id)
-
-        # Filter to configured development project issues
-        # (exclude parents and parent issue types).
-        if all_issues:
-            settings = load_app_settings()
-
-            all_issues = filter_issues_for_metrics(
-                all_issues, settings=settings, log_prefix="SPRINT SELECTOR"
-            )
-
-        tracked_issues = filter_sprint_issues(all_issues)
-        all_issue_states = build_issue_state_lookup(tracked_issues)
+        dataset = load_sprint_tracker_dataset(active_profile_id, active_query_id)
+        settings = dataset["settings"]
+        tracked_issues = dataset["tracked_issues"]
+        all_issue_states = dataset["all_issue_states"]
+        sprint_field = dataset["sprint_field"]
+        sprint_snapshots = dataset["sprint_snapshots"]
+        status_changelog = dataset["status_changelog"]
 
         if not tracked_issues:
             return no_update
 
-        # Get sprint field
-        settings = load_app_settings()
-        field_mappings = settings.get("field_mappings", {})
-        general_mappings = field_mappings.get("general", {})
-        sprint_field = general_mappings.get("sprint_field")
-
         if not sprint_field:
             return no_update
 
-        # Load changelog (try both custom field ID and "Sprint" display name)
-        changelog_entries = backend.get_changelog_entries(
-            active_profile_id, active_query_id, field_name=sprint_field
-        )
-
-        if not changelog_entries:
-            changelog_entries = backend.get_changelog_entries(
-                active_profile_id, active_query_id, field_name="Sprint"
-            )
-
-        if not changelog_entries:
+        if not sprint_snapshots:
             return no_update
-
-        # Build sprint snapshots
-        sprint_snapshots = get_sprint_snapshots(
-            tracked_issues, changelog_entries, sprint_field
-        )
 
         if selected_sprint not in sprint_snapshots:
-            logger.warning(f"Selected sprint {selected_sprint} not found in snapshots")
-            return no_update
+            fallback = select_preferred_sprint(
+                sprint_snapshots,
+                dataset["sprint_metadata"],
+            )
+            if not fallback:
+                logger.warning(
+                    f"Selected sprint {selected_sprint} not found in snapshots"
+                )
+                return no_update
+            selected_sprint = fallback["name"]
 
         # Get selected sprint data
         sprint_data = sprint_snapshots[selected_sprint]
@@ -161,21 +138,23 @@ def update_sprint_selection(selected_sprint: str, show_points_list: list):
                 sprint_field,
             )
 
+        scope_window_start = None if sprint_state == "FUTURE" else sprint_start_date
+
         progress_data = calculate_sprint_progress(
             sprint_data, flow_end_statuses, flow_wip_statuses
         )
 
         # Calculate sprint scope changes
-        scope_changes = calculate_sprint_scope_changes(sprint_data, sprint_start_date)
+        scope_changes = calculate_sprint_scope_changes(sprint_data, scope_window_start)
         scope_change_points = calculate_sprint_scope_change_points(
             sprint_data,
             tracked_issues,
-            sprint_start_date=sprint_start_date,
+            sprint_start_date=scope_window_start,
             sprint_end_date=sprint_end_date,
         )
         scope_change_issues = get_sprint_scope_change_issues(
             sprint_data,
-            sprint_start_date=sprint_start_date,
+            sprint_start_date=scope_window_start,
             sprint_end_date=sprint_end_date,
         )
 
@@ -213,11 +192,6 @@ def update_sprint_selection(selected_sprint: str, show_points_list: list):
             scope_change_issues,
             sprint_state=sprint_state,
             issue_states=all_issue_states,
-        )
-
-        # Load status changelog
-        status_changelog = backend.get_changelog_entries(
-            active_profile_id, active_query_id, field_name="status"
         )
 
         # Create visualizations

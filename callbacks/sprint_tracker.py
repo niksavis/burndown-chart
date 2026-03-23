@@ -12,25 +12,19 @@ import traceback
 import dash_bootstrap_components as dbc
 from dash import Input, Output, State, callback, callback_context, html, no_update
 
-from data.issue_filtering import filter_issues_for_metrics
-from data.parent_filter import filter_parent_issues
-from data.persistence import load_app_settings
 from data.persistence.factory import get_backend
-from data.project_filter import filter_development_issues
 from data.sprint_manager import (
-    _parse_sprint_object,
-    build_issue_state_lookup,
     calculate_sprint_progress,
     calculate_sprint_scope_change_points,
     calculate_sprint_scope_changes,
-    filter_sprint_issues,
-    get_active_sprint_from_issues,
     get_sprint_dates,
     get_sprint_scope_change_issues,
-    get_sprint_snapshots,
     reconcile_active_sprint_membership,
+    select_preferred_sprint,
+    sort_sprint_ids_by_recency,
 )
 from data.sprint_snapshot_calculator import calculate_daily_sprint_snapshots
+from data.sprint_tracker_data import load_sprint_tracker_dataset
 from ui.empty_states import create_no_sprints_state
 from ui.sprint_tracker import (
     create_combined_sprint_controls,
@@ -76,100 +70,35 @@ def _render_sprint_tracker_content(
             logger.warning("No active profile/query configured")
             return create_no_sprints_state()
 
-        # Load issues from database
-        all_issues = backend.get_issues(active_profile_id, active_query_id)
+        dataset = load_sprint_tracker_dataset(active_profile_id, active_query_id)
 
-        if not all_issues:
-            logger.warning("No issues found in database")
-            return create_no_sprints_state()
-
-        logger.info(f"Loaded {len(all_issues)} issues from database")
-
-        # Filter to configured development project issues
-        # (exclude parents/parent types).
-        settings = load_app_settings()
-        all_issues = filter_issues_for_metrics(
-            all_issues, settings=settings, log_prefix="SPRINT TRACKER"
-        )
-        logger.info(f"After project filtering: {len(all_issues)} development issues")
-
-        # Get configuration for sprint field
-        field_mappings = settings.get("field_mappings", {})
-        general_mappings = field_mappings.get("general", {})
-
-        # Filter to tracked issue types (Story, Task, Bug - exclude sub-tasks)
-        tracked_issues = filter_sprint_issues(all_issues)
-        all_issue_states = build_issue_state_lookup(tracked_issues)
+        settings = dataset["settings"]
+        tracked_issues = dataset["tracked_issues"]
+        all_issue_states = dataset["all_issue_states"]
+        sprint_field = dataset["sprint_field"]
+        sprint_snapshots = dataset["sprint_snapshots"]
+        sprint_metadata = dataset["sprint_metadata"]
 
         if not tracked_issues:
             logger.warning("No tracked issue types (Story/Task/Bug) found")
             return create_no_sprints_state()
 
-        # Get configured sprint field from settings
-        sprint_field = general_mappings.get("sprint_field")
-
         if not sprint_field:
             logger.warning("Sprint field not configured in field mappings")
             return create_no_sprints_state()
 
-        logger.info(f"Using sprint field: {sprint_field}")
-
-        # Load sprint changelog entries using configured sprint field
-        # Try both custom field ID and "Sprint" display name
-        # (JIRA uses display name in changelog).
-        changelog_entries = backend.get_changelog_entries(
-            active_profile_id, active_query_id, field_name=sprint_field
-        )
-
-        # If no entries with custom field ID, try "Sprint" display name
-        if not changelog_entries:
-            changelog_entries = backend.get_changelog_entries(
-                active_profile_id, active_query_id, field_name="Sprint"
-            )
-            if changelog_entries:
-                logger.info(
-                    "Found "
-                    f"{len(changelog_entries)} sprint entries using "
-                    "'Sprint' field name"
-                )
-
-        if not changelog_entries or len(changelog_entries) == 0:
+        if not sprint_snapshots:
             logger.info("No sprint changelog data found - sprints not configured")
             return create_no_sprints_state()
 
-        logger.info(f"Loaded {len(changelog_entries)} sprint changelog entries")
-
-        # Build sprint snapshots from changelog
-        sprint_snapshots = get_sprint_snapshots(
-            tracked_issues, changelog_entries, sprint_field
-        )
-
-        if not sprint_snapshots:
-            logger.warning("No sprint snapshots built from changelog")
-            return create_no_sprints_state()
-
-        logger.info(f"Built {len(sprint_snapshots)} sprint snapshots")
-
-        # Determine active sprint from issue data (uses JIRA state field)
-        active_sprint_info = get_active_sprint_from_issues(tracked_issues, sprint_field)
-
-        # Select active sprint if found, otherwise use first sprint
-        sprint_ids = sorted(
-            sprint_snapshots.keys(), reverse=True
-        )  # Newest first by name
-        if active_sprint_info and active_sprint_info["name"] in sprint_snapshots:
-            selected_sprint_id = active_sprint_info["name"]
-            sprint_start_date = active_sprint_info.get("start_date")
-            sprint_end_date = active_sprint_info.get("end_date")
-            logger.info(f"Selected active sprint: {selected_sprint_id}")
-        elif sprint_ids:
-            selected_sprint_id = sprint_ids[0]
-            sprint_start_date = None
-            sprint_end_date = None
-            logger.info(f"No active sprint found, selected first: {selected_sprint_id}")
-        else:
+        selected_sprint = select_preferred_sprint(sprint_snapshots, sprint_metadata)
+        if not selected_sprint:
             logger.warning("No sprint snapshots available")
             return create_no_sprints_state()
+
+        selected_sprint_id = selected_sprint["name"]
+        sprint_start_date = selected_sprint.get("start_date")
+        sprint_end_date = selected_sprint.get("end_date")
 
         sprint_data = sprint_snapshots[selected_sprint_id]
 
@@ -186,45 +115,7 @@ def _render_sprint_tracker_content(
         if not flow_end_statuses:
             flow_end_statuses = ["Done", "Closed", "Resolved"]
 
-        # Extract sprint metadata (states) from issues for all sprints
-        sprint_metadata = {}
-        for issue in tracked_issues:
-            # Sprint field is in custom_fields, not fields
-            custom_fields = issue.get("custom_fields", {})
-            sprint_field_value = custom_fields.get(sprint_field)
-
-            if not sprint_field_value:
-                continue
-
-            # Sprint field can be a list of sprint objects (JSON strings)
-            sprint_list = (
-                sprint_field_value
-                if isinstance(sprint_field_value, list)
-                else [sprint_field_value]
-            )
-
-            for sprint_obj_str in sprint_list:
-                if not sprint_obj_str or not isinstance(sprint_obj_str, str):
-                    continue
-
-                # Parse sprint object to extract name and state
-                sprint_obj = _parse_sprint_object(sprint_obj_str)
-                if sprint_obj and sprint_obj.get("name"):
-                    sprint_name = sprint_obj["name"]
-                    sprint_metadata[sprint_name] = {
-                        "state": sprint_obj.get("state", ""),
-                        "start_date": sprint_obj.get("start_date"),
-                        "end_date": sprint_obj.get("end_date"),
-                    }
-
-        sprint_start_date = sprint_metadata.get(selected_sprint_id, {}).get(
-            "start_date"
-        )
-        selected_sprint_state = (
-            sprint_metadata.get(selected_sprint_id, {}).get("state")
-            if sprint_metadata
-            else None
-        )
+        selected_sprint_state = sprint_metadata.get(selected_sprint_id, {}).get("state")
 
         if selected_sprint_state == "ACTIVE":
             sprint_data = reconcile_active_sprint_membership(
@@ -234,21 +125,25 @@ def _render_sprint_tracker_content(
                 sprint_field,
             )
 
+        scope_window_start = (
+            None if selected_sprint_state == "FUTURE" else sprint_start_date
+        )
+
         progress_data = calculate_sprint_progress(
             sprint_data, flow_end_statuses, flow_wip_statuses
         )
 
         # Calculate sprint scope changes
-        scope_changes = calculate_sprint_scope_changes(sprint_data, sprint_start_date)
+        scope_changes = calculate_sprint_scope_changes(sprint_data, scope_window_start)
         scope_change_points = calculate_sprint_scope_change_points(
             sprint_data,
             tracked_issues,
-            sprint_start_date=sprint_start_date,
+            sprint_start_date=scope_window_start,
             sprint_end_date=sprint_end_date,
         )
         scope_change_issues = get_sprint_scope_change_issues(
             sprint_data,
-            sprint_start_date=sprint_start_date,
+            sprint_start_date=scope_window_start,
             sprint_end_date=sprint_end_date,
         )
 
@@ -288,9 +183,7 @@ def _render_sprint_tracker_content(
         )
 
         # Load status changelog for time-in-status calculation
-        status_changelog = backend.get_changelog_entries(
-            active_profile_id, active_query_id, field_name="status"
-        )
+        status_changelog = dataset["status_changelog"]
 
         logger.info(
             "[SPRINT TRACKER] Loaded "
@@ -313,6 +206,7 @@ def _render_sprint_tracker_content(
         )
 
         # Create combined sprint controls (selector + issue type filter)
+        sprint_ids = sort_sprint_ids_by_recency(sprint_snapshots, sprint_metadata)
         combined_controls = (
             create_combined_sprint_controls(
                 sprint_ids, selected_sprint_id, sprint_metadata
@@ -448,7 +342,7 @@ def update_sprint_charts(selected_sprint, charts_visible, points_toggle_list):
     # Only update if charts are visible
     if not charts_visible:
         logger.info("update_sprint_charts: Charts not visible, skipping update")
-        return no_update, no_update
+        return no_update
 
     try:
         logger.info(
@@ -462,9 +356,7 @@ def update_sprint_charts(selected_sprint, charts_visible, points_toggle_list):
             f"points_toggle_list={points_toggle_list}"
         )
 
-        # Load data from backend
         backend = get_backend()
-
         active_profile_id = backend.get_app_state("active_profile_id")
         active_query_id = backend.get_app_state("active_query_id")
 
@@ -476,74 +368,30 @@ def update_sprint_charts(selected_sprint, charts_visible, points_toggle_list):
 
         if not active_profile_id or not active_query_id:
             logger.warning("No active profile/query for chart update")
-            return no_update, no_update
-
-        # Get settings (including project classification and field mappings)
-        settings = load_app_settings()
-
-        # Load issues and changelog
-        all_issues = backend.get_issues(active_profile_id, active_query_id)
-        logger.info(
-            "update_sprint_charts: Loaded "
-            f"{len(all_issues) if all_issues else 0} issues"
-        )
-
-        # CRITICAL: Filter out parent issues dynamically (don't hardcode "Epic")
-        if all_issues:
-            parent_field = (
-                settings.get("field_mappings", {})
-                .get("general", {})
-                .get("parent_field")
-            )
-            if parent_field:
-                all_issues = filter_parent_issues(
-                    all_issues, parent_field, log_prefix="SPRINT CHARTS"
-                )
-
-        # Filter to only configured development project issues
-        development_projects = settings.get("development_projects", [])
-        devops_projects = settings.get("devops_projects", [])
-        all_issues = filter_development_issues(
-            all_issues, development_projects, devops_projects
-        )
-        logger.info(
-            f"update_sprint_charts: After project filtering: {len(all_issues)} issues"
-        )
-
-        if not all_issues:
-            logger.warning(
-                "update_sprint_charts: No issues found after project filtering"
-            )
             return no_update
 
-        field_mappings = settings.get("field_mappings", {})
-        general_mappings = field_mappings.get("general", {})
-        sprint_field = general_mappings.get("sprint_field")
+        dataset = load_sprint_tracker_dataset(active_profile_id, active_query_id)
+        settings = dataset["settings"]
+        tracked_issues = dataset["tracked_issues"]
+        sprint_field = dataset["sprint_field"]
+        sprint_snapshots = dataset["sprint_snapshots"]
+        status_changelog = dataset["status_changelog"]
 
-        logger.info(f"update_sprint_charts: sprint_field={sprint_field}")
+        logger.info(
+            "update_sprint_charts: Loaded "
+            f"{len(tracked_issues) if tracked_issues else 0} tracked issues"
+        )
+
+        if not tracked_issues:
+            logger.warning(
+                "update_sprint_charts: No tracked issues found after filtering"
+            )
+            return no_update
 
         if not sprint_field:
             logger.warning("update_sprint_charts: No sprint_field configured")
             return no_update
 
-        # Load sprint changelog
-        changelog_entries = backend.get_changelog_entries(
-            active_profile_id, active_query_id, field_name=sprint_field
-        )
-        if not changelog_entries:
-            changelog_entries = backend.get_changelog_entries(
-                active_profile_id, active_query_id, field_name="Sprint"
-            )
-
-        # Load status changelog
-        status_changelog = backend.get_changelog_entries(
-            active_profile_id, active_query_id, field_name="status"
-        )
-
-        # Build sprint snapshots
-        sprint_snapshots = get_sprint_snapshots(
-            all_issues, changelog_entries, sprint_field
-        )
         logger.info(
             f"update_sprint_charts: Built {len(sprint_snapshots)} sprint snapshots"
         )
@@ -562,7 +410,7 @@ def update_sprint_charts(selected_sprint, charts_visible, points_toggle_list):
         )
 
         # Get sprint dates
-        sprint_dates = get_sprint_dates(selected_sprint, all_issues, sprint_field)
+        sprint_dates = get_sprint_dates(selected_sprint, tracked_issues, sprint_field)
         if not sprint_dates:
             logger.warning(f"No dates found for sprint {selected_sprint}")
             return no_update
@@ -584,7 +432,7 @@ def update_sprint_charts(selected_sprint, charts_visible, points_toggle_list):
 
         daily_snapshots = calculate_daily_sprint_snapshots(
             sprint_data,
-            all_issues,
+            tracked_issues,
             status_changelog,
             sprint_start_date,
             sprint_end_date,

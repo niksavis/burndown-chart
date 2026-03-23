@@ -228,7 +228,7 @@ def create_sprint_scope_changes_view(
     Returns:
         Scope changes section, or empty div when not applicable
     """
-    if sprint_state not in {"ACTIVE", "CLOSED"}:
+    if sprint_state not in {"ACTIVE", "CLOSED", "FUTURE"}:
         return html.Div()
 
     added_issues = scope_change_issues.get("added", [])
@@ -312,7 +312,11 @@ def create_sprint_scope_changes_view(
                     html.Strong(
                         "Scope Changes During Sprint"
                         if sprint_state == "CLOSED"
-                        else "Scope Changes During Sprint (So Far)"
+                        else (
+                            "Scope Changes During Sprint (So Far)"
+                            if sprint_state == "ACTIVE"
+                            else "Upcoming Sprint Scope Changes"
+                        )
                     ),
                     html.Span(
                         " — see Issue Progress below for outcomes",
