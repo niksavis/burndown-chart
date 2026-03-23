@@ -19,6 +19,7 @@ from data.sprint_manager import (
     get_sprint_dates,
     get_sprint_scope_change_issues,
     get_sprint_snapshots,
+    reconcile_active_sprint_membership,
 )
 from ui.empty_states import create_no_sprints_state
 from ui.sprint_tracker import (
@@ -180,16 +181,24 @@ def filter_sprint_by_issue_type(
         if not flow_end_statuses:
             flow_end_statuses = ["Done", "Closed", "Resolved"]
 
-        progress_data = calculate_sprint_progress(
-            sprint_data, flow_end_statuses, flow_wip_statuses
-        )
-
         sprint_dates = get_sprint_dates(
             selected_sprint_id, filtered_issues, sprint_field
         )
         sprint_start_date = sprint_dates.get("start_date") if sprint_dates else None
         sprint_end_date = sprint_dates.get("end_date") if sprint_dates else None
         sprint_state = sprint_dates.get("state") if sprint_dates else None
+
+        if sprint_state == "ACTIVE":
+            sprint_data = reconcile_active_sprint_membership(
+                sprint_data,
+                filtered_issues,
+                selected_sprint_id,
+                sprint_field,
+            )
+
+        progress_data = calculate_sprint_progress(
+            sprint_data, flow_end_statuses, flow_wip_statuses
+        )
 
         # Calculate sprint scope changes
         scope_changes = calculate_sprint_scope_changes(sprint_data, sprint_start_date)

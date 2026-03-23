@@ -12,6 +12,7 @@ from data.sprint_manager import (
     get_sprint_field_from_config,
     get_sprint_scope_change_issues,
     get_sprint_snapshots,
+    reconcile_active_sprint_membership,
 )
 
 SPRINT_22_SERIALIZED = (
@@ -529,6 +530,131 @@ class TestGetSprintScopeChangeIssues:
 
         assert result["added"] == ["PROJ-1"]
         assert result["removed"] == ["PROJ-2"]
+
+
+class TestReconcileActiveSprintMembership:
+    """Test suite for reconcile_active_sprint_membership helper."""
+
+    def test_reconcile_removes_stale_issues_not_currently_in_sprint(self):
+        """Active sprint should exclude issues with no current sprint membership."""
+        sprint_snapshot = {
+            "current_issues": ["PROJ-1", "PROJ-2"],
+            "issue_states": {
+                "PROJ-1": {
+                    "status": "To Do",
+                    "story_points": 3,
+                    "issue_type": "Task",
+                },
+                "PROJ-2": {
+                    "status": "To Do",
+                    "story_points": 5,
+                    "issue_type": "Story",
+                },
+            },
+            "added_issues": [],
+            "removed_issues": [],
+        }
+        issues = [
+            {
+                "issue_key": "PROJ-1",
+                "custom_fields": {"customfield_10020": [SPRINT_23_ACTIVE_SERIALIZED]},
+            },
+            {
+                "issue_key": "PROJ-2",
+                "custom_fields": {"customfield_10020": None},
+            },
+        ]
+
+        result = reconcile_active_sprint_membership(
+            sprint_snapshot,
+            issues,
+            sprint_name="Sprint 23",
+            sprint_field="customfield_10020",
+        )
+
+        assert result["current_issues"] == ["PROJ-1"]
+        assert set(result["issue_states"].keys()) == {"PROJ-1"}
+
+    def test_reconcile_adds_current_member_missing_in_snapshot(self):
+        """Reconciliation should add current sprint members absent from snapshot."""
+        sprint_snapshot = {
+            "current_issues": ["PROJ-1"],
+            "issue_states": {
+                "PROJ-1": {
+                    "status": "In Progress",
+                    "story_points": 2,
+                    "issue_type": "Bug",
+                }
+            },
+            "added_issues": [],
+            "removed_issues": [],
+        }
+        issues = [
+            {
+                "issue_key": "PROJ-1",
+                "custom_fields": {"customfield_10020": [SPRINT_23_ACTIVE_SERIALIZED]},
+            },
+            {
+                "issue_key": "PROJ-2",
+                "custom_fields": {"customfield_10020": [SPRINT_23_ACTIVE_SERIALIZED]},
+            },
+        ]
+
+        result = reconcile_active_sprint_membership(
+            sprint_snapshot,
+            issues,
+            sprint_name="Sprint 23",
+            sprint_field="customfield_10020",
+        )
+
+        assert result["current_issues"] == ["PROJ-1", "PROJ-2"]
+        assert set(result["issue_states"].keys()) == {"PROJ-1", "PROJ-2"}
+
+    def test_reconcile_adds_missing_current_members_for_active_sprint(self):
+        """Reconciliation should add current sprint members missing in snapshot."""
+        sprint_snapshot = {
+            "current_issues": ["PROJ-1"],
+            "issue_states": {
+                "PROJ-1": {
+                    "status": "Done",
+                    "story_points": 3,
+                    "issue_type": "Story",
+                    "summary": "Already in snapshot",
+                }
+            },
+            "added_issues": [],
+            "removed_issues": [],
+        }
+        issues = [
+            {
+                "issue_key": "PROJ-1",
+                "status": "Done",
+                "points": 3,
+                "issue_type": "Story",
+                "summary": "Already in snapshot",
+                "custom_fields": {"customfield_10020": [SPRINT_23_ACTIVE_SERIALIZED]},
+            },
+            {
+                "issue_key": "PROJ-2",
+                "status": "Done",
+                "points": 5,
+                "issue_type": "Task",
+                "summary": "Missing but current",
+                "custom_fields": {"customfield_10020": [SPRINT_23_ACTIVE_SERIALIZED]},
+            },
+        ]
+
+        result = reconcile_active_sprint_membership(
+            sprint_snapshot,
+            issues,
+            sprint_name="Sprint 23",
+            sprint_field="customfield_10020",
+        )
+
+        assert result["current_issues"] == ["PROJ-1", "PROJ-2"]
+        assert set(result["issue_states"].keys()) == {"PROJ-1", "PROJ-2"}
+        assert result["issue_states"]["PROJ-2"]["status"] == "Done"
+        assert result["issue_states"]["PROJ-2"]["story_points"] == 5
 
 
 class TestFilterSprintIssues:

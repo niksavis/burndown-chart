@@ -26,6 +26,7 @@ from data.sprint_manager import (
     get_sprint_dates,
     get_sprint_scope_change_issues,
     get_sprint_snapshots,
+    reconcile_active_sprint_membership,
 )
 from data.sprint_snapshot_calculator import calculate_daily_sprint_snapshots
 from ui.empty_states import create_no_sprints_state
@@ -213,11 +214,6 @@ def _render_sprint_tracker_content(
                         "end_date": sprint_obj.get("end_date"),
                     }
 
-        progress_data = calculate_sprint_progress(
-            sprint_data, flow_end_statuses, flow_wip_statuses
-        )
-
-        # Calculate sprint scope changes
         sprint_start_date = sprint_metadata.get(selected_sprint_id, {}).get(
             "start_date"
         )
@@ -226,6 +222,20 @@ def _render_sprint_tracker_content(
             if sprint_metadata
             else None
         )
+
+        if selected_sprint_state == "ACTIVE":
+            sprint_data = reconcile_active_sprint_membership(
+                sprint_data,
+                tracked_issues,
+                selected_sprint_id,
+                sprint_field,
+            )
+
+        progress_data = calculate_sprint_progress(
+            sprint_data, flow_end_statuses, flow_wip_statuses
+        )
+
+        # Calculate sprint scope changes
         scope_changes = calculate_sprint_scope_changes(sprint_data, sprint_start_date)
         scope_change_issues = get_sprint_scope_change_issues(
             sprint_data,

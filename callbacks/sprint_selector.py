@@ -18,6 +18,7 @@ from data.sprint_manager import (
     get_sprint_dates,
     get_sprint_scope_change_issues,
     get_sprint_snapshots,
+    reconcile_active_sprint_membership,
 )
 from ui.sprint_tracker import (
     create_sprint_scope_changes_view,
@@ -143,15 +144,23 @@ def update_sprint_selection(selected_sprint: str, show_points_list: list):
         if not flow_end_statuses:
             flow_end_statuses = ["Done", "Closed", "Resolved"]
 
-        progress_data = calculate_sprint_progress(
-            sprint_data, flow_end_statuses, flow_wip_statuses
-        )
-
         # Get sprint dates for the selected sprint
         sprint_dates = get_sprint_dates(selected_sprint, tracked_issues, sprint_field)
         sprint_start_date = sprint_dates.get("start_date") if sprint_dates else None
         sprint_end_date = sprint_dates.get("end_date") if sprint_dates else None
         sprint_state = sprint_dates.get("state") if sprint_dates else None
+
+        if sprint_state == "ACTIVE":
+            sprint_data = reconcile_active_sprint_membership(
+                sprint_data,
+                tracked_issues,
+                selected_sprint,
+                sprint_field,
+            )
+
+        progress_data = calculate_sprint_progress(
+            sprint_data, flow_end_statuses, flow_wip_statuses
+        )
 
         # Calculate sprint scope changes
         scope_changes = calculate_sprint_scope_changes(sprint_data, sprint_start_date)

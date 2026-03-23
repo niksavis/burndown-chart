@@ -718,6 +718,105 @@ def get_sprint_scope_change_issues(
     }
 
 
+def reconcile_active_sprint_membership(
+    sprint_snapshot: dict,
+    issues: list[dict],
+    sprint_name: str,
+    sprint_field: str,
+) -> dict:
+    """Reconcile active sprint current membership using current issue sprint fields.
+
+    For active sprints, changelog data can be stale or incomplete. This helper
+    narrows ``current_issues`` to issues that currently list the selected sprint
+    in their sprint field, while preserving added/removed history for scope cards.
+
+    Args:
+        sprint_snapshot: Snapshot from get_sprint_snapshots()
+        issues: Current issue list used by Sprint Tracker
+        sprint_name: Selected sprint name
+        sprint_field: Configured sprint custom field id
+
+    Returns:
+        Copy of sprint snapshot with reconciled ``current_issues`` and
+        ``issue_states``.
+    """
+
+    current_members: set[str] = set()
+    issue_lookup: dict[str, dict] = {}
+
+    for issue in issues:
+        issue_key = issue.get("issue_key")
+        if not isinstance(issue_key, str) or not issue_key:
+            continue
+
+        issue_lookup[issue_key] = issue
+
+        custom_fields = issue.get("custom_fields", {})
+        if not isinstance(custom_fields, dict):
+            continue
+
+        sprint_value = custom_fields.get(sprint_field)
+        if not sprint_value:
+            continue
+
+        inferred_current_sprints = _infer_current_sprints_from_field(sprint_value)
+        if sprint_name in inferred_current_sprints:
+            current_members.add(issue_key)
+
+    original_current = sprint_snapshot.get("current_issues", [])
+    original_set = set(original_current)
+
+    preserved_order = [
+        issue_key for issue_key in original_current if issue_key in current_members
+    ]
+    newly_discovered = sorted(current_members - set(preserved_order))
+    reconciled_current = preserved_order + newly_discovered
+    reconciled_set = set(reconciled_current)
+
+    original_issue_states = sprint_snapshot.get("issue_states", {})
+    reconciled_issue_states: dict[str, dict] = {}
+    for issue_key in reconciled_current:
+        if issue_key in original_issue_states:
+            reconciled_issue_states[issue_key] = original_issue_states[issue_key]
+            continue
+
+        issue = issue_lookup.get(issue_key, {})
+        custom_fields = issue.get("custom_fields", {})
+
+        story_points = issue.get("points")
+        if story_points is None and isinstance(custom_fields, dict):
+            for field in [
+                "customfield_10002",
+                "customfield_10016",
+                "customfield_10026",
+            ]:
+                story_points = custom_fields.get(field)
+                if story_points is not None:
+                    break
+
+        reconciled_issue_states[issue_key] = {
+            "status": issue.get("status", "Unknown"),
+            "story_points": story_points,
+            "issue_type": issue.get("issue_type", "Unknown"),
+            "summary": issue.get("summary", ""),
+        }
+
+    removed_count = len(original_set - reconciled_set)
+    added_count = len(reconciled_set - original_set)
+    if removed_count > 0 or added_count > 0:
+        logger.info(
+            "Reconciled active sprint membership for "
+            f"{sprint_name}: removed {removed_count} stale issues, "
+            f"added {added_count} missing current issues"
+        )
+
+    return {
+        **sprint_snapshot,
+        "current_issues": reconciled_current,
+        "issue_states": reconciled_issue_states,
+    }
+
+
 def calculate_sprint_progress(
     sprint_snapshot: dict,
     flow_end_statuses: list[str] | None = None,
