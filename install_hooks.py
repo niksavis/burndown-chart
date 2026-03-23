@@ -2,7 +2,7 @@
 """
 install_hooks.py - Install git hooks for burndown-chart.
 
-Writes pre-commit, pre-push, and post-merge hooks into .git/hooks/.
+Writes managed hooks into Git's active hooks directory.
 Run once after cloning or whenever hooks need refreshing.
 
 Usage:
@@ -29,11 +29,30 @@ quality checks so CI enforcement holds even without the bd tool.
 import argparse
 import platform
 import stat
+import subprocess
 import sys
 from pathlib import Path
 
 ROOT = Path(__file__).parent
-HOOKS_DIR = ROOT / ".git" / "hooks"
+
+
+def _resolve_hooks_dir() -> Path:
+    """Resolve Git's active hooks directory, honoring core.hooksPath."""
+    try:
+        output = subprocess.check_output(
+            ["git", "rev-parse", "--git-path", "hooks"],
+            cwd=ROOT,
+            text=True,
+            encoding="utf-8",
+        ).strip()
+        if output:
+            return Path(output)
+    except subprocess.SubprocessError, OSError:
+        pass
+    return ROOT / ".git" / "hooks"
+
+
+HOOKS_DIR = _resolve_hooks_dir()
 
 # ---------------------------------------------------------------------------
 # Hook content templates.
