@@ -1128,7 +1128,7 @@ class TestCalculateWeeklyAveragesDataPointsFiltering(unittest.TestCase):
         # Results should be different
         self.assertNotEqual(result_all, result_filtered)
 
-    @patch("data.metrics_snapshots.get_metric_weekly_values", return_value=[])
+    @patch("data.processing_averages.get_metric_weekly_values", return_value=[])
     def test_data_points_count_single_value(self, mock_snapshots):
         """Test data_points_count with single data point."""
         single_data = [self.statistics_data[0]]  # Just the first entry
@@ -1150,7 +1150,7 @@ class TestCalculateWeeklyAveragesDataPointsFiltering(unittest.TestCase):
         # Should return zeros
         self.assertEqual(result, (0, 0, 0, 0))
 
-    @patch("data.metrics_snapshots.get_metric_weekly_values", return_value=[])
+    @patch("data.processing_averages.get_metric_weekly_values", return_value=[])
     def test_data_points_count_specific_values(self, mock_snapshots):
         """Test that filtering produces expected results with known data."""
         # Use only the last 2 weeks of data
