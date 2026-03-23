@@ -6,7 +6,7 @@ Follows Constitution Principle V (Data Privacy) - strips all customer PII.
 
 import json
 import logging
-from collections.abc import Iterable
+from collections.abc import Iterable as _Iterable
 from datetime import datetime, timedelta
 from statistics import pstdev
 from typing import Any
@@ -333,7 +333,7 @@ def _aggregate_statistics(statistics: list[dict], weeks: int) -> dict[str, Any]:
     }
 
 
-def _calculate_trend(series: Iterable[int | float]) -> str:
+def _calculate_trend(series: _Iterable[int | float]) -> str:
     """
     Calculate trend direction (improving/stable/declining).
 

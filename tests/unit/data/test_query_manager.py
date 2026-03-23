@@ -188,6 +188,7 @@ class TestSwitchQuery:
         # Assert - database updated
         assert backend.get_app_state("active_query_id") == "bugs"
 
+    @pytest.mark.performance
     def test_performance_under_50ms(self, temp_database):
         """Verify switch_query() completes in <200ms (under parallel test load)."""
         import time
