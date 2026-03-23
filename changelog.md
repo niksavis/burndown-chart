@@ -1,5 +1,28 @@
 # Changelog
 
+## v2.15.0
+
+_Released: 2026-03-23_
+
+### Features
+
+- **Sprint Tracker Scope Clarity**: Added symmetric Issues and Points scope cards with clearer active and closed sprint summaries so scope movement is easier to understand at a glance
+- **Expanded Delivery Visibility**: Added completed-work and scope-tracking enhancements that make sprint health and progress changes easier to review week by week
+- **Stronger Quality Safety Net**: Unified validation and hook workflows now catch more regressions earlier across typing, linting, tests, and release checks
+
+### Bug Fixes
+
+- **Jira Field Mapping Input Sizing**: Namespace mapping inputs in Configure Jira Mappings now fill the available field width instead of rendering as small inner boxes
+- **Current Week Dashboard Stability**: Fixed cases where blended current-week metrics could display inconsistent values before data refresh
+- **Sprint Tracker Stability**: Improved sprint membership and scope rendering reliability to prevent inconsistent scope views after sprint switches
+- **Datepicker Workflow**: Restored calendar-only datepicker behavior to avoid accidental text-entry regressions
+
+### Improvements
+
+- Upgraded core stack and tooling baseline, including Python 3.14.3, Dash 4.0.0, and Pandas 3.0.1, with compatibility fixes in app and CI workflows
+- Continued architecture split of oversized modules across callbacks, data, UI, and visualization layers to improve maintainability and long-term change safety
+- Strengthened team workflow reliability with improved beads sync and branch-aware quality-gate behavior in hooks and automation
+
 ## v2.14.0
 
 _Released: 2026-02-27_
