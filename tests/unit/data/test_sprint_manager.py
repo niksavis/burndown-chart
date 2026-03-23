@@ -7,6 +7,7 @@ and issue filtering for Sprint Tracker feature.
 from data.sprint_manager import (
     _parse_sprint_name,
     calculate_sprint_progress,
+    calculate_sprint_scope_change_points,
     detect_sprint_changes,
     filter_sprint_issues,
     get_sprint_field_from_config,
@@ -530,6 +531,61 @@ class TestGetSprintScopeChangeIssues:
 
         assert result["added"] == ["PROJ-1"]
         assert result["removed"] == ["PROJ-2"]
+
+
+class TestCalculateSprintScopeChangePoints:
+    """Test suite for calculate_sprint_scope_change_points function."""
+
+    def test_calculate_scope_change_points_with_window(self):
+        """Points should be summed only for events within sprint window."""
+        sprint_snapshot = {
+            "added_issues": [
+                {"issue_key": "PROJ-1", "timestamp": "2025-01-10T09:00:00Z"},
+                {"issue_key": "PROJ-2", "timestamp": "2025-01-12T10:00:00Z"},
+            ],
+            "removed_issues": [
+                {"issue_key": "PROJ-3", "timestamp": "2025-01-11T11:00:00Z"},
+                {"issue_key": "PROJ-4", "timestamp": "2025-01-20T11:00:00Z"},
+            ],
+        }
+        issues = [
+            {"issue_key": "PROJ-1", "points": 3},
+            {"issue_key": "PROJ-2", "points": 5},
+            {"issue_key": "PROJ-3", "points": 8},
+            {"issue_key": "PROJ-4", "points": 13},
+        ]
+
+        result = calculate_sprint_scope_change_points(
+            sprint_snapshot,
+            issues,
+            sprint_start_date="2025-01-11T00:00:00Z",
+            sprint_end_date="2025-01-15T00:00:00Z",
+        )
+
+        assert result["added_points"] == 5.0
+        assert result["removed_points"] == 8.0
+        assert result["net_points"] == -3.0
+
+    def test_calculate_scope_change_points_handles_missing_points(self):
+        """Missing points should default to zero without errors."""
+        sprint_snapshot = {
+            "added_issues": [
+                {"issue_key": "PROJ-1", "timestamp": "2025-01-12T10:00:00Z"}
+            ],
+            "removed_issues": [
+                {"issue_key": "PROJ-2", "timestamp": "2025-01-12T10:00:00Z"}
+            ],
+        }
+        issues = [
+            {"issue_key": "PROJ-1", "points": None},
+            {"issue_key": "PROJ-2", "custom_fields": {"customfield_10002": 2}},
+        ]
+
+        result = calculate_sprint_scope_change_points(sprint_snapshot, issues)
+
+        assert result["added_points"] == 0.0
+        assert result["removed_points"] == 2.0
+        assert result["net_points"] == -2.0
 
 
 class TestReconcileActiveSprintMembership:

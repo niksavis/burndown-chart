@@ -48,315 +48,147 @@ def create_sprint_summary_cards(
     completed = summary_data.get("completed", 0)
     in_progress = summary_data.get("in_progress", 0)
     todo = summary_data.get("todo", 0)
+    scope_change_summary = scope_change_summary or {}
+    added_after_start = scope_change_summary.get("added_after_start", 0)
+    removed_after_start = scope_change_summary.get("removed_after_start", 0)
+    added_points_after_start = scope_change_summary.get("added_points_after_start", 0.0)
+    removed_points_after_start = scope_change_summary.get(
+        "removed_points_after_start", 0.0
+    )
 
-    cards = [
-        # Total Issues Card
-        dbc.Col(
+    def _metric_card(
+        value: str,
+        label: str,
+        icon_class: str,
+        text_class: str,
+        background_color: str,
+    ) -> dbc.Col:
+        return dbc.Col(
             [
                 html.Div(
                     [
                         html.Div(
                             [
-                                html.I(
-                                    className="fas fa-tasks fa-2x text-info",
-                                ),
+                                html.I(className=icon_class),
                             ],
                             className="mb-2",
                         ),
-                        html.H2(str(total_issues), className="mb-1 text-info"),
-                        html.P("Total Issues", className="text-muted mb-0 small"),
+                        html.H2(value, className=f"mb-1 {text_class}"),
+                        html.P(label, className="text-muted mb-0 small"),
                     ],
                     className="text-center p-3 rounded h-100",
-                    style={"backgroundColor": "rgba(23, 162, 184, 0.1)"},
+                    style={"backgroundColor": background_color},
                 )
             ],
             xs=12,
-            md=3,
+            md=2,
             className="mb-3",
+        )
+
+    issue_cards = [
+        _metric_card(
+            str(total_issues),
+            "Total",
+            "fas fa-tasks fa-2x text-info",
+            "text-info",
+            "rgba(23, 162, 184, 0.1)",
         ),
-        # To Do Card
-        dbc.Col(
-            [
-                html.Div(
-                    [
-                        html.Div(
-                            [
-                                html.I(
-                                    className="fas fa-list fa-2x text-secondary",
-                                ),
-                            ],
-                            className="mb-2",
-                        ),
-                        html.H2(str(todo), className="mb-1 text-secondary"),
-                        html.P("To Do", className="text-muted mb-0 small"),
-                    ],
-                    className="text-center p-3 rounded h-100",
-                    style={"backgroundColor": "rgba(108, 117, 125, 0.1)"},
-                )
-            ],
-            xs=12,
-            md=3,
-            className="mb-3",
+        _metric_card(
+            str(todo),
+            "To Do",
+            "fas fa-list fa-2x text-secondary",
+            "text-secondary",
+            "rgba(108, 117, 125, 0.1)",
         ),
-        # Work in Progress Card
-        dbc.Col(
-            [
-                html.Div(
-                    [
-                        html.Div(
-                            [
-                                html.I(
-                                    className="fas fa-spinner fa-2x text-warning",
-                                ),
-                            ],
-                            className="mb-2",
-                        ),
-                        html.H2(str(in_progress), className="mb-1 text-warning"),
-                        html.P("Work in Progress", className="text-muted mb-0 small"),
-                    ],
-                    className="text-center p-3 rounded h-100",
-                    style={"backgroundColor": "rgba(255, 193, 7, 0.1)"},
-                )
-            ],
-            xs=12,
-            md=3,
-            className="mb-3",
+        _metric_card(
+            str(in_progress),
+            "Work in Progress",
+            "fas fa-spinner fa-2x text-warning",
+            "text-warning",
+            "rgba(255, 193, 7, 0.1)",
         ),
-        # Completed Card
-        dbc.Col(
-            [
-                html.Div(
-                    [
-                        html.Div(
-                            [
-                                html.I(
-                                    className="fas fa-check fa-2x text-success",
-                                ),
-                            ],
-                            className="mb-2",
-                        ),
-                        html.H2(str(completed), className="mb-1 text-success"),
-                        html.P("Completed", className="text-muted mb-0 small"),
-                    ],
-                    className="text-center p-3 rounded h-100",
-                    style={"backgroundColor": "rgba(40, 167, 69, 0.1)"},
-                )
-            ],
-            xs=12,
-            md=3,
-            className="mb-3",
+        _metric_card(
+            str(completed),
+            "Completed",
+            "fas fa-check fa-2x text-success",
+            "text-success",
+            "rgba(40, 167, 69, 0.1)",
+        ),
+        _metric_card(
+            str(added_after_start),
+            "Added After Start",
+            "fas fa-arrow-up-right-dots fa-2x text-success",
+            "text-success",
+            "rgba(40, 167, 69, 0.1)",
+        ),
+        _metric_card(
+            str(removed_after_start),
+            "Removed After Start",
+            "fas fa-arrow-down-short-wide fa-2x text-danger",
+            "text-danger",
+            "rgba(220, 53, 69, 0.1)",
         ),
     ]
 
-    # Add story points cards if enabled
+    points_section: list = []
     if show_points:
         total_points = summary_data.get("total_points", 0.0)
         completed_points = summary_data.get("completed_points", 0.0)
         wip_points = summary_data.get("wip_points", 0.0)
         todo_points = summary_data.get("todo_points", 0.0)
 
-        cards.extend(
-            [
-                # Total Points Card
-                dbc.Col(
-                    [
-                        html.Div(
-                            [
-                                html.Div(
-                                    [
-                                        html.I(
-                                            className=(
-                                                "fas fa-chart-pie fa-2x text-info"
-                                            ),
-                                        ),
-                                    ],
-                                    className="mb-2",
-                                ),
-                                html.H2(
-                                    f"{total_points:.0f}",
-                                    className="mb-1 text-info",
-                                ),
-                                html.P(
-                                    "Total Points", className="text-muted mb-0 small"
-                                ),
-                            ],
-                            className="text-center p-3 rounded h-100",
-                            style={"backgroundColor": "rgba(23, 162, 184, 0.1)"},
-                        )
-                    ],
-                    xs=12,
-                    md=3,
-                    className="mb-3",
-                ),
-                # To Do Points Card
-                dbc.Col(
-                    [
-                        html.Div(
-                            [
-                                html.Div(
-                                    [
-                                        html.I(
-                                            className=(
-                                                "fas fa-list fa-2x text-secondary"
-                                            ),
-                                        ),
-                                    ],
-                                    className="mb-2",
-                                ),
-                                html.H2(
-                                    f"{todo_points:.0f}",
-                                    className="mb-1 text-secondary",
-                                ),
-                                html.P(
-                                    "Points To Do",
-                                    className="text-muted mb-0 small",
-                                ),
-                            ],
-                            className="text-center p-3 rounded h-100",
-                            style={"backgroundColor": "rgba(108, 117, 125, 0.1)"},
-                        )
-                    ],
-                    xs=12,
-                    md=3,
-                    className="mb-3",
-                ),
-                # WIP Points Card
-                dbc.Col(
-                    [
-                        html.Div(
-                            [
-                                html.Div(
-                                    [
-                                        html.I(
-                                            className=(
-                                                "fas fa-spinner fa-2x text-warning"
-                                            ),
-                                        ),
-                                    ],
-                                    className="mb-2",
-                                ),
-                                html.H2(
-                                    f"{wip_points:.0f}",
-                                    className="mb-1 text-warning",
-                                ),
-                                html.P(
-                                    "Points in Progress",
-                                    className="text-muted mb-0 small",
-                                ),
-                            ],
-                            className="text-center p-3 rounded h-100",
-                            style={"backgroundColor": "rgba(255, 193, 7, 0.1)"},
-                        )
-                    ],
-                    xs=12,
-                    md=3,
-                    className="mb-3",
-                ),
-                # Completed Points Card
-                dbc.Col(
-                    [
-                        html.Div(
-                            [
-                                html.Div(
-                                    [
-                                        html.I(
-                                            className="fas fa-check fa-2x text-success",
-                                        ),
-                                    ],
-                                    className="mb-2",
-                                ),
-                                html.H2(
-                                    f"{completed_points:.0f}",
-                                    className="mb-1 text-success",
-                                ),
-                                html.P(
-                                    "Points Completed",
-                                    className="text-muted mb-0 small",
-                                ),
-                            ],
-                            className="text-center p-3 rounded h-100",
-                            style={"backgroundColor": "rgba(40, 167, 69, 0.1)"},
-                        )
-                    ],
-                    xs=12,
-                    md=3,
-                    className="mb-3",
-                ),
-            ]
-        )
+        points_cards = [
+            _metric_card(
+                f"{total_points:.0f}",
+                "Total",
+                "fas fa-chart-pie fa-2x text-info",
+                "text-info",
+                "rgba(23, 162, 184, 0.1)",
+            ),
+            _metric_card(
+                f"{todo_points:.0f}",
+                "To Do",
+                "fas fa-list fa-2x text-secondary",
+                "text-secondary",
+                "rgba(108, 117, 125, 0.1)",
+            ),
+            _metric_card(
+                f"{wip_points:.0f}",
+                "Work in Progress",
+                "fas fa-spinner fa-2x text-warning",
+                "text-warning",
+                "rgba(255, 193, 7, 0.1)",
+            ),
+            _metric_card(
+                f"{completed_points:.0f}",
+                "Completed",
+                "fas fa-check fa-2x text-success",
+                "text-success",
+                "rgba(40, 167, 69, 0.1)",
+            ),
+            _metric_card(
+                f"{added_points_after_start:.0f}",
+                "Added After Start",
+                "fas fa-arrow-up-right-dots fa-2x text-success",
+                "text-success",
+                "rgba(40, 167, 69, 0.1)",
+            ),
+            _metric_card(
+                f"{removed_points_after_start:.0f}",
+                "Removed After Start",
+                "fas fa-arrow-down-short-wide fa-2x text-danger",
+                "text-danger",
+                "rgba(220, 53, 69, 0.1)",
+            ),
+        ]
 
-    if scope_change_summary:
-        added_after_start = scope_change_summary.get("added_after_start", 0)
-        removed_after_start = scope_change_summary.get("removed_after_start", 0)
-
-        cards.extend(
-            [
-                dbc.Col(
-                    [
-                        html.Div(
-                            [
-                                html.Div(
-                                    [
-                                        html.I(
-                                            className=(
-                                                "fas fa-arrow-up-right-dots "
-                                                "fa-2x text-success"
-                                            ),
-                                        ),
-                                    ],
-                                    className="mb-2",
-                                ),
-                                html.H2(
-                                    str(added_after_start),
-                                    className="mb-1 text-success",
-                                ),
-                                html.P(
-                                    "Added After Start",
-                                    className="text-muted mb-0 small",
-                                ),
-                            ],
-                            className="text-center p-3 rounded h-100",
-                            style={"backgroundColor": "rgba(40, 167, 69, 0.1)"},
-                        )
-                    ],
-                    xs=12,
-                    md=3,
-                    className="mb-3",
-                ),
-                dbc.Col(
-                    [
-                        html.Div(
-                            [
-                                html.Div(
-                                    [
-                                        html.I(
-                                            className=(
-                                                "fas fa-arrow-down-short-wide "
-                                                "fa-2x text-danger"
-                                            ),
-                                        ),
-                                    ],
-                                    className="mb-2",
-                                ),
-                                html.H2(
-                                    str(removed_after_start),
-                                    className="mb-1 text-danger",
-                                ),
-                                html.P(
-                                    "Removed After Start",
-                                    className="text-muted mb-0 small",
-                                ),
-                            ],
-                            className="text-center p-3 rounded h-100",
-                            style={"backgroundColor": "rgba(220, 53, 69, 0.1)"},
-                        )
-                    ],
-                    xs=12,
-                    md=3,
-                    className="mb-3",
-                ),
-            ]
-        )
+        points_section = [
+            html.Small(
+                "Points",
+                className="text-muted text-uppercase fw-semibold d-block mb-2",
+            ),
+            dbc.Row(points_cards, className="g-3"),
+        ]
 
     header_suffix = ""
     if sprint_state == "CLOSED":
@@ -367,7 +199,12 @@ def create_sprint_summary_cards(
     return html.Div(
         [
             html.H5(f"Sprint: {sprint_name}{header_suffix}", className="mb-3"),
-            dbc.Row(cards, className="g-3"),
+            html.Small(
+                "Issues",
+                className="text-muted text-uppercase fw-semibold d-block mb-2",
+            ),
+            dbc.Row(issue_cards, className="g-3"),
+            *points_section,
         ],
         className="mb-4",
     )

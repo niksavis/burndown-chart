@@ -13,6 +13,7 @@ from data.persistence import load_app_settings
 from data.persistence.factory import get_backend
 from data.sprint_manager import (
     calculate_sprint_progress,
+    calculate_sprint_scope_change_points,
     calculate_sprint_scope_changes,
     filter_sprint_issues,
     get_active_sprint_from_issues,
@@ -202,6 +203,12 @@ def filter_sprint_by_issue_type(
 
         # Calculate sprint scope changes
         scope_changes = calculate_sprint_scope_changes(sprint_data, sprint_start_date)
+        scope_change_points = calculate_sprint_scope_change_points(
+            sprint_data,
+            filtered_issues,
+            sprint_start_date=sprint_start_date,
+            sprint_end_date=sprint_end_date,
+        )
         scope_change_issues = get_sprint_scope_change_issues(
             sprint_data,
             sprint_start_date=sprint_start_date,
@@ -231,6 +238,12 @@ def filter_sprint_by_issue_type(
             scope_change_summary={
                 "added_after_start": scope_changes.get("added", 0),
                 "removed_after_start": scope_changes.get("removed", 0),
+                "added_points_after_start": scope_change_points.get(
+                    "added_points", 0.0
+                ),
+                "removed_points_after_start": scope_change_points.get(
+                    "removed_points", 0.0
+                ),
             },
             sprint_state=sprint_state,
         )

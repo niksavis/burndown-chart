@@ -718,6 +718,74 @@ def get_sprint_scope_change_issues(
     }
 
 
+def calculate_sprint_scope_change_points(
+    sprint_snapshot: dict,
+    issues: list[dict],
+    sprint_start_date: str | None = None,
+    sprint_end_date: str | None = None,
+) -> dict[str, float]:
+    """Calculate added/removed scope points within sprint time window.
+
+    Args:
+        sprint_snapshot: Sprint snapshot from get_sprint_snapshots()
+        issues: Current filtered issue list used by Sprint Tracker
+        sprint_start_date: Optional sprint start date (exclusive lower bound)
+        sprint_end_date: Optional sprint end date (inclusive upper bound)
+
+    Returns:
+        Dict with added/removed/net point deltas.
+    """
+
+    scope_change_issues = get_sprint_scope_change_issues(
+        sprint_snapshot,
+        sprint_start_date=sprint_start_date,
+        sprint_end_date=sprint_end_date,
+    )
+
+    issues_by_key = {
+        issue.get("issue_key"): issue
+        for issue in issues
+        if isinstance(issue.get("issue_key"), str)
+    }
+
+    def _extract_issue_points(issue: dict | None) -> float:
+        if not isinstance(issue, dict):
+            return 0.0
+
+        points = issue.get("points")
+        if points is None:
+            custom_fields = issue.get("custom_fields", {})
+            if isinstance(custom_fields, dict):
+                for field in [
+                    "customfield_10002",
+                    "customfield_10016",
+                    "customfield_10026",
+                ]:
+                    points = custom_fields.get(field)
+                    if points is not None:
+                        break
+
+        try:
+            return float(points) if points is not None else 0.0
+        except TypeError, ValueError:
+            return 0.0
+
+    added_points = sum(
+        _extract_issue_points(issues_by_key.get(issue_key))
+        for issue_key in scope_change_issues.get("added", [])
+    )
+    removed_points = sum(
+        _extract_issue_points(issues_by_key.get(issue_key))
+        for issue_key in scope_change_issues.get("removed", [])
+    )
+
+    return {
+        "added_points": added_points,
+        "removed_points": removed_points,
+        "net_points": added_points - removed_points,
+    }
+
+
 def reconcile_active_sprint_membership(
     sprint_snapshot: dict,
     issues: list[dict],
