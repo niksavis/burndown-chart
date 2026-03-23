@@ -7,12 +7,13 @@ by the git hooks installed via install_hooks.py.  Also safe to run manually
 at any time.
 
 Modes (choose one):
-    python validate.py             # pre-push: full suite (default)
-    python validate.py --commit    # pre-commit: ruff lint + format only (~5s)
-    python validate.py --fast      # ruff + djlint + pyright + bandit + eslint
+    python validate.py             # pre-push: tests-focused gate (default)
+    python validate.py --commit    # pre-commit: lint + static analysis
+    python validate.py --fast      # quick local gate
+    python validate.py --full      # full heavyweight gate
     python validate.py --fix       # auto-fix ruff + djlint where possible
 
-Full gate (pre-push) includes:
+Full gate (--full) includes:
     ruff, djlint, pyright, bandit, pip-audit, vulture, prettier,
     eslint, markdownlint, pytest with coverage threshold (~44%)
 
@@ -98,18 +99,21 @@ def check_djlint(fix: bool = False) -> int:
     return _run("djlint (check)", ["djlint", "--check", html_files])
 
 
-def check_pyright() -> int:
+def check_pyright(paths: list[str] | None = None) -> int:
+    targets = paths or [
+        "data/",
+        "callbacks/",
+        "ui/",
+        "visualization/",
+        "tests/",
+    ]
     return _run(
         "pyright (type check)",
         [
             "pyright",
             "--pythonpath",
             str(PYTHON),
-            "data/",
-            "callbacks/",
-            "ui/",
-            "visualization/",
-            "tests/",
+            *targets,
         ],
     )
 
@@ -203,7 +207,11 @@ def check_eslint() -> int:
     return _run("eslint (JS lint)", [NPX, "eslint", "assets/"])
 
 
-def check_coverage() -> int:
+def check_coverage(*, include_performance: bool) -> int:
+    marker_expression: list[str] = []
+    if not include_performance:
+        marker_expression = ["-m", "not performance"]
+
     return _run(
         "pytest (coverage)",
         [
@@ -211,6 +219,7 @@ def check_coverage() -> int:
             "tests/unit/",
             "-n",
             "auto",
+            *marker_expression,
             "--cov=data",
             "--cov=ui",
             "--cov=visualization",
@@ -227,12 +236,20 @@ def main() -> int:
     parser.add_argument(
         "--commit",
         action="store_true",
-        help="Pre-commit mode: ruff lint + format only (~5s, run on every commit)",
+        help="Pre-commit mode: lint + static analysis for staged Python changes",
     )
     parser.add_argument(
         "--fast",
         action="store_true",
-        help="Skip markdownlint and pytest (ruff + djlint + pyright only)",
+        help="Quick local gate (ruff + djlint + pyright + bandit + prettier + eslint)",
+    )
+    parser.add_argument(
+        "--full",
+        action="store_true",
+        help=(
+            "Full heavyweight gate including pip-audit, vulture, "
+            "markdownlint, and pytest"
+        ),
     )
     parser.add_argument(
         "--fix",
@@ -254,15 +271,32 @@ def main() -> int:
     failures: list[str] = []
 
     if args.commit:
-        # Pre-commit gate: check staged files only so every commit stays snappy.
+        # Pre-commit gate: lint + static analysis for staged Python files.
         staged = _staged_py_files()
         if not staged:
             print("[validate] pre-commit: no staged Python files to check.")
             return 0
         print(f"[validate] pre-commit: checking {len(staged)} staged file(s)")
+        pyright_targets = [f for f in staged if (ROOT / f).exists()]
         checks: list[tuple[str, int]] = [
             ("ruff (lint)", check_ruff(fix=args.fix, files=staged)),
             ("ruff (format)", check_ruff_format(fix=args.fix, files=staged)),
+            ("pyright", check_pyright(paths=pyright_targets)),
+        ]
+    elif args.full:
+        # Manual/CI full suite.
+        checks = [
+            ("ruff (lint)", check_ruff(fix=args.fix)),
+            ("ruff (format)", check_ruff_format(fix=args.fix)),
+            ("djlint", check_djlint(fix=args.fix)),
+            ("pyright", check_pyright()),
+            ("bandit", check_bandit()),
+            ("pip-audit", check_pip_audit()),
+            ("vulture", check_vulture()),
+            ("prettier (format)", check_prettier(fix=args.fix)),
+            ("eslint", check_eslint()),
+            ("markdownlint", check_markdownlint()),
+            ("pytest (coverage)", check_coverage(include_performance=True)),
         ]
     elif args.fast:
         checks = [
@@ -275,19 +309,9 @@ def main() -> int:
             ("eslint", check_eslint()),
         ]
     else:
-        # Pre-push gate: full suite.
+        # Pre-push default gate: tests-focused signal.
         checks = [
-            ("ruff (lint)", check_ruff(fix=args.fix)),
-            ("ruff (format)", check_ruff_format(fix=args.fix)),
-            ("djlint", check_djlint(fix=args.fix)),
-            ("pyright", check_pyright()),
-            ("bandit", check_bandit()),
-            ("pip-audit", check_pip_audit()),
-            ("vulture", check_vulture()),
-            ("prettier (format)", check_prettier(fix=args.fix)),
-            ("eslint", check_eslint()),
-            ("markdownlint", check_markdownlint()),
-            ("pytest (coverage)", check_coverage()),
+            ("pytest (coverage)", check_coverage(include_performance=False)),
         ]
 
     for name, code in checks:
@@ -305,7 +329,11 @@ def main() -> int:
         print("[validate] Fix all failures before pushing.")
         return 1
 
-    mode = "commit" if args.commit else ("fast" if args.fast else "full")
+    mode = (
+        "commit"
+        if args.commit
+        else ("full" if args.full else ("fast" if args.fast else "push"))
+    )
     print(f"[validate] ALL CHECKS PASSED (mode: {mode})")
     return 0
 

@@ -570,6 +570,7 @@ def test_no_sensitive_data_in_logs():
 # ============================================================================
 
 
+@pytest.mark.performance
 def test_generate_prompt_performance(sample_export_with_pii):
     """Verify prompt generation completes within performance budget (<100ms)."""
     import time
@@ -589,6 +590,7 @@ def test_generate_prompt_performance(sample_export_with_pii):
                 assert elapsed < 0.1, f"Generation took {elapsed * 1000:.1f}ms (>100ms)"
 
 
+@pytest.mark.performance
 def test_aggregate_statistics_performance():
     """Verify aggregation scales to 52 weeks within budget."""
     import time
