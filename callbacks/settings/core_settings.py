@@ -9,7 +9,7 @@ This module handles core settings management callbacks including:
 """
 
 import time
-from datetime import datetime
+from datetime import date, datetime
 
 import dash
 from dash import Input, Output, State
@@ -30,6 +30,42 @@ from data.persistence import (
 from data.profile_manager import get_active_profile
 
 from .helpers import normalize_show_points
+
+
+def _normalize_date_picker_value(value) -> str | None:
+    """Normalize DatePicker values to YYYY-MM-DD strings or None."""
+    if value in (None, ""):
+        return None
+
+    if isinstance(value, str):
+        normalized = value.strip()
+        if not normalized:
+            return None
+
+        # Handle datetime strings by keeping date component.
+        if "T" in normalized:
+            normalized = normalized.split("T", 1)[0]
+        elif " " in normalized:
+            normalized = normalized.split(" ", 1)[0]
+
+        try:
+            return datetime.strptime(normalized, "%Y-%m-%d").strftime("%Y-%m-%d")
+        except ValueError:
+            return normalized
+
+    if isinstance(value, datetime):
+        return value.date().isoformat()
+
+    if isinstance(value, date):
+        return value.isoformat()
+
+    if hasattr(value, "isoformat"):
+        try:
+            return value.isoformat()
+        except AttributeError, TypeError, ValueError:
+            return str(value)
+
+    return str(value)
 
 
 def register(app):
@@ -178,6 +214,12 @@ def register(app):
             settings["show_points"] = normalize_show_points(
                 settings.get("show_points", True)
             )
+            settings["deadline"] = _normalize_date_picker_value(
+                settings.get("deadline")
+            )
+            settings["milestone"] = _normalize_date_picker_value(
+                settings.get("milestone")
+            )
 
             logger.info(
                 f"[Settings] Reloaded settings from database: "
@@ -205,10 +247,16 @@ def register(app):
             Output("milestone-picker", "date", allow_duplicate=True),
         ],
         Input("current-settings", "modified_timestamp"),
-        State("current-settings", "data"),
+        [
+            State("current-settings", "data"),
+            State("deadline-picker", "date"),
+            State("milestone-picker", "date"),
+        ],
         prevent_initial_call=True,
     )
-    def sync_ui_inputs_with_settings(settings_timestamp, settings):
+    def sync_ui_inputs_with_settings(
+        settings_timestamp, settings, current_deadline, current_milestone
+    ):
         """
         Update UI input components when current-settings store changes.
 
@@ -224,15 +272,26 @@ def register(app):
         points_toggle_value = ["show"] if show_points else []
 
         # Date pickers use clearable=True
-        deadline = settings.get("deadline")
-        milestone = settings.get("milestone")
+        deadline = _normalize_date_picker_value(settings.get("deadline"))
+        milestone = _normalize_date_picker_value(settings.get("milestone"))
+
+        current_deadline_normalized = _normalize_date_picker_value(current_deadline)
+        current_milestone_normalized = _normalize_date_picker_value(current_milestone)
+
+        # Avoid pushing redundant date props; this prevents clobbering manual typing.
+        deadline_output = (
+            dash.no_update if deadline == current_deadline_normalized else deadline
+        )
+        milestone_output = (
+            dash.no_update if milestone == current_milestone_normalized else milestone
+        )
 
         return (
             settings.get("pert_factor", 1.2),
-            deadline,
+            deadline_output,
             points_toggle_value,
             settings.get("data_points_count", 20),
-            milestone,
+            milestone_output,
         )
 
     @app.callback(
@@ -277,6 +336,8 @@ def register(app):
         """
         ctx = dash.callback_context
 
+        deadline = _normalize_date_picker_value(deadline)
+        milestone = _normalize_date_picker_value(milestone)
         show_milestone = milestone is not None
 
         # Skip if not initialized or critical values are None
@@ -361,8 +422,12 @@ def register(app):
                 settings["show_points"] = existing_settings.get(
                     "show_points", settings["show_points"]
                 )
-                deadline = existing_settings.get("deadline", deadline)
-                milestone = existing_settings.get("milestone", milestone)
+                deadline = _normalize_date_picker_value(
+                    existing_settings.get("deadline", deadline)
+                )
+                milestone = _normalize_date_picker_value(
+                    existing_settings.get("milestone", milestone)
+                )
                 settings["deadline"] = deadline
                 settings["milestone"] = milestone
 

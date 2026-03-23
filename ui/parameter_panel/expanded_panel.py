@@ -1,7 +1,6 @@
 """Expanded parameter panel component with all input fields."""
 
 import math
-from datetime import datetime
 from typing import cast
 
 import dash_bootstrap_components as dbc
@@ -41,6 +40,8 @@ def create_parameter_panel_expanded(
 
     # Extract settings with defaults
     pert_factor = settings.get("pert_factor", 3)
+    deadline = settings.get("deadline")
+    milestone = settings.get("milestone")
     # Date pickers use date=None and clearable=True (matching budget effective date)
     total_items = settings.get("total_items", 0)
     estimated_items = settings.get("estimated_items", 0)
@@ -107,6 +108,8 @@ def create_parameter_panel_expanded(
                                                             data_points_count,
                                                             data_points_marks,
                                                             max_data_points,
+                                                            deadline,
+                                                            milestone,
                                                         ),
                                                         className=(
                                                             "mb-4 pb-3 border-bottom"
@@ -161,6 +164,8 @@ def _create_timeline_section(
     data_points_count: int,
     data_points_marks: dict,
     max_data_points: int,
+    deadline: str | None,
+    milestone: str | None,
 ) -> list:
     """Create Project Timeline section with date pickers and sliders."""
     return [
@@ -184,6 +189,7 @@ def _create_timeline_section(
                         "deadline-picker",
                         "deadline",
                         "Leave empty for open-ended timeline",
+                        initial_date=deadline,
                     ),
                     xs=12,
                     md=6,
@@ -197,6 +203,7 @@ def _create_timeline_section(
                         "milestone-picker",
                         "milestone",
                         "Optional intermediate target date",
+                        initial_date=milestone,
                     ),
                     xs=12,
                     md=6,
@@ -228,9 +235,13 @@ def _create_timeline_section(
 
 
 def _create_date_picker_field(
-    label: str, picker_id: str, help_topic: str, help_text: str
+    label: str,
+    picker_id: str,
+    help_topic: str,
+    help_text: str,
+    initial_date: str | None = None,
 ) -> list:
-    """Create a date picker field with label and help tooltip."""
+    """Create a timeline date field with label and help tooltip."""
     return [
         html.Label(
             [
@@ -245,12 +256,11 @@ def _create_date_picker_field(
         ),
         dcc.DatePickerSingle(
             id=picker_id,
-            date=None,
+            date=initial_date,
             display_format="YYYY-MM-DD",
             placeholder="Optional",
             clearable=True,
             first_day_of_week=1,
-            min_date_allowed=datetime.now().strftime("%Y-%m-%d"),
             className="w-100",
             style={"fontSize": "0.875rem"},
         ),

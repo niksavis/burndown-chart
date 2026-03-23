@@ -59,30 +59,45 @@
   padding-right: 0 !important;
 }
 
-/* Exact pixel dimensions for both pickers */
-#deadline-picker,
-#milestone-picker {
-  height: 36px !important; /* Match unified form control height */
+/* Exact pixel dimensions for both picker wrappers */
+#deadline-picker-wrapper,
+#milestone-picker-wrapper {
   padding: 0 !important;
   box-sizing: border-box !important;
   margin: 0 !important;
-  display: flex !important;
-  align-items: center !important;
+}
+
+/* Force timeline inputs to occupy full width.
+   Newer dcc DatePicker renders these IDs on the actual input elements. */
+#deadline-picker,
+#milestone-picker {
+  width: 100% !important;
+  min-width: 100% !important;
+  display: block !important;
+  box-sizing: border-box !important;
 }
 
 /* Timeline section date picker alignment - normalize both */
-#deadline-picker,
-#milestone-picker {
+#deadline-picker-wrapper,
+#milestone-picker-wrapper {
   position: relative !important;
   margin-top: 0 !important; /* No margin - labels provide the spacing */
 }
 
-/* Ensure font and line heights match */
+/* Ensure font and line heights match.
+   Support both DOM variants:
+   1) ID on wrapper (legacy): #id .DateInput_input
+   2) ID on input   (current): #id.DateInput_input and #id.dash-datepicker-input */
 #deadline-picker .DateInput_input,
-#milestone-picker .DateInput_input {
+#milestone-picker .DateInput_input,
+#deadline-picker.DateInput_input,
+#milestone-picker.DateInput_input,
+#deadline-picker.dash-datepicker-input,
+#milestone-picker.dash-datepicker-input {
   font-size: 0.875rem !important;
   line-height: 1.5 !important;
   padding: 0.375rem 0.5rem !important;
+  padding-left: 0.5rem !important;
   padding-right: 0.5rem !important;
   height: 36px !important;
 }
