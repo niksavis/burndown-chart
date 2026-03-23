@@ -42,11 +42,6 @@
   "guidance": {
     "max_lines_per_read": 500,
     "use_semantic_search": true,
-    "focus_folders": [
-      "data",
-      "ui",
-      "callbacks",
-      "visualization"
-    ]
+    "focus_folders": ["data", "ui", "callbacks", "visualization"]
   }
 }
