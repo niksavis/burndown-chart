@@ -12,6 +12,7 @@ from data.issue_filtering import filter_issues_for_metrics
 from data.persistence import load_app_settings
 from data.persistence.factory import get_backend
 from data.sprint_manager import (
+    build_issue_state_lookup,
     calculate_sprint_progress,
     calculate_sprint_scope_change_points,
     calculate_sprint_scope_changes,
@@ -96,6 +97,7 @@ def update_sprint_selection(selected_sprint: str, show_points_list: list):
             )
 
         tracked_issues = filter_sprint_issues(all_issues)
+        all_issue_states = build_issue_state_lookup(tracked_issues)
 
         if not tracked_issues:
             return no_update
@@ -208,7 +210,9 @@ def update_sprint_selection(selected_sprint: str, show_points_list: list):
             sprint_state=sprint_state,
         )
         scope_changes_view = create_sprint_scope_changes_view(
-            scope_change_issues, sprint_state=sprint_state
+            scope_change_issues,
+            sprint_state=sprint_state,
+            issue_states=all_issue_states,
         )
 
         # Load status changelog

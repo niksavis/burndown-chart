@@ -22,6 +22,43 @@ from dateutil import parser as date_parser
 logger = logging.getLogger(__name__)
 
 
+def _extract_issue_state(issue: dict) -> dict:
+    """Extract normalized issue state payload for sprint UI and metrics."""
+    status = issue.get("status", "Unknown")
+
+    story_points = issue.get("points")
+    if story_points is None:
+        custom_fields = issue.get("custom_fields", {})
+        if isinstance(custom_fields, dict):
+            for field in [
+                "customfield_10002",
+                "customfield_10016",
+                "customfield_10026",
+            ]:
+                story_points = custom_fields.get(field)
+                if story_points is not None:
+                    break
+
+    issue_type = issue.get("issue_type", "Unknown")
+    summary = issue.get("summary", "")
+
+    return {
+        "status": status,
+        "story_points": story_points,
+        "issue_type": issue_type,
+        "summary": summary,
+    }
+
+
+def build_issue_state_lookup(issues: list[dict]) -> dict[str, dict]:
+    """Build issue-key lookup used by scope and progress presentation."""
+    return {
+        issue_key: _extract_issue_state(issue)
+        for issue in issues
+        if isinstance((issue_key := issue.get("issue_key")), str) and issue_key
+    }
+
+
 def get_active_sprint_from_issues(
     issues: list[dict], sprint_field: str = "customfield_10005"
 ) -> dict | None:
@@ -320,8 +357,7 @@ def get_sprint_snapshots(
     logger.info(f"Added {added_count} issues with no changelog to sprint snapshots")
 
     # Enrich snapshots with current issue states from issues list
-    # Backend returns flattened structure with 'issue_key' (not 'key')
-    issues_by_key = {issue.get("issue_key"): issue for issue in issues}
+    all_issue_states = build_issue_state_lookup(issues)
 
     for sprint_id, snapshot in sprint_snapshots.items():
         # Convert set to list for JSON serialization
@@ -330,41 +366,9 @@ def get_sprint_snapshots(
 
         # Add current state for each issue in sprint
         for issue_key in snapshot["current_issues"]:
-            if issue_key in issues_by_key:
-                issue = issues_by_key[issue_key]
-
-                # Backend returns flattened structure, not nested fields
-                status = issue.get("status", "Unknown")
-
-                # Extract story points from custom_fields or direct 'points' field
-                story_points = issue.get("points")  # Backend stores normalized points
-
-                # If points is None, try custom_fields as fallback
-                if story_points is None:
-                    custom_fields = issue.get("custom_fields", {})
-                    if isinstance(custom_fields, dict):
-                        # Try common story points field IDs
-                        for field in [
-                            "customfield_10002",
-                            "customfield_10016",
-                            "customfield_10026",
-                        ]:
-                            story_points = custom_fields.get(field)
-                            if story_points is not None:
-                                break
-
-                # Extract issue type (backend returns flattened)
-                issue_type = issue.get("issue_type", "Unknown")
-
-                # Extract summary (backend returns flattened)
-                summary = issue.get("summary", "")
-
-                snapshot["issue_states"][issue_key] = {
-                    "status": status,
-                    "story_points": story_points,
-                    "issue_type": issue_type,
-                    "summary": summary,
-                }
+            issue_state = all_issue_states.get(issue_key)
+            if issue_state is not None:
+                snapshot["issue_states"][issue_key] = issue_state
 
     logger.info(f"Built snapshots for {len(sprint_snapshots)} sprints")
 

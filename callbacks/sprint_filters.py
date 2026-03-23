@@ -12,6 +12,7 @@ from data.issue_filtering import filter_issues_for_metrics
 from data.persistence import load_app_settings
 from data.persistence.factory import get_backend
 from data.sprint_manager import (
+    build_issue_state_lookup,
     calculate_sprint_progress,
     calculate_sprint_scope_change_points,
     calculate_sprint_scope_changes,
@@ -90,6 +91,7 @@ def filter_sprint_by_issue_type(
         filtered_issues = filter_sprint_issues(
             all_issues, tracked_issue_types=tracked_types
         )
+        all_issue_states = build_issue_state_lookup(filtered_issues)
 
         if not filtered_issues:
             return html.Div(
@@ -248,7 +250,9 @@ def filter_sprint_by_issue_type(
             sprint_state=sprint_state,
         )
         scope_changes_view = create_sprint_scope_changes_view(
-            scope_change_issues, sprint_state=sprint_state
+            scope_change_issues,
+            sprint_state=sprint_state,
+            issue_states=all_issue_states,
         )
 
         # Load status changelog for timeline

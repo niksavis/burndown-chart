@@ -19,6 +19,7 @@ from data.persistence.factory import get_backend
 from data.project_filter import filter_development_issues
 from data.sprint_manager import (
     _parse_sprint_object,
+    build_issue_state_lookup,
     calculate_sprint_progress,
     calculate_sprint_scope_change_points,
     calculate_sprint_scope_changes,
@@ -98,6 +99,7 @@ def _render_sprint_tracker_content(
 
         # Filter to tracked issue types (Story, Task, Bug - exclude sub-tasks)
         tracked_issues = filter_sprint_issues(all_issues)
+        all_issue_states = build_issue_state_lookup(tracked_issues)
 
         if not tracked_issues:
             logger.warning("No tracked issue types (Story/Task/Bug) found")
@@ -280,7 +282,9 @@ def _render_sprint_tracker_content(
             sprint_state=selected_sprint_state,
         )
         scope_changes_view = create_sprint_scope_changes_view(
-            scope_change_issues, sprint_state=selected_sprint_state
+            scope_change_issues,
+            sprint_state=selected_sprint_state,
+            issue_states=all_issue_states,
         )
 
         # Load status changelog for time-in-status calculation

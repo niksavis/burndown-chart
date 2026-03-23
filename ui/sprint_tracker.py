@@ -12,6 +12,8 @@ Follows Bug Analysis pattern for conditional tab display.
 import dash_bootstrap_components as dbc
 from dash import dcc, html
 
+from ui.jira_link_helper import create_jira_issue_link
+
 
 def create_sprint_tracker_tab() -> html.Div:
     """Create Sprint Tracker tab container.
@@ -213,17 +215,20 @@ def create_sprint_summary_cards(
 def create_sprint_scope_changes_view(
     scope_change_issues: dict[str, list[str]],
     sprint_state: str | None = None,
+    issue_states: dict[str, dict] | None = None,
 ) -> html.Div | dbc.Card:
-    """Create a closed-sprint scope changes section with added/removed issue lists.
+    """Create a sprint scope changes section with rich issue rows.
 
     Args:
         scope_change_issues: Dict with issue key lists for added and removed
         sprint_state: Sprint state (ACTIVE/CLOSED/FUTURE)
+        issue_states: Optional mapping of issue_key to state dict
+            (issue_type, summary, status, story_points)
 
     Returns:
         Scope changes section, or empty div when not applicable
     """
-    if sprint_state != "CLOSED":
+    if sprint_state not in {"ACTIVE", "CLOSED"}:
         return html.Div()
 
     added_issues = scope_change_issues.get("added", [])
@@ -232,17 +237,88 @@ def create_sprint_scope_changes_view(
     if not added_issues and not removed_issues:
         return html.Div()
 
-    def _issue_list(items: list[str], empty_text: str) -> html.Ul | html.Div:
-        if not items:
-            return html.Div(empty_text, className="text-muted small")
-        return html.Ul([html.Li(item) for item in items], className="mb-0")
+    states = issue_states or {}
+
+    def _type_icon(issue_type: str) -> tuple[str, str]:
+        t = issue_type.lower()
+        if "bug" in t or "defect" in t:
+            return ("fa-bug", "#dc3545")
+        if "task" in t:
+            return ("fa-tasks", "#0d6efd")
+        if "story" in t:
+            return ("fa-book", "#198754")
+        if "epic" in t:
+            return ("fa-flag", "#6f42c1")
+        return ("fa-circle", "#6c757d")
+
+    def _scope_row(key: str, is_added: bool) -> html.Div:
+        state = states.get(key, {})
+        issue_type = state.get("issue_type", "Unknown")
+        summary = state.get("summary", "")
+        if not summary:
+            display_summary = "No summary available"
+        else:
+            display_summary = summary[:60] + "..." if len(summary) > 60 else summary
+        icon_class, icon_color = _type_icon(issue_type)
+        scope_cls = (
+            "fa-solid fa-circle-plus text-success"
+            if is_added
+            else "fa-solid fa-circle-minus text-danger"
+        )
+        return html.Div(
+            [
+                html.I(
+                    className=f"{scope_cls} me-1",
+                    style={"fontSize": "0.75rem", "flexShrink": "0"},
+                ),
+                html.I(
+                    className=f"fas {icon_class} me-1",
+                    style={
+                        "color": icon_color,
+                        "fontSize": "0.8rem",
+                        "flexShrink": "0",
+                    },
+                    title=issue_type,
+                ),
+                create_jira_issue_link(
+                    key,
+                    className="fw-semibold me-1",
+                    style={
+                        "fontSize": "0.85rem",
+                        "color": "#495057",
+                        "flexShrink": "0",
+                    },
+                ),
+                html.Span(
+                    display_summary,
+                    className="text-muted text-truncate",
+                    style={"fontSize": "0.82rem"},
+                ),
+            ],
+            className="d-flex align-items-center py-1",
+            style={"borderBottom": "1px solid #f0f0f0", "minWidth": "0"},
+        )
+
+    def _scope_list(keys: list[str], is_added: bool, empty_text: str) -> html.Div:
+        if not keys:
+            return html.Div(empty_text, className="text-muted small fst-italic")
+        return html.Div([_scope_row(k, is_added) for k in keys])
 
     return dbc.Card(
         [
             dbc.CardHeader(
                 [
                     html.I(className="fas fa-shuffle me-2"),
-                    html.Strong("Scope Changes During Sprint"),
+                    html.Strong(
+                        "Scope Changes During Sprint"
+                        if sprint_state == "CLOSED"
+                        else "Scope Changes During Sprint (So Far)"
+                    ),
+                    html.Span(
+                        " — see Issue Progress below for outcomes",
+                        className="text-muted ms-1",
+                        style={"fontSize": "0.82rem", "fontWeight": "normal"},
+                    ),
                 ]
             ),
             dbc.CardBody(
@@ -250,10 +326,19 @@ def create_sprint_scope_changes_view(
                     [
                         dbc.Col(
                             [
-                                html.H6("Added After Start", className="text-success"),
-                                _issue_list(
+                                html.H6(
+                                    [
+                                        html.I(
+                                            className="fas fa-circle-plus text-success me-1"
+                                        ),
+                                        f"Added After Start ({len(added_issues)})",
+                                    ],
+                                    className="text-success mb-2",
+                                ),
+                                _scope_list(
                                     added_issues,
-                                    "No issues were added after sprint start.",
+                                    is_added=True,
+                                    empty_text="No issues were added after sprint start.",
                                 ),
                             ],
                             xs=12,
@@ -261,10 +346,19 @@ def create_sprint_scope_changes_view(
                         ),
                         dbc.Col(
                             [
-                                html.H6("Removed After Start", className="text-danger"),
-                                _issue_list(
+                                html.H6(
+                                    [
+                                        html.I(
+                                            className="fas fa-circle-minus text-danger me-1"
+                                        ),
+                                        f"Removed After Start ({len(removed_issues)})",
+                                    ],
+                                    className="text-danger mb-2",
+                                ),
+                                _scope_list(
                                     removed_issues,
-                                    "No issues were removed after sprint start.",
+                                    is_added=False,
+                                    empty_text="No issues were removed after sprint start.",
                                 ),
                             ],
                             xs=12,
