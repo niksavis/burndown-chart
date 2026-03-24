@@ -42,6 +42,9 @@ PROJECT_ROOT = Path(__file__).parent
 VERSION_INFO_SCRIPT = PROJECT_ROOT / "build" / "generate_version_info.py"
 METRICS_SCRIPT = PROJECT_ROOT / "update_codebase_metrics.py"
 
+# Bead ID used in all automated commit messages (set in main)
+BEAD_ID: str = ""
+
 
 def run_command(cmd: list[str], description: str) -> tuple[bool, str]:
     """Run a shell command and return success status and output."""
@@ -241,8 +244,14 @@ def regenerate_version_info() -> bool:
     if not success:
         return False
 
+    bead_suffix = f" ({BEAD_ID})" if BEAD_ID else ""
     success, _ = run_command(
-        ["git", "commit", "-m", "chore(build): update version_info files for release"],
+        [
+            "git",
+            "commit",
+            "-m",
+            f"chore(build): update version_info files for release{bead_suffix}",
+        ],
         "Commit version_info files",
     )
 
@@ -310,8 +319,14 @@ def bump_version(bump_type: str) -> tuple[bool, str]:
         if not success:
             return False, ""
 
+        bead_suffix = f" ({BEAD_ID})" if BEAD_ID else ""
         success, _ = run_command(
-            ["git", "commit", "-m", f"chore: bump version to {new_version_str}"],
+            [
+                "git",
+                "commit",
+                "-m",
+                f"chore(release): bump version to {new_version_str}{bead_suffix}",
+            ],
             "Commit version changes",
         )
         if not success:
@@ -416,12 +431,13 @@ def run_lint_gate() -> bool:
     if not commit_ok:
         return False
 
-    commit_ok, _ = run_command(
+    bead_suffix = f" ({BEAD_ID})" if BEAD_ID else ""
+    success, _ = run_command(
         [
             "git",
             "commit",
             "-m",
-            "style(format): apply pre-commit formatters for release",
+            f"style(format): apply pre-commit formatters for release{bead_suffix}",
         ],
         "Commit formatter fixes",
     )
@@ -453,7 +469,8 @@ def create_release_commit(version: str) -> bool:
     print("Creating Release Commit")
     print("=" * 60)
 
-    commit_message = f"Release v{version}"
+    bead_suffix = f" ({BEAD_ID})" if BEAD_ID else ""
+    commit_message = f"chore(release): refresh release metadata artifacts{bead_suffix}"
 
     success, _ = run_command(
         ["git", "commit", "--allow-empty", "-m", commit_message],
@@ -534,13 +551,23 @@ def main():
         choices=["major", "minor", "patch"],
         help="Version bump type (major: X.0.0, minor: 0.X.0, patch: 0.0.X)",
     )
+    parser.add_argument(
+        "--bead-id",
+        default="",
+        help="Beads issue ID to include in commit messages (e.g. burndown-chart-abc1)",
+    )
 
     args = parser.parse_args()
 
     print("=" * 60)
     print("Burndown - Automated Release")
     print("=" * 60)
+    global BEAD_ID
+    BEAD_ID = args.bead_id
+
     print(f"\nBump Type: {args.bump_type}")
+    if BEAD_ID:
+        print(f"Bead ID: {BEAD_ID}")
 
     # Preflight checks
     print("\n[PREFLIGHT CHECKS]")
