@@ -2,9 +2,16 @@
   "version": "2.0.0",
   "tasks": [
     {
-      "label": "Beads Sync Status",
+      "label": "Beads Fetch Issues",
       "type": "shell",
-      "command": "bd sync --status",
+      "command": "bd backup fetch-git",
+      "isBackground": false,
+      "problemMatcher": []
+    },
+    {
+      "label": "Beads Export Issues",
+      "type": "shell",
+      "command": "bd backup export-git",
       "isBackground": false,
       "problemMatcher": []
     }

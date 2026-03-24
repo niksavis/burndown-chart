@@ -76,6 +76,7 @@ When recurring or novel task patterns are discovered during implementation:
 | `.github/skills/refactor/SKILL.md`                     | Behavior-preserving refactoring workflow                      | Large-file splits and cleanup tasks     |
 | `.github/skills/circular-import-safety/SKILL.md`       | Detect, diagnose, and resolve circular Python import cycles   | Any cross-module import change, PLC0415 violations, module restructure |
 | `.github/skills/make-skill-template/SKILL.md`          | Skill scaffolding template (`disable-model-invocation: true`) | Creating new skills — invoke explicitly |
+| `.github/skills/beads-workflow/SKILL.md`               | Full multi-dev beads lifecycle: fetch, search, create, export, claim, close | Any bead create/claim/status change     |
 
 ## Custom Agents (Subagents)
 
