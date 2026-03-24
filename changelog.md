@@ -1,5 +1,18 @@
 # Changelog
 
+## v2.15.1
+
+_Released: 2026-03-24_
+
+### Bug Fixes
+
+- **Offline Report Rendering**: Embedded charts and resources in offline HTML reports now render correctly when viewed without an internet connection
+
+### Improvements
+
+- Removed outdated profile promotion banner from the UI for a cleaner experience
+- Jira date parsing is now more stable under load, improving reliability during data refresh
+
 ## v2.15.0
 
 _Released: 2026-03-23_
