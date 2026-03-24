@@ -22,7 +22,6 @@ dependencies:
     - waitress
     - pyperclip
     - python_dotenv
-    - networkx
     - pydantic
 
   # Development/test dependencies to exclude from bundle

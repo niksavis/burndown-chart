@@ -21,6 +21,8 @@ from ui.jira_config_modal import create_jira_config_button
 from ui.jql_editor import create_jql_editor
 from ui.profile_settings_card import create_profile_settings_card
 
+PROFILE_REQUIRED_TOOLTIP = "Create or import a profile first."
+
 
 def create_connect_tab_content() -> html.Div:
     """
@@ -387,6 +389,11 @@ def create_tabbed_settings_panel() -> html.Div:
         [
             # Configuration status store
             dcc.Store(id="configuration-status-store", data={}),
+            html.Span(
+                PROFILE_REQUIRED_TOOLTIP,
+                id="tab-profile-required-description",
+                className="visually-hidden",
+            ),
             # Tabs row with collapse button
             html.Div(
                 [
@@ -396,6 +403,7 @@ def create_tabbed_settings_panel() -> html.Div:
                     dbc.Tabs(
                         [
                             dbc.Tab(
+                                id="profile-settings-tab",
                                 label="Profile",
                                 tab_id="profile-tab",
                                 label_style={"width": "100%"},
@@ -407,6 +415,7 @@ def create_tabbed_settings_panel() -> html.Div:
                                 ],
                             ),
                             dbc.Tab(
+                                id="connect-settings-tab",
                                 label="Connect",
                                 tab_id="connect-tab",
                                 label_style={"width": "100%"},
@@ -425,6 +434,7 @@ def create_tabbed_settings_panel() -> html.Div:
                                 ],
                             ),
                             dbc.Tab(
+                                id="queries-settings-tab",
                                 label="Queries",
                                 tab_id="queries-tab",
                                 label_style={"width": "100%"},
@@ -448,6 +458,20 @@ def create_tabbed_settings_panel() -> html.Div:
                         id="settings-tabs",
                         active_tab="profile-tab",
                         className="settings-tabs",
+                    ),
+                    dbc.Tooltip(
+                        PROFILE_REQUIRED_TOOLTIP,
+                        id="connect-tab-disabled-tooltip",
+                        target="connect-settings-tab",
+                        placement="bottom",
+                        class_name="tooltip-info",
+                    ),
+                    dbc.Tooltip(
+                        PROFILE_REQUIRED_TOOLTIP,
+                        id="queries-tab-disabled-tooltip",
+                        target="queries-settings-tab",
+                        placement="bottom",
+                        class_name="tooltip-info",
                     ),
                 ],
                 className="panel-tabs-container",

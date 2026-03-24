@@ -59,11 +59,12 @@ Apply these rules when changing build scripts, release automation, or packaging 
 ### Testing builds
 
 ```powershell
-# Clean build test
-Remove-Item -Recurse -Force dist, build -ErrorAction SilentlyContinue
-.venv\Scripts\activate
-python -m PyInstaller build/app.spec
-.\dist\Burndown.exe --version  # Verify
+# Activate venv, then run the build script (handles both app and updater)
+.venv\Scripts\Activate.ps1
+.\build\build.ps1
+
+# Verify after build completes (exe name comes from app.spec name='Burndown')
+.\dist\Burndown.exe
 ```
 
 ### Dependency management

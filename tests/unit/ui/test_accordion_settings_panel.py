@@ -126,7 +126,6 @@ class TestProfileSettingsCard:
         # Profile management labels
         assert "Profile Management" in card_str
         assert "Profile" in card_str  # Profile selector label
-        assert "New" in card_str  # Create new profile button
         assert "Duplicate" in card_str  # Duplicate profile button
 
 

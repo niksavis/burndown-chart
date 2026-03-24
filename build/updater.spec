@@ -35,7 +35,6 @@ excludes = [
     'numpy',
     'scipy',
     'matplotlib',
-    'networkx',
     'pydantic',
     # Test frameworks
     'pytest',

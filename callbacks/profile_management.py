@@ -126,8 +126,7 @@ def refresh_profile_selector(
         else (profiles[0]["id"] if profiles else None)
     )
 
-    # Highlight New button when no profiles exist
-    new_button_class = "me-1 highlight-first-action" if not has_profiles else "me-1"
+    new_button_class = "me-1"
 
     return (
         options,

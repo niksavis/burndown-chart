@@ -17,7 +17,7 @@ class TestProfileEmptyState:
     """Test UI and data handling when no profiles exist."""
 
     def test_refresh_profile_selector_with_no_profiles_shows_empty_state(self):
-        """Verify New button gets highlight class when no profiles exist."""
+        """Verify New button uses stable class when no profiles exist."""
         from callbacks.profile_management import refresh_profile_selector
 
         with patch("callbacks.profile_management.list_profiles", return_value=[]):
@@ -48,11 +48,11 @@ class TestProfileEmptyState:
                 assert duplicate_disabled is True
                 assert delete_disabled is True
 
-                # Verify New button has highlight class
-                assert "highlight-first-action" in new_button_class
+                # Verify New button class is stable (no pulse/highlight modifier)
+                assert new_button_class == "me-1"
 
     def test_refresh_profile_selector_with_profiles_hides_empty_state(self):
-        """Verify New button does NOT get highlight class when profiles exist."""
+        """Verify New button class remains stable when profiles exist."""
         from callbacks.profile_management import refresh_profile_selector
 
         mock_profiles = [
@@ -98,8 +98,7 @@ class TestProfileEmptyState:
                 assert duplicate_disabled is False
                 assert delete_disabled is False
 
-                # Verify New button does NOT have highlight class
-                assert "highlight-first-action" not in new_button_class
+                assert new_button_class == "me-1"
 
     def test_load_statistics_returns_empty_when_no_active_profile(self):
         """Verify load_statistics returns empty list with no active profile."""

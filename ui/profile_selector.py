@@ -125,7 +125,6 @@ def create_profile_selector_panel(id_suffix: str = "") -> html.Div:
     Returns:
         Div containing profile management UI (no card wrapper)
     """
-    # Use same UI regardless of profile count - simpler and consistent
     return html.Div(
         [
             dbc.Row(
