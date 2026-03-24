@@ -36,23 +36,29 @@ bd status      # must show 600+ issues
 ## Step 0: Sync Before Starting Any Work
 
 **Always run before creating a new bead or starting on an existing one.**
-Skipping this step creates duplicate work.
+Skipping this step risks duplicate work and causes non-fast-forward errors on the next export.
+
+Via `git pull` (recommended — also syncs code):
 
 ```powershell
-git pull --rebase            # pulls code + triggers post-merge hook (auto-fetches beads)
-bd ready --json              # shows open, unblocked, unclaimed work
+git pull --rebase                                      # auto-fetches beads via post-merge hook
+git branch -f beads-backup origin/beads-backup         # align local branch so export succeeds
+bd ready --json                                        # shows open, unblocked, unclaimed work
 ```
 
-If you did not do a `git pull`, fetch beads explicitly:
+Mid-session without a code pull:
 
 ```powershell
 bd backup fetch-git
+git branch -f beads-backup origin/beads-backup         # align local branch so export succeeds
 bd ready --json
 ```
 
-> The post-merge git hook calls `bd backup fetch-git` automatically on
-> every `git pull`, so an explicit fetch is only needed when you want
-> mid-session visibility without pulling code.
+> **Why the branch alignment?** `bd backup fetch-git` restores the Dolt DB from remote
+> but does NOT advance the local `beads-backup` git branch. If a teammate exported
+> between sessions, your local branch falls behind remote. Running `bd backup export-git`
+> without this step causes a non-fast-forward error. One `git branch -f` at session start
+> eliminates the problem entirely.
 
 ---
 
@@ -103,6 +109,15 @@ bd backup export-git
 
 Run this right after every `bd create` call. Do not wait until the next push.
 
+**Verifying export success:**
+
+| Output | Meaning |
+|---|---|
+| `Exported backup snapshot ... Push: complete` | Success — data is on remote |
+| `No backup snapshot changes to export` | Success — already up to date |
+| `Error: remove temp worktree ... Permission denied` | **Windows-only benign cleanup bug.** The push succeeded before the error. Re-run export; if it prints "No changes", the data is already on remote. |
+| `non-fast-forward` | Local branch is behind remote — run `git branch -f beads-backup origin/beads-backup` then retry. |
+
 ---
 
 ## Step 4: Claim and Export When Starting Work
@@ -114,6 +129,10 @@ bd backup export-git               # publish claim immediately
 
 **Order is required**: claim first, export second. Teammates who run
 `bd backup fetch-git` after this point will see the bead as taken.
+
+> **If export fails here**, the claim is recorded in your local DB only — teammates
+> CANNOT see it yet. Fix the export (see troubleshooting below) and retry before
+> starting work to keep the team collision window closed.
 
 ---
 
@@ -192,4 +211,6 @@ Example: `feat(visualization): add burndown forecast line (burndown-chart-42)`
 | Duplicate bead discovered after creating | Close the new one: `bd close <new-id> --reason "Duplicate of <old-id>"`, link with `bd duplicate <new-id> <old-id>` |
 | Teammate claimed same bead | Whoever claimed second: `bd update <id> --status open --json` to unclaim, defer to first claimer |
 | `bd backup export-git` fails | Check `git remote -v` — needs `origin` with write access |
+| `bd backup export-git` non-fast-forward error | Run `git branch -f beads-backup origin/beads-backup` to realign the local tracking branch, then retry |
+| `bd backup export-git` "remove temp worktree: Permission denied" | Windows file-locking benign bug — the push succeeded before cleanup failed. Verify with `bd backup export-git` again: if it reports "No backup snapshot changes", the data is already on remote |
 | Pre-push hook skips beads export | Hook only fires on code pushes (not tag/delete/beads-backup-only pushes) — export manually if needed |

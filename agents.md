@@ -37,9 +37,10 @@ If specialized patterns are discovered during implementation, run the self-evolv
 
 ```powershell
 bd dolt status
-bd backup fetch-git
-bd ready --json
 git pull --rebase
+bd backup fetch-git
+git branch -f beads-backup origin/beads-backup   # align local branch so export succeeds
+bd ready --json
 ```
 
 ## Beads Commands

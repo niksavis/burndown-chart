@@ -163,9 +163,15 @@ bd hooks install
 
 ```powershell
 git pull --rebase
-bd backup fetch-git   # pull latest issue snapshot from team
-bd ready              # shows only open, unblocked, unclaimed work
+bd backup fetch-git                                    # pull latest issue snapshot from team
+git branch -f beads-backup origin/beads-backup         # align local branch so export succeeds
+bd ready                                               # shows only open, unblocked, unclaimed work
 ```
+
+> **Always run `git branch -f beads-backup origin/beads-backup` after fetching.**
+> `bd backup fetch-git` restores the Dolt DB but does not advance the local git branch.
+> Without this step, `bd backup export-git` fails with non-fast-forward when another
+> developer has exported since your last session.
 
 `bd ready` automatically excludes:
 - Beads with status `in_progress` or `closed`
