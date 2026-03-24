@@ -1,42 +1,42 @@
 {
-  "last_updated": "2026-03-23",
+  "last_updated": "2026-03-24",
   "recommended_strategy": "strict-chunking",
   "metrics": {
     "total": {
-      "files": 861,
-      "lines": 234341,
-      "chars": 8272244,
-      "tokens": 2061975
+      "files": 864,
+      "lines": 234803,
+      "chars": 8288066,
+      "tokens": 2066415
     },
     "code": {
-      "files": 598,
-      "lines": 166203,
-      "chars": 5892224,
-      "tokens": 1468721
+      "files": 599,
+      "lines": 166371,
+      "chars": 5897323,
+      "tokens": 1470345
     },
     "docs": {
-      "files": 104,
-      "lines": 23296,
-      "chars": 747980,
-      "tokens": 186444
+      "files": 105,
+      "lines": 23537,
+      "chars": 756872,
+      "tokens": 188706
     },
     "tests": {
-      "files": 159,
-      "lines": 44842,
-      "chars": 1632040,
-      "tokens": 406809
+      "files": 160,
+      "lines": 44895,
+      "chars": 1633871,
+      "tokens": 407363
     },
     "python": {
       "files": 510,
-      "lines": 153348,
-      "chars": 5547680,
-      "tokens": 1382838
+      "lines": 153443,
+      "chars": 5550894,
+      "tokens": 1383972
     },
     "frontend": {
-      "files": 88,
-      "lines": 12855,
-      "chars": 344544,
-      "tokens": 85882
+      "files": 89,
+      "lines": 12928,
+      "chars": 346429,
+      "tokens": 86373
     }
   },
   "guidance": {

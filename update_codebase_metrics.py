@@ -354,14 +354,23 @@ def format_with_prettier(files: list[Path]) -> None:
     """
     import shutil  # noqa: PLC0415
     import subprocess  # noqa: PLC0415
+    import sys  # noqa: PLC0415
 
-    if not shutil.which("npx"):
+    # On Windows, npx is npx.cmd — shutil.which("npx") may resolve npx.ps1
+    # which subprocess cannot execute directly.  Prefer npx.cmd when present.
+    if sys.platform == "win32":
+        npx_cmd = shutil.which("npx.cmd") or shutil.which("npx.cmd", path=None)
+    else:
+        npx_cmd = None
+    npx = npx_cmd or shutil.which("npx")
+
+    if not npx:
         return
 
     paths = [str(f) for f in files]
     try:
         subprocess.run(
-            ["npx", "--yes", "prettier", "--write", *paths],
+            [npx, "--yes", "prettier", "--write", *paths],
             capture_output=True,
             check=True,
             cwd=PROJECT_ROOT,
@@ -399,7 +408,7 @@ def write_metrics_files(metrics: dict[str, dict[str, int]], markdown_text: str) 
     print(f"[OK] Updated {CONTEXT_METRICS_JSON.relative_to(PROJECT_ROOT)}")
 
 
-def commit_changes() -> bool:
+def commit_changes(bead_id: str = "") -> bool:
     """Commit context metrics artifact changes to git if modified."""
     import subprocess  # noqa: PLC0415
 
@@ -435,12 +444,13 @@ def commit_changes() -> bool:
         )
 
         # Commit the changes
+        bead_suffix = f" ({bead_id})" if bead_id else ""
         subprocess.run(
             [
                 "git",
                 "commit",
                 "-m",
-                "docs(metrics): update codebase context metrics",
+                f"docs(metrics): update codebase context metrics{bead_suffix}",
             ],
             check=True,
             cwd=PROJECT_ROOT,
@@ -460,6 +470,16 @@ def commit_changes() -> bool:
 
 def main() -> None:
     """Calculate metrics and update dedicated context metrics artifacts."""
+    import argparse  # noqa: PLC0415
+
+    parser = argparse.ArgumentParser(description="Update codebase context metrics")
+    parser.add_argument(
+        "--bead-id",
+        default="",
+        help="Bead ID to include in the git commit message (e.g. burndown-chart-abc1)",
+    )
+    args = parser.parse_args()
+
     print("Calculating codebase metrics...")
 
     metrics = calculate_metrics()
@@ -495,7 +515,7 @@ def main() -> None:
     write_metrics_files(metrics, metrics_markdown)
 
     # Commit changes to git
-    commit_changes()
+    commit_changes(bead_id=args.bead_id)
 
     print("[SUCCESS] Context metrics artifacts updated")
 

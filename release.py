@@ -273,10 +273,10 @@ def update_codebase_metrics() -> bool:
         print("[SKIP] Codebase metrics not updated")
         return True  # Non-critical, continue release
 
-    success, _ = run_command(
-        [sys.executable, str(METRICS_SCRIPT)],
-        "Calculate and update context metrics artifacts",
-    )
+    cmd = [sys.executable, str(METRICS_SCRIPT)]
+    if BEAD_ID:
+        cmd += ["--bead-id", BEAD_ID]
+    success, _ = run_command(cmd, "Calculate and update context metrics artifacts")
 
     if not success:
         print("[WARNING] Could not update metrics (non-critical)")
@@ -370,41 +370,37 @@ def bump_version(bump_type: str) -> tuple[bool, str]:
 
 
 def run_lint_gate() -> bool:
-    """Run pre-commit on all files and auto-commit any formatter fixes.
+    """Run fast lint + type checks before tagging.
 
-    Runs pre-commit once.  If it exits non-zero because hooks reformatted
-    files, the changes are committed and pre-commit is re-run to confirm a
-    clean pass.  Any remaining failure aborts the release.
+    Uses validate.py --fast (ruff + pyright) instead of
+    pre-commit run --all-files.  The git pre-commit hook already
+    runs validate.py on every automated commit in this script, so a
+    second full pre-commit sweep is redundant and slow.  A targeted
+    fast pass here catches any formatter drift introduced by the
+    release steps themselves (version file writes, metrics updates).
 
     Returns:
         True when the lint gate passes, False on unrecoverable failure.
     """
     print("\n" + "=" * 60)
-    print("Running Pre-commit Lint Gate")
+    print("Running Fast Lint Gate")
     print("=" * 60)
 
-    def _run_pre_commit() -> tuple[bool, str]:
-        """Execute pre-commit and return (passed, stdout)."""
-        try:
-            result = subprocess.run(
-                ["pre-commit", "run", "--all-files"],
-                capture_output=True,
-                text=True,
-                cwd=PROJECT_ROOT,
-            )
-            return result.returncode == 0, result.stdout + result.stderr
-        except FileNotFoundError:
-            return True, "[SKIP] pre-commit not found; skipping lint gate"
-
-    passed, output = _run_pre_commit()
-    if output:
-        print(output)
-
-    if passed:
-        print("[OK] Pre-commit lint gate passed")
+    validate_script = PROJECT_ROOT / "validate.py"
+    if not validate_script.exists():
+        print("[SKIP] validate.py not found; skipping lint gate")
         return True
 
-    # Check whether the failure was purely auto-fixes (dirty working tree)
+    success, _ = run_command(
+        [sys.executable, str(validate_script), "--fast"],
+        "validate.py --fast (ruff + pyright)",
+    )
+
+    if success:
+        print("[OK] Lint gate passed")
+        return True
+
+    # Check for auto-fixable drift (formatter rewrote files)
     status_result = subprocess.run(
         ["git", "status", "--porcelain"],
         capture_output=True,
@@ -415,47 +411,40 @@ def run_lint_gate() -> bool:
 
     if not modified_files:
         print(
-            "[FAILED] Pre-commit lint gate failed with no auto-fixable changes.",
-            file=sys.stderr,
+            "[FAILED] Lint gate failed with no auto-fixable changes.", file=sys.stderr
         )
-        print(output, file=sys.stderr)
         return False
 
-    # Auto-fixes were applied — commit them and re-verify
-    print("[INFO] Pre-commit applied formatting fixes; committing and re-verifying...")
+    # Auto-fixes applied — commit them and re-verify
+    print("[INFO] Formatter fixes applied; committing and re-verifying...")
 
-    commit_ok, _ = run_command(
-        ["git", "add", "-A"],
-        "Stage formatter fixes",
-    )
+    commit_ok, _ = run_command(["git", "add", "-A"], "Stage formatter fixes")
     if not commit_ok:
         return False
 
     bead_suffix = f" ({BEAD_ID})" if BEAD_ID else ""
-    success, _ = run_command(
+    commit_ok, _ = run_command(
         [
             "git",
             "commit",
             "-m",
-            f"style(format): apply pre-commit formatters for release{bead_suffix}",
+            f"style(format): apply formatter fixes for release{bead_suffix}",
         ],
         "Commit formatter fixes",
     )
     if not commit_ok:
         return False
 
-    # Second pass — must pass cleanly
-    passed, output = _run_pre_commit()
-    if output:
-        print(output)
-
-    if passed:
-        print("[OK] Pre-commit lint gate passed after auto-fix")
+    # Re-verify
+    success, _ = run_command(
+        [sys.executable, str(validate_script), "--fast"],
+        "validate.py --fast (re-verify after fixes)",
+    )
+    if success:
+        print("[OK] Lint gate passed after auto-fix")
         return True
 
-    print(
-        "[FAILED] Pre-commit lint gate still failing after auto-fix.", file=sys.stderr
-    )
+    print("[FAILED] Lint gate still failing after auto-fix.", file=sys.stderr)
     return False
 
 
