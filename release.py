@@ -106,6 +106,14 @@ def update_configuration_file(new_version: tuple[int, int, int]) -> str:
     )
 
     config_file.write_text(updated, encoding="utf-8")
+
+    # Ensure the file passes ruff format so the pre-commit hook does not reject it
+    subprocess.run(
+        [sys.executable, "-m", "ruff", "format", str(config_file)],
+        check=False,
+        capture_output=True,
+    )
+
     print(f"[OK] Updated configuration/__init__.py to {version_str}")
     return version_str
 
