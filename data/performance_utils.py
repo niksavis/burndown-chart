@@ -173,11 +173,29 @@ def parse_jira_date(date_string: str | None) -> datetime | None:
         return None
 
     try:
-        # Use dateutil.parser for robust parsing of ISO 8601 variants
+        # Fast path for common Jira date formats to reduce parser overhead.
+        if len(date_string) == 10 and date_string[4] == "-" and date_string[7] == "-":
+            return datetime.strptime(date_string, "%Y-%m-%d")
+
+        if "T" in date_string:
+            if date_string.endswith("Z"):
+                normalized = date_string[:-1] + "+0000"
+            else:
+                normalized = date_string
+
+            if "." in normalized:
+                return datetime.strptime(normalized, "%Y-%m-%dT%H:%M:%S.%f%z")
+
+            return datetime.strptime(normalized, "%Y-%m-%dT%H:%M:%S%z")
+
+        # Fallback for less common variants.
         return dateutil_parser.parse(date_string)
     except (ValueError, TypeError) as e:
-        logger.warning(f"Failed to parse date '{date_string}': {e}")
-        return None
+        try:
+            return dateutil_parser.parse(date_string)
+        except ValueError, TypeError:
+            logger.warning(f"Failed to parse date '{date_string}': {e}")
+            return None
 
 
 # ============================================================================
