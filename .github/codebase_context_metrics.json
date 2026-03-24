@@ -4,39 +4,39 @@
   "metrics": {
     "total": {
       "files": 864,
-      "lines": 234803,
-      "chars": 8288066,
-      "tokens": 2066415
+      "lines": 234814,
+      "chars": 8288533,
+      "tokens": 2066794
     },
     "code": {
       "files": 599,
-      "lines": 166371,
-      "chars": 5897323,
-      "tokens": 1470345
+      "lines": 166382,
+      "chars": 5897790,
+      "tokens": 1470648
     },
     "docs": {
       "files": 105,
       "lines": 23537,
       "chars": 756872,
-      "tokens": 188706
+      "tokens": 188730
     },
     "tests": {
       "files": 160,
       "lines": 44895,
       "chars": 1633871,
-      "tokens": 407363
+      "tokens": 407415
     },
     "python": {
       "files": 510,
-      "lines": 153443,
-      "chars": 5550894,
-      "tokens": 1383972
+      "lines": 153454,
+      "chars": 5551361,
+      "tokens": 1384264
     },
     "frontend": {
       "files": 89,
       "lines": 12928,
       "chars": 346429,
-      "tokens": 86373
+      "tokens": 86384
     }
   },
   "guidance": {

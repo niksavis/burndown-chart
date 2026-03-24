@@ -8,7 +8,7 @@ Purpose: provide lightweight context-sizing guidance for human and AI contributo
 |----------|-------|-------|--------|
 | **Total** | 864 | 234.8K | **~2.1M** |
 | Code (Python + JS/CSS) | 599 | 166.4K | ~1.5M |
-| Python (no tests) | 510 | 153.4K | ~1.4M |
+| Python (no tests) | 510 | 153.5K | ~1.4M |
 | Frontend (JS/CSS) | 89 | 12.9K | ~86.4K |
 | Tests | 160 | 44.9K | ~407.4K |
 | Documentation (MD) | 105 | 23.5K | ~188.7K |
