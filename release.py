@@ -15,8 +15,8 @@ Prerequisites:
     - No uncommitted changes in working directory
 
 Flow:
-    1. Preflight checks (clean working dir, on main branch)
-    2. Calculate new version from configuration/__init__.py
+    1. Preflight checks (clean working dir, on main branch, version sync)
+    2. Calculate new version from last git tag (NOT configuration/__init__.py)
     3. Update configuration/__init__.py and readme.md
     4. Commit version changes
     5. Regenerate changelog from git history (amend if changed)
@@ -24,9 +24,19 @@ Flow:
     7. Commit version_info.txt
     8. Update codebase context metrics artifacts
     9. Run pre-commit lint gate (auto-commit any formatter fixes)
-    10. Create final release commit "Release vX.Y.Z" (tag points here)
+    10. Create final release commit (tag points here)
     11. Create git tag
     12. Push everything to origin (main + tag)
+
+Version Source of Truth:
+    The current version is always read from the latest git tag (e.g. v2.15.2).
+    configuration/__init__.py is a WRITE TARGET only — release.py writes the
+    new version there, but never reads it as the base for bumping.
+
+    If a previous partial release wrote a bumped version to
+    configuration/__init__.py without completing (no tag), the preflight
+    check_version_sync() will detect the mismatch and refuse to continue,
+    printing recovery instructions.
 
 Note: bump_version.py is now deprecated. Use this script for releases.
 """
@@ -69,7 +79,34 @@ def run_command(cmd: list[str], description: str) -> tuple[bool, str]:
 
 
 def get_current_version() -> tuple[int, int, int]:
-    """Read current version from configuration/__init__.py."""
+    """Read current version from the last git tag (authoritative source).
+
+    Using the tag rather than configuration/__init__.py prevents partial
+    release runs from silently poisoning the base version: a failed run may
+    have already written the bumped number to the file, causing the next
+    invocation to skip a version.
+    """
+    result = subprocess.run(
+        ["git", "describe", "--tags", "--abbrev=0", "--match", "v*"],
+        capture_output=True,
+        text=True,
+        cwd=PROJECT_ROOT,
+    )
+    if result.returncode != 0:
+        raise ValueError(
+            "No version tags found. Cannot determine current version from git.\n"
+            "If this is the first release, create an initial tag: "
+            "git tag -a v0.1.0 -m 'Initial release'"
+        )
+    tag = result.stdout.strip().lstrip("v")
+    parts = tag.split(".")
+    if len(parts) != 3:
+        raise ValueError(f"Unexpected tag format: {result.stdout.strip()!r}")
+    return int(parts[0]), int(parts[1]), int(parts[2])
+
+
+def get_file_version() -> tuple[int, int, int]:
+    """Read version from configuration/__init__.py (write target only)."""
     config_file = PROJECT_ROOT / "configuration" / "__init__.py"
     content = config_file.read_text(encoding="utf-8")
 
@@ -78,6 +115,55 @@ def get_current_version() -> tuple[int, int, int]:
         raise ValueError("Could not find version in configuration/__init__.py")
 
     return int(match.group(1)), int(match.group(2)), int(match.group(3))
+
+
+def check_version_sync() -> bool:
+    """Verify configuration/__init__.py matches the last git tag.
+
+    A mismatch means a previous partial release wrote the bumped version to the
+    file but did not complete (create the tag).  Proceeding without this check
+    would skip a version number on the next run.
+
+    Returns:
+        True if versions are in sync, False otherwise.
+    """
+    print("\n  Checking version sync (file vs last tag)...")
+
+    try:
+        tag_version = get_current_version()
+        file_version = get_file_version()
+    except ValueError as e:
+        print(f"  [WARNING] Could not compare versions: {e}")
+        return True  # Can't check — allow release to proceed
+
+    tag_str = ".".join(str(v) for v in tag_version)
+    file_str = ".".join(str(v) for v in file_version)
+
+    if tag_version == file_version:
+        print(f"  [OK] File and last tag both at v{tag_str}")
+        return True
+
+    print("\n  VERSION MISMATCH DETECTED", file=sys.stderr)
+    print(f"  Last git tag : v{tag_str}", file=sys.stderr)
+    print(f"  File version : v{file_str}", file=sys.stderr)
+    print(
+        "\n  A previous partial release likely wrote the bumped version to",
+        file=sys.stderr,
+    )
+    print(
+        "  configuration/__init__.py without completing (no tag was created).",
+        file=sys.stderr,
+    )
+    print("\n  To restore and retry:", file=sys.stderr)
+    print(
+        "    git checkout HEAD -- configuration/__init__.py readme.md",
+        file=sys.stderr,
+    )
+    print(
+        "    python release.py patch --bead-id <bead-id>",
+        file=sys.stderr,
+    )
+    return False
 
 
 def calculate_new_version(
@@ -564,6 +650,9 @@ def main():
         sys.exit(1)
 
     if not check_git_status():
+        sys.exit(1)
+
+    if not check_version_sync():
         sys.exit(1)
 
     # Step 1: Bump version first (updates configuration/__init__.py)
