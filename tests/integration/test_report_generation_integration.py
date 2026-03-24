@@ -226,6 +226,28 @@ def test_report_chart_script_injection():
     assert "new Chart(ctx" in html
 
 
+def test_report_embedded_dependencies_not_escaped() -> None:
+    """Regression test: embedded CSS/JS dependencies must render as raw content."""
+    from data.report.renderer import render_template
+
+    html = render_template(
+        profile_name="Test",
+        query_name="Test",
+        time_period_weeks=4,
+        sections=["burndown"],
+        metrics=_get_empty_metrics(),
+        chart_script="",
+    )
+
+    # CSS/JS dependencies are trusted local assets and must not be entity-escaped.
+    assert '@charset "UTF-8"' in html
+    assert "@charset &#34;UTF-8&#34;" not in html
+    assert "[data-bs-theme='light']" in html
+    assert "[data-bs-theme=&#39;light&#39;]" not in html
+    assert "a > code" in html
+    assert "a &gt; code" not in html
+
+
 def test_report_date_formatting():
     """Test that dates are properly formatted in report."""
     from data.report.renderer import render_template
