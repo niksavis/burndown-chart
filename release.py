@@ -372,6 +372,73 @@ def update_codebase_metrics() -> bool:
     return True
 
 
+def detect_stale_changelog_header(
+    new_version: tuple[int, int, int],
+    last_tag_version: tuple[int, int, int],
+) -> bool:
+    """Detect a stale changelog header left by a previous partial release.
+
+    A stale header exists when changelog.md's first ## vX.Y.Z section is a
+    version BETWEEN the last released tag and the new version we are about
+    to create.  This happens when:
+      1. A previous release run bumped to vA.B.C and wrote that header.
+      2. That run failed before creating the tag.
+      3. git reset --hard restored the commits but left the file on disk.
+      4. The next run bumps to vA.B.D (skipping C) while the file shows vA.B.C.
+
+    Returns:
+        False (indicating a problem detected) when a stale header is found.
+        True (clean) otherwise.
+    """
+    changelog_path = PROJECT_ROOT / "changelog.md"
+    if not changelog_path.exists():
+        return True
+
+    content = changelog_path.read_text(encoding="utf-8")
+    first_match = re.search(r"^## v(\d+)\.(\d+)\.(\d+)", content, re.MULTILINE)
+    if not first_match:
+        return True  # No header — nothing to flag
+
+    first_header_version = (
+        int(first_match.group(1)),
+        int(first_match.group(2)),
+        int(first_match.group(3)),
+    )
+    first_header_str = (
+        f"v{first_match.group(1)}.{first_match.group(2)}.{first_match.group(3)}"
+    )
+    new_version_str = f"v{new_version[0]}.{new_version[1]}.{new_version[2]}"
+    last_tag_str = f"v{last_tag_version[0]}.{last_tag_version[1]}.{last_tag_version[2]}"
+
+    if last_tag_version < first_header_version < new_version:
+        print("\n  STALE CHANGELOG HEADER DETECTED", file=sys.stderr)
+        print(
+            f"  changelog.md top entry : {first_header_str}",
+            file=sys.stderr,
+        )
+        print(f"  Last released tag      : {last_tag_str}", file=sys.stderr)
+        print(f"  New version            : {new_version_str}", file=sys.stderr)
+        print(
+            "\n  A previous partial release wrote this header without completing.",
+            file=sys.stderr,
+        )
+        print("  To fix, rename the stale header to the new version:", file=sys.stderr)
+        print(
+            f"    (Get-Content changelog.md) -replace "
+            f"'^## {first_header_str}$', '## {new_version_str}' "
+            f"| Set-Content changelog.md",
+            file=sys.stderr,
+        )
+        print(
+            f"  Or edit changelog.md manually: change '## {first_header_str}'"
+            f" to '## {new_version_str}'",
+            file=sys.stderr,
+        )
+        return False
+
+    return True
+
+
 def bump_version(bump_type: str) -> tuple[bool, str]:
     """Bump version, update files, create tag, and regenerate changelog.
 
@@ -446,6 +513,10 @@ def bump_version(bump_type: str) -> tuple[bool, str]:
             print(
                 "[OK] Changelog already contains version section (skipped regeneration)"
             )
+
+        # Verify no stale header from a previous partial run was bundled
+        if not detect_stale_changelog_header(new_version, current):
+            return False, ""
 
         print(f"\n[OK] Version bumped to {new_version_str}")
         return True, new_version_str
