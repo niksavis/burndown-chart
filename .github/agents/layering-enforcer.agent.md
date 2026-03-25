@@ -1,9 +1,7 @@
 ---
 name: 'Layering Enforcer'
 description: 'Checks and enforces callbacks/data/ui/visualization boundaries'
-model:
-  - GPT-5.3-Codex
-  - Claude Sonnet 4.6
+model: Claude Sonnet 4.6
 tools:
   [
     'search/codebase',

@@ -1,9 +1,7 @@
 ---
 name: 'Refactor Execution'
 description: 'Executes behavior-preserving refactors with layered-architecture, security, and validation gates'
-model:
-  - Claude Sonnet 4.6
-  - GPT-5.3-Codex
+model: GPT-5.3-Codex
 tools:
   [
     'search/codebase',

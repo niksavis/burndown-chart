@@ -1,9 +1,7 @@
 ---
 name: 'Beast Mode Agnostic'
 description: 'High-autonomy execution agent for complex software tasks, optimized for high-context models without vendor-specific assumptions'
-model:
-  - Claude Sonnet 4.6
-  - GPT-5.3-Codex
+model: GPT-5.3-Codex
 tools:
   [
     'search/codebase',

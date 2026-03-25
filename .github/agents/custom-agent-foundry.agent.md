@@ -1,9 +1,7 @@
 ---
 name: 'Custom Agent Foundry'
 description: 'Designs and scaffolds high-quality custom agents with correct tool selection and workflow boundaries'
-model:
-  - GPT-5.3-Codex
-  - Claude Sonnet 4.6
+model: Claude Sonnet 4.6
 disable-model-invocation: true
 tools:
   [
@@ -12,10 +10,7 @@ tools:
     'search/usages',
     'search/changes',
     'edit/editFiles',
-    'execute/runInTerminal',
-    'execute/getTerminalOutput',
-    'read/terminalLastCommand',
-    'read/terminalSelection',
+    'read/problems',
     'web/fetch',
     'web/githubRepo',
     'vscode/extensions',

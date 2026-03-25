@@ -1,9 +1,7 @@
 ---
 name: 'Context7 Expert'
 description: 'Fetches current library documentation with version-aware guidance and upgrade-safe recommendations'
-model:
-  - GPT-5.3-Codex
-  - Claude Sonnet 4.6
+model: GPT-5.3-Codex
 tools:
   [
     'search/codebase',
@@ -11,6 +9,7 @@ tools:
     'search/usages',
     'edit/editFiles',
     'search/changes',
+    'read/problems',
     'web/fetch',
     'execute/runInTerminal',
     'execute/getTerminalOutput',
